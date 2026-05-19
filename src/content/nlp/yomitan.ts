@@ -30,6 +30,7 @@ import { getDB } from '../../shared/db';
 import type { DictPackRow, DictTermRow } from '../../shared/db';
 import type { DictionaryEntry } from '../../shared/types';
 import { lemmaCandidates } from './lemma';
+import { deletePackStats, recordPackInstall } from '../../shared/telemetry';
 
 /** Yomitan term_bank entry tuple. */
 export type YomitanTermTuple = [
@@ -186,6 +187,8 @@ export async function importYomitanPack(
     await db.dict_packs.put(pack);
   });
 
+  void recordPackInstall(id, pack.title);
+
   return { ok: true, pack, termsImported: termRows.length };
 }
 
@@ -261,6 +264,9 @@ export async function deleteYomitanPack(id: string): Promise<void> {
     await db.dict_terms.where('packId').equals(id).delete();
     await db.dict_packs.delete(id);
   });
+  // Drop any telemetry row so the coverage widget doesn't keep showing the
+  // pack as a phantom "0 hits" row. Best-effort.
+  void deletePackStats(id);
 }
 
 /** Toggle a pack's `enabled` flag without touching its terms. */

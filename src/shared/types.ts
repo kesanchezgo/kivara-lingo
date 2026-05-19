@@ -457,6 +457,20 @@ export interface OnboardingState {
   completedAt: number | null;
 }
 
+/**
+ * Local-only telemetry for dictionary-pack coverage. None of this leaves the
+ * device — it's persisted in IndexedDB so the user can see "this pack was
+ * used 532 times" without us shipping their lookup history anywhere.
+ *
+ * When `enabled` is false every `record*` helper in `telemetry.ts`
+ * short-circuits and existing rows stop being updated (but aren't deleted —
+ * the user can re-enable later and resume counting on top of the same row).
+ */
+export interface TelemetrySettings {
+  /** Master switch — when false every record* helper in telemetry.ts no-ops. */
+  enabled: boolean;
+}
+
 export interface DictionaryEntry {
   token: string;
   /**

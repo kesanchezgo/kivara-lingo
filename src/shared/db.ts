@@ -127,6 +127,26 @@ export interface DictTermRow {
   termTags?: string;
 }
 
+/**
+ * Local-only telemetry row for a dictionary pack (or one of the synthetic
+ * pseudo-packs `bundle` / `miss`). Keyed by the same `packId` Dexie uses for
+ * `dict_packs`, so a JOIN-ish lookup is just a `get(id)`.
+ *
+ * Three synthetic ids exist alongside real pack ids:
+ *  - `bundle`  → hits served by the in-extension `en.json` dictionary
+ *  - `remote`  → hits served by the network translator chain
+ *  - `miss`    → tokens that nothing could resolve (full miss)
+ *
+ * `hits` is best-effort — race-y increments only matter to the user when
+ * comparing packs against each other, and Dexie's `put()` is fine here.
+ */
+export interface PackStatsRow {
+  packId: string;
+  hits: number;
+  lastUsedAt: number;
+  createdAt: number;
+}
+
 class KivaraDB extends Dexie {
   saved_notes!: Table<SavedNoteRow, number>;
   pending_notes!: Table<PendingNoteRow, number>;
@@ -135,6 +155,7 @@ class KivaraDB extends Dexie {
   ai_cache!: Table<AiCacheRow, string>;
   dict_packs!: Table<DictPackRow, string>;
   dict_terms!: Table<DictTermRow, number>;
+  pack_stats!: Table<PackStatsRow, string>;
 
   constructor() {
     super('kivara-lingo');
@@ -164,6 +185,19 @@ class KivaraDB extends Dexie {
         // pack's terms and lookup-by-headword across all enabled packs.
         dict_packs: '&id, enabled, sourceLang, targetLang, createdAt',
         dict_terms: '++id, [packId+expression], expression, packId',
+      });
+    this.version(4)
+      .stores({
+        saved_notes: '++id, &[token+language+sentence], ankiNoteId, createdAt',
+        pending_notes: '++id, nextAttemptAt, createdAt',
+        translation_cache: '&key, [provider+sourceLang+targetLang], expiresAt',
+        media_cache: '&hash, kind, createdAt',
+        ai_cache: '&key, [provider+sourceLang+nativeLang], expiresAt',
+        dict_packs: '&id, enabled, sourceLang, targetLang, createdAt',
+        dict_terms: '++id, [packId+expression], expression, packId',
+        // Local-only telemetry. Keyed by string id (pack id, or one of the
+        // pseudo-ids 'bundle' / 'remote' / 'miss').
+        pack_stats: '&packId, lastUsedAt, createdAt',
       });
   }
 }

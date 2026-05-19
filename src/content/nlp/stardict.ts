@@ -18,6 +18,7 @@
 import { unzipSync, gunzipSync, strFromU8 } from 'fflate';
 import { getDB } from '../../shared/db';
 import type { DictPackRow, DictTermRow } from '../../shared/db';
+import { recordPackInstall } from '../../shared/telemetry';
 
 export interface StarDictImportResult {
   ok: true;
@@ -135,6 +136,8 @@ export async function importStarDictPack(
     }
     await db.dict_packs.put(pack);
   });
+
+  void recordPackInstall(id, pack.title);
 
   return { ok: true, pack, termsImported: termRows.length };
 }

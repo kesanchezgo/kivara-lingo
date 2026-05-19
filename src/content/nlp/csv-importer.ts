@@ -21,6 +21,7 @@
  */
 import { getDB } from '../../shared/db';
 import type { DictPackRow, DictTermRow } from '../../shared/db';
+import { recordPackInstall } from '../../shared/telemetry';
 
 /** Field order for a parsed CSV/TSV row. */
 type Field = 'word' | 'translation' | 'phonetic' | 'definition' | 'example';
@@ -272,6 +273,8 @@ export async function importCsvList(
     }
     await db.dict_packs.put(pack);
   });
+
+  void recordPackInstall(id, pack.title);
 
   return { ok: true, pack, termsImported: termRows.length, skipped };
 }

@@ -1,0 +1,3306 @@
+[
+  {
+    "token": "abstract",
+    "type": "word",
+    "level": "B2",
+    "translation": "resumen",
+    "phonetic": "/ˈæb.strækt/",
+    "monolingual": "A brief summary of a research article or thesis."
+  },
+  {
+    "token": "academia",
+    "type": "word",
+    "level": "B2",
+    "translation": "mundo académico",
+    "phonetic": "/ˌæk.əˈdiː.mi.ə/",
+    "monolingual": "The community of students and scholars engaged in higher education."
+  },
+  {
+    "token": "acclaim",
+    "type": "word",
+    "level": "B2",
+    "translation": "aclamación",
+    "phonetic": "/əˈkleɪm/",
+    "monolingual": "Enthusiastic and public praise."
+  },
+  {
+    "token": "accolade",
+    "type": "word",
+    "level": "C1",
+    "translation": "galardón",
+    "phonetic": "/ˈæk.ə.leɪd/",
+    "monolingual": "An award or privilege granted as a special honor."
+  },
+  {
+    "token": "adherence",
+    "type": "word",
+    "level": "C1",
+    "translation": "adhesión",
+    "phonetic": "/ədˈhɪr.əns/",
+    "monolingual": "Attachment or commitment to a person, cause, or belief."
+  },
+  {
+    "token": "algorithm",
+    "type": "word",
+    "level": "B2",
+    "translation": "algoritmo",
+    "phonetic": "/ˈæl.ɡə.rɪð.əm/",
+    "monolingual": "A set of rules to be followed in calculations or problem-solving."
+  },
+  {
+    "token": "allusion",
+    "type": "word",
+    "level": "C1",
+    "translation": "alusión",
+    "phonetic": "/əˈluː.ʒən/",
+    "monolingual": "An indirect reference to something."
+  },
+  {
+    "token": "ambiguity",
+    "type": "word",
+    "level": "B2",
+    "translation": "ambigüedad",
+    "phonetic": "/ˌæm.bɪˈɡjuː.ə.t̬i/",
+    "monolingual": "The quality of being open to more than one interpretation."
+  },
+  {
+    "token": "analogue",
+    "type": "word",
+    "level": "C1",
+    "translation": "análogo",
+    "phonetic": "/ˈæn.ə.lɒɡ/",
+    "monolingual": "A person or thing seen as comparable to another."
+  },
+  {
+    "token": "analogy",
+    "type": "word",
+    "level": "B2",
+    "translation": "analogía",
+    "phonetic": "/əˈnæl.ə.dʒi/",
+    "monolingual": "A comparison between two things for the purpose of explanation."
+  },
+  {
+    "token": "analysis",
+    "type": "word",
+    "level": "B2",
+    "translation": "análisis",
+    "phonetic": "/əˈnæl.ə.sɪs/",
+    "monolingual": "A detailed examination of the elements or structure of something."
+  },
+  {
+    "token": "analytical",
+    "type": "word",
+    "level": "B2",
+    "translation": "analítico",
+    "phonetic": "/ˌæn.əlˈɪt̬.ɪ.kəl/",
+    "monolingual": "Relating to or using analysis or logical reasoning."
+  },
+  {
+    "token": "analyze",
+    "type": "word",
+    "level": "B2",
+    "translation": "analizar",
+    "phonetic": "/ˈæn.əl.aɪz/",
+    "monolingual": "To examine in detail to explain or interpret."
+  },
+  {
+    "token": "anecdotal",
+    "type": "word",
+    "level": "C1",
+    "translation": "anecdótico",
+    "phonetic": "/ˌæn.ɪkˈdoʊ.t̬əl/",
+    "monolingual": "Based on personal accounts rather than research."
+  },
+  {
+    "token": "anomaly",
+    "type": "word",
+    "level": "B2",
+    "translation": "anomalía",
+    "phonetic": "/əˈnɒm.ə.li/",
+    "monolingual": "Something that deviates from what is standard or expected."
+  },
+  {
+    "token": "anthology",
+    "type": "word",
+    "level": "B2",
+    "translation": "antología",
+    "phonetic": "/ænˈθɒl.ə.dʒi/",
+    "monolingual": "A published collection of poems or other writings."
+  },
+  {
+    "token": "antithesis",
+    "type": "word",
+    "level": "C1",
+    "translation": "antítesis",
+    "phonetic": "/ænˈtɪθ.ə.sɪs/",
+    "monolingual": "A person or thing that is the direct opposite of something else."
+  },
+  {
+    "token": "applicability",
+    "type": "word",
+    "level": "B2",
+    "translation": "aplicabilidad",
+    "phonetic": "/ˌæp.lɪ.kəˈbɪl.ə.t̬i/",
+    "monolingual": "The quality of being able to be applied to a particular situation."
+  },
+  {
+    "token": "articulate",
+    "type": "word",
+    "level": "B2",
+    "translation": "articular",
+    "phonetic": "/ɑːrˈtɪk.jə.leɪt/",
+    "monolingual": "To express thoughts clearly in words."
+  },
+  {
+    "token": "ascertain",
+    "type": "word",
+    "level": "C1",
+    "translation": "determinar",
+    "phonetic": "/ˌæs.ərˈteɪn/",
+    "monolingual": "To find out for certain; make sure of."
+  },
+  {
+    "token": "assertion",
+    "type": "word",
+    "level": "B2",
+    "translation": "afirmación",
+    "phonetic": "/əˈsɝː.ʃən/",
+    "monolingual": "A confident and forceful statement of fact or belief."
+  },
+  {
+    "token": "assessment",
+    "type": "word",
+    "level": "B2",
+    "translation": "evaluación",
+    "phonetic": "/əˈses.mənt/",
+    "monolingual": "The action of assessing someone or something."
+  },
+  {
+    "token": "assume",
+    "type": "word",
+    "level": "B2",
+    "translation": "asumir",
+    "phonetic": "/əˈsuːm/",
+    "monolingual": "To suppose to be the case, without proof."
+  },
+  {
+    "token": "assumption",
+    "type": "word",
+    "level": "B2",
+    "translation": "suposición",
+    "phonetic": "/əˈsʌmp.ʃən/",
+    "monolingual": "A thing that is accepted as true without proof."
+  },
+  {
+    "token": "attribute",
+    "type": "word",
+    "level": "B2",
+    "translation": "atribuir",
+    "phonetic": "/əˈtrɪb.juːt/",
+    "monolingual": "To regard something as being caused by."
+  },
+  {
+    "token": "authoritative",
+    "type": "word",
+    "level": "B2",
+    "translation": "autorizado",
+    "phonetic": "/əˈθɔːr.ə.t̬ə.t̬ɪv/",
+    "monolingual": "Considered reliable because of expert knowledge."
+  },
+  {
+    "token": "autonomous",
+    "type": "word",
+    "level": "C1",
+    "translation": "autónomo",
+    "phonetic": "/ɔːˈtɒn.ə.məs/",
+    "monolingual": "Having the freedom to act independently."
+  },
+  {
+    "token": "axiom",
+    "type": "word",
+    "level": "C1",
+    "translation": "axioma",
+    "phonetic": "/ˈæk.si.əm/",
+    "monolingual": "A statement regarded as established or self-evident."
+  },
+  {
+    "token": "benchmark",
+    "type": "word",
+    "level": "B2",
+    "translation": "punto de referencia",
+    "phonetic": "/ˈbentʃ.mɑːrk/",
+    "monolingual": "A standard against which others can be compared."
+  },
+  {
+    "token": "bibliography",
+    "type": "word",
+    "level": "B2",
+    "translation": "bibliografía",
+    "phonetic": "/ˌbɪb.liˈɑː.ɡrə.fi/",
+    "monolingual": "A list of writings on a particular subject or by a particular author."
+  },
+  {
+    "token": "biological",
+    "type": "word",
+    "level": "B2",
+    "translation": "biológico",
+    "phonetic": "/ˌbaɪ.əˈlɒdʒ.ɪ.kəl/",
+    "monolingual": "Relating to biology or living organisms."
+  },
+  {
+    "token": "biome",
+    "type": "word",
+    "level": "C1",
+    "translation": "bioma",
+    "phonetic": "/ˈbaɪ.oʊm/",
+    "monolingual": "A large naturally occurring community of plants and animals."
+  },
+  {
+    "token": "breakthrough",
+    "type": "word",
+    "level": "B2",
+    "translation": "avance",
+    "phonetic": "/ˈbreɪk.θruː/",
+    "monolingual": "A significant development or discovery."
+  },
+  {
+    "token": "broaden",
+    "type": "word",
+    "level": "B2",
+    "translation": "ampliar",
+    "phonetic": "/ˈbrɔː.dən/",
+    "monolingual": "To become or make wider."
+  },
+  {
+    "token": "calibration",
+    "type": "word",
+    "level": "C1",
+    "translation": "calibración",
+    "phonetic": "/ˌkæl.ɪˈbreɪ.ʃən/",
+    "monolingual": "The action of adjusting an instrument for accurate measurement."
+  },
+  {
+    "token": "catalyst",
+    "type": "word",
+    "level": "B2",
+    "translation": "catalizador",
+    "phonetic": "/ˈkæt.əl.ɪst/",
+    "monolingual": "A substance that increases the rate of a chemical reaction."
+  },
+  {
+    "token": "causation",
+    "type": "word",
+    "level": "C1",
+    "translation": "causalidad",
+    "phonetic": "/kɔːˈzeɪ.ʃən/",
+    "monolingual": "The action of causing something."
+  },
+  {
+    "token": "chronology",
+    "type": "word",
+    "level": "B2",
+    "translation": "cronología",
+    "phonetic": "/krəˈnɒl.ə.dʒi/",
+    "monolingual": "The arrangement of events in the order they occurred."
+  },
+  {
+    "token": "citation",
+    "type": "word",
+    "level": "B2",
+    "translation": "cita",
+    "phonetic": "/saɪˈteɪ.ʃən/",
+    "monolingual": "A reference to a published or unpublished source."
+  },
+  {
+    "token": "classify",
+    "type": "word",
+    "level": "B2",
+    "translation": "clasificar",
+    "phonetic": "/ˈklæs.ə.faɪ/",
+    "monolingual": "To arrange in classes or categories."
+  },
+  {
+    "token": "coefficient",
+    "type": "word",
+    "level": "C1",
+    "translation": "coeficiente",
+    "phonetic": "/ˌkoʊ.əˈfɪʃ.ənt/",
+    "monolingual": "A numerical or constant quantity multiplying a variable."
+  },
+  {
+    "token": "coherence",
+    "type": "word",
+    "level": "B2",
+    "translation": "coherencia",
+    "phonetic": "/koʊˈhɪr.əns/",
+    "monolingual": "The quality of being logical and consistent."
+  },
+  {
+    "token": "coherent",
+    "type": "word",
+    "level": "B2",
+    "translation": "coherente",
+    "phonetic": "/koʊˈhɪr.ənt/",
+    "monolingual": "Logical and consistent."
+  },
+  {
+    "token": "cohort",
+    "type": "word",
+    "level": "C1",
+    "translation": "cohorte",
+    "phonetic": "/ˈkoʊ.hɔːrt/",
+    "monolingual": "A group of people having a shared characteristic in research."
+  },
+  {
+    "token": "commentary",
+    "type": "word",
+    "level": "B2",
+    "translation": "comentario",
+    "phonetic": "/ˈkɒm.ən.ter.i/",
+    "monolingual": "An expression of opinions or explanations."
+  },
+  {
+    "token": "compatibility",
+    "type": "word",
+    "level": "B2",
+    "translation": "compatibilidad",
+    "phonetic": "/kəmˌpæt.əˈbɪl.ə.t̬i/",
+    "monolingual": "The state of being able to coexist or work together."
+  },
+  {
+    "token": "compelling",
+    "type": "word",
+    "level": "B2",
+    "translation": "convincente",
+    "phonetic": "/kəmˈpel.ɪŋ/",
+    "monolingual": "Evoking interest or attention; convincing."
+  },
+  {
+    "token": "complement",
+    "type": "word",
+    "level": "B2",
+    "translation": "complemento",
+    "phonetic": "/ˈkɒm.plə.mənt/",
+    "monolingual": "A thing that contributes to or completes something else."
+  },
+  {
+    "token": "complexity",
+    "type": "word",
+    "level": "B2",
+    "translation": "complejidad",
+    "phonetic": "/kəmˈplek.sə.t̬i/",
+    "monolingual": "The state of being complex."
+  },
+  {
+    "token": "comprehensive",
+    "type": "word",
+    "level": "B2",
+    "translation": "exhaustivo",
+    "phonetic": "/ˌkɒm.prɪˈhen.sɪv/",
+    "monolingual": "Complete and including everything that is necessary."
+  },
+  {
+    "token": "comprise",
+    "type": "word",
+    "level": "B2",
+    "translation": "comprender",
+    "phonetic": "/kəmˈpraɪz/",
+    "monolingual": "To consist of or be composed of."
+  },
+  {
+    "token": "conceive",
+    "type": "word",
+    "level": "B2",
+    "translation": "concebir",
+    "phonetic": "/kənˈsiːv/",
+    "monolingual": "To form an idea or plan in the mind."
+  },
+  {
+    "token": "conceptual",
+    "type": "word",
+    "level": "B2",
+    "translation": "conceptual",
+    "phonetic": "/kənˈsep.tʃu.əl/",
+    "monolingual": "Relating to or based on mental concepts."
+  },
+  {
+    "token": "conclude",
+    "type": "word",
+    "level": "B2",
+    "translation": "concluir",
+    "phonetic": "/kənˈkluːd/",
+    "monolingual": "To arrive at a judgment or opinion by reasoning."
+  },
+  {
+    "token": "conclusion",
+    "type": "word",
+    "level": "B2",
+    "translation": "conclusión",
+    "phonetic": "/kənˈkluː.ʒən/",
+    "monolingual": "A judgment or decision reached by reasoning."
+  },
+  {
+    "token": "concur",
+    "type": "word",
+    "level": "C1",
+    "translation": "concurrir",
+    "phonetic": "/kənˈkɝː/",
+    "monolingual": "To agree with someone or something."
+  },
+  {
+    "token": "condense",
+    "type": "word",
+    "level": "B2",
+    "translation": "condensar",
+    "phonetic": "/kənˈdens/",
+    "monolingual": "To make something denser or more concise."
+  },
+  {
+    "token": "configuration",
+    "type": "word",
+    "level": "B2",
+    "translation": "configuración",
+    "phonetic": "/kənˌfɪɡ.jəˈreɪ.ʃən/",
+    "monolingual": "An arrangement of elements in a particular form."
+  },
+  {
+    "token": "confirmation",
+    "type": "word",
+    "level": "B2",
+    "translation": "confirmación",
+    "phonetic": "/ˌkɒn.fərˈmeɪ.ʃən/",
+    "monolingual": "The action of confirming something."
+  },
+  {
+    "token": "conform",
+    "type": "word",
+    "level": "B2",
+    "translation": "conformarse",
+    "phonetic": "/kənˈfɔːrm/",
+    "monolingual": "To act in accordance with prevailing standards."
+  },
+  {
+    "token": "conjecture",
+    "type": "word",
+    "level": "C1",
+    "translation": "conjetura",
+    "phonetic": "/kənˈdʒek.tʃɚ/",
+    "monolingual": "An opinion or conclusion formed on incomplete information."
+  },
+  {
+    "token": "connotation",
+    "type": "word",
+    "level": "C1",
+    "translation": "connotación",
+    "phonetic": "/ˌkɑː.nəˈteɪ.ʃən/",
+    "monolingual": "An idea or feeling that a word invokes beyond its primary meaning."
+  },
+  {
+    "token": "consensus",
+    "type": "word",
+    "level": "B2",
+    "translation": "consenso",
+    "phonetic": "/kənˈsen.səs/",
+    "monolingual": "A general agreement."
+  },
+  {
+    "token": "consequent",
+    "type": "word",
+    "level": "B2",
+    "translation": "consecuente",
+    "phonetic": "/ˈkɒn.sɪ.kwənt/",
+    "monolingual": "Following as a result or effect."
+  },
+  {
+    "token": "consider",
+    "type": "word",
+    "level": "B2",
+    "translation": "considerar",
+    "phonetic": "/kənˈsɪd.ər/",
+    "monolingual": "To think carefully about, typically before making a decision."
+  },
+  {
+    "token": "consistent",
+    "type": "word",
+    "level": "B2",
+    "translation": "coherente",
+    "phonetic": "/kənˈsɪs.tənt/",
+    "monolingual": "Acting or done in the same way over time."
+  },
+  {
+    "token": "constitute",
+    "type": "word",
+    "level": "B2",
+    "translation": "constituir",
+    "phonetic": "/ˈkɒn.stɪ.tjuːt/",
+    "monolingual": "To be a part of a whole."
+  },
+  {
+    "token": "construct",
+    "type": "word",
+    "level": "B2",
+    "translation": "construir",
+    "phonetic": "/kənˈstrʌkt/",
+    "monolingual": "To build or form something by putting together parts."
+  },
+  {
+    "token": "consult",
+    "type": "word",
+    "level": "B2",
+    "translation": "consultar",
+    "phonetic": "/kənˈsʌlt/",
+    "monolingual": "To seek information or advice from."
+  },
+  {
+    "token": "contemporary",
+    "type": "word",
+    "level": "B2",
+    "translation": "contemporáneo",
+    "phonetic": "/kənˈtem.pə.rer.i/",
+    "monolingual": "Living or occurring at the same time, or modern."
+  },
+  {
+    "token": "content",
+    "type": "word",
+    "level": "B2",
+    "translation": "contenido",
+    "phonetic": "/ˈkɒn.tent/",
+    "monolingual": "The things contained in something; subject matter."
+  },
+  {
+    "token": "context",
+    "type": "word",
+    "level": "B2",
+    "translation": "contexto",
+    "phonetic": "/ˈkɒn.tekst/",
+    "monolingual": "The circumstances forming the setting for an event."
+  },
+  {
+    "token": "contingent",
+    "type": "word",
+    "level": "C1",
+    "translation": "contingente",
+    "phonetic": "/kənˈtɪn.dʒənt/",
+    "monolingual": "Dependent on certain circumstances."
+  },
+  {
+    "token": "continuum",
+    "type": "word",
+    "level": "C1",
+    "translation": "continuo",
+    "phonetic": "/kənˈtɪn.ju.əm/",
+    "monolingual": "A continuous sequence in which adjacent elements are very similar."
+  },
+  {
+    "token": "contradict",
+    "type": "word",
+    "level": "B2",
+    "translation": "contradecir",
+    "phonetic": "/ˌkɒn.trəˈdɪkt/",
+    "monolingual": "To deny the truth of a statement by asserting the opposite."
+  },
+  {
+    "token": "contrary",
+    "type": "word",
+    "level": "B2",
+    "translation": "contrario",
+    "phonetic": "/ˈkɒn.trer.i/",
+    "monolingual": "Opposite in nature, direction, or meaning."
+  },
+  {
+    "token": "contrast",
+    "type": "word",
+    "level": "B2",
+    "translation": "contrastar",
+    "phonetic": "/kənˈtræst/",
+    "monolingual": "To compare in such a way as to show the differences."
+  },
+  {
+    "token": "contribution",
+    "type": "word",
+    "level": "B2",
+    "translation": "contribución",
+    "phonetic": "/ˌkɒn.trɪˈbjuː.ʃən/",
+    "monolingual": "The part played by a person or thing in bringing about a result."
+  },
+  {
+    "token": "controversy",
+    "type": "word",
+    "level": "B2",
+    "translation": "controversia",
+    "phonetic": "/ˈkɒn.trə.vɝː.si/",
+    "monolingual": "Disagreement on a matter of opinion."
+  },
+  {
+    "token": "conundrum",
+    "type": "word",
+    "level": "C1",
+    "translation": "enigma",
+    "phonetic": "/kəˈnʌn.drəm/",
+    "monolingual": "A confusing and difficult problem or question."
+  },
+  {
+    "token": "convergence",
+    "type": "word",
+    "level": "C1",
+    "translation": "convergencia",
+    "phonetic": "/kənˈvɝː.dʒəns/",
+    "monolingual": "The process or state of converging."
+  },
+  {
+    "token": "converse",
+    "type": "word",
+    "level": "B2",
+    "translation": "conversar",
+    "phonetic": "/kənˈvɝːs/",
+    "monolingual": "To engage in conversation, or the opposite of a statement."
+  },
+  {
+    "token": "conviction",
+    "type": "word",
+    "level": "B2",
+    "translation": "convicción",
+    "phonetic": "/kənˈvɪk.ʃən/",
+    "monolingual": "A firmly held belief or opinion."
+  },
+  {
+    "token": "corollary",
+    "type": "word",
+    "level": "C1",
+    "translation": "corolario",
+    "phonetic": "/ˈkɒr.ə.ler.i/",
+    "monolingual": "A proposition that follows from one already proved."
+  },
+  {
+    "token": "correspond",
+    "type": "word",
+    "level": "B2",
+    "translation": "corresponder",
+    "phonetic": "/ˌkɒr.əˈspɒnd/",
+    "monolingual": "To have a close similarity; match or agree almost exactly."
+  },
+  {
+    "token": "counterargument",
+    "type": "word",
+    "level": "C1",
+    "translation": "contraargumento",
+    "phonetic": "/ˈkaʊn.t̬ɚˌɑːrɡ.jə.mənt/",
+    "monolingual": "An argument used to oppose another argument."
+  },
+  {
+    "token": "credible",
+    "type": "word",
+    "level": "B2",
+    "translation": "creíble",
+    "phonetic": "/ˈkred.ə.bəl/",
+    "monolingual": "Able to be believed; convincing."
+  },
+  {
+    "token": "criteria",
+    "type": "word",
+    "level": "B2",
+    "translation": "criterios",
+    "phonetic": "/kraɪˈtɪr.i.ə/",
+    "monolingual": "Standards by which something is judged or decided."
+  },
+  {
+    "token": "critique",
+    "type": "word",
+    "level": "B2",
+    "translation": "crítica",
+    "phonetic": "/krɪˈtiːk/",
+    "monolingual": "A detailed analysis and assessment."
+  },
+  {
+    "token": "culminate",
+    "type": "word",
+    "level": "B2",
+    "translation": "culminar",
+    "phonetic": "/ˈkʌl.mə.neɪt/",
+    "monolingual": "To reach a climax or point of highest development."
+  },
+  {
+    "token": "data",
+    "type": "word",
+    "level": "B2",
+    "translation": "datos",
+    "phonetic": "/ˈdeɪ.t̬ə/",
+    "monolingual": "Facts and statistics collected together for reference or analysis."
+  },
+  {
+    "token": "database",
+    "type": "word",
+    "level": "B2",
+    "translation": "base de datos",
+    "phonetic": "/ˈdeɪ.t̬əˌbeɪs/",
+    "monolingual": "A structured set of data held in a computer."
+  },
+  {
+    "token": "deduce",
+    "type": "word",
+    "level": "B2",
+    "translation": "deducir",
+    "phonetic": "/dɪˈduːs/",
+    "monolingual": "To arrive at a fact or conclusion by reasoning."
+  },
+  {
+    "token": "deduction",
+    "type": "word",
+    "level": "B2",
+    "translation": "deducción",
+    "phonetic": "/dɪˈdʌk.ʃən/",
+    "monolingual": "The inference of particular instances from a general law."
+  },
+  {
+    "token": "defective",
+    "type": "word",
+    "level": "B2",
+    "translation": "defectuoso",
+    "phonetic": "/dɪˈfek.tɪv/",
+    "monolingual": "Imperfect or faulty."
+  },
+  {
+    "token": "defer",
+    "type": "word",
+    "level": "C1",
+    "translation": "posponer",
+    "phonetic": "/dɪˈfɝː/",
+    "monolingual": "To put off to a later time."
+  },
+  {
+    "token": "deficient",
+    "type": "word",
+    "level": "B2",
+    "translation": "deficiente",
+    "phonetic": "/dɪˈfɪʃ.ənt/",
+    "monolingual": "Not having enough of a specified quality or ingredient."
+  },
+  {
+    "token": "definitive",
+    "type": "word",
+    "level": "B2",
+    "translation": "definitivo",
+    "phonetic": "/dɪˈfɪn.ə.t̬ɪv/",
+    "monolingual": "Most authoritative and complete."
+  },
+  {
+    "token": "deliberate",
+    "type": "word",
+    "level": "B2",
+    "translation": "deliberado",
+    "phonetic": "/dɪˈlɪb.ɚ.ət/",
+    "monolingual": "Done consciously and intentionally."
+  },
+  {
+    "token": "delineate",
+    "type": "word",
+    "level": "C1",
+    "translation": "delinear",
+    "phonetic": "/dɪˈlɪn.i.eɪt/",
+    "monolingual": "To describe or portray something precisely."
+  },
+  {
+    "token": "demonstrate",
+    "type": "word",
+    "level": "B2",
+    "translation": "demostrar",
+    "phonetic": "/ˈdem.ən.streɪt/",
+    "monolingual": "To clearly show the existence or truth of something."
+  },
+  {
+    "token": "denote",
+    "type": "word",
+    "level": "C1",
+    "translation": "denotar",
+    "phonetic": "/dɪˈnoʊt/",
+    "monolingual": "To be a sign of; indicate."
+  },
+  {
+    "token": "derive",
+    "type": "word",
+    "level": "B2",
+    "translation": "derivar",
+    "phonetic": "/dɪˈraɪv/",
+    "monolingual": "To obtain something from a specified source."
+  },
+  {
+    "token": "descriptive",
+    "type": "word",
+    "level": "B2",
+    "translation": "descriptivo",
+    "phonetic": "/dɪˈskrɪp.tɪv/",
+    "monolingual": "Serving to describe."
+  },
+  {
+    "token": "designate",
+    "type": "word",
+    "level": "B2",
+    "translation": "designar",
+    "phonetic": "/ˈdez.ɪɡ.neɪt/",
+    "monolingual": "To appoint someone to a specified office or position."
+  },
+  {
+    "token": "detect",
+    "type": "word",
+    "level": "B2",
+    "translation": "detectar",
+    "phonetic": "/dɪˈtekt/",
+    "monolingual": "To discover or identify the presence of something."
+  },
+  {
+    "token": "determine",
+    "type": "word",
+    "level": "B2",
+    "translation": "determinar",
+    "phonetic": "/dɪˈtɝː.mən/",
+    "monolingual": "To cause something to occur in a particular way."
+  },
+  {
+    "token": "deviation",
+    "type": "word",
+    "level": "B2",
+    "translation": "desviación",
+    "phonetic": "/ˌdiː.viˈeɪ.ʃən/",
+    "monolingual": "The action of departing from an established course."
+  },
+  {
+    "token": "devise",
+    "type": "word",
+    "level": "B2",
+    "translation": "idear",
+    "phonetic": "/dɪˈvaɪz/",
+    "monolingual": "To plan or invent a complex procedure or system."
+  },
+  {
+    "token": "diagnose",
+    "type": "word",
+    "level": "B2",
+    "translation": "diagnosticar",
+    "phonetic": "/ˈdaɪ.əɡ.noʊs/",
+    "monolingual": "To identify the nature of an illness or problem."
+  },
+  {
+    "token": "diagram",
+    "type": "word",
+    "level": "B2",
+    "translation": "diagrama",
+    "phonetic": "/ˈdaɪ.ə.ɡræm/",
+    "monolingual": "A simplified drawing showing the appearance or operation of something."
+  },
+  {
+    "token": "dialectic",
+    "type": "word",
+    "level": "C1",
+    "translation": "dialéctica",
+    "phonetic": "/ˌdaɪ.əˈlek.tɪk/",
+    "monolingual": "The investigation of the truth of opinions by discussion."
+  },
+  {
+    "token": "differential",
+    "type": "word",
+    "level": "B2",
+    "translation": "diferencial",
+    "phonetic": "/ˌdɪf.əˈren.ʃəl/",
+    "monolingual": "Constituting a difference between certain things."
+  },
+  {
+    "token": "diffuse",
+    "type": "word",
+    "level": "C1",
+    "translation": "difundir",
+    "phonetic": "/dɪˈfjuːz/",
+    "monolingual": "To spread over a wide area or among many people."
+  },
+  {
+    "token": "dimension",
+    "type": "word",
+    "level": "B2",
+    "translation": "dimensión",
+    "phonetic": "/dɪˈmen.ʃən/",
+    "monolingual": "A measurable extent of some kind such as length or breadth."
+  },
+  {
+    "token": "discern",
+    "type": "word",
+    "level": "C1",
+    "translation": "discernir",
+    "phonetic": "/dɪˈsɝːn/",
+    "monolingual": "To perceive or recognize something."
+  },
+  {
+    "token": "discipline",
+    "type": "word",
+    "level": "B2",
+    "translation": "disciplina",
+    "phonetic": "/ˈdɪs.ə.plɪn/",
+    "monolingual": "A branch of knowledge taught and researched at higher education."
+  },
+  {
+    "token": "disclaimer",
+    "type": "word",
+    "level": "C1",
+    "translation": "descargo",
+    "phonetic": "/dɪˈskleɪ.mɚ/",
+    "monolingual": "A statement that denies responsibility."
+  },
+  {
+    "token": "discourse",
+    "type": "word",
+    "level": "B2",
+    "translation": "discurso",
+    "phonetic": "/ˈdɪs.kɔːrs/",
+    "monolingual": "Written or spoken communication or debate."
+  },
+  {
+    "token": "disparity",
+    "type": "word",
+    "level": "C1",
+    "translation": "disparidad",
+    "phonetic": "/dɪˈsper.ə.t̬i/",
+    "monolingual": "A great difference between things."
+  },
+  {
+    "token": "disprove",
+    "type": "word",
+    "level": "B2",
+    "translation": "refutar",
+    "phonetic": "/dɪˈspruːv/",
+    "monolingual": "To prove that something is not true."
+  },
+  {
+    "token": "dissect",
+    "type": "word",
+    "level": "C1",
+    "translation": "disecar",
+    "phonetic": "/dɪˈsekt/",
+    "monolingual": "To examine in detail by separating into parts."
+  },
+  {
+    "token": "dissemination",
+    "type": "word",
+    "level": "C1",
+    "translation": "difusión",
+    "phonetic": "/dɪˌsem.əˈneɪ.ʃən/",
+    "monolingual": "The act of spreading something widely."
+  },
+  {
+    "token": "dissertation",
+    "type": "word",
+    "level": "B2",
+    "translation": "tesis",
+    "phonetic": "/ˌdɪs.ərˈteɪ.ʃən/",
+    "monolingual": "A long essay on a particular subject for a degree."
+  },
+  {
+    "token": "distort",
+    "type": "word",
+    "level": "B2",
+    "translation": "distorsionar",
+    "phonetic": "/dɪˈstɔːrt/",
+    "monolingual": "To pull or twist out of shape, or give a misleading account."
+  },
+  {
+    "token": "diverge",
+    "type": "word",
+    "level": "C1",
+    "translation": "divergir",
+    "phonetic": "/dɪˈvɝːdʒ/",
+    "monolingual": "To extend in a different direction from a common point."
+  },
+  {
+    "token": "diversity",
+    "type": "word",
+    "level": "B2",
+    "translation": "diversidad",
+    "phonetic": "/daɪˈvɝː.sə.t̬i/",
+    "monolingual": "The state of being diverse; variety."
+  },
+  {
+    "token": "doctoral",
+    "type": "word",
+    "level": "B2",
+    "translation": "doctoral",
+    "phonetic": "/ˈdɒk.tɚ.əl/",
+    "monolingual": "Relating to a doctorate degree."
+  },
+  {
+    "token": "domain",
+    "type": "word",
+    "level": "B2",
+    "translation": "dominio",
+    "phonetic": "/doʊˈmeɪn/",
+    "monolingual": "An area of territory or sphere of activity."
+  },
+  {
+    "token": "draft",
+    "type": "word",
+    "level": "B2",
+    "translation": "borrador",
+    "phonetic": "/dræft/",
+    "monolingual": "A preliminary version of a piece of writing."
+  },
+  {
+    "token": "duality",
+    "type": "word",
+    "level": "C1",
+    "translation": "dualidad",
+    "phonetic": "/duːˈæl.ə.t̬i/",
+    "monolingual": "The quality or condition of being dual."
+  },
+  {
+    "token": "duration",
+    "type": "word",
+    "level": "B2",
+    "translation": "duración",
+    "phonetic": "/dʊˈreɪ.ʃən/",
+    "monolingual": "The time during which something continues."
+  },
+  {
+    "token": "dynamics",
+    "type": "word",
+    "level": "B2",
+    "translation": "dinámicas",
+    "phonetic": "/daɪˈnæm.ɪks/",
+    "monolingual": "The forces or processes producing change."
+  },
+  {
+    "token": "econometrics",
+    "type": "word",
+    "level": "C1",
+    "translation": "econometría",
+    "phonetic": "/ɪˌkɒn.əˈmet.rɪks/",
+    "monolingual": "The application of statistical methods to economic data."
+  },
+  {
+    "token": "ecosystem",
+    "type": "word",
+    "level": "B2",
+    "translation": "ecosistema",
+    "phonetic": "/ˈiː.koʊˌsɪs.təm/",
+    "monolingual": "A biological community of interacting organisms and environment."
+  },
+  {
+    "token": "edition",
+    "type": "word",
+    "level": "B2",
+    "translation": "edición",
+    "phonetic": "/ɪˈdɪʃ.ən/",
+    "monolingual": "A particular form or version of a published text."
+  },
+  {
+    "token": "editor",
+    "type": "word",
+    "level": "B2",
+    "translation": "editor",
+    "phonetic": "/ˈed.ɪ.t̬ɚ/",
+    "monolingual": "A person who is in charge of a publication."
+  },
+  {
+    "token": "educate",
+    "type": "word",
+    "level": "B2",
+    "translation": "educar",
+    "phonetic": "/ˈedʒ.ə.keɪt/",
+    "monolingual": "To give intellectual, moral, and social instruction to."
+  },
+  {
+    "token": "elaborate",
+    "type": "word",
+    "level": "B2",
+    "translation": "elaborar",
+    "phonetic": "/ɪˈlæb.ə.reɪt/",
+    "monolingual": "To develop or present in detail."
+  },
+  {
+    "token": "elucidate",
+    "type": "word",
+    "level": "C1",
+    "translation": "dilucidar",
+    "phonetic": "/ɪˈluː.sə.deɪt/",
+    "monolingual": "To make something clear by explaining it."
+  },
+  {
+    "token": "embody",
+    "type": "word",
+    "level": "B2",
+    "translation": "encarnar",
+    "phonetic": "/ɪmˈbɒd.i/",
+    "monolingual": "To give a tangible form to an abstract idea."
+  },
+  {
+    "token": "emerge",
+    "type": "word",
+    "level": "B2",
+    "translation": "surgir",
+    "phonetic": "/ɪˈmɝːdʒ/",
+    "monolingual": "To move out of or come to be seen from."
+  },
+  {
+    "token": "emergent",
+    "type": "word",
+    "level": "C1",
+    "translation": "emergente",
+    "phonetic": "/ɪˈmɝː.dʒənt/",
+    "monolingual": "In the process of coming into being or prominence."
+  },
+  {
+    "token": "empirical",
+    "type": "word",
+    "level": "B2",
+    "translation": "empírico",
+    "phonetic": "/ɪmˈpɪr.ɪ.kəl/",
+    "monolingual": "Based on observation or experience rather than theory."
+  },
+  {
+    "token": "emulate",
+    "type": "word",
+    "level": "B2",
+    "translation": "emular",
+    "phonetic": "/ˈem.jə.leɪt/",
+    "monolingual": "To match or surpass by imitation."
+  },
+  {
+    "token": "encompass",
+    "type": "word",
+    "level": "B2",
+    "translation": "abarcar",
+    "phonetic": "/ɪnˈkʌm.pəs/",
+    "monolingual": "To include comprehensively."
+  },
+  {
+    "token": "endeavour",
+    "type": "word",
+    "level": "B2",
+    "translation": "esfuerzo",
+    "phonetic": "/ɪnˈdev.ɚ/",
+    "monolingual": "An attempt to achieve a goal."
+  },
+  {
+    "token": "enrichment",
+    "type": "word",
+    "level": "B2",
+    "translation": "enriquecimiento",
+    "phonetic": "/ɪnˈrɪtʃ.mənt/",
+    "monolingual": "The action of improving the quality or value of something."
+  },
+  {
+    "token": "entail",
+    "type": "word",
+    "level": "B2",
+    "translation": "conllevar",
+    "phonetic": "/ɪnˈteɪl/",
+    "monolingual": "To involve as a necessary consequence."
+  },
+  {
+    "token": "entity",
+    "type": "word",
+    "level": "B2",
+    "translation": "entidad",
+    "phonetic": "/ˈen.tə.t̬i/",
+    "monolingual": "A thing with distinct and independent existence."
+  },
+  {
+    "token": "enumerate",
+    "type": "word",
+    "level": "C1",
+    "translation": "enumerar",
+    "phonetic": "/ɪˈnjuː.mə.reɪt/",
+    "monolingual": "To mention separately as if in counting."
+  },
+  {
+    "token": "envisage",
+    "type": "word",
+    "level": "B2",
+    "translation": "prever",
+    "phonetic": "/ɪnˈvɪz.ɪdʒ/",
+    "monolingual": "To imagine something as a future possibility."
+  },
+  {
+    "token": "epistemology",
+    "type": "word",
+    "level": "C1",
+    "translation": "epistemología",
+    "phonetic": "/ɪˌpɪs.təˈmɒl.ə.dʒi/",
+    "monolingual": "The theory of knowledge."
+  },
+  {
+    "token": "epoch",
+    "type": "word",
+    "level": "C1",
+    "translation": "época",
+    "phonetic": "/ˈep.ək/",
+    "monolingual": "A particular period of time in history or a person's life."
+  },
+  {
+    "token": "equilibrium",
+    "type": "word",
+    "level": "B2",
+    "translation": "equilibrio",
+    "phonetic": "/ˌiː.kwəˈlɪb.ri.əm/",
+    "monolingual": "A state of physical or mental balance."
+  },
+  {
+    "token": "equivalence",
+    "type": "word",
+    "level": "B2",
+    "translation": "equivalencia",
+    "phonetic": "/ɪˈkwɪv.ə.ləns/",
+    "monolingual": "The condition of being equivalent."
+  },
+  {
+    "token": "erudite",
+    "type": "word",
+    "level": "C1",
+    "translation": "erudito",
+    "phonetic": "/ˈer.juː.daɪt/",
+    "monolingual": "Having or showing great knowledge or learning."
+  },
+  {
+    "token": "essence",
+    "type": "word",
+    "level": "B2",
+    "translation": "esencia",
+    "phonetic": "/ˈes.əns/",
+    "monolingual": "The intrinsic nature of something."
+  },
+  {
+    "token": "establish",
+    "type": "word",
+    "level": "B2",
+    "translation": "establecer",
+    "phonetic": "/ɪˈstæb.lɪʃ/",
+    "monolingual": "To set up on a firm or permanent basis."
+  },
+  {
+    "token": "estimate",
+    "type": "word",
+    "level": "B2",
+    "translation": "estimar",
+    "phonetic": "/ˈes.tə.meɪt/",
+    "monolingual": "To roughly calculate or judge the value or amount of."
+  },
+  {
+    "token": "ethnography",
+    "type": "word",
+    "level": "C1",
+    "translation": "etnografía",
+    "phonetic": "/eθˈnɒɡ.rə.fi/",
+    "monolingual": "The scientific description of peoples and cultures."
+  },
+  {
+    "token": "evaluate",
+    "type": "word",
+    "level": "B2",
+    "translation": "evaluar",
+    "phonetic": "/ɪˈvæl.juː.eɪt/",
+    "monolingual": "To form an idea of the amount, number, or value of something."
+  },
+  {
+    "token": "evidence",
+    "type": "word",
+    "level": "B2",
+    "translation": "evidencia",
+    "phonetic": "/ˈev.ɪ.dəns/",
+    "monolingual": "The available body of facts or information."
+  },
+  {
+    "token": "evident",
+    "type": "word",
+    "level": "B2",
+    "translation": "evidente",
+    "phonetic": "/ˈev.ɪ.dənt/",
+    "monolingual": "Plain or obvious; clearly seen."
+  },
+  {
+    "token": "evolve",
+    "type": "word",
+    "level": "B2",
+    "translation": "evolucionar",
+    "phonetic": "/ɪˈvɒlv/",
+    "monolingual": "To develop gradually, especially from a simple to a more complex form."
+  },
+  {
+    "token": "exemplify",
+    "type": "word",
+    "level": "B2",
+    "translation": "ejemplificar",
+    "phonetic": "/ɪɡˈzem.plə.faɪ/",
+    "monolingual": "To be a typical example of."
+  },
+  {
+    "token": "exhaustive",
+    "type": "word",
+    "level": "B2",
+    "translation": "exhaustivo",
+    "phonetic": "/ɪɡˈzɔːs.tɪv/",
+    "monolingual": "Including all elements or aspects."
+  },
+  {
+    "token": "expedient",
+    "type": "word",
+    "level": "C1",
+    "translation": "conveniente",
+    "phonetic": "/ɪkˈspiː.di.ənt/",
+    "monolingual": "Convenient and practical, though possibly improper or immoral."
+  },
+  {
+    "token": "explanatory",
+    "type": "word",
+    "level": "B2",
+    "translation": "explicativo",
+    "phonetic": "/ɪkˈsplæn.ə.tɔːr.i/",
+    "monolingual": "Serving to explain something."
+  },
+  {
+    "token": "explicit",
+    "type": "word",
+    "level": "B2",
+    "translation": "explícito",
+    "phonetic": "/ɪkˈsplɪs.ɪt/",
+    "monolingual": "Stated clearly and in detail."
+  },
+  {
+    "token": "explore",
+    "type": "word",
+    "level": "B2",
+    "translation": "explorar",
+    "phonetic": "/ɪkˈsplɔːr/",
+    "monolingual": "To inquire into or discuss in detail."
+  },
+  {
+    "token": "expound",
+    "type": "word",
+    "level": "C1",
+    "translation": "exponer",
+    "phonetic": "/ɪkˈspaʊnd/",
+    "monolingual": "To present and explain in detail."
+  },
+  {
+    "token": "extrapolate",
+    "type": "word",
+    "level": "C1",
+    "translation": "extrapolar",
+    "phonetic": "/ɪkˈstræp.ə.leɪt/",
+    "monolingual": "To extend a known method or conclusion to an unknown situation."
+  },
+  {
+    "token": "fabricate",
+    "type": "word",
+    "level": "B2",
+    "translation": "fabricar",
+    "phonetic": "/ˈfæb.rɪ.keɪt/",
+    "monolingual": "To invent or concoct something, typically with deceptive intent."
+  },
+  {
+    "token": "facet",
+    "type": "word",
+    "level": "B2",
+    "translation": "faceta",
+    "phonetic": "/ˈfæs.ɪt/",
+    "monolingual": "A particular aspect or feature of something."
+  },
+  {
+    "token": "faculty",
+    "type": "word",
+    "level": "B2",
+    "translation": "facultad",
+    "phonetic": "/ˈfæk.əl.t̬i/",
+    "monolingual": "A group of university departments concerned with a major area."
+  },
+  {
+    "token": "fallacy",
+    "type": "word",
+    "level": "B2",
+    "translation": "falacia",
+    "phonetic": "/ˈfæl.ə.si/",
+    "monolingual": "A mistaken belief, especially one based on unsound argument."
+  },
+  {
+    "token": "feasibility",
+    "type": "word",
+    "level": "B2",
+    "translation": "viabilidad",
+    "phonetic": "/ˌfiː.zəˈbɪl.ə.t̬i/",
+    "monolingual": "The state or degree of being easily or conveniently done."
+  },
+  {
+    "token": "findings",
+    "type": "word",
+    "level": "B2",
+    "translation": "resultados",
+    "phonetic": "/ˈfaɪn.dɪŋz/",
+    "monolingual": "Information that has been discovered through research."
+  },
+  {
+    "token": "foreseeable",
+    "type": "word",
+    "level": "B2",
+    "translation": "previsible",
+    "phonetic": "/fɔːrˈsiː.ə.bəl/",
+    "monolingual": "Able to be foreseen or known beforehand."
+  },
+  {
+    "token": "formulate",
+    "type": "word",
+    "level": "B2",
+    "translation": "formular",
+    "phonetic": "/ˈfɔːr.mjə.leɪt/",
+    "monolingual": "To create or devise methodically."
+  },
+  {
+    "token": "foster",
+    "type": "word",
+    "level": "B2",
+    "translation": "fomentar",
+    "phonetic": "/ˈfɒs.tɚ/",
+    "monolingual": "To encourage the development of something."
+  },
+  {
+    "token": "foundation",
+    "type": "word",
+    "level": "B2",
+    "translation": "fundamento",
+    "phonetic": "/faʊnˈdeɪ.ʃən/",
+    "monolingual": "The lowest load-bearing part of a building, or an underlying basis."
+  },
+  {
+    "token": "framework",
+    "type": "word",
+    "level": "B2",
+    "translation": "marco",
+    "phonetic": "/ˈfreɪm.wɝːk/",
+    "monolingual": "A basic structure underlying a system, concept, or text."
+  },
+  {
+    "token": "functional",
+    "type": "word",
+    "level": "B2",
+    "translation": "funcional",
+    "phonetic": "/ˈfʌŋk.ʃən.əl/",
+    "monolingual": "Of or having a special activity or purpose."
+  },
+  {
+    "token": "fundamental",
+    "type": "word",
+    "level": "B2",
+    "translation": "fundamental",
+    "phonetic": "/ˌfʌn.dəˈmen.t̬əl/",
+    "monolingual": "Forming a necessary base or core."
+  },
+  {
+    "token": "generalization",
+    "type": "word",
+    "level": "B2",
+    "translation": "generalización",
+    "phonetic": "/ˌdʒen.ə.rə.ləˈzeɪ.ʃən/",
+    "monolingual": "A general statement obtained by inference from specific cases."
+  },
+  {
+    "token": "generate",
+    "type": "word",
+    "level": "B2",
+    "translation": "generar",
+    "phonetic": "/ˈdʒen.ə.reɪt/",
+    "monolingual": "To cause something to arise or come about."
+  },
+  {
+    "token": "genre",
+    "type": "word",
+    "level": "B2",
+    "translation": "género",
+    "phonetic": "/ˈʒɑːn.rə/",
+    "monolingual": "A category of artistic composition characterized by similarities."
+  },
+  {
+    "token": "genuine",
+    "type": "word",
+    "level": "B2",
+    "translation": "genuino",
+    "phonetic": "/ˈdʒen.ju.ɪn/",
+    "monolingual": "Truly what something is said to be; authentic."
+  },
+  {
+    "token": "grant",
+    "type": "word",
+    "level": "B2",
+    "translation": "beca",
+    "phonetic": "/ɡrænt/",
+    "monolingual": "A sum of money given by an organization for a particular purpose."
+  },
+  {
+    "token": "graph",
+    "type": "word",
+    "level": "B2",
+    "translation": "gráfico",
+    "phonetic": "/ɡræf/",
+    "monolingual": "A diagram showing the relation between variable quantities."
+  },
+  {
+    "token": "hierarchy",
+    "type": "word",
+    "level": "B2",
+    "translation": "jerarquía",
+    "phonetic": "/ˈhaɪ.ə.rɑːr.ki/",
+    "monolingual": "A system in which members are ranked according to status."
+  },
+  {
+    "token": "holistic",
+    "type": "word",
+    "level": "B2",
+    "translation": "holístico",
+    "phonetic": "/hoʊˈlɪs.tɪk/",
+    "monolingual": "Comprising or relating to the whole."
+  },
+  {
+    "token": "hypothesis",
+    "type": "word",
+    "level": "B2",
+    "translation": "hipótesis",
+    "phonetic": "/haɪˈpɒθ.ə.sɪs/",
+    "monolingual": "A supposition made as a starting point for investigation."
+  },
+  {
+    "token": "hypothetical",
+    "type": "word",
+    "level": "B2",
+    "translation": "hipotético",
+    "phonetic": "/ˌhaɪ.pəˈθet̬.ɪ.kəl/",
+    "monolingual": "Of or based on a hypothesis."
+  },
+  {
+    "token": "identical",
+    "type": "word",
+    "level": "B2",
+    "translation": "idéntico",
+    "phonetic": "/aɪˈden.tɪ.kəl/",
+    "monolingual": "Similar in every detail; exactly alike."
+  },
+  {
+    "token": "identify",
+    "type": "word",
+    "level": "B2",
+    "translation": "identificar",
+    "phonetic": "/aɪˈden.t̬ə.faɪ/",
+    "monolingual": "To establish or indicate who or what someone or something is."
+  },
+  {
+    "token": "ideology",
+    "type": "word",
+    "level": "B2",
+    "translation": "ideología",
+    "phonetic": "/ˌaɪ.diˈɒl.ə.dʒi/",
+    "monolingual": "A system of ideas and ideals."
+  },
+  {
+    "token": "illuminate",
+    "type": "word",
+    "level": "B2",
+    "translation": "iluminar",
+    "phonetic": "/ɪˈluː.mə.neɪt/",
+    "monolingual": "To light up or make clear."
+  },
+  {
+    "token": "illustrate",
+    "type": "word",
+    "level": "B2",
+    "translation": "ilustrar",
+    "phonetic": "/ˈɪl.ə.streɪt/",
+    "monolingual": "To explain or make clear by using examples."
+  },
+  {
+    "token": "imply",
+    "type": "word",
+    "level": "B2",
+    "translation": "implicar",
+    "phonetic": "/ɪmˈplaɪ/",
+    "monolingual": "To strongly suggest the truth or existence of something not stated."
+  },
+  {
+    "token": "incidence",
+    "type": "word",
+    "level": "B2",
+    "translation": "incidencia",
+    "phonetic": "/ˈɪn.sɪ.dəns/",
+    "monolingual": "The occurrence or frequency of something."
+  },
+  {
+    "token": "inclination",
+    "type": "word",
+    "level": "B2",
+    "translation": "inclinación",
+    "phonetic": "/ˌɪn.kləˈneɪ.ʃən/",
+    "monolingual": "A person's natural tendency or urge to act or feel in a particular way."
+  },
+  {
+    "token": "include",
+    "type": "word",
+    "level": "B2",
+    "translation": "incluir",
+    "phonetic": "/ɪnˈkluːd/",
+    "monolingual": "To make part of a whole or set."
+  },
+  {
+    "token": "inconclusive",
+    "type": "word",
+    "level": "B2",
+    "translation": "no concluyente",
+    "phonetic": "/ˌɪn.kənˈkluː.sɪv/",
+    "monolingual": "Not leading to a firm conclusion."
+  },
+  {
+    "token": "incremental",
+    "type": "word",
+    "level": "B2",
+    "translation": "incremental",
+    "phonetic": "/ˌɪŋ.krəˈmen.t̬əl/",
+    "monolingual": "Relating to or denoting an increase or addition."
+  },
+  {
+    "token": "indispensable",
+    "type": "word",
+    "level": "B2",
+    "translation": "indispensable",
+    "phonetic": "/ˌɪn.dɪˈspen.sə.bəl/",
+    "monolingual": "Absolutely necessary."
+  },
+  {
+    "token": "inevitable",
+    "type": "word",
+    "level": "B2",
+    "translation": "inevitable",
+    "phonetic": "/ɪˈnev.ə.t̬ə.bəl/",
+    "monolingual": "Certain to happen; unavoidable."
+  },
+  {
+    "token": "infer",
+    "type": "word",
+    "level": "B2",
+    "translation": "inferir",
+    "phonetic": "/ɪnˈfɝː/",
+    "monolingual": "To deduce or conclude information from evidence and reasoning."
+  },
+  {
+    "token": "inference",
+    "type": "word",
+    "level": "B2",
+    "translation": "inferencia",
+    "phonetic": "/ˈɪn.fɚ.əns/",
+    "monolingual": "A conclusion reached on the basis of evidence and reasoning."
+  },
+  {
+    "token": "ingenuity",
+    "type": "word",
+    "level": "B2",
+    "translation": "ingenio",
+    "phonetic": "/ˌɪn.dʒəˈnuː.ə.t̬i/",
+    "monolingual": "The quality of being clever, original, and inventive."
+  },
+  {
+    "token": "inherent",
+    "type": "word",
+    "level": "B2",
+    "translation": "inherente",
+    "phonetic": "/ɪnˈher.ənt/",
+    "monolingual": "Existing in something as a permanent attribute."
+  },
+  {
+    "token": "inhibit",
+    "type": "word",
+    "level": "B2",
+    "translation": "inhibir",
+    "phonetic": "/ɪnˈhɪb.ɪt/",
+    "monolingual": "To hinder, restrain, or prevent."
+  },
+  {
+    "token": "initial",
+    "type": "word",
+    "level": "B2",
+    "translation": "inicial",
+    "phonetic": "/ɪˈnɪʃ.əl/",
+    "monolingual": "Existing or occurring at the beginning."
+  },
+  {
+    "token": "initiate",
+    "type": "word",
+    "level": "B2",
+    "translation": "iniciar",
+    "phonetic": "/ɪˈnɪʃ.i.eɪt/",
+    "monolingual": "To cause a process or action to begin."
+  },
+  {
+    "token": "innate",
+    "type": "word",
+    "level": "B2",
+    "translation": "innato",
+    "phonetic": "/ˈɪn.eɪt/",
+    "monolingual": "Inborn; existing in one from birth."
+  },
+  {
+    "token": "input",
+    "type": "word",
+    "level": "B2",
+    "translation": "insumo",
+    "phonetic": "/ˈɪn.pʊt/",
+    "monolingual": "What is put in, taken in, or operated on by a process or system."
+  },
+  {
+    "token": "inquiry",
+    "type": "word",
+    "level": "B2",
+    "translation": "investigación",
+    "phonetic": "/ˈɪn.kwə.ri/",
+    "monolingual": "An act of asking for information."
+  },
+  {
+    "token": "insight",
+    "type": "word",
+    "level": "B2",
+    "translation": "perspicacia",
+    "phonetic": "/ˈɪn.saɪt/",
+    "monolingual": "The capacity to gain an accurate understanding of someone."
+  },
+  {
+    "token": "instability",
+    "type": "word",
+    "level": "B2",
+    "translation": "inestabilidad",
+    "phonetic": "/ˌɪn.stəˈbɪl.ə.t̬i/",
+    "monolingual": "The state of being unstable."
+  },
+  {
+    "token": "intangible",
+    "type": "word",
+    "level": "C1",
+    "translation": "intangible",
+    "phonetic": "/ɪnˈtæn.dʒə.bəl/",
+    "monolingual": "Difficult or impossible to define or understand."
+  },
+  {
+    "token": "integrate",
+    "type": "word",
+    "level": "B2",
+    "translation": "integrar",
+    "phonetic": "/ˈɪn.t̬ə.ɡreɪt/",
+    "monolingual": "To combine one thing with another to form a whole."
+  },
+  {
+    "token": "integrity",
+    "type": "word",
+    "level": "B2",
+    "translation": "integridad",
+    "phonetic": "/ɪnˈteɡ.rə.t̬i/",
+    "monolingual": "The quality of being honest and having strong moral principles."
+  },
+  {
+    "token": "intellect",
+    "type": "word",
+    "level": "B2",
+    "translation": "intelecto",
+    "phonetic": "/ˈɪn.t̬əl.ekt/",
+    "monolingual": "The faculty of reasoning and understanding."
+  },
+  {
+    "token": "intellectual",
+    "type": "word",
+    "level": "B2",
+    "translation": "intelectual",
+    "phonetic": "/ˌɪn.t̬əlˈek.tʃu.əl/",
+    "monolingual": "Relating to the intellect."
+  },
+  {
+    "token": "intelligible",
+    "type": "word",
+    "level": "C1",
+    "translation": "inteligible",
+    "phonetic": "/ɪnˈtel.ə.dʒə.bəl/",
+    "monolingual": "Able to be understood."
+  },
+  {
+    "token": "intend",
+    "type": "word",
+    "level": "B2",
+    "translation": "pretender",
+    "phonetic": "/ɪnˈtend/",
+    "monolingual": "To have as one's purpose."
+  },
+  {
+    "token": "interpret",
+    "type": "word",
+    "level": "B2",
+    "translation": "interpretar",
+    "phonetic": "/ɪnˈtɝː.prət/",
+    "monolingual": "To explain the meaning of something."
+  },
+  {
+    "token": "intervention",
+    "type": "word",
+    "level": "B2",
+    "translation": "intervención",
+    "phonetic": "/ˌɪn.t̬ɚˈven.ʃən/",
+    "monolingual": "The action of becoming intentionally involved."
+  },
+  {
+    "token": "intuition",
+    "type": "word",
+    "level": "B2",
+    "translation": "intuición",
+    "phonetic": "/ˌɪn.tjuˈɪʃ.ən/",
+    "monolingual": "The ability to understand something instinctively."
+  },
+  {
+    "token": "investigate",
+    "type": "word",
+    "level": "B2",
+    "translation": "investigar",
+    "phonetic": "/ɪnˈves.t̬ə.ɡeɪt/",
+    "monolingual": "To carry out a systematic or formal inquiry."
+  },
+  {
+    "token": "involuntary",
+    "type": "word",
+    "level": "B2",
+    "translation": "involuntario",
+    "phonetic": "/ɪnˈvɒl.ən.ter.i/",
+    "monolingual": "Done without will or conscious control."
+  },
+  {
+    "token": "invoke",
+    "type": "word",
+    "level": "B2",
+    "translation": "invocar",
+    "phonetic": "/ɪnˈvoʊk/",
+    "monolingual": "To cite or appeal to as an authority."
+  },
+  {
+    "token": "isolate",
+    "type": "word",
+    "level": "B2",
+    "translation": "aislar",
+    "phonetic": "/ˈaɪ.sə.leɪt/",
+    "monolingual": "To cause a person or place to be or remain alone."
+  },
+  {
+    "token": "journal",
+    "type": "word",
+    "level": "B2",
+    "translation": "revista científica",
+    "phonetic": "/ˈdʒɝː.nəl/",
+    "monolingual": "A newspaper or magazine on a specific subject."
+  },
+  {
+    "token": "justify",
+    "type": "word",
+    "level": "B2",
+    "translation": "justificar",
+    "phonetic": "/ˈdʒʌs.tə.faɪ/",
+    "monolingual": "To show or prove to be right or reasonable."
+  },
+  {
+    "token": "landmark",
+    "type": "word",
+    "level": "B2",
+    "translation": "hito",
+    "phonetic": "/ˈlænd.mɑːrk/",
+    "monolingual": "An event, discovery, or change marking an important stage."
+  },
+  {
+    "token": "leverage",
+    "type": "word",
+    "level": "B2",
+    "translation": "aprovechar",
+    "phonetic": "/ˈlev.ə.rɪdʒ/",
+    "monolingual": "To use to maximum advantage."
+  },
+  {
+    "token": "linear",
+    "type": "word",
+    "level": "B2",
+    "translation": "lineal",
+    "phonetic": "/ˈlɪn.i.ɚ/",
+    "monolingual": "Arranged in or extending along a straight line."
+  },
+  {
+    "token": "linguistic",
+    "type": "word",
+    "level": "B2",
+    "translation": "lingüístico",
+    "phonetic": "/lɪŋˈɡwɪs.tɪk/",
+    "monolingual": "Relating to language or linguistics."
+  },
+  {
+    "token": "literary",
+    "type": "word",
+    "level": "B2",
+    "translation": "literario",
+    "phonetic": "/ˈlɪt̬.ə.rer.i/",
+    "monolingual": "Concerning literature."
+  },
+  {
+    "token": "literature",
+    "type": "word",
+    "level": "B2",
+    "translation": "literatura",
+    "phonetic": "/ˈlɪt̬.ɚ.ə.tʃɚ/",
+    "monolingual": "Written works of artistic merit."
+  },
+  {
+    "token": "locale",
+    "type": "word",
+    "level": "C1",
+    "translation": "lugar",
+    "phonetic": "/loʊˈkæl/",
+    "monolingual": "A place or locality, especially with reference to events occurring there."
+  },
+  {
+    "token": "logic",
+    "type": "word",
+    "level": "B2",
+    "translation": "lógica",
+    "phonetic": "/ˈlɒdʒ.ɪk/",
+    "monolingual": "Reasoning conducted according to strict principles of validity."
+  },
+  {
+    "token": "longitudinal",
+    "type": "word",
+    "level": "C1",
+    "translation": "longitudinal",
+    "phonetic": "/ˌlɒn.dʒəˈtjuː.dən.əl/",
+    "monolingual": "Involving information about an individual or group over time."
+  },
+  {
+    "token": "magnify",
+    "type": "word",
+    "level": "B2",
+    "translation": "magnificar",
+    "phonetic": "/ˈmæɡ.nə.faɪ/",
+    "monolingual": "To increase the size or importance of something."
+  },
+  {
+    "token": "margin",
+    "type": "word",
+    "level": "B2",
+    "translation": "margen",
+    "phonetic": "/ˈmɑːr.dʒɪn/",
+    "monolingual": "An empty space at the side of a page, or an amount in excess."
+  },
+  {
+    "token": "mediate",
+    "type": "word",
+    "level": "B2",
+    "translation": "mediar",
+    "phonetic": "/ˈmiː.di.eɪt/",
+    "monolingual": "To intervene to bring about an agreement."
+  },
+  {
+    "token": "medium",
+    "type": "word",
+    "level": "B2",
+    "translation": "medio",
+    "phonetic": "/ˈmiː.di.əm/",
+    "monolingual": "A means by which something is communicated or expressed."
+  },
+  {
+    "token": "metaphor",
+    "type": "word",
+    "level": "B2",
+    "translation": "metáfora",
+    "phonetic": "/ˈmet̬.ə.fɔːr/",
+    "monolingual": "A figure of speech in which a word or phrase is applied to something it does not literally denote."
+  },
+  {
+    "token": "methodology",
+    "type": "word",
+    "level": "B2",
+    "translation": "metodología",
+    "phonetic": "/ˌmeθ.əˈdɒl.ə.dʒi/",
+    "monolingual": "A system of methods used in a particular area of study."
+  },
+  {
+    "token": "metric",
+    "type": "word",
+    "level": "B2",
+    "translation": "métrica",
+    "phonetic": "/ˈmet.rɪk/",
+    "monolingual": "A system or standard of measurement."
+  },
+  {
+    "token": "mode",
+    "type": "word",
+    "level": "B2",
+    "translation": "modo",
+    "phonetic": "/moʊd/",
+    "monolingual": "A way or manner in which something occurs."
+  },
+  {
+    "token": "modify",
+    "type": "word",
+    "level": "B2",
+    "translation": "modificar",
+    "phonetic": "/ˈmɒd.ə.faɪ/",
+    "monolingual": "To make partial or minor changes to something."
+  },
+  {
+    "token": "modular",
+    "type": "word",
+    "level": "B2",
+    "translation": "modular",
+    "phonetic": "/ˈmɒdʒ.ə.lɚ/",
+    "monolingual": "Consisting of separable interchangeable units."
+  },
+  {
+    "token": "monograph",
+    "type": "word",
+    "level": "C1",
+    "translation": "monografía",
+    "phonetic": "/ˈmɒn.ə.ɡrɑːf/",
+    "monolingual": "A detailed written study of a single specialized subject."
+  },
+  {
+    "token": "morphology",
+    "type": "word",
+    "level": "C1",
+    "translation": "morfología",
+    "phonetic": "/mɔːrˈfɒl.ə.dʒi/",
+    "monolingual": "The study of the forms of things."
+  },
+  {
+    "token": "motive",
+    "type": "word",
+    "level": "B2",
+    "translation": "motivo",
+    "phonetic": "/ˈmoʊ.t̬ɪv/",
+    "monolingual": "A reason for doing something."
+  },
+  {
+    "token": "multifaceted",
+    "type": "word",
+    "level": "B2",
+    "translation": "multifacético",
+    "phonetic": "/ˌmʌl.tiˈfæs.ɪ.t̬ɪd/",
+    "monolingual": "Having many different aspects or features."
+  },
+  {
+    "token": "narrative",
+    "type": "word",
+    "level": "B2",
+    "translation": "narrativa",
+    "phonetic": "/ˈnær.ə.t̬ɪv/",
+    "monolingual": "A spoken or written account of connected events."
+  },
+  {
+    "token": "network",
+    "type": "word",
+    "level": "B2",
+    "translation": "red",
+    "phonetic": "/ˈnet.wɝːk/",
+    "monolingual": "A group or system of interconnected people or things."
+  },
+  {
+    "token": "neutral",
+    "type": "word",
+    "level": "B2",
+    "translation": "neutral",
+    "phonetic": "/ˈnuː.trəl/",
+    "monolingual": "Not supporting or helping either side in a conflict."
+  },
+  {
+    "token": "nominal",
+    "type": "word",
+    "level": "C1",
+    "translation": "nominal",
+    "phonetic": "/ˈnɒm.ə.nəl/",
+    "monolingual": "Existing in name only; very small."
+  },
+  {
+    "token": "norm",
+    "type": "word",
+    "level": "B2",
+    "translation": "norma",
+    "phonetic": "/nɔːrm/",
+    "monolingual": "A standard or pattern, especially of social behavior."
+  },
+  {
+    "token": "normative",
+    "type": "word",
+    "level": "C1",
+    "translation": "normativo",
+    "phonetic": "/ˈnɔːr.mə.tɪv/",
+    "monolingual": "Relating to an ideal standard or model."
+  },
+  {
+    "token": "notion",
+    "type": "word",
+    "level": "B2",
+    "translation": "noción",
+    "phonetic": "/ˈnoʊ.ʃən/",
+    "monolingual": "A conception or belief about something."
+  },
+  {
+    "token": "objective",
+    "type": "word",
+    "level": "B2",
+    "translation": "objetivo",
+    "phonetic": "/əbˈdʒek.tɪv/",
+    "monolingual": "A thing aimed at or sought; a goal."
+  },
+  {
+    "token": "obscure",
+    "type": "word",
+    "level": "B2",
+    "translation": "oscuro",
+    "phonetic": "/əbˈskjʊr/",
+    "monolingual": "Not clearly expressed or understood."
+  },
+  {
+    "token": "observe",
+    "type": "word",
+    "level": "B2",
+    "translation": "observar",
+    "phonetic": "/əbˈzɝːv/",
+    "monolingual": "To notice or perceive something and register it as significant."
+  },
+  {
+    "token": "obstacle",
+    "type": "word",
+    "level": "B2",
+    "translation": "obstáculo",
+    "phonetic": "/ˈɑːb.stə.kəl/",
+    "monolingual": "A thing that blocks one's way or prevents progress."
+  },
+  {
+    "token": "obtain",
+    "type": "word",
+    "level": "B2",
+    "translation": "obtener",
+    "phonetic": "/əbˈteɪn/",
+    "monolingual": "To come into possession of; get."
+  },
+  {
+    "token": "occur",
+    "type": "word",
+    "level": "B2",
+    "translation": "ocurrir",
+    "phonetic": "/əˈkɝː/",
+    "monolingual": "To take place; happen."
+  },
+  {
+    "token": "omission",
+    "type": "word",
+    "level": "B2",
+    "translation": "omisión",
+    "phonetic": "/əˈmɪʃ.ən/",
+    "monolingual": "A person or thing that has been left out or excluded."
+  },
+  {
+    "token": "optimum",
+    "type": "word",
+    "level": "B2",
+    "translation": "óptimo",
+    "phonetic": "/ˈɒp.tɪ.məm/",
+    "monolingual": "Most conducive to a favorable outcome."
+  },
+  {
+    "token": "orient",
+    "type": "word",
+    "level": "B2",
+    "translation": "orientar",
+    "phonetic": "/ˈɔːr.i.ent/",
+    "monolingual": "To align or position something relative to specific points."
+  },
+  {
+    "token": "outline",
+    "type": "word",
+    "level": "B2",
+    "translation": "esbozar",
+    "phonetic": "/ˈaʊt.laɪn/",
+    "monolingual": "To give a summary of the main facts."
+  },
+  {
+    "token": "overview",
+    "type": "word",
+    "level": "B2",
+    "translation": "resumen",
+    "phonetic": "/ˈoʊ.vɚ.vjuː/",
+    "monolingual": "A general review or summary."
+  },
+  {
+    "token": "paradigm",
+    "type": "word",
+    "level": "B2",
+    "translation": "paradigma",
+    "phonetic": "/ˈper.ə.daɪm/",
+    "monolingual": "A typical example or pattern of something."
+  },
+  {
+    "token": "paradox",
+    "type": "word",
+    "level": "B2",
+    "translation": "paradoja",
+    "phonetic": "/ˈper.ə.dɑːks/",
+    "monolingual": "A seemingly absurd or contradictory statement that may be true."
+  },
+  {
+    "token": "parameter",
+    "type": "word",
+    "level": "B2",
+    "translation": "parámetro",
+    "phonetic": "/pəˈræm.ə.t̬ɚ/",
+    "monolingual": "A numerical or other measurable factor."
+  },
+  {
+    "token": "particular",
+    "type": "word",
+    "level": "B2",
+    "translation": "particular",
+    "phonetic": "/pɚˈtɪk.jə.lɚ/",
+    "monolingual": "Used to single out an individual member of a group."
+  },
+  {
+    "token": "peer",
+    "type": "word",
+    "level": "B2",
+    "translation": "par",
+    "phonetic": "/pɪr/",
+    "monolingual": "A person who is equal to another in abilities, qualifications, age."
+  },
+  {
+    "token": "percentile",
+    "type": "word",
+    "level": "C1",
+    "translation": "percentil",
+    "phonetic": "/pɚˈsen.taɪl/",
+    "monolingual": "Each of the 100 equal groups into which a population is divided."
+  },
+  {
+    "token": "perceive",
+    "type": "word",
+    "level": "B2",
+    "translation": "percibir",
+    "phonetic": "/pɚˈsiːv/",
+    "monolingual": "To become aware or conscious of something."
+  },
+  {
+    "token": "perception",
+    "type": "word",
+    "level": "B2",
+    "translation": "percepción",
+    "phonetic": "/pɚˈsep.ʃən/",
+    "monolingual": "The ability to see, hear, or become aware of something."
+  },
+  {
+    "token": "perform",
+    "type": "word",
+    "level": "B2",
+    "translation": "realizar",
+    "phonetic": "/pɚˈfɔːrm/",
+    "monolingual": "To carry out, accomplish, or fulfill an action or task."
+  },
+  {
+    "token": "periphery",
+    "type": "word",
+    "level": "C1",
+    "translation": "periferia",
+    "phonetic": "/pəˈrɪf.ɚ.i/",
+    "monolingual": "The outer limits or edge of an area or object."
+  },
+  {
+    "token": "pertinent",
+    "type": "word",
+    "level": "C1",
+    "translation": "pertinente",
+    "phonetic": "/ˈpɝː.t̬ən.ənt/",
+    "monolingual": "Relevant or applicable to a particular matter."
+  },
+  {
+    "token": "phenomena",
+    "type": "word",
+    "level": "B2",
+    "translation": "fenómenos",
+    "phonetic": "/fəˈnɒm.ə.nə/",
+    "monolingual": "Facts or situations observed to exist or happen."
+  },
+  {
+    "token": "phenomenon",
+    "type": "word",
+    "level": "B2",
+    "translation": "fenómeno",
+    "phonetic": "/fəˈnɒm.ə.nɒn/",
+    "monolingual": "A fact or situation observed to exist or happen."
+  },
+  {
+    "token": "philosophy",
+    "type": "word",
+    "level": "B2",
+    "translation": "filosofía",
+    "phonetic": "/fəˈlɒs.ə.fi/",
+    "monolingual": "The study of the fundamental nature of knowledge and reality."
+  },
+  {
+    "token": "plausible",
+    "type": "word",
+    "level": "B2",
+    "translation": "plausible",
+    "phonetic": "/ˈplɔː.zə.bəl/",
+    "monolingual": "Seeming reasonable or probable."
+  },
+  {
+    "token": "positivism",
+    "type": "word",
+    "level": "C1",
+    "translation": "positivismo",
+    "phonetic": "/ˈpɒz.ɪ.tɪv.ɪz.əm/",
+    "monolingual": "A philosophy recognizing only natural phenomena."
+  },
+  {
+    "token": "postulate",
+    "type": "word",
+    "level": "C1",
+    "translation": "postular",
+    "phonetic": "/ˈpɑːs.tʃə.leɪt/",
+    "monolingual": "To suggest or assume the existence or truth of something as basis."
+  },
+  {
+    "token": "practitioner",
+    "type": "word",
+    "level": "B2",
+    "translation": "practicante",
+    "phonetic": "/prækˈtɪʃ.ən.ɚ/",
+    "monolingual": "A person actively engaged in an art, discipline, or profession."
+  },
+  {
+    "token": "pragmatic",
+    "type": "word",
+    "level": "B2",
+    "translation": "pragmático",
+    "phonetic": "/præɡˈmæt.ɪk/",
+    "monolingual": "Dealing with things sensibly and realistically."
+  },
+  {
+    "token": "precedent",
+    "type": "word",
+    "level": "B2",
+    "translation": "precedente",
+    "phonetic": "/ˈpres.ɪ.dənt/",
+    "monolingual": "An earlier event or action regarded as an example for subsequent ones."
+  },
+  {
+    "token": "predominantly",
+    "type": "word",
+    "level": "B2",
+    "translation": "predominantemente",
+    "phonetic": "/prɪˈdɒm.ə.nənt.li/",
+    "monolingual": "For the most part; mainly."
+  },
+  {
+    "token": "preliminary",
+    "type": "word",
+    "level": "B2",
+    "translation": "preliminar",
+    "phonetic": "/prɪˈlɪm.ə.ner.i/",
+    "monolingual": "Denoting an action or event preceding a main event."
+  },
+  {
+    "token": "premise",
+    "type": "word",
+    "level": "B2",
+    "translation": "premisa",
+    "phonetic": "/ˈprem.ɪs/",
+    "monolingual": "A previous statement or proposition from which another is inferred."
+  },
+  {
+    "token": "prerequisite",
+    "type": "word",
+    "level": "B2",
+    "translation": "requisito previo",
+    "phonetic": "/ˌpriːˈrek.wə.zɪt/",
+    "monolingual": "A thing required as a prior condition."
+  },
+  {
+    "token": "prescribe",
+    "type": "word",
+    "level": "B2",
+    "translation": "prescribir",
+    "phonetic": "/prɪˈskraɪb/",
+    "monolingual": "To state authoritatively that something should be done."
+  },
+  {
+    "token": "prevailing",
+    "type": "word",
+    "level": "B2",
+    "translation": "predominante",
+    "phonetic": "/prɪˈveɪ.lɪŋ/",
+    "monolingual": "Existing at a particular time; current."
+  },
+  {
+    "token": "prevalent",
+    "type": "word",
+    "level": "B2",
+    "translation": "prevalente",
+    "phonetic": "/ˈprev.əl.ənt/",
+    "monolingual": "Widespread in a particular area or at a particular time."
+  },
+  {
+    "token": "proceed",
+    "type": "word",
+    "level": "B2",
+    "translation": "proceder",
+    "phonetic": "/proʊˈsiːd/",
+    "monolingual": "To begin a course of action."
+  },
+  {
+    "token": "procurement",
+    "type": "word",
+    "level": "B2",
+    "translation": "adquisición",
+    "phonetic": "/prəˈkjʊr.mənt/",
+    "monolingual": "The action of obtaining or procuring something."
+  },
+  {
+    "token": "proficient",
+    "type": "word",
+    "level": "B2",
+    "translation": "competente",
+    "phonetic": "/prəˈfɪʃ.ənt/",
+    "monolingual": "Competent or skilled in doing or using something."
+  },
+  {
+    "token": "profound",
+    "type": "word",
+    "level": "B2",
+    "translation": "profundo",
+    "phonetic": "/prəˈfaʊnd/",
+    "monolingual": "Very great or intense, especially of mental capacity."
+  },
+  {
+    "token": "proliferate",
+    "type": "word",
+    "level": "C1",
+    "translation": "proliferar",
+    "phonetic": "/prəˈlɪf.ə.reɪt/",
+    "monolingual": "To increase rapidly in numbers."
+  },
+  {
+    "token": "prominent",
+    "type": "word",
+    "level": "B2",
+    "translation": "prominente",
+    "phonetic": "/ˈprɒm.ɪ.nənt/",
+    "monolingual": "Important; famous."
+  },
+  {
+    "token": "prone",
+    "type": "word",
+    "level": "B2",
+    "translation": "propenso",
+    "phonetic": "/proʊn/",
+    "monolingual": "Likely or liable to suffer from, do, or experience."
+  },
+  {
+    "token": "propose",
+    "type": "word",
+    "level": "B2",
+    "translation": "proponer",
+    "phonetic": "/prəˈpoʊz/",
+    "monolingual": "To put forward an idea or plan for consideration."
+  },
+  {
+    "token": "proposition",
+    "type": "word",
+    "level": "B2",
+    "translation": "proposición",
+    "phonetic": "/ˌprɒp.əˈzɪʃ.ən/",
+    "monolingual": "A statement or assertion that expresses a judgment."
+  },
+  {
+    "token": "prospect",
+    "type": "word",
+    "level": "B2",
+    "translation": "perspectiva",
+    "phonetic": "/ˈprɒs.pekt/",
+    "monolingual": "The possibility or likelihood of some future event."
+  },
+  {
+    "token": "prove",
+    "type": "word",
+    "level": "B2",
+    "translation": "probar",
+    "phonetic": "/pruːv/",
+    "monolingual": "To demonstrate the truth or existence of something."
+  },
+  {
+    "token": "proximity",
+    "type": "word",
+    "level": "B2",
+    "translation": "proximidad",
+    "phonetic": "/prɑːkˈsɪm.ə.t̬i/",
+    "monolingual": "Nearness in space, time, or relationship."
+  },
+  {
+    "token": "purport",
+    "type": "word",
+    "level": "C1",
+    "translation": "pretender",
+    "phonetic": "/pɝːˈpɔːrt/",
+    "monolingual": "To appear or claim to be something, especially falsely."
+  },
+  {
+    "token": "qualitative",
+    "type": "word",
+    "level": "B2",
+    "translation": "cualitativo",
+    "phonetic": "/ˈkwɒl.ə.tə.tɪv/",
+    "monolingual": "Relating to the quality or characteristics of something."
+  },
+  {
+    "token": "quantify",
+    "type": "word",
+    "level": "B2",
+    "translation": "cuantificar",
+    "phonetic": "/ˈkwɒn.tə.faɪ/",
+    "monolingual": "To express or measure the quantity of something."
+  },
+  {
+    "token": "quantitative",
+    "type": "word",
+    "level": "B2",
+    "translation": "cuantitativo",
+    "phonetic": "/ˈkwɒn.tə.tə.tɪv/",
+    "monolingual": "Relating to or measured by quantity."
+  },
+  {
+    "token": "query",
+    "type": "word",
+    "level": "B2",
+    "translation": "consulta",
+    "phonetic": "/ˈkwɪr.i/",
+    "monolingual": "A question, especially one asked in order to clarify."
+  },
+  {
+    "token": "random",
+    "type": "word",
+    "level": "B2",
+    "translation": "aleatorio",
+    "phonetic": "/ˈræn.dəm/",
+    "monolingual": "Made or done without method or conscious decision."
+  },
+  {
+    "token": "range",
+    "type": "word",
+    "level": "B2",
+    "translation": "rango",
+    "phonetic": "/reɪndʒ/",
+    "monolingual": "A set of different things of the same general type."
+  },
+  {
+    "token": "ratio",
+    "type": "word",
+    "level": "B2",
+    "translation": "razón",
+    "phonetic": "/ˈreɪ.ʃi.oʊ/",
+    "monolingual": "The quantitative relation between two amounts."
+  },
+  {
+    "token": "rationale",
+    "type": "word",
+    "level": "B2",
+    "translation": "razonamiento",
+    "phonetic": "/ˌræʃ.əˈnæl/",
+    "monolingual": "A set of reasons or a logical basis for a course of action."
+  },
+  {
+    "token": "recapitulate",
+    "type": "word",
+    "level": "C1",
+    "translation": "recapitular",
+    "phonetic": "/ˌriː.kəˈpɪtʃ.ə.leɪt/",
+    "monolingual": "To summarize and state again the main points of something."
+  },
+  {
+    "token": "refute",
+    "type": "word",
+    "level": "C1",
+    "translation": "refutar",
+    "phonetic": "/rɪˈfjuːt/",
+    "monolingual": "To prove a statement or theory to be wrong."
+  },
+  {
+    "token": "relatively",
+    "type": "word",
+    "level": "B2",
+    "translation": "relativamente",
+    "phonetic": "/ˈrel.ə.tɪv.li/",
+    "monolingual": "In relation, comparison, or proportion to something else."
+  },
+  {
+    "token": "relevant",
+    "type": "word",
+    "level": "B2",
+    "translation": "relevante",
+    "phonetic": "/ˈrel.ə.vənt/",
+    "monolingual": "Closely connected or appropriate to what is being done."
+  },
+  {
+    "token": "reliability",
+    "type": "word",
+    "level": "B2",
+    "translation": "fiabilidad",
+    "phonetic": "/rɪˌlaɪ.əˈbɪl.ə.t̬i/",
+    "monolingual": "The degree to which the result of a measurement can be depended on."
+  },
+  {
+    "token": "replicate",
+    "type": "word",
+    "level": "B2",
+    "translation": "replicar",
+    "phonetic": "/ˈrep.lɪ.keɪt/",
+    "monolingual": "To make an exact copy of; reproduce."
+  },
+  {
+    "token": "represent",
+    "type": "word",
+    "level": "B2",
+    "translation": "representar",
+    "phonetic": "/ˌrep.rɪˈzent/",
+    "monolingual": "To be entitled or appointed to act or speak for someone."
+  },
+  {
+    "token": "representative",
+    "type": "word",
+    "level": "B2",
+    "translation": "representativo",
+    "phonetic": "/ˌrep.rɪˈzen.t̬ə.t̬ɪv/",
+    "monolingual": "Typical of a class, group, or body of opinion."
+  },
+  {
+    "token": "require",
+    "type": "word",
+    "level": "B2",
+    "translation": "requerir",
+    "phonetic": "/rɪˈkwaɪr/",
+    "monolingual": "To need for a particular purpose."
+  },
+  {
+    "token": "research",
+    "type": "word",
+    "level": "B2",
+    "translation": "investigación",
+    "phonetic": "/rɪˈsɝːtʃ/",
+    "monolingual": "The systematic investigation into a subject to establish facts."
+  },
+  {
+    "token": "resolution",
+    "type": "word",
+    "level": "B2",
+    "translation": "resolución",
+    "phonetic": "/ˌrez.əˈluː.ʃən/",
+    "monolingual": "A firm decision to do or not to do something."
+  },
+  {
+    "token": "respective",
+    "type": "word",
+    "level": "B2",
+    "translation": "respectivo",
+    "phonetic": "/rɪˈspek.tɪv/",
+    "monolingual": "Belonging or relating separately to each of two or more people."
+  },
+  {
+    "token": "restrict",
+    "type": "word",
+    "level": "B2",
+    "translation": "restringir",
+    "phonetic": "/rɪˈstrɪkt/",
+    "monolingual": "To put a limit on something."
+  },
+  {
+    "token": "retrieve",
+    "type": "word",
+    "level": "B2",
+    "translation": "recuperar",
+    "phonetic": "/rɪˈtriːv/",
+    "monolingual": "To get or bring back, especially from a place of storage."
+  },
+  {
+    "token": "reveal",
+    "type": "word",
+    "level": "B2",
+    "translation": "revelar",
+    "phonetic": "/rɪˈviːl/",
+    "monolingual": "To make previously unknown information known to others."
+  },
+  {
+    "token": "revise",
+    "type": "word",
+    "level": "B2",
+    "translation": "revisar",
+    "phonetic": "/rɪˈvaɪz/",
+    "monolingual": "To re-examine and make alterations to written or printed matter."
+  },
+  {
+    "token": "rigorous",
+    "type": "word",
+    "level": "B2",
+    "translation": "riguroso",
+    "phonetic": "/ˈrɪɡ.ɚ.əs/",
+    "monolingual": "Extremely thorough, exhaustive, or accurate."
+  },
+  {
+    "token": "robust",
+    "type": "word",
+    "level": "B2",
+    "translation": "robusto",
+    "phonetic": "/roʊˈbʌst/",
+    "monolingual": "Strong and healthy; vigorous."
+  },
+  {
+    "token": "sample",
+    "type": "word",
+    "level": "B2",
+    "translation": "muestra",
+    "phonetic": "/ˈsæm.pəl/",
+    "monolingual": "A small part or quantity intended to show what the whole is like."
+  },
+  {
+    "token": "scenario",
+    "type": "word",
+    "level": "B2",
+    "translation": "escenario",
+    "phonetic": "/səˈner.i.oʊ/",
+    "monolingual": "A postulated sequence or development of events."
+  },
+  {
+    "token": "scholar",
+    "type": "word",
+    "level": "B2",
+    "translation": "erudito",
+    "phonetic": "/ˈskɑː.lɚ/",
+    "monolingual": "A specialist in a particular branch of study."
+  },
+  {
+    "token": "scholarly",
+    "type": "word",
+    "level": "B2",
+    "translation": "erudito",
+    "phonetic": "/ˈskɑː.lɚ.li/",
+    "monolingual": "Involving or relating to serious academic study."
+  },
+  {
+    "token": "scope",
+    "type": "word",
+    "level": "B2",
+    "translation": "alcance",
+    "phonetic": "/skoʊp/",
+    "monolingual": "The extent of the area or subject matter that something deals with."
+  },
+  {
+    "token": "seek",
+    "type": "word",
+    "level": "B2",
+    "translation": "buscar",
+    "phonetic": "/siːk/",
+    "monolingual": "To attempt to find something."
+  },
+  {
+    "token": "semantic",
+    "type": "word",
+    "level": "C1",
+    "translation": "semántico",
+    "phonetic": "/sɪˈmæn.tɪk/",
+    "monolingual": "Relating to meaning in language."
+  },
+  {
+    "token": "sequence",
+    "type": "word",
+    "level": "B2",
+    "translation": "secuencia",
+    "phonetic": "/ˈsiː.kwəns/",
+    "monolingual": "A particular order in which related things follow each other."
+  },
+  {
+    "token": "significance",
+    "type": "word",
+    "level": "B2",
+    "translation": "significado",
+    "phonetic": "/sɪɡˈnɪf.ɪ.kəns/",
+    "monolingual": "The quality of being worthy of attention; importance."
+  },
+  {
+    "token": "significant",
+    "type": "word",
+    "level": "B2",
+    "translation": "significativo",
+    "phonetic": "/sɪɡˈnɪf.ɪ.kənt/",
+    "monolingual": "Sufficiently great or important to be worthy of attention."
+  },
+  {
+    "token": "simulate",
+    "type": "word",
+    "level": "B2",
+    "translation": "simular",
+    "phonetic": "/ˈsɪm.jə.leɪt/",
+    "monolingual": "To imitate the appearance or character of."
+  },
+  {
+    "token": "simultaneously",
+    "type": "word",
+    "level": "B2",
+    "translation": "simultáneamente",
+    "phonetic": "/ˌsɪm.əlˈteɪ.ni.əs.li/",
+    "monolingual": "At the same time."
+  },
+  {
+    "token": "sole",
+    "type": "word",
+    "level": "B2",
+    "translation": "único",
+    "phonetic": "/soʊl/",
+    "monolingual": "One and only."
+  },
+  {
+    "token": "solely",
+    "type": "word",
+    "level": "B2",
+    "translation": "únicamente",
+    "phonetic": "/ˈsoʊl.li/",
+    "monolingual": "Not involving anyone or anything else; only."
+  },
+  {
+    "token": "specialized",
+    "type": "word",
+    "level": "B2",
+    "translation": "especializado",
+    "phonetic": "/ˈspeʃ.əl.aɪzd/",
+    "monolingual": "Concentrating on or skilled in a particular field."
+  },
+  {
+    "token": "specify",
+    "type": "word",
+    "level": "B2",
+    "translation": "especificar",
+    "phonetic": "/ˈspes.ə.faɪ/",
+    "monolingual": "To identify clearly and definitely."
+  },
+  {
+    "token": "spectrum",
+    "type": "word",
+    "level": "B2",
+    "translation": "espectro",
+    "phonetic": "/ˈspek.trəm/",
+    "monolingual": "A band of colors as seen in a rainbow."
+  },
+  {
+    "token": "statistical",
+    "type": "word",
+    "level": "B2",
+    "translation": "estadístico",
+    "phonetic": "/stəˈtɪs.tɪ.kəl/",
+    "monolingual": "Relating to or using statistics."
+  },
+  {
+    "token": "strategy",
+    "type": "word",
+    "level": "B2",
+    "translation": "estrategia",
+    "phonetic": "/ˈstræt̬.ə.dʒi/",
+    "monolingual": "A plan of action designed to achieve a long-term aim."
+  },
+  {
+    "token": "structural",
+    "type": "word",
+    "level": "B2",
+    "translation": "estructural",
+    "phonetic": "/ˈstrʌk.tʃɚ.əl/",
+    "monolingual": "Relating to or forming part of the structure."
+  },
+  {
+    "token": "subjective",
+    "type": "word",
+    "level": "B2",
+    "translation": "subjetivo",
+    "phonetic": "/səbˈdʒek.tɪv/",
+    "monolingual": "Based on or influenced by personal feelings or opinions."
+  },
+  {
+    "token": "subordinate",
+    "type": "word",
+    "level": "B2",
+    "translation": "subordinado",
+    "phonetic": "/səˈbɔːr.dɪ.nət/",
+    "monolingual": "Lower in rank or position."
+  },
+  {
+    "token": "subsequent",
+    "type": "word",
+    "level": "B2",
+    "translation": "subsiguiente",
+    "phonetic": "/ˈsʌb.sə.kwənt/",
+    "monolingual": "Coming after something in time."
+  },
+  {
+    "token": "subset",
+    "type": "word",
+    "level": "B2",
+    "translation": "subconjunto",
+    "phonetic": "/ˈsʌb.set/",
+    "monolingual": "A set of which all the elements are contained in another set."
+  },
+  {
+    "token": "substantial",
+    "type": "word",
+    "level": "B2",
+    "translation": "sustancial",
+    "phonetic": "/səbˈstæn.ʃəl/",
+    "monolingual": "Of considerable importance, size, or worth."
+  },
+  {
+    "token": "substantiate",
+    "type": "word",
+    "level": "C1",
+    "translation": "corroborar",
+    "phonetic": "/səbˈstæn.ʃi.eɪt/",
+    "monolingual": "To provide evidence to support or prove the truth of."
+  },
+  {
+    "token": "substitute",
+    "type": "word",
+    "level": "B2",
+    "translation": "sustituir",
+    "phonetic": "/ˈsʌb.stɪ.tuːt/",
+    "monolingual": "A person or thing acting in place of another."
+  },
+  {
+    "token": "sufficient",
+    "type": "word",
+    "level": "B2",
+    "translation": "suficiente",
+    "phonetic": "/səˈfɪʃ.ənt/",
+    "monolingual": "Enough; adequate."
+  },
+  {
+    "token": "summarize",
+    "type": "word",
+    "level": "B2",
+    "translation": "resumir",
+    "phonetic": "/ˈsʌm.ə.raɪz/",
+    "monolingual": "To give a brief statement of the main points."
+  },
+  {
+    "token": "supplement",
+    "type": "word",
+    "level": "B2",
+    "translation": "suplemento",
+    "phonetic": "/ˈsʌp.lə.mənt/",
+    "monolingual": "A thing added to something else in order to complete or enhance it."
+  },
+  {
+    "token": "suppress",
+    "type": "word",
+    "level": "B2",
+    "translation": "suprimir",
+    "phonetic": "/səˈpres/",
+    "monolingual": "To forcibly put an end to, or restrain or prevent."
+  },
+  {
+    "token": "synonym",
+    "type": "word",
+    "level": "B2",
+    "translation": "sinónimo",
+    "phonetic": "/ˈsɪn.ə.nɪm/",
+    "monolingual": "A word or phrase that means exactly or nearly the same as another."
+  },
+  {
+    "token": "synthesize",
+    "type": "word",
+    "level": "B2",
+    "translation": "sintetizar",
+    "phonetic": "/ˈsɪn.θə.saɪz/",
+    "monolingual": "To combine into a single or unified entity."
+  },
+  {
+    "token": "systematic",
+    "type": "word",
+    "level": "B2",
+    "translation": "sistemático",
+    "phonetic": "/ˌsɪs.təˈmæt̬.ɪk/",
+    "monolingual": "Done according to a fixed plan or system."
+  },
+  {
+    "token": "tangible",
+    "type": "word",
+    "level": "B2",
+    "translation": "tangible",
+    "phonetic": "/ˈtæn.dʒə.bəl/",
+    "monolingual": "Perceptible by touch; real and not imaginary."
+  },
+  {
+    "token": "taxonomy",
+    "type": "word",
+    "level": "C1",
+    "translation": "taxonomía",
+    "phonetic": "/tækˈsɒn.ə.mi/",
+    "monolingual": "The branch of science concerned with classification."
+  },
+  {
+    "token": "technique",
+    "type": "word",
+    "level": "B2",
+    "translation": "técnica",
+    "phonetic": "/tekˈniːk/",
+    "monolingual": "A way of carrying out a particular task."
+  },
+  {
+    "token": "tenet",
+    "type": "word",
+    "level": "C1",
+    "translation": "dogma",
+    "phonetic": "/ˈten.ɪt/",
+    "monolingual": "A principle or belief held by a group or person."
+  },
+  {
+    "token": "tentative",
+    "type": "word",
+    "level": "B2",
+    "translation": "tentativo",
+    "phonetic": "/ˈten.tə.tɪv/",
+    "monolingual": "Not certain or fixed; provisional."
+  },
+  {
+    "token": "theoretical",
+    "type": "word",
+    "level": "B2",
+    "translation": "teórico",
+    "phonetic": "/ˌθiː.əˈret̬.ɪ.kəl/",
+    "monolingual": "Concerned with or involving the theory of a subject."
+  },
+  {
+    "token": "theory",
+    "type": "word",
+    "level": "B2",
+    "translation": "teoría",
+    "phonetic": "/ˈθiː.ɚ.i/",
+    "monolingual": "A supposition or system of ideas intended to explain something."
+  },
+  {
+    "token": "thereafter",
+    "type": "word",
+    "level": "B2",
+    "translation": "a partir de entonces",
+    "phonetic": "/ˌðerˈæf.tɚ/",
+    "monolingual": "After the time or event mentioned."
+  },
+  {
+    "token": "thereby",
+    "type": "word",
+    "level": "B2",
+    "translation": "por lo tanto",
+    "phonetic": "/ˌðerˈbaɪ/",
+    "monolingual": "By that means; as a result of that."
+  },
+  {
+    "token": "thesis",
+    "type": "word",
+    "level": "B2",
+    "translation": "tesis",
+    "phonetic": "/ˈθiː.sɪs/",
+    "monolingual": "A statement or theory put forward as a premise to be proved."
+  },
+  {
+    "token": "threshold",
+    "type": "word",
+    "level": "B2",
+    "translation": "umbral",
+    "phonetic": "/ˈθreʃ.hoʊld/",
+    "monolingual": "The level or point at which something starts or stops happening."
+  },
+  {
+    "token": "transcend",
+    "type": "word",
+    "level": "C1",
+    "translation": "trascender",
+    "phonetic": "/trænˈsend/",
+    "monolingual": "To be or go beyond the range or limits of."
+  },
+  {
+    "token": "transcribe",
+    "type": "word",
+    "level": "B2",
+    "translation": "transcribir",
+    "phonetic": "/trænˈskraɪb/",
+    "monolingual": "To put into written or typed form."
+  },
+  {
+    "token": "transparency",
+    "type": "word",
+    "level": "B2",
+    "translation": "transparencia",
+    "phonetic": "/trænˈsper.ən.si/",
+    "monolingual": "The condition of being transparent; openness."
+  },
+  {
+    "token": "trend",
+    "type": "word",
+    "level": "B2",
+    "translation": "tendencia",
+    "phonetic": "/trend/",
+    "monolingual": "A general direction in which something is developing or changing."
+  },
+  {
+    "token": "typify",
+    "type": "word",
+    "level": "C1",
+    "translation": "tipificar",
+    "phonetic": "/ˈtɪp.ə.faɪ/",
+    "monolingual": "To be a typical example of."
+  },
+  {
+    "token": "ultimate",
+    "type": "word",
+    "level": "B2",
+    "translation": "final",
+    "phonetic": "/ˈʌl.t̬ə.mət/",
+    "monolingual": "Being or happening at the end of a process; final."
+  },
+  {
+    "token": "underlying",
+    "type": "word",
+    "level": "B2",
+    "translation": "subyacente",
+    "phonetic": "/ˌʌn.dɚˈlaɪ.ɪŋ/",
+    "monolingual": "Significant though not immediately apparent."
+  },
+  {
+    "token": "undertake",
+    "type": "word",
+    "level": "B2",
+    "translation": "emprender",
+    "phonetic": "/ˌʌn.dɚˈteɪk/",
+    "monolingual": "To commit oneself to and begin an enterprise."
+  },
+  {
+    "token": "unify",
+    "type": "word",
+    "level": "B2",
+    "translation": "unificar",
+    "phonetic": "/ˈjuː.nɪ.faɪ/",
+    "monolingual": "To make or become united, uniform, or whole."
+  },
+  {
+    "token": "unique",
+    "type": "word",
+    "level": "B2",
+    "translation": "único",
+    "phonetic": "/juːˈniːk/",
+    "monolingual": "Being the only one of its kind."
+  },
+  {
+    "token": "unprecedented",
+    "type": "word",
+    "level": "B2",
+    "translation": "sin precedentes",
+    "phonetic": "/ʌnˈpres.ə.den.tɪd/",
+    "monolingual": "Never done or known before."
+  },
+  {
+    "token": "utilize",
+    "type": "word",
+    "level": "B2",
+    "translation": "utilizar",
+    "phonetic": "/ˈjuː.tə.laɪz/",
+    "monolingual": "To make practical and effective use of."
+  },
+  {
+    "token": "validate",
+    "type": "word",
+    "level": "B2",
+    "translation": "validar",
+    "phonetic": "/ˈvæl.ɪ.deɪt/",
+    "monolingual": "To check or prove the validity or accuracy of something."
+  },
+  {
+    "token": "validity",
+    "type": "word",
+    "level": "B2",
+    "translation": "validez",
+    "phonetic": "/vəˈlɪd.ə.t̬i/",
+    "monolingual": "The quality of being logically or factually sound."
+  },
+  {
+    "token": "variability",
+    "type": "word",
+    "level": "B2",
+    "translation": "variabilidad",
+    "phonetic": "/ˌver.i.əˈbɪl.ə.t̬i/",
+    "monolingual": "The fact that two or more things are different."
+  },
+  {
+    "token": "variation",
+    "type": "word",
+    "level": "B2",
+    "translation": "variación",
+    "phonetic": "/ˌver.iˈeɪ.ʃən/",
+    "monolingual": "A change or slight difference in condition, amount, or level."
+  },
+  {
+    "token": "variety",
+    "type": "word",
+    "level": "B2",
+    "translation": "variedad",
+    "phonetic": "/vəˈraɪ.ə.t̬i/",
+    "monolingual": "The quality or state of being different or diverse."
+  },
+  {
+    "token": "verbal",
+    "type": "word",
+    "level": "B2",
+    "translation": "verbal",
+    "phonetic": "/ˈvɝː.bəl/",
+    "monolingual": "Relating to or in the form of words."
+  },
+  {
+    "token": "verify",
+    "type": "word",
+    "level": "B2",
+    "translation": "verificar",
+    "phonetic": "/ˈver.ə.faɪ/",
+    "monolingual": "To make sure or demonstrate that something is true or accurate."
+  },
+  {
+    "token": "versatile",
+    "type": "word",
+    "level": "B2",
+    "translation": "versátil",
+    "phonetic": "/ˈvɝː.sə.t̬əl/",
+    "monolingual": "Able to adapt or be adapted to many different functions."
+  },
+  {
+    "token": "viewpoint",
+    "type": "word",
+    "level": "B2",
+    "translation": "punto de vista",
+    "phonetic": "/ˈvjuː.pɔɪnt/",
+    "monolingual": "A position from which something is observed."
+  },
+  {
+    "token": "vocabulary",
+    "type": "word",
+    "level": "B2",
+    "translation": "vocabulario",
+    "phonetic": "/voʊˈkæb.jə.ler.i/",
+    "monolingual": "The body of words used in a particular language."
+  },
+  {
+    "token": "whereby",
+    "type": "word",
+    "level": "B2",
+    "translation": "por el cual",
+    "phonetic": "/ˌwerˈbaɪ/",
+    "monolingual": "By which; through which."
+  },
+  {
+    "token": "yield",
+    "type": "word",
+    "level": "B2",
+    "translation": "rendimiento",
+    "phonetic": "/jiːld/",
+    "monolingual": "The amount produced or returned from an investigation."
+  }
+]

@@ -12,7 +12,9 @@ import type {
   AiSettings,
   TtsSettings,
   OnboardingState,
+  TelemetrySettings,
 } from './types';
+import { setTelemetryEnabled } from './telemetry';
 
 export const DEFAULT_SUBTITLE_STYLES: SubtitleStyles = {
   fontSize: 32,
@@ -142,6 +144,12 @@ export const DEFAULT_ONBOARDING: OnboardingState = {
   completedAt: null,
 };
 
+export const DEFAULT_TELEMETRY: TelemetrySettings = {
+  // Local-only by design — no data leaves the device — so the default is
+  // “on”. The user can flip it off in the dict-packs panel.
+  enabled: true,
+};
+
 export interface KivaraState {
   enabled: boolean;
   /**
@@ -165,6 +173,7 @@ export interface KivaraState {
   tts: TtsSettings;
   panelPosition: PanelPosition | null;
   onboarding: OnboardingState;
+  telemetry: TelemetrySettings;
   audioCaptureActive: boolean;
 
   setEnabled: (v: boolean) => void;
@@ -183,6 +192,7 @@ export interface KivaraState {
   setTts: (t: TtsSettings | ((prev: TtsSettings) => TtsSettings)) => void;
   setPanelPosition: (p: PanelPosition | null) => void;
   setOnboarding: (o: OnboardingState | ((prev: OnboardingState) => OnboardingState)) => void;
+  setTelemetry: (t: TelemetrySettings | ((prev: TelemetrySettings) => TelemetrySettings)) => void;
   setAudioCaptureActive: (v: boolean) => void;
   resetSubtitleStyles: () => void;
 }
@@ -364,6 +374,7 @@ function mergePersisted(persistedState: unknown, currentState: KivaraState): Kiv
     tts: { ...DEFAULT_TTS, ...(persisted.tts ?? {}) },
     panelPosition: persisted.panelPosition ?? DEFAULT_PANEL_POSITION,
     onboarding: { ...DEFAULT_ONBOARDING, ...(persisted.onboarding ?? {}) },
+    telemetry: { ...DEFAULT_TELEMETRY, ...(persisted.telemetry ?? {}) },
   };
 }
 
@@ -386,6 +397,7 @@ export const useKivaraStore = create<KivaraState>()(
       tts: DEFAULT_TTS,
       panelPosition: DEFAULT_PANEL_POSITION,
       onboarding: DEFAULT_ONBOARDING,
+      telemetry: DEFAULT_TELEMETRY,
       audioCaptureActive: false,
 
       setEnabled: (v) => set({ enabled: v }),
@@ -431,6 +443,10 @@ export const useKivaraStore = create<KivaraState>()(
         set((state) => ({
           onboarding: typeof o === 'function' ? o(state.onboarding) : o,
         })),
+      setTelemetry: (t) =>
+        set((state) => ({
+          telemetry: typeof t === 'function' ? t(state.telemetry) : t,
+        })),
       setAudioCaptureActive: (v) => set({ audioCaptureActive: v }),
       resetSubtitleStyles: () => set({ subtitleStyles: DEFAULT_SUBTITLE_STYLES }),
     }),
@@ -454,6 +470,7 @@ export const useKivaraStore = create<KivaraState>()(
         tts: state.tts,
         panelPosition: state.panelPosition,
         onboarding: state.onboarding,
+        telemetry: state.telemetry,
       }),
       // Deep-merge defaults into the persisted slice so a snapshot saved by an
       // older build (e.g. missing translate.tiersEnabled) doesn't crash the
@@ -477,3 +494,13 @@ try {
 } catch {
   // ignore — chrome.storage may not be available in test environments
 }
+
+// Keep the telemetry module's cached toggle in sync with the store so the
+// service worker / content script can call `recordLookupHit` etc. without
+// reading the store on every lookup.
+setTelemetryEnabled(useKivaraStore.getState().telemetry.enabled);
+useKivaraStore.subscribe((state, prev) => {
+  if (state.telemetry.enabled !== prev.telemetry.enabled) {
+    setTelemetryEnabled(state.telemetry.enabled);
+  }
+});

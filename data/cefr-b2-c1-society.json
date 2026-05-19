@@ -1,0 +1,2778 @@
+[
+  {
+    "token": "abide",
+    "type": "word",
+    "level": "B2",
+    "translation": "respetar",
+    "phonetic": "/əˈbaɪd/",
+    "monolingual": "To accept or act in accordance with a rule or decision."
+  },
+  {
+    "token": "abolish",
+    "type": "word",
+    "level": "B2",
+    "translation": "abolir",
+    "phonetic": "/əˈbɒl.ɪʃ/",
+    "monolingual": "To formally put an end to a system, practice, or institution."
+  },
+  {
+    "token": "accord",
+    "type": "word",
+    "level": "B2",
+    "translation": "acuerdo",
+    "phonetic": "/əˈkɔːrd/",
+    "monolingual": "A formal agreement, especially between countries."
+  },
+  {
+    "token": "accountability",
+    "type": "word",
+    "level": "B2",
+    "translation": "rendición de cuentas",
+    "phonetic": "/əˌkaʊn.t̬əˈbɪl.ə.t̬i/",
+    "monolingual": "The fact of being responsible for what you do."
+  },
+  {
+    "token": "acquit",
+    "type": "word",
+    "level": "C1",
+    "translation": "absolver",
+    "phonetic": "/əˈkwɪt/",
+    "monolingual": "To free someone from a criminal charge by a verdict of not guilty."
+  },
+  {
+    "token": "activist",
+    "type": "word",
+    "level": "B2",
+    "translation": "activista",
+    "phonetic": "/ˈæk.t̬ə.vɪst/",
+    "monolingual": "A person who campaigns for political or social change."
+  },
+  {
+    "token": "adversary",
+    "type": "word",
+    "level": "B2",
+    "translation": "adversario",
+    "phonetic": "/ˈæd.vɚ.ser.i/",
+    "monolingual": "One's opponent in a contest, conflict, or dispute."
+  },
+  {
+    "token": "advocate",
+    "type": "word",
+    "level": "B2",
+    "translation": "defensor",
+    "phonetic": "/ˈæd.və.kət/",
+    "monolingual": "A person who publicly supports a cause."
+  },
+  {
+    "token": "affidavit",
+    "type": "word",
+    "level": "C1",
+    "translation": "declaración jurada",
+    "phonetic": "/ˌæf.ɪˈdeɪ.vɪt/",
+    "monolingual": "A written statement confirmed by oath, for use as evidence."
+  },
+  {
+    "token": "allegation",
+    "type": "word",
+    "level": "B2",
+    "translation": "acusación",
+    "phonetic": "/ˌæl.ɪˈɡeɪ.ʃən/",
+    "monolingual": "A claim of wrongdoing, typically without proof."
+  },
+  {
+    "token": "alleged",
+    "type": "word",
+    "level": "B2",
+    "translation": "supuesto",
+    "phonetic": "/əˈledʒd/",
+    "monolingual": "Said, without proof, to have taken place."
+  },
+  {
+    "token": "amendment",
+    "type": "word",
+    "level": "B2",
+    "translation": "enmienda",
+    "phonetic": "/əˈmend.mənt/",
+    "monolingual": "A change to a law or document."
+  },
+  {
+    "token": "amnesty",
+    "type": "word",
+    "level": "C1",
+    "translation": "amnistía",
+    "phonetic": "/ˈæm.nə.sti/",
+    "monolingual": "An official pardon for past offenses."
+  },
+  {
+    "token": "appeal",
+    "type": "word",
+    "level": "B2",
+    "translation": "apelar",
+    "phonetic": "/əˈpiːl/",
+    "monolingual": "To apply to a higher court for reversal of a lower court's decision."
+  },
+  {
+    "token": "appellate",
+    "type": "word",
+    "level": "C1",
+    "translation": "de apelación",
+    "phonetic": "/əˈpel.ət/",
+    "monolingual": "Concerned with or dealing with applications for decisions to be reversed."
+  },
+  {
+    "token": "apprehend",
+    "type": "word",
+    "level": "C1",
+    "translation": "aprehender",
+    "phonetic": "/ˌæp.rɪˈhend/",
+    "monolingual": "To arrest someone for a crime."
+  },
+  {
+    "token": "arbitration",
+    "type": "word",
+    "level": "C1",
+    "translation": "arbitraje",
+    "phonetic": "/ˌɑːr.bɪˈtreɪ.ʃən/",
+    "monolingual": "The use of an arbitrator to settle a dispute."
+  },
+  {
+    "token": "arraignment",
+    "type": "word",
+    "level": "C1",
+    "translation": "imputación",
+    "phonetic": "/əˈreɪn.mənt/",
+    "monolingual": "A court hearing where charges are formally read to a defendant."
+  },
+  {
+    "token": "arsenal",
+    "type": "word",
+    "level": "B2",
+    "translation": "arsenal",
+    "phonetic": "/ˈɑːr.sən.əl/",
+    "monolingual": "A collection of weapons and military equipment."
+  },
+  {
+    "token": "assault",
+    "type": "word",
+    "level": "B2",
+    "translation": "asalto",
+    "phonetic": "/əˈsɔːlt/",
+    "monolingual": "A physical attack on someone."
+  },
+  {
+    "token": "assertive",
+    "type": "word",
+    "level": "B2",
+    "translation": "asertivo",
+    "phonetic": "/əˈsɝː.t̬ɪv/",
+    "monolingual": "Confident in behavior or style."
+  },
+  {
+    "token": "asylum",
+    "type": "word",
+    "level": "B2",
+    "translation": "asilo",
+    "phonetic": "/əˈsaɪ.ləm/",
+    "monolingual": "Protection granted to a foreigner who has left their country."
+  },
+  {
+    "token": "autocracy",
+    "type": "word",
+    "level": "C1",
+    "translation": "autocracia",
+    "phonetic": "/ɔːˈtɒk.rə.si/",
+    "monolingual": "A system of government by one person with absolute power."
+  },
+  {
+    "token": "autocratic",
+    "type": "word",
+    "level": "C1",
+    "translation": "autocrático",
+    "phonetic": "/ˌɔː.t̬əˈkræt̬.ɪk/",
+    "monolingual": "Taking no account of other people's wishes."
+  },
+  {
+    "token": "ballot",
+    "type": "word",
+    "level": "B2",
+    "translation": "voto",
+    "phonetic": "/ˈbæl.ət/",
+    "monolingual": "A system of voting in writing."
+  },
+  {
+    "token": "beneficiary",
+    "type": "word",
+    "level": "B2",
+    "translation": "beneficiario",
+    "phonetic": "/ˌben.əˈfɪʃ.ier.i/",
+    "monolingual": "A person who receives benefits, gains, or advantages."
+  },
+  {
+    "token": "benevolent",
+    "type": "word",
+    "level": "C1",
+    "translation": "benevolente",
+    "phonetic": "/bəˈnev.ə.lənt/",
+    "monolingual": "Well meaning and kindly."
+  },
+  {
+    "token": "bicameral",
+    "type": "word",
+    "level": "C1",
+    "translation": "bicameral",
+    "phonetic": "/baɪˈkæm.ɚ.əl/",
+    "monolingual": "Having two chambers, especially of a legislature."
+  },
+  {
+    "token": "bipartisan",
+    "type": "word",
+    "level": "C1",
+    "translation": "bipartidista",
+    "phonetic": "/baɪˈpɑːr.tɪ.zən/",
+    "monolingual": "Of or involving the agreement of two opposing political parties."
+  },
+  {
+    "token": "bombing",
+    "type": "word",
+    "level": "B2",
+    "translation": "atentado con bomba",
+    "phonetic": "/ˈbɒm.ɪŋ/",
+    "monolingual": "An attack with bombs."
+  },
+  {
+    "token": "breach",
+    "type": "word",
+    "level": "B2",
+    "translation": "infracción",
+    "phonetic": "/briːtʃ/",
+    "monolingual": "An act of breaking or failing to observe a law or agreement."
+  },
+  {
+    "token": "bribery",
+    "type": "word",
+    "level": "B2",
+    "translation": "soborno",
+    "phonetic": "/ˈbraɪ.bɚ.i/",
+    "monolingual": "The giving or accepting of bribes."
+  },
+  {
+    "token": "broadcast",
+    "type": "word",
+    "level": "B2",
+    "translation": "transmisión",
+    "phonetic": "/ˈbrɔːd.kæst/",
+    "monolingual": "A radio or television program."
+  },
+  {
+    "token": "bureaucracy",
+    "type": "word",
+    "level": "B2",
+    "translation": "burocracia",
+    "phonetic": "/bjʊˈrɒk.rə.si/",
+    "monolingual": "A system of administration with too many rules."
+  },
+  {
+    "token": "bureaucratic",
+    "type": "word",
+    "level": "B2",
+    "translation": "burocrático",
+    "phonetic": "/ˌbjʊr.əˈkræt.ɪk/",
+    "monolingual": "Relating to a system that follows official rules strictly."
+  },
+  {
+    "token": "campaign",
+    "type": "word",
+    "level": "B2",
+    "translation": "campaña",
+    "phonetic": "/kæmˈpeɪn/",
+    "monolingual": "An organized course of action to achieve a goal."
+  },
+  {
+    "token": "candidacy",
+    "type": "word",
+    "level": "B2",
+    "translation": "candidatura",
+    "phonetic": "/ˈkæn.dɪ.də.si/",
+    "monolingual": "The fact of being a candidate, especially in an election."
+  },
+  {
+    "token": "candidate",
+    "type": "word",
+    "level": "B2",
+    "translation": "candidato",
+    "phonetic": "/ˈkæn.dɪ.deɪt/",
+    "monolingual": "A person who applies for a job or is nominated for election."
+  },
+  {
+    "token": "capacity",
+    "type": "word",
+    "level": "B2",
+    "translation": "capacidad",
+    "phonetic": "/kəˈpæs.ə.t̬i/",
+    "monolingual": "The amount that something can contain."
+  },
+  {
+    "token": "capital punishment",
+    "type": "word",
+    "level": "C1",
+    "translation": "pena capital",
+    "phonetic": "/ˌkæp.ə.təl ˈpʌn.ɪʃ.mənt/",
+    "monolingual": "The killing of someone as the legally ordered punishment for crime."
+  },
+  {
+    "token": "carjacking",
+    "type": "word",
+    "level": "B2",
+    "translation": "robo de coche",
+    "phonetic": "/ˈkɑːrˌdʒæk.ɪŋ/",
+    "monolingual": "The crime of taking someone's car by force."
+  },
+  {
+    "token": "caucus",
+    "type": "word",
+    "level": "C1",
+    "translation": "cónclave",
+    "phonetic": "/ˈkɔː.kəs/",
+    "monolingual": "A meeting of supporters of a specific political party."
+  },
+  {
+    "token": "censorship",
+    "type": "word",
+    "level": "B2",
+    "translation": "censura",
+    "phonetic": "/ˈsen.sɚ.ʃɪp/",
+    "monolingual": "The suppression of speech or other communication."
+  },
+  {
+    "token": "census",
+    "type": "word",
+    "level": "B2",
+    "translation": "censo",
+    "phonetic": "/ˈsen.səs/",
+    "monolingual": "An official count of a population."
+  },
+  {
+    "token": "charity",
+    "type": "word",
+    "level": "B2",
+    "translation": "caridad",
+    "phonetic": "/ˈtʃer.ə.t̬i/",
+    "monolingual": "An organization set up to help those in need."
+  },
+  {
+    "token": "citizenship",
+    "type": "word",
+    "level": "B2",
+    "translation": "ciudadanía",
+    "phonetic": "/ˈsɪt̬.ə.zən.ʃɪp/",
+    "monolingual": "The position or status of being a citizen of a country."
+  },
+  {
+    "token": "civic",
+    "type": "word",
+    "level": "B2",
+    "translation": "cívico",
+    "phonetic": "/ˈsɪv.ɪk/",
+    "monolingual": "Relating to a city or town, especially its administration."
+  },
+  {
+    "token": "civil",
+    "type": "word",
+    "level": "B2",
+    "translation": "civil",
+    "phonetic": "/ˈsɪv.əl/",
+    "monolingual": "Relating to ordinary citizens and their concerns."
+  },
+  {
+    "token": "clause",
+    "type": "word",
+    "level": "B2",
+    "translation": "cláusula",
+    "phonetic": "/klɔːz/",
+    "monolingual": "A part of a treaty, law, or contract."
+  },
+  {
+    "token": "coalition",
+    "type": "word",
+    "level": "B2",
+    "translation": "coalición",
+    "phonetic": "/ˌkoʊ.əˈlɪʃ.ən/",
+    "monolingual": "A temporary alliance of distinct parties."
+  },
+  {
+    "token": "coerce",
+    "type": "word",
+    "level": "C1",
+    "translation": "coaccionar",
+    "phonetic": "/koʊˈɝːs/",
+    "monolingual": "To persuade an unwilling person to do something by force or threats."
+  },
+  {
+    "token": "collateral",
+    "type": "word",
+    "level": "C1",
+    "translation": "colateral",
+    "phonetic": "/kəˈlæt.ɚ.əl/",
+    "monolingual": "Property pledged as security for repayment of a loan."
+  },
+  {
+    "token": "commemorate",
+    "type": "word",
+    "level": "B2",
+    "translation": "conmemorar",
+    "phonetic": "/kəˈmem.ə.reɪt/",
+    "monolingual": "To recall and show respect for someone or something."
+  },
+  {
+    "token": "commit",
+    "type": "word",
+    "level": "B2",
+    "translation": "cometer",
+    "phonetic": "/kəˈmɪt/",
+    "monolingual": "To perpetrate or carry out an action."
+  },
+  {
+    "token": "compensation",
+    "type": "word",
+    "level": "B2",
+    "translation": "compensación",
+    "phonetic": "/ˌkɒm.pənˈseɪ.ʃən/",
+    "monolingual": "A payment given to make amends for a loss or injury."
+  },
+  {
+    "token": "compliant",
+    "type": "word",
+    "level": "B2",
+    "translation": "conforme",
+    "phonetic": "/kəmˈplaɪ.ənt/",
+    "monolingual": "Inclined to agree with others or obey rules."
+  },
+  {
+    "token": "compulsion",
+    "type": "word",
+    "level": "C1",
+    "translation": "compulsión",
+    "phonetic": "/kəmˈpʌl.ʃən/",
+    "monolingual": "The action of obliging someone to do something."
+  },
+  {
+    "token": "compulsory",
+    "type": "word",
+    "level": "B2",
+    "translation": "obligatorio",
+    "phonetic": "/kəmˈpʌl.sɚ.i/",
+    "monolingual": "Required by law or a rule."
+  },
+  {
+    "token": "condemn",
+    "type": "word",
+    "level": "B2",
+    "translation": "condenar",
+    "phonetic": "/kənˈdem/",
+    "monolingual": "To express complete disapproval of, typically in public."
+  },
+  {
+    "token": "confidential",
+    "type": "word",
+    "level": "B2",
+    "translation": "confidencial",
+    "phonetic": "/ˌkɒn.fɪˈden.ʃəl/",
+    "monolingual": "Intended to be kept secret."
+  },
+  {
+    "token": "conflict",
+    "type": "word",
+    "level": "B2",
+    "translation": "conflicto",
+    "phonetic": "/ˈkɒn.flɪkt/",
+    "monolingual": "A serious disagreement or argument."
+  },
+  {
+    "token": "conform",
+    "type": "word",
+    "level": "B2",
+    "translation": "conformarse",
+    "phonetic": "/kənˈfɔːrm/",
+    "monolingual": "To comply with rules, standards, or laws."
+  },
+  {
+    "token": "congress",
+    "type": "word",
+    "level": "B2",
+    "translation": "congreso",
+    "phonetic": "/ˈkɑːŋ.ɡrəs/",
+    "monolingual": "A formal meeting of delegates for discussion."
+  },
+  {
+    "token": "conscientious",
+    "type": "word",
+    "level": "B2",
+    "translation": "concienzudo",
+    "phonetic": "/ˌkɒn.ʃiˈen.ʃəs/",
+    "monolingual": "Wishing to do one's work well and thoroughly."
+  },
+  {
+    "token": "conscription",
+    "type": "word",
+    "level": "C1",
+    "translation": "conscripción",
+    "phonetic": "/kənˈskrɪp.ʃən/",
+    "monolingual": "Compulsory enlistment in state service."
+  },
+  {
+    "token": "consensus",
+    "type": "word",
+    "level": "B2",
+    "translation": "consenso",
+    "phonetic": "/kənˈsen.səs/",
+    "monolingual": "A general agreement."
+  },
+  {
+    "token": "consent",
+    "type": "word",
+    "level": "B2",
+    "translation": "consentimiento",
+    "phonetic": "/kənˈsent/",
+    "monolingual": "Permission for something to happen."
+  },
+  {
+    "token": "conservation",
+    "type": "word",
+    "level": "B2",
+    "translation": "conservación",
+    "phonetic": "/ˌkɒn.sərˈveɪ.ʃən/",
+    "monolingual": "The protection of plants and animals or natural resources."
+  },
+  {
+    "token": "conservative",
+    "type": "word",
+    "level": "B2",
+    "translation": "conservador",
+    "phonetic": "/kənˈsɝː.və.t̬ɪv/",
+    "monolingual": "Holding traditional views or values."
+  },
+  {
+    "token": "conspicuous",
+    "type": "word",
+    "level": "B2",
+    "translation": "llamativo",
+    "phonetic": "/kənˈspɪk.ju.əs/",
+    "monolingual": "Standing out so as to be clearly visible."
+  },
+  {
+    "token": "conspiracy",
+    "type": "word",
+    "level": "B2",
+    "translation": "conspiración",
+    "phonetic": "/kənˈspɪr.ə.si/",
+    "monolingual": "A secret plan by a group to do something unlawful."
+  },
+  {
+    "token": "constituency",
+    "type": "word",
+    "level": "C1",
+    "translation": "circunscripción",
+    "phonetic": "/kənˈstɪtʃ.u.ən.si/",
+    "monolingual": "A body of voters in a specified area."
+  },
+  {
+    "token": "constitution",
+    "type": "word",
+    "level": "B2",
+    "translation": "constitución",
+    "phonetic": "/ˌkɒn.stɪˈtuː.ʃən/",
+    "monolingual": "A body of fundamental principles establishing a state."
+  },
+  {
+    "token": "constitutional",
+    "type": "word",
+    "level": "B2",
+    "translation": "constitucional",
+    "phonetic": "/ˌkɒn.stɪˈtuː.ʃən.əl/",
+    "monolingual": "Relating to a constitution."
+  },
+  {
+    "token": "convene",
+    "type": "word",
+    "level": "B2",
+    "translation": "convocar",
+    "phonetic": "/kənˈviːn/",
+    "monolingual": "To come or bring together for a meeting."
+  },
+  {
+    "token": "conviction",
+    "type": "word",
+    "level": "B2",
+    "translation": "condena",
+    "phonetic": "/kənˈvɪk.ʃən/",
+    "monolingual": "A formal declaration of guilt by a court."
+  },
+  {
+    "token": "corruption",
+    "type": "word",
+    "level": "B2",
+    "translation": "corrupción",
+    "phonetic": "/kəˈrʌp.ʃən/",
+    "monolingual": "Dishonest or fraudulent conduct by those in power."
+  },
+  {
+    "token": "counsel",
+    "type": "word",
+    "level": "B2",
+    "translation": "asesoría",
+    "phonetic": "/ˈkaʊn.səl/",
+    "monolingual": "Advice, especially that given formally."
+  },
+  {
+    "token": "counterfeit",
+    "type": "word",
+    "level": "B2",
+    "translation": "falsificado",
+    "phonetic": "/ˈkaʊn.t̬ɚ.fɪt/",
+    "monolingual": "Made in exact imitation with intent to deceive."
+  },
+  {
+    "token": "coup",
+    "type": "word",
+    "level": "B2",
+    "translation": "golpe de estado",
+    "phonetic": "/kuː/",
+    "monolingual": "A sudden, violent seizure of power from a government."
+  },
+  {
+    "token": "court",
+    "type": "word",
+    "level": "B2",
+    "translation": "tribunal",
+    "phonetic": "/kɔːrt/",
+    "monolingual": "A tribunal presided over by a judge."
+  },
+  {
+    "token": "crackdown",
+    "type": "word",
+    "level": "B2",
+    "translation": "represión",
+    "phonetic": "/ˈkræk.daʊn/",
+    "monolingual": "A severe enforcement of regulations."
+  },
+  {
+    "token": "criminology",
+    "type": "word",
+    "level": "C1",
+    "translation": "criminología",
+    "phonetic": "/ˌkrɪm.əˈnɒl.ə.dʒi/",
+    "monolingual": "The scientific study of crime and criminals."
+  },
+  {
+    "token": "crisis",
+    "type": "word",
+    "level": "B2",
+    "translation": "crisis",
+    "phonetic": "/ˈkraɪ.sɪs/",
+    "monolingual": "A time of intense difficulty, trouble, or danger."
+  },
+  {
+    "token": "critic",
+    "type": "word",
+    "level": "B2",
+    "translation": "crítico",
+    "phonetic": "/ˈkrɪt̬.ɪk/",
+    "monolingual": "A person who expresses an unfavorable opinion."
+  },
+  {
+    "token": "critical",
+    "type": "word",
+    "level": "B2",
+    "translation": "crítico",
+    "phonetic": "/ˈkrɪt̬.ɪ.kəl/",
+    "monolingual": "Expressing adverse or disapproving comments or judgments."
+  },
+  {
+    "token": "custody",
+    "type": "word",
+    "level": "B2",
+    "translation": "custodia",
+    "phonetic": "/ˈkʌs.tə.di/",
+    "monolingual": "The protective care or guardianship of someone or something."
+  },
+  {
+    "token": "declassify",
+    "type": "word",
+    "level": "C1",
+    "translation": "desclasificar",
+    "phonetic": "/ˌdiːˈklæs.ə.faɪ/",
+    "monolingual": "To officially declare information no longer secret."
+  },
+  {
+    "token": "decree",
+    "type": "word",
+    "level": "B2",
+    "translation": "decreto",
+    "phonetic": "/dɪˈkriː/",
+    "monolingual": "An official order having the force of law."
+  },
+  {
+    "token": "defame",
+    "type": "word",
+    "level": "C1",
+    "translation": "difamar",
+    "phonetic": "/dɪˈfeɪm/",
+    "monolingual": "To damage the good reputation of someone."
+  },
+  {
+    "token": "defendant",
+    "type": "word",
+    "level": "B2",
+    "translation": "demandado",
+    "phonetic": "/dɪˈfen.dənt/",
+    "monolingual": "An individual sued or accused in a court of law."
+  },
+  {
+    "token": "defy",
+    "type": "word",
+    "level": "B2",
+    "translation": "desafiar",
+    "phonetic": "/dɪˈfaɪ/",
+    "monolingual": "To openly resist or refuse to obey."
+  },
+  {
+    "token": "delegate",
+    "type": "word",
+    "level": "B2",
+    "translation": "delegado",
+    "phonetic": "/ˈdel.ə.ɡət/",
+    "monolingual": "A person sent or authorized to represent others."
+  },
+  {
+    "token": "deliberate",
+    "type": "word",
+    "level": "B2",
+    "translation": "deliberar",
+    "phonetic": "/dɪˈlɪb.ə.reɪt/",
+    "monolingual": "To engage in long and careful consideration."
+  },
+  {
+    "token": "demagogue",
+    "type": "word",
+    "level": "C1",
+    "translation": "demagogo",
+    "phonetic": "/ˈdem.ə.ɡɑːɡ/",
+    "monolingual": "A political leader who seeks support by appealing to emotions."
+  },
+  {
+    "token": "democratic",
+    "type": "word",
+    "level": "B2",
+    "translation": "democrático",
+    "phonetic": "/ˌdem.əˈkræt.ɪk/",
+    "monolingual": "Relating to or supporting democracy."
+  },
+  {
+    "token": "demonstrate",
+    "type": "word",
+    "level": "B2",
+    "translation": "manifestarse",
+    "phonetic": "/ˈdem.ən.streɪt/",
+    "monolingual": "To take part in a public meeting or march."
+  },
+  {
+    "token": "denounce",
+    "type": "word",
+    "level": "B2",
+    "translation": "denunciar",
+    "phonetic": "/dɪˈnaʊns/",
+    "monolingual": "To publicly declare to be wrong or evil."
+  },
+  {
+    "token": "deport",
+    "type": "word",
+    "level": "B2",
+    "translation": "deportar",
+    "phonetic": "/dɪˈpɔːrt/",
+    "monolingual": "To expel a foreigner from a country."
+  },
+  {
+    "token": "depose",
+    "type": "word",
+    "level": "C1",
+    "translation": "deponer",
+    "phonetic": "/dɪˈpoʊz/",
+    "monolingual": "To remove from office suddenly and forcefully."
+  },
+  {
+    "token": "deputy",
+    "type": "word",
+    "level": "B2",
+    "translation": "suplente",
+    "phonetic": "/ˈdep.jə.t̬i/",
+    "monolingual": "A person whose immediate superior is a senior figure."
+  },
+  {
+    "token": "detain",
+    "type": "word",
+    "level": "B2",
+    "translation": "detener",
+    "phonetic": "/dɪˈteɪn/",
+    "monolingual": "To keep someone in official custody."
+  },
+  {
+    "token": "deterrent",
+    "type": "word",
+    "level": "B2",
+    "translation": "disuasivo",
+    "phonetic": "/dɪˈter.ənt/",
+    "monolingual": "A thing that discourages or is intended to discourage someone."
+  },
+  {
+    "token": "dictator",
+    "type": "word",
+    "level": "B2",
+    "translation": "dictador",
+    "phonetic": "/ˈdɪk.teɪ.t̬ɚ/",
+    "monolingual": "A ruler with total power over a country."
+  },
+  {
+    "token": "dignity",
+    "type": "word",
+    "level": "B2",
+    "translation": "dignidad",
+    "phonetic": "/ˈdɪɡ.nə.t̬i/",
+    "monolingual": "The state or quality of being worthy of honor or respect."
+  },
+  {
+    "token": "diplomat",
+    "type": "word",
+    "level": "B2",
+    "translation": "diplomático",
+    "phonetic": "/ˈdɪp.lə.mæt/",
+    "monolingual": "An official representing a country abroad."
+  },
+  {
+    "token": "diplomatic",
+    "type": "word",
+    "level": "B2",
+    "translation": "diplomático",
+    "phonetic": "/ˌdɪp.ləˈmæt.ɪk/",
+    "monolingual": "Relating to diplomacy."
+  },
+  {
+    "token": "disclose",
+    "type": "word",
+    "level": "B2",
+    "translation": "revelar",
+    "phonetic": "/dɪˈskloʊz/",
+    "monolingual": "To make secret or new information known."
+  },
+  {
+    "token": "discrimination",
+    "type": "word",
+    "level": "B2",
+    "translation": "discriminación",
+    "phonetic": "/dɪˌskrɪm.əˈneɪ.ʃən/",
+    "monolingual": "The unjust treatment of different categories of people."
+  },
+  {
+    "token": "dispute",
+    "type": "word",
+    "level": "B2",
+    "translation": "disputa",
+    "phonetic": "/dɪˈspjuːt/",
+    "monolingual": "A disagreement or argument."
+  },
+  {
+    "token": "dissent",
+    "type": "word",
+    "level": "B2",
+    "translation": "disentir",
+    "phonetic": "/dɪˈsent/",
+    "monolingual": "The expression of opinions at variance with those previously held."
+  },
+  {
+    "token": "diversity",
+    "type": "word",
+    "level": "B2",
+    "translation": "diversidad",
+    "phonetic": "/daɪˈvɝː.sə.t̬i/",
+    "monolingual": "The state of being diverse; variety."
+  },
+  {
+    "token": "doctrine",
+    "type": "word",
+    "level": "B2",
+    "translation": "doctrina",
+    "phonetic": "/ˈdɒk.trɪn/",
+    "monolingual": "A belief or set of beliefs held by a group."
+  },
+  {
+    "token": "draconian",
+    "type": "word",
+    "level": "C1",
+    "translation": "draconiano",
+    "phonetic": "/drəˈkoʊ.ni.ən/",
+    "monolingual": "Excessively harsh and severe."
+  },
+  {
+    "token": "duress",
+    "type": "word",
+    "level": "C1",
+    "translation": "coacción",
+    "phonetic": "/dʊˈres/",
+    "monolingual": "Threats, violence, or constraints used to coerce someone."
+  },
+  {
+    "token": "egalitarian",
+    "type": "word",
+    "level": "C1",
+    "translation": "igualitario",
+    "phonetic": "/ɪˌɡæl.ɪˈter.i.ən/",
+    "monolingual": "Believing in or based on the principle of equal rights for all."
+  },
+  {
+    "token": "electorate",
+    "type": "word",
+    "level": "B2",
+    "translation": "electorado",
+    "phonetic": "/ɪˈlek.tɚ.ət/",
+    "monolingual": "All the people in a country or area who are entitled to vote."
+  },
+  {
+    "token": "elite",
+    "type": "word",
+    "level": "B2",
+    "translation": "élite",
+    "phonetic": "/ɪˈliːt/",
+    "monolingual": "A select group that is superior in terms of ability or qualities."
+  },
+  {
+    "token": "embargo",
+    "type": "word",
+    "level": "B2",
+    "translation": "embargo",
+    "phonetic": "/ɪmˈbɑːr.ɡoʊ/",
+    "monolingual": "An official ban on trade or commercial activity with a country."
+  },
+  {
+    "token": "empathy",
+    "type": "word",
+    "level": "B2",
+    "translation": "empatía",
+    "phonetic": "/ˈem.pə.θi/",
+    "monolingual": "The ability to understand and share the feelings of another."
+  },
+  {
+    "token": "empower",
+    "type": "word",
+    "level": "B2",
+    "translation": "empoderar",
+    "phonetic": "/ɪmˈpaʊr/",
+    "monolingual": "To give someone the authority or power to do something."
+  },
+  {
+    "token": "endeavor",
+    "type": "word",
+    "level": "B2",
+    "translation": "esfuerzo",
+    "phonetic": "/ɪnˈdev.ɚ/",
+    "monolingual": "An attempt to achieve a goal."
+  },
+  {
+    "token": "enforce",
+    "type": "word",
+    "level": "B2",
+    "translation": "hacer cumplir",
+    "phonetic": "/ɪnˈfɔːrs/",
+    "monolingual": "To compel observance of or compliance with a law."
+  },
+  {
+    "token": "enfranchise",
+    "type": "word",
+    "level": "C1",
+    "translation": "otorgar el derecho al voto",
+    "phonetic": "/ɪnˈfræn.tʃaɪz/",
+    "monolingual": "To give the right to vote to."
+  },
+  {
+    "token": "entitled",
+    "type": "word",
+    "level": "B2",
+    "translation": "titulado",
+    "phonetic": "/ɪnˈtaɪ.t̬əld/",
+    "monolingual": "Believing oneself to be inherently deserving of privileges."
+  },
+  {
+    "token": "envoy",
+    "type": "word",
+    "level": "B2",
+    "translation": "enviado",
+    "phonetic": "/ˈen.vɔɪ/",
+    "monolingual": "A messenger or representative, especially diplomatic."
+  },
+  {
+    "token": "ethnicity",
+    "type": "word",
+    "level": "B2",
+    "translation": "etnicidad",
+    "phonetic": "/eθˈnɪs.ə.t̬i/",
+    "monolingual": "The fact of belonging to a particular ethnic group."
+  },
+  {
+    "token": "evict",
+    "type": "word",
+    "level": "B2",
+    "translation": "desalojar",
+    "phonetic": "/ɪˈvɪkt/",
+    "monolingual": "To expel from a property by legal process."
+  },
+  {
+    "token": "exodus",
+    "type": "word",
+    "level": "C1",
+    "translation": "éxodo",
+    "phonetic": "/ˈek.sə.dəs/",
+    "monolingual": "A mass departure of people."
+  },
+  {
+    "token": "expatriate",
+    "type": "word",
+    "level": "B2",
+    "translation": "expatriado",
+    "phonetic": "/eksˈpeɪ.tri.ət/",
+    "monolingual": "A person living outside their native country."
+  },
+  {
+    "token": "expel",
+    "type": "word",
+    "level": "B2",
+    "translation": "expulsar",
+    "phonetic": "/ɪkˈspel/",
+    "monolingual": "To deprive of membership."
+  },
+  {
+    "token": "expulsion",
+    "type": "word",
+    "level": "B2",
+    "translation": "expulsión",
+    "phonetic": "/ɪkˈspʌl.ʃən/",
+    "monolingual": "The action of forcing someone to leave somewhere."
+  },
+  {
+    "token": "extradition",
+    "type": "word",
+    "level": "C1",
+    "translation": "extradición",
+    "phonetic": "/ˌek.strəˈdɪʃ.ən/",
+    "monolingual": "The action of extraditing a person accused of a crime."
+  },
+  {
+    "token": "extremism",
+    "type": "word",
+    "level": "B2",
+    "translation": "extremismo",
+    "phonetic": "/ɪkˈstriː.mɪz.əm/",
+    "monolingual": "The holding of extreme political or religious views."
+  },
+  {
+    "token": "factions",
+    "type": "word",
+    "level": "C1",
+    "translation": "facciones",
+    "phonetic": "/ˈfæk.ʃənz/",
+    "monolingual": "Small organized dissenting groups within a larger one."
+  },
+  {
+    "token": "faction",
+    "type": "word",
+    "level": "C1",
+    "translation": "facción",
+    "phonetic": "/ˈfæk.ʃən/",
+    "monolingual": "A small organized dissenting group within a larger one."
+  },
+  {
+    "token": "felony",
+    "type": "word",
+    "level": "B2",
+    "translation": "delito grave",
+    "phonetic": "/ˈfel.ə.ni/",
+    "monolingual": "A crime regarded as more serious than a misdemeanor."
+  },
+  {
+    "token": "filibuster",
+    "type": "word",
+    "level": "C1",
+    "translation": "filibustero",
+    "phonetic": "/ˈfɪl.ɪˌbʌs.tɚ/",
+    "monolingual": "A prolonged speech to delay legislative action."
+  },
+  {
+    "token": "forfeit",
+    "type": "word",
+    "level": "B2",
+    "translation": "confiscar",
+    "phonetic": "/ˈfɔːr.fɪt/",
+    "monolingual": "To lose or give up as a penalty."
+  },
+  {
+    "token": "fraud",
+    "type": "word",
+    "level": "B2",
+    "translation": "fraude",
+    "phonetic": "/frɔːd/",
+    "monolingual": "Wrongful deception intended to result in financial gain."
+  },
+  {
+    "token": "fraudulent",
+    "type": "word",
+    "level": "B2",
+    "translation": "fraudulento",
+    "phonetic": "/ˈfrɔː.dʒə.lənt/",
+    "monolingual": "Obtained, done by, or involving deception."
+  },
+  {
+    "token": "gallows",
+    "type": "word",
+    "level": "C1",
+    "translation": "horca",
+    "phonetic": "/ˈɡæl.oʊz/",
+    "monolingual": "A structure used for hanging a person."
+  },
+  {
+    "token": "genocide",
+    "type": "word",
+    "level": "B2",
+    "translation": "genocidio",
+    "phonetic": "/ˈdʒen.ə.saɪd/",
+    "monolingual": "The deliberate killing of a large group of people."
+  },
+  {
+    "token": "gerrymander",
+    "type": "word",
+    "level": "C1",
+    "translation": "manipulación electoral",
+    "phonetic": "/ˈdʒer.iˌmæn.dɚ/",
+    "monolingual": "To manipulate boundaries of electoral districts to favor one party."
+  },
+  {
+    "token": "governance",
+    "type": "word",
+    "level": "B2",
+    "translation": "gobernanza",
+    "phonetic": "/ˈɡʌv.ɚ.nəns/",
+    "monolingual": "The action or manner of governing."
+  },
+  {
+    "token": "grassroots",
+    "type": "word",
+    "level": "B2",
+    "translation": "bases",
+    "phonetic": "/ˌɡræsˈruːts/",
+    "monolingual": "The most basic level of an activity or organization."
+  },
+  {
+    "token": "guardian",
+    "type": "word",
+    "level": "B2",
+    "translation": "tutor",
+    "phonetic": "/ˈɡɑːr.di.ən/",
+    "monolingual": "A defender, protector, or keeper."
+  },
+  {
+    "token": "hatred",
+    "type": "word",
+    "level": "B2",
+    "translation": "odio",
+    "phonetic": "/ˈheɪ.trəd/",
+    "monolingual": "Intense dislike or ill will."
+  },
+  {
+    "token": "hearing",
+    "type": "word",
+    "level": "B2",
+    "translation": "audiencia",
+    "phonetic": "/ˈhɪr.ɪŋ/",
+    "monolingual": "An opportunity to state one's case, especially in court."
+  },
+  {
+    "token": "hegemony",
+    "type": "word",
+    "level": "C1",
+    "translation": "hegemonía",
+    "phonetic": "/hɪˈdʒem.ə.ni/",
+    "monolingual": "Leadership or dominance by one country or social group."
+  },
+  {
+    "token": "heritage",
+    "type": "word",
+    "level": "B2",
+    "translation": "herencia",
+    "phonetic": "/ˈher.ɪ.t̬ɪdʒ/",
+    "monolingual": "Property that is or may be inherited."
+  },
+  {
+    "token": "hierarchy",
+    "type": "word",
+    "level": "B2",
+    "translation": "jerarquía",
+    "phonetic": "/ˈhaɪ.ə.rɑːr.ki/",
+    "monolingual": "A system in which members are ranked according to status."
+  },
+  {
+    "token": "homicide",
+    "type": "word",
+    "level": "B2",
+    "translation": "homicidio",
+    "phonetic": "/ˈhɒm.ɪ.saɪd/",
+    "monolingual": "The deliberate and unlawful killing of one person by another."
+  },
+  {
+    "token": "ideology",
+    "type": "word",
+    "level": "B2",
+    "translation": "ideología",
+    "phonetic": "/ˌaɪ.diˈɒl.ə.dʒi/",
+    "monolingual": "A system of ideas and ideals."
+  },
+  {
+    "token": "immigration",
+    "type": "word",
+    "level": "B2",
+    "translation": "inmigración",
+    "phonetic": "/ˌɪm.əˈɡreɪ.ʃən/",
+    "monolingual": "The action of coming to live permanently in a foreign country."
+  },
+  {
+    "token": "impartial",
+    "type": "word",
+    "level": "B2",
+    "translation": "imparcial",
+    "phonetic": "/ɪmˈpɑːr.ʃəl/",
+    "monolingual": "Treating all rivals or disputants equally."
+  },
+  {
+    "token": "impeach",
+    "type": "word",
+    "level": "C1",
+    "translation": "destituir",
+    "phonetic": "/ɪmˈpiːtʃ/",
+    "monolingual": "To charge with a crime in a special court proceeding."
+  },
+  {
+    "token": "imperative",
+    "type": "word",
+    "level": "B2",
+    "translation": "imperativo",
+    "phonetic": "/ɪmˈper.ə.t̬ɪv/",
+    "monolingual": "Of vital importance; crucial."
+  },
+  {
+    "token": "imposition",
+    "type": "word",
+    "level": "B2",
+    "translation": "imposición",
+    "phonetic": "/ˌɪm.pəˈzɪʃ.ən/",
+    "monolingual": "The action of imposing something."
+  },
+  {
+    "token": "imprison",
+    "type": "word",
+    "level": "B2",
+    "translation": "encarcelar",
+    "phonetic": "/ɪmˈprɪz.ən/",
+    "monolingual": "To put or keep in prison."
+  },
+  {
+    "token": "inalienable",
+    "type": "word",
+    "level": "C1",
+    "translation": "inalienable",
+    "phonetic": "/ɪnˈeɪl.jə.nə.bəl/",
+    "monolingual": "Unable to be taken away or given away."
+  },
+  {
+    "token": "incarceration",
+    "type": "word",
+    "level": "C1",
+    "translation": "encarcelamiento",
+    "phonetic": "/ɪnˌkɑːr.səˈreɪ.ʃən/",
+    "monolingual": "The state of being confined in prison."
+  },
+  {
+    "token": "incite",
+    "type": "word",
+    "level": "B2",
+    "translation": "incitar",
+    "phonetic": "/ɪnˈsaɪt/",
+    "monolingual": "To encourage or stir up violent or unlawful behavior."
+  },
+  {
+    "token": "incumbent",
+    "type": "word",
+    "level": "C1",
+    "translation": "titular",
+    "phonetic": "/ɪnˈkʌm.bənt/",
+    "monolingual": "The holder of an office or post."
+  },
+  {
+    "token": "indict",
+    "type": "word",
+    "level": "C1",
+    "translation": "acusar",
+    "phonetic": "/ɪnˈdaɪt/",
+    "monolingual": "To formally accuse of or charge with a crime."
+  },
+  {
+    "token": "indigenous",
+    "type": "word",
+    "level": "B2",
+    "translation": "indígena",
+    "phonetic": "/ɪnˈdɪdʒ.ə.nəs/",
+    "monolingual": "Originating or occurring naturally in a particular place."
+  },
+  {
+    "token": "infringe",
+    "type": "word",
+    "level": "C1",
+    "translation": "infringir",
+    "phonetic": "/ɪnˈfrɪndʒ/",
+    "monolingual": "To break the terms of a law, agreement, etc."
+  },
+  {
+    "token": "injunction",
+    "type": "word",
+    "level": "C1",
+    "translation": "requerimiento judicial",
+    "phonetic": "/ɪnˈdʒʌŋk.ʃən/",
+    "monolingual": "A judicial order restraining a person from beginning or continuing an action."
+  },
+  {
+    "token": "inmate",
+    "type": "word",
+    "level": "B2",
+    "translation": "recluso",
+    "phonetic": "/ˈɪn.meɪt/",
+    "monolingual": "A person confined to an institution such as a prison."
+  },
+  {
+    "token": "inquiry",
+    "type": "word",
+    "level": "B2",
+    "translation": "investigación",
+    "phonetic": "/ˈɪn.kwə.ri/",
+    "monolingual": "An act of asking for information, or an official investigation."
+  },
+  {
+    "token": "insurgency",
+    "type": "word",
+    "level": "C1",
+    "translation": "insurgencia",
+    "phonetic": "/ɪnˈsɝː.dʒən.si/",
+    "monolingual": "A revolt against a government."
+  },
+  {
+    "token": "insurgent",
+    "type": "word",
+    "level": "B2",
+    "translation": "insurgente",
+    "phonetic": "/ɪnˈsɝː.dʒənt/",
+    "monolingual": "A rebel or revolutionary."
+  },
+  {
+    "token": "integrity",
+    "type": "word",
+    "level": "B2",
+    "translation": "integridad",
+    "phonetic": "/ɪnˈteɡ.rə.t̬i/",
+    "monolingual": "The quality of being honest and having strong moral principles."
+  },
+  {
+    "token": "intervene",
+    "type": "word",
+    "level": "B2",
+    "translation": "intervenir",
+    "phonetic": "/ˌɪn.t̬ɚˈviːn/",
+    "monolingual": "To come between disputing people or groups."
+  },
+  {
+    "token": "intimidate",
+    "type": "word",
+    "level": "B2",
+    "translation": "intimidar",
+    "phonetic": "/ɪnˈtɪm.ə.deɪt/",
+    "monolingual": "To frighten or threaten someone."
+  },
+  {
+    "token": "intolerance",
+    "type": "word",
+    "level": "B2",
+    "translation": "intolerancia",
+    "phonetic": "/ɪnˈtɒl.ɚ.əns/",
+    "monolingual": "Unwillingness to accept views, beliefs, or behavior differing from one's own."
+  },
+  {
+    "token": "invasion",
+    "type": "word",
+    "level": "B2",
+    "translation": "invasión",
+    "phonetic": "/ɪnˈveɪ.ʒən/",
+    "monolingual": "An instance of invading a country or region."
+  },
+  {
+    "token": "investigation",
+    "type": "word",
+    "level": "B2",
+    "translation": "investigación",
+    "phonetic": "/ɪnˌves.t̬əˈɡeɪ.ʃən/",
+    "monolingual": "The action of investigating something or someone."
+  },
+  {
+    "token": "judgement",
+    "type": "word",
+    "level": "B2",
+    "translation": "juicio",
+    "phonetic": "/ˈdʒʌdʒ.mənt/",
+    "monolingual": "The ability to make considered decisions."
+  },
+  {
+    "token": "judicial",
+    "type": "word",
+    "level": "B2",
+    "translation": "judicial",
+    "phonetic": "/dʒuːˈdɪʃ.əl/",
+    "monolingual": "Relating to the administration of justice."
+  },
+  {
+    "token": "judiciary",
+    "type": "word",
+    "level": "B2",
+    "translation": "judicatura",
+    "phonetic": "/dʒuːˈdɪʃ.i.er.i/",
+    "monolingual": "The judicial authorities of a country."
+  },
+  {
+    "token": "jurisdiction",
+    "type": "word",
+    "level": "B2",
+    "translation": "jurisdicción",
+    "phonetic": "/ˌdʒʊr.ɪsˈdɪk.ʃən/",
+    "monolingual": "The official power to make legal decisions."
+  },
+  {
+    "token": "juror",
+    "type": "word",
+    "level": "B2",
+    "translation": "jurado",
+    "phonetic": "/ˈdʒʊr.ɚ/",
+    "monolingual": "A member of a jury."
+  },
+  {
+    "token": "justice",
+    "type": "word",
+    "level": "B2",
+    "translation": "justicia",
+    "phonetic": "/ˈdʒʌs.tɪs/",
+    "monolingual": "Just behavior or treatment."
+  },
+  {
+    "token": "kidnap",
+    "type": "word",
+    "level": "B2",
+    "translation": "secuestrar",
+    "phonetic": "/ˈkɪd.næp/",
+    "monolingual": "To abduct someone and hold them captive."
+  },
+  {
+    "token": "landslide",
+    "type": "word",
+    "level": "B2",
+    "translation": "avalancha",
+    "phonetic": "/ˈlænd.slaɪd/",
+    "monolingual": "An overwhelming majority of votes for one candidate or party."
+  },
+  {
+    "token": "larceny",
+    "type": "word",
+    "level": "C1",
+    "translation": "hurto",
+    "phonetic": "/ˈlɑːr.sən.i/",
+    "monolingual": "Theft of personal property."
+  },
+  {
+    "token": "launder",
+    "type": "word",
+    "level": "C1",
+    "translation": "blanquear",
+    "phonetic": "/ˈlɔːn.dɚ/",
+    "monolingual": "To pass money obtained illegally through legitimate business."
+  },
+  {
+    "token": "lawful",
+    "type": "word",
+    "level": "B2",
+    "translation": "legítimo",
+    "phonetic": "/ˈlɔː.fəl/",
+    "monolingual": "Conforming to, permitted by, or recognized by law."
+  },
+  {
+    "token": "legacy",
+    "type": "word",
+    "level": "B2",
+    "translation": "legado",
+    "phonetic": "/ˈleɡ.ə.si/",
+    "monolingual": "An amount of money or property left to someone in a will."
+  },
+  {
+    "token": "legitimate",
+    "type": "word",
+    "level": "B2",
+    "translation": "legítimo",
+    "phonetic": "/ləˈdʒɪt.ə.mət/",
+    "monolingual": "Conforming to the law or to rules."
+  },
+  {
+    "token": "levy",
+    "type": "word",
+    "level": "B2",
+    "translation": "imponer",
+    "phonetic": "/ˈlev.i/",
+    "monolingual": "To impose a tax, fee, or fine."
+  },
+  {
+    "token": "liberty",
+    "type": "word",
+    "level": "B2",
+    "translation": "libertad",
+    "phonetic": "/ˈlɪb.ɚ.t̬i/",
+    "monolingual": "The state of being free within society from oppressive restrictions."
+  },
+  {
+    "token": "lobby",
+    "type": "word",
+    "level": "B2",
+    "translation": "cabildear",
+    "phonetic": "/ˈlɒb.i/",
+    "monolingual": "To seek to influence a politician on an issue."
+  },
+  {
+    "token": "lobbyist",
+    "type": "word",
+    "level": "B2",
+    "translation": "cabildero",
+    "phonetic": "/ˈlɒb.i.ɪst/",
+    "monolingual": "A person who tries to influence legislators on a particular issue."
+  },
+  {
+    "token": "loyalty",
+    "type": "word",
+    "level": "B2",
+    "translation": "lealtad",
+    "phonetic": "/ˈlɔɪ.əl.t̬i/",
+    "monolingual": "A strong feeling of support or allegiance."
+  },
+  {
+    "token": "magistrate",
+    "type": "word",
+    "level": "B2",
+    "translation": "magistrado",
+    "phonetic": "/ˈmædʒ.ə.streɪt/",
+    "monolingual": "A civil officer who administers the law."
+  },
+  {
+    "token": "malice",
+    "type": "word",
+    "level": "C1",
+    "translation": "malicia",
+    "phonetic": "/ˈmæl.ɪs/",
+    "monolingual": "The intention or desire to do evil."
+  },
+  {
+    "token": "mandate",
+    "type": "word",
+    "level": "B2",
+    "translation": "mandato",
+    "phonetic": "/ˈmæn.deɪt/",
+    "monolingual": "An official order to do something."
+  },
+  {
+    "token": "manifesto",
+    "type": "word",
+    "level": "B2",
+    "translation": "manifiesto",
+    "phonetic": "/ˌmæn.ɪˈfes.toʊ/",
+    "monolingual": "A public declaration of policy and aims."
+  },
+  {
+    "token": "mayor",
+    "type": "word",
+    "level": "B2",
+    "translation": "alcalde",
+    "phonetic": "/ˈmeɪ.ɚ/",
+    "monolingual": "The elected head of a city, town, or other municipality."
+  },
+  {
+    "token": "mediation",
+    "type": "word",
+    "level": "B2",
+    "translation": "mediación",
+    "phonetic": "/ˌmiː.diˈeɪ.ʃən/",
+    "monolingual": "Intervention to bring about an agreement."
+  },
+  {
+    "token": "militant",
+    "type": "word",
+    "level": "B2",
+    "translation": "militante",
+    "phonetic": "/ˈmɪl.ə.tənt/",
+    "monolingual": "Combative and aggressive in support of a cause."
+  },
+  {
+    "token": "militia",
+    "type": "word",
+    "level": "B2",
+    "translation": "milicia",
+    "phonetic": "/məˈlɪʃ.ə/",
+    "monolingual": "A military force raised from the civil population."
+  },
+  {
+    "token": "minister",
+    "type": "word",
+    "level": "B2",
+    "translation": "ministro",
+    "phonetic": "/ˈmɪn.ə.stɚ/",
+    "monolingual": "A head of a government department."
+  },
+  {
+    "token": "ministry",
+    "type": "word",
+    "level": "B2",
+    "translation": "ministerio",
+    "phonetic": "/ˈmɪn.ə.stri/",
+    "monolingual": "A government department headed by a minister."
+  },
+  {
+    "token": "minor",
+    "type": "word",
+    "level": "B2",
+    "translation": "menor",
+    "phonetic": "/ˈmaɪ.nɚ/",
+    "monolingual": "A person under the age of full legal responsibility."
+  },
+  {
+    "token": "minority",
+    "type": "word",
+    "level": "B2",
+    "translation": "minoría",
+    "phonetic": "/maɪˈnɔːr.ə.t̬i/",
+    "monolingual": "The smaller number or part."
+  },
+  {
+    "token": "misconduct",
+    "type": "word",
+    "level": "B2",
+    "translation": "mala conducta",
+    "phonetic": "/ˌmɪsˈkɒn.dʌkt/",
+    "monolingual": "Unacceptable or improper behavior."
+  },
+  {
+    "token": "misdemeanor",
+    "type": "word",
+    "level": "C1",
+    "translation": "falta",
+    "phonetic": "/ˌmɪs.dəˈmiː.nɚ/",
+    "monolingual": "A minor wrongdoing."
+  },
+  {
+    "token": "mobilize",
+    "type": "word",
+    "level": "B2",
+    "translation": "movilizar",
+    "phonetic": "/ˈmoʊ.bə.laɪz/",
+    "monolingual": "To organize people for a particular cause."
+  },
+  {
+    "token": "monarchy",
+    "type": "word",
+    "level": "B2",
+    "translation": "monarquía",
+    "phonetic": "/ˈmɒn.ɚ.ki/",
+    "monolingual": "A form of government with a monarch at the head."
+  },
+  {
+    "token": "monopoly",
+    "type": "word",
+    "level": "B2",
+    "translation": "monopolio",
+    "phonetic": "/məˈnɑː.pə.li/",
+    "monolingual": "The exclusive possession or control of the supply of something."
+  },
+  {
+    "token": "mortality",
+    "type": "word",
+    "level": "B2",
+    "translation": "mortalidad",
+    "phonetic": "/mɔːrˈtæl.ə.t̬i/",
+    "monolingual": "The state of being subject to death."
+  },
+  {
+    "token": "motion",
+    "type": "word",
+    "level": "B2",
+    "translation": "moción",
+    "phonetic": "/ˈmoʊ.ʃən/",
+    "monolingual": "A formal proposal put to a legislature or committee."
+  },
+  {
+    "token": "multicultural",
+    "type": "word",
+    "level": "B2",
+    "translation": "multicultural",
+    "phonetic": "/ˌmʌl.tiˈkʌl.tʃɚ.əl/",
+    "monolingual": "Relating to or constituting several cultural groups."
+  },
+  {
+    "token": "municipal",
+    "type": "word",
+    "level": "B2",
+    "translation": "municipal",
+    "phonetic": "/mjuːˈnɪs.ə.pəl/",
+    "monolingual": "Relating to a city or town or its governing body."
+  },
+  {
+    "token": "mutiny",
+    "type": "word",
+    "level": "C1",
+    "translation": "motín",
+    "phonetic": "/ˈmjuː.tən.i/",
+    "monolingual": "An open rebellion against constituted authority."
+  },
+  {
+    "token": "narcotic",
+    "type": "word",
+    "level": "B2",
+    "translation": "narcótico",
+    "phonetic": "/nɑːrˈkɒt.ɪk/",
+    "monolingual": "A drug that affects mood or behavior."
+  },
+  {
+    "token": "nationalism",
+    "type": "word",
+    "level": "B2",
+    "translation": "nacionalismo",
+    "phonetic": "/ˈnæʃ.ən.əl.ɪz.əm/",
+    "monolingual": "Identification with one's own nation."
+  },
+  {
+    "token": "nationality",
+    "type": "word",
+    "level": "B2",
+    "translation": "nacionalidad",
+    "phonetic": "/ˌnæʃ.ənˈæl.ə.t̬i/",
+    "monolingual": "The status of belonging to a particular nation."
+  },
+  {
+    "token": "negotiation",
+    "type": "word",
+    "level": "B2",
+    "translation": "negociación",
+    "phonetic": "/nɪˌɡoʊ.ʃiˈeɪ.ʃən/",
+    "monolingual": "Discussion aimed at reaching an agreement."
+  },
+  {
+    "token": "neutrality",
+    "type": "word",
+    "level": "B2",
+    "translation": "neutralidad",
+    "phonetic": "/nuːˈtræl.ə.t̬i/",
+    "monolingual": "The state of not supporting either side in a war."
+  },
+  {
+    "token": "notorious",
+    "type": "word",
+    "level": "B2",
+    "translation": "notorio",
+    "phonetic": "/noʊˈtɔːr.i.əs/",
+    "monolingual": "Famous or well known, typically for a bad quality."
+  },
+  {
+    "token": "oath",
+    "type": "word",
+    "level": "B2",
+    "translation": "juramento",
+    "phonetic": "/oʊθ/",
+    "monolingual": "A solemn promise."
+  },
+  {
+    "token": "obligation",
+    "type": "word",
+    "level": "B2",
+    "translation": "obligación",
+    "phonetic": "/ˌɑː.bləˈɡeɪ.ʃən/",
+    "monolingual": "An act or course of action to which a person is morally bound."
+  },
+  {
+    "token": "oligarchy",
+    "type": "word",
+    "level": "C1",
+    "translation": "oligarquía",
+    "phonetic": "/ˈɑː.ləˌɡɑːr.ki/",
+    "monolingual": "A small group of people having control of a country or organization."
+  },
+  {
+    "token": "ombudsman",
+    "type": "word",
+    "level": "C1",
+    "translation": "defensor del pueblo",
+    "phonetic": "/ˈɑːm.bʊdz.mən/",
+    "monolingual": "An official appointed to investigate complaints against organizations."
+  },
+  {
+    "token": "oppression",
+    "type": "word",
+    "level": "B2",
+    "translation": "opresión",
+    "phonetic": "/əˈpreʃ.ən/",
+    "monolingual": "Prolonged cruel or unjust treatment or control."
+  },
+  {
+    "token": "ordinance",
+    "type": "word",
+    "level": "C1",
+    "translation": "ordenanza",
+    "phonetic": "/ˈɔːr.dən.əns/",
+    "monolingual": "A piece of legislation enacted by a municipal authority."
+  },
+  {
+    "token": "overrule",
+    "type": "word",
+    "level": "B2",
+    "translation": "revocar",
+    "phonetic": "/ˌoʊ.vɚˈruːl/",
+    "monolingual": "To reject or disallow by exercising one's superior authority."
+  },
+  {
+    "token": "parliament",
+    "type": "word",
+    "level": "B2",
+    "translation": "parlamento",
+    "phonetic": "/ˈpɑːr.lə.mənt/",
+    "monolingual": "The supreme legislative body of a country."
+  },
+  {
+    "token": "parole",
+    "type": "word",
+    "level": "B2",
+    "translation": "libertad condicional",
+    "phonetic": "/pəˈroʊl/",
+    "monolingual": "The release of a prisoner before completing a sentence on good behavior."
+  },
+  {
+    "token": "partisan",
+    "type": "word",
+    "level": "B2",
+    "translation": "partidista",
+    "phonetic": "/ˈpɑːr.tə.zən/",
+    "monolingual": "A strong supporter of a party, cause, or person."
+  },
+  {
+    "token": "patriot",
+    "type": "word",
+    "level": "B2",
+    "translation": "patriota",
+    "phonetic": "/ˈpeɪ.tri.ət/",
+    "monolingual": "A person who vigorously supports their country."
+  },
+  {
+    "token": "penalty",
+    "type": "word",
+    "level": "B2",
+    "translation": "pena",
+    "phonetic": "/ˈpen.əl.t̬i/",
+    "monolingual": "A punishment imposed for breaking a law or rule."
+  },
+  {
+    "token": "perjury",
+    "type": "word",
+    "level": "C1",
+    "translation": "perjurio",
+    "phonetic": "/ˈpɝː.dʒɚ.i/",
+    "monolingual": "The offense of willfully telling an untruth when under oath."
+  },
+  {
+    "token": "persecution",
+    "type": "word",
+    "level": "B2",
+    "translation": "persecución",
+    "phonetic": "/ˌpɝː.sɪˈkjuː.ʃən/",
+    "monolingual": "Hostility and ill-treatment."
+  },
+  {
+    "token": "petition",
+    "type": "word",
+    "level": "B2",
+    "translation": "petición",
+    "phonetic": "/pəˈtɪʃ.ən/",
+    "monolingual": "A formal written request to an authority."
+  },
+  {
+    "token": "plaintiff",
+    "type": "word",
+    "level": "B2",
+    "translation": "demandante",
+    "phonetic": "/ˈpleɪn.tɪf/",
+    "monolingual": "A person who brings a case against another in a court of law."
+  },
+  {
+    "token": "plead",
+    "type": "word",
+    "level": "B2",
+    "translation": "declarar",
+    "phonetic": "/pliːd/",
+    "monolingual": "To formally state in court whether one is guilty or not guilty."
+  },
+  {
+    "token": "plebiscite",
+    "type": "word",
+    "level": "C1",
+    "translation": "plebiscito",
+    "phonetic": "/ˈpleb.ə.saɪt/",
+    "monolingual": "A direct vote by all members of an electorate."
+  },
+  {
+    "token": "plurality",
+    "type": "word",
+    "level": "C1",
+    "translation": "pluralidad",
+    "phonetic": "/plʊˈræl.ə.t̬i/",
+    "monolingual": "The fact or state of being plural."
+  },
+  {
+    "token": "policy",
+    "type": "word",
+    "level": "B2",
+    "translation": "política",
+    "phonetic": "/ˈpɑː.lə.si/",
+    "monolingual": "A course of action proposed by a government or party."
+  },
+  {
+    "token": "politicize",
+    "type": "word",
+    "level": "C1",
+    "translation": "politizar",
+    "phonetic": "/pəˈlɪt.ɪ.saɪz/",
+    "monolingual": "To cause an activity or event to become political in character."
+  },
+  {
+    "token": "poll",
+    "type": "word",
+    "level": "B2",
+    "translation": "encuesta",
+    "phonetic": "/poʊl/",
+    "monolingual": "The process of voting in an election."
+  },
+  {
+    "token": "populism",
+    "type": "word",
+    "level": "C1",
+    "translation": "populismo",
+    "phonetic": "/ˈpɒp.jə.lɪz.əm/",
+    "monolingual": "A political approach that appeals to ordinary people."
+  },
+  {
+    "token": "populist",
+    "type": "word",
+    "level": "C1",
+    "translation": "populista",
+    "phonetic": "/ˈpɒp.jə.lɪst/",
+    "monolingual": "A member of a political party seeking ordinary people's support."
+  },
+  {
+    "token": "poverty",
+    "type": "word",
+    "level": "B2",
+    "translation": "pobreza",
+    "phonetic": "/ˈpɑː.vɚ.t̬i/",
+    "monolingual": "The state of being extremely poor."
+  },
+  {
+    "token": "precedent",
+    "type": "word",
+    "level": "B2",
+    "translation": "precedente",
+    "phonetic": "/ˈpres.ɪ.dənt/",
+    "monolingual": "A previous case used as a guide for subsequent cases."
+  },
+  {
+    "token": "prejudice",
+    "type": "word",
+    "level": "B2",
+    "translation": "prejuicio",
+    "phonetic": "/ˈpredʒ.ə.dɪs/",
+    "monolingual": "A preconceived opinion not based on reason or experience."
+  },
+  {
+    "token": "preliminary",
+    "type": "word",
+    "level": "B2",
+    "translation": "preliminar",
+    "phonetic": "/prɪˈlɪm.ə.ner.i/",
+    "monolingual": "Denoting an action preceding a main event."
+  },
+  {
+    "token": "premise",
+    "type": "word",
+    "level": "B2",
+    "translation": "premisa",
+    "phonetic": "/ˈprem.ɪs/",
+    "monolingual": "A previous statement or proposition from which another is inferred."
+  },
+  {
+    "token": "prevail",
+    "type": "word",
+    "level": "B2",
+    "translation": "prevalecer",
+    "phonetic": "/prɪˈveɪl/",
+    "monolingual": "To prove more powerful than opposing forces."
+  },
+  {
+    "token": "prevailing",
+    "type": "word",
+    "level": "B2",
+    "translation": "predominante",
+    "phonetic": "/prɪˈveɪ.lɪŋ/",
+    "monolingual": "Existing at a particular time; current."
+  },
+  {
+    "token": "privilege",
+    "type": "word",
+    "level": "B2",
+    "translation": "privilegio",
+    "phonetic": "/ˈprɪv.əl.ɪdʒ/",
+    "monolingual": "A special right granted to a particular person or group."
+  },
+  {
+    "token": "probation",
+    "type": "word",
+    "level": "B2",
+    "translation": "libertad condicional",
+    "phonetic": "/proʊˈbeɪ.ʃən/",
+    "monolingual": "The release of an offender from detention."
+  },
+  {
+    "token": "prohibit",
+    "type": "word",
+    "level": "B2",
+    "translation": "prohibir",
+    "phonetic": "/proʊˈhɪb.ɪt/",
+    "monolingual": "To formally forbid by law, rule, or other authority."
+  },
+  {
+    "token": "prohibition",
+    "type": "word",
+    "level": "B2",
+    "translation": "prohibición",
+    "phonetic": "/ˌproʊ.əˈbɪʃ.ən/",
+    "monolingual": "The action of forbidding something, especially by law."
+  },
+  {
+    "token": "propaganda",
+    "type": "word",
+    "level": "B2",
+    "translation": "propaganda",
+    "phonetic": "/ˌprɑː.pəˈɡæn.də/",
+    "monolingual": "Information used to promote a political cause."
+  },
+  {
+    "token": "prosecute",
+    "type": "word",
+    "level": "B2",
+    "translation": "procesar",
+    "phonetic": "/ˈprɑː.sə.kjuːt/",
+    "monolingual": "To institute legal proceedings against."
+  },
+  {
+    "token": "prosecution",
+    "type": "word",
+    "level": "B2",
+    "translation": "procesamiento",
+    "phonetic": "/ˌprɑː.səˈkjuː.ʃən/",
+    "monolingual": "The institution and conducting of legal proceedings."
+  },
+  {
+    "token": "protest",
+    "type": "word",
+    "level": "B2",
+    "translation": "protesta",
+    "phonetic": "/ˈproʊ.test/",
+    "monolingual": "A statement or action expressing disapproval."
+  },
+  {
+    "token": "provision",
+    "type": "word",
+    "level": "B2",
+    "translation": "disposición",
+    "phonetic": "/prəˈvɪʒ.ən/",
+    "monolingual": "A condition or requirement in a legal document."
+  },
+  {
+    "token": "public opinion",
+    "type": "word",
+    "level": "B2",
+    "translation": "opinión pública",
+    "phonetic": "/ˌpʌb.lɪk əˈpɪn.jən/",
+    "monolingual": "Views prevalent among the general public."
+  },
+  {
+    "token": "ratify",
+    "type": "word",
+    "level": "C1",
+    "translation": "ratificar",
+    "phonetic": "/ˈræt̬.ə.faɪ/",
+    "monolingual": "To sign or give formal consent to a treaty."
+  },
+  {
+    "token": "rebel",
+    "type": "word",
+    "level": "B2",
+    "translation": "rebelde",
+    "phonetic": "/ˈreb.əl/",
+    "monolingual": "A person who rises in opposition to an established government."
+  },
+  {
+    "token": "rebellion",
+    "type": "word",
+    "level": "B2",
+    "translation": "rebelión",
+    "phonetic": "/rəˈbel.jən/",
+    "monolingual": "An act of armed resistance to authority."
+  },
+  {
+    "token": "recession",
+    "type": "word",
+    "level": "B2",
+    "translation": "recesión",
+    "phonetic": "/rɪˈseʃ.ən/",
+    "monolingual": "A period of economic decline."
+  },
+  {
+    "token": "reform",
+    "type": "word",
+    "level": "B2",
+    "translation": "reforma",
+    "phonetic": "/rɪˈfɔːrm/",
+    "monolingual": "Make changes in something in order to improve it."
+  },
+  {
+    "token": "refugee",
+    "type": "word",
+    "level": "B2",
+    "translation": "refugiado",
+    "phonetic": "/ˌref.juˈdʒiː/",
+    "monolingual": "A person who has been forced to leave their country."
+  },
+  {
+    "token": "regime",
+    "type": "word",
+    "level": "B2",
+    "translation": "régimen",
+    "phonetic": "/reɪˈʒiːm/",
+    "monolingual": "A government, especially an authoritarian one."
+  },
+  {
+    "token": "regulation",
+    "type": "word",
+    "level": "B2",
+    "translation": "regulación",
+    "phonetic": "/ˌreɡ.jəˈleɪ.ʃən/",
+    "monolingual": "A rule or directive made by an authority."
+  },
+  {
+    "token": "reinstate",
+    "type": "word",
+    "level": "B2",
+    "translation": "reincorporar",
+    "phonetic": "/ˌriː.ɪnˈsteɪt/",
+    "monolingual": "To restore to a previous position."
+  },
+  {
+    "token": "reject",
+    "type": "word",
+    "level": "B2",
+    "translation": "rechazar",
+    "phonetic": "/rɪˈdʒekt/",
+    "monolingual": "To dismiss as inadequate or faulty."
+  },
+  {
+    "token": "release",
+    "type": "word",
+    "level": "B2",
+    "translation": "liberación",
+    "phonetic": "/rɪˈliːs/",
+    "monolingual": "The action of setting someone free."
+  },
+  {
+    "token": "remedial",
+    "type": "word",
+    "level": "B2",
+    "translation": "correctivo",
+    "phonetic": "/rɪˈmiː.di.əl/",
+    "monolingual": "Giving or intended as a remedy or cure."
+  },
+  {
+    "token": "repeal",
+    "type": "word",
+    "level": "B2",
+    "translation": "derogar",
+    "phonetic": "/rɪˈpiːl/",
+    "monolingual": "To revoke or annul a law or congressional act."
+  },
+  {
+    "token": "representative",
+    "type": "word",
+    "level": "B2",
+    "translation": "representante",
+    "phonetic": "/ˌrep.rɪˈzen.tə.tɪv/",
+    "monolingual": "A person chosen to act for another."
+  },
+  {
+    "token": "reside",
+    "type": "word",
+    "level": "B2",
+    "translation": "residir",
+    "phonetic": "/rɪˈzaɪd/",
+    "monolingual": "To have one's permanent home in a particular place."
+  },
+  {
+    "token": "resilience",
+    "type": "word",
+    "level": "B2",
+    "translation": "resistencia",
+    "phonetic": "/rɪˈzɪl.jəns/",
+    "monolingual": "The capacity to recover quickly from difficulties."
+  },
+  {
+    "token": "revoke",
+    "type": "word",
+    "level": "B2",
+    "translation": "revocar",
+    "phonetic": "/rɪˈvoʊk/",
+    "monolingual": "To officially cancel or withdraw."
+  },
+  {
+    "token": "revolutionary",
+    "type": "word",
+    "level": "B2",
+    "translation": "revolucionario",
+    "phonetic": "/ˌrev.əˈluː.ʃən.er.i/",
+    "monolingual": "Involving or causing a complete or dramatic change."
+  },
+  {
+    "token": "riot",
+    "type": "word",
+    "level": "B2",
+    "translation": "disturbio",
+    "phonetic": "/ˈraɪ.ət/",
+    "monolingual": "A violent disturbance of the peace by a crowd."
+  },
+  {
+    "token": "rule of law",
+    "type": "word",
+    "level": "B2",
+    "translation": "estado de derecho",
+    "phonetic": "/ˌruːl əv ˈlɔː/",
+    "monolingual": "The principle that all people are governed by law."
+  },
+  {
+    "token": "ruling",
+    "type": "word",
+    "level": "B2",
+    "translation": "fallo",
+    "phonetic": "/ˈruː.lɪŋ/",
+    "monolingual": "An authoritative decision or pronouncement."
+  },
+  {
+    "token": "sanction",
+    "type": "word",
+    "level": "B2",
+    "translation": "sanción",
+    "phonetic": "/ˈsæŋk.ʃən/",
+    "monolingual": "A threatened penalty for disobeying a law or rule."
+  },
+  {
+    "token": "scandal",
+    "type": "word",
+    "level": "B2",
+    "translation": "escándalo",
+    "phonetic": "/ˈskæn.dəl/",
+    "monolingual": "An action or event regarded as morally or legally wrong."
+  },
+  {
+    "token": "sedition",
+    "type": "word",
+    "level": "C1",
+    "translation": "sedición",
+    "phonetic": "/sɪˈdɪʃ.ən/",
+    "monolingual": "Conduct or speech inciting people to rebel against authority."
+  },
+  {
+    "token": "segregate",
+    "type": "word",
+    "level": "B2",
+    "translation": "segregar",
+    "phonetic": "/ˈseɡ.rə.ɡeɪt/",
+    "monolingual": "To set apart from the rest, especially by race."
+  },
+  {
+    "token": "seizure",
+    "type": "word",
+    "level": "B2",
+    "translation": "confiscación",
+    "phonetic": "/ˈsiː.ʒɚ/",
+    "monolingual": "The action of capturing someone or something using force."
+  },
+  {
+    "token": "self-determination",
+    "type": "word",
+    "level": "B2",
+    "translation": "autodeterminación",
+    "phonetic": "/ˌself.dɪˌtɝː.mɪˈneɪ.ʃən/",
+    "monolingual": "The process by which a country determines its own statehood."
+  },
+  {
+    "token": "senate",
+    "type": "word",
+    "level": "B2",
+    "translation": "senado",
+    "phonetic": "/ˈsen.ət/",
+    "monolingual": "An assembly or council with the highest deliberative functions."
+  },
+  {
+    "token": "sentence",
+    "type": "word",
+    "level": "B2",
+    "translation": "sentencia",
+    "phonetic": "/ˈsen.təns/",
+    "monolingual": "The punishment assigned to a defendant after conviction."
+  },
+  {
+    "token": "separation of powers",
+    "type": "word",
+    "level": "C1",
+    "translation": "separación de poderes",
+    "phonetic": "/ˌsep.əˈreɪ.ʃən əv ˈpaʊrz/",
+    "monolingual": "A government doctrine of independent branches."
+  },
+  {
+    "token": "sequester",
+    "type": "word",
+    "level": "C1",
+    "translation": "secuestrar",
+    "phonetic": "/sɪˈkwes.tɚ/",
+    "monolingual": "To isolate or hide away, especially a jury."
+  },
+  {
+    "token": "settlement",
+    "type": "word",
+    "level": "B2",
+    "translation": "acuerdo",
+    "phonetic": "/ˈset.əl.mənt/",
+    "monolingual": "An official agreement intended to resolve a dispute."
+  },
+  {
+    "token": "silence",
+    "type": "word",
+    "level": "B2",
+    "translation": "silenciar",
+    "phonetic": "/ˈsaɪ.ləns/",
+    "monolingual": "To cause to become quiet or stop speaking."
+  },
+  {
+    "token": "slander",
+    "type": "word",
+    "level": "B2",
+    "translation": "calumnia",
+    "phonetic": "/ˈslæn.dɚ/",
+    "monolingual": "The action of making a false spoken statement damaging a person's reputation."
+  },
+  {
+    "token": "slavery",
+    "type": "word",
+    "level": "B2",
+    "translation": "esclavitud",
+    "phonetic": "/ˈsleɪ.vɚ.i/",
+    "monolingual": "The state of being a slave."
+  },
+  {
+    "token": "slogan",
+    "type": "word",
+    "level": "B2",
+    "translation": "eslogan",
+    "phonetic": "/ˈsloʊ.ɡən/",
+    "monolingual": "A short and striking phrase used in advertising or politics."
+  },
+  {
+    "token": "sovereign",
+    "type": "word",
+    "level": "B2",
+    "translation": "soberano",
+    "phonetic": "/ˈsɒv.rɪn/",
+    "monolingual": "A supreme ruler."
+  },
+  {
+    "token": "sovereignty",
+    "type": "word",
+    "level": "B2",
+    "translation": "soberanía",
+    "phonetic": "/ˈsɒv.rɪn.t̬i/",
+    "monolingual": "Supreme power or authority."
+  },
+  {
+    "token": "stalemate",
+    "type": "word",
+    "level": "B2",
+    "translation": "estancamiento",
+    "phonetic": "/ˈsteɪl.meɪt/",
+    "monolingual": "A situation where further action seems impossible."
+  },
+  {
+    "token": "state",
+    "type": "word",
+    "level": "B2",
+    "translation": "estado",
+    "phonetic": "/steɪt/",
+    "monolingual": "A nation or territory considered as an organized political community."
+  },
+  {
+    "token": "statute",
+    "type": "word",
+    "level": "B2",
+    "translation": "estatuto",
+    "phonetic": "/ˈstætʃ.uːt/",
+    "monolingual": "A written law passed by a legislative body."
+  },
+  {
+    "token": "strict",
+    "type": "word",
+    "level": "B2",
+    "translation": "estricto",
+    "phonetic": "/strɪkt/",
+    "monolingual": "Demanding that rules concerning behavior are obeyed."
+  },
+  {
+    "token": "subjugate",
+    "type": "word",
+    "level": "C1",
+    "translation": "subyugar",
+    "phonetic": "/ˈsʌb.dʒə.ɡeɪt/",
+    "monolingual": "To bring under domination or control."
+  },
+  {
+    "token": "subpoena",
+    "type": "word",
+    "level": "C1",
+    "translation": "citación",
+    "phonetic": "/səˈpiː.nə/",
+    "monolingual": "A writ ordering a person to attend a court."
+  },
+  {
+    "token": "suffrage",
+    "type": "word",
+    "level": "C1",
+    "translation": "sufragio",
+    "phonetic": "/ˈsʌf.rɪdʒ/",
+    "monolingual": "The right to vote in political elections."
+  },
+  {
+    "token": "summons",
+    "type": "word",
+    "level": "B2",
+    "translation": "citación",
+    "phonetic": "/ˈsʌm.ənz/",
+    "monolingual": "An order to appear before a judge or magistrate."
+  },
+  {
+    "token": "surveillance",
+    "type": "word",
+    "level": "B2",
+    "translation": "vigilancia",
+    "phonetic": "/sɚˈveɪ.ləns/",
+    "monolingual": "Close observation, especially of a suspected spy or criminal."
+  },
+  {
+    "token": "suspect",
+    "type": "word",
+    "level": "B2",
+    "translation": "sospechoso",
+    "phonetic": "/ˈsʌs.pekt/",
+    "monolingual": "A person thought to be guilty of a crime."
+  },
+  {
+    "token": "sustainability",
+    "type": "word",
+    "level": "B2",
+    "translation": "sostenibilidad",
+    "phonetic": "/səˌsteɪ.nəˈbɪl.ə.t̬i/",
+    "monolingual": "The ability to be maintained at a certain rate or level."
+  },
+  {
+    "token": "tackle",
+    "type": "word",
+    "level": "B2",
+    "translation": "abordar",
+    "phonetic": "/ˈtæk.əl/",
+    "monolingual": "To make determined efforts to deal with a problem."
+  },
+  {
+    "token": "takeover",
+    "type": "word",
+    "level": "B2",
+    "translation": "toma",
+    "phonetic": "/ˈteɪk.oʊ.vɚ/",
+    "monolingual": "An act of assuming control of something."
+  },
+  {
+    "token": "tariff",
+    "type": "word",
+    "level": "B2",
+    "translation": "arancel",
+    "phonetic": "/ˈter.ɪf/",
+    "monolingual": "A tax to be paid on imports or exports."
+  },
+  {
+    "token": "tax evasion",
+    "type": "word",
+    "level": "B2",
+    "translation": "evasión fiscal",
+    "phonetic": "/ˈtæks ɪˌveɪ.ʒən/",
+    "monolingual": "The illegal nonpayment of tax."
+  },
+  {
+    "token": "terrorism",
+    "type": "word",
+    "level": "B2",
+    "translation": "terrorismo",
+    "phonetic": "/ˈter.ɚ.ɪz.əm/",
+    "monolingual": "The unlawful use of violence and intimidation against civilians."
+  },
+  {
+    "token": "testimony",
+    "type": "word",
+    "level": "B2",
+    "translation": "testimonio",
+    "phonetic": "/ˈtes.tə.moʊ.ni/",
+    "monolingual": "A formal written or spoken statement, especially in court."
+  },
+  {
+    "token": "theft",
+    "type": "word",
+    "level": "B2",
+    "translation": "robo",
+    "phonetic": "/θeft/",
+    "monolingual": "The action of stealing."
+  },
+  {
+    "token": "totalitarian",
+    "type": "word",
+    "level": "C1",
+    "translation": "totalitario",
+    "phonetic": "/toʊˌtæl.əˈter.i.ən/",
+    "monolingual": "Of a system of government centralized and dictatorial."
+  },
+  {
+    "token": "trafficking",
+    "type": "word",
+    "level": "B2",
+    "translation": "trata",
+    "phonetic": "/ˈtræf.ɪ.kɪŋ/",
+    "monolingual": "Dealing or trading in something illegal."
+  },
+  {
+    "token": "transparency",
+    "type": "word",
+    "level": "B2",
+    "translation": "transparencia",
+    "phonetic": "/trænˈsper.ən.si/",
+    "monolingual": "The condition of being transparent; openness."
+  },
+  {
+    "token": "treason",
+    "type": "word",
+    "level": "B2",
+    "translation": "traición",
+    "phonetic": "/ˈtriː.zən/",
+    "monolingual": "The crime of betraying one's country."
+  },
+  {
+    "token": "treaty",
+    "type": "word",
+    "level": "B2",
+    "translation": "tratado",
+    "phonetic": "/ˈtriː.t̬i/",
+    "monolingual": "A formal agreement between states."
+  },
+  {
+    "token": "trial",
+    "type": "word",
+    "level": "B2",
+    "translation": "juicio",
+    "phonetic": "/ˈtraɪ.əl/",
+    "monolingual": "A formal examination of evidence by a judge."
+  },
+  {
+    "token": "tribunal",
+    "type": "word",
+    "level": "B2",
+    "translation": "tribunal",
+    "phonetic": "/traɪˈbjuː.nəl/",
+    "monolingual": "A body established to settle certain types of dispute."
+  },
+  {
+    "token": "turnout",
+    "type": "word",
+    "level": "B2",
+    "translation": "participación",
+    "phonetic": "/ˈtɝːn.aʊt/",
+    "monolingual": "The number of people attending or taking part in an event."
+  },
+  {
+    "token": "tyranny",
+    "type": "word",
+    "level": "B2",
+    "translation": "tiranía",
+    "phonetic": "/ˈtɪr.ən.i/",
+    "monolingual": "Cruel and oppressive government or rule."
+  },
+  {
+    "token": "unanimous",
+    "type": "word",
+    "level": "B2",
+    "translation": "unánime",
+    "phonetic": "/juːˈnæn.ə.məs/",
+    "monolingual": "Fully in agreement."
+  },
+  {
+    "token": "underprivileged",
+    "type": "word",
+    "level": "B2",
+    "translation": "desfavorecido",
+    "phonetic": "/ˌʌn.dɚˈprɪv.əl.ɪdʒd/",
+    "monolingual": "Not enjoying the privileges enjoyed by others."
+  },
+  {
+    "token": "unrest",
+    "type": "word",
+    "level": "B2",
+    "translation": "disturbio",
+    "phonetic": "/ʌnˈrest/",
+    "monolingual": "A state of dissatisfaction or political agitation."
+  },
+  {
+    "token": "uphold",
+    "type": "word",
+    "level": "B2",
+    "translation": "respaldar",
+    "phonetic": "/ʌpˈhoʊld/",
+    "monolingual": "To confirm or support something challenged."
+  },
+  {
+    "token": "utopia",
+    "type": "word",
+    "level": "B2",
+    "translation": "utopía",
+    "phonetic": "/juːˈtoʊ.pi.ə/",
+    "monolingual": "An imagined place where everything is perfect."
+  },
+  {
+    "token": "verdict",
+    "type": "word",
+    "level": "B2",
+    "translation": "veredicto",
+    "phonetic": "/ˈvɝː.dɪkt/",
+    "monolingual": "A decision of a jury or judge."
+  },
+  {
+    "token": "veteran",
+    "type": "word",
+    "level": "B2",
+    "translation": "veterano",
+    "phonetic": "/ˈvet̬.ɚ.ən/",
+    "monolingual": "A person with long experience."
+  },
+  {
+    "token": "veto",
+    "type": "word",
+    "level": "B2",
+    "translation": "veto",
+    "phonetic": "/ˈviː.t̬oʊ/",
+    "monolingual": "A constitutional right to reject a decision."
+  },
+  {
+    "token": "victim",
+    "type": "word",
+    "level": "B2",
+    "translation": "víctima",
+    "phonetic": "/ˈvɪk.təm/",
+    "monolingual": "A person harmed as a result of a crime or accident."
+  },
+  {
+    "token": "vigilante",
+    "type": "word",
+    "level": "B2",
+    "translation": "vigilante",
+    "phonetic": "/ˌvɪdʒ.əˈlæn.t̬i/",
+    "monolingual": "A member of a self-appointed group enforcing laws."
+  },
+  {
+    "token": "violation",
+    "type": "word",
+    "level": "B2",
+    "translation": "violación",
+    "phonetic": "/ˌvaɪ.əˈleɪ.ʃən/",
+    "monolingual": "The action of violating someone or something."
+  },
+  {
+    "token": "warrant",
+    "type": "word",
+    "level": "B2",
+    "translation": "orden judicial",
+    "phonetic": "/ˈwɔːr.ənt/",
+    "monolingual": "A document issued by a legal or government official."
+  },
+  {
+    "token": "welfare",
+    "type": "word",
+    "level": "B2",
+    "translation": "bienestar",
+    "phonetic": "/ˈwel.fer/",
+    "monolingual": "The health and happiness of a person or group."
+  },
+  {
+    "token": "whistleblower",
+    "type": "word",
+    "level": "B2",
+    "translation": "denunciante",
+    "phonetic": "/ˈwɪs.əlˌbloʊ.ɚ/",
+    "monolingual": "A person who reveals wrongdoing within an organization."
+  },
+  {
+    "token": "withdraw",
+    "type": "word",
+    "level": "B2",
+    "translation": "retirar",
+    "phonetic": "/wɪðˈdrɔː/",
+    "monolingual": "To take or move out from a place."
+  },
+  {
+    "token": "witness",
+    "type": "word",
+    "level": "B2",
+    "translation": "testigo",
+    "phonetic": "/ˈwɪt.nəs/",
+    "monolingual": "A person who sees an event take place."
+  },
+  {
+    "token": "zealot",
+    "type": "word",
+    "level": "C1",
+    "translation": "fanático",
+    "phonetic": "/ˈzel.ət/",
+    "monolingual": "A fanatical and uncompromising pursuer of religious or political ideals."
+  }
+]

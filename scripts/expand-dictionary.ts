@@ -16,7 +16,7 @@
  * records so the build script doesn't need to invent translations or
  * phonetics — every field is curated by the data author.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -34,12 +34,30 @@ interface SeedEntry {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const DICT_PATH = resolve(ROOT, 'src/assets/dictionaries/en.json');
-const SEED_PATH = resolve(ROOT, 'data/cefr-b1-c1-en-es.json');
+const SEED_DIR = resolve(ROOT, 'data');
+
+function loadAllSeeds(): SeedEntry[] {
+  // Discover every `cefr-*.json` file in `data/` and merge them. This lets
+  // the seed grow without having to update the build script every time a
+  // new thematic file is added (business / academic / society / etc).
+  const files = readdirSync(SEED_DIR)
+    .filter((f) => f.startsWith('cefr-') && f.endsWith('.json'))
+    .sort();
+  const all: SeedEntry[] = [];
+  for (const file of files) {
+    const path = resolve(SEED_DIR, file);
+    const rows: SeedEntry[] = JSON.parse(readFileSync(path, 'utf8'));
+    console.log(`  - ${file}: ${rows.length} entries`);
+    all.push(...rows);
+  }
+  return all;
+}
 
 function main(): void {
   const dry = process.argv.includes('--dry');
   const dict: Record<string, SeedEntry> = JSON.parse(readFileSync(DICT_PATH, 'utf8'));
-  const seed: SeedEntry[] = JSON.parse(readFileSync(SEED_PATH, 'utf8'));
+  console.log('Loading seed files from data/:');
+  const seed = loadAllSeeds();
 
   const before = Object.keys(dict).length;
   let added = 0;

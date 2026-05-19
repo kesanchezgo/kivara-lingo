@@ -1,0 +1,2546 @@
+[
+  {
+    "token": "accountancy",
+    "type": "word",
+    "level": "B2",
+    "translation": "contabilidad",
+    "phonetic": "/əˈkaʊn.tən.si/",
+    "monolingual": "The profession of keeping financial accounts."
+  },
+  {
+    "token": "acquisition",
+    "type": "word",
+    "level": "B2",
+    "translation": "adquisición",
+    "phonetic": "/ˌæk.wɪˈzɪʃ.ən/",
+    "monolingual": "The act of buying or obtaining something, especially a company."
+  },
+  {
+    "token": "agenda",
+    "type": "word",
+    "level": "B2",
+    "translation": "orden del día",
+    "phonetic": "/əˈdʒen.də/",
+    "monolingual": "A list of items to be discussed at a meeting."
+  },
+  {
+    "token": "allocate",
+    "type": "word",
+    "level": "B2",
+    "translation": "asignar",
+    "phonetic": "/ˈæl.ə.keɪt/",
+    "monolingual": "To officially give a particular amount of something to someone."
+  },
+  {
+    "token": "appraisal",
+    "type": "word",
+    "level": "B2",
+    "translation": "evaluación",
+    "phonetic": "/əˈpreɪ.zəl/",
+    "monolingual": "A formal judgement of the value or quality of someone or something."
+  },
+  {
+    "token": "appoint",
+    "type": "word",
+    "level": "B2",
+    "translation": "nombrar",
+    "phonetic": "/əˈpɔɪnt/",
+    "monolingual": "To choose someone officially for a job or responsibility."
+  },
+  {
+    "token": "appointment",
+    "type": "word",
+    "level": "B2",
+    "translation": "cita",
+    "phonetic": "/əˈpɔɪnt.mənt/",
+    "monolingual": "A formal arrangement to meet or visit someone at a particular time."
+  },
+  {
+    "token": "arbitration",
+    "type": "word",
+    "level": "C1",
+    "translation": "arbitraje",
+    "phonetic": "/ˌɑːr.bɪˈtreɪ.ʃən/",
+    "monolingual": "The process of solving a disagreement through a neutral third party."
+  },
+  {
+    "token": "asset",
+    "type": "word",
+    "level": "B2",
+    "translation": "activo",
+    "phonetic": "/ˈæs.et/",
+    "monolingual": "Something valuable owned by a person or organization."
+  },
+  {
+    "token": "audit",
+    "type": "word",
+    "level": "B2",
+    "translation": "auditoría",
+    "phonetic": "/ˈɔː.dɪt/",
+    "monolingual": "An official examination of a company's financial records."
+  },
+  {
+    "token": "backlog",
+    "type": "word",
+    "level": "B2",
+    "translation": "atraso",
+    "phonetic": "/ˈbæk.lɒɡ/",
+    "monolingual": "A large number of things still to be done."
+  },
+  {
+    "token": "bankruptcy",
+    "type": "word",
+    "level": "B2",
+    "translation": "quiebra",
+    "phonetic": "/ˈbæŋk.rʌpt.si/",
+    "monolingual": "The state of being legally declared unable to pay debts."
+  },
+  {
+    "token": "bargain",
+    "type": "word",
+    "level": "B2",
+    "translation": "regateo",
+    "phonetic": "/ˈbɑːr.ɡɪn/",
+    "monolingual": "An agreement made between people about what each will do, or a thing bought cheaply."
+  },
+  {
+    "token": "benchmark",
+    "type": "word",
+    "level": "B2",
+    "translation": "punto de referencia",
+    "phonetic": "/ˈbentʃ.mɑːrk/",
+    "monolingual": "A level of quality used as a standard against which others are compared."
+  },
+  {
+    "token": "bid",
+    "type": "word",
+    "level": "B2",
+    "translation": "oferta",
+    "phonetic": "/bɪd/",
+    "monolingual": "An offer of a particular amount of money for something."
+  },
+  {
+    "token": "billable",
+    "type": "word",
+    "level": "B2",
+    "translation": "facturable",
+    "phonetic": "/ˈbɪl.ə.bəl/",
+    "monolingual": "Of work or hours, possible to charge to a client."
+  },
+  {
+    "token": "boardroom",
+    "type": "word",
+    "level": "B2",
+    "translation": "sala de juntas",
+    "phonetic": "/ˈbɔːrd.ruːm/",
+    "monolingual": "The room where the directors of a company meet."
+  },
+  {
+    "token": "booming",
+    "type": "word",
+    "level": "B2",
+    "translation": "en auge",
+    "phonetic": "/ˈbuː.mɪŋ/",
+    "monolingual": "Growing or developing very successfully."
+  },
+  {
+    "token": "brand",
+    "type": "word",
+    "level": "B2",
+    "translation": "marca",
+    "phonetic": "/brænd/",
+    "monolingual": "A name given to a product by the company that makes it."
+  },
+  {
+    "token": "branding",
+    "type": "word",
+    "level": "B2",
+    "translation": "posicionamiento de marca",
+    "phonetic": "/ˈbræn.dɪŋ/",
+    "monolingual": "The activity of giving a particular name and image to goods or services."
+  },
+  {
+    "token": "breakthrough",
+    "type": "word",
+    "level": "B2",
+    "translation": "avance",
+    "phonetic": "/ˈbreɪk.θruː/",
+    "monolingual": "An important new discovery or development."
+  },
+  {
+    "token": "broker",
+    "type": "word",
+    "level": "B2",
+    "translation": "corredor",
+    "phonetic": "/ˈbroʊ.kər/",
+    "monolingual": "A person who buys and sells goods or services on behalf of others."
+  },
+  {
+    "token": "budget",
+    "type": "word",
+    "level": "B2",
+    "translation": "presupuesto",
+    "phonetic": "/ˈbʌdʒ.ɪt/",
+    "monolingual": "A plan for how money will be spent over a period of time."
+  },
+  {
+    "token": "business plan",
+    "type": "word",
+    "level": "B2",
+    "translation": "plan de negocios",
+    "phonetic": "/ˈbɪz.nɪs plæn/",
+    "monolingual": "A document describing how a new business will operate."
+  },
+  {
+    "token": "buyout",
+    "type": "word",
+    "level": "C1",
+    "translation": "compra de acciones",
+    "phonetic": "/ˈbaɪ.aʊt/",
+    "monolingual": "The purchase of all of a company's shares."
+  },
+  {
+    "token": "capital",
+    "type": "word",
+    "level": "B2",
+    "translation": "capital",
+    "phonetic": "/ˈkæp.ɪ.təl/",
+    "monolingual": "Money or property used to start or run a business."
+  },
+  {
+    "token": "capital gain",
+    "type": "word",
+    "level": "C1",
+    "translation": "ganancia de capital",
+    "phonetic": "/ˌkæp.ɪ.təl ˈɡeɪn/",
+    "monolingual": "The profit from the sale of an asset."
+  },
+  {
+    "token": "cartel",
+    "type": "word",
+    "level": "C1",
+    "translation": "cártel",
+    "phonetic": "/kɑːrˈtel/",
+    "monolingual": "A group of companies that act together to control prices."
+  },
+  {
+    "token": "cash flow",
+    "type": "word",
+    "level": "B2",
+    "translation": "flujo de caja",
+    "phonetic": "/ˈkæʃ floʊ/",
+    "monolingual": "The movement of money in and out of a business."
+  },
+  {
+    "token": "ceiling",
+    "type": "word",
+    "level": "B2",
+    "translation": "tope",
+    "phonetic": "/ˈsiː.lɪŋ/",
+    "monolingual": "An upper limit on something, especially prices or wages."
+  },
+  {
+    "token": "certified",
+    "type": "word",
+    "level": "B2",
+    "translation": "certificado",
+    "phonetic": "/ˈsɝː.tə.faɪd/",
+    "monolingual": "Officially recognized as having met certain standards."
+  },
+  {
+    "token": "chair",
+    "type": "word",
+    "level": "B2",
+    "translation": "presidir",
+    "phonetic": "/tʃer/",
+    "monolingual": "To lead a meeting or organization."
+  },
+  {
+    "token": "chartered",
+    "type": "word",
+    "level": "C1",
+    "translation": "titulado",
+    "phonetic": "/ˈtʃɑːr.tərd/",
+    "monolingual": "Having been officially licensed to practise a profession."
+  },
+  {
+    "token": "clientele",
+    "type": "word",
+    "level": "C1",
+    "translation": "clientela",
+    "phonetic": "/ˌklaɪ.ənˈtel/",
+    "monolingual": "All the customers of a business considered as a group."
+  },
+  {
+    "token": "collaborate",
+    "type": "word",
+    "level": "B2",
+    "translation": "colaborar",
+    "phonetic": "/kəˈlæb.ə.reɪt/",
+    "monolingual": "To work jointly on a project with one or more people."
+  },
+  {
+    "token": "commission",
+    "type": "word",
+    "level": "B2",
+    "translation": "comisión",
+    "phonetic": "/kəˈmɪʃ.ən/",
+    "monolingual": "A payment based on the value of items sold by an employee."
+  },
+  {
+    "token": "commodity",
+    "type": "word",
+    "level": "B2",
+    "translation": "mercancía",
+    "phonetic": "/kəˈmɑː.də.t̬i/",
+    "monolingual": "A substance or product that can be traded, bought, or sold."
+  },
+  {
+    "token": "compensation",
+    "type": "word",
+    "level": "B2",
+    "translation": "indemnización",
+    "phonetic": "/ˌkɒm.penˈseɪ.ʃən/",
+    "monolingual": "Money paid to someone in exchange for loss or injury."
+  },
+  {
+    "token": "competence",
+    "type": "word",
+    "level": "B2",
+    "translation": "competencia",
+    "phonetic": "/ˈkɒm.pɪ.təns/",
+    "monolingual": "The ability to do something well."
+  },
+  {
+    "token": "competitive",
+    "type": "word",
+    "level": "B2",
+    "translation": "competitivo",
+    "phonetic": "/kəmˈpet.ɪ.tɪv/",
+    "monolingual": "Wanting strongly to win or be more successful than others."
+  },
+  {
+    "token": "competitor",
+    "type": "word",
+    "level": "B2",
+    "translation": "competidor",
+    "phonetic": "/kəmˈpet.ɪ.tər/",
+    "monolingual": "A person or company competing with another."
+  },
+  {
+    "token": "compliance",
+    "type": "word",
+    "level": "B2",
+    "translation": "cumplimiento",
+    "phonetic": "/kəmˈplaɪ.əns/",
+    "monolingual": "The act of obeying a law or rule, especially in business."
+  },
+  {
+    "token": "concession",
+    "type": "word",
+    "level": "C1",
+    "translation": "concesión",
+    "phonetic": "/kənˈseʃ.ən/",
+    "monolingual": "Something that you allow or permit, often after disagreement."
+  },
+  {
+    "token": "conglomerate",
+    "type": "word",
+    "level": "C1",
+    "translation": "conglomerado",
+    "phonetic": "/kənˈɡlɒm.ər.ət/",
+    "monolingual": "A large company made up of several different companies."
+  },
+  {
+    "token": "consignment",
+    "type": "word",
+    "level": "C1",
+    "translation": "envío",
+    "phonetic": "/kənˈsaɪn.mənt/",
+    "monolingual": "A quantity of goods sent for sale or delivery."
+  },
+  {
+    "token": "consortium",
+    "type": "word",
+    "level": "C1",
+    "translation": "consorcio",
+    "phonetic": "/kənˈsɔːr.ʃəm/",
+    "monolingual": "An association of companies that agree to work together."
+  },
+  {
+    "token": "constituent",
+    "type": "word",
+    "level": "C1",
+    "translation": "componente",
+    "phonetic": "/kənˈstɪtʃ.u.ənt/",
+    "monolingual": "One of the parts of which something is made."
+  },
+  {
+    "token": "consultancy",
+    "type": "word",
+    "level": "B2",
+    "translation": "consultoría",
+    "phonetic": "/kənˈsʌl.tən.si/",
+    "monolingual": "A company that gives expert advice to businesses."
+  },
+  {
+    "token": "consumer",
+    "type": "word",
+    "level": "B2",
+    "translation": "consumidor",
+    "phonetic": "/kənˈsuː.mər/",
+    "monolingual": "A person who buys goods or services for personal use."
+  },
+  {
+    "token": "contingency",
+    "type": "word",
+    "level": "C1",
+    "translation": "contingencia",
+    "phonetic": "/kənˈtɪn.dʒən.si/",
+    "monolingual": "A future event or circumstance that is possible but not certain."
+  },
+  {
+    "token": "contractor",
+    "type": "word",
+    "level": "B2",
+    "translation": "contratista",
+    "phonetic": "/ˈkɑːn.træk.tər/",
+    "monolingual": "A person or company that performs work under contract."
+  },
+  {
+    "token": "conversion",
+    "type": "word",
+    "level": "B2",
+    "translation": "conversión",
+    "phonetic": "/kənˈvɝː.ʒən/",
+    "monolingual": "The act of changing one thing into another."
+  },
+  {
+    "token": "copyright",
+    "type": "word",
+    "level": "B2",
+    "translation": "derechos de autor",
+    "phonetic": "/ˈkɒp.i.raɪt/",
+    "monolingual": "The legal right to control the use of an original work."
+  },
+  {
+    "token": "corporate",
+    "type": "word",
+    "level": "B2",
+    "translation": "corporativo",
+    "phonetic": "/ˈkɔːr.pər.ət/",
+    "monolingual": "Belonging to or relating to a corporation."
+  },
+  {
+    "token": "corporation",
+    "type": "word",
+    "level": "B2",
+    "translation": "corporación",
+    "phonetic": "/ˌkɔːr.pəˈreɪ.ʃən/",
+    "monolingual": "A large company or group of companies acting as a single entity."
+  },
+  {
+    "token": "correspondence",
+    "type": "word",
+    "level": "B2",
+    "translation": "correspondencia",
+    "phonetic": "/ˌkɔːr.əˈspɑːn.dəns/",
+    "monolingual": "Letters or emails exchanged between people."
+  },
+  {
+    "token": "counterpart",
+    "type": "word",
+    "level": "B2",
+    "translation": "homólogo",
+    "phonetic": "/ˈkaʊn.tər.pɑːrt/",
+    "monolingual": "A person or thing with the same function as another in a different organization."
+  },
+  {
+    "token": "covenant",
+    "type": "word",
+    "level": "C1",
+    "translation": "convenio",
+    "phonetic": "/ˈkʌv.ən.ənt/",
+    "monolingual": "A formal agreement or promise, especially in a contract."
+  },
+  {
+    "token": "credentials",
+    "type": "word",
+    "level": "B2",
+    "translation": "credenciales",
+    "phonetic": "/krəˈden.ʃəlz/",
+    "monolingual": "Qualifications or achievements that make one suitable for something."
+  },
+  {
+    "token": "crunch",
+    "type": "word",
+    "level": "B2",
+    "translation": "crisis",
+    "phonetic": "/krʌntʃ/",
+    "monolingual": "A critical point in a situation, especially financial difficulty."
+  },
+  {
+    "token": "currency",
+    "type": "word",
+    "level": "B2",
+    "translation": "divisa",
+    "phonetic": "/ˈkɝː.ən.si/",
+    "monolingual": "The system of money used in a particular country."
+  },
+  {
+    "token": "deadline",
+    "type": "word",
+    "level": "B2",
+    "translation": "fecha límite",
+    "phonetic": "/ˈded.laɪn/",
+    "monolingual": "A time or date before which a task must be completed."
+  },
+  {
+    "token": "debenture",
+    "type": "word",
+    "level": "C1",
+    "translation": "obligación",
+    "phonetic": "/dɪˈben.tʃər/",
+    "monolingual": "A long-term security yielding a fixed rate of interest."
+  },
+  {
+    "token": "default",
+    "type": "word",
+    "level": "B2",
+    "translation": "incumplir",
+    "phonetic": "/dɪˈfɔːlt/",
+    "monolingual": "Failure to fulfill an obligation, especially repaying a loan."
+  },
+  {
+    "token": "deficit",
+    "type": "word",
+    "level": "B2",
+    "translation": "déficit",
+    "phonetic": "/ˈdef.ə.sɪt/",
+    "monolingual": "The amount by which expenses exceed income."
+  },
+  {
+    "token": "delegate",
+    "type": "word",
+    "level": "B2",
+    "translation": "delegar",
+    "phonetic": "/ˈdel.ɪ.ɡeɪt/",
+    "monolingual": "To give a task or responsibility to another person."
+  },
+  {
+    "token": "deliverable",
+    "type": "word",
+    "level": "B2",
+    "translation": "entregable",
+    "phonetic": "/dɪˈlɪv.ər.ə.bəl/",
+    "monolingual": "A tangible item produced as a result of a project."
+  },
+  {
+    "token": "demand",
+    "type": "word",
+    "level": "B2",
+    "translation": "demanda",
+    "phonetic": "/dɪˈmænd/",
+    "monolingual": "A strong need or desire for something."
+  },
+  {
+    "token": "demographic",
+    "type": "word",
+    "level": "B2",
+    "translation": "demográfico",
+    "phonetic": "/ˌdem.əˈɡræf.ɪk/",
+    "monolingual": "Related to the population's structure such as age and income."
+  },
+  {
+    "token": "deploy",
+    "type": "word",
+    "level": "B2",
+    "translation": "desplegar",
+    "phonetic": "/dɪˈplɔɪ/",
+    "monolingual": "To put something into operation or use."
+  },
+  {
+    "token": "deployment",
+    "type": "word",
+    "level": "B2",
+    "translation": "despliegue",
+    "phonetic": "/dɪˈplɔɪ.mənt/",
+    "monolingual": "The act of putting something into action or use."
+  },
+  {
+    "token": "depreciation",
+    "type": "word",
+    "level": "C1",
+    "translation": "depreciación",
+    "phonetic": "/dɪˌpriː.ʃiˈeɪ.ʃən/",
+    "monolingual": "The reduction in the value of an asset over time."
+  },
+  {
+    "token": "deregulation",
+    "type": "word",
+    "level": "C1",
+    "translation": "desregulación",
+    "phonetic": "/diːˌreɡ.jəˈleɪ.ʃən/",
+    "monolingual": "The removal of government rules from an industry."
+  },
+  {
+    "token": "derivative",
+    "type": "word",
+    "level": "C1",
+    "translation": "derivado financiero",
+    "phonetic": "/dɪˈrɪv.ə.tɪv/",
+    "monolingual": "A financial product whose value depends on an underlying asset."
+  },
+  {
+    "token": "devalue",
+    "type": "word",
+    "level": "C1",
+    "translation": "devaluar",
+    "phonetic": "/diːˈvæl.juː/",
+    "monolingual": "To reduce the value of something, especially a currency."
+  },
+  {
+    "token": "diversify",
+    "type": "word",
+    "level": "B2",
+    "translation": "diversificar",
+    "phonetic": "/daɪˈvɝː.sə.faɪ/",
+    "monolingual": "To make something more varied, especially business operations."
+  },
+  {
+    "token": "dividend",
+    "type": "word",
+    "level": "B2",
+    "translation": "dividendo",
+    "phonetic": "/ˈdɪv.ə.dend/",
+    "monolingual": "A sum paid regularly by a company to shareholders out of profits."
+  },
+  {
+    "token": "downsize",
+    "type": "word",
+    "level": "B2",
+    "translation": "reducir plantilla",
+    "phonetic": "/ˈdaʊn.saɪz/",
+    "monolingual": "To make a company smaller by cutting jobs."
+  },
+  {
+    "token": "downtime",
+    "type": "word",
+    "level": "B2",
+    "translation": "tiempo de inactividad",
+    "phonetic": "/ˈdaʊn.taɪm/",
+    "monolingual": "Time when machinery or workers are not active or working."
+  },
+  {
+    "token": "downturn",
+    "type": "word",
+    "level": "B2",
+    "translation": "recesión",
+    "phonetic": "/ˈdaʊn.tɝːn/",
+    "monolingual": "A period during which business activity decreases."
+  },
+  {
+    "token": "draft",
+    "type": "word",
+    "level": "B2",
+    "translation": "borrador",
+    "phonetic": "/dræft/",
+    "monolingual": "An early version of a written work or plan."
+  },
+  {
+    "token": "drawback",
+    "type": "word",
+    "level": "B2",
+    "translation": "desventaja",
+    "phonetic": "/ˈdrɔː.bæk/",
+    "monolingual": "A feature that makes something less acceptable or useful."
+  },
+  {
+    "token": "durability",
+    "type": "word",
+    "level": "B2",
+    "translation": "durabilidad",
+    "phonetic": "/ˌdjʊə.rəˈbɪl.ə.t̬i/",
+    "monolingual": "The ability to last a long time without breaking."
+  },
+  {
+    "token": "e-commerce",
+    "type": "word",
+    "level": "B2",
+    "translation": "comercio electrónico",
+    "phonetic": "/ˈiːˌkɒm.ɝːs/",
+    "monolingual": "The buying and selling of products over the internet."
+  },
+  {
+    "token": "endorsement",
+    "type": "word",
+    "level": "B2",
+    "translation": "respaldo",
+    "phonetic": "/ɪnˈdɔːrs.mənt/",
+    "monolingual": "A public statement or action showing support for someone or something."
+  },
+  {
+    "token": "enterprise",
+    "type": "word",
+    "level": "B2",
+    "translation": "empresa",
+    "phonetic": "/ˈen.tɝː.praɪz/",
+    "monolingual": "A business or company, especially a large one."
+  },
+  {
+    "token": "entrepreneur",
+    "type": "word",
+    "level": "B2",
+    "translation": "emprendedor",
+    "phonetic": "/ˌɑːn.trə.prəˈnɝː/",
+    "monolingual": "A person who starts a business taking on financial risk."
+  },
+  {
+    "token": "equity",
+    "type": "word",
+    "level": "B2",
+    "translation": "patrimonio",
+    "phonetic": "/ˈek.wə.t̬i/",
+    "monolingual": "The value of shares issued by a company, or fairness."
+  },
+  {
+    "token": "escalate",
+    "type": "word",
+    "level": "B2",
+    "translation": "intensificar",
+    "phonetic": "/ˈes.kə.leɪt/",
+    "monolingual": "To increase rapidly in extent or intensity."
+  },
+  {
+    "token": "estimate",
+    "type": "word",
+    "level": "B2",
+    "translation": "estimación",
+    "phonetic": "/ˈes.tə.mət/",
+    "monolingual": "An approximate calculation of value, number, or quantity."
+  },
+  {
+    "token": "ethics",
+    "type": "word",
+    "level": "B2",
+    "translation": "ética",
+    "phonetic": "/ˈeθ.ɪks/",
+    "monolingual": "Moral principles that guide a person's behavior or business."
+  },
+  {
+    "token": "evaluation",
+    "type": "word",
+    "level": "B2",
+    "translation": "evaluación",
+    "phonetic": "/ɪˌvæl.juˈeɪ.ʃən/",
+    "monolingual": "The making of a judgement about the amount or value of something."
+  },
+  {
+    "token": "exchange rate",
+    "type": "word",
+    "level": "B2",
+    "translation": "tipo de cambio",
+    "phonetic": "/ɪksˈtʃeɪndʒ ˌreɪt/",
+    "monolingual": "The value of one currency in relation to another."
+  },
+  {
+    "token": "executive",
+    "type": "word",
+    "level": "B2",
+    "translation": "ejecutivo",
+    "phonetic": "/ɪɡˈzek.jə.t̬ɪv/",
+    "monolingual": "A person with senior managerial responsibility in an organization."
+  },
+  {
+    "token": "expansion",
+    "type": "word",
+    "level": "B2",
+    "translation": "expansión",
+    "phonetic": "/ɪkˈspæn.ʃən/",
+    "monolingual": "The act of becoming or making something larger."
+  },
+  {
+    "token": "expenditure",
+    "type": "word",
+    "level": "B2",
+    "translation": "gasto",
+    "phonetic": "/ɪkˈspen.dɪ.tʃər/",
+    "monolingual": "The total amount of money spent."
+  },
+  {
+    "token": "expense",
+    "type": "word",
+    "level": "B2",
+    "translation": "gasto",
+    "phonetic": "/ɪkˈspens/",
+    "monolingual": "The cost required for something."
+  },
+  {
+    "token": "exporter",
+    "type": "word",
+    "level": "B2",
+    "translation": "exportador",
+    "phonetic": "/ɪkˈspɔːr.t̬ɚ/",
+    "monolingual": "A person or country that sends goods to another country to sell."
+  },
+  {
+    "token": "financial",
+    "type": "word",
+    "level": "B2",
+    "translation": "financiero",
+    "phonetic": "/faɪˈnæn.ʃəl/",
+    "monolingual": "Relating to money or how money is managed."
+  },
+  {
+    "token": "fiscal",
+    "type": "word",
+    "level": "C1",
+    "translation": "fiscal",
+    "phonetic": "/ˈfɪs.kəl/",
+    "monolingual": "Relating to government revenue, especially taxes."
+  },
+  {
+    "token": "flagship",
+    "type": "word",
+    "level": "B2",
+    "translation": "buque insignia",
+    "phonetic": "/ˈflæɡ.ʃɪp/",
+    "monolingual": "The best or most important product, service, or asset of a group."
+  },
+  {
+    "token": "forecast",
+    "type": "word",
+    "level": "B2",
+    "translation": "pronosticar",
+    "phonetic": "/ˈfɔːr.kæst/",
+    "monolingual": "To predict an event or trend, especially the weather or economy."
+  },
+  {
+    "token": "franchise",
+    "type": "word",
+    "level": "B2",
+    "translation": "franquicia",
+    "phonetic": "/ˈfræn.tʃaɪz/",
+    "monolingual": "The right to sell a company's products under its brand name."
+  },
+  {
+    "token": "fraud",
+    "type": "word",
+    "level": "B2",
+    "translation": "fraude",
+    "phonetic": "/frɔːd/",
+    "monolingual": "Wrongful or criminal deception intended to result in financial gain."
+  },
+  {
+    "token": "freelance",
+    "type": "word",
+    "level": "B2",
+    "translation": "autónomo",
+    "phonetic": "/ˈfriː.læns/",
+    "monolingual": "Working independently rather than for one employer."
+  },
+  {
+    "token": "fund",
+    "type": "word",
+    "level": "B2",
+    "translation": "fondo",
+    "phonetic": "/fʌnd/",
+    "monolingual": "A sum of money saved or made available for a particular purpose."
+  },
+  {
+    "token": "fundraising",
+    "type": "word",
+    "level": "B2",
+    "translation": "recaudación de fondos",
+    "phonetic": "/ˈfʌndˌreɪ.zɪŋ/",
+    "monolingual": "The activity of collecting money for a cause or organization."
+  },
+  {
+    "token": "gain",
+    "type": "word",
+    "level": "B2",
+    "translation": "ganancia",
+    "phonetic": "/ɡeɪn/",
+    "monolingual": "An increase in wealth, profit, or value."
+  },
+  {
+    "token": "gauge",
+    "type": "word",
+    "level": "B2",
+    "translation": "medir",
+    "phonetic": "/ɡeɪdʒ/",
+    "monolingual": "To estimate or measure something accurately."
+  },
+  {
+    "token": "GDP",
+    "type": "word",
+    "level": "B2",
+    "translation": "PIB",
+    "phonetic": "/ˌdʒiːˌdiːˈpiː/",
+    "monolingual": "Gross Domestic Product: the total value of goods and services in a country."
+  },
+  {
+    "token": "glitch",
+    "type": "word",
+    "level": "B2",
+    "translation": "fallo",
+    "phonetic": "/ɡlɪtʃ/",
+    "monolingual": "A small problem or fault that prevents something from being successful."
+  },
+  {
+    "token": "goodwill",
+    "type": "word",
+    "level": "B2",
+    "translation": "buen nombre",
+    "phonetic": "/ˌɡʊdˈwɪl/",
+    "monolingual": "An intangible business asset reflecting reputation and brand strength."
+  },
+  {
+    "token": "grant",
+    "type": "word",
+    "level": "B2",
+    "translation": "subvención",
+    "phonetic": "/ɡrænt/",
+    "monolingual": "A sum of money given by a government or other body for a specific purpose."
+  },
+  {
+    "token": "gross",
+    "type": "word",
+    "level": "B2",
+    "translation": "bruto",
+    "phonetic": "/ɡroʊs/",
+    "monolingual": "The total amount of something before deductions."
+  },
+  {
+    "token": "guarantee",
+    "type": "word",
+    "level": "B2",
+    "translation": "garantía",
+    "phonetic": "/ˌɡer.ənˈtiː/",
+    "monolingual": "A formal promise about quality, durability, or performance."
+  },
+  {
+    "token": "hedge",
+    "type": "word",
+    "level": "C1",
+    "translation": "cubrir",
+    "phonetic": "/hedʒ/",
+    "monolingual": "To limit potential losses by making counterbalancing investments."
+  },
+  {
+    "token": "hire",
+    "type": "word",
+    "level": "B2",
+    "translation": "contratar",
+    "phonetic": "/haɪr/",
+    "monolingual": "To employ someone for wages or fees."
+  },
+  {
+    "token": "holding",
+    "type": "word",
+    "level": "B2",
+    "translation": "participación",
+    "phonetic": "/ˈhoʊl.dɪŋ/",
+    "monolingual": "An ownership share in a company or group."
+  },
+  {
+    "token": "human resources",
+    "type": "word",
+    "level": "B2",
+    "translation": "recursos humanos",
+    "phonetic": "/ˌhjuː.mən rɪˈzɔːr.sɪz/",
+    "monolingual": "The department dealing with the management of employees."
+  },
+  {
+    "token": "import",
+    "type": "word",
+    "level": "B2",
+    "translation": "importar",
+    "phonetic": "/ɪmˈpɔːrt/",
+    "monolingual": "To bring goods into a country from abroad."
+  },
+  {
+    "token": "incentive",
+    "type": "word",
+    "level": "B2",
+    "translation": "incentivo",
+    "phonetic": "/ɪnˈsen.t̬ɪv/",
+    "monolingual": "Something that motivates someone to do something."
+  },
+  {
+    "token": "income",
+    "type": "word",
+    "level": "B2",
+    "translation": "ingreso",
+    "phonetic": "/ˈɪŋ.kʌm/",
+    "monolingual": "Money received regularly, especially from work or investments."
+  },
+  {
+    "token": "incorporate",
+    "type": "word",
+    "level": "B2",
+    "translation": "incorporar",
+    "phonetic": "/ɪnˈkɔːr.pə.reɪt/",
+    "monolingual": "To include something as part of a whole."
+  },
+  {
+    "token": "incumbent",
+    "type": "word",
+    "level": "C1",
+    "translation": "titular",
+    "phonetic": "/ɪnˈkʌm.bənt/",
+    "monolingual": "The person currently holding a particular office or position."
+  },
+  {
+    "token": "indemnity",
+    "type": "word",
+    "level": "C1",
+    "translation": "indemnización",
+    "phonetic": "/ɪnˈdem.nə.t̬i/",
+    "monolingual": "Security against, or exemption from, legal liability."
+  },
+  {
+    "token": "index",
+    "type": "word",
+    "level": "B2",
+    "translation": "índice",
+    "phonetic": "/ˈɪn.deks/",
+    "monolingual": "A measure or sign of the level of something."
+  },
+  {
+    "token": "indicator",
+    "type": "word",
+    "level": "B2",
+    "translation": "indicador",
+    "phonetic": "/ˈɪn.də.keɪ.tər/",
+    "monolingual": "A sign or piece of evidence about something."
+  },
+  {
+    "token": "induction",
+    "type": "word",
+    "level": "B2",
+    "translation": "inducción",
+    "phonetic": "/ɪnˈdʌk.ʃən/",
+    "monolingual": "The action or process of inducting someone to a new job or role."
+  },
+  {
+    "token": "industrial",
+    "type": "word",
+    "level": "B2",
+    "translation": "industrial",
+    "phonetic": "/ɪnˈdʌs.tri.əl/",
+    "monolingual": "Relating to industry or industrial production."
+  },
+  {
+    "token": "inflation",
+    "type": "word",
+    "level": "B2",
+    "translation": "inflación",
+    "phonetic": "/ɪnˈfleɪ.ʃən/",
+    "monolingual": "A general increase in prices and fall in purchasing value of money."
+  },
+  {
+    "token": "infrastructure",
+    "type": "word",
+    "level": "B2",
+    "translation": "infraestructura",
+    "phonetic": "/ˈɪn.frəˌstrʌk.tʃɚ/",
+    "monolingual": "The basic systems and services for a country or business."
+  },
+  {
+    "token": "innovate",
+    "type": "word",
+    "level": "B2",
+    "translation": "innovar",
+    "phonetic": "/ˈɪn.ə.veɪt/",
+    "monolingual": "To introduce something new, especially methods or products."
+  },
+  {
+    "token": "innovation",
+    "type": "word",
+    "level": "B2",
+    "translation": "innovación",
+    "phonetic": "/ˌɪn.əˈveɪ.ʃən/",
+    "monolingual": "A new idea, method, or device."
+  },
+  {
+    "token": "insolvent",
+    "type": "word",
+    "level": "C1",
+    "translation": "insolvente",
+    "phonetic": "/ɪnˈsɑːl.vənt/",
+    "monolingual": "Unable to pay debts owed."
+  },
+  {
+    "token": "insurance",
+    "type": "word",
+    "level": "B2",
+    "translation": "seguro",
+    "phonetic": "/ɪnˈʃʊr.əns/",
+    "monolingual": "A contract providing financial protection against losses."
+  },
+  {
+    "token": "intangible",
+    "type": "word",
+    "level": "C1",
+    "translation": "intangible",
+    "phonetic": "/ɪnˈtæn.dʒə.bəl/",
+    "monolingual": "Unable to be touched but real and existing."
+  },
+  {
+    "token": "interim",
+    "type": "word",
+    "level": "B2",
+    "translation": "interino",
+    "phonetic": "/ˈɪn.tər.əm/",
+    "monolingual": "Temporary, lasting only until a permanent replacement is found."
+  },
+  {
+    "token": "internship",
+    "type": "word",
+    "level": "B2",
+    "translation": "pasantía",
+    "phonetic": "/ˈɪn.tɝːn.ʃɪp/",
+    "monolingual": "A period of work experience offered by an organization."
+  },
+  {
+    "token": "invest",
+    "type": "word",
+    "level": "B2",
+    "translation": "invertir",
+    "phonetic": "/ɪnˈvest/",
+    "monolingual": "To put money into something hoping for a return."
+  },
+  {
+    "token": "inventory",
+    "type": "word",
+    "level": "B2",
+    "translation": "inventario",
+    "phonetic": "/ˈɪn.vənˌtɔːr.i/",
+    "monolingual": "A complete list of items in stock at a store or business."
+  },
+  {
+    "token": "invoice",
+    "type": "word",
+    "level": "B2",
+    "translation": "factura",
+    "phonetic": "/ˈɪn.vɔɪs/",
+    "monolingual": "A bill listing goods or services and money owed."
+  },
+  {
+    "token": "joint venture",
+    "type": "word",
+    "level": "B2",
+    "translation": "empresa conjunta",
+    "phonetic": "/ˌdʒɔɪnt ˈven.tʃɚ/",
+    "monolingual": "A business activity undertaken by two or more parties."
+  },
+  {
+    "token": "keynote",
+    "type": "word",
+    "level": "B2",
+    "translation": "conferencia inaugural",
+    "phonetic": "/ˈkiː.noʊt/",
+    "monolingual": "The most important or central point of a speech or event."
+  },
+  {
+    "token": "labour",
+    "type": "word",
+    "level": "B2",
+    "translation": "mano de obra",
+    "phonetic": "/ˈleɪ.bɚ/",
+    "monolingual": "Work, especially physical work, done as part of a job."
+  },
+  {
+    "token": "launch",
+    "type": "word",
+    "level": "B2",
+    "translation": "lanzar",
+    "phonetic": "/lɔːntʃ/",
+    "monolingual": "To begin or introduce a new product or service."
+  },
+  {
+    "token": "layoff",
+    "type": "word",
+    "level": "B2",
+    "translation": "despido",
+    "phonetic": "/ˈleɪ.ɒf/",
+    "monolingual": "A temporary or permanent ending of someone's employment."
+  },
+  {
+    "token": "leadership",
+    "type": "word",
+    "level": "B2",
+    "translation": "liderazgo",
+    "phonetic": "/ˈliː.dɚ.ʃɪp/",
+    "monolingual": "The action of leading a group or organization."
+  },
+  {
+    "token": "ledger",
+    "type": "word",
+    "level": "C1",
+    "translation": "libro mayor",
+    "phonetic": "/ˈledʒ.ɚ/",
+    "monolingual": "A book or computer file with financial records."
+  },
+  {
+    "token": "lessee",
+    "type": "word",
+    "level": "C1",
+    "translation": "arrendatario",
+    "phonetic": "/lesˈiː/",
+    "monolingual": "A person who holds the lease of a property."
+  },
+  {
+    "token": "lessor",
+    "type": "word",
+    "level": "C1",
+    "translation": "arrendador",
+    "phonetic": "/lesˈɔːr/",
+    "monolingual": "A person who leases out property."
+  },
+  {
+    "token": "leverage",
+    "type": "word",
+    "level": "B2",
+    "translation": "apalancamiento",
+    "phonetic": "/ˈlev.ɚ.ɪdʒ/",
+    "monolingual": "The use of borrowed money to fund investments."
+  },
+  {
+    "token": "liability",
+    "type": "word",
+    "level": "B2",
+    "translation": "responsabilidad",
+    "phonetic": "/ˌlaɪ.əˈbɪl.ə.t̬i/",
+    "monolingual": "A debt or financial obligation."
+  },
+  {
+    "token": "license",
+    "type": "word",
+    "level": "B2",
+    "translation": "licencia",
+    "phonetic": "/ˈlaɪ.səns/",
+    "monolingual": "An official permit to do or own something."
+  },
+  {
+    "token": "liquid",
+    "type": "word",
+    "level": "B2",
+    "translation": "líquido",
+    "phonetic": "/ˈlɪk.wɪd/",
+    "monolingual": "Of assets, easily converted to cash."
+  },
+  {
+    "token": "liquidate",
+    "type": "word",
+    "level": "C1",
+    "translation": "liquidar",
+    "phonetic": "/ˈlɪk.wə.deɪt/",
+    "monolingual": "To convert assets into cash, especially to close a business."
+  },
+  {
+    "token": "loan",
+    "type": "word",
+    "level": "B2",
+    "translation": "préstamo",
+    "phonetic": "/loʊn/",
+    "monolingual": "Money lent at interest, to be paid back over time."
+  },
+  {
+    "token": "logistics",
+    "type": "word",
+    "level": "B2",
+    "translation": "logística",
+    "phonetic": "/loʊˈdʒɪs.tɪks/",
+    "monolingual": "The detailed organization of a complex operation."
+  },
+  {
+    "token": "loophole",
+    "type": "word",
+    "level": "B2",
+    "translation": "laguna jurídica",
+    "phonetic": "/ˈluːp.hoʊl/",
+    "monolingual": "An ambiguity in the law or rules that allows it to be avoided."
+  },
+  {
+    "token": "loss",
+    "type": "word",
+    "level": "B2",
+    "translation": "pérdida",
+    "phonetic": "/lɔːs/",
+    "monolingual": "The state of no longer having something or having less than before."
+  },
+  {
+    "token": "lucrative",
+    "type": "word",
+    "level": "B2",
+    "translation": "lucrativo",
+    "phonetic": "/ˈluː.krə.tɪv/",
+    "monolingual": "Producing a great deal of profit."
+  },
+  {
+    "token": "mainstream",
+    "type": "word",
+    "level": "B2",
+    "translation": "dominante",
+    "phonetic": "/ˈmeɪn.striːm/",
+    "monolingual": "Ideas or activities regarded as normal or conventional."
+  },
+  {
+    "token": "maintenance",
+    "type": "word",
+    "level": "B2",
+    "translation": "mantenimiento",
+    "phonetic": "/ˈmeɪn.tən.əns/",
+    "monolingual": "The process of keeping something in good condition."
+  },
+  {
+    "token": "mandate",
+    "type": "word",
+    "level": "B2",
+    "translation": "mandato",
+    "phonetic": "/ˈmæn.deɪt/",
+    "monolingual": "An official order or commission to do something."
+  },
+  {
+    "token": "manufacture",
+    "type": "word",
+    "level": "B2",
+    "translation": "fabricar",
+    "phonetic": "/ˌmæn.jəˈfæk.tʃɚ/",
+    "monolingual": "To make goods on a large scale using machinery."
+  },
+  {
+    "token": "markdown",
+    "type": "word",
+    "level": "B2",
+    "translation": "rebaja",
+    "phonetic": "/ˈmɑːrk.daʊn/",
+    "monolingual": "A reduction in the price of an item."
+  },
+  {
+    "token": "market share",
+    "type": "word",
+    "level": "B2",
+    "translation": "cuota de mercado",
+    "phonetic": "/ˈmɑːr.kɪt ʃer/",
+    "monolingual": "The percentage of total sales held by a company in a market."
+  },
+  {
+    "token": "marketable",
+    "type": "word",
+    "level": "B2",
+    "translation": "comercializable",
+    "phonetic": "/ˈmɑːr.kɪ.t̬ə.bəl/",
+    "monolingual": "Easy or possible to sell."
+  },
+  {
+    "token": "markup",
+    "type": "word",
+    "level": "B2",
+    "translation": "margen",
+    "phonetic": "/ˈmɑːrk.ʌp/",
+    "monolingual": "The amount added to the cost price to determine the selling price."
+  },
+  {
+    "token": "mass production",
+    "type": "word",
+    "level": "B2",
+    "translation": "producción en masa",
+    "phonetic": "/ˌmæs prəˈdʌk.ʃən/",
+    "monolingual": "The manufacture of products in large quantities by machinery."
+  },
+  {
+    "token": "mediation",
+    "type": "word",
+    "level": "B2",
+    "translation": "mediación",
+    "phonetic": "/ˌmiː.diˈeɪ.ʃən/",
+    "monolingual": "Help to settle a dispute by acting as an intermediary."
+  },
+  {
+    "token": "memorandum",
+    "type": "word",
+    "level": "C1",
+    "translation": "memorando",
+    "phonetic": "/ˌmem.əˈræn.dəm/",
+    "monolingual": "A written message used especially in a business context."
+  },
+  {
+    "token": "merchandise",
+    "type": "word",
+    "level": "B2",
+    "translation": "mercancía",
+    "phonetic": "/ˈmɝː.tʃən.daɪs/",
+    "monolingual": "Goods that are bought and sold."
+  },
+  {
+    "token": "merger",
+    "type": "word",
+    "level": "B2",
+    "translation": "fusión",
+    "phonetic": "/ˈmɝː.dʒɚ/",
+    "monolingual": "The combining of two or more companies into one."
+  },
+  {
+    "token": "microenterprise",
+    "type": "word",
+    "level": "C1",
+    "translation": "microempresa",
+    "phonetic": "/ˌmaɪ.kroʊˈen.tər.praɪz/",
+    "monolingual": "A very small business, typically with few employees."
+  },
+  {
+    "token": "microfinance",
+    "type": "word",
+    "level": "C1",
+    "translation": "microfinanzas",
+    "phonetic": "/ˌmaɪ.kroʊˈfaɪ.næns/",
+    "monolingual": "The provision of financial services to low-income clients."
+  },
+  {
+    "token": "milestone",
+    "type": "word",
+    "level": "B2",
+    "translation": "hito",
+    "phonetic": "/ˈmaɪl.stoʊn/",
+    "monolingual": "An important event or stage in a process."
+  },
+  {
+    "token": "monetary",
+    "type": "word",
+    "level": "B2",
+    "translation": "monetario",
+    "phonetic": "/ˈmɒn.ɪ.tər.i/",
+    "monolingual": "Relating to money or currency."
+  },
+  {
+    "token": "monopoly",
+    "type": "word",
+    "level": "B2",
+    "translation": "monopolio",
+    "phonetic": "/məˈnɑː.pə.li/",
+    "monolingual": "Exclusive control of a commodity or service in a market."
+  },
+  {
+    "token": "mortgage",
+    "type": "word",
+    "level": "B2",
+    "translation": "hipoteca",
+    "phonetic": "/ˈmɔːr.ɡɪdʒ/",
+    "monolingual": "A loan to buy property, with the property as security."
+  },
+  {
+    "token": "multinational",
+    "type": "word",
+    "level": "B2",
+    "translation": "multinacional",
+    "phonetic": "/ˌmʌl.tiˈnæʃ.nəl/",
+    "monolingual": "A company operating in several countries."
+  },
+  {
+    "token": "negotiate",
+    "type": "word",
+    "level": "B2",
+    "translation": "negociar",
+    "phonetic": "/nəˈɡoʊ.ʃi.eɪt/",
+    "monolingual": "To talk with another in order to reach an agreement."
+  },
+  {
+    "token": "networking",
+    "type": "word",
+    "level": "B2",
+    "translation": "conexiones profesionales",
+    "phonetic": "/ˈnet.wɝː.kɪŋ/",
+    "monolingual": "Interacting with others to exchange information professionally."
+  },
+  {
+    "token": "niche",
+    "type": "word",
+    "level": "B2",
+    "translation": "nicho",
+    "phonetic": "/niːʃ/",
+    "monolingual": "A specialized segment of the market for a product or service."
+  },
+  {
+    "token": "non-profit",
+    "type": "word",
+    "level": "B2",
+    "translation": "sin ánimo de lucro",
+    "phonetic": "/ˌnɑːnˈprɑː.fɪt/",
+    "monolingual": "An organization that does not operate for profit."
+  },
+  {
+    "token": "notary",
+    "type": "word",
+    "level": "C1",
+    "translation": "notario",
+    "phonetic": "/ˈnoʊ.t̬ə.ri/",
+    "monolingual": "A person authorized to perform certain legal formalities."
+  },
+  {
+    "token": "nominate",
+    "type": "word",
+    "level": "B2",
+    "translation": "nominar",
+    "phonetic": "/ˈnɑː.mə.neɪt/",
+    "monolingual": "To propose someone for an office or position."
+  },
+  {
+    "token": "obsolete",
+    "type": "word",
+    "level": "B2",
+    "translation": "obsoleto",
+    "phonetic": "/ˌɒb.səlˈiːt/",
+    "monolingual": "No longer produced or used; out of date."
+  },
+  {
+    "token": "on-boarding",
+    "type": "word",
+    "level": "B2",
+    "translation": "incorporación",
+    "phonetic": "/ˌɒnˈbɔːr.dɪŋ/",
+    "monolingual": "The process of integrating new employees into an organization."
+  },
+  {
+    "token": "operating profit",
+    "type": "word",
+    "level": "B2",
+    "translation": "beneficio operativo",
+    "phonetic": "/ˈɒp.ə.reɪ.tɪŋ ˈprɒf.ɪt/",
+    "monolingual": "Profit earned from a firm's core business operations."
+  },
+  {
+    "token": "opportunity cost",
+    "type": "word",
+    "level": "C1",
+    "translation": "coste de oportunidad",
+    "phonetic": "/ˌɒp.əˈtjuː.nə.t̬i kɒst/",
+    "monolingual": "The loss of potential gain from other alternatives."
+  },
+  {
+    "token": "optimal",
+    "type": "word",
+    "level": "B2",
+    "translation": "óptimo",
+    "phonetic": "/ˈɒp.tɪ.məl/",
+    "monolingual": "Best or most favorable."
+  },
+  {
+    "token": "outgoings",
+    "type": "word",
+    "level": "B2",
+    "translation": "gastos",
+    "phonetic": "/ˈaʊtˌɡoʊ.ɪŋz/",
+    "monolingual": "Money paid out, especially regular expenses."
+  },
+  {
+    "token": "outlay",
+    "type": "word",
+    "level": "B2",
+    "translation": "desembolso",
+    "phonetic": "/ˈaʊt.leɪ/",
+    "monolingual": "An amount of money spent on something."
+  },
+  {
+    "token": "output",
+    "type": "word",
+    "level": "B2",
+    "translation": "producción",
+    "phonetic": "/ˈaʊt.pʊt/",
+    "monolingual": "The amount of something produced by a person, factory, or process."
+  },
+  {
+    "token": "outsource",
+    "type": "word",
+    "level": "B2",
+    "translation": "subcontratar",
+    "phonetic": "/ˈaʊt.sɔːrs/",
+    "monolingual": "To buy goods or services from outside suppliers."
+  },
+  {
+    "token": "overdraft",
+    "type": "word",
+    "level": "B2",
+    "translation": "sobregiro",
+    "phonetic": "/ˈoʊ.vɚ.dræft/",
+    "monolingual": "A deficit in a bank account caused by drawing more than is held."
+  },
+  {
+    "token": "overhead",
+    "type": "word",
+    "level": "B2",
+    "translation": "gastos generales",
+    "phonetic": "/ˈoʊ.vɚ.hed/",
+    "monolingual": "The regular expenses required to run a business."
+  },
+  {
+    "token": "overhead cost",
+    "type": "word",
+    "level": "B2",
+    "translation": "costo indirecto",
+    "phonetic": "/ˈoʊ.vɚ.hed kɒst/",
+    "monolingual": "An ongoing expense not directly tied to a specific product."
+  },
+  {
+    "token": "overtime",
+    "type": "word",
+    "level": "B2",
+    "translation": "horas extra",
+    "phonetic": "/ˈoʊ.vɚ.taɪm/",
+    "monolingual": "Time worked in addition to one's normal working hours."
+  },
+  {
+    "token": "overturn",
+    "type": "word",
+    "level": "B2",
+    "translation": "derribar",
+    "phonetic": "/ˌoʊ.vɚˈtɝːn/",
+    "monolingual": "To turn over or upset, or to reverse a decision."
+  },
+  {
+    "token": "package",
+    "type": "word",
+    "level": "B2",
+    "translation": "paquete",
+    "phonetic": "/ˈpæk.ɪdʒ/",
+    "monolingual": "A group of things offered or sold together."
+  },
+  {
+    "token": "patent",
+    "type": "word",
+    "level": "B2",
+    "translation": "patente",
+    "phonetic": "/ˈpæt.ənt/",
+    "monolingual": "A government license giving rights to make and sell an invention."
+  },
+  {
+    "token": "payable",
+    "type": "word",
+    "level": "B2",
+    "translation": "pagadero",
+    "phonetic": "/ˈpeɪ.ə.bəl/",
+    "monolingual": "Owed; required to be paid."
+  },
+  {
+    "token": "payroll",
+    "type": "word",
+    "level": "B2",
+    "translation": "nómina",
+    "phonetic": "/ˈpeɪ.roʊl/",
+    "monolingual": "A list of a company's employees and the amounts each is paid."
+  },
+  {
+    "token": "peer-review",
+    "type": "word",
+    "level": "C1",
+    "translation": "revisión por pares",
+    "phonetic": "/ˌpɪrˈrɪvjuː/",
+    "monolingual": "Evaluation of work by others in the same field."
+  },
+  {
+    "token": "pending",
+    "type": "word",
+    "level": "B2",
+    "translation": "pendiente",
+    "phonetic": "/ˈpen.dɪŋ/",
+    "monolingual": "Awaiting decision or settlement."
+  },
+  {
+    "token": "pension",
+    "type": "word",
+    "level": "B2",
+    "translation": "pensión",
+    "phonetic": "/ˈpen.ʃən/",
+    "monolingual": "A regular payment made during retirement."
+  },
+  {
+    "token": "perk",
+    "type": "word",
+    "level": "B2",
+    "translation": "beneficio extra",
+    "phonetic": "/pɝːk/",
+    "monolingual": "A benefit given in addition to one's pay."
+  },
+  {
+    "token": "pertain",
+    "type": "word",
+    "level": "C1",
+    "translation": "concernir",
+    "phonetic": "/pɝːˈteɪn/",
+    "monolingual": "To be appropriate, related, or applicable."
+  },
+  {
+    "token": "phase out",
+    "type": "word",
+    "level": "B2",
+    "translation": "eliminar gradualmente",
+    "phonetic": "/feɪz aʊt/",
+    "monolingual": "To stop using something gradually."
+  },
+  {
+    "token": "pilot project",
+    "type": "word",
+    "level": "B2",
+    "translation": "proyecto piloto",
+    "phonetic": "/ˈpaɪ.lət ˈprɒdʒ.ekt/",
+    "monolingual": "A small-scale trial designed to test a proposal."
+  },
+  {
+    "token": "pitch",
+    "type": "word",
+    "level": "B2",
+    "translation": "propuesta",
+    "phonetic": "/pɪtʃ/",
+    "monolingual": "A short, persuasive proposal designed to sell something."
+  },
+  {
+    "token": "plummet",
+    "type": "word",
+    "level": "B2",
+    "translation": "desplomarse",
+    "phonetic": "/ˈplʌm.ɪt/",
+    "monolingual": "To fall straight down at high speed."
+  },
+  {
+    "token": "portfolio",
+    "type": "word",
+    "level": "B2",
+    "translation": "cartera",
+    "phonetic": "/pɔːrtˈfoʊ.li.oʊ/",
+    "monolingual": "A range of investments held by a person or institution."
+  },
+  {
+    "token": "power of attorney",
+    "type": "word",
+    "level": "C1",
+    "translation": "poder notarial",
+    "phonetic": "/ˌpaʊr əv əˈtɝː.ni/",
+    "monolingual": "Legal authorization to act on another's behalf."
+  },
+  {
+    "token": "premium",
+    "type": "word",
+    "level": "B2",
+    "translation": "prima",
+    "phonetic": "/ˈpriː.mi.əm/",
+    "monolingual": "An amount paid for an insurance policy, or of high quality."
+  },
+  {
+    "token": "proceeds",
+    "type": "word",
+    "level": "B2",
+    "translation": "ingresos",
+    "phonetic": "/ˈproʊ.siːdz/",
+    "monolingual": "Money obtained from a sale or event."
+  },
+  {
+    "token": "procurement",
+    "type": "word",
+    "level": "B2",
+    "translation": "adquisición",
+    "phonetic": "/prəˈkjʊr.mənt/",
+    "monolingual": "The action of obtaining or procuring goods or services."
+  },
+  {
+    "token": "productivity",
+    "type": "word",
+    "level": "B2",
+    "translation": "productividad",
+    "phonetic": "/ˌproʊ.dʌkˈtɪv.ə.t̬i/",
+    "monolingual": "The effectiveness of productive effort."
+  },
+  {
+    "token": "profit margin",
+    "type": "word",
+    "level": "B2",
+    "translation": "margen de beneficio",
+    "phonetic": "/ˈprɒf.ɪt ˌmɑːr.dʒɪn/",
+    "monolingual": "The proportion of sales revenue retained as profit."
+  },
+  {
+    "token": "proprietary",
+    "type": "word",
+    "level": "C1",
+    "translation": "propietario",
+    "phonetic": "/prəˈpraɪ.ə.ter.i/",
+    "monolingual": "Relating to ownership, especially of intellectual property."
+  },
+  {
+    "token": "prosperity",
+    "type": "word",
+    "level": "B2",
+    "translation": "prosperidad",
+    "phonetic": "/prɑːˈsper.ə.t̬i/",
+    "monolingual": "The state of being successful and rich."
+  },
+  {
+    "token": "prospectus",
+    "type": "word",
+    "level": "C1",
+    "translation": "folleto informativo",
+    "phonetic": "/prəˈspek.təs/",
+    "monolingual": "A document offering investments or detailing a school's offerings."
+  },
+  {
+    "token": "prototype",
+    "type": "word",
+    "level": "B2",
+    "translation": "prototipo",
+    "phonetic": "/ˈproʊ.t̬ə.taɪp/",
+    "monolingual": "A first or preliminary model from which others are developed."
+  },
+  {
+    "token": "provision",
+    "type": "word",
+    "level": "B2",
+    "translation": "suministro",
+    "phonetic": "/prəˈvɪʒ.ən/",
+    "monolingual": "The supply or provision of something needed."
+  },
+  {
+    "token": "proviso",
+    "type": "word",
+    "level": "C1",
+    "translation": "salvedad",
+    "phonetic": "/prəˈvaɪ.zoʊ/",
+    "monolingual": "A condition attached to an agreement."
+  },
+  {
+    "token": "proxy",
+    "type": "word",
+    "level": "B2",
+    "translation": "apoderado",
+    "phonetic": "/ˈprɒk.si/",
+    "monolingual": "A person authorized to act for another."
+  },
+  {
+    "token": "public relations",
+    "type": "word",
+    "level": "B2",
+    "translation": "relaciones públicas",
+    "phonetic": "/ˈpʌb.lɪk rɪˌleɪ.ʃənz/",
+    "monolingual": "The practice of managing the spread of information to the public."
+  },
+  {
+    "token": "quota",
+    "type": "word",
+    "level": "B2",
+    "translation": "cupo",
+    "phonetic": "/ˈkwoʊ.t̬ə/",
+    "monolingual": "A fixed share of something that must be sold or produced."
+  },
+  {
+    "token": "quotation",
+    "type": "word",
+    "level": "B2",
+    "translation": "cotización",
+    "phonetic": "/kwoʊˈteɪ.ʃən/",
+    "monolingual": "An estimated cost of work, or a passage from a text."
+  },
+  {
+    "token": "ratify",
+    "type": "word",
+    "level": "C1",
+    "translation": "ratificar",
+    "phonetic": "/ˈræt̬.ə.faɪ/",
+    "monolingual": "To sign or give formal consent to make valid."
+  },
+  {
+    "token": "reach",
+    "type": "word",
+    "level": "B2",
+    "translation": "alcance",
+    "phonetic": "/riːtʃ/",
+    "monolingual": "The extent or range of effect, application, or influence."
+  },
+  {
+    "token": "real estate",
+    "type": "word",
+    "level": "B2",
+    "translation": "bienes raíces",
+    "phonetic": "/ˈriːl ɪˌsteɪt/",
+    "monolingual": "Property consisting of land or buildings."
+  },
+  {
+    "token": "reasonable doubt",
+    "type": "word",
+    "level": "B2",
+    "translation": "duda razonable",
+    "phonetic": "/ˈriː.zən.ə.bəl daʊt/",
+    "monolingual": "Lack of certainty about a defendant's guilt, in legal contexts."
+  },
+  {
+    "token": "rebate",
+    "type": "word",
+    "level": "B2",
+    "translation": "descuento",
+    "phonetic": "/ˈriː.beɪt/",
+    "monolingual": "A partial refund of money paid for goods or services."
+  },
+  {
+    "token": "recession",
+    "type": "word",
+    "level": "B2",
+    "translation": "recesión",
+    "phonetic": "/rɪˈseʃ.ən/",
+    "monolingual": "A period of temporary economic decline."
+  },
+  {
+    "token": "recipient",
+    "type": "word",
+    "level": "B2",
+    "translation": "destinatario",
+    "phonetic": "/rɪˈsɪp.i.ənt/",
+    "monolingual": "A person who receives something."
+  },
+  {
+    "token": "recoup",
+    "type": "word",
+    "level": "C1",
+    "translation": "recuperar",
+    "phonetic": "/rɪˈkuːp/",
+    "monolingual": "To regain or recover something lost."
+  },
+  {
+    "token": "recruit",
+    "type": "word",
+    "level": "B2",
+    "translation": "reclutar",
+    "phonetic": "/rɪˈkruːt/",
+    "monolingual": "To enlist someone in an organization or company."
+  },
+  {
+    "token": "redundancy",
+    "type": "word",
+    "level": "B2",
+    "translation": "despido",
+    "phonetic": "/rɪˈdʌn.dən.si/",
+    "monolingual": "The state of being no longer needed in a job."
+  },
+  {
+    "token": "referee",
+    "type": "word",
+    "level": "B2",
+    "translation": "referencia laboral",
+    "phonetic": "/ˌref.ərˈiː/",
+    "monolingual": "A person who provides a reference about another's character or abilities."
+  },
+  {
+    "token": "refund",
+    "type": "word",
+    "level": "B2",
+    "translation": "reembolso",
+    "phonetic": "/ˈriː.fʌnd/",
+    "monolingual": "A repayment of a sum of money."
+  },
+  {
+    "token": "register",
+    "type": "word",
+    "level": "B2",
+    "translation": "registrar",
+    "phonetic": "/ˈredʒ.ɪ.stɚ/",
+    "monolingual": "To enter formally on an official list."
+  },
+  {
+    "token": "regulation",
+    "type": "word",
+    "level": "B2",
+    "translation": "regulación",
+    "phonetic": "/ˌreɡ.jəˈleɪ.ʃən/",
+    "monolingual": "A rule or directive made by an authority."
+  },
+  {
+    "token": "reimburse",
+    "type": "word",
+    "level": "B2",
+    "translation": "reembolsar",
+    "phonetic": "/ˌriː.ɪmˈbɝːs/",
+    "monolingual": "To repay money to someone who has spent or lost it."
+  },
+  {
+    "token": "remuneration",
+    "type": "word",
+    "level": "C1",
+    "translation": "remuneración",
+    "phonetic": "/rɪˌmjuː.nəˈreɪ.ʃən/",
+    "monolingual": "Money paid for work or a service."
+  },
+  {
+    "token": "rental",
+    "type": "word",
+    "level": "B2",
+    "translation": "alquiler",
+    "phonetic": "/ˈren.təl/",
+    "monolingual": "An amount paid or received as rent."
+  },
+  {
+    "token": "repayment",
+    "type": "word",
+    "level": "B2",
+    "translation": "pago",
+    "phonetic": "/rɪˈpeɪ.mənt/",
+    "monolingual": "The action of paying back a sum of money borrowed."
+  },
+  {
+    "token": "research and development",
+    "type": "word",
+    "level": "B2",
+    "translation": "investigación y desarrollo",
+    "phonetic": "/rɪˌsɝːtʃ ən dɪˈvel.əp.mənt/",
+    "monolingual": "Work directed toward innovation of products and services."
+  },
+  {
+    "token": "reserve",
+    "type": "word",
+    "level": "B2",
+    "translation": "reserva",
+    "phonetic": "/rɪˈzɝːv/",
+    "monolingual": "An additional supply of something, kept for future use."
+  },
+  {
+    "token": "restructure",
+    "type": "word",
+    "level": "B2",
+    "translation": "reestructurar",
+    "phonetic": "/ˌriːˈstrʌk.tʃɚ/",
+    "monolingual": "To organize differently, especially a company or its debts."
+  },
+  {
+    "token": "retail",
+    "type": "word",
+    "level": "B2",
+    "translation": "venta al por menor",
+    "phonetic": "/ˈriː.teɪl/",
+    "monolingual": "The sale of goods to the public in small quantities."
+  },
+  {
+    "token": "retain",
+    "type": "word",
+    "level": "B2",
+    "translation": "retener",
+    "phonetic": "/rɪˈteɪn/",
+    "monolingual": "To continue to have or keep something."
+  },
+  {
+    "token": "retainer",
+    "type": "word",
+    "level": "C1",
+    "translation": "anticipo",
+    "phonetic": "/rɪˈteɪ.nɚ/",
+    "monolingual": "A fee paid in advance to secure the services of a professional."
+  },
+  {
+    "token": "retire",
+    "type": "word",
+    "level": "B2",
+    "translation": "jubilarse",
+    "phonetic": "/rɪˈtaɪr/",
+    "monolingual": "To leave one's job and stop working, typically due to age."
+  },
+  {
+    "token": "retirement",
+    "type": "word",
+    "level": "B2",
+    "translation": "jubilación",
+    "phonetic": "/rɪˈtaɪr.mənt/",
+    "monolingual": "The action of leaving one's job after reaching a certain age."
+  },
+  {
+    "token": "revenue",
+    "type": "word",
+    "level": "B2",
+    "translation": "ingresos",
+    "phonetic": "/ˈrev.ə.nuː/",
+    "monolingual": "Income, especially from a business, an organization, or taxes."
+  },
+  {
+    "token": "reversal",
+    "type": "word",
+    "level": "B2",
+    "translation": "reversión",
+    "phonetic": "/rɪˈvɝː.səl/",
+    "monolingual": "A change to an opposite direction, position, or course."
+  },
+  {
+    "token": "royalty",
+    "type": "word",
+    "level": "B2",
+    "translation": "regalía",
+    "phonetic": "/ˈrɔɪ.əl.t̬i/",
+    "monolingual": "A payment for the use of intellectual property or natural resources."
+  },
+  {
+    "token": "salary",
+    "type": "word",
+    "level": "B2",
+    "translation": "salario",
+    "phonetic": "/ˈsæl.ər.i/",
+    "monolingual": "A fixed regular payment made by an employer to an employee."
+  },
+  {
+    "token": "sanction",
+    "type": "word",
+    "level": "B2",
+    "translation": "sanción",
+    "phonetic": "/ˈsæŋk.ʃən/",
+    "monolingual": "A penalty for disobeying a law or rule, or official permission."
+  },
+  {
+    "token": "saturation",
+    "type": "word",
+    "level": "B2",
+    "translation": "saturación",
+    "phonetic": "/ˌsætʃ.əˈreɪ.ʃən/",
+    "monolingual": "The state of being completely filled, especially of a market."
+  },
+  {
+    "token": "scalable",
+    "type": "word",
+    "level": "B2",
+    "translation": "escalable",
+    "phonetic": "/ˈskeɪ.lə.bəl/",
+    "monolingual": "Able to be changed in size or scale."
+  },
+  {
+    "token": "scheme",
+    "type": "word",
+    "level": "B2",
+    "translation": "plan",
+    "phonetic": "/skiːm/",
+    "monolingual": "A large-scale systematic plan or arrangement."
+  },
+  {
+    "token": "secondary market",
+    "type": "word",
+    "level": "C1",
+    "translation": "mercado secundario",
+    "phonetic": "/ˈsek.ən.der.i ˈmɑːr.kɪt/",
+    "monolingual": "A financial market where investors trade previously issued securities."
+  },
+  {
+    "token": "sector",
+    "type": "word",
+    "level": "B2",
+    "translation": "sector",
+    "phonetic": "/ˈsek.tɚ/",
+    "monolingual": "A part of an economy distinguished by a shared activity type."
+  },
+  {
+    "token": "securities",
+    "type": "word",
+    "level": "C1",
+    "translation": "valores",
+    "phonetic": "/sɪˈkjʊr.ə.t̬iz/",
+    "monolingual": "Tradable financial assets such as stocks or bonds."
+  },
+  {
+    "token": "seed money",
+    "type": "word",
+    "level": "B2",
+    "translation": "capital semilla",
+    "phonetic": "/ˌsiːd ˈmʌn.i/",
+    "monolingual": "Initial capital used to start a business."
+  },
+  {
+    "token": "self-employed",
+    "type": "word",
+    "level": "B2",
+    "translation": "autónomo",
+    "phonetic": "/ˌself ɪmˈplɔɪd/",
+    "monolingual": "Earning income directly from one's own trade or business."
+  },
+  {
+    "token": "share",
+    "type": "word",
+    "level": "B2",
+    "translation": "acción",
+    "phonetic": "/ʃer/",
+    "monolingual": "A part or portion of a larger amount divided among people, or stock."
+  },
+  {
+    "token": "shareholder",
+    "type": "word",
+    "level": "B2",
+    "translation": "accionista",
+    "phonetic": "/ˈʃerˌhoʊl.dɚ/",
+    "monolingual": "An owner of shares in a company."
+  },
+  {
+    "token": "shift",
+    "type": "word",
+    "level": "B2",
+    "translation": "turno",
+    "phonetic": "/ʃɪft/",
+    "monolingual": "A scheduled period of work."
+  },
+  {
+    "token": "shipment",
+    "type": "word",
+    "level": "B2",
+    "translation": "envío",
+    "phonetic": "/ˈʃɪp.mənt/",
+    "monolingual": "The action of shipping goods or the goods themselves."
+  },
+  {
+    "token": "shortfall",
+    "type": "word",
+    "level": "B2",
+    "translation": "déficit",
+    "phonetic": "/ˈʃɔːrt.fɔːl/",
+    "monolingual": "A deficit of something required or expected."
+  },
+  {
+    "token": "slowdown",
+    "type": "word",
+    "level": "B2",
+    "translation": "desaceleración",
+    "phonetic": "/ˈsloʊˌdaʊn/",
+    "monolingual": "A reduction in the speed or rate of something."
+  },
+  {
+    "token": "solvency",
+    "type": "word",
+    "level": "C1",
+    "translation": "solvencia",
+    "phonetic": "/ˈsɑːl.vən.si/",
+    "monolingual": "The ability of a company to meet long-term debt obligations."
+  },
+  {
+    "token": "specifications",
+    "type": "word",
+    "level": "B2",
+    "translation": "especificaciones",
+    "phonetic": "/ˌspes.ə.fɪˈkeɪ.ʃənz/",
+    "monolingual": "A detailed description of design or materials."
+  },
+  {
+    "token": "spreadsheet",
+    "type": "word",
+    "level": "B2",
+    "translation": "hoja de cálculo",
+    "phonetic": "/ˈspredˌʃiːt/",
+    "monolingual": "A document arranged in rows and columns for analyzing data."
+  },
+  {
+    "token": "stakeholder",
+    "type": "word",
+    "level": "B2",
+    "translation": "parte interesada",
+    "phonetic": "/ˈsteɪkˌhoʊl.dɚ/",
+    "monolingual": "A person with an interest or concern in something."
+  },
+  {
+    "token": "startup",
+    "type": "word",
+    "level": "B2",
+    "translation": "empresa emergente",
+    "phonetic": "/ˈstɑːrtˌʌp/",
+    "monolingual": "A newly established business."
+  },
+  {
+    "token": "stockbroker",
+    "type": "word",
+    "level": "B2",
+    "translation": "corredor de bolsa",
+    "phonetic": "/ˈstɑːkˌbroʊ.kɚ/",
+    "monolingual": "A person who buys and sells shares for clients."
+  },
+  {
+    "token": "stockholder",
+    "type": "word",
+    "level": "B2",
+    "translation": "accionista",
+    "phonetic": "/ˈstɑːkˌhoʊl.dɚ/",
+    "monolingual": "An owner of stock in a company."
+  },
+  {
+    "token": "strategic",
+    "type": "word",
+    "level": "B2",
+    "translation": "estratégico",
+    "phonetic": "/strəˈtiː.dʒɪk/",
+    "monolingual": "Carefully planned to achieve a goal."
+  },
+  {
+    "token": "streamline",
+    "type": "word",
+    "level": "B2",
+    "translation": "racionalizar",
+    "phonetic": "/ˈstriːm.laɪn/",
+    "monolingual": "To make an organization more efficient."
+  },
+  {
+    "token": "subcontract",
+    "type": "word",
+    "level": "B2",
+    "translation": "subcontratar",
+    "phonetic": "/ˌsʌbˈkɑːn.trækt/",
+    "monolingual": "To employ another firm to do work originally hired to do."
+  },
+  {
+    "token": "subsidiary",
+    "type": "word",
+    "level": "B2",
+    "translation": "filial",
+    "phonetic": "/səbˈsɪd.i.er.i/",
+    "monolingual": "A company controlled by a parent or holding company."
+  },
+  {
+    "token": "subsidize",
+    "type": "word",
+    "level": "B2",
+    "translation": "subvencionar",
+    "phonetic": "/ˈsʌb.sə.daɪz/",
+    "monolingual": "To support financially with money paid by a government."
+  },
+  {
+    "token": "subsidy",
+    "type": "word",
+    "level": "B2",
+    "translation": "subsidio",
+    "phonetic": "/ˈsʌb.sə.di/",
+    "monolingual": "A sum granted by the government to help an industry or business."
+  },
+  {
+    "token": "supplier",
+    "type": "word",
+    "level": "B2",
+    "translation": "proveedor",
+    "phonetic": "/səˈplaɪ.ɚ/",
+    "monolingual": "A person or organization that provides goods to customers."
+  },
+  {
+    "token": "surcharge",
+    "type": "word",
+    "level": "B2",
+    "translation": "recargo",
+    "phonetic": "/ˈsɝː.tʃɑːrdʒ/",
+    "monolingual": "An additional charge or payment."
+  },
+  {
+    "token": "surplus",
+    "type": "word",
+    "level": "B2",
+    "translation": "excedente",
+    "phonetic": "/ˈsɝː.pləs/",
+    "monolingual": "An amount left over when requirements have been met."
+  },
+  {
+    "token": "sustainability",
+    "type": "word",
+    "level": "B2",
+    "translation": "sostenibilidad",
+    "phonetic": "/səˌsteɪ.nəˈbɪl.ə.t̬i/",
+    "monolingual": "The ability to maintain at a certain rate or level."
+  },
+  {
+    "token": "takeover",
+    "type": "word",
+    "level": "B2",
+    "translation": "adquisición",
+    "phonetic": "/ˈteɪkˌoʊ.vɚ/",
+    "monolingual": "The act of gaining control of a company by buying its shares."
+  },
+  {
+    "token": "tariff",
+    "type": "word",
+    "level": "B2",
+    "translation": "arancel",
+    "phonetic": "/ˈter.ɪf/",
+    "monolingual": "A tax to be paid on a particular class of imports or exports."
+  },
+  {
+    "token": "tax bracket",
+    "type": "word",
+    "level": "B2",
+    "translation": "tramo impositivo",
+    "phonetic": "/ˈtæks ˌbræk.ɪt/",
+    "monolingual": "A range of incomes taxed at a given rate."
+  },
+  {
+    "token": "tenant",
+    "type": "word",
+    "level": "B2",
+    "translation": "inquilino",
+    "phonetic": "/ˈten.ənt/",
+    "monolingual": "A person who rents land or property from a landlord."
+  },
+  {
+    "token": "trademark",
+    "type": "word",
+    "level": "B2",
+    "translation": "marca registrada",
+    "phonetic": "/ˈtreɪd.mɑːrk/",
+    "monolingual": "A symbol or word legally registered to represent a company or product."
+  },
+  {
+    "token": "trade-off",
+    "type": "word",
+    "level": "B2",
+    "translation": "contrapartida",
+    "phonetic": "/ˈtreɪd.ɒf/",
+    "monolingual": "A balance achieved between two desirable but incompatible features."
+  },
+  {
+    "token": "transaction",
+    "type": "word",
+    "level": "B2",
+    "translation": "transacción",
+    "phonetic": "/trænˈzæk.ʃən/",
+    "monolingual": "An instance of buying or selling something."
+  },
+  {
+    "token": "treasury",
+    "type": "word",
+    "level": "B2",
+    "translation": "tesorería",
+    "phonetic": "/ˈtreʒ.ɚ.i/",
+    "monolingual": "The funds or revenue of a government or institution."
+  },
+  {
+    "token": "turnover",
+    "type": "word",
+    "level": "B2",
+    "translation": "rotación",
+    "phonetic": "/ˈtɝːnˌoʊ.vɚ/",
+    "monolingual": "The amount of money taken by a business in a particular period."
+  },
+  {
+    "token": "underwrite",
+    "type": "word",
+    "level": "C1",
+    "translation": "suscribir",
+    "phonetic": "/ˌʌn.dɚˈraɪt/",
+    "monolingual": "To sign and accept liability under a contract."
+  },
+  {
+    "token": "unit cost",
+    "type": "word",
+    "level": "B2",
+    "translation": "costo unitario",
+    "phonetic": "/ˈjuː.nɪt kɒst/",
+    "monolingual": "The cost of producing one unit of a product."
+  },
+  {
+    "token": "upskill",
+    "type": "word",
+    "level": "B2",
+    "translation": "formar",
+    "phonetic": "/ˈʌp.skɪl/",
+    "monolingual": "To teach an employee new skills to improve performance."
+  },
+  {
+    "token": "utility",
+    "type": "word",
+    "level": "B2",
+    "translation": "utilidad",
+    "phonetic": "/juːˈtɪl.ə.t̬i/",
+    "monolingual": "The state of being useful, profitable, or beneficial."
+  },
+  {
+    "token": "vendor",
+    "type": "word",
+    "level": "B2",
+    "translation": "vendedor",
+    "phonetic": "/ˈven.dɚ/",
+    "monolingual": "A person or company offering something for sale."
+  },
+  {
+    "token": "venture",
+    "type": "word",
+    "level": "B2",
+    "translation": "emprendimiento",
+    "phonetic": "/ˈven.tʃɚ/",
+    "monolingual": "A risky or daring journey or undertaking, especially business."
+  },
+  {
+    "token": "viable",
+    "type": "word",
+    "level": "B2",
+    "translation": "viable",
+    "phonetic": "/ˈvaɪ.ə.bəl/",
+    "monolingual": "Capable of working successfully; feasible."
+  },
+  {
+    "token": "visa",
+    "type": "word",
+    "level": "B2",
+    "translation": "visa",
+    "phonetic": "/ˈviː.zə/",
+    "monolingual": "A formal endorsement allowing the holder to enter a country."
+  },
+  {
+    "token": "volatility",
+    "type": "word",
+    "level": "B2",
+    "translation": "volatilidad",
+    "phonetic": "/ˌvɑː.ləˈtɪl.ə.t̬i/",
+    "monolingual": "The liability of something to change rapidly and unpredictably."
+  },
+  {
+    "token": "warranty",
+    "type": "word",
+    "level": "B2",
+    "translation": "garantía",
+    "phonetic": "/ˈwɔːr.ən.t̬i/",
+    "monolingual": "A written guarantee promising to repair or replace an article."
+  },
+  {
+    "token": "wholesale",
+    "type": "word",
+    "level": "B2",
+    "translation": "venta al por mayor",
+    "phonetic": "/ˈhoʊl.seɪl/",
+    "monolingual": "The sale of goods in large quantities for resale."
+  },
+  {
+    "token": "withhold",
+    "type": "word",
+    "level": "B2",
+    "translation": "retener",
+    "phonetic": "/wɪðˈhoʊld/",
+    "monolingual": "To refuse to give something due to or expected by another."
+  },
+  {
+    "token": "workflow",
+    "type": "word",
+    "level": "B2",
+    "translation": "flujo de trabajo",
+    "phonetic": "/ˈwɝːk.floʊ/",
+    "monolingual": "The sequence of industrial, administrative, or other processes."
+  },
+  {
+    "token": "workforce",
+    "type": "word",
+    "level": "B2",
+    "translation": "plantilla",
+    "phonetic": "/ˈwɝːk.fɔːrs/",
+    "monolingual": "The people engaged in or available for work in a country or company."
+  },
+  {
+    "token": "write-off",
+    "type": "word",
+    "level": "B2",
+    "translation": "pérdida total",
+    "phonetic": "/ˈraɪt.ɒf/",
+    "monolingual": "A cancellation from an account of a bad debt or unrealizable asset."
+  },
+  {
+    "token": "yield",
+    "type": "word",
+    "level": "B2",
+    "translation": "rendimiento",
+    "phonetic": "/jiːld/",
+    "monolingual": "The financial return on an investment."
+  },
+  {
+    "token": "zero-sum",
+    "type": "word",
+    "level": "C1",
+    "translation": "suma cero",
+    "phonetic": "/ˌzɪr.oʊ ˈsʌm/",
+    "monolingual": "A situation in which a gain by one side equals a loss by the other."
+  }
+]

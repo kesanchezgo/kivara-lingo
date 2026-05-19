@@ -40,6 +40,13 @@ import { speak } from './tts';
 import { enrichWithAi, getAiSettings, getResolvedNativeLang } from './ai-enrich';
 import { lookupDictionary } from '../content/nlp/dictionary';
 import { lookupYomitanTerm } from '../content/nlp/yomitan';
+import {
+  BUNDLE_PACK_ID,
+  MISS_PACK_ID,
+  REMOTE_PACK_ID,
+  recordLookupHit,
+  recordMiss,
+} from '../shared/telemetry';
 
 console.log('[Kivara Lingo] service worker booting');
 
@@ -459,6 +466,8 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
 
   // 1. Bundled dictionary (fast, sync).
   let local = lookupDictionary(token, sourceLang);
+  let resolvedPackId: string | null = null;
+  if (local) resolvedPackId = BUNDLE_PACK_ID;
 
   // 2. User-installed Yomitan packs (async IndexedDB lookup). We only consult
   //    them on a bundle miss to avoid the round-trip when the popover can
@@ -470,6 +479,7 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
       if (hit) {
         local = hit.entry;
         yomitanPackTitle = hit.pack.title;
+        resolvedPackId = hit.pack.id;
       }
     } catch (err) {
       // Pack lookup errors are non-fatal — fall through to remote.
@@ -488,10 +498,12 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
     });
   }
 
+  let remoteServed = false;
   if (!local) {
     try {
       const remote = await translateText({ text: token, sourceLang });
       if (remote.ok && remote.translatedText) {
+        remoteServed = true;
         waves.push({
           stage: 'remote',
           translation: remote.translatedText,
@@ -509,6 +521,19 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
       });
     }
   }
+
+  // Local-only telemetry — record exactly one bucket per RESOLVE_WORD so the
+  // coverage widget can answer "how much was served by offline sources vs.
+  // remote vs. nothing".
+  void (async () => {
+    if (resolvedPackId) {
+      await recordLookupHit(resolvedPackId);
+    } else if (remoteServed) {
+      await recordLookupHit(REMOTE_PACK_ID);
+    } else {
+      await recordMiss(MISS_PACK_ID);
+    }
+  })();
 
   if (req.includeAi) {
     const settings = await getAiSettings();

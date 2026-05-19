@@ -1,0 +1,4522 @@
+[
+  {
+    "token": "abrasive",
+    "type": "word",
+    "level": "B2",
+    "translation": "abrasivo",
+    "phonetic": "/əˈbreɪ.sɪv/",
+    "monolingual": "Tending to abrade or wear down, or harsh in personality."
+  },
+  {
+    "token": "absorption",
+    "type": "word",
+    "level": "B2",
+    "translation": "absorción",
+    "phonetic": "/əbˈsɔːrp.ʃən/",
+    "monolingual": "The process by which one substance takes in another."
+  },
+  {
+    "token": "abundance",
+    "type": "word",
+    "level": "B2",
+    "translation": "abundancia",
+    "phonetic": "/əˈbʌn.dəns/",
+    "monolingual": "A very large quantity of something."
+  },
+  {
+    "token": "acceleration",
+    "type": "word",
+    "level": "B2",
+    "translation": "aceleración",
+    "phonetic": "/ækˌsel.əˈreɪ.ʃən/",
+    "monolingual": "Increase in the rate or speed of something."
+  },
+  {
+    "token": "acidic",
+    "type": "word",
+    "level": "B2",
+    "translation": "ácido",
+    "phonetic": "/əˈsɪd.ɪk/",
+    "monolingual": "Having the properties of an acid."
+  },
+  {
+    "token": "acne",
+    "type": "word",
+    "level": "B2",
+    "translation": "acné",
+    "phonetic": "/ˈæk.ni/",
+    "monolingual": "The occurrence of inflamed sebaceous glands in the skin."
+  },
+  {
+    "token": "acoustic",
+    "type": "word",
+    "level": "B2",
+    "translation": "acústico",
+    "phonetic": "/əˈkuː.stɪk/",
+    "monolingual": "Relating to sound or the sense of hearing."
+  },
+  {
+    "token": "addiction",
+    "type": "word",
+    "level": "B2",
+    "translation": "adicción",
+    "phonetic": "/əˈdɪk.ʃən/",
+    "monolingual": "The fact or condition of being addicted to a substance."
+  },
+  {
+    "token": "adhesive",
+    "type": "word",
+    "level": "B2",
+    "translation": "adhesivo",
+    "phonetic": "/ədˈhiː.sɪv/",
+    "monolingual": "A substance used for sticking objects together."
+  },
+  {
+    "token": "aerobic",
+    "type": "word",
+    "level": "B2",
+    "translation": "aeróbico",
+    "phonetic": "/erˈoʊ.bɪk/",
+    "monolingual": "Relating to or denoting exercise that increases pulse rate."
+  },
+  {
+    "token": "aerodynamic",
+    "type": "word",
+    "level": "B2",
+    "translation": "aerodinámico",
+    "phonetic": "/ˌer.oʊ.daɪˈnæm.ɪk/",
+    "monolingual": "Having a shape that reduces drag from air moving past."
+  },
+  {
+    "token": "allergic",
+    "type": "word",
+    "level": "B2",
+    "translation": "alérgico",
+    "phonetic": "/əˈlɝː.dʒɪk/",
+    "monolingual": "Caused by or relating to an allergy."
+  },
+  {
+    "token": "ambient",
+    "type": "word",
+    "level": "B2",
+    "translation": "ambiental",
+    "phonetic": "/ˈæm.bi.ənt/",
+    "monolingual": "Relating to the immediate surroundings."
+  },
+  {
+    "token": "amphibian",
+    "type": "word",
+    "level": "B2",
+    "translation": "anfibio",
+    "phonetic": "/æmˈfɪb.i.ən/",
+    "monolingual": "A cold-blooded vertebrate of the class Amphibia."
+  },
+  {
+    "token": "analyse",
+    "type": "word",
+    "level": "B2",
+    "translation": "analizar",
+    "phonetic": "/ˈæn.əl.aɪz/",
+    "monolingual": "To examine in detail."
+  },
+  {
+    "token": "anatomy",
+    "type": "word",
+    "level": "B2",
+    "translation": "anatomía",
+    "phonetic": "/əˈnæt̬.ə.mi/",
+    "monolingual": "The branch of science concerned with bodily structure."
+  },
+  {
+    "token": "anesthesia",
+    "type": "word",
+    "level": "B2",
+    "translation": "anestesia",
+    "phonetic": "/ˌæn.əsˈθiː.ʒə/",
+    "monolingual": "Insensitivity to pain induced by drugs."
+  },
+  {
+    "token": "antibiotic",
+    "type": "word",
+    "level": "B2",
+    "translation": "antibiótico",
+    "phonetic": "/ˌæn.t̬i.baɪˈɑː.t̬ɪk/",
+    "monolingual": "A medicine that destroys microorganisms."
+  },
+  {
+    "token": "antibody",
+    "type": "word",
+    "level": "B2",
+    "translation": "anticuerpo",
+    "phonetic": "/ˈæn.t̬iˌbɑː.di/",
+    "monolingual": "A protein produced by the immune system to fight foreign substances."
+  },
+  {
+    "token": "antioxidant",
+    "type": "word",
+    "level": "B2",
+    "translation": "antioxidante",
+    "phonetic": "/ˌæn.t̬iˈɑːk.sə.dənt/",
+    "monolingual": "A substance that inhibits oxidation."
+  },
+  {
+    "token": "appendix",
+    "type": "word",
+    "level": "B2",
+    "translation": "apéndice",
+    "phonetic": "/əˈpen.dɪks/",
+    "monolingual": "A small organ attached to the large intestine."
+  },
+  {
+    "token": "apparatus",
+    "type": "word",
+    "level": "B2",
+    "translation": "aparato",
+    "phonetic": "/ˌæp.əˈræt̬.əs/",
+    "monolingual": "The technical equipment required for a particular activity."
+  },
+  {
+    "token": "aquaculture",
+    "type": "word",
+    "level": "C1",
+    "translation": "acuicultura",
+    "phonetic": "/ˈæk.wəˌkʌl.tʃɚ/",
+    "monolingual": "The rearing of aquatic animals or plants for food."
+  },
+  {
+    "token": "aquatic",
+    "type": "word",
+    "level": "B2",
+    "translation": "acuático",
+    "phonetic": "/əˈkwæt̬.ɪk/",
+    "monolingual": "Relating to water."
+  },
+  {
+    "token": "arable",
+    "type": "word",
+    "level": "B2",
+    "translation": "cultivable",
+    "phonetic": "/ˈer.ə.bəl/",
+    "monolingual": "Of land used for growing crops."
+  },
+  {
+    "token": "artifact",
+    "type": "word",
+    "level": "B2",
+    "translation": "artefacto",
+    "phonetic": "/ˈɑːr.t̬ə.fækt/",
+    "monolingual": "An object made by a human being."
+  },
+  {
+    "token": "artificial intelligence",
+    "type": "word",
+    "level": "B2",
+    "translation": "inteligencia artificial",
+    "phonetic": "/ˌɑːr.t̬əˌfɪʃ.əl ɪnˈtel.ə.dʒəns/",
+    "monolingual": "The simulation of human intelligence by machines."
+  },
+  {
+    "token": "astronomy",
+    "type": "word",
+    "level": "B2",
+    "translation": "astronomía",
+    "phonetic": "/əˈstrɒn.ə.mi/",
+    "monolingual": "The branch of science dealing with celestial objects."
+  },
+  {
+    "token": "asymptomatic",
+    "type": "word",
+    "level": "C1",
+    "translation": "asintomático",
+    "phonetic": "/ˌeɪ.sɪmp.təˈmæt.ɪk/",
+    "monolingual": "Producing or showing no symptoms."
+  },
+  {
+    "token": "atmospheric",
+    "type": "word",
+    "level": "B2",
+    "translation": "atmosférico",
+    "phonetic": "/ˌæt.məsˈfer.ɪk/",
+    "monolingual": "Relating to the atmosphere of the earth."
+  },
+  {
+    "token": "atom",
+    "type": "word",
+    "level": "B2",
+    "translation": "átomo",
+    "phonetic": "/ˈæt.əm/",
+    "monolingual": "The basic unit of a chemical element."
+  },
+  {
+    "token": "attachment",
+    "type": "word",
+    "level": "B2",
+    "translation": "archivo adjunto",
+    "phonetic": "/əˈtætʃ.mənt/",
+    "monolingual": "A file appended to an email."
+  },
+  {
+    "token": "audible",
+    "type": "word",
+    "level": "B2",
+    "translation": "audible",
+    "phonetic": "/ˈɔː.də.bəl/",
+    "monolingual": "Able to be heard."
+  },
+  {
+    "token": "automation",
+    "type": "word",
+    "level": "B2",
+    "translation": "automatización",
+    "phonetic": "/ˌɔː.t̬əˈmeɪ.ʃən/",
+    "monolingual": "The use of automatic equipment."
+  },
+  {
+    "token": "autonomous",
+    "type": "word",
+    "level": "C1",
+    "translation": "autónomo",
+    "phonetic": "/ɔːˈtɒn.ə.məs/",
+    "monolingual": "Acting independently."
+  },
+  {
+    "token": "avalanche",
+    "type": "word",
+    "level": "B2",
+    "translation": "avalancha",
+    "phonetic": "/ˈæv.ə.læntʃ/",
+    "monolingual": "A mass of snow, ice, or rocks falling rapidly down a mountainside."
+  },
+  {
+    "token": "aviation",
+    "type": "word",
+    "level": "B2",
+    "translation": "aviación",
+    "phonetic": "/ˌeɪ.viˈeɪ.ʃən/",
+    "monolingual": "The flying or operating of aircraft."
+  },
+  {
+    "token": "backup",
+    "type": "word",
+    "level": "B2",
+    "translation": "respaldo",
+    "phonetic": "/ˈbæk.ʌp/",
+    "monolingual": "A copy of computer data made in case the original is lost."
+  },
+  {
+    "token": "bacteria",
+    "type": "word",
+    "level": "B2",
+    "translation": "bacterias",
+    "phonetic": "/bækˈtɪr.i.ə/",
+    "monolingual": "Microscopic single-celled organisms."
+  },
+  {
+    "token": "bandwidth",
+    "type": "word",
+    "level": "B2",
+    "translation": "ancho de banda",
+    "phonetic": "/ˈbænd.wɪdθ/",
+    "monolingual": "The capacity of a network for data transmission."
+  },
+  {
+    "token": "benign",
+    "type": "word",
+    "level": "B2",
+    "translation": "benigno",
+    "phonetic": "/bɪˈnaɪn/",
+    "monolingual": "Of a tumor, not malignant; gentle in nature."
+  },
+  {
+    "token": "biodegradable",
+    "type": "word",
+    "level": "B2",
+    "translation": "biodegradable",
+    "phonetic": "/ˌbaɪ.oʊ.dɪˈɡreɪ.də.bəl/",
+    "monolingual": "Capable of being decomposed by bacteria."
+  },
+  {
+    "token": "biodiversity",
+    "type": "word",
+    "level": "B2",
+    "translation": "biodiversidad",
+    "phonetic": "/ˌbaɪ.oʊ.dəˈvɝː.sə.t̬i/",
+    "monolingual": "The variety of plant and animal life in the world."
+  },
+  {
+    "token": "bioethics",
+    "type": "word",
+    "level": "C1",
+    "translation": "bioética",
+    "phonetic": "/ˌbaɪ.oʊˈeθ.ɪks/",
+    "monolingual": "The ethics of medical and biological research."
+  },
+  {
+    "token": "biofuel",
+    "type": "word",
+    "level": "B2",
+    "translation": "biocombustible",
+    "phonetic": "/ˈbaɪ.oʊˌfjuː.əl/",
+    "monolingual": "A fuel produced from living matter."
+  },
+  {
+    "token": "biological",
+    "type": "word",
+    "level": "B2",
+    "translation": "biológico",
+    "phonetic": "/ˌbaɪ.əˈlɒdʒ.ɪ.kəl/",
+    "monolingual": "Relating to biology."
+  },
+  {
+    "token": "biopsy",
+    "type": "word",
+    "level": "B2",
+    "translation": "biopsia",
+    "phonetic": "/ˈbaɪ.ɒp.si/",
+    "monolingual": "An examination of tissue from a living body."
+  },
+  {
+    "token": "biotechnology",
+    "type": "word",
+    "level": "B2",
+    "translation": "biotecnología",
+    "phonetic": "/ˌbaɪ.oʊ.tekˈnɒl.ə.dʒi/",
+    "monolingual": "The exploitation of biological processes for technology."
+  },
+  {
+    "token": "bloodstream",
+    "type": "word",
+    "level": "B2",
+    "translation": "torrente sanguíneo",
+    "phonetic": "/ˈblʌd.striːm/",
+    "monolingual": "The blood circulating through the body."
+  },
+  {
+    "token": "blueprint",
+    "type": "word",
+    "level": "B2",
+    "translation": "plano",
+    "phonetic": "/ˈbluː.prɪnt/",
+    "monolingual": "A design plan or other technical drawing."
+  },
+  {
+    "token": "boost",
+    "type": "word",
+    "level": "B2",
+    "translation": "impulsar",
+    "phonetic": "/buːst/",
+    "monolingual": "To help or encourage to increase or improve."
+  },
+  {
+    "token": "borehole",
+    "type": "word",
+    "level": "C1",
+    "translation": "pozo",
+    "phonetic": "/ˈbɔːr.hoʊl/",
+    "monolingual": "A deep hole made by drilling."
+  },
+  {
+    "token": "botanical",
+    "type": "word",
+    "level": "B2",
+    "translation": "botánico",
+    "phonetic": "/bəˈtæn.ɪ.kəl/",
+    "monolingual": "Relating to plants."
+  },
+  {
+    "token": "breach",
+    "type": "word",
+    "level": "B2",
+    "translation": "violación",
+    "phonetic": "/briːtʃ/",
+    "monolingual": "An act of breaking, especially of computer security."
+  },
+  {
+    "token": "breakdown",
+    "type": "word",
+    "level": "B2",
+    "translation": "avería",
+    "phonetic": "/ˈbreɪk.daʊn/",
+    "monolingual": "A failure of a relationship or system."
+  },
+  {
+    "token": "breakthrough",
+    "type": "word",
+    "level": "B2",
+    "translation": "avance",
+    "phonetic": "/ˈbreɪk.θruː/",
+    "monolingual": "A sudden, dramatic, and important discovery."
+  },
+  {
+    "token": "broadband",
+    "type": "word",
+    "level": "B2",
+    "translation": "banda ancha",
+    "phonetic": "/ˈbrɔːd.bænd/",
+    "monolingual": "A high-capacity transmission technique using a wide range of frequencies."
+  },
+  {
+    "token": "buffer",
+    "type": "word",
+    "level": "B2",
+    "translation": "búfer",
+    "phonetic": "/ˈbʌf.ər/",
+    "monolingual": "A temporary memory area in a computer."
+  },
+  {
+    "token": "bug",
+    "type": "word",
+    "level": "B2",
+    "translation": "error",
+    "phonetic": "/bʌɡ/",
+    "monolingual": "A fault in a computer program or system."
+  },
+  {
+    "token": "calibrate",
+    "type": "word",
+    "level": "B2",
+    "translation": "calibrar",
+    "phonetic": "/ˈkæl.ɪ.breɪt/",
+    "monolingual": "To check, adjust, or determine by comparison with a standard."
+  },
+  {
+    "token": "calorie",
+    "type": "word",
+    "level": "B2",
+    "translation": "caloría",
+    "phonetic": "/ˈkæl.ə.ri/",
+    "monolingual": "A unit measuring the energy value of food."
+  },
+  {
+    "token": "cancer",
+    "type": "word",
+    "level": "B2",
+    "translation": "cáncer",
+    "phonetic": "/ˈkæn.sɚ/",
+    "monolingual": "A malignant tumor."
+  },
+  {
+    "token": "capacitor",
+    "type": "word",
+    "level": "C1",
+    "translation": "condensador",
+    "phonetic": "/kəˈpæs.ə.tɚ/",
+    "monolingual": "A device used to store electrical energy."
+  },
+  {
+    "token": "capsule",
+    "type": "word",
+    "level": "B2",
+    "translation": "cápsula",
+    "phonetic": "/ˈkæp.səl/",
+    "monolingual": "A small container containing a dose of medicine."
+  },
+  {
+    "token": "carbohydrate",
+    "type": "word",
+    "level": "B2",
+    "translation": "carbohidrato",
+    "phonetic": "/ˌkɑːr.boʊˈhaɪ.dreɪt/",
+    "monolingual": "A nutrient that provides energy, like sugar or starch."
+  },
+  {
+    "token": "carbon emissions",
+    "type": "word",
+    "level": "B2",
+    "translation": "emisiones de carbono",
+    "phonetic": "/ˌkɑːr.bən ɪˈmɪʃ.ənz/",
+    "monolingual": "Carbon dioxide released into the atmosphere."
+  },
+  {
+    "token": "carbon footprint",
+    "type": "word",
+    "level": "B2",
+    "translation": "huella de carbono",
+    "phonetic": "/ˌkɑːr.bən ˈfʊt.prɪnt/",
+    "monolingual": "The amount of carbon dioxide emitted by activities."
+  },
+  {
+    "token": "cardiovascular",
+    "type": "word",
+    "level": "B2",
+    "translation": "cardiovascular",
+    "phonetic": "/ˌkɑːr.di.oʊˈvæs.kjə.lɚ/",
+    "monolingual": "Relating to the heart and blood vessels."
+  },
+  {
+    "token": "carrier",
+    "type": "word",
+    "level": "B2",
+    "translation": "portador",
+    "phonetic": "/ˈker.i.ɚ/",
+    "monolingual": "A person or company that transports people or goods."
+  },
+  {
+    "token": "cataract",
+    "type": "word",
+    "level": "B2",
+    "translation": "catarata",
+    "phonetic": "/ˈkæt̬.ə.rækt/",
+    "monolingual": "A medical condition where the lens of the eye clouds."
+  },
+  {
+    "token": "catastrophic",
+    "type": "word",
+    "level": "B2",
+    "translation": "catastrófico",
+    "phonetic": "/ˌkæt̬.əˈstrɒf.ɪk/",
+    "monolingual": "Involving or causing sudden great damage or suffering."
+  },
+  {
+    "token": "caterpillar",
+    "type": "word",
+    "level": "B2",
+    "translation": "oruga",
+    "phonetic": "/ˈkæt̬.ɚˌpɪl.ɚ/",
+    "monolingual": "The larva of a butterfly or moth."
+  },
+  {
+    "token": "celestial",
+    "type": "word",
+    "level": "C1",
+    "translation": "celestial",
+    "phonetic": "/səˈles.tʃəl/",
+    "monolingual": "Positioned in the sky or outer space."
+  },
+  {
+    "token": "cellular",
+    "type": "word",
+    "level": "B2",
+    "translation": "celular",
+    "phonetic": "/ˈsel.jə.lɚ/",
+    "monolingual": "Relating to cells of living organisms."
+  },
+  {
+    "token": "centigrade",
+    "type": "word",
+    "level": "B2",
+    "translation": "centígrado",
+    "phonetic": "/ˈsen.t̬ə.ɡreɪd/",
+    "monolingual": "Of a temperature scale on which water freezes at 0°."
+  },
+  {
+    "token": "cerebral",
+    "type": "word",
+    "level": "B2",
+    "translation": "cerebral",
+    "phonetic": "/səˈriː.brəl/",
+    "monolingual": "Of the brain or intellectually engaging."
+  },
+  {
+    "token": "chamber",
+    "type": "word",
+    "level": "B2",
+    "translation": "cámara",
+    "phonetic": "/ˈtʃeɪm.bɚ/",
+    "monolingual": "A large room, especially used for formal meetings."
+  },
+  {
+    "token": "chemical",
+    "type": "word",
+    "level": "B2",
+    "translation": "químico",
+    "phonetic": "/ˈkem.ɪ.kəl/",
+    "monolingual": "Relating to chemistry or chemicals."
+  },
+  {
+    "token": "chemotherapy",
+    "type": "word",
+    "level": "B2",
+    "translation": "quimioterapia",
+    "phonetic": "/ˌkiː.moʊˈθer.ə.pi/",
+    "monolingual": "The treatment of disease using chemical substances."
+  },
+  {
+    "token": "chip",
+    "type": "word",
+    "level": "B2",
+    "translation": "chip",
+    "phonetic": "/tʃɪp/",
+    "monolingual": "A small piece of semiconductor with an electronic circuit."
+  },
+  {
+    "token": "chronic",
+    "type": "word",
+    "level": "B2",
+    "translation": "crónico",
+    "phonetic": "/ˈkrɒn.ɪk/",
+    "monolingual": "Persisting for a long time or constantly recurring."
+  },
+  {
+    "token": "ciphertext",
+    "type": "word",
+    "level": "C1",
+    "translation": "texto cifrado",
+    "phonetic": "/ˈsaɪ.fɚ.tekst/",
+    "monolingual": "Encrypted text."
+  },
+  {
+    "token": "circuit",
+    "type": "word",
+    "level": "B2",
+    "translation": "circuito",
+    "phonetic": "/ˈsɝː.kɪt/",
+    "monolingual": "A path that the current flows along in electronics."
+  },
+  {
+    "token": "circumference",
+    "type": "word",
+    "level": "B2",
+    "translation": "circunferencia",
+    "phonetic": "/sɚˈkʌm.fɚ.əns/",
+    "monolingual": "The distance around the edge of a circle."
+  },
+  {
+    "token": "climate",
+    "type": "word",
+    "level": "B2",
+    "translation": "clima",
+    "phonetic": "/ˈklaɪ.mət/",
+    "monolingual": "The weather conditions in an area over a long period."
+  },
+  {
+    "token": "clinical",
+    "type": "word",
+    "level": "B2",
+    "translation": "clínico",
+    "phonetic": "/ˈklɪn.ɪ.kəl/",
+    "monolingual": "Relating to the observation and treatment of actual patients."
+  },
+  {
+    "token": "clone",
+    "type": "word",
+    "level": "B2",
+    "translation": "clon",
+    "phonetic": "/kloʊn/",
+    "monolingual": "An organism produced asexually from one ancestor."
+  },
+  {
+    "token": "coastal",
+    "type": "word",
+    "level": "B2",
+    "translation": "costero",
+    "phonetic": "/ˈkoʊ.stəl/",
+    "monolingual": "Relating to or near a coast."
+  },
+  {
+    "token": "cognition",
+    "type": "word",
+    "level": "B2",
+    "translation": "cognición",
+    "phonetic": "/kɒɡˈnɪʃ.ən/",
+    "monolingual": "The mental action of acquiring knowledge."
+  },
+  {
+    "token": "cognitive",
+    "type": "word",
+    "level": "B2",
+    "translation": "cognitivo",
+    "phonetic": "/ˈkɒɡ.nə.t̬ɪv/",
+    "monolingual": "Relating to cognition."
+  },
+  {
+    "token": "collide",
+    "type": "word",
+    "level": "B2",
+    "translation": "chocar",
+    "phonetic": "/kəˈlaɪd/",
+    "monolingual": "To hit by accident when moving."
+  },
+  {
+    "token": "combustion",
+    "type": "word",
+    "level": "B2",
+    "translation": "combustión",
+    "phonetic": "/kəmˈbʌs.tʃən/",
+    "monolingual": "The process of burning something."
+  },
+  {
+    "token": "compiler",
+    "type": "word",
+    "level": "B2",
+    "translation": "compilador",
+    "phonetic": "/kəmˈpaɪ.lɚ/",
+    "monolingual": "A program that converts source code to machine code."
+  },
+  {
+    "token": "component",
+    "type": "word",
+    "level": "B2",
+    "translation": "componente",
+    "phonetic": "/kəmˈpoʊ.nənt/",
+    "monolingual": "A part of a larger whole."
+  },
+  {
+    "token": "compound",
+    "type": "word",
+    "level": "B2",
+    "translation": "compuesto",
+    "phonetic": "/ˈkɒm.paʊnd/",
+    "monolingual": "A thing consisting of two or more separate elements."
+  },
+  {
+    "token": "compression",
+    "type": "word",
+    "level": "B2",
+    "translation": "compresión",
+    "phonetic": "/kəmˈpreʃ.ən/",
+    "monolingual": "The action of compressing data."
+  },
+  {
+    "token": "concussion",
+    "type": "word",
+    "level": "B2",
+    "translation": "conmoción cerebral",
+    "phonetic": "/kənˈkʌʃ.ən/",
+    "monolingual": "Temporary unconsciousness or confusion caused by head injury."
+  },
+  {
+    "token": "condensation",
+    "type": "word",
+    "level": "B2",
+    "translation": "condensación",
+    "phonetic": "/ˌkɒn.denˈseɪ.ʃən/",
+    "monolingual": "Water that collects as droplets on a cold surface."
+  },
+  {
+    "token": "conductivity",
+    "type": "word",
+    "level": "B2",
+    "translation": "conductividad",
+    "phonetic": "/ˌkɒn.dʌkˈtɪv.ə.t̬i/",
+    "monolingual": "The degree to which a material conducts electricity."
+  },
+  {
+    "token": "configuration",
+    "type": "word",
+    "level": "B2",
+    "translation": "configuración",
+    "phonetic": "/kənˌfɪɡ.jəˈreɪ.ʃən/",
+    "monolingual": "An arrangement of parts or elements in a particular form."
+  },
+  {
+    "token": "congenital",
+    "type": "word",
+    "level": "C1",
+    "translation": "congénito",
+    "phonetic": "/kənˈdʒen.ə.t̬əl/",
+    "monolingual": "Of a disease, present from birth."
+  },
+  {
+    "token": "consume",
+    "type": "word",
+    "level": "B2",
+    "translation": "consumir",
+    "phonetic": "/kənˈsuːm/",
+    "monolingual": "To eat, drink, or ingest food or drink."
+  },
+  {
+    "token": "consumption",
+    "type": "word",
+    "level": "B2",
+    "translation": "consumo",
+    "phonetic": "/kənˈsʌmp.ʃən/",
+    "monolingual": "The using up of a resource."
+  },
+  {
+    "token": "contagion",
+    "type": "word",
+    "level": "C1",
+    "translation": "contagio",
+    "phonetic": "/kənˈteɪ.dʒən/",
+    "monolingual": "The communication of disease by close contact."
+  },
+  {
+    "token": "contagious",
+    "type": "word",
+    "level": "B2",
+    "translation": "contagioso",
+    "phonetic": "/kənˈteɪ.dʒəs/",
+    "monolingual": "Of a disease, spread by direct or indirect contact."
+  },
+  {
+    "token": "contaminate",
+    "type": "word",
+    "level": "B2",
+    "translation": "contaminar",
+    "phonetic": "/kənˈtæm.ə.neɪt/",
+    "monolingual": "To make impure by exposure to a polluting substance."
+  },
+  {
+    "token": "continent",
+    "type": "word",
+    "level": "B2",
+    "translation": "continente",
+    "phonetic": "/ˈkɒn.tə.nənt/",
+    "monolingual": "One of the world's main continuous expanses of land."
+  },
+  {
+    "token": "controversial",
+    "type": "word",
+    "level": "B2",
+    "translation": "controvertido",
+    "phonetic": "/ˌkɒn.trəˈvɝː.ʃəl/",
+    "monolingual": "Giving rise or likely to give rise to public disagreement."
+  },
+  {
+    "token": "convex",
+    "type": "word",
+    "level": "B2",
+    "translation": "convexo",
+    "phonetic": "/ˈkɒn.veks/",
+    "monolingual": "Curved or rounded outward."
+  },
+  {
+    "token": "corrosion",
+    "type": "word",
+    "level": "B2",
+    "translation": "corrosión",
+    "phonetic": "/kəˈroʊ.ʒən/",
+    "monolingual": "The process of corroding metal or stone."
+  },
+  {
+    "token": "cortex",
+    "type": "word",
+    "level": "C1",
+    "translation": "corteza",
+    "phonetic": "/ˈkɔːr.teks/",
+    "monolingual": "The outer layer of an organ such as the brain."
+  },
+  {
+    "token": "cosmetic",
+    "type": "word",
+    "level": "B2",
+    "translation": "cosmético",
+    "phonetic": "/kɒzˈmet.ɪk/",
+    "monolingual": "Affecting only the appearance of something."
+  },
+  {
+    "token": "cosmology",
+    "type": "word",
+    "level": "C1",
+    "translation": "cosmología",
+    "phonetic": "/kɑːzˈmɑː.lə.dʒi/",
+    "monolingual": "The science of the origin and development of the universe."
+  },
+  {
+    "token": "counterfeit",
+    "type": "word",
+    "level": "B2",
+    "translation": "falsificado",
+    "phonetic": "/ˈkaʊn.t̬ɚ.fɪt/",
+    "monolingual": "Made in exact imitation of something valuable with intent to deceive."
+  },
+  {
+    "token": "coverage",
+    "type": "word",
+    "level": "B2",
+    "translation": "cobertura",
+    "phonetic": "/ˈkʌv.ɚ.ɪdʒ/",
+    "monolingual": "The treatment of an issue by the media."
+  },
+  {
+    "token": "crash",
+    "type": "word",
+    "level": "B2",
+    "translation": "caída del sistema",
+    "phonetic": "/kræʃ/",
+    "monolingual": "A sudden, unexpected stoppage of a computer or program."
+  },
+  {
+    "token": "credentials",
+    "type": "word",
+    "level": "B2",
+    "translation": "credenciales",
+    "phonetic": "/krəˈden.ʃəlz/",
+    "monolingual": "A username and password used to access an account."
+  },
+  {
+    "token": "crop",
+    "type": "word",
+    "level": "B2",
+    "translation": "cultivo",
+    "phonetic": "/krɒp/",
+    "monolingual": "A cultivated plant grown for food."
+  },
+  {
+    "token": "crucial",
+    "type": "word",
+    "level": "B2",
+    "translation": "crucial",
+    "phonetic": "/ˈkruː.ʃəl/",
+    "monolingual": "Decisive or critical, especially in success or failure."
+  },
+  {
+    "token": "cryptocurrency",
+    "type": "word",
+    "level": "B2",
+    "translation": "criptomoneda",
+    "phonetic": "/ˈkrɪp.toʊˌkʌr.ən.si/",
+    "monolingual": "A digital currency that uses cryptography."
+  },
+  {
+    "token": "cure",
+    "type": "word",
+    "level": "B2",
+    "translation": "curar",
+    "phonetic": "/kjʊr/",
+    "monolingual": "To relieve a person of the symptoms of a disease."
+  },
+  {
+    "token": "current",
+    "type": "word",
+    "level": "B2",
+    "translation": "corriente",
+    "phonetic": "/ˈkɝː.ənt/",
+    "monolingual": "A flow of electricity through a conductor."
+  },
+  {
+    "token": "cyber",
+    "type": "word",
+    "level": "B2",
+    "translation": "ciber",
+    "phonetic": "/ˈsaɪ.bɚ/",
+    "monolingual": "Relating to electronic communication and the internet."
+  },
+  {
+    "token": "cyberattack",
+    "type": "word",
+    "level": "B2",
+    "translation": "ciberataque",
+    "phonetic": "/ˈsaɪ.bɚ.əˌtæk/",
+    "monolingual": "An attempt to damage or disrupt a computer network."
+  },
+  {
+    "token": "cybersecurity",
+    "type": "word",
+    "level": "B2",
+    "translation": "ciberseguridad",
+    "phonetic": "/ˌsaɪ.bɚ.səˈkjʊr.ə.t̬i/",
+    "monolingual": "The state of being protected against criminal use of electronic data."
+  },
+  {
+    "token": "cyborg",
+    "type": "word",
+    "level": "C1",
+    "translation": "cíborg",
+    "phonetic": "/ˈsaɪ.bɔːrɡ/",
+    "monolingual": "A being with both organic and biomechatronic parts."
+  },
+  {
+    "token": "cyclone",
+    "type": "word",
+    "level": "B2",
+    "translation": "ciclón",
+    "phonetic": "/ˈsaɪ.kloʊn/",
+    "monolingual": "A violent rotating storm with heavy rain."
+  },
+  {
+    "token": "data center",
+    "type": "word",
+    "level": "B2",
+    "translation": "centro de datos",
+    "phonetic": "/ˈdeɪ.t̬ə ˌsen.t̬ɚ/",
+    "monolingual": "A facility used for housing computer systems."
+  },
+  {
+    "token": "database",
+    "type": "word",
+    "level": "B2",
+    "translation": "base de datos",
+    "phonetic": "/ˈdeɪ.t̬əˌbeɪs/",
+    "monolingual": "A structured set of data held in a computer."
+  },
+  {
+    "token": "debug",
+    "type": "word",
+    "level": "B2",
+    "translation": "depurar",
+    "phonetic": "/diːˈbʌɡ/",
+    "monolingual": "To identify and remove errors from computer software."
+  },
+  {
+    "token": "decay",
+    "type": "word",
+    "level": "B2",
+    "translation": "descomposición",
+    "phonetic": "/dɪˈkeɪ/",
+    "monolingual": "The state or process of rotting or decomposition."
+  },
+  {
+    "token": "decode",
+    "type": "word",
+    "level": "B2",
+    "translation": "decodificar",
+    "phonetic": "/ˌdiːˈkoʊd/",
+    "monolingual": "To convert a coded message into intelligible language."
+  },
+  {
+    "token": "decompose",
+    "type": "word",
+    "level": "B2",
+    "translation": "descomponer",
+    "phonetic": "/ˌdiː.kəmˈpoʊz/",
+    "monolingual": "To rot; decay."
+  },
+  {
+    "token": "deepfake",
+    "type": "word",
+    "level": "C1",
+    "translation": "ultrafalso",
+    "phonetic": "/ˈdiːp.feɪk/",
+    "monolingual": "A video using AI to make someone appear to do something."
+  },
+  {
+    "token": "deficiency",
+    "type": "word",
+    "level": "B2",
+    "translation": "deficiencia",
+    "phonetic": "/dɪˈfɪʃ.ən.si/",
+    "monolingual": "A lack or shortage of something."
+  },
+  {
+    "token": "deforestation",
+    "type": "word",
+    "level": "B2",
+    "translation": "deforestación",
+    "phonetic": "/diːˌfɔːr.əˈsteɪ.ʃən/",
+    "monolingual": "The action of clearing a wide area of trees."
+  },
+  {
+    "token": "dehydration",
+    "type": "word",
+    "level": "B2",
+    "translation": "deshidratación",
+    "phonetic": "/ˌdiː.haɪˈdreɪ.ʃən/",
+    "monolingual": "A harmful reduction of water content in the body."
+  },
+  {
+    "token": "demographic",
+    "type": "word",
+    "level": "B2",
+    "translation": "demográfico",
+    "phonetic": "/ˌdem.əˈɡræf.ɪk/",
+    "monolingual": "Relating to the structure of populations."
+  },
+  {
+    "token": "denomination",
+    "type": "word",
+    "level": "C1",
+    "translation": "denominación",
+    "phonetic": "/dɪˌnɒm.ɪˈneɪ.ʃən/",
+    "monolingual": "The face value of a currency or monetary unit."
+  },
+  {
+    "token": "density",
+    "type": "word",
+    "level": "B2",
+    "translation": "densidad",
+    "phonetic": "/ˈden.sə.t̬i/",
+    "monolingual": "The degree of compactness of a substance."
+  },
+  {
+    "token": "dental",
+    "type": "word",
+    "level": "B2",
+    "translation": "dental",
+    "phonetic": "/ˈden.t̬əl/",
+    "monolingual": "Relating to the teeth."
+  },
+  {
+    "token": "deploy",
+    "type": "word",
+    "level": "B2",
+    "translation": "desplegar",
+    "phonetic": "/dɪˈplɔɪ/",
+    "monolingual": "To bring or move into position for military or technological action."
+  },
+  {
+    "token": "depression",
+    "type": "word",
+    "level": "B2",
+    "translation": "depresión",
+    "phonetic": "/dɪˈpreʃ.ən/",
+    "monolingual": "A mental condition characterized by severe sadness."
+  },
+  {
+    "token": "depth",
+    "type": "word",
+    "level": "B2",
+    "translation": "profundidad",
+    "phonetic": "/depθ/",
+    "monolingual": "The distance from the top of something to the bottom."
+  },
+  {
+    "token": "descendant",
+    "type": "word",
+    "level": "B2",
+    "translation": "descendiente",
+    "phonetic": "/dɪˈsen.dənt/",
+    "monolingual": "A person, plant, or animal descending from another."
+  },
+  {
+    "token": "desertification",
+    "type": "word",
+    "level": "C1",
+    "translation": "desertificación",
+    "phonetic": "/dɪˌzɝː.t̬ə.fɪˈkeɪ.ʃən/",
+    "monolingual": "The process by which fertile land becomes desert."
+  },
+  {
+    "token": "designate",
+    "type": "word",
+    "level": "B2",
+    "translation": "designar",
+    "phonetic": "/ˈdez.ɪɡ.neɪt/",
+    "monolingual": "To appoint someone to a specified office."
+  },
+  {
+    "token": "detoxify",
+    "type": "word",
+    "level": "C1",
+    "translation": "desintoxicar",
+    "phonetic": "/ˌdiːˈtɒk.sə.faɪ/",
+    "monolingual": "To remove toxic substances from the body."
+  },
+  {
+    "token": "deviation",
+    "type": "word",
+    "level": "B2",
+    "translation": "desviación",
+    "phonetic": "/ˌdiː.viˈeɪ.ʃən/",
+    "monolingual": "The action of departing from an established course."
+  },
+  {
+    "token": "diabetes",
+    "type": "word",
+    "level": "B2",
+    "translation": "diabetes",
+    "phonetic": "/ˌdaɪ.əˈbiː.tiːz/",
+    "monolingual": "A disease in which the body produces inadequate insulin."
+  },
+  {
+    "token": "diagnose",
+    "type": "word",
+    "level": "B2",
+    "translation": "diagnosticar",
+    "phonetic": "/ˈdaɪ.əɡ.noʊs/",
+    "monolingual": "To identify the nature of an illness."
+  },
+  {
+    "token": "diaphragm",
+    "type": "word",
+    "level": "C1",
+    "translation": "diafragma",
+    "phonetic": "/ˈdaɪ.ə.fræm/",
+    "monolingual": "A muscular dome-shaped partition between the chest and abdomen."
+  },
+  {
+    "token": "diet",
+    "type": "word",
+    "level": "B2",
+    "translation": "dieta",
+    "phonetic": "/ˈdaɪ.ət/",
+    "monolingual": "The kinds of food a person habitually eats."
+  },
+  {
+    "token": "dietary",
+    "type": "word",
+    "level": "B2",
+    "translation": "dietético",
+    "phonetic": "/ˈdaɪ.ə.ter.i/",
+    "monolingual": "Concerned with diets or dieting."
+  },
+  {
+    "token": "digestive",
+    "type": "word",
+    "level": "B2",
+    "translation": "digestivo",
+    "phonetic": "/daɪˈdʒes.tɪv/",
+    "monolingual": "Relating to digestion."
+  },
+  {
+    "token": "digital",
+    "type": "word",
+    "level": "B2",
+    "translation": "digital",
+    "phonetic": "/ˈdɪdʒ.ə.təl/",
+    "monolingual": "Of computer or other electronic technology."
+  },
+  {
+    "token": "discharge",
+    "type": "word",
+    "level": "B2",
+    "translation": "descarga",
+    "phonetic": "/ˈdɪs.tʃɑːrdʒ/",
+    "monolingual": "Release of fluid or current from somewhere."
+  },
+  {
+    "token": "disease",
+    "type": "word",
+    "level": "B2",
+    "translation": "enfermedad",
+    "phonetic": "/dɪˈziːz/",
+    "monolingual": "A disorder of structure or function in a human, animal, or plant."
+  },
+  {
+    "token": "disinfectant",
+    "type": "word",
+    "level": "B2",
+    "translation": "desinfectante",
+    "phonetic": "/ˌdɪs.ɪnˈfek.tənt/",
+    "monolingual": "A chemical liquid that destroys bacteria."
+  },
+  {
+    "token": "display",
+    "type": "word",
+    "level": "B2",
+    "translation": "pantalla",
+    "phonetic": "/dɪˈspleɪ/",
+    "monolingual": "A screen that shows information from a computer."
+  },
+  {
+    "token": "diversification",
+    "type": "word",
+    "level": "B2",
+    "translation": "diversificación",
+    "phonetic": "/daɪˌvɝː.sə.fɪˈkeɪ.ʃən/",
+    "monolingual": "The act of varying things or making them more diverse."
+  },
+  {
+    "token": "domain",
+    "type": "word",
+    "level": "B2",
+    "translation": "dominio",
+    "phonetic": "/doʊˈmeɪn/",
+    "monolingual": "An area of territory owned or controlled."
+  },
+  {
+    "token": "dormant",
+    "type": "word",
+    "level": "B2",
+    "translation": "inactivo",
+    "phonetic": "/ˈdɔːr.mənt/",
+    "monolingual": "In a state of rest or inactivity."
+  },
+  {
+    "token": "dose",
+    "type": "word",
+    "level": "B2",
+    "translation": "dosis",
+    "phonetic": "/doʊs/",
+    "monolingual": "A quantity of a medicine to be taken at one time."
+  },
+  {
+    "token": "download",
+    "type": "word",
+    "level": "B2",
+    "translation": "descargar",
+    "phonetic": "/ˈdaʊn.loʊd/",
+    "monolingual": "To copy data from one computer system to another."
+  },
+  {
+    "token": "draft",
+    "type": "word",
+    "level": "B2",
+    "translation": "corriente",
+    "phonetic": "/dræft/",
+    "monolingual": "A current of cool air in a room."
+  },
+  {
+    "token": "drainage",
+    "type": "word",
+    "level": "B2",
+    "translation": "drenaje",
+    "phonetic": "/ˈdreɪ.nɪdʒ/",
+    "monolingual": "The action of drawing off liquid."
+  },
+  {
+    "token": "drone",
+    "type": "word",
+    "level": "B2",
+    "translation": "dron",
+    "phonetic": "/droʊn/",
+    "monolingual": "A remote-controlled pilotless aircraft."
+  },
+  {
+    "token": "drought",
+    "type": "word",
+    "level": "B2",
+    "translation": "sequía",
+    "phonetic": "/draʊt/",
+    "monolingual": "A prolonged period of abnormally low rainfall."
+  },
+  {
+    "token": "durable",
+    "type": "word",
+    "level": "B2",
+    "translation": "duradero",
+    "phonetic": "/ˈdʊr.ə.bəl/",
+    "monolingual": "Able to withstand wear, pressure, or damage."
+  },
+  {
+    "token": "ecological",
+    "type": "word",
+    "level": "B2",
+    "translation": "ecológico",
+    "phonetic": "/ˌek.əˈlɒdʒ.ɪ.kəl/",
+    "monolingual": "Relating to or concerned with ecology."
+  },
+  {
+    "token": "e-learning",
+    "type": "word",
+    "level": "B2",
+    "translation": "aprendizaje en línea",
+    "phonetic": "/ˈiː.lɝː.nɪŋ/",
+    "monolingual": "Learning conducted via electronic media."
+  },
+  {
+    "token": "elastic",
+    "type": "word",
+    "level": "B2",
+    "translation": "elástico",
+    "phonetic": "/ɪˈlæs.tɪk/",
+    "monolingual": "Able to resume its normal shape after stretching."
+  },
+  {
+    "token": "electrolyte",
+    "type": "word",
+    "level": "B2",
+    "translation": "electrolito",
+    "phonetic": "/ɪˈlek.trə.laɪt/",
+    "monolingual": "A solution containing free ions, used in batteries."
+  },
+  {
+    "token": "electromagnetic",
+    "type": "word",
+    "level": "B2",
+    "translation": "electromagnético",
+    "phonetic": "/ɪˌlek.troʊ.mæɡˈnet̬.ɪk/",
+    "monolingual": "Relating to the interrelation of electric currents and magnetism."
+  },
+  {
+    "token": "electron",
+    "type": "word",
+    "level": "B2",
+    "translation": "electrón",
+    "phonetic": "/ɪˈlek.trɒn/",
+    "monolingual": "A stable subatomic particle with negative charge."
+  },
+  {
+    "token": "electronic",
+    "type": "word",
+    "level": "B2",
+    "translation": "electrónico",
+    "phonetic": "/ɪˌlekˈtrɒn.ɪk/",
+    "monolingual": "Relating to electronic devices."
+  },
+  {
+    "token": "elevate",
+    "type": "word",
+    "level": "B2",
+    "translation": "elevar",
+    "phonetic": "/ˈel.ə.veɪt/",
+    "monolingual": "To raise or lift to a higher position."
+  },
+  {
+    "token": "emission",
+    "type": "word",
+    "level": "B2",
+    "translation": "emisión",
+    "phonetic": "/ɪˈmɪʃ.ən/",
+    "monolingual": "The production and discharge of something."
+  },
+  {
+    "token": "empirical",
+    "type": "word",
+    "level": "B2",
+    "translation": "empírico",
+    "phonetic": "/ɪmˈpɪr.ɪ.kəl/",
+    "monolingual": "Based on observation rather than theory."
+  },
+  {
+    "token": "emulator",
+    "type": "word",
+    "level": "B2",
+    "translation": "emulador",
+    "phonetic": "/ˈem.jə.leɪ.t̬ɚ/",
+    "monolingual": "Software that allows one device to behave like another."
+  },
+  {
+    "token": "encryption",
+    "type": "word",
+    "level": "B2",
+    "translation": "encriptación",
+    "phonetic": "/ɪnˈkrɪp.ʃən/",
+    "monolingual": "The process of converting information into a code."
+  },
+  {
+    "token": "endangered",
+    "type": "word",
+    "level": "B2",
+    "translation": "en peligro",
+    "phonetic": "/ɪnˈdeɪn.dʒɚd/",
+    "monolingual": "Of a species, seriously at risk of extinction."
+  },
+  {
+    "token": "endemic",
+    "type": "word",
+    "level": "B2",
+    "translation": "endémico",
+    "phonetic": "/enˈdem.ɪk/",
+    "monolingual": "Of a disease, regularly found among particular people or area."
+  },
+  {
+    "token": "endorphin",
+    "type": "word",
+    "level": "B2",
+    "translation": "endorfina",
+    "phonetic": "/enˈdɔːr.fɪn/",
+    "monolingual": "Any of a group of hormones that relieve pain."
+  },
+  {
+    "token": "endurance",
+    "type": "word",
+    "level": "B2",
+    "translation": "resistencia",
+    "phonetic": "/ɪnˈdʊr.əns/",
+    "monolingual": "The ability to endure an unpleasant process without giving way."
+  },
+  {
+    "token": "energy efficiency",
+    "type": "word",
+    "level": "B2",
+    "translation": "eficiencia energética",
+    "phonetic": "/ˈen.ɚ.dʒi ɪˈfɪʃ.ən.si/",
+    "monolingual": "Using less energy to provide the same service."
+  },
+  {
+    "token": "engineering",
+    "type": "word",
+    "level": "B2",
+    "translation": "ingeniería",
+    "phonetic": "/ˌen.dʒəˈnɪr.ɪŋ/",
+    "monolingual": "The application of science to design, build, and use engines."
+  },
+  {
+    "token": "enhance",
+    "type": "word",
+    "level": "B2",
+    "translation": "mejorar",
+    "phonetic": "/ɪnˈhæns/",
+    "monolingual": "To intensify, increase, or further improve the quality."
+  },
+  {
+    "token": "environmental",
+    "type": "word",
+    "level": "B2",
+    "translation": "ambiental",
+    "phonetic": "/ɪnˌvaɪ.rənˈmen.t̬əl/",
+    "monolingual": "Relating to the natural world."
+  },
+  {
+    "token": "enzyme",
+    "type": "word",
+    "level": "B2",
+    "translation": "enzima",
+    "phonetic": "/ˈen.zaɪm/",
+    "monolingual": "A substance produced by a living organism that catalyzes reactions."
+  },
+  {
+    "token": "epidemic",
+    "type": "word",
+    "level": "B2",
+    "translation": "epidemia",
+    "phonetic": "/ˌep.əˈdem.ɪk/",
+    "monolingual": "A widespread occurrence of an infectious disease."
+  },
+  {
+    "token": "epidemiology",
+    "type": "word",
+    "level": "C1",
+    "translation": "epidemiología",
+    "phonetic": "/ˌep.əˌdiː.miˈɒl.ə.dʒi/",
+    "monolingual": "The study of the spread of diseases."
+  },
+  {
+    "token": "equilibrium",
+    "type": "word",
+    "level": "B2",
+    "translation": "equilibrio",
+    "phonetic": "/ˌiː.kwəˈlɪb.ri.əm/",
+    "monolingual": "A state in which opposing forces are balanced."
+  },
+  {
+    "token": "equine",
+    "type": "word",
+    "level": "C1",
+    "translation": "equino",
+    "phonetic": "/ˈek.waɪn/",
+    "monolingual": "Relating to horses."
+  },
+  {
+    "token": "erode",
+    "type": "word",
+    "level": "B2",
+    "translation": "erosionar",
+    "phonetic": "/ɪˈroʊd/",
+    "monolingual": "To gradually wear away at something."
+  },
+  {
+    "token": "erosion",
+    "type": "word",
+    "level": "B2",
+    "translation": "erosión",
+    "phonetic": "/ɪˈroʊ.ʒən/",
+    "monolingual": "The process of eroding or being eroded."
+  },
+  {
+    "token": "estuary",
+    "type": "word",
+    "level": "C1",
+    "translation": "estuario",
+    "phonetic": "/ˈes.tʃu.er.i/",
+    "monolingual": "The tidal mouth of a large river."
+  },
+  {
+    "token": "ethanol",
+    "type": "word",
+    "level": "B2",
+    "translation": "etanol",
+    "phonetic": "/ˈeθ.ə.nɒl/",
+    "monolingual": "A volatile, flammable, colorless liquid; alcohol."
+  },
+  {
+    "token": "evaporate",
+    "type": "word",
+    "level": "B2",
+    "translation": "evaporar",
+    "phonetic": "/ɪˈvæp.ə.reɪt/",
+    "monolingual": "To turn from liquid into vapor."
+  },
+  {
+    "token": "evolution",
+    "type": "word",
+    "level": "B2",
+    "translation": "evolución",
+    "phonetic": "/ˌev.əˈluː.ʃən/",
+    "monolingual": "The process of gradual development."
+  },
+  {
+    "token": "excavate",
+    "type": "word",
+    "level": "B2",
+    "translation": "excavar",
+    "phonetic": "/ˈek.skə.veɪt/",
+    "monolingual": "To make a hole or channel by digging."
+  },
+  {
+    "token": "excrete",
+    "type": "word",
+    "level": "B2",
+    "translation": "excretar",
+    "phonetic": "/ɪkˈskriːt/",
+    "monolingual": "To separate and expel as waste from a body."
+  },
+  {
+    "token": "exhale",
+    "type": "word",
+    "level": "B2",
+    "translation": "exhalar",
+    "phonetic": "/eksˈheɪl/",
+    "monolingual": "To breathe out."
+  },
+  {
+    "token": "exotic",
+    "type": "word",
+    "level": "B2",
+    "translation": "exótico",
+    "phonetic": "/ɪɡˈzɒt̬.ɪk/",
+    "monolingual": "Originating in a distant foreign country."
+  },
+  {
+    "token": "expedition",
+    "type": "word",
+    "level": "B2",
+    "translation": "expedición",
+    "phonetic": "/ˌek.spəˈdɪʃ.ən/",
+    "monolingual": "A journey undertaken for a particular purpose."
+  },
+  {
+    "token": "exploit",
+    "type": "word",
+    "level": "B2",
+    "translation": "explotar",
+    "phonetic": "/ɪkˈsplɔɪt/",
+    "monolingual": "To make full use of a resource."
+  },
+  {
+    "token": "exposure",
+    "type": "word",
+    "level": "B2",
+    "translation": "exposición",
+    "phonetic": "/ɪkˈspoʊ.ʒɚ/",
+    "monolingual": "The state of having no protection from something."
+  },
+  {
+    "token": "external",
+    "type": "word",
+    "level": "B2",
+    "translation": "externo",
+    "phonetic": "/ɪkˈstɝː.nəl/",
+    "monolingual": "Belonging to or forming the outer surface."
+  },
+  {
+    "token": "extinction",
+    "type": "word",
+    "level": "B2",
+    "translation": "extinción",
+    "phonetic": "/ɪkˈstɪŋk.ʃən/",
+    "monolingual": "The state of having no living members of a species."
+  },
+  {
+    "token": "extract",
+    "type": "word",
+    "level": "B2",
+    "translation": "extraer",
+    "phonetic": "/ɪkˈstrækt/",
+    "monolingual": "To remove or take out, especially by effort."
+  },
+  {
+    "token": "fabricate",
+    "type": "word",
+    "level": "B2",
+    "translation": "fabricar",
+    "phonetic": "/ˈfæb.rɪ.keɪt/",
+    "monolingual": "To invent or construct, especially deceptively."
+  },
+  {
+    "token": "facilitate",
+    "type": "word",
+    "level": "B2",
+    "translation": "facilitar",
+    "phonetic": "/fəˈsɪl.ə.teɪt/",
+    "monolingual": "To make an action or process easy."
+  },
+  {
+    "token": "fatality",
+    "type": "word",
+    "level": "B2",
+    "translation": "fatalidad",
+    "phonetic": "/fəˈtæl.ə.t̬i/",
+    "monolingual": "An occurrence of death by accident or disease."
+  },
+  {
+    "token": "fatigue",
+    "type": "word",
+    "level": "B2",
+    "translation": "fatiga",
+    "phonetic": "/fəˈtiːɡ/",
+    "monolingual": "Extreme tiredness."
+  },
+  {
+    "token": "feasible",
+    "type": "word",
+    "level": "B2",
+    "translation": "factible",
+    "phonetic": "/ˈfiː.zə.bəl/",
+    "monolingual": "Possible to do easily or conveniently."
+  },
+  {
+    "token": "feedback",
+    "type": "word",
+    "level": "B2",
+    "translation": "retroalimentación",
+    "phonetic": "/ˈfiːd.bæk/",
+    "monolingual": "Information about reactions, used as a basis for improvement."
+  },
+  {
+    "token": "ferment",
+    "type": "word",
+    "level": "B2",
+    "translation": "fermentar",
+    "phonetic": "/fɚˈment/",
+    "monolingual": "To undergo a chemical breakdown by bacteria."
+  },
+  {
+    "token": "fertilizer",
+    "type": "word",
+    "level": "B2",
+    "translation": "fertilizante",
+    "phonetic": "/ˈfɝː.t̬ə.laɪ.zɚ/",
+    "monolingual": "A chemical added to soil to increase fertility."
+  },
+  {
+    "token": "fiber",
+    "type": "word",
+    "level": "B2",
+    "translation": "fibra",
+    "phonetic": "/ˈfaɪ.bɚ/",
+    "monolingual": "A thread of cotton, wool, or other material."
+  },
+  {
+    "token": "filtration",
+    "type": "word",
+    "level": "B2",
+    "translation": "filtración",
+    "phonetic": "/fɪlˈtreɪ.ʃən/",
+    "monolingual": "The action or process of filtering."
+  },
+  {
+    "token": "firewall",
+    "type": "word",
+    "level": "B2",
+    "translation": "cortafuegos",
+    "phonetic": "/ˈfaɪrˌwɔːl/",
+    "monolingual": "A part of a computer system designed to block unauthorized access."
+  },
+  {
+    "token": "firmware",
+    "type": "word",
+    "level": "B2",
+    "translation": "firmware",
+    "phonetic": "/ˈfɝːm.wer/",
+    "monolingual": "Permanent software programmed into a device."
+  },
+  {
+    "token": "flexibility",
+    "type": "word",
+    "level": "B2",
+    "translation": "flexibilidad",
+    "phonetic": "/ˌflek.səˈbɪl.ə.t̬i/",
+    "monolingual": "The quality of being easily bent without breaking."
+  },
+  {
+    "token": "flora",
+    "type": "word",
+    "level": "B2",
+    "translation": "flora",
+    "phonetic": "/ˈflɔːr.ə/",
+    "monolingual": "Plants of a particular region or period."
+  },
+  {
+    "token": "flotation",
+    "type": "word",
+    "level": "C1",
+    "translation": "flotación",
+    "phonetic": "/floʊˈteɪ.ʃən/",
+    "monolingual": "The process or action of floating."
+  },
+  {
+    "token": "flushable",
+    "type": "word",
+    "level": "B2",
+    "translation": "desechable por inodoro",
+    "phonetic": "/ˈflʌʃ.ə.bəl/",
+    "monolingual": "Able to be flushed down a toilet."
+  },
+  {
+    "token": "fluctuation",
+    "type": "word",
+    "level": "B2",
+    "translation": "fluctuación",
+    "phonetic": "/ˌflʌk.tʃuˈeɪ.ʃən/",
+    "monolingual": "An irregular rising and falling in number or amount."
+  },
+  {
+    "token": "fluid",
+    "type": "word",
+    "level": "B2",
+    "translation": "fluido",
+    "phonetic": "/ˈfluː.ɪd/",
+    "monolingual": "A liquid or gas able to flow freely."
+  },
+  {
+    "token": "fluorescent",
+    "type": "word",
+    "level": "B2",
+    "translation": "fluorescente",
+    "phonetic": "/ˌflʊˈres.ənt/",
+    "monolingual": "Of lighting using fluorescence."
+  },
+  {
+    "token": "foliage",
+    "type": "word",
+    "level": "B2",
+    "translation": "follaje",
+    "phonetic": "/ˈfoʊ.li.ɪdʒ/",
+    "monolingual": "The leaves of a plant or tree."
+  },
+  {
+    "token": "forecast",
+    "type": "word",
+    "level": "B2",
+    "translation": "pronóstico",
+    "phonetic": "/ˈfɔːr.kæst/",
+    "monolingual": "A prediction or estimate of future events."
+  },
+  {
+    "token": "forensic",
+    "type": "word",
+    "level": "B2",
+    "translation": "forense",
+    "phonetic": "/fəˈren.sɪk/",
+    "monolingual": "Relating to the application of scientific methods to crime."
+  },
+  {
+    "token": "formulation",
+    "type": "word",
+    "level": "B2",
+    "translation": "formulación",
+    "phonetic": "/ˌfɔːr.mjəˈleɪ.ʃən/",
+    "monolingual": "The action of devising or creating a formula."
+  },
+  {
+    "token": "fossil",
+    "type": "word",
+    "level": "B2",
+    "translation": "fósil",
+    "phonetic": "/ˈfɒs.əl/",
+    "monolingual": "The remains of an organism preserved in rock."
+  },
+  {
+    "token": "fossil fuel",
+    "type": "word",
+    "level": "B2",
+    "translation": "combustible fósil",
+    "phonetic": "/ˈfɒs.əl ˌfjuː.əl/",
+    "monolingual": "A fuel formed from organisms over millions of years."
+  },
+  {
+    "token": "fracture",
+    "type": "word",
+    "level": "B2",
+    "translation": "fractura",
+    "phonetic": "/ˈfræk.tʃɚ/",
+    "monolingual": "The cracking or breaking of a hard object."
+  },
+  {
+    "token": "fragmentation",
+    "type": "word",
+    "level": "B2",
+    "translation": "fragmentación",
+    "phonetic": "/ˌfræɡ.mənˈteɪ.ʃən/",
+    "monolingual": "The process of breaking into smaller parts."
+  },
+  {
+    "token": "freezer",
+    "type": "word",
+    "level": "B2",
+    "translation": "congelador",
+    "phonetic": "/ˈfriː.zɚ/",
+    "monolingual": "An appliance for freezing food."
+  },
+  {
+    "token": "freshwater",
+    "type": "word",
+    "level": "B2",
+    "translation": "agua dulce",
+    "phonetic": "/ˈfreʃˌwɔː.t̬ɚ/",
+    "monolingual": "Water that is not salty."
+  },
+  {
+    "token": "frequency",
+    "type": "word",
+    "level": "B2",
+    "translation": "frecuencia",
+    "phonetic": "/ˈfriː.kwən.si/",
+    "monolingual": "The rate of occurrence of something."
+  },
+  {
+    "token": "function",
+    "type": "word",
+    "level": "B2",
+    "translation": "función",
+    "phonetic": "/ˈfʌŋk.ʃən/",
+    "monolingual": "An activity or purpose natural to a person or thing."
+  },
+  {
+    "token": "fundamental",
+    "type": "word",
+    "level": "B2",
+    "translation": "fundamental",
+    "phonetic": "/ˌfʌn.dəˈmen.t̬əl/",
+    "monolingual": "Forming a necessary base or core."
+  },
+  {
+    "token": "furnace",
+    "type": "word",
+    "level": "B2",
+    "translation": "horno",
+    "phonetic": "/ˈfɝː.nəs/",
+    "monolingual": "An enclosed structure in which material can be heated."
+  },
+  {
+    "token": "galaxy",
+    "type": "word",
+    "level": "B2",
+    "translation": "galaxia",
+    "phonetic": "/ˈɡæl.ək.si/",
+    "monolingual": "A system of millions of stars, gas, and dust held together by gravity."
+  },
+  {
+    "token": "gauge",
+    "type": "word",
+    "level": "B2",
+    "translation": "medir",
+    "phonetic": "/ɡeɪdʒ/",
+    "monolingual": "An instrument for measuring magnitude or amount."
+  },
+  {
+    "token": "gene",
+    "type": "word",
+    "level": "B2",
+    "translation": "gen",
+    "phonetic": "/dʒiːn/",
+    "monolingual": "A unit of heredity transferred from parent to offspring."
+  },
+  {
+    "token": "generic",
+    "type": "word",
+    "level": "B2",
+    "translation": "genérico",
+    "phonetic": "/dʒəˈner.ɪk/",
+    "monolingual": "Characteristic of or relating to a class of things."
+  },
+  {
+    "token": "genetic",
+    "type": "word",
+    "level": "B2",
+    "translation": "genético",
+    "phonetic": "/dʒəˈnet̬.ɪk/",
+    "monolingual": "Relating to genes or heredity."
+  },
+  {
+    "token": "genome",
+    "type": "word",
+    "level": "B2",
+    "translation": "genoma",
+    "phonetic": "/ˈdʒiː.noʊm/",
+    "monolingual": "The complete set of genes in a cell or organism."
+  },
+  {
+    "token": "geographic",
+    "type": "word",
+    "level": "B2",
+    "translation": "geográfico",
+    "phonetic": "/ˌdʒiː.əˈɡræf.ɪk/",
+    "monolingual": "Relating to geography."
+  },
+  {
+    "token": "geology",
+    "type": "word",
+    "level": "B2",
+    "translation": "geología",
+    "phonetic": "/dʒiˈɑː.lə.dʒi/",
+    "monolingual": "The science of the earth's structure and substance."
+  },
+  {
+    "token": "geothermal",
+    "type": "word",
+    "level": "B2",
+    "translation": "geotérmico",
+    "phonetic": "/ˌdʒiː.oʊˈθɝː.məl/",
+    "monolingual": "Relating to or produced by the internal heat of the earth."
+  },
+  {
+    "token": "germination",
+    "type": "word",
+    "level": "B2",
+    "translation": "germinación",
+    "phonetic": "/ˌdʒɝː.mɪˈneɪ.ʃən/",
+    "monolingual": "The development of a plant from a seed."
+  },
+  {
+    "token": "gigabyte",
+    "type": "word",
+    "level": "B2",
+    "translation": "gigabyte",
+    "phonetic": "/ˈɡɪɡ.ə.baɪt/",
+    "monolingual": "A unit of computer memory equal to a billion bytes."
+  },
+  {
+    "token": "glacier",
+    "type": "word",
+    "level": "B2",
+    "translation": "glaciar",
+    "phonetic": "/ˈɡleɪ.ʃɚ/",
+    "monolingual": "A slowly moving mass of ice."
+  },
+  {
+    "token": "glaciation",
+    "type": "word",
+    "level": "C1",
+    "translation": "glaciación",
+    "phonetic": "/ˌɡleɪ.siˈeɪ.ʃən/",
+    "monolingual": "The process or condition of being covered by glaciers."
+  },
+  {
+    "token": "glaucoma",
+    "type": "word",
+    "level": "B2",
+    "translation": "glaucoma",
+    "phonetic": "/ɡlɔːˈkoʊ.mə/",
+    "monolingual": "A condition causing pressure on the eye and visual loss."
+  },
+  {
+    "token": "global warming",
+    "type": "word",
+    "level": "B2",
+    "translation": "calentamiento global",
+    "phonetic": "/ˌɡloʊ.bəl ˈwɔːr.mɪŋ/",
+    "monolingual": "A gradual increase in the earth's overall temperature."
+  },
+  {
+    "token": "glucose",
+    "type": "word",
+    "level": "B2",
+    "translation": "glucosa",
+    "phonetic": "/ˈɡluː.koʊs/",
+    "monolingual": "A simple sugar that is an important energy source."
+  },
+  {
+    "token": "gravity",
+    "type": "word",
+    "level": "B2",
+    "translation": "gravedad",
+    "phonetic": "/ˈɡræv.ə.t̬i/",
+    "monolingual": "The force that attracts a body toward the earth."
+  },
+  {
+    "token": "greenhouse",
+    "type": "word",
+    "level": "B2",
+    "translation": "invernadero",
+    "phonetic": "/ˈɡriːn.haʊs/",
+    "monolingual": "A glass building used for cultivating plants."
+  },
+  {
+    "token": "groundwater",
+    "type": "word",
+    "level": "B2",
+    "translation": "agua subterránea",
+    "phonetic": "/ˈɡraʊndˌwɔː.t̬ɚ/",
+    "monolingual": "Water held underground in the soil or in pores."
+  },
+  {
+    "token": "habitat",
+    "type": "word",
+    "level": "B2",
+    "translation": "hábitat",
+    "phonetic": "/ˈhæb.ə.tæt/",
+    "monolingual": "The natural home of an organism."
+  },
+  {
+    "token": "hardware",
+    "type": "word",
+    "level": "B2",
+    "translation": "hardware",
+    "phonetic": "/ˈhɑːrd.wer/",
+    "monolingual": "The machines and equipment of a computer system."
+  },
+  {
+    "token": "hazard",
+    "type": "word",
+    "level": "B2",
+    "translation": "peligro",
+    "phonetic": "/ˈhæz.ɚd/",
+    "monolingual": "A danger or risk."
+  },
+  {
+    "token": "hazardous",
+    "type": "word",
+    "level": "B2",
+    "translation": "peligroso",
+    "phonetic": "/ˈhæz.ɚ.dəs/",
+    "monolingual": "Risky; dangerous."
+  },
+  {
+    "token": "helix",
+    "type": "word",
+    "level": "C1",
+    "translation": "hélice",
+    "phonetic": "/ˈhiː.lɪks/",
+    "monolingual": "A spiral shape or structure."
+  },
+  {
+    "token": "hemisphere",
+    "type": "word",
+    "level": "B2",
+    "translation": "hemisferio",
+    "phonetic": "/ˈhem.ɪ.sfɪr/",
+    "monolingual": "A half of the earth, usually divided by the equator."
+  },
+  {
+    "token": "hemoglobin",
+    "type": "word",
+    "level": "C1",
+    "translation": "hemoglobina",
+    "phonetic": "/ˈhiː.məˌɡloʊ.bɪn/",
+    "monolingual": "A red protein in blood transporting oxygen."
+  },
+  {
+    "token": "hemorrhage",
+    "type": "word",
+    "level": "C1",
+    "translation": "hemorragia",
+    "phonetic": "/ˈhem.ə.rɪdʒ/",
+    "monolingual": "An escape of blood from a ruptured blood vessel."
+  },
+  {
+    "token": "herbal",
+    "type": "word",
+    "level": "B2",
+    "translation": "herbal",
+    "phonetic": "/ˈɝː.bəl/",
+    "monolingual": "Made from or relating to herbs."
+  },
+  {
+    "token": "herbivore",
+    "type": "word",
+    "level": "B2",
+    "translation": "herbívoro",
+    "phonetic": "/ˈɝː.bə.vɔːr/",
+    "monolingual": "An animal that feeds on plants."
+  },
+  {
+    "token": "hereditary",
+    "type": "word",
+    "level": "B2",
+    "translation": "hereditario",
+    "phonetic": "/həˈred.ə.ter.i/",
+    "monolingual": "Determined by genetic factors."
+  },
+  {
+    "token": "hibernate",
+    "type": "word",
+    "level": "B2",
+    "translation": "hibernar",
+    "phonetic": "/ˈhaɪ.bɚ.neɪt/",
+    "monolingual": "To spend the winter in a dormant state."
+  },
+  {
+    "token": "hormone",
+    "type": "word",
+    "level": "B2",
+    "translation": "hormona",
+    "phonetic": "/ˈhɔːr.moʊn/",
+    "monolingual": "A regulatory substance produced by an organism."
+  },
+  {
+    "token": "host",
+    "type": "word",
+    "level": "B2",
+    "translation": "anfitrión",
+    "phonetic": "/hoʊst/",
+    "monolingual": "A computer or its software providing services to other computers."
+  },
+  {
+    "token": "hub",
+    "type": "word",
+    "level": "B2",
+    "translation": "núcleo",
+    "phonetic": "/hʌb/",
+    "monolingual": "The effective center of an activity, region, or network."
+  },
+  {
+    "token": "humidity",
+    "type": "word",
+    "level": "B2",
+    "translation": "humedad",
+    "phonetic": "/hjuːˈmɪd.ə.t̬i/",
+    "monolingual": "The amount of water vapor in the air."
+  },
+  {
+    "token": "hybrid",
+    "type": "word",
+    "level": "B2",
+    "translation": "híbrido",
+    "phonetic": "/ˈhaɪ.brɪd/",
+    "monolingual": "Of mixed character; composed of different elements."
+  },
+  {
+    "token": "hydraulic",
+    "type": "word",
+    "level": "B2",
+    "translation": "hidráulico",
+    "phonetic": "/haɪˈdrɔː.lɪk/",
+    "monolingual": "Of liquid moving in a confined space under pressure."
+  },
+  {
+    "token": "hydroelectric",
+    "type": "word",
+    "level": "B2",
+    "translation": "hidroeléctrico",
+    "phonetic": "/ˌhaɪ.droʊ.ɪˈlek.trɪk/",
+    "monolingual": "Relating to the generation of electricity using flowing water."
+  },
+  {
+    "token": "hydrogen",
+    "type": "word",
+    "level": "B2",
+    "translation": "hidrógeno",
+    "phonetic": "/ˈhaɪ.drə.dʒən/",
+    "monolingual": "A colorless, flammable gas, the simplest chemical element."
+  },
+  {
+    "token": "hygiene",
+    "type": "word",
+    "level": "B2",
+    "translation": "higiene",
+    "phonetic": "/ˈhaɪ.dʒiːn/",
+    "monolingual": "Conditions or practices conducive to maintaining health."
+  },
+  {
+    "token": "hypertension",
+    "type": "word",
+    "level": "B2",
+    "translation": "hipertensión",
+    "phonetic": "/ˌhaɪ.pɚˈten.ʃən/",
+    "monolingual": "Abnormally high blood pressure."
+  },
+  {
+    "token": "hypothesis",
+    "type": "word",
+    "level": "B2",
+    "translation": "hipótesis",
+    "phonetic": "/haɪˈpɒθ.ə.sɪs/",
+    "monolingual": "A supposition made as a starting point for investigation."
+  },
+  {
+    "token": "icon",
+    "type": "word",
+    "level": "B2",
+    "translation": "icono",
+    "phonetic": "/ˈaɪ.kɒn/",
+    "monolingual": "A symbol or graphic representation on a screen."
+  },
+  {
+    "token": "identifier",
+    "type": "word",
+    "level": "B2",
+    "translation": "identificador",
+    "phonetic": "/aɪˈden.tə.faɪ.ɚ/",
+    "monolingual": "A sequence of characters used to identify or refer to something."
+  },
+  {
+    "token": "immune",
+    "type": "word",
+    "level": "B2",
+    "translation": "inmune",
+    "phonetic": "/ɪˈmjuːn/",
+    "monolingual": "Resistant to a particular infection or disease."
+  },
+  {
+    "token": "implant",
+    "type": "word",
+    "level": "B2",
+    "translation": "implante",
+    "phonetic": "/ɪmˈplænt/",
+    "monolingual": "A thing implanted in something else, especially in the body."
+  },
+  {
+    "token": "inception",
+    "type": "word",
+    "level": "C1",
+    "translation": "inicio",
+    "phonetic": "/ɪnˈsep.ʃən/",
+    "monolingual": "The establishment or starting point of something."
+  },
+  {
+    "token": "incidence",
+    "type": "word",
+    "level": "B2",
+    "translation": "incidencia",
+    "phonetic": "/ˈɪn.sɪ.dəns/",
+    "monolingual": "The occurrence or rate of occurrence."
+  },
+  {
+    "token": "infection",
+    "type": "word",
+    "level": "B2",
+    "translation": "infección",
+    "phonetic": "/ɪnˈfek.ʃən/",
+    "monolingual": "The process of infecting or the state of being infected."
+  },
+  {
+    "token": "infectious",
+    "type": "word",
+    "level": "B2",
+    "translation": "infeccioso",
+    "phonetic": "/ɪnˈfek.ʃəs/",
+    "monolingual": "Of a disease, transmitted via microorganisms."
+  },
+  {
+    "token": "inflammation",
+    "type": "word",
+    "level": "B2",
+    "translation": "inflamación",
+    "phonetic": "/ˌɪn.fləˈmeɪ.ʃən/",
+    "monolingual": "A localized physical condition with redness and pain."
+  },
+  {
+    "token": "infusion",
+    "type": "word",
+    "level": "B2",
+    "translation": "infusión",
+    "phonetic": "/ɪnˈfjuː.ʒən/",
+    "monolingual": "A drink prepared by soaking material in water."
+  },
+  {
+    "token": "ingest",
+    "type": "word",
+    "level": "B2",
+    "translation": "ingerir",
+    "phonetic": "/ɪnˈdʒest/",
+    "monolingual": "To take food or another substance into the body."
+  },
+  {
+    "token": "ingredient",
+    "type": "word",
+    "level": "B2",
+    "translation": "ingrediente",
+    "phonetic": "/ɪnˈɡriː.di.ənt/",
+    "monolingual": "Any of the foods used in making a particular dish."
+  },
+  {
+    "token": "inhabit",
+    "type": "word",
+    "level": "B2",
+    "translation": "habitar",
+    "phonetic": "/ɪnˈhæb.ɪt/",
+    "monolingual": "To live in or occupy a place."
+  },
+  {
+    "token": "inhabitant",
+    "type": "word",
+    "level": "B2",
+    "translation": "habitante",
+    "phonetic": "/ɪnˈhæb.ə.tənt/",
+    "monolingual": "A person or animal that lives in a particular place."
+  },
+  {
+    "token": "inhale",
+    "type": "word",
+    "level": "B2",
+    "translation": "inhalar",
+    "phonetic": "/ɪnˈheɪl/",
+    "monolingual": "To breathe in."
+  },
+  {
+    "token": "inject",
+    "type": "word",
+    "level": "B2",
+    "translation": "inyectar",
+    "phonetic": "/ɪnˈdʒekt/",
+    "monolingual": "To drive or force a liquid into a body."
+  },
+  {
+    "token": "inland",
+    "type": "word",
+    "level": "B2",
+    "translation": "tierra adentro",
+    "phonetic": "/ˈɪn.lənd/",
+    "monolingual": "In the part of a country away from the coast."
+  },
+  {
+    "token": "innovation",
+    "type": "word",
+    "level": "B2",
+    "translation": "innovación",
+    "phonetic": "/ˌɪn.əˈveɪ.ʃən/",
+    "monolingual": "A new method, idea, or product."
+  },
+  {
+    "token": "input",
+    "type": "word",
+    "level": "B2",
+    "translation": "entrada",
+    "phonetic": "/ˈɪn.pʊt/",
+    "monolingual": "Information put into a computer."
+  },
+  {
+    "token": "insecticide",
+    "type": "word",
+    "level": "B2",
+    "translation": "insecticida",
+    "phonetic": "/ɪnˈsek.t̬ə.saɪd/",
+    "monolingual": "A substance used for killing insects."
+  },
+  {
+    "token": "install",
+    "type": "word",
+    "level": "B2",
+    "translation": "instalar",
+    "phonetic": "/ɪnˈstɔːl/",
+    "monolingual": "To place or fix in position ready for use."
+  },
+  {
+    "token": "instrument",
+    "type": "word",
+    "level": "B2",
+    "translation": "instrumento",
+    "phonetic": "/ˈɪn.strə.mənt/",
+    "monolingual": "A tool used for delicate or scientific work."
+  },
+  {
+    "token": "integration",
+    "type": "word",
+    "level": "B2",
+    "translation": "integración",
+    "phonetic": "/ˌɪn.t̬əˈɡreɪ.ʃən/",
+    "monolingual": "The action of combining or being combined into a whole."
+  },
+  {
+    "token": "intensify",
+    "type": "word",
+    "level": "B2",
+    "translation": "intensificar",
+    "phonetic": "/ɪnˈten.sə.faɪ/",
+    "monolingual": "To become or make more intense."
+  },
+  {
+    "token": "interactive",
+    "type": "word",
+    "level": "B2",
+    "translation": "interactivo",
+    "phonetic": "/ˌɪn.t̬ɚˈæk.tɪv/",
+    "monolingual": "Influencing each other; reciprocally responsive."
+  },
+  {
+    "token": "interface",
+    "type": "word",
+    "level": "B2",
+    "translation": "interfaz",
+    "phonetic": "/ˈɪn.t̬ɚ.feɪs/",
+    "monolingual": "A point where two systems meet and interact."
+  },
+  {
+    "token": "intermittent",
+    "type": "word",
+    "level": "B2",
+    "translation": "intermitente",
+    "phonetic": "/ˌɪn.t̬ɚˈmɪt.ənt/",
+    "monolingual": "Occurring at irregular intervals."
+  },
+  {
+    "token": "internal",
+    "type": "word",
+    "level": "B2",
+    "translation": "interno",
+    "phonetic": "/ɪnˈtɝː.nəl/",
+    "monolingual": "Of the inner part of something."
+  },
+  {
+    "token": "interstellar",
+    "type": "word",
+    "level": "C1",
+    "translation": "interestelar",
+    "phonetic": "/ˌɪn.t̬ɚˈstel.ɚ/",
+    "monolingual": "Occurring or situated between stars."
+  },
+  {
+    "token": "intestine",
+    "type": "word",
+    "level": "B2",
+    "translation": "intestino",
+    "phonetic": "/ɪnˈtes.tɪn/",
+    "monolingual": "The lower part of the alimentary canal."
+  },
+  {
+    "token": "intravenous",
+    "type": "word",
+    "level": "B2",
+    "translation": "intravenoso",
+    "phonetic": "/ˌɪn.trəˈviː.nəs/",
+    "monolingual": "Within or into a vein."
+  },
+  {
+    "token": "intrusion",
+    "type": "word",
+    "level": "B2",
+    "translation": "intrusión",
+    "phonetic": "/ɪnˈtruː.ʒən/",
+    "monolingual": "The action of intruding."
+  },
+  {
+    "token": "ion",
+    "type": "word",
+    "level": "B2",
+    "translation": "ion",
+    "phonetic": "/ˈaɪ.ɒn/",
+    "monolingual": "An atom or molecule with an electrical charge."
+  },
+  {
+    "token": "irrigation",
+    "type": "word",
+    "level": "B2",
+    "translation": "irrigación",
+    "phonetic": "/ˌɪr.əˈɡeɪ.ʃən/",
+    "monolingual": "The supply of water to land or crops."
+  },
+  {
+    "token": "isotope",
+    "type": "word",
+    "level": "B2",
+    "translation": "isótopo",
+    "phonetic": "/ˈaɪ.sə.toʊp/",
+    "monolingual": "Each of two or more forms of the same element."
+  },
+  {
+    "token": "joint",
+    "type": "word",
+    "level": "B2",
+    "translation": "articulación",
+    "phonetic": "/dʒɔɪnt/",
+    "monolingual": "A point where two parts of an artificial structure are joined."
+  },
+  {
+    "token": "journal",
+    "type": "word",
+    "level": "B2",
+    "translation": "revista",
+    "phonetic": "/ˈdʒɝː.nəl/",
+    "monolingual": "A periodical publication on a particular subject."
+  },
+  {
+    "token": "kernel",
+    "type": "word",
+    "level": "C1",
+    "translation": "núcleo",
+    "phonetic": "/ˈkɝː.nəl/",
+    "monolingual": "The central or most important part of something."
+  },
+  {
+    "token": "kilobyte",
+    "type": "word",
+    "level": "B2",
+    "translation": "kilobyte",
+    "phonetic": "/ˈkɪl.ə.baɪt/",
+    "monolingual": "A unit of computer memory equal to 1024 bytes."
+  },
+  {
+    "token": "kinetic",
+    "type": "word",
+    "level": "B2",
+    "translation": "cinético",
+    "phonetic": "/kɪˈnet̬.ɪk/",
+    "monolingual": "Relating to or resulting from motion."
+  },
+  {
+    "token": "laboratory",
+    "type": "word",
+    "level": "B2",
+    "translation": "laboratorio",
+    "phonetic": "/ˈlæb.ə.rə.tɔːr.i/",
+    "monolingual": "A room equipped for scientific experiments."
+  },
+  {
+    "token": "landfill",
+    "type": "word",
+    "level": "B2",
+    "translation": "vertedero",
+    "phonetic": "/ˈlænd.fɪl/",
+    "monolingual": "The disposal of waste material by burying it."
+  },
+  {
+    "token": "landform",
+    "type": "word",
+    "level": "B2",
+    "translation": "accidente geográfico",
+    "phonetic": "/ˈlænd.fɔːrm/",
+    "monolingual": "A natural feature of the earth's surface."
+  },
+  {
+    "token": "landscape",
+    "type": "word",
+    "level": "B2",
+    "translation": "paisaje",
+    "phonetic": "/ˈlænd.skeɪp/",
+    "monolingual": "All the visible features of an area of land."
+  },
+  {
+    "token": "lateral",
+    "type": "word",
+    "level": "B2",
+    "translation": "lateral",
+    "phonetic": "/ˈlæt̬.ɚ.əl/",
+    "monolingual": "Of, at, toward, or from the side."
+  },
+  {
+    "token": "launch",
+    "type": "word",
+    "level": "B2",
+    "translation": "lanzamiento",
+    "phonetic": "/lɔːntʃ/",
+    "monolingual": "An act of launching something."
+  },
+  {
+    "token": "lava",
+    "type": "word",
+    "level": "B2",
+    "translation": "lava",
+    "phonetic": "/ˈlɑː.və/",
+    "monolingual": "Hot molten or semi-fluid rock erupted from a volcano."
+  },
+  {
+    "token": "leak",
+    "type": "word",
+    "level": "B2",
+    "translation": "fuga",
+    "phonetic": "/liːk/",
+    "monolingual": "An accidental escape of a fluid."
+  },
+  {
+    "token": "legible",
+    "type": "word",
+    "level": "B2",
+    "translation": "legible",
+    "phonetic": "/ˈledʒ.ə.bəl/",
+    "monolingual": "Clear enough to read."
+  },
+  {
+    "token": "lens",
+    "type": "word",
+    "level": "B2",
+    "translation": "lente",
+    "phonetic": "/lenz/",
+    "monolingual": "A piece of glass with curved sides for concentrating light."
+  },
+  {
+    "token": "lesion",
+    "type": "word",
+    "level": "B2",
+    "translation": "lesión",
+    "phonetic": "/ˈliː.ʒən/",
+    "monolingual": "A region in an organ or tissue suffering damage."
+  },
+  {
+    "token": "ligament",
+    "type": "word",
+    "level": "B2",
+    "translation": "ligamento",
+    "phonetic": "/ˈlɪɡ.ə.mənt/",
+    "monolingual": "A short band of tissue connecting bones."
+  },
+  {
+    "token": "linear",
+    "type": "word",
+    "level": "B2",
+    "translation": "lineal",
+    "phonetic": "/ˈlɪn.i.ɚ/",
+    "monolingual": "Arranged in or extending along a straight line."
+  },
+  {
+    "token": "liver",
+    "type": "word",
+    "level": "B2",
+    "translation": "hígado",
+    "phonetic": "/ˈlɪv.ɚ/",
+    "monolingual": "A large organ in the abdomen producing bile."
+  },
+  {
+    "token": "locomotive",
+    "type": "word",
+    "level": "B2",
+    "translation": "locomotora",
+    "phonetic": "/ˌloʊ.kəˈmoʊ.t̬ɪv/",
+    "monolingual": "A powered railway vehicle for pulling trains."
+  },
+  {
+    "token": "longevity",
+    "type": "word",
+    "level": "B2",
+    "translation": "longevidad",
+    "phonetic": "/lɒnˈdʒev.ə.t̬i/",
+    "monolingual": "Long life."
+  },
+  {
+    "token": "luminous",
+    "type": "word",
+    "level": "B2",
+    "translation": "luminoso",
+    "phonetic": "/ˈluː.mə.nəs/",
+    "monolingual": "Emitting or reflecting light."
+  },
+  {
+    "token": "lunar",
+    "type": "word",
+    "level": "B2",
+    "translation": "lunar",
+    "phonetic": "/ˈluː.nɚ/",
+    "monolingual": "Of, determined by, or relating to the moon."
+  },
+  {
+    "token": "machinery",
+    "type": "word",
+    "level": "B2",
+    "translation": "maquinaria",
+    "phonetic": "/məˈʃiː.nɚ.i/",
+    "monolingual": "Machines collectively, or the components of a machine."
+  },
+  {
+    "token": "magma",
+    "type": "word",
+    "level": "C1",
+    "translation": "magma",
+    "phonetic": "/ˈmæɡ.mə/",
+    "monolingual": "Hot fluid material below the earth's crust."
+  },
+  {
+    "token": "magnetic",
+    "type": "word",
+    "level": "B2",
+    "translation": "magnético",
+    "phonetic": "/mæɡˈnet̬.ɪk/",
+    "monolingual": "Having the properties of a magnet."
+  },
+  {
+    "token": "malware",
+    "type": "word",
+    "level": "B2",
+    "translation": "malware",
+    "phonetic": "/ˈmæl.wer/",
+    "monolingual": "Software designed to damage a computer or network."
+  },
+  {
+    "token": "mammal",
+    "type": "word",
+    "level": "B2",
+    "translation": "mamífero",
+    "phonetic": "/ˈmæm.əl/",
+    "monolingual": "A warm-blooded animal that nurses its young with milk."
+  },
+  {
+    "token": "manipulation",
+    "type": "word",
+    "level": "B2",
+    "translation": "manipulación",
+    "phonetic": "/məˌnɪp.jəˈleɪ.ʃən/",
+    "monolingual": "The action of handling or controlling."
+  },
+  {
+    "token": "manufacture",
+    "type": "word",
+    "level": "B2",
+    "translation": "fabricar",
+    "phonetic": "/ˌmæn.jəˈfæk.tʃɚ/",
+    "monolingual": "To make products on a large scale using machinery."
+  },
+  {
+    "token": "mass",
+    "type": "word",
+    "level": "B2",
+    "translation": "masa",
+    "phonetic": "/mæs/",
+    "monolingual": "A large body of matter with no definite shape."
+  },
+  {
+    "token": "medicate",
+    "type": "word",
+    "level": "B2",
+    "translation": "medicar",
+    "phonetic": "/ˈmed.ə.keɪt/",
+    "monolingual": "To treat with a drug or medicine."
+  },
+  {
+    "token": "medication",
+    "type": "word",
+    "level": "B2",
+    "translation": "medicación",
+    "phonetic": "/ˌmed.əˈkeɪ.ʃən/",
+    "monolingual": "A substance used for medical treatment."
+  },
+  {
+    "token": "megabyte",
+    "type": "word",
+    "level": "B2",
+    "translation": "megabyte",
+    "phonetic": "/ˈmeɡ.ə.baɪt/",
+    "monolingual": "A unit of computer memory equal to a million bytes."
+  },
+  {
+    "token": "melanoma",
+    "type": "word",
+    "level": "C1",
+    "translation": "melanoma",
+    "phonetic": "/ˌmel.əˈnoʊ.mə/",
+    "monolingual": "A skin tumor associated with skin cancer."
+  },
+  {
+    "token": "memory",
+    "type": "word",
+    "level": "B2",
+    "translation": "memoria",
+    "phonetic": "/ˈmem.ɚ.i/",
+    "monolingual": "The part of a computer where data is stored."
+  },
+  {
+    "token": "metabolism",
+    "type": "word",
+    "level": "B2",
+    "translation": "metabolismo",
+    "phonetic": "/məˈtæb.əl.ɪz.əm/",
+    "monolingual": "The chemical processes occurring within a living organism."
+  },
+  {
+    "token": "microbial",
+    "type": "word",
+    "level": "B2",
+    "translation": "microbiano",
+    "phonetic": "/maɪˈkroʊ.bi.əl/",
+    "monolingual": "Of microbes."
+  },
+  {
+    "token": "microbe",
+    "type": "word",
+    "level": "B2",
+    "translation": "microbio",
+    "phonetic": "/ˈmaɪ.kroʊb/",
+    "monolingual": "A microorganism, especially a bacterium."
+  },
+  {
+    "token": "microscope",
+    "type": "word",
+    "level": "B2",
+    "translation": "microscopio",
+    "phonetic": "/ˈmaɪ.krə.skoʊp/",
+    "monolingual": "An optical instrument used to view small objects."
+  },
+  {
+    "token": "migrate",
+    "type": "word",
+    "level": "B2",
+    "translation": "migrar",
+    "phonetic": "/ˈmaɪ.ɡreɪt/",
+    "monolingual": "To move from one region to another."
+  },
+  {
+    "token": "millennium",
+    "type": "word",
+    "level": "B2",
+    "translation": "milenio",
+    "phonetic": "/məˈlen.i.əm/",
+    "monolingual": "A period of one thousand years."
+  },
+  {
+    "token": "mineral",
+    "type": "word",
+    "level": "B2",
+    "translation": "mineral",
+    "phonetic": "/ˈmɪn.ɚ.əl/",
+    "monolingual": "A solid inorganic substance with a characteristic chemical composition."
+  },
+  {
+    "token": "moisture",
+    "type": "word",
+    "level": "B2",
+    "translation": "humedad",
+    "phonetic": "/ˈmɔɪs.tʃɚ/",
+    "monolingual": "Water or other liquid in small quantities."
+  },
+  {
+    "token": "molecule",
+    "type": "word",
+    "level": "B2",
+    "translation": "molécula",
+    "phonetic": "/ˈmɒl.ə.kjuːl/",
+    "monolingual": "A group of atoms bonded together representing the smallest unit of a compound."
+  },
+  {
+    "token": "monitor",
+    "type": "word",
+    "level": "B2",
+    "translation": "monitor",
+    "phonetic": "/ˈmɒn.ə.t̬ɚ/",
+    "monolingual": "A device used to observe data and processes."
+  },
+  {
+    "token": "moss",
+    "type": "word",
+    "level": "B2",
+    "translation": "musgo",
+    "phonetic": "/mɒs/",
+    "monolingual": "A small flowerless green plant growing in damp habitats."
+  },
+  {
+    "token": "mucus",
+    "type": "word",
+    "level": "C1",
+    "translation": "moco",
+    "phonetic": "/ˈmjuː.kəs/",
+    "monolingual": "A slimy substance secreted by mucous membranes."
+  },
+  {
+    "token": "multimedia",
+    "type": "word",
+    "level": "B2",
+    "translation": "multimedia",
+    "phonetic": "/ˌmʌl.tiˈmiː.di.ə/",
+    "monolingual": "Using more than one medium of expression."
+  },
+  {
+    "token": "mutation",
+    "type": "word",
+    "level": "B2",
+    "translation": "mutación",
+    "phonetic": "/mjuːˈteɪ.ʃən/",
+    "monolingual": "The action or process of changing."
+  },
+  {
+    "token": "nausea",
+    "type": "word",
+    "level": "B2",
+    "translation": "náusea",
+    "phonetic": "/ˈnɔː.zi.ə/",
+    "monolingual": "A feeling of sickness with an inclination to vomit."
+  },
+  {
+    "token": "navigate",
+    "type": "word",
+    "level": "B2",
+    "translation": "navegar",
+    "phonetic": "/ˈnæv.ə.ɡeɪt/",
+    "monolingual": "To plan and direct the route of a vehicle."
+  },
+  {
+    "token": "nebula",
+    "type": "word",
+    "level": "C1",
+    "translation": "nebulosa",
+    "phonetic": "/ˈneb.jə.lə/",
+    "monolingual": "A cloud of gas and dust in outer space."
+  },
+  {
+    "token": "nectar",
+    "type": "word",
+    "level": "B2",
+    "translation": "néctar",
+    "phonetic": "/ˈnek.tɚ/",
+    "monolingual": "A sugary fluid secreted by plants."
+  },
+  {
+    "token": "network",
+    "type": "word",
+    "level": "B2",
+    "translation": "red",
+    "phonetic": "/ˈnet.wɝːk/",
+    "monolingual": "A group of interconnected computers."
+  },
+  {
+    "token": "neuron",
+    "type": "word",
+    "level": "B2",
+    "translation": "neurona",
+    "phonetic": "/ˈnʊr.ɒn/",
+    "monolingual": "A nerve cell."
+  },
+  {
+    "token": "nicotine",
+    "type": "word",
+    "level": "B2",
+    "translation": "nicotina",
+    "phonetic": "/ˈnɪk.ə.tiːn/",
+    "monolingual": "A poisonous compound found in tobacco."
+  },
+  {
+    "token": "nitrogen",
+    "type": "word",
+    "level": "B2",
+    "translation": "nitrógeno",
+    "phonetic": "/ˈnaɪ.trə.dʒən/",
+    "monolingual": "A colorless, odorless gas making up most of the air."
+  },
+  {
+    "token": "nocturnal",
+    "type": "word",
+    "level": "B2",
+    "translation": "nocturno",
+    "phonetic": "/nɒkˈtɝː.nəl/",
+    "monolingual": "Done or active at night."
+  },
+  {
+    "token": "nuclear",
+    "type": "word",
+    "level": "B2",
+    "translation": "nuclear",
+    "phonetic": "/ˈnuː.kli.ɚ/",
+    "monolingual": "Relating to the nucleus of an atom."
+  },
+  {
+    "token": "nutrient",
+    "type": "word",
+    "level": "B2",
+    "translation": "nutriente",
+    "phonetic": "/ˈnuː.tri.ənt/",
+    "monolingual": "A substance that provides nourishment."
+  },
+  {
+    "token": "nutrition",
+    "type": "word",
+    "level": "B2",
+    "translation": "nutrición",
+    "phonetic": "/nuːˈtrɪʃ.ən/",
+    "monolingual": "The process of providing or obtaining food."
+  },
+  {
+    "token": "oasis",
+    "type": "word",
+    "level": "B2",
+    "translation": "oasis",
+    "phonetic": "/oʊˈeɪ.sɪs/",
+    "monolingual": "A fertile spot in a desert where water is found."
+  },
+  {
+    "token": "obesity",
+    "type": "word",
+    "level": "B2",
+    "translation": "obesidad",
+    "phonetic": "/oʊˈbiː.sə.t̬i/",
+    "monolingual": "The state of being grossly fat or overweight."
+  },
+  {
+    "token": "oceanic",
+    "type": "word",
+    "level": "B2",
+    "translation": "oceánico",
+    "phonetic": "/ˌoʊ.ʃiˈæn.ɪk/",
+    "monolingual": "Of or like an ocean."
+  },
+  {
+    "token": "ointment",
+    "type": "word",
+    "level": "B2",
+    "translation": "ungüento",
+    "phonetic": "/ˈɔɪnt.mənt/",
+    "monolingual": "A smooth oily substance rubbed on the skin."
+  },
+  {
+    "token": "opacity",
+    "type": "word",
+    "level": "C1",
+    "translation": "opacidad",
+    "phonetic": "/oʊˈpæs.ə.t̬i/",
+    "monolingual": "The condition of lacking transparency."
+  },
+  {
+    "token": "operating system",
+    "type": "word",
+    "level": "B2",
+    "translation": "sistema operativo",
+    "phonetic": "/ˈɒp.ə.reɪ.tɪŋ ˌsɪs.təm/",
+    "monolingual": "Software that supports a computer's basic functions."
+  },
+  {
+    "token": "optical",
+    "type": "word",
+    "level": "B2",
+    "translation": "óptico",
+    "phonetic": "/ˈɒp.tɪ.kəl/",
+    "monolingual": "Of vision, light, or images."
+  },
+  {
+    "token": "oral",
+    "type": "word",
+    "level": "B2",
+    "translation": "oral",
+    "phonetic": "/ˈɔːr.əl/",
+    "monolingual": "Spoken rather than written, or relating to the mouth."
+  },
+  {
+    "token": "orbit",
+    "type": "word",
+    "level": "B2",
+    "translation": "órbita",
+    "phonetic": "/ˈɔːr.bɪt/",
+    "monolingual": "The curved path of a celestial object around a star."
+  },
+  {
+    "token": "organism",
+    "type": "word",
+    "level": "B2",
+    "translation": "organismo",
+    "phonetic": "/ˈɔːr.ɡə.nɪz.əm/",
+    "monolingual": "An individual animal, plant, or single-celled life form."
+  },
+  {
+    "token": "orient",
+    "type": "word",
+    "level": "B2",
+    "translation": "orientar",
+    "phonetic": "/ˈɔːr.i.ent/",
+    "monolingual": "To find one's bearings."
+  },
+  {
+    "token": "ornament",
+    "type": "word",
+    "level": "B2",
+    "translation": "adorno",
+    "phonetic": "/ˈɔːr.nə.mənt/",
+    "monolingual": "A thing used or serving to make something look more attractive."
+  },
+  {
+    "token": "oscillation",
+    "type": "word",
+    "level": "C1",
+    "translation": "oscilación",
+    "phonetic": "/ˌɒs.əˈleɪ.ʃən/",
+    "monolingual": "Movement back and forth in a regular rhythm."
+  },
+  {
+    "token": "osmosis",
+    "type": "word",
+    "level": "C1",
+    "translation": "ósmosis",
+    "phonetic": "/ɒzˈmoʊ.sɪs/",
+    "monolingual": "The passage of fluid through a membrane."
+  },
+  {
+    "token": "output",
+    "type": "word",
+    "level": "B2",
+    "translation": "rendimiento",
+    "phonetic": "/ˈaʊt.pʊt/",
+    "monolingual": "The amount of something produced."
+  },
+  {
+    "token": "outsourcing",
+    "type": "word",
+    "level": "B2",
+    "translation": "subcontratación",
+    "phonetic": "/ˈaʊtˌsɔːrs.ɪŋ/",
+    "monolingual": "The practice of obtaining services from outside suppliers."
+  },
+  {
+    "token": "overheat",
+    "type": "word",
+    "level": "B2",
+    "translation": "sobrecalentar",
+    "phonetic": "/ˌoʊ.vɚˈhiːt/",
+    "monolingual": "To become or make too hot."
+  },
+  {
+    "token": "oxygen",
+    "type": "word",
+    "level": "B2",
+    "translation": "oxígeno",
+    "phonetic": "/ˈɒk.sɪ.dʒən/",
+    "monolingual": "A colorless gas essential for animal life."
+  },
+  {
+    "token": "ozone",
+    "type": "word",
+    "level": "B2",
+    "translation": "ozono",
+    "phonetic": "/ˈoʊ.zoʊn/",
+    "monolingual": "A colorless gas with strong oxidizing properties."
+  },
+  {
+    "token": "paediatric",
+    "type": "word",
+    "level": "B2",
+    "translation": "pediátrico",
+    "phonetic": "/ˌpiː.diˈæt.rɪk/",
+    "monolingual": "Relating to the branch of medicine dealing with children."
+  },
+  {
+    "token": "parasite",
+    "type": "word",
+    "level": "B2",
+    "translation": "parásito",
+    "phonetic": "/ˈper.ə.saɪt/",
+    "monolingual": "An organism living on or in another organism."
+  },
+  {
+    "token": "particle",
+    "type": "word",
+    "level": "B2",
+    "translation": "partícula",
+    "phonetic": "/ˈpɑːr.tə.kəl/",
+    "monolingual": "A minute portion of matter."
+  },
+  {
+    "token": "password",
+    "type": "word",
+    "level": "B2",
+    "translation": "contraseña",
+    "phonetic": "/ˈpæs.wɝːd/",
+    "monolingual": "A secret word for accessing a computer system."
+  },
+  {
+    "token": "patch",
+    "type": "word",
+    "level": "B2",
+    "translation": "parche",
+    "phonetic": "/pætʃ/",
+    "monolingual": "A piece of cloth used to mend a hole, or a software update."
+  },
+  {
+    "token": "patent",
+    "type": "word",
+    "level": "B2",
+    "translation": "patente",
+    "phonetic": "/ˈpæt.ənt/",
+    "monolingual": "A government license granting exclusive rights to an invention."
+  },
+  {
+    "token": "pathogen",
+    "type": "word",
+    "level": "C1",
+    "translation": "patógeno",
+    "phonetic": "/ˈpæθ.ə.dʒən/",
+    "monolingual": "A bacterium or virus causing disease."
+  },
+  {
+    "token": "pellet",
+    "type": "word",
+    "level": "B2",
+    "translation": "pellet",
+    "phonetic": "/ˈpel.ət/",
+    "monolingual": "A small, rounded, compressed mass."
+  },
+  {
+    "token": "pesticide",
+    "type": "word",
+    "level": "B2",
+    "translation": "pesticida",
+    "phonetic": "/ˈpes.tə.saɪd/",
+    "monolingual": "A substance used for destroying pests."
+  },
+  {
+    "token": "petroleum",
+    "type": "word",
+    "level": "B2",
+    "translation": "petróleo",
+    "phonetic": "/pəˈtroʊ.li.əm/",
+    "monolingual": "A hydrocarbon used as a fuel."
+  },
+  {
+    "token": "pharmaceutical",
+    "type": "word",
+    "level": "B2",
+    "translation": "farmacéutico",
+    "phonetic": "/ˌfɑːr.məˈsuː.t̬ɪ.kəl/",
+    "monolingual": "Of or engaged in medicinal drugs."
+  },
+  {
+    "token": "phase",
+    "type": "word",
+    "level": "B2",
+    "translation": "fase",
+    "phonetic": "/feɪz/",
+    "monolingual": "A distinct period or stage in a process."
+  },
+  {
+    "token": "pheromone",
+    "type": "word",
+    "level": "C1",
+    "translation": "feromona",
+    "phonetic": "/ˈfer.ə.moʊn/",
+    "monolingual": "A chemical substance produced by an animal as a signal."
+  },
+  {
+    "token": "photon",
+    "type": "word",
+    "level": "C1",
+    "translation": "fotón",
+    "phonetic": "/ˈfoʊ.tɒn/",
+    "monolingual": "A quantum of electromagnetic radiation."
+  },
+  {
+    "token": "photosynthesis",
+    "type": "word",
+    "level": "B2",
+    "translation": "fotosíntesis",
+    "phonetic": "/ˌfoʊ.t̬oʊˈsɪn.θə.sɪs/",
+    "monolingual": "The process by which plants convert sunlight into energy."
+  },
+  {
+    "token": "physics",
+    "type": "word",
+    "level": "B2",
+    "translation": "física",
+    "phonetic": "/ˈfɪz.ɪks/",
+    "monolingual": "The branch of science concerned with matter and energy."
+  },
+  {
+    "token": "physiology",
+    "type": "word",
+    "level": "B2",
+    "translation": "fisiología",
+    "phonetic": "/ˌfɪz.iˈɒl.ə.dʒi/",
+    "monolingual": "The branch of biology dealing with the functions of organisms."
+  },
+  {
+    "token": "pigment",
+    "type": "word",
+    "level": "B2",
+    "translation": "pigmento",
+    "phonetic": "/ˈpɪɡ.mənt/",
+    "monolingual": "The natural coloring matter of animal or plant tissue."
+  },
+  {
+    "token": "pixel",
+    "type": "word",
+    "level": "B2",
+    "translation": "píxel",
+    "phonetic": "/ˈpɪk.səl/",
+    "monolingual": "A minute area of illumination on a display screen."
+  },
+  {
+    "token": "plasma",
+    "type": "word",
+    "level": "B2",
+    "translation": "plasma",
+    "phonetic": "/ˈplæz.mə/",
+    "monolingual": "The colorless fluid part of blood."
+  },
+  {
+    "token": "plumage",
+    "type": "word",
+    "level": "C1",
+    "translation": "plumaje",
+    "phonetic": "/ˈpluː.mɪdʒ/",
+    "monolingual": "A bird's feathers collectively."
+  },
+  {
+    "token": "pneumatic",
+    "type": "word",
+    "level": "C1",
+    "translation": "neumático",
+    "phonetic": "/nuːˈmæt̬.ɪk/",
+    "monolingual": "Containing or operated by air or gas under pressure."
+  },
+  {
+    "token": "pollen",
+    "type": "word",
+    "level": "B2",
+    "translation": "polen",
+    "phonetic": "/ˈpɒl.ən/",
+    "monolingual": "A fine powder produced by flowers."
+  },
+  {
+    "token": "pollutant",
+    "type": "word",
+    "level": "B2",
+    "translation": "contaminante",
+    "phonetic": "/pəˈluː.t̬ənt/",
+    "monolingual": "A substance that pollutes the environment."
+  },
+  {
+    "token": "porous",
+    "type": "word",
+    "level": "B2",
+    "translation": "poroso",
+    "phonetic": "/ˈpɔːr.əs/",
+    "monolingual": "Having minute spaces through which liquid or air may pass."
+  },
+  {
+    "token": "precipitation",
+    "type": "word",
+    "level": "B2",
+    "translation": "precipitación",
+    "phonetic": "/prɪˌsɪp.əˈteɪ.ʃən/",
+    "monolingual": "Rain, snow, sleet, or hail that falls to the ground."
+  },
+  {
+    "token": "predator",
+    "type": "word",
+    "level": "B2",
+    "translation": "depredador",
+    "phonetic": "/ˈpred.ə.t̬ɚ/",
+    "monolingual": "An animal that hunts other animals for food."
+  },
+  {
+    "token": "prescribe",
+    "type": "word",
+    "level": "B2",
+    "translation": "recetar",
+    "phonetic": "/prɪˈskraɪb/",
+    "monolingual": "To recommend a medicine or remedy."
+  },
+  {
+    "token": "prescription",
+    "type": "word",
+    "level": "B2",
+    "translation": "receta",
+    "phonetic": "/prɪˈskrɪp.ʃən/",
+    "monolingual": "A doctor's instruction for the preparation of a medicine."
+  },
+  {
+    "token": "preservation",
+    "type": "word",
+    "level": "B2",
+    "translation": "preservación",
+    "phonetic": "/ˌprez.ɚˈveɪ.ʃən/",
+    "monolingual": "The act of keeping something in its original state."
+  },
+  {
+    "token": "prevention",
+    "type": "word",
+    "level": "B2",
+    "translation": "prevención",
+    "phonetic": "/prɪˈven.ʃən/",
+    "monolingual": "The action of stopping something from happening."
+  },
+  {
+    "token": "primate",
+    "type": "word",
+    "level": "B2",
+    "translation": "primate",
+    "phonetic": "/ˈpraɪ.meɪt/",
+    "monolingual": "A mammal of an order including monkeys, apes, and humans."
+  },
+  {
+    "token": "processor",
+    "type": "word",
+    "level": "B2",
+    "translation": "procesador",
+    "phonetic": "/ˈproʊ.seˌsɚ/",
+    "monolingual": "The part of a computer that performs operations on data."
+  },
+  {
+    "token": "prognosis",
+    "type": "word",
+    "level": "B2",
+    "translation": "pronóstico",
+    "phonetic": "/prɒɡˈnoʊ.sɪs/",
+    "monolingual": "The likely course of a medical condition."
+  },
+  {
+    "token": "projectile",
+    "type": "word",
+    "level": "B2",
+    "translation": "proyectil",
+    "phonetic": "/prəˈdʒek.təl/",
+    "monolingual": "An object propelled through the air, especially as a weapon."
+  },
+  {
+    "token": "prosthetic",
+    "type": "word",
+    "level": "B2",
+    "translation": "prótesis",
+    "phonetic": "/prɒsˈθet.ɪk/",
+    "monolingual": "An artificial body part used to replace a missing one."
+  },
+  {
+    "token": "protein",
+    "type": "word",
+    "level": "B2",
+    "translation": "proteína",
+    "phonetic": "/ˈproʊ.tiːn/",
+    "monolingual": "A large molecule essential to living organisms."
+  },
+  {
+    "token": "protocol",
+    "type": "word",
+    "level": "B2",
+    "translation": "protocolo",
+    "phonetic": "/ˈproʊ.t̬ə.kɔːl/",
+    "monolingual": "A set of rules governing the exchange of data."
+  },
+  {
+    "token": "prototype",
+    "type": "word",
+    "level": "B2",
+    "translation": "prototipo",
+    "phonetic": "/ˈproʊ.t̬ə.taɪp/",
+    "monolingual": "A first or preliminary model."
+  },
+  {
+    "token": "quantum",
+    "type": "word",
+    "level": "B2",
+    "translation": "cuántico",
+    "phonetic": "/ˈkwɒn.təm/",
+    "monolingual": "A discrete quantity of energy proportional to the frequency of radiation."
+  },
+  {
+    "token": "radar",
+    "type": "word",
+    "level": "B2",
+    "translation": "radar",
+    "phonetic": "/ˈreɪ.dɑːr/",
+    "monolingual": "A system using radio waves to detect objects."
+  },
+  {
+    "token": "radiation",
+    "type": "word",
+    "level": "B2",
+    "translation": "radiación",
+    "phonetic": "/ˌreɪ.diˈeɪ.ʃən/",
+    "monolingual": "The emission of energy as waves or particles."
+  },
+  {
+    "token": "radioactivity",
+    "type": "word",
+    "level": "B2",
+    "translation": "radiactividad",
+    "phonetic": "/ˌreɪ.di.oʊ.ækˈtɪv.ə.t̬i/",
+    "monolingual": "The emission of ionizing radiation."
+  },
+  {
+    "token": "radioisotope",
+    "type": "word",
+    "level": "C1",
+    "translation": "radioisótopo",
+    "phonetic": "/ˌreɪ.di.oʊˈaɪ.sə.toʊp/",
+    "monolingual": "A radioactive isotope."
+  },
+  {
+    "token": "rainforest",
+    "type": "word",
+    "level": "B2",
+    "translation": "selva tropical",
+    "phonetic": "/ˈreɪn.fɔːr.əst/",
+    "monolingual": "A luxuriant, dense forest in tropical areas."
+  },
+  {
+    "token": "ransomware",
+    "type": "word",
+    "level": "B2",
+    "translation": "ransomware",
+    "phonetic": "/ˈræn.səm.wer/",
+    "monolingual": "Malicious software that demands payment to unlock data."
+  },
+  {
+    "token": "ratio",
+    "type": "word",
+    "level": "B2",
+    "translation": "proporción",
+    "phonetic": "/ˈreɪ.ʃi.oʊ/",
+    "monolingual": "The quantitative relation between two amounts."
+  },
+  {
+    "token": "reactor",
+    "type": "word",
+    "level": "B2",
+    "translation": "reactor",
+    "phonetic": "/riˈæk.tɚ/",
+    "monolingual": "An apparatus or structure in which fission is initiated."
+  },
+  {
+    "token": "recycle",
+    "type": "word",
+    "level": "B2",
+    "translation": "reciclar",
+    "phonetic": "/ˌriːˈsaɪ.kəl/",
+    "monolingual": "To convert waste into reusable material."
+  },
+  {
+    "token": "regenerate",
+    "type": "word",
+    "level": "B2",
+    "translation": "regenerar",
+    "phonetic": "/rɪˈdʒen.ə.reɪt/",
+    "monolingual": "To regrow new tissue."
+  },
+  {
+    "token": "renewable",
+    "type": "word",
+    "level": "B2",
+    "translation": "renovable",
+    "phonetic": "/rɪˈnuː.ə.bəl/",
+    "monolingual": "Of energy, that can be replenished by natural processes."
+  },
+  {
+    "token": "replicate",
+    "type": "word",
+    "level": "B2",
+    "translation": "replicar",
+    "phonetic": "/ˈrep.lɪ.keɪt/",
+    "monolingual": "To reproduce or copy."
+  },
+  {
+    "token": "reproduce",
+    "type": "word",
+    "level": "B2",
+    "translation": "reproducir",
+    "phonetic": "/ˌriː.prəˈduːs/",
+    "monolingual": "To produce offspring or copies."
+  },
+  {
+    "token": "residue",
+    "type": "word",
+    "level": "B2",
+    "translation": "residuo",
+    "phonetic": "/ˈrez.ə.duː/",
+    "monolingual": "A small amount of something that remains."
+  },
+  {
+    "token": "resistance",
+    "type": "word",
+    "level": "B2",
+    "translation": "resistencia",
+    "phonetic": "/rɪˈzɪs.təns/",
+    "monolingual": "The ability to withstand the effects of something."
+  },
+  {
+    "token": "respiration",
+    "type": "word",
+    "level": "B2",
+    "translation": "respiración",
+    "phonetic": "/ˌres.pəˈreɪ.ʃən/",
+    "monolingual": "The action of breathing."
+  },
+  {
+    "token": "respiratory",
+    "type": "word",
+    "level": "B2",
+    "translation": "respiratorio",
+    "phonetic": "/ˈres.pə.rə.tɔːr.i/",
+    "monolingual": "Of the respiratory system."
+  },
+  {
+    "token": "revolution",
+    "type": "word",
+    "level": "B2",
+    "translation": "revolución",
+    "phonetic": "/ˌrev.əˈluː.ʃən/",
+    "monolingual": "A forcible overthrow of a government, or a dramatic change."
+  },
+  {
+    "token": "robotics",
+    "type": "word",
+    "level": "B2",
+    "translation": "robótica",
+    "phonetic": "/roʊˈbɒt.ɪks/",
+    "monolingual": "The branch of engineering concerned with robots."
+  },
+  {
+    "token": "rotation",
+    "type": "word",
+    "level": "B2",
+    "translation": "rotación",
+    "phonetic": "/roʊˈteɪ.ʃən/",
+    "monolingual": "The action of rotating around an axis."
+  },
+  {
+    "token": "router",
+    "type": "word",
+    "level": "B2",
+    "translation": "enrutador",
+    "phonetic": "/ˈruː.t̬ɚ/",
+    "monolingual": "A device that forwards data packets between networks."
+  },
+  {
+    "token": "salinity",
+    "type": "word",
+    "level": "B2",
+    "translation": "salinidad",
+    "phonetic": "/səˈlɪn.ə.t̬i/",
+    "monolingual": "The amount of salt dissolved in water."
+  },
+  {
+    "token": "satellite",
+    "type": "word",
+    "level": "B2",
+    "translation": "satélite",
+    "phonetic": "/ˈsæt̬.əl.aɪt/",
+    "monolingual": "An object that orbits a planet or other celestial body."
+  },
+  {
+    "token": "scalable",
+    "type": "word",
+    "level": "B2",
+    "translation": "escalable",
+    "phonetic": "/ˈskeɪ.lə.bəl/",
+    "monolingual": "Able to be changed in size or scale."
+  },
+  {
+    "token": "scan",
+    "type": "word",
+    "level": "B2",
+    "translation": "escanear",
+    "phonetic": "/skæn/",
+    "monolingual": "To examine systematically by passing a beam over."
+  },
+  {
+    "token": "scarcity",
+    "type": "word",
+    "level": "B2",
+    "translation": "escasez",
+    "phonetic": "/ˈsker.sə.t̬i/",
+    "monolingual": "The state of being scarce or in short supply."
+  },
+  {
+    "token": "schema",
+    "type": "word",
+    "level": "C1",
+    "translation": "esquema",
+    "phonetic": "/ˈskiː.mə/",
+    "monolingual": "A representation of a plan or theory in the form of a diagram."
+  },
+  {
+    "token": "sediment",
+    "type": "word",
+    "level": "B2",
+    "translation": "sedimento",
+    "phonetic": "/ˈsed.ə.mənt/",
+    "monolingual": "Matter that settles to the bottom of a liquid."
+  },
+  {
+    "token": "seedling",
+    "type": "word",
+    "level": "B2",
+    "translation": "plántula",
+    "phonetic": "/ˈsiːd.lɪŋ/",
+    "monolingual": "A young plant grown from a seed."
+  },
+  {
+    "token": "seismic",
+    "type": "word",
+    "level": "B2",
+    "translation": "sísmico",
+    "phonetic": "/ˈsaɪz.mɪk/",
+    "monolingual": "Relating to or caused by earthquakes."
+  },
+  {
+    "token": "sensor",
+    "type": "word",
+    "level": "B2",
+    "translation": "sensor",
+    "phonetic": "/ˈsen.sɚ/",
+    "monolingual": "A device that detects events or changes in its environment."
+  },
+  {
+    "token": "sequence",
+    "type": "word",
+    "level": "B2",
+    "translation": "secuencia",
+    "phonetic": "/ˈsiː.kwəns/",
+    "monolingual": "A particular order in which related things follow each other."
+  },
+  {
+    "token": "serotonin",
+    "type": "word",
+    "level": "C1",
+    "translation": "serotonina",
+    "phonetic": "/ˌser.əˈtoʊ.nɪn/",
+    "monolingual": "A neurotransmitter influencing mood."
+  },
+  {
+    "token": "server",
+    "type": "word",
+    "level": "B2",
+    "translation": "servidor",
+    "phonetic": "/ˈsɝː.vɚ/",
+    "monolingual": "A computer or program providing services to other computers."
+  },
+  {
+    "token": "sewage",
+    "type": "word",
+    "level": "B2",
+    "translation": "aguas residuales",
+    "phonetic": "/ˈsuː.ɪdʒ/",
+    "monolingual": "Waste matter carried away in drains."
+  },
+  {
+    "token": "shoreline",
+    "type": "word",
+    "level": "B2",
+    "translation": "costa",
+    "phonetic": "/ˈʃɔːr.laɪn/",
+    "monolingual": "The line where shore and water meet."
+  },
+  {
+    "token": "silicon",
+    "type": "word",
+    "level": "B2",
+    "translation": "silicio",
+    "phonetic": "/ˈsɪl.ɪ.kən/",
+    "monolingual": "A nonmetallic chemical element used in computer chips."
+  },
+  {
+    "token": "simulation",
+    "type": "word",
+    "level": "B2",
+    "translation": "simulación",
+    "phonetic": "/ˌsɪm.jəˈleɪ.ʃən/",
+    "monolingual": "Imitation of a situation or process."
+  },
+  {
+    "token": "skull",
+    "type": "word",
+    "level": "B2",
+    "translation": "cráneo",
+    "phonetic": "/skʌl/",
+    "monolingual": "A bone framework enclosing the brain."
+  },
+  {
+    "token": "smartphone",
+    "type": "word",
+    "level": "B2",
+    "translation": "teléfono inteligente",
+    "phonetic": "/ˈsmɑːrt.foʊn/",
+    "monolingual": "A mobile phone with advanced computing capabilities."
+  },
+  {
+    "token": "software",
+    "type": "word",
+    "level": "B2",
+    "translation": "software",
+    "phonetic": "/ˈsɒf.twer/",
+    "monolingual": "The programs used by a computer."
+  },
+  {
+    "token": "solar",
+    "type": "word",
+    "level": "B2",
+    "translation": "solar",
+    "phonetic": "/ˈsoʊ.lɚ/",
+    "monolingual": "Relating to or determined by the sun."
+  },
+  {
+    "token": "solar panel",
+    "type": "word",
+    "level": "B2",
+    "translation": "panel solar",
+    "phonetic": "/ˌsoʊ.lɚ ˈpæn.əl/",
+    "monolingual": "A panel designed to absorb sunlight as a source of energy."
+  },
+  {
+    "token": "solid",
+    "type": "word",
+    "level": "B2",
+    "translation": "sólido",
+    "phonetic": "/ˈsɒl.ɪd/",
+    "monolingual": "Firm and stable in shape."
+  },
+  {
+    "token": "solubility",
+    "type": "word",
+    "level": "B2",
+    "translation": "solubilidad",
+    "phonetic": "/ˌsɒl.jəˈbɪl.ə.t̬i/",
+    "monolingual": "The ability to be dissolved."
+  },
+  {
+    "token": "solute",
+    "type": "word",
+    "level": "C1",
+    "translation": "soluto",
+    "phonetic": "/ˈsɒl.juːt/",
+    "monolingual": "The minor component in a solution."
+  },
+  {
+    "token": "solvent",
+    "type": "word",
+    "level": "B2",
+    "translation": "disolvente",
+    "phonetic": "/ˈsɒl.vənt/",
+    "monolingual": "A liquid in which substances are dissolved."
+  },
+  {
+    "token": "sonar",
+    "type": "word",
+    "level": "B2",
+    "translation": "sonar",
+    "phonetic": "/ˈsoʊ.nɑːr/",
+    "monolingual": "A system for detecting objects using sound waves."
+  },
+  {
+    "token": "specimen",
+    "type": "word",
+    "level": "B2",
+    "translation": "espécimen",
+    "phonetic": "/ˈspes.ə.mən/",
+    "monolingual": "An individual sample taken for study."
+  },
+  {
+    "token": "spectrum",
+    "type": "word",
+    "level": "B2",
+    "translation": "espectro",
+    "phonetic": "/ˈspek.trəm/",
+    "monolingual": "A band of colors as seen in a rainbow."
+  },
+  {
+    "token": "spreadsheet",
+    "type": "word",
+    "level": "B2",
+    "translation": "hoja de cálculo",
+    "phonetic": "/ˈspredˌʃiːt/",
+    "monolingual": "An electronic document with rows and columns of data."
+  },
+  {
+    "token": "stamina",
+    "type": "word",
+    "level": "B2",
+    "translation": "resistencia",
+    "phonetic": "/ˈstæm.ə.nə/",
+    "monolingual": "The ability to sustain prolonged physical or mental effort."
+  },
+  {
+    "token": "sterile",
+    "type": "word",
+    "level": "B2",
+    "translation": "estéril",
+    "phonetic": "/ˈsterˌaɪl/",
+    "monolingual": "Free from bacteria; aseptic."
+  },
+  {
+    "token": "sterilize",
+    "type": "word",
+    "level": "B2",
+    "translation": "esterilizar",
+    "phonetic": "/ˈsterˌəl.aɪz/",
+    "monolingual": "To make free from bacteria."
+  },
+  {
+    "token": "stimulus",
+    "type": "word",
+    "level": "B2",
+    "translation": "estímulo",
+    "phonetic": "/ˈstɪm.jə.ləs/",
+    "monolingual": "A thing that arouses activity or energy."
+  },
+  {
+    "token": "substance",
+    "type": "word",
+    "level": "B2",
+    "translation": "sustancia",
+    "phonetic": "/ˈsʌb.stəns/",
+    "monolingual": "A particular kind of matter with uniform properties."
+  },
+  {
+    "token": "subterranean",
+    "type": "word",
+    "level": "C1",
+    "translation": "subterráneo",
+    "phonetic": "/ˌsʌb.təˈreɪ.ni.ən/",
+    "monolingual": "Existing or done under the earth's surface."
+  },
+  {
+    "token": "surgeon",
+    "type": "word",
+    "level": "B2",
+    "translation": "cirujano",
+    "phonetic": "/ˈsɝː.dʒən/",
+    "monolingual": "A medical practitioner qualified to perform surgery."
+  },
+  {
+    "token": "surgery",
+    "type": "word",
+    "level": "B2",
+    "translation": "cirugía",
+    "phonetic": "/ˈsɝː.dʒɚ.i/",
+    "monolingual": "The treatment of injuries by manual operations."
+  },
+  {
+    "token": "surveillance",
+    "type": "word",
+    "level": "B2",
+    "translation": "vigilancia",
+    "phonetic": "/sɚˈveɪ.ləns/",
+    "monolingual": "Close observation, especially by electronic means."
+  },
+  {
+    "token": "symptom",
+    "type": "word",
+    "level": "B2",
+    "translation": "síntoma",
+    "phonetic": "/ˈsɪmp.təm/",
+    "monolingual": "A physical feature regarded as indicating a condition."
+  },
+  {
+    "token": "synapse",
+    "type": "word",
+    "level": "C1",
+    "translation": "sinapsis",
+    "phonetic": "/ˈsaɪn.æps/",
+    "monolingual": "A junction between two nerve cells."
+  },
+  {
+    "token": "synthesize",
+    "type": "word",
+    "level": "B2",
+    "translation": "sintetizar",
+    "phonetic": "/ˈsɪn.θə.saɪz/",
+    "monolingual": "To combine into a single or unified entity."
+  },
+  {
+    "token": "synthetic",
+    "type": "word",
+    "level": "B2",
+    "translation": "sintético",
+    "phonetic": "/sɪnˈθet.ɪk/",
+    "monolingual": "Made by chemical synthesis, especially to imitate a natural product."
+  },
+  {
+    "token": "tablet",
+    "type": "word",
+    "level": "B2",
+    "translation": "tableta",
+    "phonetic": "/ˈtæb.lət/",
+    "monolingual": "A flat slab of stone or wood, or a portable computer."
+  },
+  {
+    "token": "tectonic",
+    "type": "word",
+    "level": "C1",
+    "translation": "tectónico",
+    "phonetic": "/tekˈtɒn.ɪk/",
+    "monolingual": "Relating to the structure of the earth's crust."
+  },
+  {
+    "token": "telecommunications",
+    "type": "word",
+    "level": "B2",
+    "translation": "telecomunicaciones",
+    "phonetic": "/ˌtel.ɪ.kəˌmjuː.nəˈkeɪ.ʃənz/",
+    "monolingual": "Communication over a distance using cable or radio."
+  },
+  {
+    "token": "telescope",
+    "type": "word",
+    "level": "B2",
+    "translation": "telescopio",
+    "phonetic": "/ˈtel.ə.skoʊp/",
+    "monolingual": "An optical instrument for observing distant objects."
+  },
+  {
+    "token": "template",
+    "type": "word",
+    "level": "B2",
+    "translation": "plantilla",
+    "phonetic": "/ˈtem.plət/",
+    "monolingual": "A preset format for a document."
+  },
+  {
+    "token": "terabyte",
+    "type": "word",
+    "level": "B2",
+    "translation": "terabyte",
+    "phonetic": "/ˈter.ə.baɪt/",
+    "monolingual": "A unit of information equal to one trillion bytes."
+  },
+  {
+    "token": "terrain",
+    "type": "word",
+    "level": "B2",
+    "translation": "terreno",
+    "phonetic": "/təˈreɪn/",
+    "monolingual": "A stretch of land considered with regard to its physical features."
+  },
+  {
+    "token": "terrestrial",
+    "type": "word",
+    "level": "B2",
+    "translation": "terrestre",
+    "phonetic": "/təˈres.tri.əl/",
+    "monolingual": "Of, on, or relating to the earth."
+  },
+  {
+    "token": "terrestrial",
+    "type": "word",
+    "level": "B2",
+    "translation": "terrestre",
+    "phonetic": "/təˈres.tri.əl/",
+    "monolingual": "Of, on, or relating to the earth."
+  },
+  {
+    "token": "texture",
+    "type": "word",
+    "level": "B2",
+    "translation": "textura",
+    "phonetic": "/ˈteks.tʃɚ/",
+    "monolingual": "The feel, appearance, or consistency of a surface."
+  },
+  {
+    "token": "therapeutic",
+    "type": "word",
+    "level": "B2",
+    "translation": "terapéutico",
+    "phonetic": "/ˌθer.əˈpjuː.t̬ɪk/",
+    "monolingual": "Relating to the healing of disease."
+  },
+  {
+    "token": "therapy",
+    "type": "word",
+    "level": "B2",
+    "translation": "terapia",
+    "phonetic": "/ˈθer.ə.pi/",
+    "monolingual": "Treatment intended to relieve or heal a disorder."
+  },
+  {
+    "token": "thermal",
+    "type": "word",
+    "level": "B2",
+    "translation": "térmico",
+    "phonetic": "/ˈθɝː.məl/",
+    "monolingual": "Relating to heat."
+  },
+  {
+    "token": "thrive",
+    "type": "word",
+    "level": "B2",
+    "translation": "prosperar",
+    "phonetic": "/θraɪv/",
+    "monolingual": "To prosper; flourish."
+  },
+  {
+    "token": "tide",
+    "type": "word",
+    "level": "B2",
+    "translation": "marea",
+    "phonetic": "/taɪd/",
+    "monolingual": "The alternate rising and falling of the sea."
+  },
+  {
+    "token": "tissue",
+    "type": "word",
+    "level": "B2",
+    "translation": "tejido",
+    "phonetic": "/ˈtɪʃ.uː/",
+    "monolingual": "Any of the distinct types of material composing the body."
+  },
+  {
+    "token": "toxic",
+    "type": "word",
+    "level": "B2",
+    "translation": "tóxico",
+    "phonetic": "/ˈtɒk.sɪk/",
+    "monolingual": "Poisonous."
+  },
+  {
+    "token": "toxicity",
+    "type": "word",
+    "level": "B2",
+    "translation": "toxicidad",
+    "phonetic": "/tɒkˈsɪs.ə.t̬i/",
+    "monolingual": "The quality of being toxic."
+  },
+  {
+    "token": "trajectory",
+    "type": "word",
+    "level": "B2",
+    "translation": "trayectoria",
+    "phonetic": "/trəˈdʒek.tɚ.i/",
+    "monolingual": "The path followed by a projectile."
+  },
+  {
+    "token": "transducer",
+    "type": "word",
+    "level": "C1",
+    "translation": "transductor",
+    "phonetic": "/trænzˈduː.sɚ/",
+    "monolingual": "A device that converts variations in physical quantity into an electrical signal."
+  },
+  {
+    "token": "transfusion",
+    "type": "word",
+    "level": "B2",
+    "translation": "transfusión",
+    "phonetic": "/trænsˈfjuː.ʒən/",
+    "monolingual": "The act of transferring blood from one to another."
+  },
+  {
+    "token": "transistor",
+    "type": "word",
+    "level": "C1",
+    "translation": "transistor",
+    "phonetic": "/trænˈzɪs.tɚ/",
+    "monolingual": "A semiconductor device used to amplify or switch electronic signals."
+  },
+  {
+    "token": "transit",
+    "type": "word",
+    "level": "B2",
+    "translation": "tránsito",
+    "phonetic": "/ˈtræn.sɪt/",
+    "monolingual": "The carrying of people or things from one place to another."
+  },
+  {
+    "token": "transplant",
+    "type": "word",
+    "level": "B2",
+    "translation": "trasplante",
+    "phonetic": "/ˈtræns.plænt/",
+    "monolingual": "The act of transferring an organ, tissue, or person."
+  },
+  {
+    "token": "tremor",
+    "type": "word",
+    "level": "B2",
+    "translation": "temblor",
+    "phonetic": "/ˈtrem.ɚ/",
+    "monolingual": "An involuntary quivering movement."
+  },
+  {
+    "token": "trigger",
+    "type": "word",
+    "level": "B2",
+    "translation": "desencadenar",
+    "phonetic": "/ˈtrɪɡ.ɚ/",
+    "monolingual": "To cause an event or situation to happen."
+  },
+  {
+    "token": "tropics",
+    "type": "word",
+    "level": "B2",
+    "translation": "trópicos",
+    "phonetic": "/ˈtrɒp.ɪks/",
+    "monolingual": "The region of the earth around the equator."
+  },
+  {
+    "token": "tsunami",
+    "type": "word",
+    "level": "B2",
+    "translation": "tsunami",
+    "phonetic": "/tsuːˈnɑː.mi/",
+    "monolingual": "A long, high sea wave caused by an underwater earthquake."
+  },
+  {
+    "token": "tumor",
+    "type": "word",
+    "level": "B2",
+    "translation": "tumor",
+    "phonetic": "/ˈtuː.mɚ/",
+    "monolingual": "A swelling caused by abnormal growth of tissue."
+  },
+  {
+    "token": "ultrasonic",
+    "type": "word",
+    "level": "B2",
+    "translation": "ultrasónico",
+    "phonetic": "/ˌʌl.trəˈsɒn.ɪk/",
+    "monolingual": "Of sound waves above the upper limit of human hearing."
+  },
+  {
+    "token": "ultraviolet",
+    "type": "word",
+    "level": "B2",
+    "translation": "ultravioleta",
+    "phonetic": "/ˌʌl.trəˈvaɪ.ə.lət/",
+    "monolingual": "Of electromagnetic radiation having a wavelength just shorter than violet light."
+  },
+  {
+    "token": "update",
+    "type": "word",
+    "level": "B2",
+    "translation": "actualización",
+    "phonetic": "/ʌpˈdeɪt/",
+    "monolingual": "An act of bringing something up to date."
+  },
+  {
+    "token": "upload",
+    "type": "word",
+    "level": "B2",
+    "translation": "subir",
+    "phonetic": "/ˈʌp.loʊd/",
+    "monolingual": "To transfer data from a smaller to a larger computer system."
+  },
+  {
+    "token": "urban",
+    "type": "word",
+    "level": "B2",
+    "translation": "urbano",
+    "phonetic": "/ˈɝː.bən/",
+    "monolingual": "In, relating to, or characteristic of a town or city."
+  },
+  {
+    "token": "urbanization",
+    "type": "word",
+    "level": "B2",
+    "translation": "urbanización",
+    "phonetic": "/ˌɝː.bə.nəˈzeɪ.ʃən/",
+    "monolingual": "The process of making an area more urban."
+  },
+  {
+    "token": "vaccination",
+    "type": "word",
+    "level": "B2",
+    "translation": "vacunación",
+    "phonetic": "/ˌvæk.səˈneɪ.ʃən/",
+    "monolingual": "The administration of a vaccine to help the immune system."
+  },
+  {
+    "token": "vaccine",
+    "type": "word",
+    "level": "B2",
+    "translation": "vacuna",
+    "phonetic": "/vækˈsiːn/",
+    "monolingual": "A substance used to stimulate the production of antibodies."
+  },
+  {
+    "token": "vein",
+    "type": "word",
+    "level": "B2",
+    "translation": "vena",
+    "phonetic": "/veɪn/",
+    "monolingual": "Any of the tubes carrying blood toward the heart."
+  },
+  {
+    "token": "ventilation",
+    "type": "word",
+    "level": "B2",
+    "translation": "ventilación",
+    "phonetic": "/ˌven.t̬əlˈeɪ.ʃən/",
+    "monolingual": "The provision of fresh air to a room or building."
+  },
+  {
+    "token": "vibrant",
+    "type": "word",
+    "level": "B2",
+    "translation": "vibrante",
+    "phonetic": "/ˈvaɪ.brənt/",
+    "monolingual": "Full of energy and enthusiasm."
+  },
+  {
+    "token": "violation",
+    "type": "word",
+    "level": "B2",
+    "translation": "violación",
+    "phonetic": "/ˌvaɪ.əˈleɪ.ʃən/",
+    "monolingual": "The action of breaking a rule."
+  },
+  {
+    "token": "virtual",
+    "type": "word",
+    "level": "B2",
+    "translation": "virtual",
+    "phonetic": "/ˈvɝː.tʃu.əl/",
+    "monolingual": "Not physically existing as such but made by software to appear to do so."
+  },
+  {
+    "token": "virus",
+    "type": "word",
+    "level": "B2",
+    "translation": "virus",
+    "phonetic": "/ˈvaɪ.rəs/",
+    "monolingual": "An infective agent or a piece of malicious software."
+  },
+  {
+    "token": "viscous",
+    "type": "word",
+    "level": "C1",
+    "translation": "viscoso",
+    "phonetic": "/ˈvɪs.kəs/",
+    "monolingual": "Having a thick, sticky consistency."
+  },
+  {
+    "token": "volcano",
+    "type": "word",
+    "level": "B2",
+    "translation": "volcán",
+    "phonetic": "/vɒlˈkeɪ.noʊ/",
+    "monolingual": "A mountain or hill that erupts molten material."
+  },
+  {
+    "token": "voltage",
+    "type": "word",
+    "level": "B2",
+    "translation": "voltaje",
+    "phonetic": "/ˈvoʊl.tɪdʒ/",
+    "monolingual": "An electromotive force expressed in volts."
+  },
+  {
+    "token": "voucher",
+    "type": "word",
+    "level": "B2",
+    "translation": "vale",
+    "phonetic": "/ˈvaʊ.tʃɚ/",
+    "monolingual": "A small printed piece of paper entitling the holder to a discount."
+  },
+  {
+    "token": "warranty",
+    "type": "word",
+    "level": "B2",
+    "translation": "garantía",
+    "phonetic": "/ˈwɔːr.ən.t̬i/",
+    "monolingual": "A written guarantee for an article promising repair or replacement."
+  },
+  {
+    "token": "watershed",
+    "type": "word",
+    "level": "B2",
+    "translation": "cuenca",
+    "phonetic": "/ˈwɔː.t̬ɚ.ʃed/",
+    "monolingual": "An area or ridge of land separating drainage basins."
+  },
+  {
+    "token": "wavelength",
+    "type": "word",
+    "level": "B2",
+    "translation": "longitud de onda",
+    "phonetic": "/ˈweɪv.leŋθ/",
+    "monolingual": "The distance between successive crests of a wave."
+  },
+  {
+    "token": "weather",
+    "type": "word",
+    "level": "B2",
+    "translation": "clima",
+    "phonetic": "/ˈweð.ɚ/",
+    "monolingual": "The state of the atmosphere at a place and time."
+  },
+  {
+    "token": "website",
+    "type": "word",
+    "level": "B2",
+    "translation": "sitio web",
+    "phonetic": "/ˈweb.saɪt/",
+    "monolingual": "A location connected to the internet maintaining one or more pages."
+  },
+  {
+    "token": "weld",
+    "type": "word",
+    "level": "B2",
+    "translation": "soldar",
+    "phonetic": "/weld/",
+    "monolingual": "To join metal parts by heating to softening or melting."
+  },
+  {
+    "token": "wheelbarrow",
+    "type": "word",
+    "level": "B2",
+    "translation": "carretilla",
+    "phonetic": "/ˈwiːlˌber.oʊ/",
+    "monolingual": "A small cart for use in carrying loads."
+  },
+  {
+    "token": "wildlife",
+    "type": "word",
+    "level": "B2",
+    "translation": "vida silvestre",
+    "phonetic": "/ˈwaɪld.laɪf/",
+    "monolingual": "Wild animals collectively."
+  },
+  {
+    "token": "windowless",
+    "type": "word",
+    "level": "B2",
+    "translation": "sin ventanas",
+    "phonetic": "/ˈwɪn.doʊ.ləs/",
+    "monolingual": "Having no windows."
+  },
+  {
+    "token": "wireless",
+    "type": "word",
+    "level": "B2",
+    "translation": "inalámbrico",
+    "phonetic": "/ˈwaɪr.ləs/",
+    "monolingual": "Lacking or not requiring wires."
+  },
+  {
+    "token": "yield",
+    "type": "word",
+    "level": "B2",
+    "translation": "ceder",
+    "phonetic": "/jiːld/",
+    "monolingual": "To produce or provide."
+  },
+  {
+    "token": "zoology",
+    "type": "word",
+    "level": "B2",
+    "translation": "zoología",
+    "phonetic": "/zuːˈɒl.ə.dʒi/",
+    "monolingual": "The scientific study of animal behavior and structure."
+  }
+]
