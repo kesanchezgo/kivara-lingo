@@ -53,6 +53,8 @@ import { importStarDictPack } from '../../../content/nlp/stardict';
 import {
   aggregateCoverage,
   BUNDLE_PACK_ID,
+  exportCoverage,
+  importCoverage,
   MISS_PACK_ID,
   readPackStats,
   REMOTE_PACK_ID,
@@ -93,42 +95,26 @@ interface RecommendedPack {
 const PACKS_BASE_URL = 'https://pub-c3d38cca4dc2403b88934c56748f5144.r2.dev/releases/latest';
 
 const RECOMMENDED_PACKS: RecommendedPack[] = [
+  // Only packs whose ZIP we've verified exists at the CDN (HEAD 200).
+  // Variants without a published artifact (US/UK/AusE IPA, Tatoeba, freq)
+  // are tracked in the README backlog and will be added when published.
+  // Sizes are real HTTP `Content-Length` rounded — not estimates.
   // ── Bilingüe (traducción) ──────────────────────────────────────────────
   {
     title: 'Wiktionary EN→ES',
-    description: 'Diccionario bilingüe inglés→español, ≈250 000 entradas.',
+    description: 'Diccionario bilingüe inglés→español derivado de Wiktionary.',
     url: `${PACKS_BASE_URL}/kty-en-es.zip`,
-    size: '≈14 MB',
+    size: '≈1.5 MB',
     tier: 'core',
     group: 'bilingual',
     langs: 'EN → ES',
     license: 'CC-BY-SA · Wiktionary',
   },
   {
-    title: 'Wiktionary EN→ES (US)',
-    description: 'Variante con sentidos predominantes del inglés americano.',
-    url: `${PACKS_BASE_URL}/kty-en-us-es.zip`,
-    size: '≈12 MB',
-    tier: 'recommended',
-    group: 'bilingual',
-    langs: 'EN-US → ES',
-    license: 'CC-BY-SA · Wiktionary',
-  },
-  {
-    title: 'Wiktionary EN→ES (UK)',
-    description: 'Variante con definiciones del inglés británico (British English).',
-    url: `${PACKS_BASE_URL}/kty-en-uk-es.zip`,
-    size: '≈12 MB',
-    tier: 'recommended',
-    group: 'bilingual',
-    langs: 'EN-UK → ES',
-    license: 'CC-BY-SA · Wiktionary',
-  },
-  {
     title: 'Wiktionary ES→EN',
     description: 'Bilingüe inverso para usuarios que quieren mirar palabras en español.',
     url: `${PACKS_BASE_URL}/kty-es-en.zip`,
-    size: '≈10 MB',
+    size: '≈22 MB',
     tier: 'recommended',
     group: 'bilingual',
     langs: 'ES → EN',
@@ -139,7 +125,7 @@ const RECOMMENDED_PACKS: RecommendedPack[] = [
     title: 'Wiktionary EN→EN',
     description: 'Definiciones monolingües en inglés (B2+). Útil para inmersión.',
     url: `${PACKS_BASE_URL}/kty-en-en.zip`,
-    size: '≈40 MB',
+    size: '≈127 MB',
     tier: 'premium',
     group: 'monolingual',
     langs: 'EN → EN',
@@ -149,7 +135,7 @@ const RECOMMENDED_PACKS: RecommendedPack[] = [
     title: 'Wiktionary ES→ES',
     description: 'Definiciones monolingües en español (RAE-style).',
     url: `${PACKS_BASE_URL}/kty-es-es.zip`,
-    size: '≈18 MB',
+    size: '≈38 MB',
     tier: 'recommended',
     group: 'monolingual',
     langs: 'ES → ES',
@@ -160,63 +146,11 @@ const RECOMMENDED_PACKS: RecommendedPack[] = [
     title: 'Wiktionary EN IPA',
     description: 'Transcripción IPA real para ~200 000 palabras inglesas.',
     url: `${PACKS_BASE_URL}/kty-en-ipa.zip`,
-    size: '≈4 MB',
+    size: '≈5 MB',
     tier: 'recommended',
     group: 'phonetic',
     langs: 'EN IPA',
     license: 'CC-BY-SA · Wiktionary',
-  },
-  {
-    title: 'Wiktionary EN IPA (US)',
-    description: 'IPA específico del inglés americano para diferenciar /æ/ vs /ɑ/.',
-    url: `${PACKS_BASE_URL}/kty-en-us-ipa.zip`,
-    size: '≈3 MB',
-    tier: 'recommended',
-    group: 'phonetic',
-    langs: 'EN-US IPA',
-    license: 'CC-BY-SA · Wiktionary',
-  },
-  {
-    title: 'Wiktionary EN IPA (UK)',
-    description: 'IPA Received Pronunciation (RP) británica, útil para BBC/podcasts UK.',
-    url: `${PACKS_BASE_URL}/kty-en-uk-ipa.zip`,
-    size: '≈3 MB',
-    tier: 'recommended',
-    group: 'phonetic',
-    langs: 'EN-UK IPA',
-    license: 'CC-BY-SA · Wiktionary',
-  },
-  {
-    title: 'Wiktionary EN IPA (AusE)',
-    description: 'Australian English IPA — vocales centralizadas, /aː/ extendida.',
-    url: `${PACKS_BASE_URL}/kty-en-au-ipa.zip`,
-    size: '≈2 MB',
-    tier: 'recommended',
-    group: 'phonetic',
-    langs: 'EN-AU IPA',
-    license: 'CC-BY-SA · Wiktionary',
-  },
-  // ── Frequency / coverage helpers ───────────────────────────────────────
-  {
-    title: 'Frequency (CEFR-aware)',
-    description: 'Frecuencia + nivel CEFR aproximado por palabra (etiquetas A1–C2).',
-    url: `${PACKS_BASE_URL}/kty-en-freq-cefr.zip`,
-    size: '≈1 MB',
-    tier: 'recommended',
-    group: 'frequency',
-    langs: 'EN frecuencia',
-    license: 'CC-BY · OpenSubtitles + COCA-derived',
-  },
-  // ── Examples (Tatoeba) ─────────────────────────────────────────────────
-  {
-    title: 'Tatoeba EN↔ES ejemplos',
-    description: 'Pares de oraciones inglés↔español de Tatoeba (≈500k oraciones).',
-    url: `${PACKS_BASE_URL}/kty-tatoeba-en-es.zip`,
-    size: '≈22 MB',
-    tier: 'recommended',
-    group: 'examples',
-    langs: 'EN ↔ ES',
-    license: 'CC-BY · Tatoeba',
   },
 ];
 
@@ -243,6 +177,7 @@ export function DictPacksSection() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const stardictInputRef = useRef<HTMLInputElement>(null);
   const csvFileInputRef = useRef<HTMLInputElement>(null);
+  const coverageFileInputRef = useRef<HTMLInputElement>(null);
 
   const telemetry = useKivaraStore((s) => s.telemetry);
   const setTelemetry = useKivaraStore((s) => s.setTelemetry);
@@ -270,6 +205,59 @@ export function DictPacksSection() {
     await resetCoverage();
     await refresh();
   }, [refresh]);
+
+  const onExportCoverage = useCallback(async () => {
+    setFeedback(null);
+    try {
+      const snap = await exportCoverage('kivara-lingo');
+      const blob = new Blob([JSON.stringify(snap, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.download = `kivara-coverage-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setFeedback({
+        kind: 'ok',
+        message: `Cobertura exportada (${snap.rows.length} filas).`,
+      });
+    } catch (err) {
+      setFeedback({
+        kind: 'err',
+        message: `No se pudo exportar la cobertura: ${(err as Error).message}`,
+      });
+    }
+  }, []);
+
+  const onPickCoverageImport = useCallback(() => coverageFileInputRef.current?.click(), []);
+
+  const onCoverageFileChosen = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = '';
+      if (!file) return;
+      setFeedback(null);
+      try {
+        const text = await file.text();
+        const raw = JSON.parse(text);
+        const result = await importCoverage(raw, 'merge');
+        await refresh();
+        setFeedback({
+          kind: 'ok',
+          message: `Cobertura importada: ${result.added} filas nuevas, ${result.merged} fusionadas.`,
+        });
+      } catch (err) {
+        setFeedback({
+          kind: 'err',
+          message: `No se pudo importar: ${(err as Error).message}`,
+        });
+      }
+    },
+    [refresh],
+  );
 
   const onPickFile = useCallback(() => fileInputRef.current?.click(), []);
   const onPickStarDict = useCallback(() => stardictInputRef.current?.click(), []);
@@ -526,12 +514,21 @@ export function DictPacksSection() {
           )}
         </div>
 
-        {/* ── Coverage / telemetry widget (Tier 4c) ───────────────────── */}
+        {/* ── Coverage / telemetry widget (Tier 4c + 5) ──────────────── */}
         <CoverageWidget
           stats={stats}
           enabled={telemetry.enabled}
           onToggle={(v) => setTelemetry({ enabled: v })}
           onReset={() => void onResetCoverage()}
+          onExport={() => void onExportCoverage()}
+          onImport={onPickCoverageImport}
+        />
+        <input
+          ref={coverageFileInputRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(e) => void onCoverageFileChosen(e)}
         />
 
         {/* ── Installed packs list ────────────────────────────────────── */}
@@ -757,6 +754,40 @@ interface CoverageWidgetProps {
   enabled: boolean;
   onToggle: (v: boolean) => void;
   onReset: () => void;
+  onExport: () => void;
+  onImport: () => void;
+}
+
+/** Human-readable explanation for each bucket — surfaced as a tooltip. */
+const COVERAGE_HELP: Record<'bundle' | 'packs' | 'remote' | 'misses', string> = {
+  bundle:
+    'Palabras resueltas por el diccionario que viene incluido con la extensión (en.json, ≈4 100 entradas CEFR).',
+  packs:
+    'Palabras resueltas por algún pack que vos instalaste (Yomitan, StarDict, CSV personal).',
+  remote:
+    'Palabras que no estaban offline y se resolvieron en el traductor remoto (Google / DeepL). Reducir este número instalando más packs.',
+  misses:
+    'Palabras que nadie resolvió — quedaste sin definición. Suele indicar un dominio nuevo (técnico, jerga) o un pack faltante.',
+};
+
+/** Build the actionable "what should I do next?" hint based on current ratios. */
+function coverageHint(totals: ReturnType<typeof aggregateCoverage>): string | null {
+  if (totals.total === 0) return null;
+  if (totals.total < 20) {
+    return 'Pocos lookups todavía — seguí navegando para que los porcentajes se estabilicen.';
+  }
+  const missRatio = totals.misses / totals.total;
+  const remoteRatio = totals.remoteHits / totals.total;
+  if (missRatio >= 0.2) {
+    return `Sin match: ${(missRatio * 100).toFixed(0)}% — considerá instalar un pack monolingüe o de dominio específico.`;
+  }
+  if (remoteRatio >= 0.3) {
+    return `Remoto: ${(remoteRatio * 100).toFixed(0)}% — instalar el pack EN→ES bajaría este número.`;
+  }
+  if (totals.localCoverage >= 0.85) {
+    return 'Buena cobertura local — el traductor remoto casi no se usa.';
+  }
+  return null;
 }
 
 /**
@@ -764,17 +795,28 @@ interface CoverageWidgetProps {
  * offline vs. via the remote translator vs. completely missed". Everything is
  * read from the `pack_stats` Dexie table — never sent off-device.
  */
-function CoverageWidget({ stats, enabled, onToggle, onReset }: CoverageWidgetProps) {
+function CoverageWidget({
+  stats,
+  enabled,
+  onToggle,
+  onReset,
+  onExport,
+  onImport,
+}: CoverageWidgetProps) {
   const totals = aggregateCoverage(stats);
   const pct = (n: number) =>
     totals.total > 0 ? `${Math.round((n / totals.total) * 100)}%` : '—';
+  const hint = coverageHint(totals);
   return (
     <div className="rounded border border-zinc-200 dark:border-zinc-800 p-2 space-y-1.5 bg-zinc-50/60 dark:bg-zinc-900/40">
-      <div className="flex items-center gap-1.5">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex-1">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex-1 min-w-0">
           Cobertura local
         </div>
-        <label className="text-[10px] text-zinc-500 normal-case flex items-center gap-1 cursor-pointer">
+        <label
+          className="text-[10px] text-zinc-500 normal-case flex items-center gap-1 cursor-pointer"
+          title="Activar/desactivar el registro de cobertura. Los contadores existentes se conservan."
+        >
           <input
             type="checkbox"
             checked={enabled}
@@ -785,25 +827,84 @@ function CoverageWidget({ stats, enabled, onToggle, onReset }: CoverageWidgetPro
         </label>
         <button
           type="button"
+          onClick={onExport}
+          disabled={totals.total === 0}
+          className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
+          title="Descargar un JSON con el snapshot actual. Útil como backup o para mover entre máquinas."
+        >
+          Exportar
+        </button>
+        <button
+          type="button"
+          onClick={onImport}
+          className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+          title="Cargar un snapshot exportado antes. Se fusiona con los contadores actuales (no los reemplaza)."
+        >
+          Importar
+        </button>
+        <button
+          type="button"
           onClick={onReset}
           disabled={totals.total === 0}
           className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
-          title="Reiniciar contadores"
+          title="Borrar todos los contadores y empezar desde cero."
         >
           Reiniciar
         </button>
       </div>
       <div className="grid grid-cols-4 gap-1.5 text-[10px] normal-case">
-        <CoverageCell label="Bundle" value={totals.bundleHits} pct={pct(totals.bundleHits)} />
-        <CoverageCell label="Packs" value={totals.packHits} pct={pct(totals.packHits)} />
-        <CoverageCell label="Remoto" value={totals.remoteHits} pct={pct(totals.remoteHits)} />
-        <CoverageCell label="Sin match" value={totals.misses} pct={pct(totals.misses)} />
+        <CoverageCell
+          label="Bundle"
+          value={totals.bundleHits}
+          pct={pct(totals.bundleHits)}
+          help={COVERAGE_HELP.bundle}
+        />
+        <CoverageCell
+          label="Packs"
+          value={totals.packHits}
+          pct={pct(totals.packHits)}
+          help={COVERAGE_HELP.packs}
+        />
+        <CoverageCell
+          label="Remoto"
+          value={totals.remoteHits}
+          pct={pct(totals.remoteHits)}
+          help={COVERAGE_HELP.remote}
+        />
+        <CoverageCell
+          label="Sin match"
+          value={totals.misses}
+          pct={pct(totals.misses)}
+          help={COVERAGE_HELP.misses}
+        />
       </div>
-      <div className="text-[9px] text-zinc-500 normal-case leading-snug">
-        {totals.total === 0
-          ? 'Aún no hay lookups registrados. Haz hover sobre palabras para empezar a medir.'
-          : `Offline (bundle + packs) cubre ${(totals.localCoverage * 100).toFixed(0)}% de ${totals.total.toLocaleString()} lookups.`}
-        {' '}Todo se guarda local en IndexedDB · nada sale del navegador.
+      {totals.total === 0 ? (
+        <div className="text-[10px] text-zinc-500 normal-case leading-snug space-y-0.5">
+          <div>
+            Aún no hay lookups registrados.{' '}
+            <span className="text-zinc-700 dark:text-zinc-300">
+              Hacé hover sobre palabras en una página
+            </span>{' '}
+            para empezar a medir.
+          </div>
+          <div className="text-zinc-400 dark:text-zinc-500">
+            Si la telemetría está desactivada los hover no se contabilizan — activala arriba.
+          </div>
+        </div>
+      ) : (
+        <div className="text-[10px] text-zinc-500 normal-case leading-snug space-y-0.5">
+          <div>
+            Offline (bundle + packs) cubre{' '}
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">
+              {(totals.localCoverage * 100).toFixed(0)}%
+            </span>{' '}
+            de {totals.total.toLocaleString()} lookups.
+          </div>
+          {hint && <div className="text-zinc-600 dark:text-zinc-400">{hint}</div>}
+        </div>
+      )}
+      <div className="text-[9px] text-zinc-400 dark:text-zinc-500 normal-case leading-snug">
+        Todo se guarda local en IndexedDB · nada sale del navegador.
       </div>
     </div>
   );
@@ -813,13 +914,18 @@ function CoverageCell({
   label,
   value,
   pct,
+  help,
 }: {
   label: string;
   value: number;
   pct: string;
+  help: string;
 }) {
   return (
-    <div className="border border-zinc-200 dark:border-zinc-800 rounded px-1.5 py-1 bg-white dark:bg-zinc-900">
+    <div
+      className="border border-zinc-200 dark:border-zinc-800 rounded px-1.5 py-1 bg-white dark:bg-zinc-900 cursor-help"
+      title={help}
+    >
       <div className="text-[9px] uppercase tracking-wider text-zinc-500">{label}</div>
       <div className="text-[12px] font-medium text-zinc-800 dark:text-zinc-200 normal-case">
         {value.toLocaleString()}

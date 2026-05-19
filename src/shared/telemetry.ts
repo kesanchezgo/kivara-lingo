@@ -171,3 +171,127 @@ export async function resetCoverage(): Promise<void> {
     console.warn('[Kivara Lingo] telemetry reset failed', err);
   }
 }
+
+/**
+ * Snapshot wire format for coverage export/import. Versioned so future
+ * additions (e.g. daily history, per-language breakdown) can extend it
+ * without breaking older snapshots.
+ */
+export interface CoverageSnapshot {
+  /** Format version. Bump when shape changes incompatibly. */
+  version: 1;
+  /** ISO timestamp the snapshot was produced. */
+  exportedAt: string;
+  /** Best-effort label for the source (extension version, user-supplied). */
+  source?: string;
+  /** Raw rows, in their on-disk shape. */
+  rows: PackStatsRow[];
+}
+
+const CURRENT_SNAPSHOT_VERSION = 1 as const;
+
+/**
+ * Build an in-memory snapshot of the current `pack_stats` rows. Callers
+ * serialise this to JSON and offer it as a download — nothing is uploaded.
+ */
+export async function exportCoverage(source?: string): Promise<CoverageSnapshot> {
+  const rows = await readPackStats();
+  return {
+    version: CURRENT_SNAPSHOT_VERSION,
+    exportedAt: new Date().toISOString(),
+    source,
+    rows,
+  };
+}
+
+export type ImportMode = 'merge' | 'replace';
+
+export interface ImportResult {
+  added: number;
+  merged: number;
+  replaced: number;
+}
+
+/**
+ * Validate and load a previously-exported snapshot. `mode`:
+ *  - `merge`   → keep existing rows; for each imported row, take the max of
+ *                `hits` and the latest `lastUsedAt`. Safe to re-run.
+ *  - `replace` → drop existing rows first, then write the imported ones.
+ *                Use when restoring after a fresh install.
+ *
+ * Throws on shape errors so the UI can show a clear message.
+ */
+export async function importCoverage(
+  raw: unknown,
+  mode: ImportMode = 'merge',
+): Promise<ImportResult> {
+  const snap = parseSnapshot(raw);
+  const db = getDB();
+  if (mode === 'replace') {
+    await db.pack_stats.clear();
+  }
+  let added = 0;
+  let merged = 0;
+  for (const row of snap.rows) {
+    const existing = mode === 'merge' ? await db.pack_stats.get(row.packId) : undefined;
+    if (existing) {
+      await db.pack_stats.put({
+        packId: row.packId,
+        hits: Math.max(existing.hits, row.hits),
+        lastUsedAt: Math.max(existing.lastUsedAt, row.lastUsedAt),
+        createdAt: Math.min(existing.createdAt, row.createdAt),
+      });
+      merged += 1;
+    } else {
+      await db.pack_stats.put(row);
+      added += 1;
+    }
+  }
+  return {
+    added,
+    merged,
+    replaced: mode === 'replace' ? snap.rows.length : 0,
+  };
+}
+
+function parseSnapshot(raw: unknown): CoverageSnapshot {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error('Snapshot inválido: el archivo no es un objeto JSON.');
+  }
+  const obj = raw as Record<string, unknown>;
+  if (obj.version !== CURRENT_SNAPSHOT_VERSION) {
+    throw new Error(
+      `Versión de snapshot no soportada: ${String(obj.version)} (esperaba ${CURRENT_SNAPSHOT_VERSION}).`,
+    );
+  }
+  if (!Array.isArray(obj.rows)) {
+    throw new Error('Snapshot inválido: falta el array `rows`.');
+  }
+  const rows: PackStatsRow[] = [];
+  for (const r of obj.rows) {
+    if (!r || typeof r !== 'object') continue;
+    const row = r as Record<string, unknown>;
+    if (
+      typeof row.packId !== 'string' ||
+      typeof row.hits !== 'number' ||
+      typeof row.lastUsedAt !== 'number' ||
+      typeof row.createdAt !== 'number' ||
+      !Number.isFinite(row.hits) ||
+      row.hits < 0
+    ) {
+      throw new Error('Snapshot inválido: una fila tiene campos faltantes o con tipo incorrecto.');
+    }
+    rows.push({
+      packId: row.packId,
+      hits: row.hits,
+      lastUsedAt: row.lastUsedAt,
+      createdAt: row.createdAt,
+    });
+  }
+  return {
+    version: CURRENT_SNAPSHOT_VERSION,
+    exportedAt: typeof obj.exportedAt === 'string' ? obj.exportedAt : new Date().toISOString(),
+    source: typeof obj.source === 'string' ? obj.source : undefined,
+    rows,
+  };
+}
