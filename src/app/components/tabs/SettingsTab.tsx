@@ -1,11 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { sendMessage } from 'webext-bridge/content-script';
 import {
   Keyboard, EyeOff, ChevronDown, ChevronRight, Wand2,
   SlidersHorizontal, BookOpen, Languages, Volume2, Sparkles, Mic2,
-  Globe, Zap,
+  Globe, Zap, ExternalLink, CheckCircle2, AlertTriangle, Loader2, Eye, KeyRound,
 } from 'lucide-react';
 import { useKivaraStore } from '../../../shared/store';
-import type { AiProvider, PremiumTtsProvider, TranslateProvider } from '../../../shared/types';
+import type { PremiumTtsProvider, TranslateProvider, AiEnrichResponse } from '../../../shared/types';
+import {
+  AI_PRESETS,
+  getAiPreset,
+  pickModelForProvider,
+  type ConfigurableAiProvider,
+} from '../../../shared/ai-presets';
 import {
   WHISPER_MODEL_PRESETS,
   type WhisperModelKey,
@@ -330,76 +337,18 @@ export function SettingsTab() {
         <Accordion
           icon={<Sparkles size={10} />}
           title="IA premium"
-          summary={ai.provider === 'disabled' ? 'desactivada' : `${ai.provider}${ai.apiKey ? '' : ' · sin key'}`}
+          summary={
+            ai.provider === 'disabled'
+              ? 'desactivada'
+              : ai.apiKey
+                ? `${getAiPreset(ai.provider)?.label ?? ai.provider}`
+                : `${getAiPreset(ai.provider)?.label ?? ai.provider} · sin key`
+          }
           summaryColor={ai.provider !== 'disabled' && ai.apiKey ? 'text-indigo-500 dark:text-indigo-400' : undefined}
           open={isOpen('ai')}
           onToggle={() => toggle('ai')}
         >
-          <Row label="Proveedor">
-            <select
-              value={ai.provider}
-              onChange={(e) => setAi({ ...ai, provider: e.target.value as AiProvider })}
-              className="sl-select w-full"
-            >
-              <option value="disabled">Desactivado</option>
-              <option value="openai">OpenAI</option>
-              <option value="anthropic">Anthropic</option>
-              <option value="google-ai">Google Gemini</option>
-            </select>
-          </Row>
-          {ai.provider !== 'disabled' && (
-            <>
-              <Row label="API key">
-                <input
-                  type="password"
-                  value={ai.apiKey}
-                  onChange={(e) => setAi({ ...ai, apiKey: e.target.value })}
-                  placeholder="sk-... / Anthropic / Gemini API key"
-                  className="sl-input w-full"
-                />
-              </Row>
-              <Row label="Modelo">
-                <input
-                  type="text"
-                  value={ai.model}
-                  onChange={(e) => setAi({ ...ai, model: e.target.value })}
-                  placeholder={
-                    ai.provider === 'openai' ? 'gpt-4o-mini'
-                    : ai.provider === 'anthropic' ? 'claude-3-5-haiku-latest'
-                    : 'gemini-1.5-flash'
-                  }
-                  className="sl-input w-full"
-                />
-              </Row>
-              <Row label="Idioma nativo (override)">
-                <input
-                  type="text"
-                  value={ai.nativeLanguage ?? ''}
-                  onChange={(e) => setAi({ ...ai, nativeLanguage: e.target.value.trim() || undefined })}
-                  placeholder={`auto (${translate.targetLanguage})`}
-                  className="sl-input w-full"
-                />
-              </Row>
-              <Row label="Enriquecer al guardar">
-                <Toggle on={ai.enrichOnSave} onChange={(v) => setAi({ ...ai, enrichOnSave: v })} />
-              </Row>
-              <Row label="Enriquecer en hover">
-                <Toggle on={ai.enrichOnHover} onChange={(v) => setAi({ ...ai, enrichOnHover: v })} />
-              </Row>
-              <Row label="Caché" value={`${ai.cacheTtlDays}d`}>
-                <input
-                  type="range" min={1} max={90} step={1} value={ai.cacheTtlDays}
-                  onChange={(e) => setAi({ ...ai, cacheTtlDays: Number(e.target.value) })}
-                  className="sl-range w-full"
-                />
-              </Row>
-              {!ai.apiKey && (
-                <p className="text-[10px] text-rose-600 dark:text-rose-400 leading-snug">
-                  Falta la API key — las llamadas IA se omitirán hasta que la añadas.
-                </p>
-              )}
-            </>
-          )}
+          <AiByokSection />
         </Accordion>
 
         {/* ── TTS premium ────────────────────────────────────────────── */}
@@ -593,6 +542,284 @@ export function SettingsTab() {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ─── AiByokSection ───────────────────────────────────────────────────── */
+
+type AiTestStatus =
+  | { state: 'idle' }
+  | { state: 'testing' }
+  | { state: 'ok'; provider: string; latencyMs: number; cached: boolean }
+  | { state: 'error'; error: string };
+
+/**
+ * BYOK ("bring your own key") panel for the AI premium accordion.
+ *
+ * Three-card layout that surfaces each supported provider as a clickable
+ * preset (Gemini · Claude · OpenAI). Selecting a card switches
+ * `ai.provider`, fills in the recommended model id, and reveals the key
+ * input + a "Probar conexión" button that fires a real `AI_ENRICH` against
+ * the user's key. The kept-everywhere advanced toggles (hover / save /
+ * cache) live below in a compact row so users who already configured the
+ * provider can flip them without scrolling.
+ */
+function AiByokSection() {
+  const ai = useKivaraStore((s) => s.ai);
+  const setAi = useKivaraStore((s) => s.setAi);
+  const translate = useKivaraStore((s) => s.translate);
+
+  const [showKey, setShowKey] = useState(false);
+  const [test, setTest] = useState<AiTestStatus>({ state: 'idle' });
+  const activePreset = useMemo(() => getAiPreset(ai.provider), [ai.provider]);
+
+  function selectPreset(provider: ConfigurableAiProvider) {
+    const preset = getAiPreset(provider);
+    if (!preset) return;
+    setTest({ state: 'idle' });
+    setAi({
+      ...ai,
+      provider,
+      model: pickModelForProvider(provider, ai.model),
+    });
+  }
+
+  function disable() {
+    setTest({ state: 'idle' });
+    setAi({ ...ai, provider: 'disabled' });
+  }
+
+  async function runTest() {
+    if (ai.provider === 'disabled' || !ai.apiKey.trim()) return;
+    setTest({ state: 'testing' });
+    try {
+      const response = (await sendMessage(
+        'AI_ENRICH',
+        {
+          token: 'hello',
+          sentence: 'Hello, how are you today?',
+          sourceLang: translate.sourceLang || 'en',
+          nativeLang: ai.nativeLanguage || translate.targetLanguage || 'es',
+          platform: 'settings-byok-test',
+        },
+        'background',
+      )) as AiEnrichResponse;
+      if (response.ok) {
+        setTest({
+          state: 'ok',
+          provider: response.data.provider,
+          latencyMs: response.data.latencyMs,
+          cached: response.data.cached,
+        });
+      } else {
+        setTest({ state: 'error', error: response.error });
+      }
+    } catch (err) {
+      setTest({
+        state: 'error',
+        error: err instanceof Error ? err.message : 'unknown error',
+      });
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug">
+        Trae tu propia API key para enriquecer las tarjetas con definiciones contextuales,
+        sinónimos, colocaciones y registro. <span className="font-medium text-zinc-700 dark:text-zinc-300">Tu key vive solo en tu navegador</span> — nunca se sube a un servidor nuestro.
+      </p>
+
+      <ul className="grid grid-cols-1 gap-1.5">
+        {AI_PRESETS.map((preset) => {
+          const selected = ai.provider === preset.provider;
+          return (
+            <li
+              key={preset.provider}
+              className={`rounded border px-2 py-1.5 transition-colors ${
+                selected
+                  ? 'border-indigo-400 dark:border-indigo-600/70 bg-indigo-50/60 dark:bg-indigo-500/10'
+                  : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => selectPreset(preset.provider)}
+                  className="flex-1 min-w-0 text-left flex items-center gap-2"
+                >
+                  <span
+                    className={`shrink-0 w-3.5 h-3.5 rounded-full border-2 transition-colors ${
+                      selected
+                        ? 'border-indigo-500 dark:border-indigo-400 bg-indigo-500'
+                        : 'border-zinc-300 dark:border-zinc-700'
+                    }`}
+                    aria-hidden="true"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-[12px] font-semibold text-zinc-800 dark:text-zinc-100 normal-case">
+                        {preset.label}
+                      </span>
+                      {preset.recommended && (
+                        <span className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                          Recomendado
+                        </span>
+                      )}
+                      {preset.hasFreeTier && (
+                        <span className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                          Gratis
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-zinc-500 dark:text-zinc-400 normal-case leading-snug">
+                      {preset.tagline}
+                    </div>
+                    <div className="text-[10px] text-zinc-400 dark:text-zinc-500 normal-case">
+                      {preset.pricingNote}
+                    </div>
+                  </div>
+                </button>
+                <a
+                  href={preset.getKeyUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="shrink-0 inline-flex items-center gap-1 text-[10px] px-1.5 py-1 rounded border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                  title={`Abrir ${preset.getKeyUrl}`}
+                >
+                  Obtener key
+                  <ExternalLink size={9} />
+                </a>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {activePreset ? (
+        <div className="space-y-2">
+          <Row
+            label={
+              <span className="inline-flex items-center gap-1.5">
+                <KeyRound size={10} className="text-zinc-400" />
+                API key · {activePreset.label}
+              </span>
+            }
+          >
+            <div className="flex items-center gap-1.5">
+              <input
+                type={showKey ? 'text' : 'password'}
+                value={ai.apiKey}
+                onChange={(e) => setAi({ ...ai, apiKey: e.target.value })}
+                placeholder={
+                  activePreset.provider === 'openai'
+                    ? 'sk-...'
+                    : activePreset.provider === 'anthropic'
+                      ? 'sk-ant-...'
+                      : 'AIza...'
+                }
+                className="sl-input flex-1"
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey((v) => !v)}
+                className="p-1.5 rounded border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                title={showKey ? 'Ocultar' : 'Mostrar'}
+                aria-label={showKey ? 'Ocultar API key' : 'Mostrar API key'}
+              >
+                {showKey ? <EyeOff size={11} /> : <Eye size={11} />}
+              </button>
+            </div>
+          </Row>
+          <Row label="Modelo">
+            <input
+              type="text"
+              value={ai.model}
+              onChange={(e) => setAi({ ...ai, model: e.target.value })}
+              placeholder={activePreset.defaultModel}
+              className="sl-input w-full"
+              spellCheck={false}
+            />
+          </Row>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => void runTest()}
+              disabled={!ai.apiKey.trim() || test.state === 'testing'}
+              className="text-[11px] inline-flex items-center gap-1.5 px-2 py-1 rounded border border-indigo-300 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {test.state === 'testing' ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <Zap size={11} />
+              )}
+              {test.state === 'testing' ? 'Probando…' : 'Probar conexión'}
+            </button>
+            <button
+              type="button"
+              onClick={disable}
+              className="text-[10px] text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 underline-offset-2 hover:underline"
+            >
+              Desactivar IA
+            </button>
+            {test.state === 'ok' && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 size={11} />
+                {test.cached ? 'Cache hit (la key no se validó)' : `${test.provider} respondió en ${test.latencyMs} ms`}
+              </span>
+            )}
+            {test.state === 'error' && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-rose-600 dark:text-rose-400">
+                <AlertTriangle size={11} />
+                {test.error}
+              </span>
+            )}
+          </div>
+
+          <div className="rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/40 p-2 space-y-1.5">
+            <Row label="Enriquecer al guardar">
+              <Toggle on={ai.enrichOnSave} onChange={(v) => setAi({ ...ai, enrichOnSave: v })} />
+            </Row>
+            <Row label="Enriquecer en hover">
+              <Toggle on={ai.enrichOnHover} onChange={(v) => setAi({ ...ai, enrichOnHover: v })} />
+            </Row>
+            <Row label="Idioma nativo (override)">
+              <input
+                type="text"
+                value={ai.nativeLanguage ?? ''}
+                onChange={(e) => setAi({ ...ai, nativeLanguage: e.target.value.trim() || undefined })}
+                placeholder={`auto (${translate.targetLanguage})`}
+                className="sl-input w-full"
+              />
+            </Row>
+            <Row label="Caché" value={`${ai.cacheTtlDays}d`}>
+              <input
+                type="range"
+                min={1}
+                max={90}
+                step={1}
+                value={ai.cacheTtlDays}
+                onChange={(e) => setAi({ ...ai, cacheTtlDays: Number(e.target.value) })}
+                className="sl-range w-full"
+              />
+            </Row>
+          </div>
+
+          {!ai.apiKey.trim() && (
+            <p className="text-[10px] text-rose-600 dark:text-rose-400 leading-snug">
+              Falta la API key — las llamadas IA se omitirán hasta que la añadas.
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug">
+          Elige un proveedor arriba para comenzar. Si no quieres usar IA, las traducciones
+          siguen funcionando con el diccionario offline + el traductor remoto gratuito.
+        </p>
+      )}
     </div>
   );
 }
