@@ -340,13 +340,26 @@ export async function lookupYomitanTerm(
  * We surface the first sense as `monolingual` and the rest as `bilingual` so
  * the popover renders meaningfully even when the pack doesn't ship explicit
  * fields.
+ *
+ * Examples buried inside `details-entry-examples` / `example-sentence`
+ * structured-content nodes are extracted into `entry.examples` and stripped
+ * from the definition text so the `monolingual` / `bilingual` fields don't
+ * leak the source-language sentence into the Spanish gloss.
  */
 function dictTermToEntry(
   surfaceToken: string,
   row: DictTermRow,
   lemmaOf?: string,
 ): DictionaryEntry {
-  const senses = row.definitions.map(extractDefinitionText).filter((s) => s.length > 0);
+  const senses: string[] = [];
+  const exampleAccum: string[] = [];
+  for (const def of row.definitions) {
+    const parts = extractDefinitionParts(def);
+    if (parts.text) senses.push(parts.text);
+    for (const ex of parts.examples) {
+      if (!exampleAccum.includes(ex)) exampleAccum.push(ex);
+    }
+  }
   const translation = senses[0] ?? '—';
   const bilingual = senses.length > 1 ? senses.slice(1, 4).join(' · ') : undefined;
   return {
@@ -356,34 +369,144 @@ function dictTermToEntry(
     translation,
     bilingual,
     monolingual: senses.length === 1 ? undefined : senses[0],
-    examples: undefined,
+    examples: exampleAccum.length > 0 ? exampleAccum.slice(0, 5) : undefined,
     lemmaOf,
   };
 }
 
 /**
- * Walk a Yomitan definition entry and pull plain text out of it.
+ * Walk a Yomitan structured-content node and split it into:
+ *  - `text`     — the natural-language definition with example wrappers
+ *                 and inline grammatical tags removed
+ *  - `examples` — the source-language example sentences (and their
+ *                 translations when present) found anywhere under the node
  *
- * Yomitan's structured-content can nest arbitrarily; we do a depth-first
- * collect of every `.text` leaf plus any "tag === 'span' / 'div'" wrappers.
+ * The two known kaikki-to-yomitan / wiktionary-to-yomitan example shapes are
+ * recognised:
+ *
+ *  - `{ tag: "div", data: { content: "example-sentence" }, content: [...] }`
+ *    contains paired children:
+ *      `{ data: { content: "example-sentence-a" }, content: "<source>" }`
+ *      `{ data: { content: "example-sentence-b" }, content: "<translation>" }`
+ *    rendered as `<source> — <translation>` so the Anki card surfaces both.
+ *
+ *  - `{ tag: "details", data: { content: "details-entry-examples" }, ... }`
+ *    wraps one or more `example-sentence` nodes plus a `summary-entry`
+ *    label like "1 ejemplo" we want to drop from the definition text.
+ *
+ * Inline grammatical tags (`{ data: { content: "tags" }, ... }`, e.g. the
+ * `obs` / `col` Wiktionary markers) are also stripped from the definition
+ * text — they were polluting the `monolingual` field with abbreviations
+ * the learner doesn't care about.
+ *
+ * Exported for tests so we can pin the contract against real-world entries.
  */
-function extractDefinitionText(d: unknown): string {
-  if (typeof d === 'string') return d.trim();
+export function extractDefinitionParts(d: unknown): {
+  text: string;
+  examples: string[];
+} {
+  const examples: string[] = [];
+  const text = walkForText(d, examples).trim().replace(/\s+/g, ' ');
+  return { text, examples };
+}
+
+function walkForText(d: unknown, examples: string[]): string {
+  if (typeof d === 'string') return d;
   if (!d || typeof d !== 'object') return '';
-  const obj = d as { type?: string; text?: string; content?: unknown; structuredContent?: unknown };
-  if (obj.type === 'text' && obj.text) return obj.text.trim();
-  if (obj.text) return obj.text.trim();
-  if (obj.type === 'structured-content' && obj.content) {
-    return extractDefinitionText(obj.content);
+  if (Array.isArray(d)) {
+    return (d as unknown[]).map((c) => walkForText(c, examples)).join(' ');
   }
-  if (obj.structuredContent) {
-    return extractDefinitionText(obj.structuredContent);
+  const obj = d as {
+    type?: string;
+    text?: string;
+    tag?: string;
+    content?: unknown;
+    structuredContent?: unknown;
+    data?: { content?: string };
+  };
+  const dataContent = obj.data?.content;
+
+  // 1. Dedicated example-sentence container — collect, do not contribute text.
+  if (dataContent === 'example-sentence') {
+    const example = collectExampleSentence(obj.content);
+    if (example) examples.push(example);
+    return '';
   }
-  if (Array.isArray(obj)) {
-    return (obj as unknown[]).map(extractDefinitionText).filter(Boolean).join(' ');
+  // 2. Wrapper around one or more example sentences plus a summary like
+  //    "2 ejemplos" — recurse into the children but emit no text of our own.
+  if (
+    dataContent === 'details-entry-examples' ||
+    dataContent === 'extra-info' ||
+    dataContent === 'summary-entry'
+  ) {
+    if (obj.content !== undefined) walkForText(obj.content, examples);
+    return '';
   }
-  if (Array.isArray(obj.content)) {
-    return (obj.content as unknown[]).map(extractDefinitionText).filter(Boolean).join(' ');
+  // 3. Inline grammatical-tag wrapper — drop entirely. The `obs`, `col`
+  //    badges read as noise inside the `monolingual` field.
+  if (dataContent === 'tags' || dataContent === 'tag') {
+    return '';
   }
+
+  // Plain text leaf or text-typed node.
+  if (obj.type === 'text' && typeof obj.text === 'string') return obj.text;
+  if (typeof obj.text === 'string') return obj.text;
+
+  // structured-content wrappers.
+  if (obj.type === 'structured-content' && obj.content !== undefined) {
+    return walkForText(obj.content, examples);
+  }
+  if (obj.structuredContent !== undefined) {
+    return walkForText(obj.structuredContent, examples);
+  }
+  if (obj.content !== undefined) return walkForText(obj.content, examples);
+  return '';
+}
+
+/**
+ * Render a single `example-sentence` node into a `"source — translation"`
+ * string. When only the source is present, return it alone. When neither is
+ * present, return the empty string so the caller skips the entry.
+ */
+function collectExampleSentence(content: unknown): string {
+  let source = '';
+  let translation = '';
+  const visit = (node: unknown): void => {
+    if (!node) return;
+    if (Array.isArray(node)) {
+      for (const c of node) visit(c);
+      return;
+    }
+    if (typeof node !== 'object') return;
+    const obj = node as {
+      content?: unknown;
+      data?: { content?: string };
+    };
+    const dc = obj.data?.content;
+    if (dc === 'example-sentence-a') {
+      const text = flattenText(obj.content);
+      if (text) source = text;
+      return;
+    }
+    if (dc === 'example-sentence-b') {
+      const text = flattenText(obj.content);
+      if (text) translation = text;
+      return;
+    }
+    if (obj.content !== undefined) visit(obj.content);
+  };
+  visit(content);
+  if (!source && !translation) return '';
+  if (source && translation) return `${source} — ${translation}`;
+  return source || translation;
+}
+
+function flattenText(node: unknown): string {
+  if (typeof node === 'string') return node.trim();
+  if (Array.isArray(node)) return node.map(flattenText).filter(Boolean).join(' ').trim();
+  if (!node || typeof node !== 'object') return '';
+  const obj = node as { text?: string; content?: unknown };
+  if (typeof obj.text === 'string') return obj.text.trim();
+  if (obj.content !== undefined) return flattenText(obj.content);
   return '';
 }
