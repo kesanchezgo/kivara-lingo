@@ -1,12 +1,19 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { sendMessage } from 'webext-bridge/options';
 import {
   CheckCircle2, AlertTriangle, Loader2, Play, ChevronRight, ChevronLeft,
   ExternalLink, Subtitles, LayoutGrid, Sparkles, Moon, Sun, Wand2,
-  BookText, Upload, Power, PowerOff, Trash2,
+  Download, ShieldCheck,
 } from 'lucide-react';
 import { useKivaraStore } from '../shared/store';
 import { autoMapFields, detectFieldSource } from '../shared/anki-field-detect';
+import { importYomitanPackFromUrl, listYomitanPacks } from '../content/nlp/yomitan';
+import {
+  CURATED_DICT_PACKS,
+  defaultSelection,
+  pickPacksToInstall,
+  type OnboardingDictPack,
+} from './dict-onboarding';
 import type {
   AiProvider,
   AnkiMapping,
@@ -20,12 +27,12 @@ import type {
 
 type StepId = 'welcome' | 'lang' | 'anki' | 'mapping' | 'dict' | 'ai' | 'demo' | 'done';
 
-const STEPS: { id: StepId; label: string; optional?: boolean }[] = [
+const STEPS: { id: StepId; label: string; optional?: boolean; recommended?: boolean }[] = [
   { id: 'welcome', label: 'Bienvenida' },
   { id: 'lang',    label: 'Idioma' },
   { id: 'anki',    label: 'Anki' },
   { id: 'mapping', label: 'Mapeo' },
-  { id: 'dict',    label: 'Diccionarios', optional: true },
+  { id: 'dict',    label: 'Diccionarios', recommended: true },
   { id: 'ai',      label: 'IA', optional: true },
   { id: 'demo',    label: 'Demo' },
 ];
@@ -267,6 +274,9 @@ export function Onboarding() {
                     {s.optional && (
                       <span className="text-[9px] text-zinc-400 dark:text-zinc-600 leading-tight">opcional</span>
                     )}
+                    {s.recommended && (
+                      <span className="text-[9px] text-amber-500 dark:text-amber-400 leading-tight">recomendado</span>
+                    )}
                   </div>
                 </div>
                 {i < STEPS.length - 1 && (
@@ -372,7 +382,9 @@ export function Onboarding() {
             )}
             {(step === 'dict' || step === 'ai') && (
               <span className="text-[11px] text-zinc-400 dark:text-zinc-500 hidden sm:block">
-                Paso opcional — puedes configurarlo después en Settings
+                {step === 'dict'
+                  ? 'Recomendado — podés instalar más desde Settings'
+                  : 'Paso opcional — puedes configurarlo después en Settings'}
               </span>
             )}
             <button
@@ -707,142 +719,282 @@ function MappingStep({
   );
 }
 
-/* ─── DictStep — preview only; the real packs UI lives in Settings ────────── */
+/* ─── DictStep — real Yomitan importer wired to the curated catalogue ────── */
 
-interface DictPackRow {
-  id: number; title: string; sourceLang: string; targetLang: string;
-  termCount: number; revision: string; enabled: boolean;
+type InstallStatus = 'idle' | 'queued' | 'downloading' | 'installed' | 'error';
+
+interface InstallState {
+  status: InstallStatus;
+  /** Populated on `error` so the user can see why a pack failed. */
+  error?: string;
+  /** Populated on `installed` so we can surface the term count next to the title. */
+  termsImported?: number;
 }
 
-const SAMPLE_PACKS: DictPackRow[] = [
-  { id: 1, title: 'JMdict (English)', sourceLang: 'en', targetLang: 'es', termCount: 186_000, revision: '2024-01', enabled: true },
-];
-
 function DictStep() {
-  const [packs, setPacks] = useState<DictPackRow[]>(SAMPLE_PACKS);
-  const [importing, setImporting] = useState(false);
-  const [feedback, setFeedback] = useState<{ kind: 'ok' | 'err'; message: string } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [installedTitles, setInstalledTitles] = useState<Set<string>>(new Set());
+  const [installedTermCounts, setInstalledTermCounts] = useState<Record<string, number>>({});
+  const [selection, setSelection] = useState<Set<string>>(new Set());
+  const [statuses, setStatuses] = useState<Record<string, InstallState>>({});
+  const [running, setRunning] = useState(false);
+  const [topError, setTopError] = useState<string | null>(null);
 
-  const onFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    setFeedback(null);
-    setImporting(true);
-    // Onboarding preview only — the real importer lives in Settings →
-    // Diccionarios offline (DictPacksSection). We just simulate progress so
-    // the user sees what the flow looks like before the wizard ends.
-    await new Promise((r) => setTimeout(r, 1200));
-    const termCount = Math.floor(Math.random() * 80_000) + 20_000;
-    setPacks((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        title: file.name.replace(/\.zip$/, ''),
-        sourceLang: 'en',
-        targetLang: 'es',
-        termCount,
-        revision: new Date().toISOString().slice(0, 7),
-        enabled: true,
-      },
-    ]);
-    setFeedback({
-      kind: 'ok',
-      message: `${file.name.replace(/\.zip$/, '')} · ${termCount.toLocaleString()} términos importados`,
-    });
-    setImporting(false);
+  // Hydrate the "already installed" set on mount so re-runs of the wizard
+  // don't re-download packs the user already has.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const rows = await listYomitanPacks();
+        const titles = new Set(rows.map((r) => r.title));
+        const counts: Record<string, number> = {};
+        for (const r of rows) counts[r.title] = r.termCount;
+        setInstalledTitles(titles);
+        setInstalledTermCounts(counts);
+        setSelection(defaultSelection(CURATED_DICT_PACKS, titles));
+      } catch (err) {
+        // Dexie not available — degrade gracefully and let the user proceed.
+        // The packs section in Settings will surface real errors later.
+        console.warn('[Kivara Lingo] could not list packs in onboarding', err);
+        setSelection(defaultSelection(CURATED_DICT_PACKS, new Set()));
+      }
+    })();
   }, []);
+
+  const toggle = useCallback((url: string) => {
+    setSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(url)) next.delete(url);
+      else next.add(url);
+      return next;
+    });
+  }, []);
+
+  const toInstall = useMemo(
+    () => pickPacksToInstall(CURATED_DICT_PACKS, installedTitles, selection),
+    [installedTitles, selection],
+  );
+
+  const installAll = useCallback(async () => {
+    if (toInstall.length === 0) return;
+    setRunning(true);
+    setTopError(null);
+    // Seed every selected pack as 'queued' so the UI shows the full pipeline
+    // before the first download starts.
+    setStatuses((prev) => {
+      const next = { ...prev };
+      for (const p of toInstall) next[p.url] = { status: 'queued' };
+      return next;
+    });
+    for (const pack of toInstall) {
+      setStatuses((prev) => ({ ...prev, [pack.url]: { status: 'downloading' } }));
+      try {
+        const result = await importYomitanPackFromUrl(pack.url);
+        if (result.ok) {
+          setStatuses((prev) => ({
+            ...prev,
+            [pack.url]: { status: 'installed', termsImported: result.termsImported },
+          }));
+          setInstalledTitles((prev) => new Set(prev).add(result.pack.title));
+          setInstalledTermCounts((prev) => ({ ...prev, [result.pack.title]: result.pack.termCount }));
+        } else {
+          setStatuses((prev) => ({
+            ...prev,
+            [pack.url]: { status: 'error', error: result.error },
+          }));
+        }
+      } catch (err) {
+        setStatuses((prev) => ({
+          ...prev,
+          [pack.url]: {
+            status: 'error',
+            error: err instanceof Error ? err.message : 'unknown error',
+          },
+        }));
+      }
+    }
+    setRunning(false);
+  }, [toInstall]);
+
+  const allDone = useMemo(
+    () =>
+      toInstall.length === 0 &&
+      Array.from(selection).every((url) => {
+        const pack = CURATED_DICT_PACKS.find((p) => p.url === url);
+        return pack ? installedTitles.has(pack.title) : true;
+      }),
+    [toInstall.length, selection, installedTitles],
+  );
+
+  const totalSelectedSize = toInstall.length;
 
   return (
     <StepSection
       title="Diccionarios offline"
-      subtitle="Opcional — importa packs Yomitan (.zip) para tener definiciones y traducciones incluso sin conexión. Puedes hacerlo también después desde Settings."
+      subtitle="Recomendado — instala los packs marcados para que cada hover devuelva traducción, fonética y ejemplos sin depender de internet."
     >
-      <div className="rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/25 p-4">
-        <p className="text-[12px] text-amber-800 dark:text-amber-300 leading-relaxed">
-          Sin diccionario offline, Kivara Lingo consulta traductores externos (MyMemory, Lingva…). Con un pack instalado las respuestas son instantáneas y sin cuota diaria.
-        </p>
-      </div>
-
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-        {packs.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-8">
-            <BookText size={24} className="text-zinc-300 dark:text-zinc-700" />
-            <p className="text-[12px] text-zinc-400 dark:text-zinc-600">Ningún pack instalado aún</p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
-            {packs.map((pack) => (
-              <li key={pack.id} className="flex items-center gap-3 px-4 py-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200">{pack.title}</span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 shrink-0">
-                      {pack.sourceLang} → {pack.targetLang}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                    {pack.termCount.toLocaleString()} términos · rev. {pack.revision}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPacks((prev) => prev.map((p) => p.id === pack.id ? { ...p, enabled: !p.enabled } : p))}
-                  className={`p-1.5 rounded-lg transition-colors ${pack.enabled ? 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-                  title={pack.enabled ? 'Deshabilitar' : 'Habilitar'}
-                >
-                  {pack.enabled ? <Power size={14} /> : <PowerOff size={14} />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm(`¿Eliminar "${pack.title}"?`)) {
-                      setPacks((prev) => prev.filter((p) => p.id !== pack.id));
-                    }
-                  }}
-                  className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
-                  title="Eliminar"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div className="px-4 py-3 border-t border-zinc-100 dark:border-zinc-800">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={importing}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-indigo-400 dark:hover:border-indigo-500/50 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/5 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-            <span className="text-[12px] font-medium">{importing ? 'Importando…' : 'Importar pack Yomitan (.zip)'}</span>
-          </button>
-          <input ref={fileInputRef} type="file" accept=".zip,application/zip" onChange={(e) => void onFile(e)} className="hidden" />
+      <div className="rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/25 p-4 flex gap-3">
+        <ShieldCheck size={18} className="text-indigo-500 shrink-0 mt-0.5" />
+        <div className="text-[12px] text-indigo-800 dark:text-indigo-200 leading-relaxed space-y-1">
+          <p>
+            <strong className="font-semibold">Por qué importan:</strong> el diccionario incluido cubre ~4 100 palabras CEFR.
+            Los packs Wiktionary suben la cobertura local a ~98% y agregan IPA, ejemplos y categoría gramatical.
+          </p>
+          <p className="text-indigo-700/80 dark:text-indigo-300/80">
+            Todo se guarda en tu navegador (IndexedDB). Podés modificar la selección luego desde Settings → Diccionarios offline.
+          </p>
         </div>
       </div>
 
-      {feedback && (
-        <div className={`flex items-center gap-2 rounded-xl px-4 py-3 border text-[12px] ${
-          feedback.kind === 'ok'
-            ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/25 text-emerald-700 dark:text-emerald-400'
-            : 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/25 text-rose-700 dark:text-rose-400'
-        }`}>
-          <CheckCircle2 size={14} className={feedback.kind === 'ok' ? '' : 'text-rose-500'} />
-          {feedback.message}
+      <ul className="space-y-2">
+        {CURATED_DICT_PACKS.map((pack) => {
+          const isInstalled = installedTitles.has(pack.title);
+          const status = statuses[pack.url];
+          const checked = selection.has(pack.url) || isInstalled;
+          const tierBorder =
+            pack.tier === 'core'
+              ? 'border-amber-300 dark:border-amber-700/60 bg-amber-50/40 dark:bg-amber-900/10'
+              : pack.tier === 'premium'
+                ? 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900'
+                : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900';
+          return (
+            <li
+              key={pack.url}
+              className={`rounded-xl border ${tierBorder} px-4 py-3 flex items-start gap-3 transition-colors`}
+            >
+              <input
+                type="checkbox"
+                id={`dict-onb-${pack.url}`}
+                checked={checked}
+                disabled={isInstalled || running}
+                onChange={() => toggle(pack.url)}
+                className="mt-1 accent-indigo-600 cursor-pointer disabled:cursor-not-allowed"
+              />
+              <label
+                htmlFor={`dict-onb-${pack.url}`}
+                className="flex-1 min-w-0 cursor-pointer select-none"
+              >
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">
+                    {pack.title}
+                  </span>
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400">{pack.size}</span>
+                  <span
+                    className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                      pack.tier === 'core'
+                        ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                        : pack.tier === 'premium'
+                          ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                          : 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'
+                    }`}
+                  >
+                    {pack.benefit}
+                  </span>
+                </div>
+                <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-snug mt-0.5">
+                  {pack.description}
+                </p>
+                <DictStepRowStatus
+                  isInstalled={isInstalled}
+                  installedTermCount={installedTermCounts[pack.title]}
+                  status={status}
+                />
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="flex items-center gap-3 flex-wrap">
+        <button
+          type="button"
+          onClick={() => void installAll()}
+          disabled={running || totalSelectedSize === 0}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm hover:shadow-md hover:shadow-indigo-500/20 transition-all"
+        >
+          {running ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+          <span className="text-[12px] font-medium">
+            {running
+              ? 'Instalando…'
+              : totalSelectedSize === 0
+                ? allDone
+                  ? 'Todo listo'
+                  : 'Nada seleccionado'
+                : `Instalar ${totalSelectedSize} ${totalSelectedSize === 1 ? 'pack' : 'packs'}`}
+          </span>
+        </button>
+        {allDone && totalSelectedSize === 0 && (
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 size={13} />
+            Los packs marcados ya están instalados.
+          </span>
+        )}
+      </div>
+
+      {topError && (
+        <div className="rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/25 px-4 py-3 text-[12px] text-rose-700 dark:text-rose-400 flex items-start gap-2">
+          <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+          <span>{topError}</span>
         </div>
       )}
 
       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed px-0.5">
-        Compatible con cualquier diccionario en formato Yomitan (.zip). Encuéntralos en{' '}
-        <a href="https://yomitan.io" target="_blank" rel="noreferrer" className="text-indigo-500 hover:underline">yomitan.io</a>.
-        Puedes añadir más desde <span className="font-medium text-zinc-600 dark:text-zinc-300">Settings → Diccionarios offline</span>.
+        Compatible con cualquier diccionario en formato Yomitan o StarDict.
+        Encontrá más packs y opciones avanzadas en{' '}
+        <span className="font-medium text-zinc-600 dark:text-zinc-300">Settings → Diccionarios offline</span>.
       </p>
     </StepSection>
   );
+}
+
+interface DictStepRowStatusProps {
+  isInstalled: boolean;
+  installedTermCount?: number;
+  status: InstallState | undefined;
+}
+
+function DictStepRowStatus({ isInstalled, installedTermCount, status }: DictStepRowStatusProps) {
+  if (status?.status === 'installed') {
+    return (
+      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 inline-flex items-center gap-1">
+        <CheckCircle2 size={12} />
+        Instalado · {(status.termsImported ?? 0).toLocaleString()} términos
+      </p>
+    );
+  }
+  if (status?.status === 'downloading') {
+    return (
+      <p className="text-[11px] text-indigo-600 dark:text-indigo-400 mt-1 inline-flex items-center gap-1">
+        <Loader2 size={12} className="animate-spin" />
+        Descargando e instalando…
+      </p>
+    );
+  }
+  if (status?.status === 'queued') {
+    return (
+      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 inline-flex items-center gap-1">
+        <Loader2 size={12} className="opacity-50" />
+        En cola
+      </p>
+    );
+  }
+  if (status?.status === 'error') {
+    return (
+      <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 inline-flex items-center gap-1">
+        <AlertTriangle size={12} />
+        {status.error || 'Error inesperado'}
+      </p>
+    );
+  }
+  if (isInstalled) {
+    const count = installedTermCount ? ` · ${installedTermCount.toLocaleString()} términos` : '';
+    return (
+      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 inline-flex items-center gap-1">
+        <CheckCircle2 size={12} />
+        Ya instalado{count}
+      </p>
+    );
+  }
+  return null;
 }
 
 /* ─── AIStep ──────────────────────────────────────────────────────────────── */
