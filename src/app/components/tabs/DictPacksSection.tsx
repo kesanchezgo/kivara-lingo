@@ -27,7 +27,7 @@
  * `dict_terms` rows in Dexie), so once a pack is in IndexedDB every
  * surface — popover, save-card enrichment, options page — sees it.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BookText,
   Trash2,
@@ -39,6 +39,9 @@ import {
   Download,
   FileText,
   Library,
+  Trophy,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import type { DictPackRow, PackStatsRow } from '../../../shared/db';
 import {
@@ -53,12 +56,15 @@ import { importStarDictPack } from '../../../content/nlp/stardict';
 import {
   aggregateCoverage,
   BUNDLE_PACK_ID,
+  DEFAULT_IDLE_THRESHOLD_MS,
   exportCoverage,
+  idlePacks,
   importCoverage,
   MISS_PACK_ID,
   readPackStats,
   REMOTE_PACK_ID,
   resetCoverage,
+  topPacksByHits,
 } from '../../../shared/telemetry';
 import { useKivaraStore } from '../../../shared/store';
 
@@ -181,6 +187,11 @@ export function DictPacksSection() {
 
   const telemetry = useKivaraStore((s) => s.telemetry);
   const setTelemetry = useKivaraStore((s) => s.setTelemetry);
+
+  const idlePackIds = useMemo(
+    () => new Set(idlePacks(stats).map((r) => r.packId)),
+    [stats],
+  );
 
   const refresh = useCallback(async () => {
     try {
@@ -531,6 +542,9 @@ export function DictPacksSection() {
           onChange={(e) => void onCoverageFileChosen(e)}
         />
 
+        {/* ── Top packs ranking (Tier 6b) ─────────────────────────────── */}
+        <TopPacksSection stats={stats} packs={packs} />
+
         {/* ── Installed packs list ────────────────────────────────────── */}
         {loading ? (
           <div className="text-[11px] text-zinc-500 italic">Cargando packs…</div>
@@ -540,46 +554,57 @@ export function DictPacksSection() {
               Instalados
             </div>
             <ul className="space-y-1.5">
-              {packs.map((pack) => (
-                <li
-                  key={pack.id}
-                  className="border border-zinc-200 dark:border-zinc-800 rounded px-2 py-1.5 flex items-center gap-2"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-[12px] font-medium text-zinc-800 dark:text-zinc-200 truncate normal-case">
-                        {pack.title}
-                      </span>
-                      <span className="text-[9px] text-zinc-500 normal-case shrink-0">
-                        {pack.sourceLang} → {pack.targetLang}
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-zinc-500 normal-case flex gap-2">
-                      <span>{pack.termCount.toLocaleString()} términos</span>
-                      <span>· rev. {pack.revision}</span>
-                      {!pack.enabled && (
-                        <span className="text-rose-400">· deshabilitado</span>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void onToggle(pack)}
-                    className="p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
-                    title={pack.enabled ? 'Deshabilitar' : 'Habilitar'}
+              {packs.map((pack) => {
+                const idle = idlePackIds.has(pack.id);
+                return (
+                  <li
+                    key={pack.id}
+                    className="border border-zinc-200 dark:border-zinc-800 rounded px-2 py-1.5 flex items-center gap-2"
                   >
-                    {pack.enabled ? <Power size={12} /> : <PowerOff size={12} />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void onDelete(pack)}
-                    className="p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/20 text-rose-500"
-                    title="Eliminar"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </li>
-              ))}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-1.5 flex-wrap">
+                        <span className="text-[12px] font-medium text-zinc-800 dark:text-zinc-200 truncate normal-case">
+                          {pack.title}
+                        </span>
+                        <span className="text-[9px] text-zinc-500 normal-case shrink-0">
+                          {pack.sourceLang} → {pack.targetLang}
+                        </span>
+                        {idle && (
+                          <span
+                            className="text-[9px] px-1 py-0.5 rounded border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 normal-case shrink-0"
+                            title={idleHint(pack.termCount)}
+                          >
+                            Sin usar 30d+
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-zinc-500 normal-case flex gap-2">
+                        <span>{pack.termCount.toLocaleString()} términos</span>
+                        <span>· rev. {pack.revision}</span>
+                        {!pack.enabled && (
+                          <span className="text-rose-400">· deshabilitado</span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void onToggle(pack)}
+                      className="p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
+                      title={pack.enabled ? 'Deshabilitar' : 'Habilitar'}
+                    >
+                      {pack.enabled ? <Power size={12} /> : <PowerOff size={12} />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void onDelete(pack)}
+                      className="p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/20 text-rose-500"
+                      title="Eliminar"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
@@ -931,6 +956,133 @@ function CoverageCell({
         {value.toLocaleString()}
       </div>
       <div className="text-[9px] text-zinc-400 normal-case">{pct}</div>
+    </div>
+  );
+}
+
+/**
+ * Rough on-disk footprint estimate for an installed pack.
+ *
+ * IndexedDB rows for dict_terms tend to land around 200 bytes each once
+ * Dexie wraps the definitions array, headword, tags, and key indices. Empirical
+ * measurements on the bundled Wiktionary EN→ES pack put it at ~190 bytes/term.
+ * Used purely for the "Considerá borrarlo" hint, never persisted — accuracy
+ * here is intentionally directional, not exact.
+ */
+const AVG_TERM_BYTES = 200;
+
+function estimatePackSize(termCount: number): string {
+  const bytes = Math.max(0, termCount) * AVG_TERM_BYTES;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`;
+}
+
+function idleHint(termCount: number): string {
+  return `No se usa hace 30 días o más. Considerá borrarlo para liberar ~${estimatePackSize(
+    termCount,
+  )}.`;
+}
+
+interface TopPacksSectionProps {
+  stats: PackStatsRow[];
+  packs: DictPackRow[];
+}
+
+/**
+ * Collapsible "Top packs" ranking that surfaces which user-installed packs
+ * are doing the heavy lifting. Synthetic buckets (`bundle`, `remote`, `miss`)
+ * are intentionally excluded — those already have their own cells in the
+ * coverage widget.
+ *
+ * The section auto-hides when there's nothing to show (no real packs with
+ * lookups yet) so it doesn't take up vertical space on a fresh install.
+ */
+function TopPacksSection({ stats, packs }: TopPacksSectionProps) {
+  const [open, setOpen] = useState(false);
+  const ranking = useMemo(() => topPacksByHits(stats, 10), [stats]);
+  const packById = useMemo(() => {
+    const m = new Map<string, DictPackRow>();
+    for (const p of packs) m.set(p.id, p);
+    return m;
+  }, [packs]);
+  const idleIds = useMemo(
+    () => new Set(idlePacks(stats, DEFAULT_IDLE_THRESHOLD_MS).map((r) => r.packId)),
+    [stats],
+  );
+  if (ranking.length === 0) return null;
+  const totalHits = ranking.reduce((acc, r) => acc + r.hits, 0);
+  return (
+    <div className="rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/40">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-1.5 px-2 py-1.5 text-left"
+        aria-expanded={open}
+      >
+        {open ? (
+          <ChevronDown size={10} className="text-zinc-500" />
+        ) : (
+          <ChevronRight size={10} className="text-zinc-500" />
+        )}
+        <Trophy size={10} className="text-amber-500" />
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex-1">
+          Top packs
+        </span>
+        <span className="text-[10px] text-zinc-500 normal-case">
+          {ranking.length} · {totalHits.toLocaleString()} hits
+        </span>
+      </button>
+      {open && (
+        <ol className="px-2 pb-2 space-y-1">
+          {ranking.map((row, idx) => {
+            const pack = packById.get(row.packId);
+            const title = pack?.title ?? row.packId;
+            const langs = pack ? `${pack.sourceLang} → ${pack.targetLang}` : null;
+            const share = totalHits > 0 ? Math.round((row.hits / totalHits) * 100) : 0;
+            return (
+              <li
+                key={row.packId}
+                className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 rounded px-1.5 py-1 bg-white dark:bg-zinc-900"
+              >
+                <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 w-4 shrink-0 text-right tabular-nums">
+                  {idx + 1}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-1.5 flex-wrap">
+                    <span className="text-[11px] font-medium text-zinc-800 dark:text-zinc-200 truncate normal-case">
+                      {title}
+                    </span>
+                    {langs && (
+                      <span className="text-[9px] text-zinc-500 normal-case shrink-0">
+                        {langs}
+                      </span>
+                    )}
+                    {idleIds.has(row.packId) && (
+                      <span
+                        className="text-[9px] px-1 py-0.5 rounded border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 normal-case shrink-0"
+                        title={idleHint(pack?.termCount ?? 0)}
+                      >
+                        Sin usar 30d+
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[9px] text-zinc-500 normal-case">
+                    {row.hits.toLocaleString()} hits · {share}%
+                    {pack ? ` · ${pack.termCount.toLocaleString()} términos` : ' · pack borrado'}
+                  </div>
+                </div>
+                <div className="w-16 h-1 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden shrink-0">
+                  <div
+                    className="h-full bg-amber-400 dark:bg-amber-500"
+                    style={{ width: `${share}%` }}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
     </div>
   );
 }
