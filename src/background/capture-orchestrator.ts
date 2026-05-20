@@ -15,6 +15,7 @@ import { extractAudioClip, getAudioCaptureStatus } from './audio-capture-manager
 import { getDB, type PendingNoteRow } from '../shared/db';
 import { enrichWithAi, getAiSettings, getResolvedNativeLang } from './ai-enrich';
 import { generateTtsAudio } from './tts';
+import { getMissingPhonetic } from './phonetic-augment';
 
 interface ResolveContext {
   request: CreateCardRequest;
@@ -208,6 +209,19 @@ export async function createCardFromRequest(
     sentenceTranslation: request.sentenceTranslation ?? '',
     ai: aiData,
   };
+
+  // Fill the phonetic field on cards where the local dictionary stack
+  // resolved a translation but didn't carry IPA. Best-effort, cached, and
+  // never blocks the save longer than the augmenter's own timeout.
+  if (!ctx.phonetic) {
+    try {
+      const augmented = await getMissingPhonetic(request.token, request.language ?? 'en');
+      if (augmented) ctx.phonetic = augmented;
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : 'phonetic-augment';
+      warnings.push(`Fonética no disponible: ${reason}`);
+    }
+  }
 
   const fieldMapping = Object.entries(mapping.fieldSources ?? {});
   const fields: Record<string, string> = {};

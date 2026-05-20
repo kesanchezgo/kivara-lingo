@@ -37,6 +37,7 @@
     "https://*.lingva.ml/*",
     "https://lingva.pussthecat.org/*",
     "https://translate.plausibility.cloud/*",
+    "https://api.dictionaryapi.dev/*",
     "http://localhost/*",
     "http://127.0.0.1/*",
     "https://*.r2.dev/*",
