@@ -46,11 +46,13 @@ vi.mock('../../src/shared/db', () => ({
 
 import {
   BUNDLE_PACK_ID,
+  DEFAULT_IDLE_THRESHOLD_MS,
   MISS_PACK_ID,
   REMOTE_PACK_ID,
   aggregateCoverage,
   deletePackStats,
   exportCoverage,
+  idlePacks,
   importCoverage,
   isTelemetryEnabled,
   readPackStats,
@@ -59,6 +61,7 @@ import {
   recordPackInstall,
   resetCoverage,
   setTelemetryEnabled,
+  topPacksByHits,
 } from '../../src/shared/telemetry';
 
 describe('telemetry', () => {
@@ -224,5 +227,105 @@ describe('telemetry', () => {
       await expect(importCoverage(null, 'replace')).rejects.toThrow();
       await expect(importCoverage('not json', 'replace')).rejects.toThrow();
     });
+  });
+});
+describe('topPacksByHits', () => {
+  function row(packId: string, hits: number, lastUsedAt = 0): PackStatsRow {
+    return { packId, hits, lastUsedAt, createdAt: 0 };
+  }
+
+  it('ranks real packs by hits desc and excludes synthetic buckets', () => {
+    const rows: PackStatsRow[] = [
+      row('pack-a', 5, 10),
+      row('pack-b', 12, 20),
+      row(BUNDLE_PACK_ID, 999, 30),
+      row(REMOTE_PACK_ID, 50, 40),
+      row(MISS_PACK_ID, 7, 50),
+      row('pack-c', 8, 60),
+    ];
+    const top = topPacksByHits(rows);
+    expect(top.map((r) => r.packId)).toEqual(['pack-b', 'pack-c', 'pack-a']);
+  });
+
+  it('breaks hit ties by most-recently-used and respects the limit', () => {
+    const rows: PackStatsRow[] = [
+      row('pack-old', 5, 1_000),
+      row('pack-mid', 5, 2_000),
+      row('pack-new', 5, 3_000),
+      row('pack-extra', 5, 500),
+    ];
+    const top = topPacksByHits(rows, 2);
+    expect(top.map((r) => r.packId)).toEqual(['pack-new', 'pack-mid']);
+  });
+
+  it('drops packs with zero hits and accepts a limit of 0', () => {
+    const rows: PackStatsRow[] = [row('pack-empty', 0, 100), row('pack-real', 3, 200)];
+    expect(topPacksByHits(rows).map((r) => r.packId)).toEqual(['pack-real']);
+    expect(topPacksByHits(rows, 0)).toEqual([]);
+  });
+
+  it('does not mutate the input array', () => {
+    const rows: PackStatsRow[] = [row('a', 1, 1), row('b', 2, 2), row('c', 3, 3)];
+    const snapshot = rows.map((r) => r.packId);
+    topPacksByHits(rows);
+    expect(rows.map((r) => r.packId)).toEqual(snapshot);
+  });
+});
+
+describe('idlePacks', () => {
+  const NOW = 100 * 86_400_000;
+
+  function row(packId: string, hits: number, lastUsedAt: number): PackStatsRow {
+    return { packId, hits, lastUsedAt, createdAt: 0 };
+  }
+
+  it('flags packs that were used but not in the last 30 days', () => {
+    const rows: PackStatsRow[] = [
+      row('pack-fresh', 3, NOW - 5 * 86_400_000),
+      row('pack-stale', 8, NOW - 45 * 86_400_000),
+      row('pack-edge', 1, NOW - 30 * 86_400_000),
+    ];
+    const idle = idlePacks(rows, DEFAULT_IDLE_THRESHOLD_MS, NOW);
+    expect(idle.map((r) => r.packId)).toEqual(['pack-stale']);
+  });
+
+  it('ignores synthetic buckets and never-used packs', () => {
+    const rows: PackStatsRow[] = [
+      row(BUNDLE_PACK_ID, 999, NOW - 365 * 86_400_000),
+      row(REMOTE_PACK_ID, 999, NOW - 365 * 86_400_000),
+      row(MISS_PACK_ID, 999, NOW - 365 * 86_400_000),
+      row('pack-zero', 0, NOW - 365 * 86_400_000),
+      row('pack-real', 4, NOW - 60 * 86_400_000),
+    ];
+    const idle = idlePacks(rows, DEFAULT_IDLE_THRESHOLD_MS, NOW);
+    expect(idle.map((r) => r.packId)).toEqual(['pack-real']);
+  });
+
+  it('sorts oldest first so the UI surfaces the worst offenders', () => {
+    const rows: PackStatsRow[] = [
+      row('pack-recent-stale', 1, NOW - 31 * 86_400_000),
+      row('pack-ancient', 1, NOW - 200 * 86_400_000),
+      row('pack-mid', 1, NOW - 90 * 86_400_000),
+    ];
+    const idle = idlePacks(rows, DEFAULT_IDLE_THRESHOLD_MS, NOW);
+    expect(idle.map((r) => r.packId)).toEqual([
+      'pack-ancient',
+      'pack-mid',
+      'pack-recent-stale',
+    ]);
+  });
+
+  it('honours a custom threshold', () => {
+    const rows: PackStatsRow[] = [
+      row('pack-7d', 2, NOW - 8 * 86_400_000),
+      row('pack-2d', 2, NOW - 2 * 86_400_000),
+    ];
+    const idle = idlePacks(rows, 7 * 86_400_000, NOW);
+    expect(idle.map((r) => r.packId)).toEqual(['pack-7d']);
+  });
+
+  it('returns an empty list for negative thresholds', () => {
+    const rows: PackStatsRow[] = [row('pack-old', 5, NOW - 1_000_000_000)];
+    expect(idlePacks(rows, -1, NOW)).toEqual([]);
   });
 });
