@@ -194,6 +194,20 @@ export function DictPacksSection() {
     [packs],
   );
 
+  const isPackInstalled = useCallback(
+    (recommendedTitle: string, recommendedUrl: string): boolean => {
+      if (installedPackTitles.has(recommendedTitle)) return true;
+      const basename = recommendedUrl.split('/').pop()?.replace(/\.zip$/i, '') ?? '';
+      if (basename && installedPackTitles.has(basename)) return true;
+      for (const title of installedPackTitles) {
+        if (title.toLowerCase().includes(basename.toLowerCase())) return true;
+        if (recommendedTitle.toLowerCase().includes(title.toLowerCase())) return true;
+      }
+      return false;
+    },
+    [installedPackTitles],
+  );
+
   const refresh = useCallback(async () => {
     try {
       const reply: unknown = await new Promise((resolve) => {
@@ -494,7 +508,7 @@ export function DictPacksSection() {
                             {p.license}
                           </div>
                         </div>
-                        {installedPackTitles.has(p.title) ? (
+                        {isPackInstalled(p.title, p.url) ? (
                           <span className="text-[10px] px-2 py-1 rounded border border-emerald-300 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 inline-flex items-center gap-1.5 shrink-0">
                             <CheckCircle2 size={11} />
                             Instalado

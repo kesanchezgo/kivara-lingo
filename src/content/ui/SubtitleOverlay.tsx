@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { sendMessage } from 'webext-bridge/content-script';
-import { Volume1, Copy, Check, Quote, AudioLines, Camera } from 'lucide-react';
+import { Volume1, Copy, Check, Quote, AudioLines, Camera, GraduationCap, BookOpenCheck, Link2 } from 'lucide-react';
 import type { SubtitleStyles, Mode, TranslateResponse } from '../../shared/types';
 import { tokenizeSentence } from '../nlp/tokenize';
 import { lookupDictionary } from '../nlp/dictionary';
@@ -112,6 +112,7 @@ export function SubtitleOverlay({
   );
   const showDualSubtitle = useKivaraStore((s) => s.translate.showDualSubtitle);
   const nativeLanguage = useKivaraStore((s) => s.translate.targetLanguage || 'es');
+  const setMode = useKivaraStore((s) => s.setMode);
 
   // Dual caption priority chain:
   //   1. Native-language alt cue from the platform's own subtitle track
@@ -365,14 +366,50 @@ export function SubtitleOverlay({
   const isReading = mode === 'reading';
 
   return (
-    <div
-      className="absolute inset-x-0 z-10 flex flex-col items-center px-8 transition-all duration-200"
-      style={{
-        top: `${verticalPercent}%`,
-        transform: 'translateY(-50%)',
-        pointerEvents: 'none',
-      }}
-    >
+    <>
+      {/* Extension badge + mode toggle (top-right of video) */}
+      <div className="absolute top-4 right-4 z-30 flex items-center gap-1.5 pointer-events-auto">
+        {expandedMWEs.size > 0 && !isReading && (
+          <button
+            tabIndex={-1}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              setExpandedMWEs(new Set());
+              setHoveredKey(null);
+              setHoveredIdx(null);
+            }}
+            className="bg-amber-500/15 backdrop-blur-md text-amber-200 text-[11px] font-medium px-2 py-1 rounded-full shadow-lg flex items-center gap-1 hover:bg-amber-500/25 transition-colors border border-amber-400/30"
+            title="Volver a juntar todas las expresiones"
+          >
+            <Link2 size={11} /> Unir expresiones
+          </button>
+        )}
+        <button
+          tabIndex={-1}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setMode(isReading ? 'learning' : 'reading')}
+          className="group/badge w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md ring-1 ring-white/10 hover:ring-white/20 flex items-center justify-center transition-all"
+          title={!isReading ? 'Kivara Lingo · Aprendizaje (clic para Lectura)' : 'Kivara Lingo · Lectura (clic para Aprendizaje)'}
+        >
+          {!isReading ? (
+            <span className="relative flex items-center justify-center">
+              <span className="absolute w-1.5 h-1.5 rounded-full bg-emerald-400/40 animate-ping" style={{ animationDuration: '2.4s' }} />
+              <GraduationCap size={13} className="text-indigo-300/90 group-hover/badge:text-indigo-200" strokeWidth={2} />
+            </span>
+          ) : (
+            <BookOpenCheck size={13} className="text-zinc-400 group-hover/badge:text-zinc-200" strokeWidth={2} />
+          )}
+        </button>
+      </div>
+
+      <div
+        className="absolute inset-x-0 z-10 flex flex-col items-center px-8 transition-all duration-200"
+        style={{
+          top: `${verticalPercent}%`,
+          transform: 'translateY(-50%)',
+          pointerEvents: 'none',
+        }}
+      >
       <div
         className="relative flex flex-col items-center pointer-events-auto select-text"
         onMouseEnter={handleMouseEnter}
@@ -703,5 +740,6 @@ export function SubtitleOverlay({
         </div>
       </div>
     </div>
+    </>
   );
 }
