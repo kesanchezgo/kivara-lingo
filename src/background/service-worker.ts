@@ -38,6 +38,7 @@ import {
 import { translateText } from './translate';
 import { speak } from './tts';
 import { enrichWithAi, getAiSettings, getResolvedNativeLang } from './ai-enrich';
+import { getMissingPhonetic } from './phonetic-augment';
 import { lookupDictionary } from '../content/nlp/dictionary';
 import { lookupYomitanTerm } from '../content/nlp/yomitan';
 import {
@@ -484,6 +485,21 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
     } catch (err) {
       // Pack lookup errors are non-fatal — fall through to remote.
       console.warn('[Kivara Lingo] yomitan lookup failed', err);
+    }
+  }
+
+  // Augment a missing IPA from the public Wiktionary mirror so the hover
+  // popover (and any downstream save) carries pronunciation. Cached
+  // aggressively — first hover for a given word may add ~200-500 ms; later
+  // hovers are zero-latency. We only consult the API when the local stack
+  // already resolved the word (local hit + IPA gap); a full miss falls
+  // through to the remote translator chain as before.
+  if (local && !local.phonetic) {
+    try {
+      const augmented = await getMissingPhonetic(token, sourceLang);
+      if (augmented) local = { ...local, phonetic: augmented };
+    } catch {
+      // Best-effort — never fail RESOLVE_WORD because of the augmenter.
     }
   }
   waves.push({ stage: 'local', entry: local ?? null });
