@@ -372,6 +372,7 @@ function extractFirstIpa(meta: unknown): string | null {
     const entry = t as { ipa?: string; tags?: string[] };
     const ipa = typeof entry.ipa === 'string' ? entry.ipa.trim() : '';
     if (!ipa) continue;
+    if (!isValidIpa(ipa)) continue;
     if (!fallback) fallback = ipa;
     const tags = Array.isArray(entry.tags) ? entry.tags : [];
     const isGenAm = tags.some(
@@ -380,6 +381,22 @@ function extractFirstIpa(meta: unknown): string | null {
     if (isGenAm) return ipa;
   }
   return fallback;
+}
+
+/**
+ * Validate that a string looks like a real IPA transcription and not a
+ * Wiktionary template artifact. Valid IPA strings:
+ *  - Start with `/` or `[` (phonemic or phonetic notation)
+ *  - Are reasonably short (< 80 chars)
+ *  - Don't contain JSON-like characters (`{`, `}`, `"`)
+ *  - Don't contain "Template:" which is a Wiktionary artifact
+ */
+function isValidIpa(s: string): boolean {
+  if (s.length > 80) return false;
+  if (s.includes('Template:') || s.includes('"') || s.includes('{')) return false;
+  if (/^[/\[]/.test(s)) return true;
+  if (/^\\/.test(s)) return true;
+  return false;
 }
 
 /**

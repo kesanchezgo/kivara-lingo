@@ -647,9 +647,14 @@ export function SubtitleOverlay({
             <div className="w-px h-3.5 bg-zinc-700/80" />
             <span className="text-[9px] text-zinc-500 px-2 hidden sm:flex items-center gap-1">
               <kbd className="font-sans font-semibold text-[9px] text-zinc-400 bg-zinc-800 border border-zinc-700 rounded px-1 py-px">
-                Scroll
+                Alt+Scroll
               </kbd>
-              <span>sobre la expresión para separarla</span>
+              <span>separa expresión</span>
+              <span className="text-zinc-600">·</span>
+              <kbd className="font-sans font-semibold text-[9px] text-zinc-400 bg-zinc-800 border border-zinc-700 rounded px-1 py-px">
+                Shift+Click
+              </kbd>
+              <span>selección libre</span>
             </span>
           </div>
         )}
@@ -814,7 +819,7 @@ export function SubtitleOverlay({
                           onWheel={handleWheel}
                           title={
                             wheelable
-                              ? 'Ctrl+Scroll para separar / unir esta expresión'
+                              ? 'Alt+Scroll para separar / unir esta expresión'
                               : undefined
                           }
                           className={`relative rounded px-0.5 transition-all duration-150 ${cursorClass} ${colorClass} ${selectionClass}`}
