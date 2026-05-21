@@ -3,8 +3,23 @@ import { ShadowHost } from './shadow-host';
 import { detectPlatform } from './platform-adapters';
 import { App } from './ui/App';
 import type { SubtitleSource } from './platform-adapters/types';
+import { useKivaraStore } from '../shared/store';
 
 console.log('[Kivara Lingo] content script injected on', window.location.hostname);
+
+// Sync the user's configured source language to a DOM attribute so the
+// MAIN-world interceptor (which can't access chrome.storage or the Zustand
+// store) can read it and rewrite YouTube's timedtext lang parameter.
+function syncSourceLangToDOM() {
+  const lang = useKivaraStore.getState().translate.sourceLang || 'en';
+  document.documentElement.setAttribute('data-kivara-source-lang', lang);
+}
+syncSourceLangToDOM();
+useKivaraStore.subscribe((state, prev) => {
+  if (state.translate.sourceLang !== prev.translate.sourceLang) {
+    syncSourceLangToDOM();
+  }
+});
 
 interface Mount {
   hostElement: HTMLElement;

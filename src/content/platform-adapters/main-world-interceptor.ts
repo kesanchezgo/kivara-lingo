@@ -102,6 +102,26 @@ declare global {
     }
   }
 
+  /**
+   * Rewrite the `lang` parameter in a YouTube timedtext URL to match the
+   * user's configured source language. The source language is synced to
+   * `document.documentElement.dataset.kivaraSourceLang` by the isolated-world
+   * content script.
+   */
+  function rewriteTimedtextLang(url: string): string {
+    const sourceLang = document.documentElement.getAttribute('data-kivara-source-lang');
+    if (!sourceLang) return url;
+    try {
+      const parsed = new URL(url, window.location.href);
+      const currentLang = parsed.searchParams.get('lang');
+      if (currentLang === sourceLang) return url;
+      parsed.searchParams.set('lang', sourceLang);
+      return parsed.toString();
+    } catch {
+      return url;
+    }
+  }
+
   function isFastMatch(url: string): boolean {
     try {
       return fastMatchers.some((m) => m(url));
@@ -151,6 +171,26 @@ declare global {
 
   const origFetch = window.fetch;
   window.fetch = async function patchedFetch(...args: Parameters<typeof fetch>): Promise<Response> {
+    // Rewrite YouTube timedtext lang parameter to match user's source language
+    try {
+      const url =
+        typeof args[0] === 'string'
+          ? args[0]
+          : (args[0] as Request)?.url || (args[0] as URL)?.href || '';
+      if (url && /\/api\/timedtext\?/.test(url)) {
+        const rewritten = rewriteTimedtextLang(url);
+        if (rewritten !== url) {
+          if (typeof args[0] === 'string') {
+            args[0] = rewritten;
+          } else if (args[0] instanceof Request) {
+            args[0] = new Request(rewritten, args[0]);
+          }
+        }
+      }
+    } catch {
+      // Don't break fetch if rewrite fails
+    }
+
     const response = await origFetch.apply(this, args);
     try {
       const url =
@@ -209,7 +249,15 @@ declare global {
       password?: string | null,
     ) {
       try {
-        const u = typeof url === 'string' ? url : url.href;
+        let u = typeof url === 'string' ? url : url.href;
+        // Rewrite YouTube timedtext lang parameter
+        if (/\/api\/timedtext\?/.test(u)) {
+          const rewritten = rewriteTimedtextLang(u);
+          if (rewritten !== u) {
+            u = rewritten;
+            url = u;
+          }
+        }
         if (isFastMatch(u)) {
           interceptUrl = u;
           sniffOnly = false;
