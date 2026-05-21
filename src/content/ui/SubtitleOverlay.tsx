@@ -40,6 +40,7 @@ export function SubtitleOverlay({
   const [copied, setCopied] = useState(false);
   const [captureState, setCaptureState] = useState<'idle' | 'screenshot' | 'audio'>('idle');
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [expandedMWEs, setExpandedMWEs] = useState<Set<string>>(new Set());
   const [altExpandedKey, setAltExpandedKey] = useState<string | null>(null);
   const [savedTokens, setSavedTokens] = useState<Set<string>>(new Set());
@@ -188,6 +189,7 @@ export function SubtitleOverlay({
   // Reset cue-scoped UI state whenever the cue changes.
   useEffect(() => {
     setHoveredKey(null);
+    setHoveredIdx(null);
     setAltExpandedKey(null);
     setSelection(null);
     dragAnchorRef.current = null;
@@ -203,12 +205,16 @@ export function SubtitleOverlay({
     return () => window.removeEventListener('mouseup', up);
   }, []);
 
-  const handleTokenEnter = (key: string) => {
+  const handleTokenEnter = (key: string, idx: number) => {
     if (wordHoverTimeout.current) clearTimeout(wordHoverTimeout.current);
     setHoveredKey(key);
+    setHoveredIdx(idx);
   };
   const handleTokenLeave = () => {
-    wordHoverTimeout.current = setTimeout(() => setHoveredKey(null), 180);
+    wordHoverTimeout.current = setTimeout(() => {
+      setHoveredKey(null);
+      setHoveredIdx(null);
+    }, 180);
   };
 
   /**
@@ -529,7 +535,7 @@ export function SubtitleOverlay({
                     </span>
                   );
                 }
-                const isTokHovered = hoveredKey === tok.key;
+                const isTokHovered = hoveredIdx === i;
                 const isSaved = savedTokens.has(tok.key.toLowerCase());
                 // After the Phase 2 audit we make `unknown` interactive too —
                 // hovering triggers the remote translation chain inside
@@ -622,7 +628,7 @@ export function SubtitleOverlay({
                   <span key={tok.key + i} className="relative inline-block">
                     <span
                       onMouseEnter={() => {
-                        if (isInteractive) handleTokenEnter(tok.key);
+                        if (isInteractive) handleTokenEnter(tok.key, i);
                         handleTokenDragEnter(i);
                       }}
                       onMouseLeave={handleTokenLeave}
@@ -643,7 +649,7 @@ export function SubtitleOverlay({
                     {isTokHovered && isInteractive && (
                       <WordPopover
                         visible={true}
-                        onMouseEnter={() => handleTokenEnter(tok.key)}
+                        onMouseEnter={() => handleTokenEnter(tok.key, i)}
                         onMouseLeave={handleTokenLeave}
                         token={tok.text}
                         sentence={targetSentence}
@@ -682,7 +688,7 @@ export function SubtitleOverlay({
           {showDualSubtitle && dualCaptionText && !isReading && (
             <div
               data-kivara-hover-zone="true"
-              className={`mt-2 text-center transition-all duration-300 overflow-hidden ${
+              className={`mt-2 text-[0.65em] opacity-90 transition-all duration-300 overflow-hidden ${
                 isHovered ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'
               }`}
               title={
@@ -690,10 +696,6 @@ export function SubtitleOverlay({
                   ? 'Subtítulo nativo de la plataforma'
                   : 'Traducción automática'
               }
-              style={{
-                fontSize: `${Math.max(12, subtitleStyles.fontSize - 4)}px`,
-                fontStyle: 'italic',
-              }}
             >
               <span className="text-zinc-300">{dualCaptionText}</span>
             </div>
