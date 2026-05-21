@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { sendMessage } from 'webext-bridge/content-script';
 import {
   Keyboard, EyeOff, ChevronDown, ChevronRight, Wand2,
@@ -574,9 +574,23 @@ function AiByokSection() {
   const [test, setTest] = useState<AiTestStatus>({ state: 'idle' });
   const activePreset = useMemo(() => getAiPreset(ai.provider), [ai.provider]);
 
+  /**
+   * Auto-validation guards. We track the last-validated triplet so the
+   * debounced effect doesn't re-fire on unrelated re-renders, and we hold a
+   * timer ref so successive keystrokes coalesce into a single network call.
+   */
+  const lastValidatedKey = useRef<string | null>(null);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const buildValidationKey = useCallback(
+    () => `${ai.provider}|${ai.model}|${ai.apiKey}`,
+    [ai.provider, ai.model, ai.apiKey],
+  );
+
   function selectPreset(provider: ConfigurableAiProvider) {
     const preset = getAiPreset(provider);
     if (!preset) return;
+    lastValidatedKey.current = null;
     setTest({ state: 'idle' });
     setAi({
       ...ai,
@@ -586,12 +600,14 @@ function AiByokSection() {
   }
 
   function disable() {
+    lastValidatedKey.current = null;
     setTest({ state: 'idle' });
     setAi({ ...ai, provider: 'disabled' });
   }
 
-  async function runTest() {
+  const runTest = useCallback(async () => {
     if (ai.provider === 'disabled' || !ai.apiKey.trim()) return;
+    const validationKey = `${ai.provider}|${ai.model}|${ai.apiKey}`;
     setTest({ state: 'testing' });
     try {
       const response = (await sendMessage(
@@ -606,6 +622,7 @@ function AiByokSection() {
         'background',
       )) as AiEnrichResponse;
       if (response.ok) {
+        lastValidatedKey.current = validationKey;
         setTest({
           state: 'ok',
           provider: response.data.provider,
@@ -613,6 +630,9 @@ function AiByokSection() {
           cached: response.data.cached,
         });
       } else {
+        // Cache the error fingerprint too — we don't want to spam the
+        // provider with the same bad key on every re-render.
+        lastValidatedKey.current = validationKey;
         setTest({ state: 'error', error: response.error });
       }
     } catch (err) {
@@ -621,7 +641,39 @@ function AiByokSection() {
         error: err instanceof Error ? err.message : 'unknown error',
       });
     }
-  }
+  }, [ai.apiKey, ai.model, ai.nativeLanguage, ai.provider, translate.sourceLang, translate.targetLanguage]);
+
+  /**
+   * Debounced auto-validation: 600 ms after the user stops typing the key
+   * (or switching the provider / model), fire a real `AI_ENRICH` to confirm
+   * the credential works. The same `lastValidatedKey` ref shields us from
+   * re-firing when the result already lives in state.
+   */
+  useEffect(() => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+      debounceTimer.current = null;
+    }
+    if (ai.provider === 'disabled' || !ai.apiKey.trim()) {
+      if (test.state !== 'idle') setTest({ state: 'idle' });
+      return;
+    }
+    const key = buildValidationKey();
+    if (key === lastValidatedKey.current) return;
+    debounceTimer.current = setTimeout(() => {
+      void runTest();
+    }, 600);
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+        debounceTimer.current = null;
+      }
+    };
+    // We intentionally exclude `test.state` from deps — including it would
+    // re-arm the timer every time the test transitions, defeating the
+    // debounce.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ai.provider, ai.apiKey, ai.model, buildValidationKey, runTest]);
 
   return (
     <div className="space-y-3">
@@ -765,6 +817,11 @@ function AiByokSection() {
             >
               Desactivar IA
             </button>
+            {test.state === 'idle' && ai.apiKey.trim() && (
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                Se valida automáticamente al pegar la key.
+              </span>
+            )}
             {test.state === 'ok' && (
               <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 size={11} />
