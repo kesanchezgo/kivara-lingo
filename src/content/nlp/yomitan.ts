@@ -362,6 +362,31 @@ export async function lookupYomitanTerm(
  * We prefer transcriptions tagged with US/General American, then fall back to
  * the first non-empty IPA.
  */
+/**
+ * Validate and clean an IPA string. Some packs contain Wiktionary template
+ * artifacts like `/Template:IPAchar"},"params":{"1":{"wt":"/wʊd/`. We try
+ * to extract the real IPA from inside the garbage first, and only reject
+ * if nothing usable can be salvaged.
+ *
+ * Valid IPA strings start with `/`, `[`, or `\` and contain only IPA
+ * characters (Unicode phonetic extensions, combining marks, basic Latin).
+ */
+function cleanIpa(raw: string): string | null {
+  // Try to extract a /.../ or [...] pattern from inside the string
+  const slashMatch = raw.match(/\/[^/"{}\n]{1,60}\//);
+  if (slashMatch) return slashMatch[0];
+  const bracketMatch = raw.match(/\[[^\]"{}\n]{1,60}\]/);
+  if (bracketMatch) return bracketMatch[0];
+  // Try backslash notation (some packs use \...\)
+  const backslashMatch = raw.match(/\\[^\\"{}\n]{1,60}\\/);
+  if (backslashMatch) return backslashMatch[0];
+  // If the raw string itself looks clean, use it directly
+  if (raw.length <= 80 && !raw.includes('Template:') && !raw.includes('"') && !raw.includes('{')) {
+    if (/^[/\[\\]/.test(raw)) return raw;
+  }
+  return null;
+}
+
 function extractFirstIpa(meta: unknown): string | null {
   if (!meta || typeof meta !== 'object') return null;
   const obj = meta as { transcriptions?: unknown[] };
@@ -370,9 +395,10 @@ function extractFirstIpa(meta: unknown): string | null {
   for (const t of obj.transcriptions) {
     if (!t || typeof t !== 'object') continue;
     const entry = t as { ipa?: string; tags?: string[] };
-    const ipa = typeof entry.ipa === 'string' ? entry.ipa.trim() : '';
+    const raw = typeof entry.ipa === 'string' ? entry.ipa.trim() : '';
+    if (!raw) continue;
+    const ipa = cleanIpa(raw);
     if (!ipa) continue;
-    if (!isValidIpa(ipa)) continue;
     if (!fallback) fallback = ipa;
     const tags = Array.isArray(entry.tags) ? entry.tags : [];
     const isGenAm = tags.some(
@@ -381,22 +407,6 @@ function extractFirstIpa(meta: unknown): string | null {
     if (isGenAm) return ipa;
   }
   return fallback;
-}
-
-/**
- * Validate that a string looks like a real IPA transcription and not a
- * Wiktionary template artifact. Valid IPA strings:
- *  - Start with `/` or `[` (phonemic or phonetic notation)
- *  - Are reasonably short (< 80 chars)
- *  - Don't contain JSON-like characters (`{`, `}`, `"`)
- *  - Don't contain "Template:" which is a Wiktionary artifact
- */
-function isValidIpa(s: string): boolean {
-  if (s.length > 80) return false;
-  if (s.includes('Template:') || s.includes('"') || s.includes('{')) return false;
-  if (/^[/\[]/.test(s)) return true;
-  if (/^\\/.test(s)) return true;
-  return false;
 }
 
 /**

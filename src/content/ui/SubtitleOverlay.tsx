@@ -99,17 +99,29 @@ export function SubtitleOverlay({
     const down = (e: KeyboardEvent) => {
       if (e.key !== 'Alt') return;
       const hk = hoveredKeyRef.current;
-      if (!hk || lookupDictionary(hk)?.type !== 'phrase') return;
+      if (!hk) return;
+      // Check if the hovered token is a phrase/MWE — either directly from
+      // the dictionary or because it's in the expandedMWEs set (meaning it
+      // was previously expanded and the user is hovering one of its parts).
+      const entry = lookupDictionary(hk);
+      const isPhrase = entry?.type === 'phrase';
+      const isPartOfExpanded = !isPhrase && Array.from(expandedMWEs).some(
+        (phrase) => phrase.split(' ').includes(hk.toLowerCase()),
+      );
+      if (!isPhrase && !isPartOfExpanded) return;
       e.preventDefault();
-      setAltExpandedKey(hk);
+      if (isPhrase) {
+        setAltExpandedKey(hk);
+      }
     };
     const up = (e: KeyboardEvent) => {
       if (e.key !== 'Alt') return;
-      // Only swallow the keyup when we're actually closing the expansion —
-      // otherwise let the platform see the release (some players bind Alt
-      // for momentary actions).
       setAltExpandedKey((prev) => {
-        if (prev !== null) e.preventDefault();
+        if (prev !== null) {
+          e.preventDefault();
+          // Re-set the hover to the MWE key so the next Alt press finds it
+          hoveredKeyRef.current = prev;
+        }
         return null;
       });
     };
