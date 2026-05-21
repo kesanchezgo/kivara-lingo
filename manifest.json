@@ -68,6 +68,7 @@
     },
     {
       "matches": [
+        "*://*.youtube.com/*",
         "*://*.netflix.com/*",
         "*://*.disneyplus.com/*",
         "*://*.hbomax.com/*",
