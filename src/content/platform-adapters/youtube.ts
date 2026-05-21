@@ -56,12 +56,35 @@ export function attachYouTube(): SubtitleSource | null {
       if (currentActiveCue) emit(null);
       return;
     }
-    const text = Array.from(cues)
+
+    // Build the text. YouTube delivers multi-line subtitles in different ways:
+    //   a) Multiple active VTTCues (one per line)
+    //   b) A single VTTCue with \n inside the text
+    //   c) A single VTTCue without \n but the DOM shows multiple .captions-text
+    // We handle all three by first joining cues with \n, then checking the DOM
+    // for the actual line structure if the text doesn't already contain \n.
+    let text = Array.from(cues)
       .map((c) => (c as VTTCue).text || '')
       .join('\n')
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<[^>]+>/g, '')
       .trim();
+
+    // If the text has no newlines but the DOM shows multiple caption segments,
+    // use the DOM structure to insert line breaks.
+    if (!text.includes('\n')) {
+      const segments = document.querySelectorAll(
+        '.captions-text .ytp-caption-segment, .captions-text',
+      );
+      if (segments.length > 1) {
+        const domText = Array.from(segments)
+          .map((el) => (el.textContent || '').trim())
+          .filter(Boolean)
+          .join('\n');
+        if (domText) text = domText;
+      }
+    }
+
     if (!text) {
       if (currentActiveCue) emit(null);
       return;
@@ -99,17 +122,38 @@ export function attachYouTube(): SubtitleSource | null {
       (t) => t.kind === 'subtitles' || t.kind === 'captions',
     );
     if (subtitleTracks.length === 0) return null;
+
     // Prefer the track matching the user's configured source language
+    // (the language they're learning). If found, activate it.
     const sourceLang = useKivaraStore.getState().translate.sourceLang || 'en';
     const langMatch = subtitleTracks.find(
-      (t) => t.language && t.language.startsWith(sourceLang),
+      (t) => t.language && (
+        t.language.startsWith(sourceLang) ||
+        t.language === sourceLang
+      ),
     );
-    if (langMatch) return langMatch;
-    // Fall back to the currently showing track, then any available
-    return (
-      subtitleTracks.find((t) => t.mode === 'showing') ??
-      subtitleTracks[0]
-    );
+    if (langMatch) {
+      // Activate this track if it's not already showing/hidden
+      if (langMatch.mode === 'disabled') {
+        langMatch.mode = 'hidden';
+      }
+      return langMatch;
+    }
+
+    // Fall back to the currently showing track
+    const showing = subtitleTracks.find((t) => t.mode === 'showing');
+    if (showing) return showing;
+
+    // Fall back to any non-disabled track
+    const active = subtitleTracks.find((t) => t.mode !== 'disabled');
+    if (active) return active;
+
+    // Last resort: activate the first available
+    if (subtitleTracks[0]) {
+      subtitleTracks[0].mode = 'hidden';
+      return subtitleTracks[0];
+    }
+    return null;
   }
 
   function pollDom() {
