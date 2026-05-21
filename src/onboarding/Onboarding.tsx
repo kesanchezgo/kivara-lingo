@@ -840,7 +840,7 @@ function DictStep() {
             Los packs Wiktionary suben la cobertura local a ~98% y agregan IPA, ejemplos y categoría gramatical.
           </p>
           <p className="text-indigo-700/80 dark:text-indigo-300/80">
-            Todo se guarda en tu navegador (IndexedDB). Podés modificar la selección luego desde Settings → Diccionarios offline.
+            Todo se guarda en tu navegador (IndexedDB). Puedes modificar la selección luego desde Settings → Diccionarios offline.
           </p>
         </div>
       </div>
@@ -849,7 +849,10 @@ function DictStep() {
         {CURATED_DICT_PACKS.map((pack) => {
           const isInstalled = installedTitles.has(pack.title);
           const status = statuses[pack.url];
-          const checked = selection.has(pack.url) || isInstalled;
+          const hasFailed = status?.status === 'error';
+          const isDisabled = pack.disabledInOnboarding;
+          const checked = !isDisabled && !hasFailed && (selection.has(pack.url) || isInstalled);
+          const checkboxDisabled = isInstalled || running || isDisabled || hasFailed;
           const tierBorder =
             pack.tier === 'core'
               ? 'border-amber-300 dark:border-amber-700/60 bg-amber-50/40 dark:bg-amber-900/10'
@@ -859,13 +862,13 @@ function DictStep() {
           return (
             <li
               key={pack.url}
-              className={`rounded-xl border ${tierBorder} px-4 py-3 flex items-start gap-3 transition-colors`}
+              className={`rounded-xl border ${tierBorder} px-4 py-3 flex items-start gap-3 transition-colors ${isDisabled ? 'opacity-60' : ''}`}
             >
               <input
                 type="checkbox"
                 id={`dict-onb-${pack.url}`}
                 checked={checked}
-                disabled={isInstalled || running}
+                disabled={checkboxDisabled}
                 onChange={() => toggle(pack.url)}
                 className="mt-1 accent-indigo-600 cursor-pointer disabled:cursor-not-allowed"
               />
@@ -893,6 +896,11 @@ function DictStep() {
                 <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-snug mt-0.5">
                   {pack.description}
                 </p>
+                {isDisabled && pack.disabledReason && (
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-500 mt-1 leading-snug">
+                    {pack.disabledReason}
+                  </p>
+                )}
                 <DictStepRowStatus
                   isInstalled={isInstalled}
                   installedTermCount={installedTermCounts[pack.title]}
@@ -939,7 +947,7 @@ function DictStep() {
 
       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed px-0.5">
         Compatible con cualquier diccionario en formato Yomitan o StarDict.
-        Encontrá más packs y opciones avanzadas en{' '}
+        Encuentra más packs y opciones avanzadas en{' '}
         <span className="font-medium text-zinc-600 dark:text-zinc-300">Settings → Diccionarios offline</span>.
       </p>
     </StepSection>

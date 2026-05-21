@@ -121,11 +121,20 @@ export async function importYomitanPack(
   const termBankFiles = Object.entries(files)
     .filter(([name]) => name.startsWith(indexPrefix) && /term_bank_\d+\.json$/.test(name))
     .sort();
-  if (termBankFiles.length === 0) {
-    return { ok: false, error: 'No term_bank_*.json files in pack' };
+
+  // Some packs (e.g. IPA/pronunciation packs) only ship term_meta_bank files
+  // with reading/phonetic data and no term_bank files. We handle both paths.
+  const metaBankFiles = Object.entries(files)
+    .filter(([name]) => name.startsWith(indexPrefix) && /term_meta_bank_\d+\.json$/.test(name))
+    .sort();
+
+  if (termBankFiles.length === 0 && metaBankFiles.length === 0) {
+    return { ok: false, error: 'No se encontraron archivos term_bank ni term_meta_bank en el pack' };
   }
 
   const termRows: DictTermRow[] = [];
+
+  // Standard term_bank entries (definitions, translations, etc.)
   for (const [name, bytes] of termBankFiles) {
     try {
       const arr = JSON.parse(strFromU8(bytes)) as YomitanTermTuple[];
@@ -151,7 +160,35 @@ export async function importYomitanPack(
         });
       }
     } catch (err) {
-      return { ok: false, error: `Could not parse ${name}: ${(err as Error).message}` };
+      return { ok: false, error: `No se pudo parsear ${name}: ${(err as Error).message}` };
+    }
+  }
+
+  // IPA / pronunciation meta entries — stored as DictTermRow with empty
+  // definitions so lookupYomitanTerm can overlay the reading onto hits from
+  // other packs that lack phonetic data.
+  for (const [name, bytes] of metaBankFiles) {
+    try {
+      const arr = JSON.parse(strFromU8(bytes)) as unknown[];
+      for (const entry of arr) {
+        if (!Array.isArray(entry) || entry.length < 3) continue;
+        const expression = String(entry[0] ?? '').trim().toLowerCase();
+        const mode = String(entry[1] ?? '');
+        if (!expression || mode !== 'ipa') continue;
+        const meta = entry[2];
+        const ipa = extractFirstIpa(meta);
+        if (!ipa) continue;
+        termRows.push({
+          packId: id,
+          expression,
+          reading: ipa,
+          definitions: [],
+          popularity: 0,
+          termTags: 'ipa',
+        });
+      }
+    } catch (err) {
+      return { ok: false, error: `No se pudo parsear ${name}: ${(err as Error).message}` };
     }
   }
 
@@ -204,57 +241,40 @@ export async function importYomitanPack(
  */
 export async function importYomitanPackFromUrl(
   url: string,
+  onProgress?: (received: number, total: number) => void,
 ): Promise<ImportResult | ImportError> {
   let bytes: ArrayBuffer;
   try {
-    bytes = await fetchPackBytes(url);
+    bytes = await fetchPackBytes(url, onProgress);
   } catch (err) {
-    return { ok: false, error: `Could not download pack: ${(err as Error).message}` };
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: `No se pudo descargar el pack: ${message}` };
   }
   return importYomitanPack(bytes);
 }
 
 /**
- * Fetch raw bytes for a dictionary pack. Tries the SW proxy first; on any
- * failure (no extension context, SW unreachable, host-permission denied)
- * falls through to a direct `fetch()`.
+ * Fetch raw bytes for a dictionary pack with automatic retries and timeout.
+ *
+ * Tries the extension context first (direct fetch with host_permissions).
+ * Falls back to the SW proxy only if the direct fetch fails due to CORS
+ * (shouldn't happen for URLs in host_permissions, but kept as safety net).
+ *
+ * Retries up to 3 times with exponential backoff (1s → 3s → 9s).
+ * Per-attempt timeout: 120s for large packs, 60s for normal ones.
+ * Stale connection detection: aborts if no bytes arrive for 15s.
  */
-async function fetchPackBytes(url: string): Promise<ArrayBuffer> {
-  const swProxy =
-    typeof chrome !== 'undefined' && chrome.runtime?.id && chrome.runtime.sendMessage;
-  if (swProxy) {
-    try {
-      const reply: unknown = await chrome.runtime.sendMessage({
-        type: 'FETCH_PACK_URL',
-        url,
-      });
-      if (
-        reply &&
-        typeof reply === 'object' &&
-        (reply as { ok?: boolean }).ok &&
-        Array.isArray((reply as { bytes?: number[] }).bytes)
-      ) {
-        return new Uint8Array((reply as { bytes: number[] }).bytes).buffer;
-      }
-      if (
-        reply &&
-        typeof reply === 'object' &&
-        !(reply as { ok?: boolean }).ok &&
-        typeof (reply as { error?: string }).error === 'string'
-      ) {
-        throw new Error((reply as { error: string }).error);
-      }
-    } catch (err) {
-      // Fall through to direct fetch below — useful for tests and surfaces
-      // where the SW handler isn't registered.
-      console.warn('[Kivara Lingo] SW pack fetch failed; trying direct fetch', err);
-    }
-  }
-  const res = await fetch(url, { redirect: 'follow' });
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status} ${res.statusText}`);
-  }
-  return res.arrayBuffer();
+async function fetchPackBytes(
+  url: string,
+  onProgress?: (received: number, total: number) => void,
+): Promise<ArrayBuffer> {
+  const { fetchWithRetry } = await import('../../shared/resilient-fetch');
+  return fetchWithRetry(url, {
+    maxRetries: 3,
+    timeoutMs: 120_000,
+    staleTimeoutMs: 15_000,
+    onProgress,
+  });
 }
 
 /** Delete a pack and all of its term rows. */
@@ -319,12 +339,47 @@ export async function lookupYomitanTerm(
     });
     const hit = filtered[0];
     const pack = packs.find((p) => p.id === hit.packId)!;
-    return {
-      pack,
-      entry: dictTermToEntry(token, hit, i > 0 ? exp : undefined),
-    };
+    const entry = dictTermToEntry(token, hit, i > 0 ? exp : undefined);
+
+    // Overlay IPA from a pronunciation-only pack (e.g. kty-en-ipa) when the
+    // primary hit doesn't carry phonetic data. We look for any row with the
+    // same expression that has a non-empty reading and empty definitions
+    // (the signature of an IPA meta-pack import).
+    if (!entry.phonetic) {
+      const ipaRow = filtered.find((r) => r.reading && r.definitions.length === 0)
+        ?? rows.find((r) => r.reading && r.definitions.length === 0);
+      if (ipaRow?.reading) entry.phonetic = ipaRow.reading;
+    }
+
+    return { pack, entry };
   }
   return undefined;
+}
+
+/**
+ * Extract the first usable IPA string from a term_meta_bank entry's data
+ * object. The shape is `{ reading: string, transcriptions: [{ ipa, tags }] }`.
+ * We prefer transcriptions tagged with US/General American, then fall back to
+ * the first non-empty IPA.
+ */
+function extractFirstIpa(meta: unknown): string | null {
+  if (!meta || typeof meta !== 'object') return null;
+  const obj = meta as { transcriptions?: unknown[] };
+  if (!Array.isArray(obj.transcriptions)) return null;
+  let fallback: string | null = null;
+  for (const t of obj.transcriptions) {
+    if (!t || typeof t !== 'object') continue;
+    const entry = t as { ipa?: string; tags?: string[] };
+    const ipa = typeof entry.ipa === 'string' ? entry.ipa.trim() : '';
+    if (!ipa) continue;
+    if (!fallback) fallback = ipa;
+    const tags = Array.isArray(entry.tags) ? entry.tags : [];
+    const isGenAm = tags.some(
+      (tag) => /US|General.?American|🇺🇸/i.test(typeof tag === 'string' ? tag : ''),
+    );
+    if (isGenAm) return ipa;
+  }
+  return fallback;
 }
 
 /**

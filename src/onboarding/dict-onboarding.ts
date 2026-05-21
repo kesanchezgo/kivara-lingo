@@ -37,6 +37,14 @@ export interface OnboardingDictPack {
   tier: 'core' | 'recommended' | 'premium';
   /** One-line benefit copy, surfaced as a small badge under the title. */
   benefit: string;
+  /**
+   * When true, the pack is shown in onboarding for informational purposes
+   * but cannot be installed from there (too large, requires streaming, etc.).
+   * The user is directed to Settings → Diccionarios offline instead.
+   */
+  disabledInOnboarding?: boolean;
+  /** Reason shown when the pack is disabled in onboarding. */
+  disabledReason?: string;
 }
 
 export const CURATED_DICT_PACKS: OnboardingDictPack[] = [
@@ -66,6 +74,8 @@ export const CURATED_DICT_PACKS: OnboardingDictPack[] = [
     defaultSelected: false,
     tier: 'premium',
     benefit: 'Inmersión avanzada',
+    disabledInOnboarding: true,
+    disabledReason: 'Muy grande para instalar aquí (127 MB). Instálalo desde Settings → Diccionarios offline.',
   },
 ];
 
@@ -86,7 +96,10 @@ export function pickPacksToInstall(
   selection: ReadonlySet<string>,
 ): OnboardingDictPack[] {
   return curated.filter(
-    (p) => selection.has(p.url) && !installedTitles.has(p.title),
+    (p) =>
+      selection.has(p.url) &&
+      !installedTitles.has(p.title) &&
+      !p.disabledInOnboarding,
   );
 }
 
