@@ -157,14 +157,31 @@ export function attachYouTube(): SubtitleSource | null {
   }
 
   function pollDom() {
+    // When TextTracks are available and have active cues, prefer them.
     if (activeTrack && activeTrack.activeCues && activeTrack.activeCues.length > 0) return;
+
+    // YouTube renders captions in the DOM using .caption-visual-line elements
+    // (one per line). Fall back to .captions-text if the newer structure isn't
+    // found. Each .caption-visual-line is a separate line of the subtitle.
+    const lines = document.querySelectorAll('.caption-visual-line');
+    if (lines.length > 0) {
+      const text = Array.from(lines)
+        .map((el) => (el.textContent || '').trim())
+        .filter(Boolean)
+        .join('\n');
+      pushFromText(text);
+      return;
+    }
+
+    // Legacy fallback: older YouTube builds use .captions-text directly
     const segments = document.querySelectorAll('.captions-text');
     if (!segments.length) {
       if (currentActiveCue) emit(null);
       return;
     }
     const text = Array.from(segments)
-      .map((el) => el.textContent || '')
+      .map((el) => (el.textContent || '').trim())
+      .filter(Boolean)
       .join('\n');
     pushFromText(text);
   }
