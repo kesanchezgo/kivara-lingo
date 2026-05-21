@@ -563,7 +563,17 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       style={{ position: 'fixed', inset: 0, zIndex: 2147483646, colorScheme: isDarkMode ? 'dark' : 'light' }}
     >
       <div className="pointer-events-auto">
-        <Toaster position="top-center" offset={80} theme={isDarkMode ? 'dark' : 'light'} />
+        <Toaster
+          position="top-center"
+          offset={80}
+          theme={isDarkMode ? 'dark' : 'light'}
+          toastOptions={{
+            style: {
+              maxWidth: '340px',
+              margin: '0 auto',
+            },
+          }}
+        />
       </div>
 
       {overlayPortal}

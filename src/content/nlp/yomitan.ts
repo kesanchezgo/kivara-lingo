@@ -348,7 +348,10 @@ export async function lookupYomitanTerm(
     if (!entry.phonetic) {
       const ipaRow = filtered.find((r) => r.reading && r.definitions.length === 0)
         ?? rows.find((r) => r.reading && r.definitions.length === 0);
-      if (ipaRow?.reading) entry.phonetic = ipaRow.reading;
+      if (ipaRow?.reading) {
+        const cleaned = cleanIpa(ipaRow.reading);
+        if (cleaned) entry.phonetic = cleaned;
+      }
     }
 
     return { pack, entry };
@@ -447,7 +450,7 @@ function dictTermToEntry(
   return {
     token: surfaceToken,
     type: 'word',
-    phonetic: row.reading || undefined,
+    phonetic: row.reading ? (cleanIpa(row.reading) ?? undefined) : undefined,
     translation,
     bilingual,
     monolingual: senses.length === 1 ? undefined : senses[0],
