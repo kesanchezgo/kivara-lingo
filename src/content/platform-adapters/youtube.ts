@@ -1,4 +1,5 @@
 import type { SubtitleSource, SubtitleCue, CueListener } from './types';
+import { useKivaraStore } from '../../shared/store';
 
 /**
  * YouTube adapter.
@@ -66,12 +67,19 @@ export function attachYouTube(): SubtitleSource | null {
     }
     const first = cues[0] as VTTCue;
     const last = cues[cues.length - 1] as VTTCue;
+    const align = (first as VTTCue).align;
+    const cueAlign: SubtitleCue['align'] =
+      align === 'start' || align === 'left' ? 'start'
+      : align === 'end' || align === 'right' ? 'end'
+      : align === 'center' ? 'center'
+      : undefined;
     emit({
       id: first.id || `${first.startTime}`,
       start: first.startTime * 1000,
       end: last.endTime * 1000,
       text,
       language: activeTrack.language || 'en',
+      align: cueAlign,
     });
   }
 
@@ -86,10 +94,20 @@ export function attachYouTube(): SubtitleSource | null {
 
   function pickTextTrack(): TextTrack | null {
     const tracks = Array.from(video.textTracks ?? []);
+    const subtitleTracks = tracks.filter(
+      (t) => t.kind === 'subtitles' || t.kind === 'captions',
+    );
+    if (subtitleTracks.length === 0) return null;
+    // Prefer the track matching the user's configured source language
+    const sourceLang = useKivaraStore.getState().translate.sourceLang || 'en';
+    const langMatch = subtitleTracks.find(
+      (t) => t.language && t.language.startsWith(sourceLang),
+    );
+    if (langMatch) return langMatch;
+    // Fall back to the currently showing track, then any available
     return (
-      tracks.find((t) => (t.kind === 'subtitles' || t.kind === 'captions') && t.mode === 'showing') ??
-      tracks.find((t) => t.kind === 'subtitles' || t.kind === 'captions') ??
-      null
+      subtitleTracks.find((t) => t.mode === 'showing') ??
+      subtitleTracks[0]
     );
   }
 
