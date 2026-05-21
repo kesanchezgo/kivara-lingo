@@ -40,7 +40,7 @@ import { speak } from './tts';
 import { enrichWithAi, getAiSettings, getResolvedNativeLang } from './ai-enrich';
 import { getMissingPhonetic } from './phonetic-augment';
 import { lookupDictionary } from '../content/nlp/dictionary';
-import { lookupYomitanTerm } from '../content/nlp/yomitan';
+import { lookupYomitanTerm, listYomitanPacks, deleteYomitanPack, setPackEnabled } from '../content/nlp/yomitan';
 import {
   BUNDLE_PACK_ID,
   MISS_PACK_ID,
@@ -656,6 +656,42 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === 'OPEN_URL' && typeof message.url === 'string') {
     void chrome.tabs.create({ url: message.url });
     sendResponse({ ok: true });
+    return true;
+  }
+  // Content script requests the list of installed dict packs. The content
+  // script can't access the extension's IndexedDB directly (it sees the
+  // site's DB), so we proxy through the SW which has the right origin.
+  if (message?.type === 'LIST_DICT_PACKS') {
+    void (async () => {
+      try {
+        const packs = await listYomitanPacks();
+        sendResponse({ ok: true, packs });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message, packs: [] });
+      }
+    })();
+    return true;
+  }
+  if (message?.type === 'DELETE_DICT_PACK' && typeof message.id === 'string') {
+    void (async () => {
+      try {
+        await deleteYomitanPack(message.id);
+        sendResponse({ ok: true });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  if (message?.type === 'SET_PACK_ENABLED' && typeof message.id === 'string') {
+    void (async () => {
+      try {
+        await setPackEnabled(message.id, !!message.enabled);
+        sendResponse({ ok: true });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
     return true;
   }
   // UI requests downloading a dictionary pack from a URL. The SW carries the

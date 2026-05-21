@@ -47,9 +47,6 @@ import {
 import type { DictPackRow, PackStatsRow } from '../../../shared/db';
 import {
   importYomitanPackFromUrl,
-  listYomitanPacks,
-  deleteYomitanPack,
-  setPackEnabled,
 } from '../../../content/nlp/yomitan';
 import { importCsvList } from '../../../content/nlp/csv-importer';
 import { autoImportDictFile } from '../../../content/nlp/dict-format-detect';
@@ -199,10 +196,18 @@ export function DictPacksSection() {
 
   const refresh = useCallback(async () => {
     try {
-      const list = await listYomitanPacks();
-      setPacks(list);
+      const reply: unknown = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: 'LIST_DICT_PACKS' }, resolve);
+      });
+      const r = reply as { ok?: boolean; packs?: DictPackRow[] };
+      if (r?.ok && Array.isArray(r.packs)) {
+        setPacks(r.packs);
+      } else {
+        setPacks([]);
+      }
     } catch (err) {
       console.warn('[Kivara Lingo] could not list dict packs', err);
+      setPacks([]);
     }
     try {
       const rows = await readPackStats();
@@ -399,7 +404,12 @@ export function DictPacksSection() {
 
   const onToggle = useCallback(
     async (pack: DictPackRow) => {
-      await setPackEnabled(pack.id, !pack.enabled);
+      await new Promise<void>((resolve) => {
+        chrome.runtime.sendMessage(
+          { type: 'SET_PACK_ENABLED', id: pack.id, enabled: !pack.enabled },
+          () => resolve(),
+        );
+      });
       await refresh();
     },
     [refresh],
@@ -408,12 +418,16 @@ export function DictPacksSection() {
   const onDelete = useCallback(
     async (pack: DictPackRow) => {
       if (
-        // eslint-disable-next-line no-alert
         !window.confirm(`¿Eliminar "${pack.title}" y sus ${pack.termCount.toLocaleString()} términos?`)
       ) {
         return;
       }
-      await deleteYomitanPack(pack.id);
+      await new Promise<void>((resolve) => {
+        chrome.runtime.sendMessage(
+          { type: 'DELETE_DICT_PACK', id: pack.id },
+          () => resolve(),
+        );
+      });
       await refresh();
     },
     [refresh],
