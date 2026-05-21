@@ -763,7 +763,7 @@ function coverageHint(totals: ReturnType<typeof aggregateCoverage>): string | nu
   const missRatio = totals.misses / totals.total;
   const remoteRatio = totals.remoteHits / totals.total;
   if (missRatio >= 0.2) {
-    return `Sin match: ${(missRatio * 100).toFixed(0)}% — considerá instalar un pack monolingüe o de dominio específico.`;
+    return `Sin match: ${(missRatio * 100).toFixed(0)}% — considera instalar un pack monolingüe o de dominio específico.`;
   }
   if (remoteRatio >= 0.3) {
     return `Remoto: ${(remoteRatio * 100).toFixed(0)}% — instalar el pack EN→ES bajaría este número.`;
@@ -867,12 +867,12 @@ function CoverageWidget({
           <div>
             Aún no hay lookups registrados.{' '}
             <span className="text-zinc-700 dark:text-zinc-300">
-              Hacé hover sobre palabras en una página
+              Haz hover sobre palabras en una página
             </span>{' '}
             para empezar a medir.
           </div>
           <div className="text-zinc-400 dark:text-zinc-500">
-            Si la telemetría está desactivada los hover no se contabilizan — activala arriba.
+            Si la telemetría está desactivada los hover no se contabilizan — actívala arriba.
           </div>
         </div>
       ) : (
@@ -925,7 +925,7 @@ function CoverageCell({
  * IndexedDB rows for dict_terms tend to land around 200 bytes each once
  * Dexie wraps the definitions array, headword, tags, and key indices. Empirical
  * measurements on the bundled Wiktionary EN→ES pack put it at ~190 bytes/term.
- * Used purely for the "Considerá borrarlo" hint, never persisted — accuracy
+ * Used purely for the "Considera eliminarlo" hint, never persisted — accuracy
  * here is intentionally directional, not exact.
  */
 const AVG_TERM_BYTES = 200;
@@ -938,7 +938,7 @@ function estimatePackSize(termCount: number): string {
 }
 
 function idleHint(termCount: number): string {
-  return `No se usa hace 30 días o más. Considerá borrarlo para liberar ~${estimatePackSize(
+  return `No se usa hace 30 días o más. Considera eliminarlo para liberar ~${estimatePackSize(
     termCount,
   )}.`;
 }

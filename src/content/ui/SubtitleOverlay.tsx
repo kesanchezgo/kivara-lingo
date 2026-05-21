@@ -675,39 +675,30 @@ export function SubtitleOverlay({
               })}
             </span>
           )}
-        </div>
 
-        {/* Dual caption — native-language full sentence under the source.
-            Prefers the platform's own subtitle track (when available) over
-            an MT round-trip. Sits inside the same pointer-events container
-            so hovering it pauses the video, just like the source line. */}
-        {showDualSubtitle && dualCaptionText && !isReading && (
-          <div
-            data-kivara-hover-zone="true"
-            className="text-center rounded-md px-4 py-1 mt-1 select-text"
-            title={
-              dualCaptionSource === 'native'
-                ? 'Subtítulo nativo de la plataforma'
-                : 'Traducción automática'
-            }
-            style={{
-              fontSize: `${Math.max(12, subtitleStyles.fontSize - 4)}px`,
-              color: '#d4d4d8',
-              backgroundColor: backgroundColorWithOpacity,
-              fontWeight: 400,
-              fontStyle: 'italic',
-              textShadow: (() => {
-                const s = subtitleStyles.textShadow;
-                if (s <= 0) return 'none';
-                const a = (s / 100).toFixed(2);
-                const blur = Math.max(2, Math.round(s / 18));
-                return `2px 2px ${blur}px rgba(0,0,0,${a})`;
-              })(),
-            }}
-          >
-            {dualCaptionText}
-          </div>
-        )}
+          {/* Dual caption — native-language translation inside the same block,
+              visible only on hover (matches the mock design). Prefers the
+              platform's own subtitle track over MT. */}
+          {showDualSubtitle && dualCaptionText && !isReading && (
+            <div
+              data-kivara-hover-zone="true"
+              className={`mt-2 text-center transition-all duration-300 overflow-hidden ${
+                isHovered ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'
+              }`}
+              title={
+                dualCaptionSource === 'native'
+                  ? 'Subtítulo nativo de la plataforma'
+                  : 'Traducción automática'
+              }
+              style={{
+                fontSize: `${Math.max(12, subtitleStyles.fontSize - 4)}px`,
+                fontStyle: 'italic',
+              }}
+            >
+              <span className="text-zinc-300">{dualCaptionText}</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

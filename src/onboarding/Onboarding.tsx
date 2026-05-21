@@ -383,7 +383,7 @@ export function Onboarding() {
             {(step === 'dict' || step === 'ai') && (
               <span className="text-[11px] text-zinc-400 dark:text-zinc-500 hidden sm:block">
                 {step === 'dict'
-                  ? 'Recomendado — podés instalar más desde Settings'
+                  ? 'Recomendado — puedes instalar más desde Settings'
                   : 'Paso opcional — puedes configurarlo después en Settings'}
               </span>
             )}
