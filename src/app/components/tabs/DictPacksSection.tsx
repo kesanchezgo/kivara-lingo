@@ -45,14 +45,13 @@ import {
 } from 'lucide-react';
 import type { DictPackRow, PackStatsRow } from '../../../shared/db';
 import {
-  importYomitanPack,
   importYomitanPackFromUrl,
   listYomitanPacks,
   deleteYomitanPack,
   setPackEnabled,
 } from '../../../content/nlp/yomitan';
 import { importCsvList } from '../../../content/nlp/csv-importer';
-import { importStarDictPack } from '../../../content/nlp/stardict';
+import { autoImportDictFile } from '../../../content/nlp/dict-format-detect';
 import {
   aggregateCoverage,
   BUNDLE_PACK_ID,
@@ -181,7 +180,6 @@ export function DictPacksSection() {
   const [importingCsv, setImportingCsv] = useState(false);
   const [stats, setStats] = useState<PackStatsRow[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const stardictInputRef = useRef<HTMLInputElement>(null);
   const csvFileInputRef = useRef<HTMLInputElement>(null);
   const coverageFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -271,10 +269,9 @@ export function DictPacksSection() {
   );
 
   const onPickFile = useCallback(() => fileInputRef.current?.click(), []);
-  const onPickStarDict = useCallback(() => stardictInputRef.current?.click(), []);
   const onPickCsvFile = useCallback(() => csvFileInputRef.current?.click(), []);
 
-  const onFile = useCallback(
+  const onFileAuto = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       e.target.value = '';
@@ -283,42 +280,17 @@ export function DictPacksSection() {
       setImporting(true);
       try {
         const buffer = await file.arrayBuffer();
-        const result = await importYomitanPack(buffer);
+        const result = await autoImportDictFile(buffer, file.name);
         if (result.ok) {
+          const formatLabel: Record<typeof result.format, string> = {
+            yomitan: 'Yomitan',
+            stardict: 'StarDict',
+            csv: 'CSV',
+          };
+          const skipNote = result.skipped ? ` (${result.skipped} saltados)` : '';
           setFeedback({
             kind: 'ok',
-            message: `${result.pack.title} · ${result.termsImported.toLocaleString()} términos importados`,
-          });
-        } else {
-          setFeedback({ kind: 'err', message: result.error });
-        }
-        await refresh();
-      } catch (err) {
-        setFeedback({
-          kind: 'err',
-          message: `Error inesperado: ${(err as Error).message}`,
-        });
-      } finally {
-        setImporting(false);
-      }
-    },
-    [refresh],
-  );
-
-  const onStarDictFile = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      e.target.value = '';
-      if (!file) return;
-      setFeedback(null);
-      setImporting(true);
-      try {
-        const buffer = await file.arrayBuffer();
-        const result = await importStarDictPack(buffer);
-        if (result.ok) {
-          setFeedback({
-            kind: 'ok',
-            message: `${result.pack.title} · ${result.termsImported.toLocaleString()} términos importados (StarDict)`,
+            message: `${result.pack.title} · ${result.termsImported.toLocaleString()} términos importados (${formatLabel[result.format]})${skipNote}`,
           });
         } else {
           setFeedback({ kind: 'err', message: result.error });
@@ -648,48 +620,35 @@ export function DictPacksSection() {
           </p>
         </div>
 
-        {/* ── Action row: local file pickers (Yomitan + StarDict + CSV) ── */}
+        {/* ── Action row: unified file picker + CSV drawer toggle ─── */}
         <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-zinc-100 dark:border-zinc-800/60">
           <button
             type="button"
             onClick={onPickFile}
             disabled={importing}
             className="text-[11px] px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Importar archivo .zip Yomitan"
+            title="Importar archivo de diccionario (Yomitan .zip, StarDict .zip o CSV/TSV)"
           >
             {importing ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
-            Yomitan .zip
-          </button>
-          <button
-            type="button"
-            onClick={onPickStarDict}
-            disabled={importing}
-            className="text-[11px] px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Importar bundle StarDict (.ifo/.idx/.dict zipped)"
-          >
-            <BookText size={11} />
-            StarDict .zip
+            Importar archivo
           </button>
           <button
             type="button"
             onClick={() => setCsvOpen((v) => !v)}
             className="text-[11px] px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1.5"
+            title="Pegar una lista CSV/TSV directamente desde el portapapeles"
           >
             <FileText size={11} />
-            Lista CSV/TSV
+            Pegar CSV/TSV
           </button>
+          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 normal-case">
+            Detecta Yomitan / StarDict / CSV automáticamente.
+          </span>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".zip,application/zip"
-            onChange={(e) => void onFile(e)}
-            className="hidden"
-          />
-          <input
-            ref={stardictInputRef}
-            type="file"
-            accept=".zip,application/zip"
-            onChange={(e) => void onStarDictFile(e)}
+            accept=".zip,.csv,.tsv,.txt,application/zip,text/csv,text/tab-separated-values,text/plain"
+            onChange={(e) => void onFileAuto(e)}
             className="hidden"
           />
           <input
