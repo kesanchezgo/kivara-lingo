@@ -107,6 +107,21 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     };
   }, [cleanup.hideUI, cleanup.hideShadows, adapter?.platform, enabled]);
 
+  // Show/hide native subtitles based on extension state. When the user
+  // disables the extension or hides subtitles, restore the platform's own
+  // captions so they're not left invisible.
+  useEffect(() => {
+    if (!adapter) return;
+    if (enabled && subtitlesVisible) {
+      adapter.hideNativeSubtitles();
+    } else {
+      adapter.showNativeSubtitles();
+    }
+    return () => {
+      adapter.showNativeSubtitles();
+    };
+  }, [adapter, enabled, subtitlesVisible]);
+
   // Sync dark mode on hosts + overlay root so theme.css `.dark` selector works.
   useEffect(() => {
     const mainHost = document.getElementById('kivara-lingo-host');

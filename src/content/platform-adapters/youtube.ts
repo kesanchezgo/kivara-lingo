@@ -59,6 +59,7 @@ export function attachYouTube(): SubtitleSource | null {
     const text = Array.from(cues)
       .map((c) => (c as VTTCue).text || '')
       .join('\n')
+      .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<[^>]+>/g, '')
       .trim();
     if (!text) {
