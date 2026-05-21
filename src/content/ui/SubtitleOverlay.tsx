@@ -67,6 +67,11 @@ export function SubtitleOverlay({
   const [savedTokens, setSavedTokens] = useState<Set<string>>(
     () => initialSavedWords ?? new Set(),
   );
+  // Multi-word selection — shift+click extends, plain drag creates a new
+  // span. Indices are composite `${lineIdx}:${tokenIdx}` strings so the
+  // selection works across multi-line cues without collisions.
+  const [selection, setSelection] = useState<{ start: string; end: string } | null>(null);
+  const dragAnchorRef = useRef<string | null>(null);
 
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wordHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -230,12 +235,48 @@ export function SubtitleOverlay({
     [lines, effectiveExpanded, cueLanguage],
   );
 
+  /**
+   * Resolved text of the current multi-word selection. Joins the raw `text`
+   * fields of every token in the range (including punct/whitespace) and
+   * trims leading/trailing whitespace + punctuation runs.
+   */
+  const selectionText = useMemo<string | null>(() => {
+    if (!selection) return null;
+    const [sl, st] = selection.start.split(':').map(Number);
+    const [el, et] = selection.end.split(':').map(Number);
+    const parts: string[] = [];
+    for (let li = sl; li <= el; li += 1) {
+      const tokens = lineTokens[li] ?? [];
+      const startIdx = li === sl ? st : 0;
+      const endIdx = li === el ? et : tokens.length - 1;
+      for (let ti = startIdx; ti <= endIdx; ti += 1) {
+        if (tokens[ti]) parts.push(tokens[ti].text);
+      }
+      if (li < el) parts.push(' ');
+    }
+    const joined = parts.join('').trim();
+    if (!joined) return null;
+    return joined.replace(/^[\s\p{P}]+|[\s\p{P}]+$/gu, '');
+  }, [selection, lineTokens]);
+
   // Reset cue-scoped UI state whenever the cue changes.
   useEffect(() => {
     setHoveredId(null);
     hoveredKeyRef.current = null;
     setAltExpandedKey(null);
+    setSelection(null);
+    dragAnchorRef.current = null;
   }, [cue?.id]);
+
+  // Tier 1.1: track mouseup globally so dragging off the subtitle still
+  // terminates the selection drag without leaving a stale anchor.
+  useEffect(() => {
+    const up = () => {
+      dragAnchorRef.current = null;
+    };
+    window.addEventListener('mouseup', up);
+    return () => window.removeEventListener('mouseup', up);
+  }, []);
 
   const handleTokenEnter = (id: string, key: string) => {
     if (wordHoverTimeout.current) clearTimeout(wordHoverTimeout.current);
@@ -247,6 +288,55 @@ export function SubtitleOverlay({
       setHoveredId(null);
       hoveredKeyRef.current = null;
     }, 180);
+  };
+
+  /**
+   * Multi-word selection: shift+click extends, plain mousedown anchors.
+   * IDs are composite `${lineIdx}:${tokenIdx}` strings so the comparison
+   * works across multi-line cues. We compare lexicographically with a
+   * helper because the strings encode (li, ti) and we need numeric order.
+   */
+  const compareIds = (a: string, b: string): number => {
+    const [al, at] = a.split(':').map(Number);
+    const [bl, bt] = b.split(':').map(Number);
+    if (al !== bl) return al - bl;
+    return at - bt;
+  };
+
+  const orderRange = (a: string, b: string): { start: string; end: string } => {
+    return compareIds(a, b) <= 0 ? { start: a, end: b } : { start: b, end: a };
+  };
+
+  const isInRange = (id: string, range: { start: string; end: string }): boolean => {
+    return compareIds(id, range.start) >= 0 && compareIds(id, range.end) <= 0;
+  };
+
+  const handleTokenMouseDown = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (e.shiftKey && selection) {
+      const range =
+        compareIds(id, selection.start) < 0
+          ? { start: id, end: selection.end }
+          : compareIds(id, selection.end) > 0
+            ? { start: selection.start, end: id }
+            : selection;
+      setSelection(range);
+      dragAnchorRef.current = id === range.start ? range.end : range.start;
+      return;
+    }
+    dragAnchorRef.current = id;
+    setSelection(null);
+  };
+
+  const handleTokenDragEnter = (id: string) => {
+    const anchor = dragAnchorRef.current;
+    if (anchor == null || anchor === id) return;
+    setSelection(orderRange(anchor, id));
+  };
+
+  const handleSubtitleMouseDownClearSelection = (e: React.MouseEvent) => {
+    if (e.shiftKey) return;
+    setSelection(null);
   };
 
   const toggleExpandMWE = (key: string) => {
@@ -288,6 +378,11 @@ export function SubtitleOverlay({
     if (saveRequestKey == null) return;
     if (saveRequestKey === lastSaveKeyRef.current) return;
     lastSaveKeyRef.current = saveRequestKey;
+    if (selectionText) {
+      handleSaveToken(selectionText);
+      setSelection(null);
+      return;
+    }
     const key = hoveredKeyRef.current;
     if (key) {
       const dictionary = lookupDictionary(key, cueLanguage);
@@ -460,12 +555,58 @@ export function SubtitleOverlay({
           const target = e.target as HTMLElement;
           if (target.closest('input, textarea, [contenteditable="true"]')) return;
           e.preventDefault();
+          // Clear active multi-word selection on plate background click
+          // (but preserve it on shift+click which extends).
+          handleSubtitleMouseDownClearSelection(e);
         }}
         data-kivara-hover-zone="true"
       >
         <div className="absolute -top-14 w-full h-14 bg-transparent z-0" />
 
-        {!isReading && (
+        {/* Selection toolbar — takes priority over the phrase toolbar
+            whenever a multi-word selection is active. */}
+        {!isReading && selectionText && (
+          <div className="absolute -top-12 z-20 flex items-center gap-1 bg-indigo-900/95 backdrop-blur-sm border border-indigo-400/60 p-1 rounded-lg shadow-xl transition-all duration-200">
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-indigo-200 px-2">
+              Selección
+            </span>
+            <div className="w-px h-3.5 bg-indigo-400/40" />
+            <span
+              className="text-[11px] text-indigo-100 px-2 max-w-[280px] truncate"
+              title={selectionText}
+            >
+              "{selectionText}"
+            </span>
+            <div className="w-px h-3.5 bg-indigo-400/40" />
+            <button
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSaveToken(selectionText);
+                setSelection(null);
+              }}
+              className="flex items-center gap-1 bg-indigo-500 hover:bg-indigo-400 text-white text-[11px] font-medium px-2 py-1 rounded transition-colors"
+              title="Guardar la selección como una sola tarjeta (Ctrl+S)"
+            >
+              <Quote size={11} /> Guardar selección
+            </button>
+            <button
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelection(null);
+              }}
+              className="p-1 text-indigo-200 hover:text-white hover:bg-indigo-700/60 rounded transition-colors"
+              title="Limpiar selección"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {!isReading && !selectionText && (
           <div
             className={`absolute -top-12 z-10 flex items-center gap-1 bg-zinc-900/95 backdrop-blur-sm border border-zinc-700/60 p-1 rounded-lg shadow-xl transition-all duration-300 transform ${
               isHovered && hoveredId === null ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0 pointer-events-none'
@@ -550,19 +691,31 @@ export function SubtitleOverlay({
               {lineTokens.map((tokens, li) => (
                 <div key={li} className="block">
                   {tokens.map((tok, i) => {
+                    const id = `${li}:${i}`;
+                    const isInSel = selection != null && isInRange(id, selection);
                     if (tok.kind === 'punct') {
                       return (
-                        <React.Fragment key={`${li}:${i}:${tok.key}`}>
+                        <span
+                          key={`${li}:${i}:${tok.key}`}
+                          className={isInSel ? 'bg-indigo-500/30' : undefined}
+                        >
                           {tok.text}
-                        </React.Fragment>
+                        </span>
                       );
                     }
                     // `ignored` tokens render exactly like punct text — no
                     // affordance, no popover, no hover state. This is how the
-                    // tokenizer hides auto-classified proper nouns.
+                    // tokenizer hides auto-classified proper nouns. They can
+                    // still participate in a span selection so the user can
+                    // capture "Mr Anderson" as one card if they want.
                     if (tok.kind === 'ignored') {
                       return (
-                        <span key={`${li}:${i}:${tok.key}`} className="opacity-90">
+                        <span
+                          key={`${li}:${i}:${tok.key}`}
+                          onMouseDown={(e) => handleTokenMouseDown(id, e)}
+                          onMouseEnter={() => handleTokenDragEnter(id)}
+                          className={`opacity-90 cursor-text ${isInSel ? 'bg-indigo-500/30' : ''}`}
+                        >
                           {tok.text}
                         </span>
                       );
@@ -573,7 +726,6 @@ export function SubtitleOverlay({
                     // independent hover/popover state — previously the
                     // overlay keyed off `tok.key` (the lowercased text) and
                     // both occurrences lit up together.
-                    const id = `${li}:${i}`;
                     const isTokHovered = hoveredId === id;
                     const isSaved = savedTokens.has(tok.key.toLowerCase());
                     // After the Phase 2 audit we make `unknown` interactive too —
@@ -640,15 +792,32 @@ export function SubtitleOverlay({
                       }
                     };
 
+                    const isInSelection = selection != null && isInRange(id, selection);
+                    const cursorClass = wheelable
+                      ? 'cursor-ew-resize'
+                      : isInteractive
+                        ? 'cursor-help'
+                        : '';
+                    const selectionClass = isInSelection
+                      ? 'bg-indigo-500/35 ring-1 ring-indigo-300/60'
+                      : '';
+
                     return (
                       <span key={`${li}:${i}:${tok.key}`} className="relative inline-block">
                         <span
-                          onMouseEnter={() => isInteractive && handleTokenEnter(id, tok.key)}
+                          onMouseEnter={() => {
+                            if (isInteractive) handleTokenEnter(id, tok.key);
+                            handleTokenDragEnter(id);
+                          }}
                           onMouseLeave={handleTokenLeave}
+                          onMouseDown={(e) => handleTokenMouseDown(id, e)}
                           onWheel={handleWheel}
-                          className={`relative rounded px-0.5 transition-all duration-150 ${
-                            isInteractive ? 'cursor-help' : ''
-                          } ${colorClass}`}
+                          title={
+                            wheelable
+                              ? 'Ctrl+Scroll para separar / unir esta expresión'
+                              : undefined
+                          }
+                          className={`relative rounded px-0.5 transition-all duration-150 ${cursorClass} ${colorClass} ${selectionClass}`}
                         >
                           {tok.text}
                           {isSaved && !isTokHovered && (
