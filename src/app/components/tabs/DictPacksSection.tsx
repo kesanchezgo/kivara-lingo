@@ -42,6 +42,7 @@ import {
   Trophy,
   ChevronDown,
   ChevronRight,
+  CheckCircle2,
 } from 'lucide-react';
 import type { DictPackRow, PackStatsRow } from '../../../shared/db';
 import {
@@ -189,6 +190,11 @@ export function DictPacksSection() {
   const idlePackIds = useMemo(
     () => new Set(idlePacks(stats).map((r) => r.packId)),
     [stats],
+  );
+
+  const installedPackTitles = useMemo(
+    () => new Set(packs.map((p) => p.title)),
+    [packs],
   );
 
   const refresh = useCallback(async () => {
@@ -474,20 +480,27 @@ export function DictPacksSection() {
                             {p.license}
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => void onImportUrl(p.url)}
-                          disabled={importingUrl === p.url || importing}
-                          className="text-[10px] px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                          title={`Importar desde ${p.url}`}
-                        >
-                          {importingUrl === p.url ? (
-                            <Loader2 size={11} className="animate-spin" />
-                          ) : (
-                            <Download size={11} />
-                          )}
-                          {importingUrl === p.url ? 'Descargando…' : 'Importar'}
-                        </button>
+                        {installedPackTitles.has(p.title) ? (
+                          <span className="text-[10px] px-2 py-1 rounded border border-emerald-300 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 inline-flex items-center gap-1.5 shrink-0">
+                            <CheckCircle2 size={11} />
+                            Instalado
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => void onImportUrl(p.url)}
+                            disabled={importingUrl === p.url || importing}
+                            className="text-[10px] px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                            title={`Importar desde ${p.url}`}
+                          >
+                            {importingUrl === p.url ? (
+                              <Loader2 size={11} className="animate-spin" />
+                            ) : (
+                              <Download size={11} />
+                            )}
+                            {importingUrl === p.url ? 'Descargando…' : 'Importar'}
+                          </button>
+                        )}
                       </li>
                     ))}
                   </ul>
