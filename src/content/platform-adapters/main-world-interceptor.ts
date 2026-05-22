@@ -107,12 +107,22 @@ declare global {
    * user's configured source language. The source language is synced to
    * `document.documentElement.dataset.kivaraSourceLang` by the isolated-world
    * content script.
+   *
+   * IMPORTANT: only rewrite when the URL has NO `tlang`. YouTube uses
+   * `lang=<src>&tlang=<dst>` for auto-translated tracks; rewriting `lang`
+   * on those would break the source side of the translation pair and
+   * effectively delete the user-selected dual subtitle. We must let those
+   * through unchanged.
    */
   function rewriteTimedtextLang(url: string): string {
     const sourceLang = document.documentElement.getAttribute('data-kivara-source-lang');
     if (!sourceLang) return url;
     try {
       const parsed = new URL(url, window.location.href);
+      // Skip if this is an auto-translated request (has `tlang`). Those
+      // are explicit user selections — they want the SOURCE in `lang`
+      // translated to `tlang`, so we must NOT rewrite either.
+      if (parsed.searchParams.get('tlang')) return url;
       const currentLang = parsed.searchParams.get('lang');
       if (currentLang === sourceLang) return url;
       parsed.searchParams.set('lang', sourceLang);

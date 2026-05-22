@@ -187,20 +187,74 @@ function tickToMs(value: string, tickRate: number): number {
 }
 
 /** Detect kind from content + URL. */
-export function detectSubtitleKind(url: string, body: string): 'webvtt' | 'ttml' | 'dfxp' | null {
+export function detectSubtitleKind(url: string, body: string): 'webvtt' | 'ttml' | 'dfxp' | 'json3' | null {
   if (/^\s*WEBVTT/i.test(body)) return 'webvtt';
   if (/^\s*<\??xml[^>]*\?>/i.test(body) || /<tt[\s>]/i.test(body)) {
     // DFXP is functionally a TTML subset; we parse both with parseTTML.
     if (/\.dfxp(\b|\?|$)/i.test(url)) return 'dfxp';
     return 'ttml';
   }
+  // YouTube's default subtitle format. The body is JSON with an `events`
+  // array, each event has `tStartMs`, `dDurationMs` and a `segs` array
+  // of `{ utf8: "…" }`. The URL also carries `fmt=json3`.
+  if (/[?&]fmt=json3\b/i.test(url) || /^\s*\{\s*"wireMagic"/i.test(body)) {
+    return 'json3';
+  }
   return null;
+}
+
+/**
+ * Parse YouTube JSON3 captions. Each `event` is one cue (or a layout cue
+ * with `aAppend` we ignore). Multi-line cues come in as multiple `segs`,
+ * with `\n` already inside `utf8` for hard line breaks.
+ *
+ * Spec reference: https://github.com/shellscape/yt-subtitle-format-json3
+ */
+function parseJSON3(body: string): RawCue[] {
+  const cues: RawCue[] = [];
+  let json: unknown;
+  try {
+    json = JSON.parse(body);
+  } catch {
+    return cues;
+  }
+  if (!json || typeof json !== 'object') return cues;
+  const events = (json as { events?: unknown }).events;
+  if (!Array.isArray(events)) return cues;
+  for (const ev of events) {
+    if (!ev || typeof ev !== 'object') continue;
+    const e = ev as {
+      tStartMs?: number;
+      dDurationMs?: number;
+      segs?: Array<{ utf8?: string; acAsrConf?: number }>;
+      aAppend?: number;
+      // YouTube sometimes ships layout-only events (`wpWinPosId`) without
+      // segs — skip them so we don't push empty cues.
+    };
+    // `aAppend === 1` = continuation of previous cue's text. Skip — for
+    // our purposes the user wants discrete cues, not the running text
+    // that YouTube uses for word-by-word reveal animations.
+    if (e.aAppend === 1) continue;
+    if (typeof e.tStartMs !== 'number' || typeof e.dDurationMs !== 'number') continue;
+    if (!Array.isArray(e.segs) || e.segs.length === 0) continue;
+    const start = e.tStartMs;
+    const end = e.tStartMs + e.dDurationMs;
+    const text = e.segs
+      .map((s) => (typeof s.utf8 === 'string' ? s.utf8 : ''))
+      .join('')
+      .replace(/\u200b/g, '') // zero-width spaces YouTube sometimes injects
+      .trim();
+    if (!text) continue;
+    cues.push({ start, end, text });
+  }
+  return cues;
 }
 
 export function parseAny(url: string, body: string): RawCue[] {
   const kind = detectSubtitleKind(url, body);
   if (kind === 'webvtt') return parseWebVTT(body);
   if (kind === 'ttml' || kind === 'dfxp') return parseTTML(body);
+  if (kind === 'json3') return parseJSON3(body);
   return [];
 }
 
@@ -245,7 +299,15 @@ function normalizeLang(raw: string): string | null {
 function languageFromUrl(url: string): string | null {
   try {
     const u = new URL(url, 'https://x.invalid/');
-    // a) Query strings: ?lang=es / ?language=es-419 / ?l=es
+    // a) YouTube auto-translate: `?lang=en&tlang=es` — the actual content
+    //    of the response IS in `tlang`, not `lang`. Check `tlang` first
+    //    so the bus stores translated tracks under the right key.
+    const tlang = u.searchParams.get('tlang');
+    if (tlang) {
+      const n = normalizeLang(tlang);
+      if (n && /^[a-z]{2}$/.test(n)) return n;
+    }
+    // b) Query strings: ?lang=es / ?language=es-419 / ?l=es
     for (const key of ['lang', 'language', 'l', 'locale']) {
       const v = u.searchParams.get(key);
       if (v) {
@@ -253,7 +315,7 @@ function languageFromUrl(url: string): string | null {
         if (n && /^[a-z]{2}$/.test(n)) return n;
       }
     }
-    // b) Path segments — match `/<lang>/` where <lang> is xx or xx-yy.
+    // c) Path segments — match `/<lang>/` where <lang> is xx or xx-yy.
     //    Examples from real streams:
     //      .../t/sub/es-419/segment-1.vtt   (HBO Max)
     //      .../subtitles/spa/...            (3-letter ISO; map below)
@@ -263,7 +325,7 @@ function languageFromUrl(url: string): string | null {
       const exact = /^([a-z]{2})(?:[-_][a-z0-9]{2,4})?$/i.exec(seg);
       if (exact) return exact[1].toLowerCase();
     }
-    // c) 3-letter ISO 639-2 fallback for a handful of common languages.
+    // d) 3-letter ISO 639-2 fallback for a handful of common languages.
     const iso3 = /\b(spa|eng|por|fre|fra|ger|deu|ita|jpn|kor|chi|zho)\b/i.exec(url);
     if (iso3) {
       const map: Record<string, string> = {

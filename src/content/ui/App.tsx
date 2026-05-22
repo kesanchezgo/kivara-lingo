@@ -14,6 +14,7 @@ import type {
   FieldSource,
 } from '../../shared/types';
 import type { SubtitleSource } from '../platform-adapters/types';
+import { getActiveTrackCues, getTrackByLanguage, onTrack } from '../platform-adapters/intercepted-bus';
 
 /**
  * Find the Anki field name (key in fieldSources) currently mapped to the
@@ -150,6 +151,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     adapter.onCueChange((cues) => {
       if (cues.length === 0) {
         setActiveCue(null);
+        setAltCue(null);
         return;
       }
       const first = cues[0];
@@ -161,6 +163,28 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
         end: first.end,
         language: first.language,
       });
+      // Sync-lookup the matching native-language cue at the SAME time
+      // we set the source cue. The 250 ms polling effect below still runs
+      // as a safety net, but doing the lookup synchronously here means
+      // the bilingual line shows up in the same frame as the source line
+      // — no perceptible lag — which is the behaviour the user expects
+      // when YouTube already ships both tracks.
+      if (adapter.getAltCueAt) {
+        const targetLang =
+          useKivaraStore.getState().translate.targetLanguage || 'es';
+        const alt = adapter.getAltCueAt(first.start, targetLang);
+        setAltCue(
+          alt
+            ? {
+                id: alt.id,
+                text: alt.text,
+                start: alt.start,
+                end: alt.end,
+                language: alt.language,
+              }
+            : null,
+        );
+      }
     });
     const initialCue = adapter.getActiveCue?.();
     if (initialCue) {
@@ -172,8 +196,81 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
         end: initialCue.end,
         language: initialCue.language,
       });
+      if (adapter.getAltCueAt) {
+        const targetLang =
+          useKivaraStore.getState().translate.targetLanguage || 'es';
+        const alt = adapter.getAltCueAt(initialCue.start, targetLang);
+        if (alt) {
+          setAltCue({
+            id: alt.id,
+            text: alt.text,
+            start: alt.start,
+            end: alt.end,
+            language: alt.language,
+          });
+        }
+      }
     }
   }, [adapter]);
+
+  // Prefetch translation for upcoming cues — fallback only.
+  //
+  // When YouTube has the user's target language available as a translated
+  // track, the intercepted-bus auto-fetches the entire VTT and the
+  // bilingual line resolves instantly via `getAltCueAt`. This effect is
+  // a safety net for cases where YouTube does NOT support translation to
+  // the user's target language (rare): it pre-translates the next ~6
+  // cues via the MT chain so the bilingual line still keeps up.
+  //
+  // The prefetch is gated on `!getTrackByLanguage(targetLang)` so it
+  // doesn't fire when we already have the translated track in memory.
+  const showDualSubtitlePref = useKivaraStore((s) => s.translate.showDualSubtitle);
+  useEffect(() => {
+    if (!showDualSubtitlePref) return;
+    if (!activeCue) return;
+    const allCues = getActiveTrackCues();
+    if (!allCues || allCues.length === 0) return;
+    const nativeLang = (useKivaraStore.getState().translate.targetLanguage || 'es').slice(0, 2);
+    const sourceLang = (cueLanguageRef.current || activeCue.language || 'en').slice(0, 2);
+    if (sourceLang === nativeLang) return;
+    // Skip MT prefetch when YouTube's translated track is already loaded —
+    // the bilingual line will use it directly via `getAltCueAt`.
+    if (getTrackByLanguage(nativeLang)) return;
+    let cancelled = false;
+    let activeIdx = allCues.findIndex(
+      (c) => Math.abs(c.start - activeCue.start) < 50,
+    );
+    if (activeIdx < 0) {
+      activeIdx = allCues.findIndex((c) => c.start >= activeCue.start);
+      if (activeIdx < 0) return;
+    }
+    const upcoming = allCues.slice(activeIdx + 1, activeIdx + 7);
+    if (upcoming.length === 0) return;
+    let i = 0;
+    const fireNext = () => {
+      if (cancelled) return;
+      if (i >= upcoming.length) return;
+      const cue = upcoming[i];
+      i += 1;
+      const text = (cue.text ?? '').trim();
+      if (!text) {
+        fireNext();
+        return;
+      }
+      sendMessage(
+        'TRANSLATE',
+        { text, sourceLang, targetLang: nativeLang },
+        'background',
+      ).finally(() => {
+        if (cancelled) return;
+        window.setTimeout(fireNext, 60);
+      });
+    };
+    fireNext();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeCue?.id, showDualSubtitlePref]);
 
   // Native-language alt cue poll. Runs at 4 Hz — fast enough that the dual
   // caption snaps in within the same frame as the source for most users,
@@ -205,9 +302,14 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       }
     };
     tick();
-    const handle = window.setInterval(tick, 250);
+    const handle = window.setInterval(tick, 100);
+    // Also re-tick the moment a new translated track arrives in the bus —
+    // otherwise the bilingual line waits up to 100 ms for the next poll
+    // when YouTube finishes the auto-translate fetch mid-cue.
+    const off = onTrack(() => tick());
     return () => {
       window.clearInterval(handle);
+      off();
     };
   }, [adapter, targetLang, activeCue?.id]);
 
@@ -544,6 +646,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     if (!videoOverlayRoot || !enabled || !subtitlesVisible) return null;
     return createPortal(
       <div
+        data-popover-boundary
         className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'dark' : ''}`}
         style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}
       >

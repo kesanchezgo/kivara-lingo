@@ -4,6 +4,7 @@ import { detectPlatform } from './platform-adapters';
 import { App } from './ui/App';
 import type { SubtitleSource } from './platform-adapters/types';
 import { useKivaraStore } from '../shared/store';
+import { clearBus } from './platform-adapters/intercepted-bus';
 
 console.log('[Kivara Lingo] content script injected on', window.location.hostname);
 
@@ -15,9 +16,28 @@ function syncSourceLangToDOM() {
   document.documentElement.setAttribute('data-kivara-source-lang', lang);
 }
 syncSourceLangToDOM();
+
+// Same idea for the user's TARGET (native) language. The intercepted-bus
+// reads this attribute to decide which `tlang=` parameter to append when
+// auto-fetching YouTube's translated track for the bilingual line.
+function syncTargetLangToDOM() {
+  const lang = useKivaraStore.getState().translate.targetLanguage || 'es';
+  document.documentElement.setAttribute('data-kivara-target-lang', lang);
+}
+syncTargetLangToDOM();
 useKivaraStore.subscribe((state, prev) => {
   if (state.translate.sourceLang !== prev.translate.sourceLang) {
     syncSourceLangToDOM();
+    // Source language changed — the previously-cached translated track
+    // was relative to the old source. Drop it so the next caption load
+    // re-derives the bilingual line.
+    clearBus();
+  }
+  if (state.translate.targetLanguage !== prev.translate.targetLanguage) {
+    syncTargetLangToDOM();
+    // Target language changed — same reasoning. The user wants Portuguese
+    // now, the bus has Spanish cached; force a re-fetch.
+    clearBus();
   }
 });
 
@@ -168,6 +188,11 @@ async function handleNavigation() {
     return;
   }
   if (video === lastVideoElement && container === lastVideoContainer && mount) return;
+  // SPA navigated to a different video — drop any subtitle tracks the bus
+  // cached from the previous one. Without this, the dual-caption lookup
+  // would happily return cues from video A while we're watching video B
+  // (timestamps may overlap by coincidence).
+  clearBus();
   const adapter = await detectPlatform();
   await mountFor(video, container, adapter);
 }

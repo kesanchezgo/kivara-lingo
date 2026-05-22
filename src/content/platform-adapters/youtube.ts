@@ -1,5 +1,6 @@
 import type { SubtitleSource, SubtitleCue, CueListener } from './types';
 import { useKivaraStore } from '../../shared/store';
+import { getKnownLanguages, getTrackByLanguage } from './intercepted-bus';
 
 /**
  * YouTube adapter.
@@ -240,6 +241,33 @@ export function attachYouTube(): SubtitleSource | null {
       const style = document.getElementById(HIDE_STYLE_ID);
       if (style) style.remove();
       if (activeTrack) activeTrack.mode = 'showing';
+    },
+    /**
+     * Native-language alternate cue lookup. YouTube does NOT expose the
+     * parallel subtitle track via `video.textTracks` (only the active one
+     * shows up there), so we read directly from the intercepted-bus, which
+     * captures every `/api/timedtext` fetch the player makes — including
+     * the auto-translated track the user enables in the gear menu.
+     *
+     * Pattern mirrors `intercepted-adapter.ts` 1:1 so behaviour matches
+     * Netflix / HBO / Disney / Prime.
+     */
+    getAltCueAt(timeMs: number, lang: string): SubtitleCue | null {
+      const altTrack = getTrackByLanguage(lang);
+      if (!altTrack) return null;
+      const hit = altTrack.cues.find((c) => timeMs >= c.start && timeMs <= c.end);
+      if (!hit) return null;
+      return {
+        id: `youtube-alt-${lang}-${hit.start}-${hit.end}`,
+        start: hit.start,
+        end: hit.end,
+        text: hit.text,
+        language: altTrack.language ?? lang,
+        align: hit.align,
+      };
+    },
+    getAvailableAltLanguages(): string[] {
+      return getKnownLanguages();
     },
   };
 }
