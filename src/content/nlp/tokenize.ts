@@ -1,6 +1,7 @@
 import type { DictionaryEntry } from '../../shared/types';
 import { getDictionary, lookupDictionary } from './dictionary';
 import { isLikelyProperNoun, lemmaCandidates } from './lemma';
+import { hasYomitanHeadword } from './yomitan-headwords';
 
 /**
  * The full token taxonomy after the Tier 2 audit.
@@ -131,7 +132,9 @@ export function tokenizeSentence(
     }
     if (matched) continue;
 
-    // 2. Single-word fallback: literal → lemma candidates.
+    // 2. Single-word fallback: literal → lemma candidates → installed Yomitan
+    //    packs (so words outside the bundled `en.json` but covered by an
+    //    EN→ES / EN→EN pack still classify as `known`).
     const w = words[i];
     const literal = w.text.toLowerCase();
     let resolvedKey = literal;
@@ -139,8 +142,9 @@ export function tokenizeSentence(
     let isKnown = !!dict[literal];
 
     if (!isKnown) {
-      // Try lemma candidates. lemmaCandidates() always includes the literal
-      // first; skip index 0 since we already tested it.
+      // Try lemma candidates against the bundled dict. lemmaCandidates()
+      // always includes the literal first; skip index 0 since we already
+      // tested it.
       const candidates = lemmaCandidates(w.text);
       for (let c = 1; c < candidates.length; c++) {
         if (dict[candidates[c]]) {
@@ -148,6 +152,24 @@ export function tokenizeSentence(
           resolvedKey = candidates[c];
           resolvedLemma = candidates[c];
           break;
+        }
+      }
+      // Yomitan headword fallback. Only `en` is supported by the
+      // lemmatizer right now, so for other source languages we just
+      // probe the literal. We try the literal first (cheap) then the
+      // lemma candidates (also cheap — Set.has is O(1)).
+      if (!isKnown && hasYomitanHeadword(literal)) {
+        isKnown = true;
+        resolvedKey = literal;
+      } else if (!isKnown) {
+        const candidates = lemmaCandidates(w.text);
+        for (let c = 1; c < candidates.length; c++) {
+          if (hasYomitanHeadword(candidates[c])) {
+            isKnown = true;
+            resolvedKey = candidates[c];
+            resolvedLemma = candidates[c];
+            break;
+          }
         }
       }
     }

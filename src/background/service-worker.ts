@@ -40,7 +40,7 @@ import { speak } from './tts';
 import { enrichWithAi, getAiSettings, getResolvedNativeLang } from './ai-enrich';
 import { getMissingPhonetic } from './phonetic-augment';
 import { lookupDictionary } from '../content/nlp/dictionary';
-import { lookupYomitanTerm, listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming } from '../content/nlp/yomitan';
+import { lookupYomitanTerm, listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';
 import {
   BUNDLE_PACK_ID,
   MISS_PACK_ID,
@@ -465,26 +465,54 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
     return asJson(empty);
   }
 
-  // 1. Bundled dictionary (fast, sync).
-  let local = lookupDictionary(token, sourceLang);
+  // 1. User-installed Yomitan packs FIRST. They're higher quality than
+  //    the bundled `en.json` (which has 4 151 hand-curated entries plus
+  //    some imported scrap from a Wiktionary mirror) so when both have
+  //    a hit we trust the Yomitan pack. The pack lookup is async (one
+  //    IndexedDB hop), but cached on the same DB connection so a second
+  //    hover for the same word is essentially free.
+  let local: DictionaryEntry | null = null;
   let resolvedPackId: string | null = null;
-  if (local) resolvedPackId = BUNDLE_PACK_ID;
-
-  // 2. User-installed Yomitan packs (async IndexedDB lookup). We only consult
-  //    them on a bundle miss to avoid the round-trip when the popover can
-  //    already render the curated entry.
   let yomitanPackTitle: string | null = null;
+  try {
+    const hit = await lookupYomitanTerm(token, sourceLang);
+    if (hit) {
+      local = hit.entry;
+      yomitanPackTitle = hit.pack.title;
+      resolvedPackId = hit.pack.id;
+    }
+  } catch (err) {
+    // Pack lookup errors are non-fatal — fall through to bundled.
+    console.warn('[Kivara Lingo] yomitan lookup failed', err);
+  }
+
+  // 2. Bundled dictionary (fast, sync). Only consult when the Yomitan
+  //    layer didn't have a hit. The bundle is curated for high-frequency
+  //    words and ships their CEFR `level` (A1, A2, B1...) which the
+  //    Yomitan packs don't carry; so when the Yomitan layer hits but
+  //    the bundle ALSO has the same word, we splice in the level so the
+  //    popover badge keeps working.
   if (!local) {
-    try {
-      const hit = await lookupYomitanTerm(token, sourceLang);
-      if (hit) {
-        local = hit.entry;
-        yomitanPackTitle = hit.pack.title;
-        resolvedPackId = hit.pack.id;
+    const bundleHit = lookupDictionary(token, sourceLang);
+    if (bundleHit) {
+      local = bundleHit;
+      resolvedPackId = BUNDLE_PACK_ID;
+    }
+  } else {
+    const bundleHit = lookupDictionary(token, sourceLang);
+    if (bundleHit) {
+      // Splice in the bundle's CEFR `level` so the popover badge keeps
+      // working, and use its IPA / examples when the Yomitan hit didn't
+      // ship them. Crucially we DO NOT overwrite the Yomitan
+      // `translation` / `monolingual` / `bilingual` — those are higher
+      // quality and the whole point of preferring the pack.
+      const merged: DictionaryEntry = { ...local };
+      if (!merged.level && bundleHit.level) merged.level = bundleHit.level;
+      if (!merged.phonetic && bundleHit.phonetic) merged.phonetic = bundleHit.phonetic;
+      if ((!merged.examples || merged.examples.length === 0) && bundleHit.examples) {
+        merged.examples = bundleHit.examples;
       }
-    } catch (err) {
-      // Pack lookup errors are non-fatal — fall through to remote.
-      console.warn('[Kivara Lingo] yomitan lookup failed', err);
+      local = merged;
     }
   }
 
@@ -587,6 +615,30 @@ async function broadcastToActive(message: { type: string; [k: string]: unknown }
   }
 }
 
+/**
+ * Tell every tab that the set of installed Yomitan packs (or the
+ * `enabled` flag of one of them) just changed, so they re-pull their
+ * in-memory headword cache and the tokenizer reflects the new
+ * coverage without a page reload.
+ */
+async function broadcastDictPacksChanged() {
+  try {
+    const tabs = await chrome.tabs.query({});
+    await Promise.all(
+      tabs.map(async (tab) => {
+        if (tab.id == null) return;
+        try {
+          await chrome.tabs.sendMessage(tab.id, { type: 'DICT_PACKS_CHANGED' });
+        } catch {
+          // No content script on this tab — fine.
+        }
+      }),
+    );
+  } catch {
+    // chrome.tabs.query can throw if the SW is being torn down. Non-fatal.
+  }
+}
+
 chrome.commands.onCommand.addListener(async (command: string) => {
   console.log('[Kivara Lingo] command:', command);
   await broadcastToActive({ type: 'RUN_COMMAND', command });
@@ -677,6 +729,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       try {
         await deleteYomitanPack(message.id);
         sendResponse({ ok: true });
+        void broadcastDictPacksChanged();
       } catch (err) {
         sendResponse({ ok: false, error: (err as Error).message });
       }
@@ -688,10 +741,36 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       try {
         await setPackEnabled(message.id, !!message.enabled);
         sendResponse({ ok: true });
+        void broadcastDictPacksChanged();
       } catch (err) {
         sendResponse({ ok: false, error: (err as Error).message });
       }
     })();
+    return true;
+  }
+  // Content script asks for the full set of headwords known to the
+  // user's enabled packs. Used by the tokenizer so words like `excuse`,
+  // `pee`, `pants`, `seventh`, `grade` — which exist in the Wiktionary
+  // packs but NOT the bundled `en.json` — get classified as `known`
+  // instead of `unknown` (and therefore dressed with a real popover
+  // instead of a "SIN DICC." badge).
+  if (message?.type === 'GET_YOMITAN_HEADWORDS') {
+    const lang = typeof message.lang === 'string' ? message.lang : 'en';
+    void (async () => {
+      try {
+        const headwords = await getYomitanHeadwords(lang);
+        sendResponse({ ok: true, headwords });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message, headwords: [] });
+      }
+    })();
+    return true;
+  }
+  // Side-panel page just imported a local file / CSV / StarDict. Fan
+  // out a DICT_PACKS_CHANGED to every tab so their tokenizers re-pull.
+  if (message?.type === 'DICT_PACKS_CHANGED_NOTIFY') {
+    void broadcastDictPacksChanged();
+    sendResponse({ ok: true });
     return true;
   }
   // UI requests downloading a dictionary pack from a URL. The SW carries the
@@ -806,6 +885,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         const result = await importYomitanPackStreaming(merged, (p) =>
           reportProgress(p),
         );
+        if (result.ok) void broadcastDictPacksChanged();
         sendResponse(result);
       } catch (err) {
         const errorMessage = (err as Error).message ?? String(err);

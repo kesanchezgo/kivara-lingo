@@ -5,8 +5,51 @@ import { App } from './ui/App';
 import type { SubtitleSource } from './platform-adapters/types';
 import { useKivaraStore } from '../shared/store';
 import { clearBus, reprocessLastDashManifest } from './platform-adapters/intercepted-bus';
+import { setYomitanHeadwords } from './nlp/yomitan-headwords';
 
 console.log('[Kivara Lingo] content script injected on', window.location.hostname);
+
+/**
+ * Hydrate the in-memory headword cache used by the tokenizer so words
+ * outside the bundled `en.json` (excuse, pee, pants, seventh, grade…)
+ * but covered by an installed Yomitan pack get classified as `known`.
+ *
+ * The SW owns the IndexedDB connection (the content-script context sees
+ * the host site's DB, not the extension's), so we round-trip through
+ * `chrome.runtime.sendMessage`. The response carries up to ~1.5M
+ * lowercased strings — large but a one-time cost per tab.
+ */
+function hydrateYomitanHeadwords() {
+  const lang = useKivaraStore.getState().translate.sourceLang || 'en';
+  try {
+    chrome.runtime.sendMessage(
+      { type: 'GET_YOMITAN_HEADWORDS', lang },
+      (response: { ok: boolean; headwords?: string[] } | undefined) => {
+        // Drain runtime.lastError so an unreachable SW doesn't surface
+        // as an unchecked warning.
+        void chrome.runtime.lastError;
+        if (response?.ok && Array.isArray(response.headwords)) {
+          setYomitanHeadwords(response.headwords);
+        }
+      },
+    );
+  } catch {
+    // Non-extension context (tests / prototype) — silent no-op.
+  }
+}
+hydrateYomitanHeadwords();
+// Re-pull whenever the user installs / toggles / deletes a pack so the
+// tokenizer reflects the new coverage without a page reload.
+chrome.runtime.onMessage.addListener((msg) => {
+  if (
+    msg?.type === 'DICT_PACK_PROGRESS' &&
+    (msg.stage === 'done' || msg.stage === 'error')
+  ) {
+    hydrateYomitanHeadwords();
+  } else if (msg?.type === 'DICT_PACKS_CHANGED') {
+    hydrateYomitanHeadwords();
+  }
+});
 
 // Sync the user's configured source language to a DOM attribute so the
 // MAIN-world interceptor (which can't access chrome.storage or the Zustand
@@ -49,6 +92,8 @@ useKivaraStore.subscribe((state, prev) => {
     // newly-needed source track gets fetched without waiting for the
     // player to reload.
     reprocessLastDashManifest();
+    // Yomitan headwords are language-scoped — re-pull for the new lang.
+    hydrateYomitanHeadwords();
   }
   if (state.translate.targetLanguage !== prev.translate.targetLanguage) {
     syncTargetLangToDOM();

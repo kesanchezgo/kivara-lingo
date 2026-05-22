@@ -463,12 +463,12 @@
     "token": "act",
     "type": "word",
     "level": "A1",
-    "translation": "actuaciones",
+    "translation": "acto",
     "phonetic": "/ækt/",
-    "monolingual": "ISO 639-3 language code for Achterhooks.",
     "examples": [
       "an act of goodwill"
-    ]
+    ],
+    "bilingual": "(noun) acto, acción · (verb) actuar"
   },
   "action": {
     "token": "action",
@@ -565,10 +565,10 @@
     "level": "A2",
     "translation": "añadir",
     "phonetic": "/æd/",
-    "monolingual": "ISO 639-3 language code for Dzodinka.",
     "examples": [
       "to add numbers"
-    ]
+    ],
+    "bilingual": "(verb) añadir, sumar, agregar"
   },
   "added": {
     "token": "added",
@@ -861,10 +861,10 @@
     "level": "A1",
     "translation": "edad",
     "phonetic": "/eɪd͡ʒ/",
-    "monolingual": "ISO 639-3 language code for Angal.",
     "examples": [
       "\"What is the age of your oldest child?\" — \"He's ten.\" (ten years old)"
-    ]
+    ],
+    "bilingual": "(noun) edad"
   },
   "agency": {
     "token": "agency",
@@ -916,7 +916,6 @@
     "level": "A1",
     "translation": "hace",
     "phonetic": "/əˈɡəʊ/",
-    "monolingual": "ISO 639-3 language code for Tainae.",
     "examples": [
       "in days ago / in days agone"
     ]
@@ -1023,10 +1022,10 @@
     "level": "A1",
     "translation": "aire",
     "phonetic": "/ˈɛə̯/",
-    "monolingual": "ISO 639-3 language code for Airoran.",
     "examples": [
       "This drill runs on compressed air."
-    ]
+    ],
+    "bilingual": "(noun) aire"
   },
   "airport": {
     "token": "airport",
@@ -1110,10 +1109,10 @@
     "level": "A1",
     "translation": "todo",
     "phonetic": "/ɔːl/",
-    "monolingual": "ISO 639-3 language code for Allar.",
     "examples": [
       "All contestants must register for the footrace: we've arranged numbers for them all."
-    ]
+    ],
+    "bilingual": "(adj./pron.) todo, todos"
   },
   "allegation": {
     "token": "allegation",
@@ -1593,10 +1592,10 @@
     "level": "A1",
     "translation": "y",
     "phonetic": "/ˈænd/",
-    "monolingual": "ISO 639-3 language code for Ansus.",
     "examples": [
       "I'd been walking since sunrise, and I was hungry."
-    ]
+    ],
+    "bilingual": "(conj.) y"
   },
   "anecdotal": {
     "token": "anecdotal",
@@ -1800,12 +1799,12 @@
     "token": "any",
     "type": "word",
     "level": "A1",
-    "translation": "cualquiera",
+    "translation": "cualquier",
     "phonetic": "/ɛni/",
-    "monolingual": "ISO 639-3 language code for Anyi.",
     "examples": [
       "If you get any taller, you'll start having to duck through doorways!"
-    ]
+    ],
+    "bilingual": "(adj.) cualquier, algún"
   },
   "anymore": {
     "token": "anymore",
@@ -1847,9 +1846,9 @@
     "token": "anyway",
     "type": "word",
     "level": "A2",
-    "translation": "aumento",
+    "translation": "de todos modos",
     "phonetic": "/ˈɛniweɪ/",
-    "bilingual": "(adv.) aumento",
+    "bilingual": "(adv.) de todos modos, de cualquier manera",
     "monolingual": "Regardless; anyhow.",
     "examples": [
       "He didn't enjoy washing his car, but it was so dirty that he did it anyway."
@@ -2125,12 +2124,12 @@
     "token": "are",
     "type": "word",
     "level": "A1",
-    "translation": "estén",
+    "translation": "son/están",
     "phonetic": "/ə(ɹ)/",
-    "monolingual": "ISO 639-3 language code for Western Arrernte.",
     "examples": [
       "Mary, where are you going?"
-    ]
+    ],
+    "bilingual": "(verb) son, están (be conjugado)"
   },
   "area": {
     "token": "area",
@@ -2255,7 +2254,6 @@
     "level": "A2",
     "translation": "arte",
     "phonetic": "/ɑːt/",
-    "monolingual": "ISO 639-2 & ISO 639-5 language code for artificial languages.",
     "examples": [
       "There is a debate as to whether graffiti is art or vandalism."
     ]
@@ -2357,10 +2355,10 @@
     "level": "A1",
     "translation": "preguntar",
     "phonetic": "/ɑːsk/",
-    "monolingual": "ISO 639-3 language code for Ashkun.",
     "examples": [
       "I asked her age."
-    ]
+    ],
+    "bilingual": "(verb) preguntar, pedir"
   },
   "asked": {
     "token": "asked",
@@ -2399,12 +2397,12 @@
     "token": "ass",
     "type": "word",
     "level": "A2",
-    "translation": "culo",
+    "translation": "trasero",
     "phonetic": "/æs/",
-    "monolingual": "ISO 639-3 language code for Ipulo.",
     "examples": [
       "That new kid left the cap off the syrup bottle again! What an ass."
-    ]
+    ],
+    "bilingual": "(noun, vulgar) trasero, culo · (noun) burro"
   },
   "assassination": {
     "token": "assassination",
@@ -3048,7 +3046,6 @@
     "level": "A1",
     "translation": "malo/a",
     "phonetic": "/bæd/",
-    "monolingual": "ISO 639-2 & ISO 639-5 language code for Banda languages.",
     "examples": [
       "That movie was really bad!"
     ]
@@ -3159,10 +3156,10 @@
     "level": "A2",
     "translation": "bar",
     "phonetic": "/bɑː/",
-    "monolingual": "ISO 639-3 language code for Bavarian.",
     "examples": [
       "The window was protected by steel bars."
-    ]
+    ],
+    "bilingual": "(noun) bar, barra"
   },
   "bargain": {
     "token": "bargain",
@@ -3355,10 +3352,10 @@
     "level": "A2",
     "translation": "cama",
     "phonetic": "/ˈbɛd/",
-    "monolingual": "ISO 639-3 language code for Bedoanas.",
     "examples": [
       "My cat often sleeps on my bed."
-    ]
+    ],
+    "bilingual": "(noun) cama"
   },
   "been": {
     "token": "been",
@@ -3695,12 +3692,13 @@
     "token": "big",
     "type": "word",
     "level": "A1",
-    "translation": "Enlace a la imagen grande",
     "phonetic": "/bɪɡ/",
-    "monolingual": "ISO 639-3 language code for Biangai.",
     "examples": [
       "Elephants are big animals, and they eat a lot."
-    ]
+    ],
+    "translation": "grande",
+    "bilingual": "(adj.) grande, importante",
+    "monolingual": "Of great size, extent, or intensity."
   },
   "biggest": {
     "token": "biggest",
@@ -3807,12 +3805,12 @@
     "token": "bit",
     "type": "word",
     "level": "A1",
-    "translation": "bit",
+    "translation": "poco",
     "phonetic": "/ˈbɪt/",
-    "monolingual": "ISO 639-3 language code for Berinomo.",
     "examples": [
       "A horse hates having a bit put in its mouth."
-    ]
+    ],
+    "bilingual": "(noun) poco, trozo · (verb) mordió"
   },
   "bizarre": {
     "token": "bizarre",
@@ -4268,10 +4266,10 @@
     "level": "A2",
     "translation": "caja",
     "phonetic": "/bɒks/",
-    "monolingual": "ISO 639-3 language code for Buamu.",
     "examples": [
       "a box of books"
-    ]
+    ],
+    "bilingual": "(noun) caja"
   },
   "boy": {
     "token": "boy",
@@ -4279,10 +4277,10 @@
     "level": "A2",
     "translation": "chico",
     "phonetic": "/bɔɪ/",
-    "monolingual": "ISO 639-3 language code for Bodo (Central Africa).",
     "examples": [
       "Kieran plays football with other boys in his school."
-    ]
+    ],
+    "bilingual": "(noun) chico, niño"
   },
   "boys": {
     "token": "boys",
@@ -4760,10 +4758,10 @@
     "level": "B1",
     "translation": "autobús",
     "phonetic": "/bʌs/",
-    "monolingual": "ISO 639-3 language code for Bokobaru.",
     "examples": [
       "I'm on the bus."
-    ]
+    ],
+    "bilingual": "(noun) autobús, bus"
   },
   "business": {
     "token": "business",
@@ -4791,10 +4789,10 @@
     "level": "A1",
     "translation": "pero",
     "phonetic": "/ˈbʌt/",
-    "monolingual": "ISO 639-3 language code for Bungain.",
     "examples": [
       "Everyone but Father left early."
-    ]
+    ],
+    "bilingual": "(conj.) pero"
   },
   "buy": {
     "token": "buy",
@@ -4802,10 +4800,10 @@
     "level": "A1",
     "translation": "comprar",
     "phonetic": "/baɪ/",
-    "monolingual": "ISO 639-3 language code for Mmani.",
     "examples": [
       "Who'd Father buy the car for? He bought it for me, not for you."
-    ]
+    ],
+    "bilingual": "(verb) comprar"
   },
   "buyout": {
     "token": "buyout",
@@ -4970,12 +4968,12 @@
     "token": "can",
     "type": "word",
     "level": "A1",
-    "translation": "bote",
+    "translation": "poder",
     "phonetic": "/ˈkæn/",
-    "monolingual": "ISO 639-3 language code for Chambri.",
     "examples": [
       "She can speak English, French, and German."
-    ]
+    ],
+    "bilingual": "(modal) poder · (noun) lata"
   },
   "can't": {
     "token": "can't",
@@ -5142,12 +5140,12 @@
     "token": "car",
     "type": "word",
     "level": "A1",
-    "translation": "dis",
+    "translation": "auto",
     "phonetic": "/kɑː/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Kari'na.",
     "examples": [
       "in a car"
-    ]
+    ],
+    "bilingual": "(noun) auto, coche, carro"
   },
   "carbohydrate": {
     "token": "carbohydrate",
@@ -9045,10 +9043,10 @@
     "level": "A2",
     "translation": "taza",
     "phonetic": "/ˈkʌp/",
-    "monolingual": "ISO 639-3 language code for Cupeño.",
     "examples": [
       "Pour the tea into the cup."
-    ]
+    ],
+    "bilingual": "(noun) taza, copa"
   },
   "cure": {
     "token": "cure",
@@ -9148,10 +9146,10 @@
     "level": "A2",
     "translation": "cortar",
     "phonetic": "/kʌt/",
-    "monolingual": "ISO 639-3 language code for Teutila Cuicatec.",
     "examples": [
       "Would you please cut the cake?"
-    ]
+    ],
+    "bilingual": "(verb) cortar"
   },
   "cyber": {
     "token": "cyber",
@@ -9211,10 +9209,10 @@
     "level": "A2",
     "translation": "papá",
     "phonetic": "/dæd/",
-    "monolingual": "ISO 639-3 language code for Marik.",
     "examples": [
       "His dad was always there for him."
-    ]
+    ],
+    "bilingual": "(noun) papá"
   },
   "daily": {
     "token": "daily",
@@ -9370,7 +9368,6 @@
     "level": "A1",
     "translation": "día",
     "phonetic": "/ˈdeɪ̯/",
-    "monolingual": "ISO 639-2 & ISO 639-5 language code for Land Dayak languages.",
     "examples": [
       "day and night; I work at night and sleep during the day."
     ]
@@ -10521,7 +10518,6 @@
     "level": "A1",
     "translation": ".",
     "phonetic": "/dɪd/",
-    "monolingual": "ISO 639-3 language code for Didinga.",
     "examples": [
       "Jeez, did I make a mistake!"
     ]
@@ -11590,7 +11586,6 @@
     "level": "A1",
     "translation": "por",
     "phonetic": "/djuː/",
-    "monolingual": "ISO 639-3 language code for Umiray Dumaget Agta.",
     "examples": [
       "He is due four weeks of back pay."
     ]
@@ -12406,7 +12401,6 @@
     "level": "A1",
     "translation": "fin",
     "phonetic": "/ɛnd/",
-    "monolingual": "ISO 639-3 language code for Ende.",
     "examples": [
       "At the end of the garden there was a beautiful fountain."
     ]
@@ -12994,8 +12988,7 @@
     "type": "word",
     "level": "A2",
     "translation": "etc",
-    "phonetic": "/ˌɛt ˈsɛt(ə)ɹə/",
-    "monolingual": "ISO 639-3 language code for Etchemin."
+    "phonetic": "/ˌɛt ˈsɛt(ə)ɹə/"
   },
   "ethanol": {
     "token": "ethanol",
@@ -13921,7 +13914,6 @@
     "level": "A2",
     "translation": "ABANICO",
     "phonetic": "/fæn/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Fang (Bantu).",
     "examples": [
       "He didn't switch on the fan because the temperature was 15 degrees Celsius."
     ]
@@ -13953,7 +13945,6 @@
     "level": "A1",
     "translation": "Selecciona la anterioridad en la cual los clientes pueden reservar",
     "phonetic": "/fɑː/",
-    "monolingual": "ISO 639-3 language code for Fataleka.",
     "examples": [
       "He went to a far land."
     ]
@@ -14000,7 +13991,6 @@
     "level": "A2",
     "translation": "grasa",
     "phonetic": "/ˈfæt/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Fante Akan.",
     "examples": [
       "The fat man had problems going through the door."
     ]
@@ -14584,7 +14574,6 @@
     "level": "A2",
     "translation": "ajuste",
     "phonetic": "/fɪt/",
-    "monolingual": "ISO 639-3 language code for Meänkieli.",
     "examples": [
       "You have nothing to say about it. I'll do exactly as I see fit."
     ],
@@ -14940,7 +14929,6 @@
     "level": "A1",
     "translation": "para",
     "phonetic": "/fɔː/",
-    "monolingual": "ISO 639-3 language code for Fore.",
     "examples": [
       "I had to stay with my wicked stepmother, for I had nowhere else to go."
     ]
@@ -15532,7 +15520,6 @@
     "level": "A2",
     "translation": "diversión",
     "phonetic": "/fʌn/",
-    "monolingual": "ISO 639-3 language code for Fulniô.",
     "examples": [
       "We had a fun time at the party."
     ]
@@ -15744,7 +15731,6 @@
     "level": "A2",
     "translation": "gas",
     "phonetic": "/ɡæs/",
-    "monolingual": "ISO 639-3 language code for Adiwasi Garasia.",
     "examples": [
       "A lot of gas had escaped from the cylinder."
     ]
@@ -15784,7 +15770,6 @@
     "level": "A2",
     "translation": "gay",
     "phonetic": "/ɡeɪ/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Gayo.",
     "examples": [
       "Cliff is gay, but his twin brother is straight."
     ]
@@ -16311,7 +16296,6 @@
     "level": "A1",
     "translation": "dios",
     "phonetic": "/ɡɒd/",
-    "monolingual": "ISO 639-3 language code for Godié.",
     "examples": [
       "The most frequently used name for the Islamic god is Allah."
     ]
@@ -16408,7 +16392,6 @@
     "level": "A1",
     "translation": "tiene",
     "phonetic": "/ɡɒt/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Gothic.",
     "examples": [
       "I can’t go out tonight: I’ve got to study for my exams."
     ]
@@ -16824,7 +16807,6 @@
     "level": "A2",
     "translation": "Pistolas",
     "phonetic": "/ˈɡʌn/",
-    "monolingual": "ISO 639-3 language code for Mbya Guarani.",
     "examples": [
       "Guns were considered improvements of crossbows and catapults."
     ]
@@ -16902,7 +16884,6 @@
     "level": "A1",
     "translation": "había comenzado",
     "phonetic": "/hæd/",
-    "monolingual": "ISO 639-3 language code for Hatam.",
     "examples": [
       "This morning I had an egg for breakfast."
     ]
@@ -17116,7 +17097,6 @@
     "level": "A1",
     "translation": "tiene",
     "phonetic": "/hæz/",
-    "monolingual": "ISO 639-3 language code for Haisla.",
     "examples": [
       "She has plenty of reasons to be thankful."
     ]
@@ -17470,7 +17450,6 @@
     "level": "A1",
     "translation": "perdido en sus recuerdos",
     "phonetic": "/ˈhɜː/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Herero.",
     "examples": [
       "This is her book"
     ]
@@ -17642,7 +17621,6 @@
     "level": "A1",
     "translation": "él / le / lo",
     "phonetic": "/ˈhɪm/",
-    "monolingual": "ISO 639-2 & ISO 639-5 language code for Himachali languages.",
     "examples": [
       "Now him and Bernie are best friends."
     ]
@@ -17737,7 +17715,6 @@
     "level": "A1",
     "translation": "golpe",
     "phonetic": "/hɪt/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Hittite.",
     "examples": [
       "One boy hit the other."
     ]
@@ -17916,7 +17893,6 @@
     "level": "A2",
     "translation": "caliente",
     "phonetic": "/hɒt/",
-    "monolingual": "ISO 639-3 language code for Hote.",
     "examples": [
       "He forgot that the frying pan was hot and burned his hand."
     ]
@@ -17966,7 +17942,6 @@
     "level": "A1",
     "translation": "cómo",
     "phonetic": "/haʊ/",
-    "monolingual": "ISO 639-3 language code for Honi.",
     "examples": [
       "How often do you practice?"
     ]
@@ -18197,7 +18172,6 @@
     "level": "A2",
     "translation": "hielo",
     "phonetic": "/aɪs/",
-    "monolingual": "ISO 639-2/B language code for Icelandic.",
     "examples": [
       "a heart of ice"
     ]
@@ -20057,8 +20031,7 @@
     "type": "word",
     "level": "A1",
     "translation": "su",
-    "phonetic": "/ɪts/",
-    "monolingual": "ISO 639-3 language code for Itsekiri."
+    "phonetic": "/ɪts/"
   },
   "itself": {
     "token": "itself",
@@ -20158,7 +20131,6 @@
     "level": "A1",
     "translation": "servicio",
     "phonetic": "/dʒɒb/",
-    "monolingual": "ISO 639-3 language code for Joba.",
     "examples": [
       "I've got a job for you: could you wash the dishes?"
     ]
@@ -20412,7 +20384,6 @@
     "level": "A2",
     "translation": "llave",
     "phonetic": "/kiː/",
-    "monolingual": "ISO 639-3 language code for Kupia.",
     "examples": [
       "The key to solving this problem is persistence."
     ]
@@ -20439,7 +20410,6 @@
     "level": "A2",
     "translation": "niño",
     "phonetic": "/ˈkɪd/",
-    "monolingual": "ISO 639-3 language code for Koshin.",
     "examples": [
       "She's a kid. It's normal for her to have imaginary friends."
     ]
@@ -20970,7 +20940,6 @@
     "level": "A1",
     "translation": "law",
     "phonetic": "/lɔː/",
-    "monolingual": "ISO 639-3 language code for Lauje.",
     "examples": [
       "The courts interpret the law but should not make it."
     ]
@@ -21202,8 +21171,7 @@
     "type": "word",
     "level": "A2",
     "translation": "lo señala",
-    "phonetic": "/ˈlɛd/",
-    "monolingual": "ISO 639-3 language code for Lendu."
+    "phonetic": "/ˈlɛd/"
   },
   "ledger": {
     "token": "ledger",
@@ -21339,7 +21307,6 @@
     "level": "A1",
     "translation": "dejar",
     "phonetic": "/lɛt/",
-    "monolingual": "ISO 639-3 language code for Lesing-Gelimi.",
     "examples": [
       "After he knocked for hours, I decided to let him come in."
     ]
@@ -21474,7 +21441,6 @@
     "level": "B1",
     "translation": "radicar",
     "phonetic": "/laɪ̯/",
-    "monolingual": "ISO 639-3 language code for Likila.",
     "examples": [
       "The book lies on the table; the snow lies on the roof; he lies in his coffin."
     ]
@@ -21876,7 +21842,6 @@
     "level": "A2",
     "translation": "lol",
     "phonetic": "/ɛl.əʊˈɛl/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Mongo.",
     "examples": [
       "Are you really that bad lol?"
     ]
@@ -22049,7 +22014,6 @@
     "level": "A1",
     "translation": "lote",
     "phonetic": "/lɒt/",
-    "monolingual": "ISO 639-3 language code for Lotuko.",
     "examples": [
       "win the whole lot (of money); i.e. jackpot"
     ]
@@ -22090,7 +22054,6 @@
     "level": "A1",
     "translation": "baja",
     "phonetic": "/ˈləʊ/",
-    "monolingual": "ISO 639-3 language code for Tampias Lobu.",
     "examples": [
       "standing on low ground"
     ]
@@ -22442,7 +22405,6 @@
     "level": "A1",
     "translation": "pecador.",
     "phonetic": "/ˈmæn/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Mandingo.",
     "examples": [
       "The show is especially popular with middle-aged men."
     ]
@@ -22765,7 +22727,6 @@
     "level": "A1",
     "translation": "mayo",
     "phonetic": "/meɪ/",
-    "monolingual": "ISO 639-2/B language code for Malay.",
     "examples": [
       "you may smoke outside"
     ]
@@ -23086,7 +23047,6 @@
     "level": "A1",
     "translation": "hombres",
     "phonetic": "/mɛn/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Mende (Sierra Leone).",
     "examples": [
       "\"Muster up the men in the barracks at 0600,\" the lieutenant said to his sergeant."
     ]
@@ -23229,8 +23189,7 @@
     "type": "word",
     "level": "A2",
     "translation": "tuxedo",
-    "phonetic": "/mɛt/",
-    "monolingual": "ISO 639-3 language code for Mato."
+    "phonetic": "/mɛt/"
   },
   "metabolism": {
     "token": "metabolism",
@@ -23779,8 +23738,7 @@
     "type": "word",
     "level": "A2",
     "translation": "Mamá",
-    "phonetic": "/mɒm/",
-    "monolingual": "ISO 639-3 language code for Monimbo."
+    "phonetic": "/mɒm/"
   },
   "moment": {
     "token": "moment",
@@ -24148,8 +24106,7 @@
     "type": "word",
     "level": "A2",
     "translation": "Sra.",
-    "phonetic": "/mr̂ːs/",
-    "monolingual": "ISO 639-3 language code for Maragus."
+    "phonetic": "/mr̂ːs/"
   },
   "much": {
     "token": "much",
@@ -24771,7 +24728,6 @@
     "level": "A1",
     "translation": "nuevos",
     "phonetic": "/njuː/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Newar.",
     "examples": [
       "This is a new scratch on my car! The band just released a new album."
     ]
@@ -24972,8 +24928,7 @@
     "type": "word",
     "level": "A2",
     "translation": "-non",
-    "phonetic": "/nɑn/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Old Norse."
+    "phonetic": "/nɑn/"
   },
   "non-profit": {
     "token": "non-profit",
@@ -25065,7 +25020,6 @@
     "level": "A1",
     "translation": "no",
     "phonetic": "/nɒt/",
-    "monolingual": "ISO 639-3 language code for Nomatsiguenga.",
     "examples": [
       "Did you take out the trash? — No, I did not. I do not think it was my turn, was it?"
     ]
@@ -25182,7 +25136,6 @@
     "level": "A1",
     "translation": "ahora",
     "phonetic": "/naʊ/",
-    "monolingual": "ISO 639-3 language code for Nyambo.",
     "examples": [
       "I think this band's sound is very now."
     ]
@@ -25661,7 +25614,6 @@
     "level": "A1",
     "translation": "viejo",
     "phonetic": "/əʊld/",
-    "monolingual": "ISO 639-3 language code for Mochi.",
     "examples": [
       "an old abandoned building"
     ]
@@ -27003,7 +26955,6 @@
     "level": "A1",
     "translation": "pagar",
     "phonetic": "/peɪ/",
-    "monolingual": "ISO 639-3 language code for Pech.",
     "examples": [
       "How much will the job pay?"
     ]
@@ -27167,7 +27118,6 @@
     "level": "A1",
     "translation": "por",
     "phonetic": "/pɜː/",
-    "monolingual": "ISO 639-2/B language code for Persian.",
     "examples": [
       "Admission is £10 per person."
     ]
@@ -28272,7 +28222,6 @@
     "level": "A2",
     "translation": "pop",
     "phonetic": "/pɒp/",
-    "monolingual": "ISO 639-3 language code for Pwapwâ.",
     "examples": [
       "Listen to the pop of a champagne cork."
     ]
@@ -28579,8 +28528,7 @@
     "type": "word",
     "level": "A2",
     "translation": "Figura 1C",
-    "phonetic": "/ˈpɹi/",
-    "monolingual": "ISO 639-3 language code for Principense."
+    "phonetic": "/ˈpɹi/"
   },
   "preach": {
     "token": "preach",
@@ -29105,7 +29053,6 @@
     "level": "A2",
     "translation": "pro",
     "phonetic": "/pɹəʊ/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Old Occitan.",
     "examples": [
       "What are the pros and cons of buying a car?"
     ]
@@ -29882,7 +29829,6 @@
     "level": "A1",
     "translation": "genere  desafíos  a  mis  mayores",
     "phonetic": "/pʊt/",
-    "monolingual": "ISO 639-3 language code for Putoh.",
     "examples": [
       "She put her books on the table."
     ]
@@ -30246,8 +30192,7 @@
     "type": "word",
     "level": "A2",
     "translation": "ran",
-    "phonetic": "/ɹæn/",
-    "monolingual": "ISO 639-3 language code for Riantana."
+    "phonetic": "/ɹæn/"
   },
   "random": {
     "token": "random",
@@ -32609,7 +32554,6 @@
     "level": "A1",
     "translation": "carrera",
     "phonetic": "/ɹʌn/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Kirundi.",
     "examples": [
       "Run, and you might still catch the train!"
     ]
@@ -32716,7 +32660,6 @@
     "level": "B1",
     "translation": "me entristece",
     "phonetic": "/ˈsæd/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Sandawe.",
     "examples": [
       "She gets sad when he's away."
     ]
@@ -32854,8 +32797,7 @@
     "type": "word",
     "level": "A2",
     "translation": "san",
-    "phonetic": "/ˈsæn/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Sanskrit."
+    "phonetic": "/ˈsæn/"
   },
   "sanction": {
     "token": "sanction",
@@ -32951,7 +32893,6 @@
     "level": "A1",
     "translation": "sierra",
     "phonetic": "/sɔː/",
-    "monolingual": "ISO 639-3 language code for Sawi.",
     "examples": [
       "The timber saws smoothly."
     ]
@@ -32962,7 +32903,6 @@
     "level": "A1",
     "translation": "afirmar",
     "phonetic": "/seɪ/",
-    "monolingual": "ISO 639-3 language code for Saya.",
     "examples": [
       "Please say your name slowly and clearly."
     ]
@@ -33336,7 +33276,6 @@
     "level": "A2",
     "translation": "mar",
     "phonetic": "/siː/",
-    "monolingual": "ISO 639-3 language code for Semai.",
     "examples": [
       "The Mediterranean Sea, the Caribbean Sea, the Sea of Crete, etc."
     ]
@@ -33506,7 +33445,6 @@
     "level": "A1",
     "translation": "ver",
     "phonetic": "/ˈsiː/",
-    "monolingual": "ISO 639-3 language code for Seneca.",
     "examples": [
       "Now I've seen it all!"
     ]
@@ -33915,7 +33853,6 @@
     "level": "A1",
     "translation": "juego",
     "phonetic": "/sɛt/",
-    "monolingual": "ISO 639-3 language code for Sentani.",
     "examples": [
       "Set the tray there."
     ]
@@ -34106,7 +34043,6 @@
     "level": "A1",
     "translation": "ella",
     "phonetic": "/Template:IPAchar\"},\"params\":{\"1\":{\"wt\":\"/",
-    "monolingual": "ISO 639-3 language code for Sheko.",
     "examples": [
       "I asked Mary, but she said that she didn't know."
     ]
@@ -34762,7 +34698,6 @@
     "level": "A2",
     "translation": "señor",
     "phonetic": "/sɜː/",
-    "monolingual": "ISO 639-3 language code for Siri.",
     "examples": [
       "Just be careful. He gets whingy now if you don't address him as Sir John."
     ]
@@ -34785,7 +34720,6 @@
     "level": "A2",
     "translation": "sit",
     "phonetic": "/sɪt/",
-    "monolingual": "ISO 639-2 & ISO 639-5 language code for Sino-Tibetan languages.",
     "examples": [
       "After a long day of walking, it was good just to sit and relax."
     ]
@@ -35434,7 +35368,6 @@
     "level": "A2",
     "translation": "son",
     "phonetic": "/sʌn/",
-    "monolingual": "ISO 639-2 & ISO 639-5 language code for Songhay languages.",
     "examples": [
       "Before the birth of the man's child, he said: \"I want a son, not a daughter.\""
     ]
@@ -37474,7 +37407,6 @@
     "level": "A2",
     "translation": "dom",
     "phonetic": "/sʌn/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Sundanese.",
     "examples": [
       "Beautiful bodies lying on the beach, sunning their bronzed limbs."
     ]
@@ -38144,7 +38076,6 @@
     "level": "A2",
     "translation": "impuesto",
     "phonetic": "/tæks/",
-    "monolingual": "ISO 639-3 language code for Tamki.",
     "examples": [
       "a heavy tax on time or health"
     ],
@@ -38679,7 +38610,6 @@
     "level": "A1",
     "translation": "el día",
     "phonetic": "/ðə/",
-    "monolingual": "ISO 639-3 language code for Chitwania Tharu.",
     "examples": [
       "I’m reading the book Mary reviewed. (Compare I’m reading a book Mary reviewed.)"
     ]
@@ -39364,7 +39294,6 @@
     "level": "B1",
     "translation": "tom",
     "phonetic": "/tɒm/",
-    "monolingual": "ISO 639-3 language code for Tombulu.",
     "examples": [
       "Toms 90p a pound"
     ]
@@ -39420,7 +39349,6 @@
     "level": "A1",
     "translation": "también",
     "phonetic": "/tuː/",
-    "monolingual": "ISO 639-3 language code for Xicotepec de Juárez Totonac.",
     "examples": [
       "There has been a cutback in federal subsidies. Rates have been increasing too."
     ]
@@ -39440,7 +39368,6 @@
     "level": "A1",
     "translation": "arriba",
     "phonetic": "/tɒp/",
-    "monolingual": "ISO 639-3 language code for Papantla Totonac.",
     "examples": [
       "His kite got caught at the top of the tree."
     ]
@@ -40219,7 +40146,6 @@
     "level": "A1",
     "translation": "intentar",
     "phonetic": "/tɹaɪ/",
-    "monolingual": "ISO 639-3 language code for Turung.",
     "examples": [
       "I tried to rollerblade, but I couldn’t."
     ]
@@ -41875,7 +41801,6 @@
     "level": "A1",
     "translation": ".",
     "phonetic": "/wɔː/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Waray-Waray.",
     "examples": [
       "holy war; just war; civil war"
     ]
@@ -41942,7 +41867,6 @@
     "level": "A1",
     "translation": "fue",
     "phonetic": "/wəz/",
-    "monolingual": "ISO 639-2 & ISO 639-3 language code for Washo.",
     "examples": [
       "I was castigated and scorned."
     ]
@@ -42059,7 +41983,6 @@
     "level": "A1",
     "translation": ".",
     "phonetic": "/weɪ/",
-    "monolingual": "ISO 639-3 language code for Wayana.",
     "examples": [
       "Do you know the way to the airport? Come this way and I'll show you a shortcut. It's a long way from here."
     ]
@@ -42698,7 +42621,6 @@
     "level": "A1",
     "translation": "victoria",
     "phonetic": "/ˈwɪn/",
-    "monolingual": "ISO 639-3 language code for Winnebago.",
     "examples": [
       "to win the jackpot in a lottery; to win a bottle of wine in a raffle"
     ]
@@ -42936,8 +42858,7 @@
     "type": "word",
     "level": "A2",
     "translation": "wonsamount in units (real)",
-    "phonetic": "/wʌn/",
-    "monolingual": "ISO 639-3 language code for Wongo."
+    "phonetic": "/wʌn/"
   },
   "won't": {
     "token": "won't",
@@ -43204,7 +43125,6 @@
     "level": "A2",
     "translation": "me asombra",
     "phonetic": "/waʊ/",
-    "monolingual": "ISO 639-3 language code for Wawonii.",
     "examples": [
       "Wow, I sure was surprised!"
     ]
@@ -43413,7 +43333,6 @@
     "level": "A1",
     "translation": "sí",
     "phonetic": "/jɛs/",
-    "monolingual": "ISO 639-3 language code for Yeskwa.",
     "examples": [
       "Yes, you are correct."
     ]
@@ -43433,7 +43352,6 @@
     "level": "A1",
     "translation": "sin embargo",
     "phonetic": "/jɛt/",
-    "monolingual": "ISO 639-3 language code for Yetfa.",
     "examples": [
       "I haven't finished yet."
     ],

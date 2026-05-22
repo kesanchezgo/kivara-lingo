@@ -248,6 +248,13 @@ export function DictPacksSection() {
             kind: 'ok',
             message: `${result.pack.title} · ${result.termsImported.toLocaleString()} términos (${formatLabel[result.format]})${skipNote}`,
           });
+          // Tell every tab to re-pull its in-memory headword cache so
+          // the tokenizer sees the new pack right away.
+          try {
+            chrome.runtime.sendMessage({ type: 'DICT_PACKS_CHANGED_NOTIFY' });
+          } catch {
+            // ignore
+          }
         } else {
           setFeedback({ kind: 'err', message: result.error });
         }

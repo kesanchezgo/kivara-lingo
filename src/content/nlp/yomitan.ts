@@ -614,6 +614,57 @@ export async function listYomitanPacks(): Promise<DictPackRow[]> {
 }
 
 /**
+ * Return every headword (lowercased) covered by the user's currently
+ * ENABLED packs, for the given source language. Used by the content-script
+ * tokenizer so words like `excuse`, `pee`, `pants`, `seventh`, `grade`
+ * — which are NOT in the bundled `en.json` but ARE in the Wiktionary
+ * EN→ES pack — are correctly classified as `known` instead of `unknown`.
+ *
+ * The full set for a 1.8M-row Wiktionary EN→EN pack is ~1.5M unique
+ * lowercased strings. Each string is roughly 8 bytes of overhead in V8,
+ * so the in-memory Set is ~12-15 MB on the heap. That's a one-time
+ * cost shared across the whole tab; the tokenizer reads from it via
+ * `O(1)` Set.has() per token.
+ */
+export async function getYomitanHeadwords(lang = 'en'): Promise<string[]> {
+  const db = getDB();
+  // Pull the enabled packs for this source language. Same fallback as
+  // lookupYomitanTerm to handle older Dexie boolean indexing.
+  const allPacks = await db.dict_packs
+    .where('enabled')
+    .equals(1 as unknown as number)
+    .toArray()
+    .catch(async () =>
+      (await db.dict_packs.toArray()).filter((p) => p.enabled),
+    );
+  const packs = allPacks.filter(
+    (p) => p.sourceLang === lang || p.sourceLang.startsWith(lang),
+  );
+  if (packs.length === 0) return [];
+  const packIds = new Set(packs.map((p) => p.id));
+
+  // Pull every distinct headword from the enabled packs in one pass.
+  // Using `dict_terms.where('packId').equals(id).uniqueKeys()` would scan
+  // the `packId` index but return its own keys (the auto-incrementing
+  // primary id), which is useless to us. We want the `expression`
+  // strings, so we go through `[packId+expression]` compound index keys
+  // and drop the prefix.
+  const out = new Set<string>();
+  for (const id of packIds) {
+    const compoundKeys = (await db.dict_terms
+      .where('[packId+expression]')
+      .between([id, ''], [id, '\uffff'], true, true)
+      .uniqueKeys()) as Array<[string, string]>;
+    for (const k of compoundKeys) {
+      if (Array.isArray(k) && typeof k[1] === 'string' && k[1]) {
+        out.add(k[1]);
+      }
+    }
+  }
+  return Array.from(out);
+}
+
+/**
  * Look up a term across all *enabled* packs in the given source language.
  *
  * Returns the highest-popularity match (ties broken by pack install order).
@@ -635,6 +686,16 @@ export async function lookupYomitanTerm(
   const packs = allPacks.filter((p) => p.sourceLang === lang || p.sourceLang.startsWith(lang));
   if (packs.length === 0) return undefined;
   const packIds = new Set(packs.map((p) => p.id));
+  // Convenience map for kind lookup. A pack is *bilingual* when its
+  // source ≠ target (EN→ES) and *monolingual* when source == target
+  // (EN→EN). The popover renders the translation from the bilingual
+  // hit and the long-form definition from the monolingual hit.
+  const packKind = new Map<string, 'bilingual' | 'monolingual'>();
+  for (const p of packs) {
+    const src = (p.sourceLang || '').slice(0, 2).toLowerCase();
+    const tgt = (p.targetLang || '').slice(0, 2).toLowerCase();
+    packKind.set(p.id, src === tgt ? 'monolingual' : 'bilingual');
+  }
 
   // 2. Try literal then lemma candidates.
   const candidates = lang === 'en' ? lemmaCandidates(token) : [token.trim().toLowerCase()];
@@ -644,23 +705,50 @@ export async function lookupYomitanTerm(
     const rows = await db.dict_terms.where('expression').equals(exp).toArray();
     const filtered = rows.filter((r) => packIds.has(r.packId));
     if (filtered.length === 0) continue;
-    // Highest popularity wins; ties broken by earliest install.
-    filtered.sort((a, b) => {
+    // Prefer bilingual rows over monolingual ones — the popover's
+    // primary line is the *translation*, which only the bilingual pack
+    // can provide. Within each kind, sort by popularity and install
+    // order. We pick the first bilingual hit when one exists, and
+    // otherwise the best monolingual hit.
+    const sorted = [...filtered].sort((a, b) => {
+      const ka = packKind.get(a.packId) === 'bilingual' ? 0 : 1;
+      const kb = packKind.get(b.packId) === 'bilingual' ? 0 : 1;
+      if (ka !== kb) return ka - kb;
       if (a.popularity !== b.popularity) return b.popularity - a.popularity;
       const pa = packs.findIndex((p) => p.id === a.packId);
       const pb = packs.findIndex((p) => p.id === b.packId);
       return pa - pb;
     });
-    const hit = filtered[0];
+    const hit = sorted[0];
     const pack = packs.find((p) => p.id === hit.packId)!;
-    const entry = dictTermToEntry(token, hit, i > 0 ? exp : undefined);
+    const hitKind = packKind.get(hit.packId) ?? 'bilingual';
+    const entry = dictTermToEntry(token, hit, hitKind, i > 0 ? exp : undefined);
+
+    // Overlay a monolingual definition from the EN→EN pack when the
+    // primary hit came from a bilingual pack. Same idea as the IPA
+    // overlay below: lets the user read the long-form English
+    // explanation under the Spanish translation, all in one popover.
+    if (hitKind === 'bilingual' && !entry.monolingual) {
+      const monoRow = sorted.find(
+        (r) => packKind.get(r.packId) === 'monolingual' && r.definitions.length > 0,
+      );
+      if (monoRow) {
+        const monoEntry = dictTermToEntry(token, monoRow, 'monolingual');
+        if (monoEntry.monolingual) entry.monolingual = monoEntry.monolingual;
+        // Pick up examples from the monolingual pack too if the
+        // bilingual one didn't ship any.
+        if ((!entry.examples || entry.examples.length === 0) && monoEntry.examples) {
+          entry.examples = monoEntry.examples;
+        }
+      }
+    }
 
     // Overlay IPA from a pronunciation-only pack (e.g. kty-en-ipa) when the
     // primary hit doesn't carry phonetic data. We look for any row with the
     // same expression that has a non-empty reading and empty definitions
     // (the signature of an IPA meta-pack import).
     if (!entry.phonetic) {
-      const ipaRow = filtered.find((r) => r.reading && r.definitions.length === 0)
+      const ipaRow = sorted.find((r) => r.reading && r.definitions.length === 0)
         ?? rows.find((r) => r.reading && r.definitions.length === 0);
       if (ipaRow?.reading) {
         const cleaned = cleanIpa(ipaRow.reading);
@@ -748,6 +836,7 @@ function extractFirstIpa(meta: unknown): string | null {
 function dictTermToEntry(
   surfaceToken: string,
   row: DictTermRow,
+  kind: 'bilingual' | 'monolingual' = 'bilingual',
   lemmaOf?: string,
 ): DictionaryEntry {
   const senses: string[] = [];
@@ -759,6 +848,26 @@ function dictTermToEntry(
       if (!exampleAccum.includes(ex)) exampleAccum.push(ex);
     }
   }
+  // For a *bilingual* pack (EN→ES, EN→FR…), `senses[0]` is the
+  // primary translation. The remaining senses are alternative
+  // translations and we expose them in the `bilingual` field as
+  // a "·"-separated short list so the popover can render them
+  // under the headline.
+  // For a *monolingual* pack (EN→EN), `senses[0]` is a definition
+  // in the source language — it goes into `monolingual` and the
+  // `translation` slot is left empty so the bilingual hit (if any)
+  // can supply it via overlay later.
+  if (kind === 'monolingual') {
+    return {
+      token: surfaceToken,
+      type: 'word',
+      phonetic: row.reading ? (cleanIpa(row.reading) ?? undefined) : undefined,
+      translation: '—',
+      monolingual: senses[0],
+      examples: exampleAccum.length > 0 ? exampleAccum.slice(0, 5) : undefined,
+      lemmaOf,
+    };
+  }
   const translation = senses[0] ?? '—';
   const bilingual = senses.length > 1 ? senses.slice(1, 4).join(' · ') : undefined;
   return {
@@ -767,7 +876,6 @@ function dictTermToEntry(
     phonetic: row.reading ? (cleanIpa(row.reading) ?? undefined) : undefined,
     translation,
     bilingual,
-    monolingual: senses.length === 1 ? undefined : senses[0],
     examples: exampleAccum.length > 0 ? exampleAccum.slice(0, 5) : undefined,
     lemmaOf,
   };
