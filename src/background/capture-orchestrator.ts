@@ -321,6 +321,38 @@ export async function createCardFromRequest(
     if (aiData.etymology && !ctx.etymology) ctx.etymology = aiData.etymology;
   }
 
+  // AI image generation — DALL-E 3 only fires when:
+  //   - The user has `enrichOnSave` AND `provider === 'openai'`
+  //   - A note field is mapped to `image`
+  //   - The chain didn't already provide a free image (Unsplash /
+  //     Pixabay / Wikimedia / DDG). DALL-E costs ~$0.04/image, so we
+  //     only call it when we have nothing better.
+  try {
+    const imageMapped = Object.values(mapping.fieldSources ?? {}).some(
+      (s) => s === 'image',
+    );
+    if (imageMapped && !ctx.imageUrl) {
+      const aiSettings = await getAiSettings();
+      if (
+        aiSettings.enrichOnSave &&
+        aiSettings.provider === 'openai' &&
+        aiSettings.apiKey
+      ) {
+        const { generateAiImage } = await import('./ai-providers');
+        const prompt =
+          `Vocabulary mnemonic illustration for the English word "${request.token}". ` +
+          `Context: ${request.sentence}. ` +
+          `Style: clean, vivid, memorable, single subject, no text, no logos.`;
+        const img = await generateAiImage(prompt, aiSettings);
+        if (img.ok) ctx.imageUrl = img.url;
+        else warnings.push(`DALL-E falló: ${img.error}`);
+      }
+    }
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : 'image-gen';
+    warnings.push(`Imagen IA: ${reason}`);
+  }
+
   // Fill the phonetic field on cards where the local dictionary stack
   // resolved a translation but didn't carry IPA. Best-effort, cached, and
   // never blocks the save longer than the augmenter's own timeout.

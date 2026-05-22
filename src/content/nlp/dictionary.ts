@@ -1,7 +1,10 @@
 import enDict from '../../assets/dictionaries/en.json';
 import enMwes from '../../assets/mwes/en.json';
+import enPhrasalAcademic from '../../assets/mwes/en-phrasal-academic.json';
 import enExtensions from '../../assets/dictionaries/en-extensions.json';
+import enCefr from '../../assets/dictionaries/en-cefr.json';
 import enCollocations from '../../assets/collocations/academic-collocation-list.json';
+import enThesaurus from '../../assets/thesaurus/en-thesaurus.json';
 import type { DictionaryEntry } from '../../shared/types';
 import { lemmaCandidates } from './lemma';
 
@@ -17,9 +20,25 @@ const { _meta: _enCollMeta, ...enCollocationEntries } = enCollocations as Record
   unknown
 >;
 void _enCollMeta;
+const { _meta: _enCefrMeta, ...enCefrEntries } = enCefr as Record<string, unknown>;
+void _enCefrMeta;
+const { _meta: _enPhrasalMeta, ...enPhrasalAcademicEntries } = enPhrasalAcademic as Record<
+  string,
+  unknown
+>;
+void _enPhrasalMeta;
+const { _meta: _enThesMeta, ...enThesaurusEntries } = enThesaurus as Record<
+  string,
+  unknown
+>;
+void _enThesMeta;
 
 const enMerged: Record<string, DictionaryEntry> = {
   ...(enMwes as Record<string, DictionaryEntry>),
+  // Oxford Phrasal Academic Lexicon — academic chunks tokenized as a
+  // single MWE. Lower priority than `en.json` proper, so an entry
+  // already covered by the curated dict keeps its richer fields.
+  ...(enPhrasalAcademicEntries as Record<string, DictionaryEntry>),
   ...(enDict as Record<string, DictionaryEntry>),
 };
 
@@ -32,6 +51,58 @@ for (const [key, value] of Object.entries(
   };
 }
 
+// Overlay the Oxford 3000/5000 CEFR levels onto every entry the
+// bundled dictionary already covers. Words present in CEFR but NOT
+// in the bundled dictionary get a stub so the tokenizer headword Set
+// recognises them and the popover renders the level badge.
+for (const [key, level] of Object.entries(
+  enCefrEntries as Record<string, string>,
+)) {
+  if (!key) continue;
+  const k = key.toLowerCase();
+  const validLevel = /^(A1|A2|B1|B2|C1|C2)$/.test(level)
+    ? (level as DictionaryEntry['level'])
+    : undefined;
+  if (!validLevel) continue;
+  const existing = enMerged[k];
+  if (existing) {
+    if (!existing.level) existing.level = validLevel;
+  } else {
+    enMerged[k] = {
+      token: k,
+      type: 'word',
+      translation: '\u2014',
+      level: validLevel,
+    };
+  }
+}
+
+// Overlay synonyms and antonyms from the public-domain Fernald thesaurus
+// (1896). 610 entries — covers the high-frequency vocabulary the popover
+// is most likely to surface. Words also covered by the multi-source
+// chain (Datamuse / WordNet / Cambridge Thesaurus) get richer lists at
+// runtime; this overlay is the offline-first baseline so the popover
+// shows synonyms even with VIP off and zero internet.
+for (const [key, value] of Object.entries(
+  enThesaurusEntries as Record<string, { syn?: string[]; ant?: string[] }>,
+)) {
+  if (!value || typeof value !== 'object') continue;
+  const syn = Array.isArray(value.syn) ? value.syn : [];
+  const ant = Array.isArray(value.ant) ? value.ant : [];
+  const existing = enMerged[key];
+  if (existing) {
+    if (syn.length && !existing.synonyms) existing.synonyms = syn;
+    if (ant.length && !existing.antonyms) existing.antonyms = ant;
+  } else if (syn.length || ant.length) {
+    enMerged[key] = {
+      token: key,
+      type: 'word',
+      translation: '\u2014',
+      synonyms: syn.length ? syn : undefined,
+      antonyms: ant.length ? ant : undefined,
+    };
+  }
+}
 // Overlay the Academic Collocation List (Ackermann & Chen 2013) so every
 // entry the bundled dictionary already covers also gets up to ~12
 // curated academic collocations. The popover renders these under

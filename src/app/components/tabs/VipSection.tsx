@@ -108,7 +108,7 @@ export function VipSection() {
           <SubGroup title="Diccionarios" hint="Definiciones, IPA, ejemplos y collocations." sources={DICT_SOURCES} vip={vip} setKey={setKey} />
           <SubGroup title="Bilingüe" hint="Traducción + frases paralelas EN-ES." sources={BILINGUAL_SOURCES} vip={vip} setKey={setKey} />
           <SubGroup title="Audio" hint="Pronunciación a nivel de palabra. Para audio de la frase completa se usa la captura del video." sources={AUDIO_SOURCES} vip={vip} setKey={setKey} />
-          <SubGroup title="Imágenes" hint="Imagen para el frente de la tarjeta cuando no hay frame del video." sources={IMAGE_SOURCES} vip={vip} setKey={setKey} />
+          <SubGroup title="Imágenes" hint="Imagen para el frente de la tarjeta cuando no hay frame del video. Si tienes OpenAI configurado en IA premium con enrichOnSave, DALL-E 3 genera una ilustración mnemónica como último fallback (~$0.04 por tarjeta)." sources={IMAGE_SOURCES} vip={vip} setKey={setKey} />
           <SubGroup title="Video" hint="Enlaces a pronunciación en contexto real." sources={VIDEO_SOURCES} vip={vip} setKey={setKey} />
 
           {/* Fine tuning */}

@@ -294,3 +294,68 @@ export async function callAiProvider(
       return { ok: false, error: 'AI disabled', provider: 'disabled' };
   }
 }
+
+/**
+ * Generate a mnemonic image for the given vocabulary card.
+ *
+ * Currently only OpenAI DALL-E 3 is implemented because:
+ *   - Anthropic doesn't host an image-generation endpoint.
+ *   - Google Gemini's image gen requires a paid project + Vertex AI
+ *     setup (overkill for a single mnemonic).
+ *
+ * Returns the absolute image URL ready to embed in a popover or Anki
+ * card. The URL is short-lived (~1 h on OpenAI's CDN); the orchestrator
+ * caches the result alongside the rest of the VIP payload so a re-hover
+ * within the cache TTL never re-bills the API.
+ *
+ * Cost note: DALL-E 3 standard 1024×1024 is ~$0.04 per image. At the
+ * popover level we don't fire it on hover (`enrichOnHover` doesn't
+ * trigger image gen), only on save when `enrichOnSave` is on AND the
+ * user explicitly mapped a field to `image`. That keeps a typical
+ * power-user under $5/month.
+ */
+export async function generateAiImage(
+  prompt: string,
+  settings: AiSettings,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  if (settings.provider !== 'openai') {
+    return { ok: false, error: 'Image gen only available for OpenAI provider' };
+  }
+  if (!settings.apiKey) {
+    return { ok: false, error: 'OpenAI API key missing' };
+  }
+  let resp: Response;
+  try {
+    resp = await withTimeout('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${settings.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'dall-e-3',
+        prompt,
+        size: '1024x1024',
+        n: 1,
+        quality: 'standard',
+        response_format: 'url',
+      }),
+    });
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '');
+    return { ok: false, error: `OpenAI ${resp.status}: ${body.slice(0, 160)}` };
+  }
+  let data: unknown;
+  try {
+    data = await resp.json();
+  } catch {
+    return { ok: false, error: 'OpenAI returned non-JSON' };
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const url = (data as any)?.data?.[0]?.url as string | undefined;
+  if (!url) return { ok: false, error: 'OpenAI image response missing URL' };
+  return { ok: true, url };
+}
