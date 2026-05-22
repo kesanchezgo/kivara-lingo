@@ -42,6 +42,13 @@
 import globalsCss from '../styles/globals.css?inline';
 import themeCss from '../styles/theme.css?inline';
 import tailwindCss from '../styles/tailwind.css?inline';
+// Sonner ships its layout/animation CSS as a separate file. Sonner injects
+// it into `document.head` at runtime, but our React tree lives inside the
+// Shadow DOM where that head-level rule is invisible — without this import
+// the toast `<ol>` has no width / position and stretches across the
+// viewport instead of centering at the top. Importing inline lets us drop
+// the rules into our shadow stylesheet alongside Tailwind.
+import sonnerCss from 'sonner/dist/styles.css?inline';
 
 const HOST_ID = 'kivara-lingo-host';
 const VIDEO_HOST_ID = 'kivara-lingo-video-host';
@@ -117,10 +124,12 @@ export class ShadowHost {
     shadowRoot.appendChild(baselineStyle);
 
     // ── Layer 2: app stylesheet ──────────────────────────────────────────
-    // Concatenated globals + theme + Tailwind utilities.
+    // Concatenated globals + theme + Tailwind utilities + sonner's own CSS
+    // (sonner injects it into document.head at runtime, which can't reach
+    // a Shadow Root, so we ship it inside the boundary).
     const styleEl = document.createElement('style');
     styleEl.setAttribute('data-kivara-lingo', 'app');
-    styleEl.textContent = `${globalsCss}\n${themeCss}\n${tailwindCss}`;
+    styleEl.textContent = `${globalsCss}\n${themeCss}\n${tailwindCss}\n${sonnerCss}`;
     shadowRoot.appendChild(styleEl);
 
     const reactRoot = document.createElement('div');
