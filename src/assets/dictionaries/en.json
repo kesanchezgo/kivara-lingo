@@ -23,7 +23,6 @@
     "token": "ability",
     "type": "word",
     "level": "A2",
-    "translation": ".",
     "phonetic": "/əˈbɪl.ə.ti/",
     "bilingual": "(sust.) .",
     "monolingual": "Suitableness.",
@@ -870,7 +869,6 @@
     "token": "agency",
     "type": "word",
     "level": "A2",
-    "translation": "agency",
     "phonetic": "/ˈeɪ.d͡ʒən.si/",
     "bilingual": "(sust.) agency",
     "monolingual": "The capacity, condition, or state of acting or of exerting power.",
@@ -1042,7 +1040,6 @@
     "token": "al",
     "type": "word",
     "level": "A2",
-    "translation": "al",
     "phonetic": "/æl/",
     "monolingual": "Symbol for attoliter , an SI unit of fluid measure equal to 10 liters ."
   },
@@ -1329,7 +1326,6 @@
     "token": "am",
     "type": "word",
     "level": "A1",
-    "translation": "AM",
     "phonetic": "/əm/",
     "monolingual": "Symbol for attometre , an SI unit of length equal to 10 metres ."
   },
@@ -1496,7 +1492,6 @@
     "level": "A1",
     "translation": "un",
     "phonetic": "/ˈæn/",
-    "monolingual": "ISO 639-1 language code for Aragonese.",
     "examples": [
       "I'll be there in half an hour."
     ]
@@ -1589,7 +1584,6 @@
     "token": "and",
     "type": "word",
     "level": "A1",
-    "translation": "y",
     "phonetic": "/ˈænd/",
     "examples": [
       "I'd been walking since sunrise, and I was hungry."
@@ -2187,7 +2181,6 @@
     "token": "around",
     "type": "word",
     "level": "A1",
-    "translation": ".",
     "phonetic": "/əˈɹaʊnd/",
     "bilingual": "(prep.) .",
     "monolingual": "Forming a circle or closed curve containing (something).",
@@ -2243,7 +2236,6 @@
     "token": "arsenal",
     "type": "word",
     "level": "B2",
-    "translation": "arsenal",
     "phonetic": "/ˈɑːr.sən.əl/",
     "monolingual": "A collection of weapons and military equipment."
   },
@@ -2301,7 +2293,6 @@
     "token": "as",
     "type": "word",
     "level": "A1",
-    "translation": "as",
     "phonetic": "/əz/",
     "monolingual": "Symbol for attosecond, an SI unit of time equal to 10 seconds.",
     "examples": [
@@ -2712,7 +2703,6 @@
     "token": "audible",
     "type": "word",
     "level": "B2",
-    "translation": "audible",
     "phonetic": "/ˈɔː.də.bəl/",
     "monolingual": "Able to be heard."
   },
@@ -2972,7 +2962,6 @@
     "token": "b",
     "type": "word",
     "level": "A1",
-    "translation": "b",
     "phonetic": "/File:IPA_Unicode_0x0062.svg\" src=\"/",
     "monolingual": "The second letter of the basic modern Latin alphabet.",
     "examples": [
@@ -3153,7 +3142,6 @@
     "token": "bar",
     "type": "word",
     "level": "A2",
-    "translation": "bar",
     "phonetic": "/bɑː/",
     "examples": [
       "The window was protected by steel bars."
@@ -3188,7 +3176,6 @@
     "token": "base",
     "type": "word",
     "level": "A2",
-    "translation": "Base",
     "phonetic": "/beɪs/",
     "bilingual": "(sust.) Base",
     "monolingual": "Something from which other things extend; a foundation. A supporting, lower or bottom component of a structure or object.",
@@ -3248,9 +3235,7 @@
     "token": "be",
     "type": "word",
     "level": "A1",
-    "translation": "be",
     "phonetic": "/ˈbiː/",
-    "monolingual": "ISO 639-1 language code for Belarusian.",
     "examples": [
       "The dog was saved by the boy."
     ]
@@ -3639,7 +3624,6 @@
     "token": "beyond",
     "type": "word",
     "level": "A2",
-    "translation": "-",
     "phonetic": "/bɪˈjɒnd/",
     "bilingual": "(prep.) -",
     "monolingual": "Further away than.",
@@ -3671,7 +3655,6 @@
     "token": "bicameral",
     "type": "word",
     "level": "C1",
-    "translation": "bicameral",
     "phonetic": "/baɪˈkæm.ɚ.əl/",
     "monolingual": "Having two chambers, especially of a legislature."
   },
@@ -3732,7 +3715,6 @@
     "token": "biodegradable",
     "type": "word",
     "level": "B2",
-    "translation": "biodegradable",
     "phonetic": "/ˌbaɪ.oʊ.dɪˈɡreɪ.də.bəl/",
     "monolingual": "Capable of being decomposed by bacteria."
   },
@@ -4318,7 +4300,6 @@
     "token": "brand",
     "type": "word",
     "level": "B1",
-    "translation": "brand",
     "phonetic": "/ˈbɹænd/",
     "bilingual": "(sust.) brand",
     "monolingual": "A mark or scar made by burning with a hot iron, especially to mark cattle or to classify the contents of a cask.",
@@ -4362,7 +4343,6 @@
     "token": "break",
     "type": "word",
     "level": "A2",
-    "translation": ".",
     "phonetic": "/bɹeɪk/",
     "bilingual": "(verbo) .",
     "monolingual": "To separate into two or more pieces, to fracture or crack, by a process that cannot easily be reversed for reassembly.",
@@ -4611,7 +4591,6 @@
     "token": "brutal",
     "type": "word",
     "level": "B2",
-    "translation": "brutal",
     "phonetic": "/ˈbruː.təl/",
     "bilingual": "(adj.) brutal",
     "monolingual": "Savagely violent.",
@@ -4836,7 +4815,6 @@
     "token": "c",
     "type": "word",
     "level": "A1",
-    "translation": "c",
     "phonetic": "/File:IPA_Unicode_0x0063.svg\" src=\"/",
     "monolingual": "The third letter of the basic modern Latin alphabet.",
     "examples": [
@@ -5185,7 +5163,6 @@
     "token": "cardiovascular",
     "type": "word",
     "level": "B2",
-    "translation": "cardiovascular",
     "phonetic": "/ˌkɑːr.di.oʊˈvæs.kjə.lɚ/",
     "monolingual": "Relating to the heart and blood vessels."
   },
@@ -5486,7 +5463,6 @@
     "token": "celestial",
     "type": "word",
     "level": "C1",
-    "translation": "celestial",
     "phonetic": "/səˈles.tʃəl/",
     "monolingual": "Positioned in the sky or outer space."
   },
@@ -5574,7 +5550,6 @@
     "token": "central",
     "type": "word",
     "level": "A2",
-    "translation": "central",
     "phonetic": "/ˈsɛntɹ(ə)l/",
     "bilingual": "(adj.) central",
     "monolingual": "Being in the centre."
@@ -5604,7 +5579,6 @@
     "token": "cerebral",
     "type": "word",
     "level": "B2",
-    "translation": "cerebral",
     "phonetic": "/səˈriː.brəl/",
     "monolingual": "Of the brain or intellectually engaging."
   },
@@ -6007,7 +5981,6 @@
     "token": "chip",
     "type": "word",
     "level": "B2",
-    "translation": "chip",
     "phonetic": "/tʃɪp/",
     "monolingual": "A small piece of semiconductor with an electronic circuit."
   },
@@ -6015,7 +5988,6 @@
     "token": "choice",
     "type": "word",
     "level": "A2",
-    "translation": "choice",
     "phonetic": "/tʃɔɪs/",
     "bilingual": "(sust.) choice",
     "monolingual": "An option; a decision; an opportunity to choose or select something.",
@@ -6160,7 +6132,6 @@
     "token": "civil",
     "type": "word",
     "level": "A2",
-    "translation": "civil",
     "phonetic": "/ˈsɪv.əl/",
     "bilingual": "(adj.) civil",
     "monolingual": "Having to do with people and government office as opposed to the military or religion.",
@@ -6442,8 +6413,7 @@
     "type": "word",
     "level": "A2",
     "translation": "CO.",
-    "phonetic": "/kəʊ/",
-    "monolingual": "ISO 639-1 language code for Corsican."
+    "phonetic": "/kəʊ/"
   },
   "coach": {
     "token": "coach",
@@ -6705,7 +6675,6 @@
     "token": "colonial",
     "type": "word",
     "level": "B2",
-    "translation": "colonial",
     "phonetic": "/kəˈləʊ.ni.əl/",
     "bilingual": "(adj.) colonial",
     "monolingual": "Relating to colonialism.",
@@ -6729,7 +6698,6 @@
     "token": "color",
     "type": "word",
     "level": "A2",
-    "translation": "color",
     "phonetic": "/ˈkʌl.ə/",
     "bilingual": "(sust.) color",
     "monolingual": "The spectral composition of visible light.",
@@ -6911,7 +6879,6 @@
     "token": "common",
     "type": "word",
     "level": "A2",
-    "translation": "common",
     "phonetic": "/ˈkɒm.ən/",
     "bilingual": "(adj.) common",
     "monolingual": "Mutual; shared by more than one.",
@@ -7301,7 +7268,6 @@
     "token": "conceptual",
     "type": "word",
     "level": "B2",
-    "translation": "conceptual",
     "phonetic": "/kənˈsep.tʃu.əl/",
     "monolingual": "Relating to or based on mental concepts."
   },
@@ -7389,7 +7355,6 @@
     "token": "condition",
     "type": "word",
     "level": "A2",
-    "translation": "condition",
     "phonetic": "/kənˈdɪʃ(ə)n/",
     "bilingual": "(sust.) condition",
     "monolingual": "A state or quality.",
@@ -8471,7 +8436,6 @@
     "token": "council",
     "type": "word",
     "level": "A2",
-    "translation": "council",
     "phonetic": "/ˈkaʊn.səl/",
     "bilingual": "(sust.) council",
     "monolingual": "A committee that leads or governs (e.g. city council, student council). A local authority.",
@@ -8495,7 +8459,6 @@
     "token": "count",
     "type": "word",
     "level": "B1",
-    "translation": "count",
     "phonetic": "/kaʊnt/",
     "bilingual": "(verbo) count",
     "monolingual": "To recite numbers in sequence.",
@@ -8833,7 +8796,6 @@
     "token": "crisis",
     "type": "word",
     "level": "B2",
-    "translation": "crisis",
     "phonetic": "/ˈkraɪ.sɪs/",
     "bilingual": "(sust.) crisis",
     "monolingual": "A time of intense difficulty or danger.",
@@ -8941,7 +8903,6 @@
     "token": "crucial",
     "type": "word",
     "level": "B2",
-    "translation": "crucial",
     "phonetic": "/ˈkruː.ʃəl/",
     "bilingual": "(adj.) crucial",
     "monolingual": "Of great importance.",
@@ -9381,9 +9342,7 @@
     "token": "de",
     "type": "word",
     "level": "A2",
-    "translation": "de",
     "phonetic": "/ˈdɛ/",
-    "monolingual": "ISO 639-1 language code for German.",
     "examples": [
       "“Dum de dum, dum de dum”, he hummed as he sauntered down the road."
     ]
@@ -9448,7 +9407,6 @@
     "token": "debate",
     "type": "word",
     "level": "B1",
-    "translation": "debate",
     "phonetic": "/dɪˈbeɪt/",
     "bilingual": "(sust.) debate",
     "monolingual": "A formal discussion of opposing arguments.",
@@ -9936,7 +9894,6 @@
     "token": "dental",
     "type": "word",
     "level": "B2",
-    "translation": "dental",
     "phonetic": "/ˈden.t̬əl/",
     "monolingual": "Relating to the teeth."
   },
@@ -10452,7 +10409,6 @@
     "token": "diabetes",
     "type": "word",
     "level": "B2",
-    "translation": "diabetes",
     "phonetic": "/ˌdaɪ.əˈbiː.tiːz/",
     "monolingual": "A disease in which the body produces inadequate insulin."
   },
@@ -10512,7 +10468,6 @@
     "token": "did",
     "type": "word",
     "level": "A1",
-    "translation": ".",
     "phonetic": "/dɪd/",
     "examples": [
       "Jeez, did I make a mistake!"
@@ -10656,7 +10611,6 @@
     "token": "digital",
     "type": "word",
     "level": "B1",
-    "translation": "digital",
     "phonetic": "/ˈdɪd͡ʒɪtl̩/",
     "bilingual": "(adj.) digital",
     "monolingual": "Having to do with digits (fingers or toes); especially, performed with a finger.",
@@ -10760,7 +10714,6 @@
     "token": "director",
     "type": "word",
     "level": "A2",
-    "translation": "director",
     "phonetic": "/dɪˈɹɛk.tə(ɹ)/",
     "bilingual": "(sust.) director",
     "monolingual": "One who directs; the person in charge of managing a department or directorate (e.g., director of engineering), project, or production (as in a show or film, e.g., film director)."
@@ -11213,7 +11166,6 @@
     "token": "doctoral",
     "type": "word",
     "level": "B2",
-    "translation": "doctoral",
     "phonetic": "/ˈdɒk.tɚ.əl/",
     "monolingual": "Relating to a doctorate degree."
   },
@@ -11410,7 +11362,6 @@
     "token": "dr",
     "type": "word",
     "level": "A2",
-    "translation": "dr",
     "phonetic": "/ɖ/",
     "bilingual": "(sust.) dr",
     "monolingual": "Abbreviation of debtor, debit."
@@ -11516,7 +11467,6 @@
     "token": "drop",
     "type": "word",
     "level": "A2",
-    "translation": "drop",
     "phonetic": "/dɹɒp/",
     "bilingual": "(sust.) drop",
     "monolingual": "A small quantity of liquid, just large enough to hold its own rounded shape through surface tension, especially one that falls from a source of liquid.",
@@ -11938,7 +11888,6 @@
     "token": "editor",
     "type": "word",
     "level": "B2",
-    "translation": "editor",
     "phonetic": "/ˈed.ɪ.t̬ɚ/",
     "monolingual": "A person who is in charge of a publication."
   },
@@ -11966,7 +11915,6 @@
     "token": "effect",
     "type": "word",
     "level": "A2",
-    "translation": ".",
     "phonetic": "/ɪˈfɛkt/",
     "bilingual": "(sust.) .",
     "monolingual": "The result or outcome of a cause.",
@@ -12165,7 +12113,6 @@
     "token": "else",
     "type": "word",
     "level": "A1",
-    "translation": "else",
     "phonetic": "/ɛls/",
     "bilingual": "(adj.) else",
     "monolingual": "Other; in addition to previously mentioned items.",
@@ -12185,7 +12132,6 @@
     "token": "embargo",
     "type": "word",
     "level": "B2",
-    "translation": "embargo",
     "phonetic": "/ɪmˈbɑːr.ɡoʊ/",
     "monolingual": "An official ban on trade or commercial activity with a country."
   },
@@ -12981,7 +12927,6 @@
     "token": "etc",
     "type": "word",
     "level": "A2",
-    "translation": "etc",
     "phonetic": "/ˌɛt ˈsɛt(ə)ɹə/"
   },
   "ethanol": {
@@ -13137,7 +13082,6 @@
     "token": "every",
     "type": "word",
     "level": "A1",
-    "translation": "every",
     "phonetic": "/ˈɛv.(ə.)ɹi/",
     "bilingual": "(det.) every",
     "monolingual": "All of a countable group (considered individually), without exception.",
@@ -13322,7 +13266,6 @@
     "token": "executive",
     "type": "word",
     "level": "A2",
-    "translation": "executive",
     "phonetic": "/ɪɡˈzɛkjʊtɪv/",
     "bilingual": "(adj.) executive",
     "monolingual": "Designed or fitted for execution, or carrying into effect.",
@@ -13510,7 +13453,6 @@
     "token": "explain",
     "type": "word",
     "level": "A2",
-    "translation": "explain",
     "phonetic": "/ɪkˈspleɪn/",
     "bilingual": "(verbo) explain",
     "monolingual": "To make plain, manifest, or intelligible; to clear of obscurity; to illustrate the meaning of.",
@@ -13618,7 +13560,6 @@
     "token": "extra",
     "type": "word",
     "level": "A2",
-    "translation": "extra",
     "phonetic": "/ˈɛkstɹə/",
     "bilingual": "(adj.) extra",
     "monolingual": "Beyond what is due, usual, expected, or necessary; extraneous; additional; supernumerary.",
@@ -13716,7 +13657,6 @@
     "token": "facebook",
     "type": "word",
     "level": "A2",
-    "translation": "Facebook",
     "phonetic": "/ˈfeɪsˌbʊk/",
     "bilingual": "(sust.) Facebook",
     "monolingual": "A reference book or electronic directory containing the photographs and names of various individuals.",
@@ -13860,7 +13800,6 @@
     "token": "familiar",
     "type": "word",
     "level": "B1",
-    "translation": "familiar",
     "phonetic": "/fəˈmɪl.i.ər/",
     "bilingual": "(adj.) familiar",
     "monolingual": "Well known from long association.",
@@ -13926,7 +13865,6 @@
     "token": "fans",
     "type": "word",
     "level": "A2",
-    "translation": "fans",
     "phonetic": "/fænz/",
     "bilingual": "(sust.) fans",
     "monolingual": "plural of fan"
@@ -14042,7 +13980,6 @@
     "token": "favor",
     "type": "word",
     "level": "B1",
-    "translation": "favor",
     "phonetic": "/ˈfeɪ.vər/",
     "bilingual": "(sust.) favor",
     "monolingual": "An act of kindness.",
@@ -14116,7 +14053,6 @@
     "token": "federal",
     "type": "word",
     "level": "A2",
-    "translation": "federal",
     "phonetic": "/ˈfɛdəɹəl/",
     "bilingual": "(adj.) federal",
     "monolingual": "Pertaining to a league or treaty; derived from an agreement or covenant between parties, especially between nations.",
@@ -14390,7 +14326,6 @@
     "token": "final",
     "type": "word",
     "level": "A2",
-    "translation": "final",
     "phonetic": "/ˈfaɪnl̩/",
     "bilingual": "(sust.) final",
     "monolingual": "A final examination; a test or examination given at the end of a term or class; the test that concludes a class.",
@@ -14523,7 +14458,6 @@
     "token": "firmware",
     "type": "word",
     "level": "B2",
-    "translation": "firmware",
     "phonetic": "/ˈfɝːm.wer/",
     "monolingual": "Permanent software programmed into a device."
   },
@@ -14543,7 +14477,6 @@
     "token": "fiscal",
     "type": "word",
     "level": "C1",
-    "translation": "fiscal",
     "phonetic": "/ˈfɪs.kəl/",
     "monolingual": "Relating to government revenue, especially taxes."
   },
@@ -14708,7 +14641,6 @@
     "token": "flora",
     "type": "word",
     "level": "B2",
-    "translation": "flora",
     "phonetic": "/ˈflɔːr.ə/",
     "monolingual": "Plants of a particular region or period."
   },
@@ -15092,7 +15024,6 @@
     "token": "formidable",
     "type": "word",
     "level": "C1",
-    "translation": "formidable",
     "phonetic": "/fɔːˈmɪd.ə.bl̩/",
     "bilingual": "(adj.) formidable",
     "monolingual": "Inspiring fear or respect through size or power.",
@@ -15144,7 +15075,6 @@
     "token": "forward",
     "type": "word",
     "level": "A2",
-    "translation": "-",
     "phonetic": "/ˈfɔːwəd/",
     "bilingual": "(adj.) -",
     "monolingual": "Situated toward or at the front of something.",
@@ -15549,7 +15479,6 @@
     "token": "fundamental",
     "type": "word",
     "level": "B2",
-    "translation": "fundamental",
     "phonetic": "/ˌfʌn.dəˈmen.t̬əl/",
     "monolingual": "Forming a necessary base or core."
   },
@@ -15565,7 +15494,6 @@
     "token": "funeral",
     "type": "word",
     "level": "B1",
-    "translation": "funeral",
     "phonetic": "/ˈfjuː.nər.əl/",
     "bilingual": "(sust.) funeral",
     "monolingual": "A ceremony for honouring the dead.",
@@ -15718,7 +15646,6 @@
     "token": "gas",
     "type": "word",
     "level": "A2",
-    "translation": "gas",
     "phonetic": "/ɡæs/",
     "examples": [
       "A lot of gas had escaped from the cylinder."
@@ -15757,7 +15684,6 @@
     "token": "gay",
     "type": "word",
     "level": "A2",
-    "translation": "gay",
     "phonetic": "/ɡeɪ/",
     "examples": [
       "Cliff is gay, but his twin brother is straight."
@@ -15807,7 +15733,6 @@
     "token": "general",
     "type": "word",
     "level": "A1",
-    "translation": "general",
     "phonetic": "/ˈd͡ʒɛn.(ə.)ɹəl/",
     "bilingual": "(adj.) general",
     "monolingual": "Including or involving every part or member of a given or implied entity, whole, etc.; common to all, universal.",
@@ -15987,7 +15912,6 @@
     "token": "gets",
     "type": "word",
     "level": "A2",
-    "translation": "gets",
     "phonetic": "/ɡɛts/",
     "bilingual": "(verbo) gets",
     "monolingual": "third-person singular simple present indicative of get"
@@ -16029,7 +15953,6 @@
     "token": "gigabyte",
     "type": "word",
     "level": "B2",
-    "translation": "gigabyte",
     "phonetic": "/ˈɡɪɡ.ə.baɪt/",
     "monolingual": "A unit of computer memory equal to a billion bytes."
   },
@@ -16155,7 +16078,6 @@
     "token": "glaucoma",
     "type": "word",
     "level": "B2",
-    "translation": "glaucoma",
     "phonetic": "/ɡlɔːˈkoʊ.mə/",
     "monolingual": "A condition causing pressure on the eye and visual loss."
   },
@@ -16171,7 +16093,6 @@
     "token": "global",
     "type": "word",
     "level": "A2",
-    "translation": "global",
     "phonetic": "/ˈɡləʊ.bəl/",
     "bilingual": "(adj.) global",
     "monolingual": "Concerning all parts of the world.",
@@ -16367,7 +16288,6 @@
     "token": "google",
     "type": "word",
     "level": "A2",
-    "translation": "google",
     "phonetic": "/ˈɡuː.ɡəl/",
     "bilingual": "(verbo) google",
     "monolingual": "To bowl (a cricket ball) so that it performs a googly (“a ball by a leg-break bowler that spins from off to leg (to a right-handed batsman), unlike a normal leg-break delivery”).",
@@ -16389,7 +16309,6 @@
     "token": "gotta",
     "type": "word",
     "level": "A2",
-    "translation": "Gotta",
     "phonetic": "/ˈɡɒtə/",
     "bilingual": "(verbo) Gotta",
     "monolingual": "Synonym of have got to, have to",
@@ -16827,7 +16746,6 @@
     "token": "guys",
     "type": "word",
     "level": "A1",
-    "translation": ".",
     "phonetic": "/ɡaɪz/",
     "bilingual": "(sust.) .",
     "monolingual": "plural of guy",
@@ -16839,7 +16757,6 @@
     "token": "h",
     "type": "word",
     "level": "A2",
-    "translation": "h",
     "phonetic": "/File:IPA_Unicode_0x0068.svg\" src=\"/",
     "monolingual": "The eighth letter of the basic modern Latin alphabet.",
     "examples": [
@@ -17039,7 +16956,6 @@
     "token": "hardware",
     "type": "word",
     "level": "B2",
-    "translation": "hardware",
     "phonetic": "/ˈhɑːrd.wer/",
     "monolingual": "The machines and equipment of a computer system."
   },
@@ -17182,9 +17098,7 @@
     "token": "he",
     "type": "word",
     "level": "A1",
-    "translation": "he",
     "phonetic": "/ˈhiː/",
-    "monolingual": "ISO 639-1 language code for Hebrew.",
     "examples": [
       "That friend of your cousin's, he's on the phone."
     ]
@@ -17444,7 +17358,6 @@
     "token": "herbal",
     "type": "word",
     "level": "B2",
-    "translation": "herbal",
     "phonetic": "/ˈɝː.bəl/",
     "monolingual": "Made from or relating to herbs."
   },
@@ -17514,7 +17427,6 @@
     "level": "A2",
     "translation": "hola",
     "phonetic": "/haɪ/",
-    "monolingual": "ISO 639-1 language code for Hindi.",
     "examples": [
       "Hi, how are you?"
     ]
@@ -17765,7 +17677,6 @@
     "token": "home",
     "type": "word",
     "level": "A1",
-    "translation": "home",
     "phonetic": "/həʊm/",
     "bilingual": "(sust.) home",
     "monolingual": "A dwelling. One’s own dwelling place; the house or structure in which one lives; especially the house in which one lives with one's family; the habitual abode of one’s family. The place (residence, settlement, country, etc.), where a person was born or raised; childhood or parental home; home of one’s parents or guardian.",
@@ -17785,7 +17696,6 @@
     "token": "honor",
     "type": "word",
     "level": "B1",
-    "translation": "honor",
     "phonetic": "/ˈɒn.ər/",
     "bilingual": "(sust.) honor",
     "monolingual": "High respect; great esteem.",
@@ -17829,7 +17739,6 @@
     "token": "horror",
     "type": "word",
     "level": "B1",
-    "translation": "horror",
     "phonetic": "/ˈhɒr.ər/",
     "bilingual": "(sust.) horror",
     "monolingual": "An intense feeling of fear.",
@@ -17841,7 +17750,6 @@
     "token": "hospital",
     "type": "word",
     "level": "A2",
-    "translation": "hospital",
     "phonetic": "/ˈhɒs.pɪ.tl̩/",
     "bilingual": "(sust.) hospital",
     "monolingual": "A large medical facility, usually in a building with multiple floors, where seriously ill or injured patients are given extensive medical or surgical treatment.",
@@ -17887,7 +17795,6 @@
     "token": "hotel",
     "type": "word",
     "level": "A2",
-    "translation": "hotel",
     "phonetic": "/həʊˈtɛl/",
     "bilingual": "(sust.) hotel",
     "monolingual": "Alternative letter-case form of Hotel of the ICAO/NATO radiotelephony alphabet."
@@ -18174,7 +18081,6 @@
     "token": "idea",
     "type": "word",
     "level": "A1",
-    "translation": "idea",
     "phonetic": "/aɪ̯ˈdɪə̯/",
     "bilingual": "(sust.) idea",
     "monolingual": "An abstract archetype of a given thing, compared to which real-life examples are seen as imperfect approximations; pure essence, as opposed to actual examples.",
@@ -18186,7 +18092,6 @@
     "token": "ideas",
     "type": "word",
     "level": "B1",
-    "translation": "ideas",
     "phonetic": "/aɪˈdɪəz/",
     "bilingual": "(sust.) ideas",
     "monolingual": "plural of idea"
@@ -18239,7 +18144,6 @@
     "token": "ii",
     "type": "word",
     "level": "A2",
-    "translation": "i",
     "phonetic": "/ˈiː/",
     "bilingual": "(núm.) i",
     "monolingual": "Ⅱ, Roman numeral two (2)."
@@ -18530,7 +18434,6 @@
     "level": "A1",
     "translation": "en",
     "phonetic": "/ən/",
-    "monolingual": "Former ISO 639-1 language code for Indonesian.",
     "examples": [
       "The dog is in the kennel."
     ]
@@ -18539,7 +18442,6 @@
     "token": "inalienable",
     "type": "word",
     "level": "C1",
-    "translation": "inalienable",
     "phonetic": "/ɪnˈeɪl.jə.nə.bəl/",
     "monolingual": "Unable to be taken away or given away."
   },
@@ -18599,7 +18501,6 @@
     "token": "include",
     "type": "word",
     "level": "A2",
-    "translation": "include",
     "phonetic": "/ɪnˈkluːd/",
     "bilingual": "(verbo) include",
     "monolingual": "To bring into a group, class, set, or total as a (new) part or member.",
@@ -18705,7 +18606,6 @@
     "token": "incremental",
     "type": "word",
     "level": "B2",
-    "translation": "incremental",
     "phonetic": "/ˌɪŋ.krəˈmen.t̬əl/",
     "monolingual": "Relating to or denoting an increase or addition."
   },
@@ -18761,7 +18661,6 @@
     "token": "india",
     "type": "word",
     "level": "A2",
-    "translation": "india",
     "phonetic": "/ˈindja/",
     "bilingual": "(sust.) india",
     "monolingual": "Alternative letter-case form of India of the ICAO/NATO radiotelephony alphabet."
@@ -18839,7 +18738,6 @@
     "token": "indispensable",
     "type": "word",
     "level": "B2",
-    "translation": "indispensable",
     "phonetic": "/ˌɪn.dɪˈspen.sə.bəl/",
     "monolingual": "Absolutely necessary."
   },
@@ -18847,7 +18745,6 @@
     "token": "individual",
     "type": "word",
     "level": "A2",
-    "translation": "individual",
     "phonetic": "/ɪndɪˈvɪd͡ʒʊəl/",
     "bilingual": "(sust.) individual",
     "monolingual": "A person considered alone, rather than as belonging to a group of people.",
@@ -18867,7 +18764,6 @@
     "token": "industrial",
     "type": "word",
     "level": "B2",
-    "translation": "industrial",
     "phonetic": "/ɪnˈdʌs.tri.əl/",
     "monolingual": "Relating to industry or industrial production."
   },
@@ -18887,7 +18783,6 @@
     "token": "inevitable",
     "type": "word",
     "level": "C1",
-    "translation": "inevitable",
     "phonetic": "/ɪnˈev.ɪ.tə.bl̩/",
     "bilingual": "(adj.) inevitable",
     "monolingual": "Certain to happen; unavoidable.",
@@ -19371,7 +19266,6 @@
     "token": "insurance",
     "type": "word",
     "level": "A2",
-    "translation": "insurance",
     "phonetic": "/ɪnˈʃɔː.ɹəns/",
     "bilingual": "(sust.) insurance",
     "monolingual": "A means of indemnity against a future occurrence of an uncertain event.",
@@ -19399,7 +19293,6 @@
     "token": "intangible",
     "type": "word",
     "level": "C1",
-    "translation": "intangible",
     "phonetic": "/ɪnˈtæn.dʒə.bəl/",
     "monolingual": "Unable to be touched but real and existing."
   },
@@ -19407,7 +19300,6 @@
     "token": "integral",
     "type": "word",
     "level": "C1",
-    "translation": "integral",
     "phonetic": "/ˈɪn.tɪ.ɡrəl/",
     "bilingual": "(adj.) integral",
     "monolingual": "Necessary to make a whole complete.",
@@ -19587,7 +19479,6 @@
     "token": "internet",
     "type": "word",
     "level": "A2",
-    "translation": "internet",
     "phonetic": "/ˈɪn.təˌnɛt/",
     "monolingual": "Alternative letter-case form of Internet (“the specific internet consisting of a global network of computers that communicate using Internet Protocol (IP) and that use Border Gateway Protocol (BGP) to identify the best paths to route those communications”).",
     "examples": [
@@ -19870,7 +19761,6 @@
     "token": "ion",
     "type": "word",
     "level": "B2",
-    "translation": "ion",
     "phonetic": "/ˈaɪ.ɒn/",
     "monolingual": "An atom or molecule with an electrical charge."
   },
@@ -19912,7 +19802,6 @@
     "level": "A1",
     "translation": "es",
     "phonetic": "/ɪz/",
-    "monolingual": "ISO 639-1 language code for Icelandic.",
     "examples": [
       "He is a doctor."
     ]
@@ -19982,9 +19871,7 @@
     "token": "it",
     "type": "word",
     "level": "A1",
-    "translation": "it",
     "phonetic": "/ɪt/",
-    "monolingual": "ISO 639-1 language code for Italian.",
     "examples": [
       "Take this book and put it on the shelf."
     ]
@@ -20125,7 +20012,6 @@
     "token": "jobs",
     "type": "word",
     "level": "A2",
-    "translation": "jobs",
     "phonetic": "/d͡ʒɑbz/",
     "bilingual": "(sust.) jobs",
     "monolingual": "plural of job"
@@ -20146,7 +20032,6 @@
     "token": "john",
     "type": "word",
     "level": "A1",
-    "translation": "john",
     "phonetic": "/ˈd͡ʒɑn/",
     "bilingual": "(sust.) john",
     "monolingual": "A prostitute's client."
@@ -20211,7 +20096,6 @@
     "token": "judicial",
     "type": "word",
     "level": "B2",
-    "translation": "judicial",
     "phonetic": "/dʒuːˈdɪʃ.əl/",
     "monolingual": "Relating to the administration of justice."
   },
@@ -20304,7 +20188,6 @@
     "token": "k",
     "type": "word",
     "level": "A2",
-    "translation": "k",
     "phonetic": "/File:IPA_Unicode_0x006B.svg\" src=\"/",
     "monolingual": "The eleventh letter of the basic modern Latin alphabet.",
     "examples": [
@@ -20425,7 +20308,6 @@
     "token": "kill",
     "type": "word",
     "level": "A2",
-    "translation": "kill",
     "phonetic": "/ˈkɪl/",
     "bilingual": "(verbo) kill",
     "monolingual": "To put to death; to extinguish the life of.",
@@ -20458,7 +20340,6 @@
     "token": "kilobyte",
     "type": "word",
     "level": "B2",
-    "translation": "kilobyte",
     "phonetic": "/ˈkɪl.ə.baɪt/",
     "monolingual": "A unit of computer memory equal to 1024 bytes."
   },
@@ -20534,7 +20415,6 @@
     "token": "knew",
     "type": "word",
     "level": "A2",
-    "translation": "knew",
     "phonetic": "/ˈnjuː/",
     "bilingual": "(verbo) knew",
     "monolingual": "simple past of know"
@@ -20612,7 +20492,6 @@
     "token": "l",
     "type": "word",
     "level": "A2",
-    "translation": "1",
     "phonetic": "/File:IPA_Unicode_0x006C.svg\" src=\"/",
     "monolingual": "The twelfth letter of the basic modern Latin alphabet.",
     "examples": [
@@ -20623,10 +20502,8 @@
     "token": "la",
     "type": "word",
     "level": "A2",
-    "translation": "la",
     "phonetic": "/lɑː/",
     "bilingual": "(art. f. sg.) la",
-    "monolingual": "ISO 639-1 language code for Latin.",
     "examples": [
       "\"La la la la, I can't hear you!\" Jimmy said, sticking his fingers in his ears."
     ]
@@ -20876,7 +20753,6 @@
     "token": "lateral",
     "type": "word",
     "level": "B2",
-    "translation": "lateral",
     "phonetic": "/ˈlæt̬.ɚ.əl/",
     "monolingual": "Of, at, toward, or from the side."
   },
@@ -20916,7 +20792,6 @@
     "token": "lava",
     "type": "word",
     "level": "B2",
-    "translation": "lava",
     "phonetic": "/ˈlɑː.və/",
     "monolingual": "Hot molten or semi-fluid rock erupted from a volcano."
   },
@@ -20924,7 +20799,6 @@
     "token": "law",
     "type": "word",
     "level": "A1",
-    "translation": "law",
     "phonetic": "/lɔː/",
     "examples": [
       "The courts interpret the law but should not make it."
@@ -21191,7 +21065,6 @@
     "token": "legal",
     "type": "word",
     "level": "A2",
-    "translation": "legal",
     "phonetic": "/ˈliː.ɡəl/",
     "bilingual": "(adj.) legal",
     "monolingual": "Relating to the law or to lawyers.",
@@ -21203,7 +21076,6 @@
     "token": "legible",
     "type": "word",
     "level": "B2",
-    "translation": "legible",
     "phonetic": "/ˈledʒ.ə.bəl/",
     "monolingual": "Clear enough to read."
   },
@@ -21515,7 +21387,6 @@
     "token": "line",
     "type": "word",
     "level": "A1",
-    "translation": "line",
     "phonetic": "/laɪn/",
     "bilingual": "(sust.) line",
     "monolingual": "A path through two or more points (compare ‘segment’); a continuous mark, including as made by a pen; any path, curved or straight.",
@@ -21699,7 +21570,6 @@
     "token": "lives",
     "type": "word",
     "level": "A2",
-    "translation": "lives",
     "phonetic": "/lɪvz/",
     "bilingual": "(verbo) lives",
     "monolingual": "third-person singular simple present indicative of live"
@@ -21760,7 +21630,6 @@
     "token": "local",
     "type": "word",
     "level": "A1",
-    "translation": "local",
     "phonetic": "/ˈləʊ.kl̩/",
     "bilingual": "(adj.) local",
     "monolingual": "From or in a nearby location.",
@@ -21826,7 +21695,6 @@
     "token": "lol",
     "type": "word",
     "level": "A2",
-    "translation": "lol",
     "phonetic": "/ɛl.əʊˈɛl/",
     "examples": [
       "Are you really that bad lol?"
@@ -21865,7 +21733,6 @@
     "token": "longitudinal",
     "type": "word",
     "level": "C1",
-    "translation": "longitudinal",
     "phonetic": "/ˌlɒn.dʒəˈtjuː.dən.əl/",
     "monolingual": "Involving information about an individual or group over time."
   },
@@ -22124,7 +21991,6 @@
     "token": "lunar",
     "type": "word",
     "level": "B2",
-    "translation": "lunar",
     "phonetic": "/ˈluː.nɚ/",
     "monolingual": "Of, determined by, or relating to the moon."
   },
@@ -22152,7 +22018,6 @@
     "token": "made",
     "type": "word",
     "level": "A1",
-    "translation": ".",
     "phonetic": "/meɪd/",
     "bilingual": "(sust.) .",
     "monolingual": "A grub or maggot."
@@ -22181,7 +22046,6 @@
     "token": "magma",
     "type": "word",
     "level": "C1",
-    "translation": "magma",
     "phonetic": "/ˈmæɡ.mə/",
     "monolingual": "Hot fluid material below the earth's crust."
   },
@@ -22373,7 +22237,6 @@
     "token": "malware",
     "type": "word",
     "level": "B2",
-    "translation": "malware",
     "phonetic": "/ˈmæl.wer/",
     "monolingual": "Software designed to damage a computer or network."
   },
@@ -22687,7 +22550,6 @@
     "token": "material",
     "type": "word",
     "level": "A2",
-    "translation": "material",
     "phonetic": "/məˈtɪə.ɹi.əl/",
     "bilingual": "(adj.) material",
     "monolingual": "Of, relating to, or consisting of matter, especially physical.",
@@ -22846,7 +22708,6 @@
     "token": "media",
     "type": "word",
     "level": "A2",
-    "translation": "media",
     "phonetic": "/ˈmiː.di.ə/",
     "bilingual": "(sust.) media",
     "monolingual": "The middle layer of the wall of a blood vessel or lymph vessel which is composed of connective and muscular tissue.",
@@ -22878,7 +22739,6 @@
     "token": "medical",
     "type": "word",
     "level": "A2",
-    "translation": "medical",
     "phonetic": "/ˈmɛdɪkl̩/",
     "bilingual": "(adj.) medical",
     "monolingual": "Of or pertaining to the practice of medicine.",
@@ -22942,7 +22802,6 @@
     "token": "megabyte",
     "type": "word",
     "level": "B2",
-    "translation": "megabyte",
     "phonetic": "/ˈmeɡ.ə.baɪt/",
     "monolingual": "A unit of computer memory equal to a million bytes."
   },
@@ -22950,7 +22809,6 @@
     "token": "melanoma",
     "type": "word",
     "level": "C1",
-    "translation": "melanoma",
     "phonetic": "/ˌmel.əˈnoʊ.mə/",
     "monolingual": "A skin tumor associated with skin cancer."
   },
@@ -23003,7 +22861,6 @@
     "token": "memorable",
     "type": "word",
     "level": "B1",
-    "translation": "memorable",
     "phonetic": "/ˈmem.ər.ə.bl̩/",
     "bilingual": "(adj.) memorable",
     "monolingual": "Worth remembering.",
@@ -23065,7 +22922,6 @@
     "token": "mental",
     "type": "word",
     "level": "B1",
-    "translation": "mental",
     "phonetic": "/ˈmɛn.təl/",
     "bilingual": "(adj.) mental",
     "monolingual": "Of or relating to the mind or specifically the total emotional and intellectual response of an individual to external reality. Occurring or experienced in the mind.",
@@ -23337,7 +23193,6 @@
     "token": "military",
     "type": "word",
     "level": "A2",
-    "translation": "military",
     "phonetic": "/ˈmɪlɪt(ə)ɹi/",
     "bilingual": "(adj.) military",
     "monolingual": "Characteristic of members of the armed forces.",
@@ -23389,7 +23244,6 @@
     "token": "mind",
     "type": "word",
     "level": "A1",
-    "translation": ".",
     "phonetic": "/maɪnd/",
     "bilingual": "(sust.) .",
     "monolingual": "The capability for rational thought.",
@@ -23413,7 +23267,6 @@
     "token": "mineral",
     "type": "word",
     "level": "B2",
-    "translation": "mineral",
     "phonetic": "/ˈmɪn.ɚ.əl/",
     "monolingual": "A solid inorganic substance with a characteristic chemical composition."
   },
@@ -23699,7 +23552,6 @@
     "token": "modular",
     "type": "word",
     "level": "B2",
-    "translation": "modular",
     "phonetic": "/ˈmɒdʒ.ə.lɚ/",
     "monolingual": "Consisting of separable interchangeable units."
   },
@@ -23770,7 +23622,6 @@
     "token": "monitor",
     "type": "word",
     "level": "B2",
-    "translation": "monitor",
     "phonetic": "/ˈmɒn.ə.t̬ɚ/",
     "monolingual": "A device used to observe data and processes."
   },
@@ -23851,7 +23702,6 @@
     "token": "moral",
     "type": "word",
     "level": "B1",
-    "translation": "moral",
     "phonetic": "/ˈmɒr.əl/",
     "bilingual": "(adj.) moral",
     "monolingual": "Concerned with principles of right and wrong.",
@@ -23959,7 +23809,6 @@
     "token": "mother",
     "type": "word",
     "level": "A2",
-    "translation": "mother",
     "phonetic": "/ˈmʌð.ə/",
     "bilingual": "(sust.) mother",
     "monolingual": "A female parent, especially of a human; a female who parents a child (which she has given birth to, adopted, or fostered).",
@@ -23987,7 +23836,6 @@
     "token": "motor",
     "type": "word",
     "level": "B1",
-    "translation": "motor",
     "phonetic": "/ˈməʊ.tər/",
     "bilingual": "(sust.) motor",
     "monolingual": "A machine that converts energy into motion.",
@@ -24083,9 +23931,7 @@
     "token": "mr",
     "type": "word",
     "level": "A1",
-    "translation": "mr",
-    "phonetic": "/mɛr/",
-    "monolingual": "ISO 639-1 language code for Marathi."
+    "phonetic": "/mɛr/"
   },
   "mrs": {
     "token": "mrs",
@@ -24127,7 +23973,6 @@
     "token": "multicultural",
     "type": "word",
     "level": "B2",
-    "translation": "multicultural",
     "phonetic": "/ˌmʌl.tiˈkʌl.tʃɚ.əl/",
     "monolingual": "Relating to or constituting several cultural groups."
   },
@@ -24143,7 +23988,6 @@
     "token": "multimedia",
     "type": "word",
     "level": "B2",
-    "translation": "multimedia",
     "phonetic": "/ˌmʌl.tiˈmiː.di.ə/",
     "monolingual": "Using more than one medium of expression."
   },
@@ -24171,7 +24015,6 @@
     "token": "municipal",
     "type": "word",
     "level": "B2",
-    "translation": "municipal",
     "phonetic": "/mjuːˈnɪs.ə.pəl/",
     "monolingual": "Relating to a city or town or its governing body."
   },
@@ -24231,9 +24074,7 @@
     "token": "my",
     "type": "word",
     "level": "A1",
-    "translation": "my",
     "phonetic": "/maɪ/",
-    "monolingual": "ISO 639-1 language code for Burmese.",
     "examples": [
       "I can't find my book."
     ]
@@ -24447,7 +24288,6 @@
     "token": "naval",
     "type": "word",
     "level": "B1",
-    "translation": "naval",
     "phonetic": "/ˈneɪ.vəl/",
     "bilingual": "(adj.) naval",
     "monolingual": "Of warships.",
@@ -24680,7 +24520,6 @@
     "token": "neutral",
     "type": "word",
     "level": "B1",
-    "translation": "neutral",
     "phonetic": "/ˈnjuː.trəl/",
     "bilingual": "(adj.) neutral",
     "monolingual": "Not supporting either side.",
@@ -24829,9 +24668,7 @@
     "token": "no",
     "type": "word",
     "level": "A1",
-    "translation": "no",
     "phonetic": "/nəʊ/",
-    "monolingual": "ISO 639-1 language code for Norwegian.",
     "examples": [
       "no one"
     ]
@@ -24840,7 +24677,6 @@
     "token": "noble",
     "type": "word",
     "level": "B1",
-    "translation": "noble",
     "phonetic": "/ˈnəʊ.bl̩/",
     "bilingual": "(adj.) noble",
     "monolingual": "Belonging to a class of high social standing.",
@@ -24896,7 +24732,6 @@
     "token": "nominal",
     "type": "word",
     "level": "C1",
-    "translation": "nominal",
     "phonetic": "/ˈnɒm.ə.nəl/",
     "monolingual": "Existing in name only; very small."
   },
@@ -24959,7 +24794,6 @@
     "token": "normal",
     "type": "word",
     "level": "A2",
-    "translation": "normal",
     "phonetic": "/ˈnɔː.məl/",
     "bilingual": "(adj.) normal",
     "monolingual": "According to norms or rules or to a regular pattern.",
@@ -25013,7 +24847,6 @@
     "token": "notable",
     "type": "word",
     "level": "B1",
-    "translation": "notable",
     "phonetic": "/ˈnəʊ.tə.bl̩/",
     "bilingual": "(adj.) notable",
     "monolingual": "Worthy of attention.",
@@ -25141,7 +24974,6 @@
     "token": "nuclear",
     "type": "word",
     "level": "B2",
-    "translation": "nuclear",
     "phonetic": "/ˈnuː.kli.ɚ/",
     "monolingual": "Relating to the nucleus of an atom."
   },
@@ -25213,7 +25045,6 @@
     "token": "o",
     "type": "word",
     "level": "A2",
-    "translation": "o",
     "phonetic": "/File:IPA_Unicode_0x006F.svg\" src=\"/",
     "monolingual": "The fifteenth letter of the basic modern Latin alphabet.",
     "examples": [
@@ -25224,7 +25055,6 @@
     "token": "oasis",
     "type": "word",
     "level": "B2",
-    "translation": "oasis",
     "phonetic": "/oʊˈeɪ.sɪs/",
     "monolingual": "A fertile spot in a desert where water is found."
   },
@@ -25559,7 +25389,6 @@
     "token": "oil",
     "type": "word",
     "level": "A2",
-    "translation": "-",
     "phonetic": "/ɔɪl/",
     "bilingual": "(sust.) -",
     "monolingual": "Liquid fat.",
@@ -25935,9 +25764,7 @@
     "token": "or",
     "type": "word",
     "level": "A1",
-    "translation": "o",
     "phonetic": "/ə(ɹ)/",
-    "monolingual": "ISO 639-1 language code for Odia.",
     "examples": [
       "You may stay or go."
     ]
@@ -25946,7 +25773,6 @@
     "token": "oral",
     "type": "word",
     "level": "B2",
-    "translation": "oral",
     "phonetic": "/ˈɔːr.əl/",
     "monolingual": "Spoken rather than written, or relating to the mouth."
   },
@@ -26038,7 +25864,6 @@
     "token": "original",
     "type": "word",
     "level": "A2",
-    "translation": "original",
     "phonetic": "/əˈɹɪd͡ʒ.ɪ.nəl/",
     "bilingual": "(adj.) original",
     "monolingual": "Relating to the origin or beginning; preceding all others.",
@@ -26098,7 +25923,6 @@
     "token": "otherwise",
     "type": "word",
     "level": "A2",
-    "translation": "o",
     "phonetic": "/ˈʌð.əˌwaɪz/",
     "bilingual": "(adv.) o",
     "monolingual": "Differently, in another way.",
@@ -26122,7 +25946,6 @@
     "token": "out",
     "type": "word",
     "level": "A1",
-    "translation": ".",
     "phonetic": "/ˈäʊ̯t/",
     "bilingual": "(adv.) .",
     "monolingual": "Away from the inside or centre.",
@@ -26370,7 +26193,6 @@
     "token": "p",
     "type": "word",
     "level": "A2",
-    "translation": "p",
     "phonetic": "/File:IPA_Unicode_0x0070.svg\" src=\"/",
     "monolingual": "The sixteenth letter of the basic modern Latin alphabet.",
     "examples": [
@@ -26783,7 +26605,6 @@
     "token": "past",
     "type": "word",
     "level": "A1",
-    "translation": "past",
     "phonetic": "/pɑːst/",
     "bilingual": "(sust.) past",
     "monolingual": "The period of time that has already happened, in contrast to the present and the future.",
@@ -26996,7 +26817,6 @@
     "token": "peculiar",
     "type": "word",
     "level": "B1",
-    "translation": "peculiar",
     "phonetic": "/pɪˈkjuː.li.ər/",
     "bilingual": "(adj.) peculiar",
     "monolingual": "Different from the usual or normal.",
@@ -27052,7 +26872,6 @@
     "token": "pellet",
     "type": "word",
     "level": "B2",
-    "translation": "pellet",
     "phonetic": "/ˈpel.ət/",
     "monolingual": "A small, rounded, compressed mass."
   },
@@ -27119,7 +26938,6 @@
     "token": "percent",
     "type": "word",
     "level": "A2",
-    "translation": "percent",
     "phonetic": "/pəˈsɛnt/",
     "bilingual": "(adv.) percent",
     "monolingual": "For every hundred (used with preceding numeral to form a noun phrase expressing a proportion).",
@@ -27311,7 +27129,6 @@
     "token": "personal",
     "type": "word",
     "level": "A2",
-    "translation": "personal",
     "phonetic": "/ˈpɜː.sə.nəl/",
     "bilingual": "(adj.) personal",
     "monolingual": "Pertaining to persons (human beings as opposed to things or animals).",
@@ -27780,7 +27597,6 @@
     "token": "plasma",
     "type": "word",
     "level": "B2",
-    "translation": "plasma",
     "phonetic": "/ˈplæz.mə/",
     "monolingual": "The colorless fluid part of blood."
   },
@@ -27800,7 +27616,6 @@
     "token": "plausible",
     "type": "word",
     "level": "C1",
-    "translation": "plausible",
     "phonetic": "/ˈplɔː.zɪ.bl̩/",
     "bilingual": "(adj.) plausible",
     "monolingual": "Seeming reasonable or probable.",
@@ -28141,7 +27956,6 @@
     "token": "politics",
     "type": "word",
     "level": "A2",
-    "translation": ".",
     "phonetic": "/ˈpɒl.ɪ.tɪks/",
     "bilingual": "(sust.) .",
     "monolingual": "A methodology and activities associated with the interpersonal aspects of running a government, an organization, or a movement.",
@@ -28201,7 +28015,6 @@
     "token": "pop",
     "type": "word",
     "level": "A2",
-    "translation": "pop",
     "phonetic": "/pɒp/",
     "examples": [
       "Listen to the pop of a champagne cork."
@@ -28223,7 +28036,6 @@
     "token": "popular",
     "type": "word",
     "level": "A2",
-    "translation": "popular",
     "phonetic": "/ˈpɒp.jʊ.lə/",
     "bilingual": "(adj.) popular",
     "monolingual": "Common among the general public; generally accepted.",
@@ -28424,7 +28236,6 @@
     "token": "power",
     "type": "word",
     "level": "A1",
-    "translation": ".",
     "phonetic": "/ˈpaʊ̯ə̯/",
     "bilingual": "(sust.) .",
     "monolingual": "The ability to do or undergo something.",
@@ -28875,7 +28686,6 @@
     "token": "price",
     "type": "word",
     "level": "A2",
-    "translation": "price",
     "phonetic": "/ˈpɹaɪ̯s/",
     "bilingual": "(sust.) price",
     "monolingual": "The cost required to gain possession of something.",
@@ -28920,7 +28730,6 @@
     "token": "primate",
     "type": "word",
     "level": "B2",
-    "translation": "primate",
     "phonetic": "/ˈpraɪ.meɪt/",
     "monolingual": "A mammal of an order including monkeys, apes, and humans."
   },
@@ -28952,7 +28761,6 @@
     "token": "principal",
     "type": "word",
     "level": "B1",
-    "translation": "principal",
     "phonetic": "/ˈprɪn.sə.pəl/",
     "bilingual": "(adj.) principal",
     "monolingual": "First in order of importance.",
@@ -29032,7 +28840,6 @@
     "token": "pro",
     "type": "word",
     "level": "A2",
-    "translation": "pro",
     "phonetic": "/pɹəʊ/",
     "examples": [
       "What are the pros and cons of buying a car?"
@@ -29391,7 +29198,6 @@
     "token": "propaganda",
     "type": "word",
     "level": "C1",
-    "translation": "propaganda",
     "phonetic": "/ˌprɒp.əˈɡæn.də/",
     "bilingual": "(sust.) propaganda",
     "monolingual": "Information used to promote a political cause.",
@@ -30072,7 +29878,6 @@
     "token": "radar",
     "type": "word",
     "level": "B2",
-    "translation": "radar",
     "phonetic": "/ˈreɪ.dɑːr/",
     "monolingual": "A system using radio waves to detect objects."
   },
@@ -30088,7 +29893,6 @@
     "token": "radio",
     "type": "word",
     "level": "A2",
-    "translation": "radio",
     "phonetic": "/ˈɹeɪ.diˌəʊ/",
     "bilingual": "(sust.) radio",
     "monolingual": "The technology that allows for the transmission of sound or other signals by modulation of electromagnetic waves.",
@@ -30172,7 +29976,6 @@
     "token": "ran",
     "type": "word",
     "level": "A2",
-    "translation": "ran",
     "phonetic": "/ɹæn/"
   },
   "random": {
@@ -30191,7 +29994,6 @@
     "token": "range",
     "type": "word",
     "level": "A2",
-    "translation": "-",
     "phonetic": "/ˈɹeɪnd͡ʒ/",
     "bilingual": "(sust.) -",
     "monolingual": "A line or series of mountains, buildings, etc.",
@@ -30203,7 +30005,6 @@
     "token": "ransomware",
     "type": "word",
     "level": "B2",
-    "translation": "ransomware",
     "phonetic": "/ˈræn.səm.wer/",
     "monolingual": "Malicious software that demands payment to unlock data."
   },
@@ -30316,7 +30117,6 @@
     "token": "reactor",
     "type": "word",
     "level": "B2",
-    "translation": "reactor",
     "phonetic": "/riˈæk.tɚ/",
     "monolingual": "An apparatus or structure in which fission is initiated."
   },
@@ -30360,7 +30160,6 @@
     "token": "real",
     "type": "word",
     "level": "A1",
-    "translation": "real",
     "phonetic": "/ˈɹiːəl/",
     "bilingual": "(adj.) real",
     "monolingual": "True, genuine, not merely nominal or apparent.",
@@ -30875,7 +30674,6 @@
     "token": "regular",
     "type": "word",
     "level": "A2",
-    "translation": "regular",
     "phonetic": "/ˈɹɛɡjʊlə/",
     "bilingual": "(adj.) regular",
     "monolingual": "Bound by religious rule; belonging to a monastic or religious order (often as opposed to secular).",
@@ -32031,7 +31829,6 @@
     "token": "rifle",
     "type": "word",
     "level": "B1",
-    "translation": "rifle",
     "phonetic": "/ˈraɪ.fl̩/",
     "bilingual": "(sust.) rifle",
     "monolingual": "A gun with a long barrel.",
@@ -32144,7 +31941,6 @@
     "token": "rival",
     "type": "word",
     "level": "B1",
-    "translation": "rival",
     "phonetic": "/ˈraɪ.vəl/",
     "bilingual": "(sust.) rival",
     "monolingual": "A person competing with another.",
@@ -32520,7 +32316,6 @@
     "token": "rumor",
     "type": "word",
     "level": "B1",
-    "translation": "rumor",
     "phonetic": "/ˈruː.mər/",
     "bilingual": "(sust.) rumor",
     "monolingual": "An unverified piece of information.",
@@ -32566,7 +32361,6 @@
     "token": "rural",
     "type": "word",
     "level": "B1",
-    "translation": "rural",
     "phonetic": "/ˈrʊə.rəl/",
     "bilingual": "(adj.) rural",
     "monolingual": "In or of the countryside.",
@@ -32672,7 +32466,6 @@
     "token": "said",
     "type": "word",
     "level": "A1",
-    "translation": ".",
     "phonetic": "/sɛd/",
     "bilingual": "(verbo) .",
     "monolingual": "simple past and past participle of say",
@@ -32776,7 +32569,6 @@
     "token": "san",
     "type": "word",
     "level": "A2",
-    "translation": "san",
     "phonetic": "/ˈsæn/"
   },
   "sanction": {
@@ -33146,7 +32938,6 @@
     "token": "score",
     "type": "word",
     "level": "B1",
-    "translation": "score",
     "phonetic": "/skɔː/",
     "bilingual": "(sust.) score",
     "monolingual": "The total number of goals, points, runs, etc. earned by a participant in a game.",
@@ -33367,7 +33158,6 @@
     "token": "sector",
     "type": "word",
     "level": "B2",
-    "translation": "sector",
     "phonetic": "/ˈsek.tɚ/",
     "monolingual": "A part of an economy distinguished by a shared activity type."
   },
@@ -33622,7 +33412,6 @@
     "token": "senior",
     "type": "word",
     "level": "A2",
-    "translation": "senior",
     "phonetic": "/ˈsinjɚ/",
     "bilingual": "(adj.) senior",
     "monolingual": "Older.",
@@ -33670,7 +33459,6 @@
     "token": "sensor",
     "type": "word",
     "level": "B2",
-    "translation": "sensor",
     "phonetic": "/ˈsen.sɚ/",
     "monolingual": "A device that detects events or changes in its environment."
   },
@@ -34177,7 +33965,6 @@
     "token": "shock",
     "type": "word",
     "level": "B1",
-    "translation": "shock",
     "phonetic": "/ʃɒk/",
     "bilingual": "(sust.) shock",
     "monolingual": "A sudden upsetting or surprising event.",
@@ -34551,7 +34338,6 @@
     "token": "similar",
     "type": "word",
     "level": "A2",
-    "translation": "similar",
     "phonetic": "/ˈsɪm.ɪ.lə/",
     "bilingual": "(adj.) similar",
     "monolingual": "Having traits or characteristics in common; alike, allied, comparable.",
@@ -34563,7 +34349,6 @@
     "token": "simple",
     "type": "word",
     "level": "A2",
-    "translation": "simple",
     "phonetic": "/ˈsɪm.pəl/",
     "bilingual": "(adj.) simple",
     "monolingual": "Uncomplicated; lacking complexity; taken by itself, with nothing added.",
@@ -34693,7 +34478,6 @@
     "token": "sit",
     "type": "word",
     "level": "A2",
-    "translation": "sit",
     "phonetic": "/sɪt/",
     "examples": [
       "After a long day of walking, it was good just to sit and relax."
@@ -34958,7 +34742,6 @@
     "token": "small",
     "type": "word",
     "level": "A1",
-    "translation": "-",
     "phonetic": "/smɔl/",
     "bilingual": "(adj.) -",
     "monolingual": "Not large or big; insignificant; few in number.",
@@ -34970,7 +34753,6 @@
     "token": "smart",
     "type": "word",
     "level": "B1",
-    "translation": "smart",
     "phonetic": "/smɑɹt/",
     "bilingual": "(verbo) smart",
     "monolingual": "To hurt or sting.",
@@ -35059,9 +34841,7 @@
     "token": "so",
     "type": "word",
     "level": "A1",
-    "translation": "so",
     "phonetic": "/səʊ/",
-    "monolingual": "ISO 639-1 language code for Somali.",
     "examples": [
       "I got an earlier train to work so I'd have plenty of time to prepare for the meeting."
     ]
@@ -35082,7 +34862,6 @@
     "token": "social",
     "type": "word",
     "level": "A1",
-    "translation": "social",
     "phonetic": "/ˈsəʊ.ʃəl/",
     "bilingual": "(adj.) social",
     "monolingual": "Being extroverted or outgoing.",
@@ -35130,7 +34909,6 @@
     "token": "software",
     "type": "word",
     "level": "B2",
-    "translation": "software",
     "phonetic": "/ˈsɒf.twer/",
     "monolingual": "The programs used by a computer."
   },
@@ -35150,7 +34928,6 @@
     "token": "solar",
     "type": "word",
     "level": "B2",
-    "translation": "solar",
     "phonetic": "/ˈsoʊ.lɚ/",
     "monolingual": "Relating to or determined by the sun."
   },
@@ -35268,7 +35045,6 @@
     "token": "some",
     "type": "word",
     "level": "A1",
-    "translation": ".",
     "phonetic": "/sʌm/",
     "bilingual": "(pron.) .",
     "monolingual": "A certain number (multiple but not all).",
@@ -35340,7 +35116,6 @@
     "token": "son",
     "type": "word",
     "level": "A2",
-    "translation": "son",
     "phonetic": "/sʌn/",
     "examples": [
       "Before the birth of the man's child, he said: \"I want a son, not a daughter.\""
@@ -35350,7 +35125,6 @@
     "token": "sonar",
     "type": "word",
     "level": "B2",
-    "translation": "sonar",
     "phonetic": "/ˈsoʊ.nɑːr/",
     "monolingual": "A system for detecting objects using sound waves."
   },
@@ -35990,9 +35764,7 @@
     "token": "st",
     "type": "word",
     "level": "A2",
-    "translation": "st",
-    "phonetic": "/sɛt/",
-    "monolingual": "ISO 639-1 language code for Sotho."
+    "phonetic": "/sɛt/"
   },
   "stable": {
     "token": "stable",
@@ -36118,7 +35890,6 @@
     "token": "stand",
     "type": "word",
     "level": "A2",
-    "translation": ".",
     "phonetic": "/stænd/",
     "bilingual": "(verbo) .",
     "monolingual": "To position or be positioned physically: To support oneself on the feet in an erect position.",
@@ -36549,7 +36320,6 @@
     "token": "stock",
     "type": "word",
     "level": "A2",
-    "translation": "stock",
     "phonetic": "/stɒk/",
     "bilingual": "(sust.) stock",
     "monolingual": "A store or supply. A store of goods ready for sale; inventory.",
@@ -36612,7 +36382,6 @@
     "token": "store",
     "type": "word",
     "level": "A2",
-    "translation": "Store",
     "phonetic": "/stɔː/",
     "bilingual": "(sust.) Store",
     "monolingual": "A place where items may be accumulated or routinely kept.",
@@ -37980,7 +37749,6 @@
     "token": "tangible",
     "type": "word",
     "level": "B2",
-    "translation": "tangible",
     "phonetic": "/ˈtæn.dʒə.bəl/",
     "monolingual": "Perceptible by touch; real and not imaginary."
   },
@@ -38145,7 +37913,6 @@
     "token": "technology",
     "type": "word",
     "level": "A2",
-    "translation": "technology",
     "phonetic": "/tɛkˈnɒl.ə.dʒi/",
     "bilingual": "(sust.) technology",
     "monolingual": "The combined application of science and art in practical ways in industry, as for example in designing new machines.",
@@ -38333,7 +38100,6 @@
     "token": "terabyte",
     "type": "word",
     "level": "B2",
-    "translation": "terabyte",
     "phonetic": "/ˈter.ə.baɪt/",
     "monolingual": "A unit of information equal to one trillion bytes."
   },
@@ -38353,7 +38119,6 @@
     "token": "terminal",
     "type": "word",
     "level": "B1",
-    "translation": "terminal",
     "phonetic": "/ˈtɜːr.mɪ.nəl/",
     "bilingual": "(sust.) terminal",
     "monolingual": "A departure and arrival building.",
@@ -38390,7 +38155,6 @@
     "token": "terrible",
     "type": "word",
     "level": "B1",
-    "translation": "terrible",
     "phonetic": "/ˈter.ə.bl̩/",
     "bilingual": "(adj.) terrible",
     "monolingual": "Extremely bad or serious.",
@@ -38438,7 +38202,6 @@
     "token": "terror",
     "type": "word",
     "level": "B1",
-    "translation": "terror",
     "phonetic": "/ˈter.ər/",
     "bilingual": "(sust.) terror",
     "monolingual": "Extreme fear.",
@@ -38458,7 +38221,6 @@
     "token": "test",
     "type": "word",
     "level": "A2",
-    "translation": "-",
     "phonetic": "/tɛst/",
     "bilingual": "(sust.) -",
     "monolingual": "A challenge, trial. An examination, given often during the academic term. A session in which a product, piece of equipment, or system is examined under everyday or extreme conditions to evaluate its durability, etc. A standardised measure, consisting of one or more items.",
@@ -38490,7 +38252,6 @@
     "token": "texas",
     "type": "word",
     "level": "A2",
-    "translation": "texas",
     "phonetic": "/ˈtɛk.səs/",
     "bilingual": "(sust.) texas",
     "monolingual": "The topmost cabin deck on a steamboat."
@@ -39205,7 +38966,6 @@
     "token": "title",
     "type": "word",
     "level": "A2",
-    "translation": "title",
     "phonetic": "/ˈtaɪ̯.təl/",
     "bilingual": "(sust.) title",
     "monolingual": "The name of a film, musical piece, painting, or other work of art.",
@@ -39217,9 +38977,7 @@
     "token": "to",
     "type": "word",
     "level": "A1",
-    "translation": "a",
     "phonetic": "/tuː/",
-    "monolingual": "ISO 639-1 language code for Tongan.",
     "examples": [
       "I want to leave."
     ]
@@ -39261,7 +39019,6 @@
     "token": "tom",
     "type": "word",
     "level": "B1",
-    "translation": "tom",
     "phonetic": "/tɒm/",
     "examples": [
       "Toms 90p a pound"
@@ -39393,7 +39150,6 @@
     "token": "total",
     "type": "word",
     "level": "A2",
-    "translation": "total",
     "phonetic": "/ˈtəʊ.tl̩/",
     "bilingual": "(sust.) total",
     "monolingual": "An amount obtained by the addition of smaller amounts.",
@@ -39711,7 +39467,6 @@
     "token": "transistor",
     "type": "word",
     "level": "C1",
-    "translation": "transistor",
     "phonetic": "/trænˈzɪs.tɚ/",
     "monolingual": "A semiconductor device used to amplify or switch electronic signals."
   },
@@ -39936,7 +39691,6 @@
     "token": "tribunal",
     "type": "word",
     "level": "B2",
-    "translation": "tribunal",
     "phonetic": "/traɪˈbjuː.nəl/",
     "monolingual": "A body established to settle certain types of dispute."
   },
@@ -40009,7 +39763,6 @@
     "token": "tropical",
     "type": "word",
     "level": "B1",
-    "translation": "tropical",
     "phonetic": "/ˈtrɒp.ɪ.kəl/",
     "bilingual": "(adj.) tropical",
     "monolingual": "Of or relating to the tropics.",
@@ -40132,7 +39885,6 @@
     "token": "tsunami",
     "type": "word",
     "level": "B2",
-    "translation": "tsunami",
     "phonetic": "/tsuːˈnɑː.mi/",
     "monolingual": "A long, high sea wave caused by an underwater earthquake."
   },
@@ -40152,7 +39904,6 @@
     "token": "tumor",
     "type": "word",
     "level": "B2",
-    "translation": "tumor",
     "phonetic": "/ˈtuː.mɚ/",
     "monolingual": "A swelling caused by abnormal growth of tissue."
   },
@@ -40221,7 +39972,6 @@
     "token": "tv",
     "type": "word",
     "level": "A2",
-    "translation": "D",
     "phonetic": "/tiviː/",
     "bilingual": "(sust.) D",
     "monolingual": "Alternative form of TV."
@@ -40254,7 +40004,6 @@
     "token": "twitter",
     "type": "word",
     "level": "B1",
-    "translation": "Twitter",
     "phonetic": "/ˈtwɪtə/",
     "bilingual": "(sust.) Twitter",
     "monolingual": "The sound of a succession of chirps as uttered by birds.",
@@ -40342,9 +40091,7 @@
     "token": "uk",
     "type": "word",
     "level": "A2",
-    "translation": "uk",
-    "phonetic": "/ʏk/",
-    "monolingual": "ISO 639-1 language code for Ukrainian."
+    "phonetic": "/ʏk/"
   },
   "ultimate": {
     "token": "ultimate",
@@ -40518,7 +40265,6 @@
     "token": "union",
     "type": "word",
     "level": "A2",
-    "translation": "union",
     "phonetic": "/ˈjuː.njən/",
     "bilingual": "(sust.) union",
     "monolingual": "The act of uniting or joining two or more things into one.",
@@ -40694,7 +40440,6 @@
     "token": "upon",
     "type": "word",
     "level": "A2",
-    "translation": "a",
     "phonetic": "/əˈpɒn/",
     "bilingual": "(prep.) a",
     "monolingual": "A higher-register or more formal alternative to on in most, though not all, prepositional uses.",
@@ -40766,7 +40511,6 @@
     "token": "us",
     "type": "word",
     "level": "A1",
-    "translation": "us",
     "phonetic": "/əs/",
     "monolingual": "Alternative form of μs.",
     "examples": [
@@ -40891,7 +40635,6 @@
     "token": "v",
     "type": "word",
     "level": "A2",
-    "translation": "v",
     "phonetic": "/File:IPA_Unicode_0x0076.svg\" src=\"/",
     "monolingual": "The twenty-second letter of the basic modern Latin alphabet.",
     "examples": [
@@ -41142,7 +40885,6 @@
     "token": "verbal",
     "type": "word",
     "level": "B2",
-    "translation": "verbal",
     "phonetic": "/ˈvɝː.bəl/",
     "monolingual": "Relating to or in the form of words."
   },
@@ -41238,7 +40980,6 @@
     "token": "veto",
     "type": "word",
     "level": "B2",
-    "translation": "veto",
     "phonetic": "/ˈviː.t̬oʊ/",
     "monolingual": "A constitutional right to reject a decision."
   },
@@ -41258,7 +40999,6 @@
     "token": "viable",
     "type": "word",
     "level": "B2",
-    "translation": "viable",
     "phonetic": "/ˈvaɪ.ə.bəl/",
     "monolingual": "Capable of working successfully; feasible."
   },
@@ -41298,7 +41038,6 @@
     "token": "video",
     "type": "word",
     "level": "A1",
-    "translation": "video",
     "phonetic": "/ˈvɪd.i.əʊ/",
     "bilingual": "(sust.) video",
     "monolingual": "Television, a television show, or a movie.",
@@ -41339,7 +41078,6 @@
     "token": "vigilante",
     "type": "word",
     "level": "B2",
-    "translation": "vigilante",
     "phonetic": "/ˌvɪdʒ.əˈlæn.t̬i/",
     "monolingual": "A member of a self-appointed group enforcing laws."
   },
@@ -41391,7 +41129,6 @@
     "token": "virtual",
     "type": "word",
     "level": "B2",
-    "translation": "virtual",
     "phonetic": "/ˈvɝː.tʃu.əl/",
     "monolingual": "Not physically existing as such but made by software to appear to do so."
   },
@@ -41411,7 +41148,6 @@
     "token": "virus",
     "type": "word",
     "level": "B1",
-    "translation": "virus",
     "phonetic": "/ˈvaɪə.rəs/",
     "bilingual": "(sust.) virus",
     "monolingual": "A submicroscopic infectious agent.",
@@ -41423,7 +41159,6 @@
     "token": "visa",
     "type": "word",
     "level": "B2",
-    "translation": "visa",
     "phonetic": "/ˈviː.zə/",
     "monolingual": "A formal endorsement allowing the holder to enter a country."
   },
@@ -41463,7 +41198,6 @@
     "token": "visual",
     "type": "word",
     "level": "B1",
-    "translation": "visual",
     "phonetic": "/ˈvɪʒ.u.əl/",
     "bilingual": "(adj.) visual",
     "monolingual": "Relating to seeing or sight.",
@@ -41599,7 +41333,6 @@
     "token": "vs",
     "type": "word",
     "level": "B1",
-    "translation": "vs",
     "bilingual": "(prep.) vs",
     "monolingual": "Alternative form of vs.."
   },
@@ -41607,7 +41340,6 @@
     "token": "w",
     "type": "word",
     "level": "A2",
-    "translation": "w",
     "phonetic": "/File:IPA_Unicode_0x0077.svg\" src=\"/",
     "monolingual": "The twenty-third letter of the basic modern Latin alphabet.",
     "examples": [
@@ -41767,7 +41499,6 @@
     "token": "war",
     "type": "word",
     "level": "A1",
-    "translation": ".",
     "phonetic": "/wɔː/",
     "examples": [
       "holy war; just war; civil war"
@@ -41843,7 +41574,6 @@
     "token": "washington",
     "type": "word",
     "level": "A2",
-    "translation": "Washington",
     "phonetic": "/ˈwaʃiŋton/",
     "bilingual": "(sust.) Washington",
     "monolingual": "Synonym of agawan base (a team game)"
@@ -41949,7 +41679,6 @@
     "token": "way",
     "type": "word",
     "level": "A1",
-    "translation": ".",
     "phonetic": "/weɪ/",
     "examples": [
       "Do you know the way to the airport? Come this way and I'll show you a shortcut. It's a long way from here."
@@ -42503,7 +42232,6 @@
     "token": "wide",
     "type": "word",
     "level": "A2",
-    "translation": "wide",
     "phonetic": "/waɪd/",
     "bilingual": "(adj.) wide",
     "monolingual": "Having a large physical extent from side to side.",
@@ -42693,7 +42421,6 @@
     "token": "wish",
     "type": "word",
     "level": "A2",
-    "translation": ".",
     "phonetic": "/ˈwɪʃ/",
     "bilingual": "(sust.) .",
     "monolingual": "A desire, hope, or longing for something or for something to happen.",
@@ -42886,7 +42613,6 @@
     "token": "word",
     "type": "word",
     "level": "A2",
-    "translation": "word",
     "phonetic": "/wɜːd/",
     "bilingual": "(sust.) word",
     "monolingual": "The smallest unit of language that has a particular meaning and can be expressed by itself; the smallest discrete, meaningful unit of language. The smallest discrete unit of spoken language with a particular meaning, composed of one or more phonemes and one or more morphemes The smallest discrete unit of written language with a particular meaning, composed of one or more letters or symbols and one or more morphemes A discrete, meaningful unit of language approved by an authority or native speaker (compare non-word). A sign used in a sign language.",
@@ -43210,7 +42936,6 @@
     "token": "x",
     "type": "word",
     "level": "A2",
-    "translation": "x",
     "phonetic": "/File:IPA_Unicode_0x0078.svg\" src=\"/",
     "monolingual": "The twenty-fourth letter of the basic modern Latin alphabet.",
     "examples": [
@@ -43334,7 +43059,6 @@
     "token": "york",
     "type": "word",
     "level": "A1",
-    "translation": "York",
     "phonetic": "/jɔː(ɹ)k/",
     "bilingual": "(verbo) York",
     "monolingual": "to bowl a yorker at a batsman, especially to get a batsman out in this way."
