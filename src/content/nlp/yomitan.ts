@@ -25,7 +25,7 @@
  *
  * Reference: https://github.com/yomidevs/yomitan/blob/master/docs/dictionaries.md
  */
-import { unzipSync, strFromU8 } from 'fflate';
+import { unzipSync, strFromU8, Unzip, UnzipInflate } from 'fflate';
 import { getDB } from '../../shared/db';
 import type { DictPackRow, DictTermRow } from '../../shared/db';
 import type { DictionaryEntry } from '../../shared/types';
@@ -227,6 +227,320 @@ export async function importYomitanPack(
   void recordPackInstall(id, pack.title);
 
   return { ok: true, pack, termsImported: termRows.length };
+}
+
+/**
+ * Streaming variant of `importYomitanPack` for very large archives (the
+ * EN→EN Wiktionary pack decompresses to ~700 MB of JSON; loading the whole
+ * thing in memory crashes the renderer / occasionally the SW too).
+ *
+ * Uses fflate's `Unzip` + `UnzipInflate` API to walk the ZIP one file at a
+ * time. We collect each file's raw bytes, parse + insert it, and drop the
+ * buffer before moving on, so peak memory stays bounded by the largest
+ * single `term_bank_*.json` (typically 5–15 MB) instead of the whole
+ * uncompressed archive.
+ *
+ * The caller passes the compressed ZIP as a `Uint8Array` and we feed it
+ * to the streaming decoder in 4 MB chunks. This is the only way to import
+ * the bigger Wiktionary packs without OOM-killing the host process.
+ *
+ * @param zipBytes  Compressed ZIP bytes (as fetched from the CDN).
+ * @param onProgress Optional callback with stage info — useful so the UI
+ *                   can render "Descomprimiendo · 12 de 64 archivos" while
+ *                   we churn through the term banks.
+ */
+export async function importYomitanPackStreaming(
+  zipBytes: Uint8Array,
+  onProgress?: (info: {
+    stage: 'unzipping' | 'parsing' | 'writing' | 'done';
+    fileName?: string;
+    filesDone: number;
+    /** Total file count is unknown until index.json is found. */
+    filesTotal?: number;
+    termsParsed: number;
+  }) => void,
+): Promise<ImportResult | ImportError> {
+  // Phase 1: walk the central directory by streaming the bytes through
+  // `Unzip`. fflate emits one `UnzipFile` per archive entry; we collect
+  // file metadata first, then pull each file's bytes via `start()`.
+  interface PendingFile {
+    name: string;
+    bytes: Uint8Array | null;
+    /** Resolved when ondata signals `final = true`. */
+    done: Promise<void>;
+    resolve: () => void;
+    reject: (err: Error) => void;
+  }
+  const pending: PendingFile[] = [];
+
+  const unzipper = new Unzip((file) => {
+    // Resolve the buffer for this file as fflate streams it.
+    const chunks: Uint8Array[] = [];
+    const slot: PendingFile = {
+      name: file.name,
+      bytes: null,
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      resolve: () => {},
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      reject: () => {},
+      done: null as unknown as Promise<void>,
+    };
+    slot.done = new Promise<void>((res, rej) => {
+      slot.resolve = res;
+      slot.reject = rej;
+    });
+    file.ondata = (err, data, final) => {
+      if (err) {
+        slot.reject(err as unknown as Error);
+        return;
+      }
+      if (data && data.length > 0) chunks.push(data);
+      if (final) {
+        // Concatenate the chunks into a single Uint8Array.
+        let total = 0;
+        for (const c of chunks) total += c.length;
+        const out = new Uint8Array(total);
+        let off = 0;
+        for (const c of chunks) {
+          out.set(c, off);
+          off += c.length;
+        }
+        slot.bytes = out;
+        chunks.length = 0;
+        slot.resolve();
+      }
+    };
+    file.start();
+    pending.push(slot);
+  });
+  unzipper.register(UnzipInflate);
+
+  // Push the ZIP bytes into the streaming decoder in moderate chunks.
+  // Larger chunks are slightly faster but produce bigger intermediate
+  // allocations; 4 MB is a healthy compromise for the EN→EN pack.
+  const PUSH_CHUNK = 4 * 1024 * 1024;
+  for (let i = 0; i < zipBytes.length; i += PUSH_CHUNK) {
+    const end = Math.min(i + PUSH_CHUNK, zipBytes.length);
+    const isFinal = end === zipBytes.length;
+    unzipper.push(zipBytes.subarray(i, end), isFinal);
+    // Yield to the event loop so the SW stays responsive (and so other
+    // listeners can fire status pings).
+    if (!isFinal) await Promise.resolve();
+  }
+
+  if (pending.length === 0) {
+    return { ok: false, error: 'El ZIP no contiene archivos.' };
+  }
+
+  // Find index.json — same lookup as the non-streaming path. Wait only
+  // for files whose names match "index.json" so we don't block on the
+  // huge term banks for the index.
+  const indexSlot = pending.find((f) => f.name.endsWith('index.json'));
+  if (!indexSlot) {
+    return { ok: false, error: 'Missing index.json in pack' };
+  }
+  await indexSlot.done;
+  if (!indexSlot.bytes) {
+    return { ok: false, error: 'index.json tiene cero bytes' };
+  }
+  let index: YomitanIndex;
+  try {
+    index = JSON.parse(strFromU8(indexSlot.bytes)) as YomitanIndex;
+  } catch (err) {
+    return { ok: false, error: `Bad index.json: ${(err as Error).message}` };
+  }
+  const indexPrefix = indexSlot.name.replace(/index\.json$/, '');
+
+  const title = (index.title || '').trim();
+  const revision = (index.revision || '').trim();
+  if (!title) return { ok: false, error: 'index.json missing "title"' };
+  if (!revision) return { ok: false, error: 'index.json missing "revision"' };
+  const format = Number(index.format ?? index.version ?? 1);
+  const sourceLang = index.sourceLanguage || 'en';
+  const targetLang = index.targetLanguage || 'es';
+  const id = packId(title, revision);
+
+  // Free the index slot's bytes — we've already parsed it.
+  indexSlot.bytes = null;
+
+  const termBankSlots = pending
+    .filter((f) => f.name.startsWith(indexPrefix) && /term_bank_\d+\.json$/.test(f.name))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const metaBankSlots = pending
+    .filter((f) => f.name.startsWith(indexPrefix) && /term_meta_bank_\d+\.json$/.test(f.name))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  if (termBankSlots.length === 0 && metaBankSlots.length === 0) {
+    return { ok: false, error: 'No se encontraron archivos term_bank ni term_meta_bank en el pack' };
+  }
+
+  const filesTotal = termBankSlots.length + metaBankSlots.length;
+  let filesDone = 0;
+  let termsParsed = 0;
+  const db = getDB();
+
+  // Atomic replace: clear any prior install of this pack id BEFORE we
+  // start streaming inserts so a partial import never coexists with a
+  // previous full one.
+  await db.transaction('rw', db.dict_packs, db.dict_terms, async () => {
+    await db.dict_terms.where('packId').equals(id).delete();
+  });
+
+  const CHUNK = 5000;
+  /** Insert and free `rows` so the GC can reclaim them between bank files. */
+  async function flushRows(rows: DictTermRow[]): Promise<void> {
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      await db.dict_terms.bulkAdd(rows.slice(i, i + CHUNK));
+    }
+  }
+
+  // Phase 2: parse each term_bank_*.json one at a time and insert before
+  // moving to the next file. This keeps peak memory bounded by ONE bank
+  // file's parsed array, which is typically 50–200 k rows (~10–40 MB).
+  for (const slot of termBankSlots) {
+    onProgress?.({
+      stage: 'parsing',
+      fileName: slot.name,
+      filesDone,
+      filesTotal,
+      termsParsed,
+    });
+    await slot.done;
+    if (!slot.bytes) {
+      filesDone += 1;
+      continue;
+    }
+    let arr: YomitanTermTuple[];
+    try {
+      arr = JSON.parse(strFromU8(slot.bytes)) as YomitanTermTuple[];
+    } catch (err) {
+      return { ok: false, error: `No se pudo parsear ${slot.name}: ${(err as Error).message}` };
+    }
+    // Free the raw bytes immediately — they're already parsed into arr.
+    slot.bytes = null;
+
+    const rows: DictTermRow[] = [];
+    for (const t of arr) {
+      if (!Array.isArray(t) || t.length < 6) continue;
+      const expression = String(t[0] ?? '').trim().toLowerCase();
+      if (!expression) continue;
+      const reading = String(t[1] ?? '').trim();
+      const definitionTags = (t[2] as string | null) ?? undefined;
+      const popularity = Number(t[4] ?? 0) || 0;
+      const definitions = Array.isArray(t[5]) ? t[5] : [];
+      const termTags = (t[7] as string | null) ?? undefined;
+      rows.push({
+        packId: id,
+        expression,
+        reading: reading || undefined,
+        definitions,
+        popularity,
+        definitionTags: definitionTags || undefined,
+        termTags: termTags || undefined,
+      });
+    }
+    // Free the parsed JSON array now that we've extracted what we need.
+    arr.length = 0;
+
+    onProgress?.({
+      stage: 'writing',
+      fileName: slot.name,
+      filesDone,
+      filesTotal,
+      termsParsed: termsParsed + rows.length,
+    });
+    await flushRows(rows);
+    termsParsed += rows.length;
+    rows.length = 0;
+    filesDone += 1;
+  }
+
+  // Phase 3: same loop for term_meta_bank_*.json (IPA / pronunciation).
+  for (const slot of metaBankSlots) {
+    onProgress?.({
+      stage: 'parsing',
+      fileName: slot.name,
+      filesDone,
+      filesTotal,
+      termsParsed,
+    });
+    await slot.done;
+    if (!slot.bytes) {
+      filesDone += 1;
+      continue;
+    }
+    let arr: unknown[];
+    try {
+      arr = JSON.parse(strFromU8(slot.bytes)) as unknown[];
+    } catch (err) {
+      return { ok: false, error: `No se pudo parsear ${slot.name}: ${(err as Error).message}` };
+    }
+    slot.bytes = null;
+
+    const rows: DictTermRow[] = [];
+    for (const entry of arr) {
+      if (!Array.isArray(entry) || entry.length < 3) continue;
+      const expression = String(entry[0] ?? '').trim().toLowerCase();
+      const mode = String(entry[1] ?? '');
+      if (!expression || mode !== 'ipa') continue;
+      const meta = entry[2];
+      const ipa = extractFirstIpa(meta);
+      if (!ipa) continue;
+      rows.push({
+        packId: id,
+        expression,
+        reading: ipa,
+        definitions: [],
+        popularity: 0,
+        termTags: 'ipa',
+      });
+    }
+    arr.length = 0;
+
+    onProgress?.({
+      stage: 'writing',
+      fileName: slot.name,
+      filesDone,
+      filesTotal,
+      termsParsed: termsParsed + rows.length,
+    });
+    await flushRows(rows);
+    termsParsed += rows.length;
+    rows.length = 0;
+    filesDone += 1;
+  }
+
+  if (termsParsed === 0) {
+    // Nothing made it through — roll back the empty pack row so the user
+    // doesn't see a phantom 0-term install in the gallery.
+    await db.dict_packs.delete(id);
+    return { ok: false, error: 'Pack contains zero usable terms' };
+  }
+
+  const pack: DictPackRow = {
+    id,
+    title,
+    revision,
+    format,
+    sourceLang,
+    targetLang,
+    termCount: termsParsed,
+    enabled: true,
+    author: index.author,
+    description: index.description,
+    createdAt: Date.now(),
+  };
+  await db.dict_packs.put(pack);
+
+  void recordPackInstall(id, pack.title);
+  onProgress?.({
+    stage: 'done',
+    filesDone,
+    filesTotal,
+    termsParsed,
+  });
+
+  return { ok: true, pack, termsImported: termsParsed };
 }
 
 /**

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useKivaraStore } from '../shared/store';
 import { autoMapFields, detectFieldSource } from '../shared/anki-field-detect';
-import { importYomitanPackFromUrl, listYomitanPacks } from '../content/nlp/yomitan';
+import { listYomitanPacks } from '../content/nlp/yomitan';
 import {
   CURATED_DICT_PACKS,
   defaultSelection,
@@ -1429,7 +1429,30 @@ function DictStep() {
     for (const pack of toInstall) {
       setStatuses((prev) => ({ ...prev, [pack.url]: { status: 'downloading' } }));
       try {
-        const result = await importYomitanPackFromUrl(pack.url);
+        // Run download + unzip + DB insert in the service worker so a
+        // multi-hundred-MB decompressed payload can't OOM-kill the
+        // onboarding page. The SW uses fflate's streaming `Unzip`, so
+        // peak memory is bounded by the largest single term_bank file.
+        const result = await new Promise<
+          | { ok: true; pack: { title: string; termCount: number }; termsImported: number }
+          | { ok: false; error: string }
+        >((resolve) => {
+          try {
+            chrome.runtime.sendMessage(
+              { type: 'INSTALL_DICT_PACK_FROM_URL', url: pack.url },
+              (response) => {
+                const err = chrome.runtime.lastError;
+                if (err) {
+                  resolve({ ok: false, error: err.message ?? 'Service worker no respondió' });
+                  return;
+                }
+                resolve(response);
+              },
+            );
+          } catch (err) {
+            resolve({ ok: false, error: (err as Error).message });
+          }
+        });
         if (result.ok) {
           setStatuses((prev) => ({
             ...prev,

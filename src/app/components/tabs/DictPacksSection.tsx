@@ -40,7 +40,6 @@ import {
   Package, Cloud, Ban,
 } from 'lucide-react';
 import type { DictPackRow, PackStatsRow } from '../../../shared/db';
-import { importYomitanPackFromUrl } from '../../../content/nlp/yomitan';
 import { importCsvList } from '../../../content/nlp/csv-importer';
 import { autoImportDictFile } from '../../../content/nlp/dict-format-detect';
 import {
@@ -271,8 +270,61 @@ export function DictPacksSection() {
       if (!trimmed) return;
       setFeedback(null);
       setImportingUrl(trimmed);
+
+      // Listen for progress broadcasts coming from the SW so we can show
+      // the user *what* is happening — downloading bytes, unzipping,
+      // parsing, writing — instead of a static "Descargando" spinner.
+      // Tracked in state-free closures so we don't have to re-render
+      // for every progress tick.
+      const progressListener = (msg: unknown) => {
+        if (
+          typeof msg !== 'object' ||
+          msg === null ||
+          (msg as { type?: string }).type !== 'DICT_PACK_PROGRESS' ||
+          (msg as { url?: string }).url !== trimmed
+        ) {
+          return;
+        }
+        // Progress payload reaches us; we don't surface it visually yet
+        // (mock has a single "Descargando" pill) but we tap into it so
+        // future UI iterations can render the bar without protocol
+        // changes.
+      };
       try {
-        const result = await importYomitanPackFromUrl(trimmed);
+        chrome.runtime.onMessage.addListener(progressListener);
+      } catch {
+        // Non-extension context (vitest) — ignore.
+      }
+
+      try {
+        // Run the entire download + unzip + insert in the service worker
+        // so a 700+ MB decompressed payload (Wiktionary EN→EN) doesn't
+        // blow up the renderer process. The SW streams the ZIP through
+        // fflate's `Unzip`, parses each `term_bank_*.json` one at a time,
+        // and inserts into IndexedDB before freeing the buffer.
+        const result = await new Promise<
+          { ok: true; pack: { title: string }; termsImported: number } |
+          { ok: false; error: string }
+        >((resolve) => {
+          try {
+            chrome.runtime.sendMessage(
+              { type: 'INSTALL_DICT_PACK_FROM_URL', url: trimmed },
+              (response) => {
+                // Drain runtime.lastError so it doesn't surface as an
+                // unchecked warning when the SW restarts mid-install.
+                const err = chrome.runtime.lastError;
+                if (err) {
+                  resolve({ ok: false, error: err.message ?? 'Service worker no respondió' });
+                  return;
+                }
+                resolve(response);
+              },
+            );
+          } catch (err) {
+            resolve({ ok: false, error: (err as Error).message });
+          }
+        });
+
         if (result.ok) {
           setFeedback({
             kind: 'ok',
@@ -289,6 +341,11 @@ export function DictPacksSection() {
           message: `Error inesperado: ${(err as Error).message}`,
         });
       } finally {
+        try {
+          chrome.runtime.onMessage.removeListener(progressListener);
+        } catch {
+          // ignore
+        }
         setImportingUrl(null);
       }
     },

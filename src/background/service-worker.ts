@@ -40,7 +40,7 @@ import { speak } from './tts';
 import { enrichWithAi, getAiSettings, getResolvedNativeLang } from './ai-enrich';
 import { getMissingPhonetic } from './phonetic-augment';
 import { lookupDictionary } from '../content/nlp/dictionary';
-import { lookupYomitanTerm, listYomitanPacks, deleteYomitanPack, setPackEnabled } from '../content/nlp/yomitan';
+import { lookupYomitanTerm, listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming } from '../content/nlp/yomitan';
 import {
   BUNDLE_PACK_ID,
   MISS_PACK_ID,
@@ -716,6 +716,101 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         sendResponse({ ok: true, bytes: Array.from(new Uint8Array(buf)) });
       } catch (err) {
         sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  // UI requests downloading + installing a dictionary pack end-to-end in
+  // the SW. The previous flow shipped the bytes back to the side-panel
+  // page, which then called `unzipSync` — that crashed the renderer for
+  // packs whose decompressed size exceeded ~500 MB (the EN→EN Wiktionary
+  // pack is the obvious one). Doing the download AND the streaming
+  // import here keeps the heavy memory work off the renderer entirely
+  // and lets us report progress back via tab broadcast.
+  if (message?.type === 'INSTALL_DICT_PACK_FROM_URL' && typeof message.url === 'string') {
+    void (async () => {
+      const url: string = message.url;
+      const tabId = _sender.tab?.id;
+      const reportProgress = (info: Record<string, unknown>) => {
+        const payload = {
+          type: 'DICT_PACK_PROGRESS',
+          url,
+          ...info,
+        };
+        if (tabId !== undefined) {
+          void chrome.tabs.sendMessage(tabId, payload).catch(() => {
+            // sender tab gone — fine, the install still completes.
+          });
+        }
+      };
+      try {
+        if (!/^https?:\/\//i.test(url)) {
+          sendResponse({ ok: false, error: 'URL must be http(s)://' });
+          return;
+        }
+        reportProgress({ stage: 'downloading', received: 0, total: 0 });
+
+        // Streaming download with progress so the side-panel can render
+        // a real ratio while the bytes come in.
+        const res = await fetch(url, { redirect: 'follow' });
+        if (!res.ok) {
+          sendResponse({ ok: false, error: `HTTP ${res.status} ${res.statusText}` });
+          return;
+        }
+        const totalHeader = res.headers.get('content-length');
+        const total = totalHeader ? parseInt(totalHeader, 10) || 0 : 0;
+        const reader = res.body?.getReader();
+        if (!reader) {
+          // Fallback for environments without ReadableStream — single-shot.
+          const buf = await res.arrayBuffer();
+          reportProgress({ stage: 'downloading', received: buf.byteLength, total: buf.byteLength });
+          const result = await importYomitanPackStreaming(
+            new Uint8Array(buf),
+            (p) => reportProgress(p),
+          );
+          sendResponse(result);
+          return;
+        }
+        const chunks: Uint8Array[] = [];
+        let received = 0;
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (value) {
+            chunks.push(value);
+            received += value.length;
+            reportProgress({ stage: 'downloading', received, total });
+          }
+        }
+        // Concatenate the downloaded chunks into a single Uint8Array.
+        // We can't avoid this allocation for fflate's Unzip — even the
+        // streaming API needs the bytes — but we drop `chunks` right
+        // after so the GC can reclaim the duplicated copies.
+        const merged = new Uint8Array(received);
+        let off = 0;
+        for (const c of chunks) {
+          merged.set(c, off);
+          off += c.length;
+        }
+        chunks.length = 0;
+        reportProgress({
+          stage: 'unzipping',
+          received,
+          total: total || received,
+          filesDone: 0,
+          filesTotal: 0,
+          termsParsed: 0,
+        });
+
+        const result = await importYomitanPackStreaming(merged, (p) =>
+          reportProgress(p),
+        );
+        sendResponse(result);
+      } catch (err) {
+        const errorMessage = (err as Error).message ?? String(err);
+        reportProgress({ stage: 'error', error: errorMessage });
+        sendResponse({ ok: false, error: errorMessage });
       }
     })();
     return true;
