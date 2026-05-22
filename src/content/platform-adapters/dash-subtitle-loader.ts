@@ -290,7 +290,13 @@ export async function downloadDashSubtitleTrack(
   const all: RawCue[] = [];
   for (const url of track.segmentUrls) {
     try {
-      const res = await fetch(url, { credentials: 'include' });
+      // Note: must NOT pass `credentials: 'include'` here. HBO Max
+      // (and most DRM-DASH CDNs) respond with `Access-Control-Allow-Origin: *`
+      // for subtitle segments, which is incompatible with credentialed
+      // requests per the CORS spec. Subtitles are public CDN assets —
+      // no cookies / auth needed. Default `credentials: 'same-origin'`
+      // sends them anonymously, which the CDN accepts.
+      const res = await fetch(url);
       if (!res.ok) continue;
       const body = await res.text();
       const cues = parseAny(url, body);
@@ -298,8 +304,8 @@ export async function downloadDashSubtitleTrack(
       // WebVTT bodies already use absolute `00:11:23.456` timecodes for
       // segment-aware tracks (HBO does), so we just concatenate.
       all.push(...cues);
-    } catch {
-      // skip — we still have whatever earlier segments loaded
+    } catch (err) {
+      console.warn('[Kivara Lingo] DASH segment fetch threw', { url, err });
     }
   }
   return all;

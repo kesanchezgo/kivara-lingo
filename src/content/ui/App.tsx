@@ -163,16 +163,22 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
         end: first.end,
         language: first.language,
       });
-      // Sync-lookup the matching native-language cue at the SAME time
-      // we set the source cue. The 250 ms polling effect below still runs
-      // as a safety net, but doing the lookup synchronously here means
-      // the bilingual line shows up in the same frame as the source line
-      // — no perceptible lag — which is the behaviour the user expects
-      // when YouTube already ships both tracks.
+      // Resolve the matching native-language cue synchronously, in the
+      // same React batch as the source cue, so both lines paint in the
+      // same frame. The adapter's range-aware lookup picks the alt cue
+      // with the MAXIMUM temporal overlap with the source range — this
+      // is deterministic regardless of how the source / target tracks'
+      // timestamps drift relative to each other (a common problem on
+      // platforms where each language track is authored independently
+      // and can lead or lag by hundreds of milliseconds).
       if (adapter.getAltCueAt) {
         const targetLang =
           useKivaraStore.getState().translate.targetLanguage || 'es';
-        const alt = adapter.getAltCueAt(first.start, targetLang);
+        const lookupTime = Math.round((first.start + first.end) / 2);
+        const alt = adapter.getAltCueAt(lookupTime, targetLang, {
+          start: first.start,
+          end: first.end,
+        });
         setAltCue(
           alt
             ? {
@@ -199,7 +205,11 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       if (adapter.getAltCueAt) {
         const targetLang =
           useKivaraStore.getState().translate.targetLanguage || 'es';
-        const alt = adapter.getAltCueAt(initialCue.start, targetLang);
+        const lookupTime = Math.round((initialCue.start + initialCue.end) / 2);
+        const alt = adapter.getAltCueAt(lookupTime, targetLang, {
+          start: initialCue.start,
+          end: initialCue.end,
+        });
         if (alt) {
           setAltCue({
             id: alt.id,
@@ -272,9 +282,15 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     };
   }, [activeCue?.id, showDualSubtitlePref]);
 
-  // Native-language alt cue poll. Runs at 4 Hz — fast enough that the dual
-  // caption snaps in within the same frame as the source for most users,
-  // cheap enough that even with 8 hour binges it's < 0.01% CPU.
+  // Native-language alt cue poll. Runs at 20 Hz — fast enough that the
+  // dual caption snaps in within the same frame as the source for most
+  // users, cheap enough that even with 8 hour binges it's < 0.01% CPU.
+  // The polling tick is a safety net for the synchronous resolution
+  // performed in onCueChange above; it catches:
+  //   - the brief window between manifest parse and track download
+  //     completing (when the alt track arrives mid-cue)
+  //   - users seeking to a position where the source cue boundary was
+  //     missed (the polling rebuilds the alt cue from current time)
   const targetLang = useKivaraStore((s) => s.translate.targetLanguage);
   useEffect(() => {
     if (!adapter?.getAltCueAt) {
@@ -285,7 +301,16 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     let lastId: string | null = null;
     const tick = () => {
       const time = adapter.getCurrentTime?.() ?? 0;
-      const next = lookup(time, targetLang);
+      // Pass the current source cue's range when available so the
+      // adapter can use overlap-based lookup (deterministic across
+      // timestamp drift). Falls back to point lookup when no source
+      // cue is active (e.g. between cues, after a seek).
+      const srcCue = activeCue;
+      const range =
+        srcCue?.start != null && srcCue?.end != null
+          ? { start: srcCue.start, end: srcCue.end }
+          : undefined;
+      const next = lookup(time, targetLang, range);
       if ((next?.id ?? null) !== lastId) {
         lastId = next?.id ?? null;
         setAltCue(
@@ -302,16 +327,16 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       }
     };
     tick();
-    const handle = window.setInterval(tick, 100);
+    const handle = window.setInterval(tick, 50);
     // Also re-tick the moment a new translated track arrives in the bus —
-    // otherwise the bilingual line waits up to 100 ms for the next poll
-    // when YouTube finishes the auto-translate fetch mid-cue.
+    // otherwise the bilingual line waits up to 50 ms for the next poll
+    // when the auto-translate / DASH fetch finishes mid-cue.
     const off = onTrack(() => tick());
     return () => {
       window.clearInterval(handle);
       off();
     };
-  }, [adapter, targetLang, activeCue?.id]);
+  }, [adapter, targetLang, activeCue]);
 
   // Pause video while the user is reading a popover; resume on leave.
   //

@@ -249,13 +249,68 @@ export function attachYouTube(): SubtitleSource | null {
      * captures every `/api/timedtext` fetch the player makes — including
      * the auto-translated track the user enables in the gear menu.
      *
-     * Pattern mirrors `intercepted-adapter.ts` 1:1 so behaviour matches
-     * Netflix / HBO / Disney / Prime.
+     * Uses the same overlap-aware lookup as `intercepted-adapter.ts`: when
+     * a `sourceRange` is provided we pick the alt cue with the maximum
+     * temporal overlap with the source range, deterministic regardless of
+     * timestamp drift between the two tracks.
      */
-    getAltCueAt(timeMs: number, lang: string): SubtitleCue | null {
+    getAltCueAt(
+      timeMs: number,
+      lang: string,
+      sourceRange?: { start: number; end: number },
+    ): SubtitleCue | null {
       const altTrack = getTrackByLanguage(lang);
       if (!altTrack) return null;
-      const hit = altTrack.cues.find((c) => timeMs >= c.start && timeMs <= c.end);
+      const cues = altTrack.cues;
+      if (cues.length === 0) return null;
+
+      let hit: typeof cues[number] | null = null;
+
+      // 1. Range-aware overlap pick (preferred when caller provides range).
+      if (sourceRange && sourceRange.end > sourceRange.start) {
+        let bestOverlap = 0;
+        let bestDistance = Infinity;
+        for (const c of cues) {
+          if (c.end < sourceRange.start) continue;
+          if (c.start > sourceRange.end) break;
+          const overlap = Math.min(c.end, sourceRange.end) - Math.max(c.start, sourceRange.start);
+          if (overlap > bestOverlap) {
+            bestOverlap = overlap;
+            hit = c;
+            bestDistance = 0;
+          } else if (overlap === bestOverlap && hit && overlap > 0) {
+            const sourceMid = (sourceRange.start + sourceRange.end) / 2;
+            const cMid = (c.start + c.end) / 2;
+            const dist = Math.abs(cMid - sourceMid);
+            if (dist < bestDistance) {
+              hit = c;
+              bestDistance = dist;
+            }
+          }
+        }
+      }
+
+      // 2. Strict containment of `timeMs`.
+      if (!hit) {
+        hit = cues.find((c) => timeMs >= c.start && timeMs <= c.end) ?? null;
+      }
+
+      // 3. Nearest cue within 1.5 s — handles minor drift.
+      if (!hit) {
+        const NEAREST_TOLERANCE_MS = 1500;
+        let nearestDelta = Infinity;
+        for (const c of cues) {
+          if (c.end < timeMs - NEAREST_TOLERANCE_MS) continue;
+          if (c.start > timeMs + NEAREST_TOLERANCE_MS) break;
+          const mid = (c.start + c.end) / 2;
+          const delta = Math.abs(mid - timeMs);
+          if (delta < nearestDelta) {
+            nearestDelta = delta;
+            hit = c;
+          }
+        }
+      }
+
       if (!hit) return null;
       return {
         id: `youtube-alt-${lang}-${hit.start}-${hit.end}`,

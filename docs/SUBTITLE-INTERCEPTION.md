@@ -135,14 +135,43 @@ Code:
    and `tracksByLang.set('es', …)`, and a `track` event fires.
 8. The `intercepted-adapter.ts` HBO adapter sees both tracks. It uses
    `tracksByLang.get(sourceLang)` for `onCueChange` (the source line)
-   and `getAltCueAt(time, targetLang)` for the bilingual line.
-9. App.tsx polls `getAltCueAt` at 100 ms and also re-ticks on every new
-   track, so the moment the second VTT finishes downloading the
-   bilingual line "appears" already synced.
+   and `getAltCueAt(time, targetLang, sourceRange)` for the bilingual
+   line.
+9. App.tsx resolves the alt cue **synchronously** in the same React
+   batch as `onCueChange` so both lines paint in the same frame, and
+   also polls `getAltCueAt` every 50 ms as a safety net. It re-ticks
+   on every new track, so the moment the second VTT finishes
+   downloading the bilingual line "appears" already synced.
 
 After step 6 completes (typically 200–800 ms after the first cue) the
 user can seek anywhere in the video and both lines show up in the
 same frame — no MT involved.
+
+### Deterministic overlap-based alt cue lookup
+
+The two language tracks are **authored independently** by each
+platform — even when they describe the same dialogue, their
+timestamps drift. Spanish line `[830080-834626]` and English line
+`[829037-833200]` are the same caption, off by ~1 second. A naive
+"find a cue whose `start <= t <= end`" lookup at `t = 829037` returns
+nothing because the Spanish track hasn't started yet, and the user
+sees the source line on screen with no bilingual line.
+
+To handle this deterministically we pass the **source cue range** to
+`getAltCueAt(timeMs, lang, sourceRange?)`. The adapter picks the alt
+cue with the MAXIMUM TEMPORAL OVERLAP with the source range — for
+any two non-empty cues that overlap at all, this always picks the
+same alt cue regardless of how the timestamps drift. Fallback chain:
+
+1. Range-aware overlap pick (when caller has the source range).
+2. Strict containment of `timeMs` (the polling tick when no source
+   cue is active, e.g. between cues).
+3. Nearest cue by midpoint distance, within ±1.5 s of `timeMs`.
+4. `null` (no plausible match — falls back to MT or hides the line).
+
+Because step 1 runs synchronously inside `onCueChange`, the bilingual
+line is resolved BEFORE React paints the source line, so both end up
+in the same frame with no perceivable lag.
 
 ## Auto-language selection
 
@@ -321,7 +350,7 @@ Common breakage patterns:
 | `src/content/platform-adapters/intercepted-adapter.ts` | Generic adapter for Netflix/HBO/Disney/Prime that consumes the bus |
 | `src/content/platform-adapters/youtube.ts` | YouTube-specific adapter (DOM polling for cue boundaries + bus consumption for alt language) |
 | `src/content/index.tsx` | Bootstrapper, syncs Zustand language to DOM attributes, calls `clearBus()` + `reprocessLastDashManifest()` on language change or SPA nav |
-| `src/content/ui/App.tsx` | Adapter glue, `getAltCueAt` polling at 100 ms, `onTrack`-driven re-ticks |
+| `src/content/ui/App.tsx` | Adapter glue, synchronous alt-cue resolution in `onCueChange`, `getAltCueAt` polling at 50 ms, `onTrack`-driven re-ticks |
 | `src/content/ui/SubtitleOverlay.tsx` | Renders the source + bilingual lines, MT fallback when neither bus track has the language |
 | `src/background/translate.ts` | MT chain (MyMemory / Lingva / DeepL / Google) — fallback only |
 
