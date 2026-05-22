@@ -23,8 +23,14 @@
  * setting offers, but driven by our extension settings.
  */
 import { parseAny, detectTrackLanguage, type RawCue } from './parsers';
+import {
+  parseDashSubtitleTracks,
+  downloadDashSubtitleTrack,
+  pickBestTrack,
+} from './dash-subtitle-loader';
 
 const EVENT = 'kivara-lingo:subtitle-track';
+const MPD_EVENT = 'kivara-lingo:dash-manifest';
 
 export interface InterceptedTrack {
   url: string;
@@ -49,6 +55,23 @@ function isOurMessage(
 
 window.addEventListener('message', (event) => {
   if (event.source !== window) return;
+  const data = event.data as unknown;
+  // DASH manifest — a separate code path that parses every subtitle track
+  // declared in the MPD and downloads the one in the user's target
+  // language. This gives platforms that don't ship a per-language
+  // endpoint (HBO Max, Disney+, etc.) the same zero-latency dual line as
+  // YouTube.
+  if (
+    data &&
+    typeof data === 'object' &&
+    (data as { source?: unknown }).source === MPD_EVENT
+  ) {
+    const m = data as { url?: unknown; body?: unknown };
+    if (typeof m.url === 'string' && typeof m.body === 'string') {
+      void handleDashManifest(m.url, m.body);
+    }
+    return;
+  }
   if (!isOurMessage(event.data)) return;
   const url = event.data.url;
   const cues = event.data.cues;
@@ -86,6 +109,110 @@ window.addEventListener('message', (event) => {
   // anywhere shows both subtitles in the same frame.
   void maybeFetchTranslatedTrack(url, language);
 });
+
+/**
+ * Per-tab guard so we don't re-process the same MPD manifest twice (DASH
+ * players reload the manifest every few minutes for live edge updates).
+ */
+const dashManifestsSeen = new Set<string>();
+
+/**
+ * Last MPD body we saw, kept so we can re-fire the language-track download
+ * when the user changes their source/target language in the panel without
+ * having to wait for the player to refresh its manifest.
+ */
+let lastMpdBody: { url: string; body: string } | null = null;
+
+/**
+ * Handle a DASH manifest: parse, identify both the source-language and
+ * target-language subtitle tracks, download whichever isn't already in
+ * the bus, and publish the cues so the adapter's `getAltCueAt` can
+ * resolve them.
+ *
+ * Mirrors the YouTube `?tlang=…` flow but for platforms that ship
+ * MPD-DASH (HBO Max, some Disney+ assets, etc.). Auto-fetching BOTH
+ * source and target means the user doesn't have to fiddle with the
+ * platform's subtitle menu — once we see the manifest we know every
+ * available language and can pull the two we need straight from the
+ * CDN, exactly the way Migaku / Trancy / Language Reactor do it.
+ */
+async function handleDashManifest(mpdUrl: string, body: string): Promise<void> {
+  if (dashManifestsSeen.has(mpdUrl)) return;
+  dashManifestsSeen.add(mpdUrl);
+  lastMpdBody = { url: mpdUrl, body };
+
+  const sourceLang = (
+    document.documentElement.getAttribute('data-kivara-source-lang') || 'en'
+  ).toLowerCase();
+  const targetLang = (
+    document.documentElement.getAttribute('data-kivara-target-lang') || 'es'
+  ).toLowerCase();
+  const sourcePrimary = sourceLang.split(/[-_]/)[0];
+  const targetPrimary = targetLang.split(/[-_]/)[0];
+
+  let tracks;
+  try {
+    tracks = parseDashSubtitleTracks(body, mpdUrl);
+  } catch (err) {
+    console.warn('[Kivara Lingo] MPD parse failed', err);
+    return;
+  }
+  if (tracks.length === 0) return;
+
+  // Fetch the source-language track if the player hasn't already
+  // requested it. On platforms where the user has a DIFFERENT default
+  // subtitle selected (e.g. LATAM HBO accounts default to Spanish CC
+  // even when the user wants English), this is what makes the source
+  // line show up at all.
+  if (
+    sourcePrimary &&
+    sourcePrimary !== targetPrimary &&
+    !tracksByLang.has(sourcePrimary)
+  ) {
+    const src = pickBestTrack(tracks, sourceLang);
+    if (src) void downloadAndPublishDashTrack(src, sourcePrimary);
+  }
+  // Fetch the target-language (native) track for the dual line.
+  if (targetPrimary && !tracksByLang.has(targetPrimary)) {
+    const tgt = pickBestTrack(tracks, targetLang);
+    if (tgt) void downloadAndPublishDashTrack(tgt, targetPrimary);
+  }
+}
+
+/**
+ * Download every segment of a DASH subtitle track, store it in the
+ * bus under `langKey`, and notify all listeners.
+ */
+async function downloadAndPublishDashTrack(
+  track: import('./dash-subtitle-loader').DashSubtitleTrack,
+  langKey: string,
+): Promise<void> {
+  let cues: RawCue[];
+  try {
+    cues = await downloadDashSubtitleTrack(track);
+  } catch (err) {
+    console.warn('[Kivara Lingo] DASH track download failed', err);
+    return;
+  }
+  if (cues.length === 0) return;
+  const trackUrl =
+    track.segmentUrls[0] ?? `dash:${track.id}:${track.representationId}`;
+  const tTrack: InterceptedTrack = {
+    url: trackUrl,
+    cues,
+    language: track.fullLanguage,
+  };
+  lastTrack = tTrack;
+  tracksByLang.set(langKey, tTrack);
+  seenUrls.add(trackUrl);
+  listeners.forEach((l) => {
+    try {
+      l(tTrack);
+    } catch (err) {
+      console.warn('[Kivara Lingo] track listener threw', err);
+    }
+  });
+}
 
 /**
  * Per-tab guard so we don't fetch the same translated URL twice. Keys are
@@ -225,5 +352,21 @@ export function clearBus(): void {
   tracksByLang.clear();
   seenUrls.clear();
   translatedRequested.clear();
+  dashManifestsSeen.clear();
   lastTrack = null;
+  lastMpdBody = null;
+}
+
+/**
+ * Re-run DASH manifest processing using the most recently seen manifest.
+ * Called when the user changes their source/target language so the bus
+ * can pick up the newly-needed track without waiting for the player to
+ * refresh its manifest. Returns silently when no manifest has been seen
+ * (e.g. on YouTube, which uses /api/timedtext instead).
+ */
+export function reprocessLastDashManifest(): void {
+  if (!lastMpdBody) return;
+  // Reset the seen-set so handleDashManifest will run again.
+  dashManifestsSeen.delete(lastMpdBody.url);
+  void handleDashManifest(lastMpdBody.url, lastMpdBody.body);
 }

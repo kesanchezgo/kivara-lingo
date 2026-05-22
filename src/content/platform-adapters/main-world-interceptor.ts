@@ -24,6 +24,7 @@ import { parseAny, detectSubtitleKind, detectTrackLanguage } from './parsers';
 
 const TAG = '[Kivara Lingo / MAIN]';
 const EVENT = 'kivara-lingo:subtitle-track';
+const MPD_EVENT = 'kivara-lingo:dash-manifest';
 
 declare global {
   interface Window {
@@ -60,6 +61,11 @@ declare global {
     // URL ends in `/subtitle/<n>` without `.vtt`).
     (url) =>
       /\/(subtitles?|captions?|webvtt|wvtt|texttrack|timedtext|t\/sub)(?:\/|\?|$)/i.test(url),
+    // DASH manifest — needed so we can pre-fetch alternate-language
+    // subtitle tracks on platforms that ship MPD-DASH (HBO Max, some
+    // Disney+ assets, etc.). Without this the user's selected track is
+    // the only one we ever see.
+    (url) => /\.mpd(\?|$)/i.test(url),
   ];
 
   // Hosts where we *also* run the content sniff (i.e. the URL pattern is
@@ -81,8 +87,10 @@ declare global {
 
   // Extensions / hosts that are obviously NOT subtitles — skip them so we
   // don't waste bandwidth reading binary streams or analytics pings.
+  // NOTE: `.mpd` is intentionally NOT in this list — manifests are XML
+  // and we parse them to discover alternate-language subtitle tracks.
   const SKIP_EXT =
-    /\.(m4s|mp4|m4a|m4v|ts|aac|webm|mpd|m3u8|jpg|jpeg|png|webp|gif|svg|woff2?|ttf|js|css|wasm)(\?|$)/i;
+    /\.(m4s|mp4|m4a|m4v|ts|aac|webm|m3u8|jpg|jpeg|png|webp|gif|svg|woff2?|ttf|js|css|wasm)(\?|$)/i;
   const SKIP_HOSTS: RegExp[] = [
     /events\.brightline\.tv/i,
     /\.litix\.io$/i,
@@ -153,8 +161,24 @@ declare global {
     return detectSubtitleKind('', body) !== null;
   }
 
+  function looksLikeDashManifest(body: string, url: string): boolean {
+    if (!body) return false;
+    if (/\.mpd(\?|$)/i.test(url)) return true;
+    return /<MPD\b[^>]*xmlns\s*=\s*"urn:mpeg:dash:schema:mpd/i.test(body);
+  }
+
   function postCues(url: string, body: string) {
     try {
+      // DASH manifest — has its own dispatch path so the bus can pull the
+      // user's target-language subtitle track in parallel with playback.
+      // (HBO Max / Disney+ ship this, YouTube does not.)
+      if (looksLikeDashManifest(body, url)) {
+        window.postMessage(
+          { source: MPD_EVENT, url, body },
+          '*',
+        );
+        return;
+      }
       const cues = parseAny(url, body);
       if (!cues.length) return;
       const language = detectTrackLanguage(url, body);
@@ -175,7 +199,9 @@ declare global {
   function maybePostCues(url: string, body: string, fromSniff: boolean) {
     // Sniff requests aren't guaranteed to be subtitles — gate them on the
     // body header so we don't try to parse random JSON / HTML.
-    if (fromSniff && !looksLikeSubtitle(body)) return;
+    if (fromSniff && !looksLikeSubtitle(body) && !looksLikeDashManifest(body, url)) {
+      return;
+    }
     postCues(url, body);
   }
 

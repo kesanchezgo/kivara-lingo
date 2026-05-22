@@ -4,7 +4,7 @@ import { detectPlatform } from './platform-adapters';
 import { App } from './ui/App';
 import type { SubtitleSource } from './platform-adapters/types';
 import { useKivaraStore } from '../shared/store';
-import { clearBus } from './platform-adapters/intercepted-bus';
+import { clearBus, reprocessLastDashManifest } from './platform-adapters/intercepted-bus';
 
 console.log('[Kivara Lingo] content script injected on', window.location.hostname);
 
@@ -32,12 +32,18 @@ useKivaraStore.subscribe((state, prev) => {
     // was relative to the old source. Drop it so the next caption load
     // re-derives the bilingual line.
     clearBus();
+    // For DASH platforms (HBO Max, etc.) the manifest URL is stable but
+    // the bus has just been emptied; replay the last manifest so the
+    // newly-needed source track gets fetched without waiting for the
+    // player to reload.
+    reprocessLastDashManifest();
   }
   if (state.translate.targetLanguage !== prev.translate.targetLanguage) {
     syncTargetLangToDOM();
     // Target language changed — same reasoning. The user wants Portuguese
     // now, the bus has Spanish cached; force a re-fetch.
     clearBus();
+    reprocessLastDashManifest();
   }
 });
 
