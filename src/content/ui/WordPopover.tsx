@@ -300,6 +300,43 @@ export function WordPopover({
   const handleSpeak = (e: React.MouseEvent) => {
     e.stopPropagation();
     releaseFocus(e);
+    // Priority chain for headword pronunciation:
+    //   1. Audio URLs collected by the multi-source enrichment chain
+    //      (Cambridge MP3, Oxford MP3, Forvo, Lingua Libre, Free
+    //      Dictionary / Wikimedia, Google TTS fallback).
+    //      Within those, prefer human-recorded sources over synthetic.
+    //   2. SpeechSynthesis API (offline, browser-bundled).
+    //   3. Background TTS proxy (chrome.tts).
+    const audioSources = meta.audio ?? [];
+    if (audioSources.length > 0) {
+      // Rank: human recordings (everything except google-tts) win over
+      // synthetic fallback. Inside each tier, the first entry wins.
+      const ordered = [
+        ...audioSources.filter((a) => a.source !== 'googleTtsFallback'),
+        ...audioSources.filter((a) => a.source === 'googleTtsFallback'),
+      ];
+      // Pick the first URL we can play; on failure, fall through to TTS.
+      const audio = new Audio();
+      audio.crossOrigin = 'anonymous';
+      audio.src = ordered[0].url;
+      audio.play().catch(() => {
+        // Audio fetch / decode failed (CORS, 404, expired CDN). Drop
+        // through to the speech synthesizer so the user still hears
+        // something.
+        try {
+          if ('speechSynthesis' in window) {
+            const utter = new SpeechSynthesisUtterance(cleanHeadword);
+            utter.lang = sourceLang || 'en-US';
+            utter.rate = 0.95;
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utter);
+          }
+        } catch {
+          /* swallow */
+        }
+      });
+      return;
+    }
     // First try the SpeechSynthesis API directly — it works offline and
     // doesn't need extension permissions. Fall back to the background's
     // chrome.tts fallback if the user has it disabled.
@@ -461,6 +498,101 @@ export function WordPopover({
                 </div>
               ))}
             </div>
+          )}
+          {/* Synonyms / antonyms / collocations — populated by the
+              multi-source enrichment chain (Datamuse, WordNet pack,
+              Cambridge / Oxford / Longman / Collins scrapes). Each
+              row only renders when the corresponding field has data,
+              so the popover stays compact for words with no extras. */}
+          {meta.synonyms && meta.synonyms.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap items-baseline gap-1">
+              <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-semibold mr-1">
+                Sinónimos
+              </span>
+              {meta.synonyms.slice(0, 8).map((s) => (
+                <span
+                  key={s}
+                  className="text-[10.5px] text-emerald-300/90 bg-emerald-500/10 ring-1 ring-emerald-500/20 px-1.5 py-0.5 rounded normal-case"
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+          )}
+          {meta.antonyms && meta.antonyms.length > 0 && (
+            <div className="mt-1 flex flex-wrap items-baseline gap-1">
+              <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-semibold mr-1">
+                Antónimos
+              </span>
+              {meta.antonyms.slice(0, 6).map((s) => (
+                <span
+                  key={s}
+                  className="text-[10.5px] text-rose-300/90 bg-rose-500/10 ring-1 ring-rose-500/20 px-1.5 py-0.5 rounded normal-case"
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+          )}
+          {meta.collocations && meta.collocations.length > 0 && (
+            <div className="mt-1 flex flex-wrap items-baseline gap-1">
+              <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-semibold mr-1">
+                Combinaciones
+              </span>
+              {meta.collocations.slice(0, 8).map((s) => (
+                <span
+                  key={s}
+                  className="text-[10.5px] text-indigo-300/90 bg-indigo-500/10 ring-1 ring-indigo-500/20 px-1.5 py-0.5 rounded normal-case"
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+          )}
+          {/* VIP block — multi-source attributed extras shown only when
+              the user has VIP enabled and at least one VIP source
+              actually returned data. Examples carry their original
+              translation pair (Reverso / Linguee / WordReference /
+              SpanishDict) which is the killer feature for context
+              learning. */}
+          {meta.vip?.examples && meta.vip.examples.length > 0 && (
+            <div className="mt-2 space-y-1">
+              <div className="text-[9px] uppercase tracking-wider text-fuchsia-300/90 font-semibold">
+                Ejemplos VIP
+              </div>
+              {meta.vip.examples.slice(0, 3).map((ex, i) => (
+                <div
+                  key={i}
+                  className="text-[11px] text-zinc-300/90 leading-snug normal-case border-l-2 border-fuchsia-700/50 pl-2"
+                >
+                  <div>{renderSentenceWithHighlight(ex.text, headword)}</div>
+                  {ex.translation && (
+                    <div className="text-zinc-400 italic">{ex.translation}</div>
+                  )}
+                  <div className="text-[8.5px] text-zinc-500 uppercase tracking-wider mt-0.5">
+                    {formatSource(ex.source)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {meta.vip?.etymology && (
+            <div className="mt-2 text-[10.5px] text-zinc-400 italic leading-snug normal-case border-l-2 border-amber-700/40 pl-2">
+              <span className="text-[9px] uppercase tracking-wider text-amber-300/80 font-semibold not-italic mr-1">
+                Etimología
+              </span>
+              {meta.vip.etymology}
+            </div>
+          )}
+          {meta.vip?.imageUrl && (
+            <img
+              src={meta.vip.imageUrl}
+              alt={cleanHeadword}
+              className="mt-2 w-full h-24 object-cover rounded ring-1 ring-zinc-700/40"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = 'none';
+              }}
+            />
           )}
           {resolved.remoteError && !meta.translation && (
             <div className="text-[10px] text-rose-300/80 normal-case">
@@ -747,6 +879,47 @@ function formatSource(source: string | null): string {
       return 'Cadena';
     case 'offline':
       return 'Offline';
+    /* Multi-source enrichment chain (Standard + VIP) */
+    case 'freeDictionary':
+      return 'FreeDict';
+    case 'datamuse':
+      return 'Datamuse';
+    case 'cambridge':
+      return 'Cambridge';
+    case 'oxfordLearners':
+      return 'Oxford';
+    case 'longman':
+      return 'Longman';
+    case 'collins':
+      return 'Collins';
+    case 'merriamWebster':
+      return 'Merriam-Webster';
+    case 'reverso':
+      return 'Reverso';
+    case 'linguee':
+      return 'Linguee';
+    case 'wordReference':
+      return 'WordReference';
+    case 'spanishDict':
+      return 'SpanishDict';
+    case 'forvo':
+      return 'Forvo';
+    case 'linguaLibre':
+      return 'Lingua Libre';
+    case 'googleTtsFallback':
+      return 'Google TTS';
+    case 'unsplash':
+      return 'Unsplash';
+    case 'pixabay':
+      return 'Pixabay';
+    case 'wikimediaCommons':
+      return 'Wikimedia';
+    case 'duckduckgoImages':
+      return 'DuckDuckGo';
+    case 'youglish':
+      return 'YouGlish';
+    case 'etymonline':
+      return 'Etymology';
     default:
       return source;
   }

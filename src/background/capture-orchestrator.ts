@@ -16,6 +16,8 @@ import { getDB, type PendingNoteRow } from '../shared/db';
 import { enrichWithAi, getAiSettings, getResolvedNativeLang } from './ai-enrich';
 import { generateTtsAudio } from './tts';
 import { getMissingPhonetic } from './phonetic-augment';
+import { runEnrichment } from './enrichment/orchestrator';
+import { getVipSettings, loadTranslateTargetLang } from './vip-settings';
 
 interface ResolveContext {
   request: CreateCardRequest;
@@ -28,6 +30,19 @@ interface ResolveContext {
   /** Native-language translation of the full sentence (dual subtitle). */
   sentenceTranslation: string;
   ai: AiEnrichment | null;
+  /* Multi-source enrichment fields surfaced as standalone Anki sources. */
+  synonyms: string[];
+  antonyms: string[];
+  collocations: string[];
+  etymology: string;
+  mnemonic: string;
+  imageUrl: string;
+  videoLink: string;
+  /** Word-level audio URL chosen by the enrichment chain (Forvo /
+   *  Cambridge / Oxford / Wikimedia / Google TTS fallback). When set,
+   *  the orchestrator downloads it and attaches it to the
+   *  word-audio field so Anki has a real recording to play. */
+  wordAudioUrl: string;
 }
 
 function safeFilename(base: string, ext: string): string {
@@ -48,6 +63,20 @@ function extForMime(mime: string): string {
   if (/ogg/.test(mime)) return 'ogg';
   if (/mp4|m4a|aac/.test(mime)) return 'm4a';
   return 'webm';
+}
+
+/** Encode an ArrayBuffer to base64 (no `data:` prefix). */
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  // Chunk the toString to avoid `RangeError: Maximum call stack size`
+  // on large MP3s (~> 1 MB).
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)));
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (globalThis as any).btoa(binary);
 }
 
 function resolveField(field: string, source: FieldSource, ctx: ResolveContext): string {
@@ -93,6 +122,24 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
       return ctx.ai?.nuancedTranslation ?? '';
     case 'ai-register':
       return ctx.ai?.register ?? '';
+    case 'synonyms':
+      return ctx.synonyms.join(', ');
+    case 'antonyms':
+      return ctx.antonyms.join(', ');
+    case 'collocations':
+      return ctx.collocations.join(', ');
+    case 'etymology':
+      return ctx.etymology;
+    case 'mnemonic':
+      return ctx.mnemonic;
+    case 'image':
+      // Anki accepts <img src="https://…"> in fields. We embed the
+      // remote URL directly so the deck stays small (no download).
+      // Users who sync to AnkiWeb / mobile can later replace via the
+      // built-in "Replace remote URLs" feature.
+      return ctx.imageUrl ? `<img src="${ctx.imageUrl}" alt="${ctx.request.token}">` : '';
+    case 'video-link':
+      return ctx.videoLink ? `<a href="${ctx.videoLink}">YouGlish</a>` : '';
     case 'tts':
     case 'word-audio':
       // The wrapper below tries to fill this field with an audio file. If
@@ -208,7 +255,61 @@ export async function createCardFromRequest(
     examples: dictionaryHit?.examples ?? [],
     sentenceTranslation: request.sentenceTranslation ?? '',
     ai: aiData,
+    synonyms: [],
+    antonyms: [],
+    collocations: [],
+    etymology: '',
+    mnemonic: '',
+    imageUrl: '',
+    videoLink: '',
+    wordAudioUrl: '',
   };
+
+  // Multi-source enrichment chain — same one the popover uses on hover.
+  // Save-time we always run it (regardless of `enrichOnSave`) because
+  // the user has already committed to a card; the extra 2-3 s spent
+  // hitting Forvo / Cambridge / Reverso etc. is well worth the
+  // collocations / synonyms / native audio / image we get back.
+  try {
+    const vipSettings = await getVipSettings();
+    const targetLang = await loadTranslateTargetLang();
+    const enriched = await runEnrichment(request.token, {
+      sourceLang: request.language ?? 'en',
+      targetLang,
+      sentence: request.sentence,
+      vip: vipSettings,
+    });
+    const e = enriched.entry;
+    if (e) {
+      // Patch ctx fields the local dictionary couldn't fill.
+      if (!ctx.translation && e.translation && e.translation !== '—') {
+        ctx.translation = e.translation;
+      }
+      if (!ctx.bilingual && e.bilingual) ctx.bilingual = e.bilingual;
+      if (!ctx.monolingual && e.monolingual) ctx.monolingual = e.monolingual;
+      if (!ctx.phonetic && e.phonetic) ctx.phonetic = e.phonetic;
+      // Examples: prefer locally curated; otherwise use VIP-merged.
+      if (ctx.examples.length === 0 && e.examples) ctx.examples = e.examples;
+      if (e.synonyms) ctx.synonyms = e.synonyms;
+      if (e.antonyms) ctx.antonyms = e.antonyms;
+      if (e.collocations) ctx.collocations = e.collocations;
+      // Audio: prefer human recordings (everything but Google TTS).
+      if (e.audio && e.audio.length > 0) {
+        const human = e.audio.find((a) => a.source !== 'googleTtsFallback');
+        ctx.wordAudioUrl = (human ?? e.audio[0]).url;
+      }
+    }
+    if (enriched.vip) {
+      if (enriched.vip.etymology) ctx.etymology = enriched.vip.etymology;
+      if (enriched.vip.mnemonic) ctx.mnemonic = enriched.vip.mnemonic;
+      if (enriched.vip.imageUrl) ctx.imageUrl = enriched.vip.imageUrl;
+      const firstVideo = enriched.vip.videoLinks?.[0];
+      if (firstVideo) ctx.videoLink = firstVideo.url;
+    }
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : 'enrichment';
+    warnings.push(`Enriquecimiento parcial: ${reason}`);
+  }
 
   // Fill the phonetic field on cards where the local dictionary stack
   // resolved a translation but didn't carry IPA. Best-effort, cached, and
@@ -316,20 +417,45 @@ export async function createCardFromRequest(
     }
   }
 
-  // 2) Word audio: TTS the headword (not the whole sentence).
+  // 2) Word audio: prefer the multi-source enrichment URL (Forvo /
+  //    Cambridge MP3 / Oxford MP3 / Wikimedia / Google TTS fallback)
+  //    over the synthesised TTS path. Real human pronunciation always
+  //    wins for vocabulary cards.
   if (wordAudioField) {
     const headword = ctx.request.token;
-    try {
-      const tts = await generateTtsAudio(headword, request.language ?? 'en');
-      if (tts.ok) {
-        const filename = safeFilename(headword, extForMime(tts.mime));
-        const data = dataUrlToBase64(tts.dataUrl);
-        await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
-        audios.push({ filename, data, fields: [wordAudioField] });
+    let attached = false;
+    if (ctx.wordAudioUrl) {
+      try {
+        const res = await fetch(ctx.wordAudioUrl, { credentials: 'omit' });
+        if (res.ok) {
+          const buf = await res.arrayBuffer();
+          const mime = res.headers.get('content-type') ?? 'audio/mpeg';
+          const data = arrayBufferToBase64(buf);
+          const filename = safeFilename(headword, extForMime(mime));
+          await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
+          audios.push({ filename, data, fields: [wordAudioField] });
+          attached = true;
+        }
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : 'word-audio-url';
+        warnings.push(`Audio palabra (URL): ${reason}`);
       }
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : 'word-audio';
-      warnings.push(`TTS palabra: ${reason}`);
+    }
+    if (!attached) {
+      // Fall back to TTS synthesis when the enrichment chain didn't
+      // ship a usable URL or the download failed.
+      try {
+        const tts = await generateTtsAudio(headword, request.language ?? 'en');
+        if (tts.ok) {
+          const filename = safeFilename(headword, extForMime(tts.mime));
+          const data = dataUrlToBase64(tts.dataUrl);
+          await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
+          audios.push({ filename, data, fields: [wordAudioField] });
+        }
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : 'word-audio';
+        warnings.push(`TTS palabra: ${reason}`);
+      }
     }
   }
 

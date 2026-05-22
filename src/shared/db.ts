@@ -156,6 +156,14 @@ class KivaraDB extends Dexie {
   dict_packs!: Table<DictPackRow, string>;
   dict_terms!: Table<DictTermRow, number>;
   pack_stats!: Table<PackStatsRow, string>;
+  /**
+   * Cache for the multi-source enrichment chain. Keyed by
+   * `<sourceLang>|<targetLang>|<lower-token>` so re-hovering the same
+   * word in the same direction is instant. Rows expire on read via the
+   * orchestrator's `cacheTtlDays` check (no scheduled cleanup needed —
+   * stale rows are overwritten on the next look-up).
+   */
+  vip_cache!: Table<{ key: string; payload: unknown; storedAt: number }, string>;
 
   constructor() {
     super('kivara-lingo');
@@ -198,6 +206,22 @@ class KivaraDB extends Dexie {
         // Local-only telemetry. Keyed by string id (pack id, or one of the
         // pseudo-ids 'bundle' / 'remote' / 'miss').
         pack_stats: '&packId, lastUsedAt, createdAt',
+      });
+    this.version(5)
+      .stores({
+        saved_notes: '++id, &[token+language+sentence], ankiNoteId, createdAt',
+        pending_notes: '++id, nextAttemptAt, createdAt',
+        translation_cache: '&key, [provider+sourceLang+targetLang], expiresAt',
+        media_cache: '&hash, kind, createdAt',
+        ai_cache: '&key, [provider+sourceLang+nativeLang], expiresAt',
+        dict_packs: '&id, enabled, sourceLang, targetLang, createdAt',
+        dict_terms: '++id, [packId+expression], expression, packId',
+        pack_stats: '&packId, lastUsedAt, createdAt',
+        // Multi-source enrichment cache. Schema kept tiny — payload
+        // type is opaque to Dexie (we serialise the orchestrator
+        // result as-is and parse on read). Indexed by `storedAt` so a
+        // future cleanup pass can prune oldest rows.
+        vip_cache: '&key, storedAt',
       });
   }
 }

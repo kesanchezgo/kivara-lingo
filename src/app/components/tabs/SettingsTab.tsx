@@ -24,6 +24,7 @@ import { useShortcuts } from '../../hooks/useShortcuts';
 import { ShortcutEditor } from '../ShortcutEditor';
 import { InfoHint } from '../InfoHint';
 import { DictPacksSection } from './DictPacksSection';
+import { VipSection } from './VipSection';
 
 /**
  * Settings tab — restructured per the design mock:
@@ -44,6 +45,7 @@ export function SettingsTab() {
   const {
     capture, setCapture, cleanup, setCleanup, mode, setMode,
     translate, setTranslate, asr, setAsr, ai, setAi, tts, setTts,
+    vip,
   } = useKivaraStore();
 
   // Sub-section open/closed state. Each accordion key is a stable string
@@ -359,6 +361,20 @@ export function SettingsTab() {
           description="Diccionarios Yomitan/StarDict locales para hover instantáneo, sin internet ni cuotas de API."
         >
           <DictPacksSection />
+        </Accordion>
+
+        {/* ── VIP enrichment chain ─────────────────────────────────── */}
+        <Accordion
+          icon={<Sparkles size={10} />}
+          title="VIP — Enriquecimiento máximo"
+          summary={vip.enabled ? 'activado' : 'desactivado'}
+          summaryColor={vip.enabled ? 'text-fuchsia-500 dark:text-fuchsia-400' : undefined}
+          open={isOpen('vip')}
+          onToggle={() => toggle('vip')}
+          noPadding
+          description="Cambridge, Oxford, Longman, Collins, Reverso, Linguee, WordReference, SpanishDict, Forvo, Lingua Libre, YouGlish, Unsplash, Pixabay, Wikimedia, DuckDuckGo. Uso personal — todas las fuentes son scraping/HTML público sin token."
+        >
+          <VipSection />
         </Accordion>
 
         {/* ── IA premium ─────────────────────────────────────────────── */}

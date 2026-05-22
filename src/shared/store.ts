@@ -12,6 +12,7 @@ import type {
   AiSettings,
   TtsSettings,
   OnboardingState,
+  VipSettings,
   TelemetrySettings,
 } from './types';
 import { setTelemetryEnabled } from './telemetry';
@@ -114,6 +115,39 @@ export const DEFAULT_AI: AiSettings = {
   cacheTtlDays: 30,
 };
 
+/**
+ * Default VIP enrichment settings. Master switch off so the public Chrome
+ * Web Store build doesn't fan out to third-party domains by accident — the
+ * user opts in from Settings. Once on, every individual source defaults
+ * to `true` so the user sees the full power immediately and can prune
+ * down per source if they prefer a lean popover.
+ */
+export const DEFAULT_VIP: VipSettings = {
+  enabled: false,
+  cambridge: true,
+  oxfordLearners: true,
+  longman: true,
+  collins: true,
+  merriamWebster: true,
+  oxfordCollocations: true,
+  reverso: true,
+  linguee: true,
+  wordReference: true,
+  spanishDict: true,
+  cambridgeAudio: true,
+  oxfordAudio: true,
+  forvo: true,
+  linguaLibre: true,
+  googleTtsFallback: true,
+  unsplash: true,
+  pixabay: true,
+  wikimediaCommons: true,
+  duckduckgoImages: true,
+  youglish: true,
+  perSourceTimeoutMs: 4000,
+  cacheTtlDays: 14,
+};
+
 export const DEFAULT_TTS: TtsSettings = {
   // 'auto' picks ElevenLabs if credentials are set, otherwise OpenAI when
   // the user already has an OpenAI AI provider configured, and finally
@@ -182,6 +216,7 @@ export interface KivaraState {
   translate: TranslateSettings;
   asr: AsrSettings;
   ai: AiSettings;
+  vip: VipSettings;
   tts: TtsSettings;
   panelPosition: PanelPosition | null;
   onboarding: OnboardingState;
@@ -202,6 +237,7 @@ export interface KivaraState {
   setTranslate: (t: TranslateSettings | ((prev: TranslateSettings) => TranslateSettings)) => void;
   setAsr: (a: AsrSettings | ((prev: AsrSettings) => AsrSettings)) => void;
   setAi: (a: AiSettings | ((prev: AiSettings) => AiSettings)) => void;
+  setVip: (v: VipSettings | ((prev: VipSettings) => VipSettings)) => void;
   setTts: (t: TtsSettings | ((prev: TtsSettings) => TtsSettings)) => void;
   setPanelPosition: (p: PanelPosition | null) => void;
   setOnboarding: (o: OnboardingState | ((prev: OnboardingState) => OnboardingState)) => void;
@@ -385,6 +421,7 @@ function mergePersisted(persistedState: unknown, currentState: KivaraState): Kiv
     },
     asr: { ...DEFAULT_ASR, ...(persisted.asr ?? {}) },
     ai: { ...DEFAULT_AI, ...(persisted.ai ?? {}) },
+    vip: { ...DEFAULT_VIP, ...(persisted.vip ?? {}) },
     tts: { ...DEFAULT_TTS, ...(persisted.tts ?? {}) },
     panelPosition: persisted.panelPosition ?? DEFAULT_PANEL_POSITION,
     onboarding: { ...DEFAULT_ONBOARDING, ...(persisted.onboarding ?? {}) },
@@ -409,6 +446,7 @@ export const useKivaraStore = create<KivaraState>()(
       translate: DEFAULT_TRANSLATE,
       asr: DEFAULT_ASR,
       ai: DEFAULT_AI,
+      vip: DEFAULT_VIP,
       tts: DEFAULT_TTS,
       panelPosition: DEFAULT_PANEL_POSITION,
       onboarding: DEFAULT_ONBOARDING,
@@ -450,6 +488,10 @@ export const useKivaraStore = create<KivaraState>()(
         set((state) => ({
           ai: typeof a === 'function' ? a(state.ai) : a,
         })),
+      setVip: (v) =>
+        set((state) => ({
+          vip: typeof v === 'function' ? v(state.vip) : v,
+        })),
       setTts: (t) =>
         set((state) => ({
           tts: typeof t === 'function' ? t(state.tts) : t,
@@ -487,6 +529,7 @@ export const useKivaraStore = create<KivaraState>()(
         translate: state.translate,
         asr: state.asr,
         ai: state.ai,
+        vip: state.vip,
         tts: state.tts,
         panelPosition: state.panelPosition,
         onboarding: state.onboarding,

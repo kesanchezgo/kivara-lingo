@@ -85,6 +85,17 @@ export type FieldSource =
   | 'ai-collocations'
   | 'ai-nuance'
   | 'ai-register'
+  /* Multi-source enrichment (Standard + VIP) — exposed as Anki
+   * fields so the user can build a mazo with rich data without
+   * any API key. Each one is automatically populated by the
+   * orchestrator's merged DictionaryEntry / VipEnrichment. */
+  | 'synonyms'
+  | 'antonyms'
+  | 'collocations'
+  | 'etymology'
+  | 'mnemonic'
+  | 'image'
+  | 'video-link'
   | 'manual';
 
 export interface AudioClipResponse {
@@ -387,6 +398,62 @@ export interface AiSettings {
   cacheTtlDays: number;
 }
 
+/**
+ * VIP enrichment settings — control which network sources to query for
+ * the popover and the Anki card. Each source is a separate toggle so the
+ * user can fine-tune the trade-off between completeness, latency, and
+ * how often their browser hits other domains.
+ *
+ * The whole VIP layer can be disabled with `enabled: false` (default for
+ * the version distributed in the Chrome Web Store; the user opts in
+ * locally).
+ */
+export interface VipSettings {
+  /** Master switch. When false, none of the VIP sources are consulted. */
+  enabled: boolean;
+
+  /* ── Definitions / collocations dictionaries ──────────────────────── */
+  cambridge: boolean;
+  oxfordLearners: boolean;
+  longman: boolean;
+  collins: boolean;
+  merriamWebster: boolean;
+  oxfordCollocations: boolean;
+
+  /* ── Bilingual / contextual translations ──────────────────────────── */
+  reverso: boolean;
+  linguee: boolean;
+  wordReference: boolean;
+  spanishDict: boolean;
+
+  /* ── Audio sources (word-level pronunciation) ─────────────────────── */
+  cambridgeAudio: boolean;
+  oxfordAudio: boolean;
+  forvo: boolean;
+  linguaLibre: boolean;
+  /** Last-resort sintetic TTS via translate.google.com/translate_tts (no key). */
+  googleTtsFallback: boolean;
+
+  /* ── Image sources for the card front ─────────────────────────────── */
+  unsplash: boolean;
+  pixabay: boolean;
+  wikimediaCommons: boolean;
+  duckduckgoImages: boolean;
+
+  /* ── Video real-world pronunciation links ─────────────────────────── */
+  youglish: boolean;
+
+  /**
+   * Per-request timeout (ms). Fast sources should respond in 200-800 ms;
+   * we cap each fetch so a single slow source never holds back the
+   * popover.
+   */
+  perSourceTimeoutMs: number;
+
+  /** TTL (days) for cached VIP responses in IndexedDB. */
+  cacheTtlDays: number;
+}
+
 export interface AiEnrichment {
   /** Definition tailored to the cue context */
   contextualDefinition: string;
@@ -522,6 +589,63 @@ export interface DictionaryEntry {
    * dictionary, MyMemory, DeepL, etc.
    */
   source?: string;
+  /**
+   * Synonyms in the source language. Populated by:
+   *   - `WordNet` pack (Standard tier)
+   *   - `Datamuse` API (Standard, sin token)
+   *   - `Cambridge Thesaurus` scrape (VIP)
+   */
+  synonyms?: string[];
+  /** Antonyms in the source language. Same fan-out as synonyms. */
+  antonyms?: string[];
+  /**
+   * Collocations covering the word — multi-word fragments like
+   * "big deal", "make sense", "take a shower". Populated by:
+   *   - `Academic Collocation List` pack (Standard)
+   *   - `Datamuse rel_bgb / rel_bga` (Standard, corpus-derived)
+   *   - `Oxford Collocations Dictionary` pack (VIP)
+   *   - `Cambridge collocations` scrape (VIP)
+   * The popover renders these under "Combinaciones frecuentes" and the
+   * Anki mapping can surface them as a dedicated field.
+   */
+  collocations?: string[];
+  /** Frequency rank in the BNC/COCA corpus, 1 = most common. */
+  frequencyRank?: number;
+  /**
+   * Audio URLs for the headword pronunciation. Populated by Free Dictionary
+   * API (Wikimedia Commons), Cambridge MP3 scrape, Forvo scrape, Lingua
+   * Libre, etc. Multiple sources are kept so the user can pick or auto-fall
+   * back. Each entry is `{ url, accent?, source }`.
+   */
+  audio?: Array<{ url: string; accent?: 'US' | 'UK' | 'AU' | 'CA' | string; source: string }>;
+  /**
+   * Multi-source extra definitions / examples / etymology / mnemonic
+   * collected by the VIP enrichment chain. Each layer is keyed by source so
+   * the UI can render attribution and the user can disable noisy sources.
+   */
+  vip?: VipEnrichment;
+}
+
+/**
+ * VIP enrichment payload — populated by the network-fetched chain that
+ * runs in addition to the local dictionary lookup. Every field is optional;
+ * sources fail independently so a Cambridge timeout doesn't break the rest.
+ */
+export interface VipEnrichment {
+  /** Per-source short definitions in the source language. */
+  definitions?: Array<{ source: string; text: string }>;
+  /** Per-source bilingual translations beyond the local dictionary. */
+  translations?: Array<{ source: string; text: string }>;
+  /** Sentence-level examples with optional translation pair. */
+  examples?: Array<{ source: string; text: string; translation?: string }>;
+  /** Etymology/origin paragraph (one source wins, see `enrich-vip.ts`). */
+  etymology?: string;
+  /** Memorable mnemonic generated by the AI provider. */
+  mnemonic?: string;
+  /** Hero image URL for the card front. */
+  imageUrl?: string;
+  /** YouGlish-style links to real-world video pronunciations. */
+  videoLinks?: Array<{ url: string; source: string }>;
 }
 
 export interface CueSnapshot {

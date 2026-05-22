@@ -24,6 +24,7 @@ import type {
   TranslateResponse,
   TtsSpeakRequest,
   TtsResponse,
+  DictionaryEntry,
 } from '../shared/types';
 import { ankiConnect } from './anki-connect';
 import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator';
@@ -38,6 +39,8 @@ import {
 import { translateText } from './translate';
 import { speak } from './tts';
 import { enrichWithAi, getAiSettings, getResolvedNativeLang } from './ai-enrich';
+import { getVipSettings, loadTranslateTargetLang } from './vip-settings';
+import { runEnrichment } from './enrichment/orchestrator';
 import { getMissingPhonetic } from './phonetic-augment';
 import { lookupDictionary } from '../content/nlp/dictionary';
 import { lookupYomitanTerm, listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';
@@ -564,6 +567,63 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
         message: err instanceof Error ? err.message : 'translate threw',
       });
     }
+  }
+
+  // Multi-source enrichment chain. Always runs the Standard tier
+  // (Free Dictionary API + Datamuse) for audio, synonyms, antonyms,
+  // collocations. When the user has flipped the VIP master switch
+  // ON in settings, additionally runs every enabled scrape source
+  // (Cambridge / Oxford Learner's / Longman / Collins / M-W /
+  // Reverso / Linguee / WordReference / SpanishDict / Forvo /
+  // Lingua Libre / Etymonline / Unsplash / Pixabay / Wikimedia /
+  // DuckDuckGo / YouGlish / Google TTS fallback).
+  //
+  // The enrichment runs in parallel with all the other waves above
+  // — we don't block the popover on it. The merged result patches
+  // the local entry's missing fields and ships a `vip` block via
+  // the `local` wave (already pushed earlier; we update it in
+  // place by mutating the `entry` reference the wave holds).
+  try {
+    const vipSettings = await getVipSettings();
+    const targetLang =
+      (await loadTranslateTargetLang()) || sourceLang;
+    const result = await runEnrichment(token, {
+      sourceLang,
+      targetLang,
+      sentence,
+      vip: vipSettings,
+    });
+    // Merge any fields the local layer didn't populate. We trust
+    // local for `translation` / `monolingual` only when those were
+    // genuinely populated by Yomitan packs (i.e. resolvedPackId is
+    // not the bundled fallback or null).
+    if (result.entry) {
+      const merged: DictionaryEntry = {
+        ...(local ?? result.entry),
+        // VIP-overridable fields:
+        synonyms: result.entry.synonyms ?? local?.synonyms,
+        antonyms: result.entry.antonyms ?? local?.antonyms,
+        collocations: result.entry.collocations ?? local?.collocations,
+        audio: result.entry.audio ?? local?.audio,
+        vip: result.entry.vip,
+        // Phonetic: prefer the local one only when it exists; otherwise
+        // adopt the Cambridge/Oxford one from the chain.
+        phonetic: local?.phonetic ?? result.entry.phonetic,
+        // Examples: keep the locally curated ones when present;
+        // otherwise the chain's (already merged from Reverso /
+        // Linguee / Cambridge / etc.).
+        examples: (local?.examples?.length ?? 0) > 0 ? local!.examples : result.entry.examples,
+      };
+      // Replace the entry on the already-pushed `local` wave so the
+      // popover gets the enriched view in a single response.
+      const localWave = waves.find((w) => w.stage === 'local');
+      if (localWave && localWave.stage === 'local') {
+        localWave.entry = merged;
+      }
+      local = merged;
+    }
+  } catch (err) {
+    console.warn('[Kivara Lingo] enrichment chain threw', err);
   }
 
   // Local-only telemetry — record exactly one bucket per RESOLVE_WORD so the
