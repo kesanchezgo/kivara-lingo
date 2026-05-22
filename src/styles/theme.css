@@ -4,6 +4,15 @@
 
 :root, :host {
   --font-size: 16px;
+  /* Single source of truth for the font stack across every Kivara surface
+   * (popup, options, onboarding, and the content-script shadow root).
+   * Components that need to pin font-family inline (because they portal
+   * out of the React tree) reference var(--kvl-font-sans) so any future
+   * tweak only happens here. */
+  --kvl-font-sans: ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol";
   --background: #ffffff;
   --foreground: oklch(0.145 0 0);
   --card: #ffffff;
@@ -414,6 +423,21 @@
   100% { transform: scale(1);    opacity: 1; }
 }
 
+@keyframes sl-conn-flow {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+@keyframes sl-info-tip-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+@keyframes sl-info-tip-up-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
 @layer utilities {
   .sl-animate-fade-up {
     animation: sl-fade-up 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -430,6 +454,14 @@
   }
   .sl-animate-badge-pop {
     animation: sl-badge-pop 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .sl-animate-info-tip {
+    animation: sl-info-tip-in 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: top left;
+  }
+  .sl-animate-info-tip-up {
+    animation: sl-info-tip-up-in 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: bottom left;
   }
 }
 

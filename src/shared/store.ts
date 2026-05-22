@@ -15,6 +15,7 @@ import type {
   TelemetrySettings,
 } from './types';
 import { setTelemetryEnabled } from './telemetry';
+import { DEFAULT_SHORTCUT_MAP, type ShortcutMap } from './shortcuts';
 
 export const DEFAULT_SUBTITLE_STYLES: SubtitleStyles = {
   fontSize: 32,
@@ -150,6 +151,15 @@ export const DEFAULT_TELEMETRY: TelemetrySettings = {
   enabled: true,
 };
 
+/**
+ * Default user-customisable shortcut combos.
+ *
+ * Mirrors `DEFAULT_SHORTCUT_MAP` from `./shortcuts`. We re-export the value
+ * so the persist `merge` helper can fall back when the persisted snapshot
+ * is missing or older than the shortcut feature.
+ */
+export const DEFAULT_SHORTCUTS: ShortcutMap = DEFAULT_SHORTCUT_MAP;
+
 export interface KivaraState {
   enabled: boolean;
   /**
@@ -174,6 +184,7 @@ export interface KivaraState {
   panelPosition: PanelPosition | null;
   onboarding: OnboardingState;
   telemetry: TelemetrySettings;
+  shortcuts: ShortcutMap;
   audioCaptureActive: boolean;
 
   setEnabled: (v: boolean) => void;
@@ -193,6 +204,7 @@ export interface KivaraState {
   setPanelPosition: (p: PanelPosition | null) => void;
   setOnboarding: (o: OnboardingState | ((prev: OnboardingState) => OnboardingState)) => void;
   setTelemetry: (t: TelemetrySettings | ((prev: TelemetrySettings) => TelemetrySettings)) => void;
+  setShortcuts: (s: ShortcutMap | ((prev: ShortcutMap) => ShortcutMap)) => void;
   setAudioCaptureActive: (v: boolean) => void;
   resetSubtitleStyles: () => void;
 }
@@ -375,6 +387,7 @@ function mergePersisted(persistedState: unknown, currentState: KivaraState): Kiv
     panelPosition: persisted.panelPosition ?? DEFAULT_PANEL_POSITION,
     onboarding: { ...DEFAULT_ONBOARDING, ...(persisted.onboarding ?? {}) },
     telemetry: { ...DEFAULT_TELEMETRY, ...(persisted.telemetry ?? {}) },
+    shortcuts: { ...DEFAULT_SHORTCUTS, ...(persisted.shortcuts ?? {}) },
   };
 }
 
@@ -398,6 +411,7 @@ export const useKivaraStore = create<KivaraState>()(
       panelPosition: DEFAULT_PANEL_POSITION,
       onboarding: DEFAULT_ONBOARDING,
       telemetry: DEFAULT_TELEMETRY,
+      shortcuts: DEFAULT_SHORTCUTS,
       audioCaptureActive: false,
 
       setEnabled: (v) => set({ enabled: v }),
@@ -447,6 +461,10 @@ export const useKivaraStore = create<KivaraState>()(
         set((state) => ({
           telemetry: typeof t === 'function' ? t(state.telemetry) : t,
         })),
+      setShortcuts: (s) =>
+        set((state) => ({
+          shortcuts: typeof s === 'function' ? s(state.shortcuts) : s,
+        })),
       setAudioCaptureActive: (v) => set({ audioCaptureActive: v }),
       resetSubtitleStyles: () => set({ subtitleStyles: DEFAULT_SUBTITLE_STYLES }),
     }),
@@ -471,6 +489,7 @@ export const useKivaraStore = create<KivaraState>()(
         panelPosition: state.panelPosition,
         onboarding: state.onboarding,
         telemetry: state.telemetry,
+        shortcuts: state.shortcuts,
       }),
       // Deep-merge defaults into the persisted slice so a snapshot saved by an
       // older build (e.g. missing translate.tiersEnabled) doesn't crash the

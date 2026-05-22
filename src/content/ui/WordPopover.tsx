@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { sendMessage } from 'webext-bridge/content-script';
 import {
   Volume2, ChevronsLeftRight, Link2, Search, Plus, Eye, BookOpen, Check, Sparkles,
@@ -195,6 +195,38 @@ export function WordPopover({
   onSave,
 }: WordPopoverProps) {
   const resolved = useResolveWord(token, sentence, sourceLang, includeAi);
+
+  // Refs for layout-effect clamping. The popover is absolutely positioned
+  // and centered on its anchor (the token) via `left-1/2 -translate-x-1/2`,
+  // but on cues whose hovered token sits very close to the left/right edge
+  // of the video, that center can put the popover off-screen. We clamp
+  // it back inside the nearest `[data-popover-boundary]` container (the
+  // video overlay root) and shift the bottom-arrow back so it still points
+  // at the token center — same trick the Figma mock uses.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const arrowRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!visible) return;
+    const el = rootRef.current;
+    const parent = el?.parentElement;
+    if (!el || !parent) return;
+    const boundary = el.closest('[data-popover-boundary]') as HTMLElement | null;
+    if (!boundary) return;
+    const pad = 8;
+    const halfW = el.offsetWidth / 2 || 144; // w-72 = 288 / 2
+    const pr = parent.getBoundingClientRect();
+    const b = boundary.getBoundingClientRect();
+    const centerX = pr.left + pr.width / 2;
+    const popoverLeft = centerX - halfW;
+    const popoverRight = centerX + halfW;
+    let dx = 0;
+    if (popoverRight > b.right - pad) dx = b.right - pad - popoverRight;
+    else if (popoverLeft < b.left + pad) dx = b.left + pad - popoverLeft;
+    el.style.marginLeft = `${dx}px`;
+    if (arrowRef.current) arrowRef.current.style.marginLeft = `${-dx}px`;
+  }, [visible, token]);
+
   if (!visible) return null;
 
   const meta: DictionaryEntry =
@@ -292,6 +324,7 @@ export function WordPopover({
 
   return (
     <div
+      ref={rootRef}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       data-kivara-hover-zone="true"
@@ -304,8 +337,11 @@ export function WordPopover({
         letterSpacing: 'normal',
         lineHeight: 1.4,
         color: '#ffffff',
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+        // Match the :host baseline font stack so the popover never falls
+        // back to the host page's font (YouTube uses Roboto). Inheritance
+        // is unreliable through the subtitle overlay's flex/inline-block
+        // chain, so we pin it explicitly here.
+        fontFamily: 'var(--kvl-font-sans)',
         textAlign: 'left',
         width: '288px',
         maxWidth: 'calc(100vw - 32px)',
@@ -566,7 +602,15 @@ export function WordPopover({
           )}
         </div>
       </div>
-      <div className="absolute left-1/2 -translate-x-1/2 -bottom-1.5 w-3 h-3 rotate-45 bg-zinc-900/95 border-r border-b border-zinc-700/60" />
+      <div className="absolute left-1/2 -translate-x-1/2 -bottom-1.5 w-3 h-3 rotate-45 bg-zinc-900/95 border-r border-b border-zinc-700/60" ref={arrowRef} />
+      {/* Invisible bridge — fills the 12px mb-3 gap between popover and token
+          so mouseleave/enter don't fire while the cursor crosses the gap.
+          Events bubble up to this wrapper's onMouseEnter/Leave, keeping the
+          popover open without needing a timeout. Critical for multi-line
+          cues: without it, hovering a 2nd-line word puts the popover above
+          the cursor's path, and crossing the gap fires mouseenter on
+          1st-line tokens that physically sit underneath. */}
+      <div className="absolute left-0 right-0 top-full h-3" aria-hidden="true" />
     </div>
   );
 }

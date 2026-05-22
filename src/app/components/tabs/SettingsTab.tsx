@@ -4,6 +4,7 @@ import {
   Keyboard, EyeOff, ChevronDown, ChevronRight, Wand2,
   SlidersHorizontal, BookOpen, Languages, Volume2, Sparkles, Mic2,
   Globe, Zap, ExternalLink, CheckCircle2, AlertTriangle, Loader2, Eye, KeyRound,
+  Heart, Coffee, Github,
 } from 'lucide-react';
 import { useKivaraStore } from '../../../shared/store';
 import type { PremiumTtsProvider, TranslateProvider, AiEnrichResponse } from '../../../shared/types';
@@ -13,10 +14,15 @@ import {
   pickModelForProvider,
   type ConfigurableAiProvider,
 } from '../../../shared/ai-presets';
+import { MODELS_BY_PROVIDER } from '../../../shared/ai-models';
 import {
   WHISPER_MODEL_PRESETS,
   type WhisperModelKey,
 } from '../../../shared/whisper-presets';
+import { SHORTCUT_DEFS } from '../../../shared/shortcuts';
+import { useShortcuts } from '../../hooks/useShortcuts';
+import { ShortcutEditor } from '../ShortcutEditor';
+import { InfoHint } from '../InfoHint';
 import { DictPacksSection } from './DictPacksSection';
 
 /**
@@ -46,6 +52,14 @@ export function SettingsTab() {
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const toggle = (id: string) => setOpen((prev) => ({ ...prev, [id]: !prev[id] }));
   const isOpen = (id: string) => !!open[id];
+
+  // User-customisable shortcut combos (synced via the store, see useShortcuts).
+  // We surface the first three combos in the accordion summary line so the
+  // panel reflects user changes without expanding the section.
+  const { map: shortcutMap } = useShortcuts();
+  const keysSummary = SHORTCUT_DEFS.slice(0, 3)
+    .map((s) => shortcutMap[s.id] || s.defaultCombo)
+    .join(' · ');
 
   // Flatten store paths to local handlers so the JSX stays readable.
   const autoMode = capture.autoMode;
@@ -97,13 +111,13 @@ export function SettingsTab() {
             </span>
           </div>
           <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
-            <QuickRow label="Captura automática" hint={autoMode ? 'VAD · 30s' : 'manual'}>
+            <QuickRow label="Captura automática" info="Cuando está activa, Kivara graba audio y captura frame al pulsar guardar, usando VAD para detectar el fin de frase. Desactívala para configurar a mano." hint={autoMode ? 'VAD · 30s' : 'manual'}>
               <Toggle on={autoMode} onChange={setAutoMode} />
             </QuickRow>
-            <QuickRow label="Modo lectura" hint={readingMode ? 'sin popovers' : 'aprendizaje'}>
+            <QuickRow label="Modo lectura" info="Oculta los popovers de hover sobre subtítulos. Útil cuando solo quieres mirar la serie sin interrupciones." hint={readingMode ? 'sin popovers' : 'aprendizaje'}>
               <Toggle on={readingMode} onChange={setReadingMode} />
             </QuickRow>
-            <QuickRow label="Subtítulo bilingüe" hint={translate.showDualSubtitle ? 'visible' : 'oculto'}>
+            <QuickRow label="Subtítulo bilingüe" info="Muestra el subtítulo traducido a tu idioma debajo del original." hint={translate.showDualSubtitle ? 'visible' : 'oculto'}>
               <Toggle
                 on={translate.showDualSubtitle}
                 onChange={(v) => setTranslate({ ...translate, showDualSubtitle: v })}
@@ -120,29 +134,30 @@ export function SettingsTab() {
             summary={`${audioSource} · ${bufferSize}s`}
             open={isOpen('capture')}
             onToggle={() => toggle('capture')}
+            description="Controla cómo Kivara graba el audio y captura el frame al guardar una tarjeta."
           >
-            <Row label="Fuente audio">
+            <Row label="Fuente audio" hint={audioSource === 'tab' ? 'Graba el audio del navegador (Netflix, YouTube…). Requiere activar la captura del tab.' : 'Usa el micrófono del sistema. Útil para clases en vivo o subtítulos externos.'}>
               <SegmentedControl
                 options={[{ v: 'tab', l: 'Pestaña' }, { v: 'mic', l: 'Mic' }]}
                 value={audioSource}
                 onChange={setAudioSource}
               />
             </Row>
-            <Row label="Buffer rolling" value={`${bufferSize}s`}>
+            <Row label="Buffer rolling" value={`${bufferSize}s`} hint="Segundos de audio que se mantienen en memoria. Más buffer = más contexto pero más RAM.">
               <input
                 type="range" min={10} max={60} step={5} value={bufferSize}
                 onChange={(e) => setBufferSize(Number(e.target.value))}
                 className="sl-range w-full"
               />
             </Row>
-            <Row label="Fin de frase">
+            <Row label="Fin de frase" hint={endDetect === 'vad' ? 'VAD detecta silencios para cortar el audio (más natural).' : 'Corta exactamente cuando termina el cue del subtítulo (más preciso si los cues son buenos).'}>
               <SegmentedControl
                 options={[{ v: 'vad', l: 'VAD' }, { v: 'cue', l: 'Cue exacto' }]}
                 value={endDetect}
                 onChange={setEndDetect}
               />
             </Row>
-            <Row label="Momento del frame">
+            <Row label="Momento del frame" hint="Instante del que se toma la captura de pantalla dentro del cue del subtítulo.">
               <SegmentedControl
                 options={[
                   { v: 'start', l: 'Inicio' },
@@ -161,6 +176,7 @@ export function SettingsTab() {
           <div className="px-2.5 py-1.5 border-b border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/60 dark:bg-zinc-900/60">
             <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               <Globe size={9} /> Idioma
+              <InfoHint text={<>Define el idioma de los subtítulos que estás aprendiendo y tu idioma nativo, al que se traducen palabras y frases.</>} />
             </span>
           </div>
           <div className="p-2.5 grid grid-cols-2 gap-2">
@@ -198,8 +214,9 @@ export function SettingsTab() {
           }
           open={isOpen('translate')}
           onToggle={() => toggle('translate')}
+          description="Define qué servicio traduce los subtítulos y palabras. La cadena prueba varios en orden hasta obtener respuesta; el modo único usa solo uno."
         >
-          <Row label="Modo">
+          <Row label="Modo" hint={translate.mode === 'chain' ? 'Prueba los proveedores activos en orden (free → premium) hasta lograr traducción.' : 'Usa exclusivamente un proveedor — más predecible, sin fallback.'}>
             <SegmentedControl
               options={[{ v: 'chain', l: 'Cadena' }, { v: 'single', l: 'Único' }]}
               value={translate.mode}
@@ -329,6 +346,7 @@ export function SettingsTab() {
           open={isOpen('dict')}
           onToggle={() => toggle('dict')}
           noPadding
+          description="Diccionarios Yomitan/StarDict locales para hover instantáneo, sin internet ni cuotas de API."
         >
           <DictPacksSection />
         </Accordion>
@@ -347,6 +365,7 @@ export function SettingsTab() {
           summaryColor={ai.provider !== 'disabled' && ai.apiKey ? 'text-indigo-500 dark:text-indigo-400' : undefined}
           open={isOpen('ai')}
           onToggle={() => toggle('ai')}
+          description="Enriquecimiento opcional con definiciones contextuales, sinónimos y matices generados por un modelo de IA. Tu key se guarda solo en tu navegador."
         >
           <AiByokSection />
         </Accordion>
@@ -359,6 +378,7 @@ export function SettingsTab() {
           summaryColor={tts.provider !== 'disabled' ? 'text-indigo-500 dark:text-indigo-400' : undefined}
           open={isOpen('tts')}
           onToggle={() => toggle('tts')}
+          description="Voces premium para palabra y frase. Si está desactivado se usa la voz nativa del navegador (Web Speech API) sin coste."
         >
           <Row label="Proveedor">
             <select
@@ -415,6 +435,7 @@ export function SettingsTab() {
           summaryColor={asr.enabled ? 'text-indigo-500 dark:text-indigo-400' : undefined}
           open={isOpen('asr')}
           onToggle={() => toggle('asr')}
+          description="Whisper.cpp local vía WebAssembly: transcribe el audio capturado en tu propio navegador, sin enviar nada a la nube."
         >
           <Row label="Habilitar Whisper ASR">
             <Toggle on={asr.enabled} onChange={(v) => setAsr({ ...asr, enabled: v })} />
@@ -475,11 +496,12 @@ export function SettingsTab() {
           summary={`UI ${hideUI ? 'off' : 'on'} · sombras ${hideShadows ? 'off' : 'on'}`}
           open={isOpen('cleanup')}
           onToggle={() => toggle('cleanup')}
+          description="Oculta elementos del reproductor para que la captura de frame quede limpia y sin distracciones."
         >
-          <Row label="Ocultar UI del player">
+          <Row label="Ocultar UI del player" hint="Quita barra de progreso, botones y overlays mientras Kivara está activa.">
             <Toggle on={hideUI} onChange={setHideUI} />
           </Row>
-          <Row label="Sin sombras / gradientes">
+          <Row label="Sin sombras / gradientes" hint="Elimina los degradados sobre los subtítulos para una imagen más nítida.">
             <Toggle on={hideShadows} onChange={setHideShadows} />
           </Row>
         </Accordion>
@@ -491,6 +513,7 @@ export function SettingsTab() {
           summary="pre/post roll"
           open={isOpen('sync')}
           onToggle={() => toggle('sync')}
+          description="Ajusta los milisegundos añadidos antes/después de cada cue al capturar audio. Útil si tus tarjetas cortan el inicio o el final de la frase."
         >
           <CompactSlider label="Pre-roll"    defaultValue={300}  max={1500} unit="ms" />
           <CompactSlider label="Post-roll"   defaultValue={400}  max={1500} unit="ms" />
@@ -501,35 +524,34 @@ export function SettingsTab() {
         <Accordion
           icon={<Keyboard size={10} />}
           title="Atajos de teclado"
-          summary="Ctrl+S · Alt+C · Alt+R"
+          summary={keysSummary}
           open={isOpen('keys')}
           onToggle={() => toggle('keys')}
+          description="Personalízalos: clic en un combo para grabar uno nuevo. Esc cancela, Backspace lo deja sin asignar. Los atajos globales (Ctrl+S, Alt+C, …) se registran en chrome://extensions/shortcuts."
         >
-          <div className="-my-0.5">
-            {[
-              { l: 'Guardar tarjeta',         keys: ['Ctrl', 'S'] },
-              { l: 'Toggle subtítulos',        keys: ['Alt', 'C'] },
-              { l: 'Repetir frase',            keys: ['Alt', 'R'] },
-              { l: 'Re-capturar frame',        keys: ['Alt', 'V'] },
-              { l: 'Abrir / cerrar panel',     keys: ['Alt', 'K'] },
-              { l: 'Separar expresión',        keys: ['Scroll', 'hover'] },
-            ].map((s) => (
-              <div key={s.l} className="flex items-center justify-between py-1 text-[11px]">
-                <span className="text-zinc-600 dark:text-zinc-400">{s.l}</span>
-                <span className="flex items-center gap-0.5">
-                  {s.keys.map((k, i) => (
-                    <React.Fragment key={k}>
-                      {i > 0 && <span className="text-zinc-400 dark:text-zinc-600 text-[9px] mx-0.5">+</span>}
-                      <kbd className="font-sans text-[10px] text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/70 border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-px">
-                        {k}
-                      </kbd>
-                    </React.Fragment>
-                  ))}
-                </span>
-              </div>
-            ))}
+          <ShortcutEditor compact />
+          <div className="mt-2 flex items-center justify-between py-1 text-[10.5px] text-zinc-500 dark:text-zinc-500 px-1">
+            <span>Separar expresión</span>
+            <span className="flex items-center gap-0.5">
+              <kbd className="font-sans text-[10px] bg-zinc-50 dark:bg-zinc-800/70 border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-px text-zinc-600 dark:text-zinc-400">Scroll</kbd>
+              <span className="text-zinc-400 dark:text-zinc-600 text-[9px] mx-0.5">+</span>
+              <kbd className="font-sans text-[10px] bg-zinc-50 dark:bg-zinc-800/70 border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-px text-zinc-600 dark:text-zinc-400">hover</kbd>
+            </span>
           </div>
         </Accordion>
+
+        {/* ── Apoyar el proyecto ─────────────────────────────────────── */}
+        <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2.5 py-2 flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1.5 text-[10.5px] text-zinc-500 dark:text-zinc-400 min-w-0">
+            <Heart size={10} className="text-zinc-400 dark:text-zinc-500 shrink-0" />
+            <span className="truncate">¿Te resulta útil? Apoya el proyecto</span>
+          </span>
+          <span className="flex items-center gap-0.5 shrink-0">
+            <DonateBtn href="https://ko-fi.com/kivara"            icon={<Coffee size={11} />}  label="Ko-fi" />
+            <DonateBtn href="https://github.com/sponsors/kivara"  icon={<Github size={11} />}  label="GitHub Sponsors" />
+            <DonateBtn href="https://paypal.me/kivara"            icon={<PaypalIcon />}        label="PayPal" />
+          </span>
+        </div>
 
         {/* ── Repetir configuración inicial ─────────────────────────── */}
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-2.5">
@@ -785,15 +807,53 @@ function AiByokSection() {
               </button>
             </div>
           </Row>
-          <Row label="Modelo">
-            <input
-              type="text"
-              value={ai.model}
-              onChange={(e) => setAi({ ...ai, model: e.target.value })}
-              placeholder={activePreset.defaultModel}
-              className="sl-input w-full"
-              spellCheck={false}
-            />
+          <Row
+            label="Modelo"
+            hint="Selecciona uno de los presets o escribe el nombre exacto del modelo que quieras usar (modo personalizado)."
+          >
+            {(() => {
+              const presets = MODELS_BY_PROVIDER[activePreset.provider] ?? [];
+              const isCustom =
+                ai.model === '__custom__' ||
+                (ai.model.trim() !== '' && !presets.some((p) => p.value === ai.model));
+              return (
+                <div className="space-y-1">
+                  <select
+                    value={isCustom ? '__custom__' : ai.model}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      // "__custom__" reveals the free-form input below.
+                      if (v === '__custom__') {
+                        if (!isCustom) setAi({ ...ai, model: '__custom__' });
+                      } else {
+                        setAi({ ...ai, model: v });
+                      }
+                    }}
+                    className="sl-select w-full"
+                  >
+                    <option value="">— Selecciona un modelo —</option>
+                    {presets.map((m) => (
+                      <option key={m.value} value={m.value}>
+                        {m.label} · {m.tag}
+                      </option>
+                    ))}
+                    <option value="__custom__">Personalizado…</option>
+                  </select>
+                  {isCustom && (
+                    <input
+                      type="text"
+                      value={ai.model === '__custom__' ? '' : ai.model}
+                      onChange={(e) => setAi({ ...ai, model: e.target.value || '__custom__' })}
+                      placeholder={activePreset.defaultModel}
+                      className="sl-input sl-mono w-full"
+                      spellCheck={false}
+                      autoComplete="off"
+                      autoFocus
+                    />
+                  )}
+                </div>
+              );
+            })()}
           </Row>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -884,7 +944,7 @@ function AiByokSection() {
 /* ─── Accordion ───────────────────────────────────────────────────────── */
 
 function Accordion({
-  icon, title, summary, summaryColor, open, onToggle, children, noPadding,
+  icon, title, summary, summaryColor, open, onToggle, children, noPadding, description,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -894,6 +954,12 @@ function Accordion({
   onToggle: () => void;
   children: React.ReactNode;
   noPadding?: boolean;
+  /**
+   * Optional one-liner shown as an InfoHint next to the section title.
+   * Mirrors the design mock pattern: we standardize "what is this & when
+   * to use it" instead of leaving users to guess.
+   */
+  description?: React.ReactNode;
 }) {
   return (
     <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
@@ -903,6 +969,7 @@ function Accordion({
       >
         <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
           {icon}{title}
+          {description && <InfoHint text={description} />}
         </span>
         <span className="flex items-center gap-2 ml-auto shrink-0">
           {summary && !open && (
@@ -966,14 +1033,15 @@ function NestedAccordion({
 /* ─── QuickRow ───────────────────────────────────────────────────────── */
 
 function QuickRow({
-  label, hint, children,
+  label, hint, info, children,
 }: {
-  label: string; hint?: string; children: React.ReactNode;
+  label: string; hint?: string; info?: React.ReactNode; children: React.ReactNode;
 }) {
   return (
     <div className="flex items-center justify-between px-2.5 py-2 gap-2">
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center gap-1.5 min-w-0">
         <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">{label}</span>
+        {info && <InfoHint text={info} />}
         {hint && <span className="text-[10px] text-zinc-400 dark:text-zinc-600 font-mono">{hint}</span>}
       </div>
       {children}
@@ -984,14 +1052,21 @@ function QuickRow({
 /* ─── Row ────────────────────────────────────────────────────────────── */
 
 function Row({
-  label, value, children,
+  label, value, children, hint,
 }: {
-  label: React.ReactNode; value?: string; children: React.ReactNode;
+  label: React.ReactNode;
+  value?: string;
+  children: React.ReactNode;
+  /** Optional contextual help shown as an InfoHint next to the label. */
+  hint?: React.ReactNode;
 }) {
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between gap-2">
-        <label className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">{label}</label>
+        <label className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
+          <span>{label}</span>
+          {hint && <InfoHint text={hint} />}
+        </label>
         {value && (
           <span className="text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
             {value}
@@ -1156,5 +1231,30 @@ function WhisperModelProgress({ modelKey }: { modelKey: WhisperModelKey }) {
         />
       </div>
     </div>
+  );
+}
+
+/* ─── DonateBtn ──────────────────────────────────────────────────────── */
+
+function DonateBtn({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="p-1.5 rounded-md text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/60 dark:hover:bg-indigo-500/10 transition-colors"
+      title={`Donar vía ${label}`}
+      aria-label={`Donar vía ${label}`}
+    >
+      {icon}
+    </a>
+  );
+}
+
+function PaypalIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.93 4.778-4.005 7.201-9.138 7.201h-2.19a.563.563 0 0 0-.556.479l-1.187 7.527h-.506l-.24 1.516a.56.56 0 0 0 .554.647h3.882c.46 0 .85-.334.922-.788l.038-.197.732-4.643.047-.255a.929.929 0 0 1 .922-.787h.58c3.76 0 6.705-1.528 7.565-5.946.36-1.847.174-3.388-.777-4.467z"/>
+    </svg>
   );
 }

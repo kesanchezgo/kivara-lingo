@@ -3,7 +3,9 @@ import { sendMessage } from 'webext-bridge/options';
 import {
   CheckCircle2, AlertTriangle, Loader2, Play, ChevronRight, ChevronLeft,
   ExternalLink, Subtitles, LayoutGrid, Sparkles, Moon, Sun, Wand2,
-  Download, ShieldCheck,
+  Download, ShieldCheck, ArrowLeftRight, GraduationCap, Languages,
+  Plug, Globe, Cpu, BookText, ListChecks, MousePointerClick, Save,
+  Mic, Rocket, PlugZap, KeyRound, Brain, Zap, Ban, Keyboard,
 } from 'lucide-react';
 import { useKivaraStore } from '../shared/store';
 import { autoMapFields, detectFieldSource } from '../shared/anki-field-detect';
@@ -14,6 +16,10 @@ import {
   pickPacksToInstall,
   type OnboardingDictPack,
 } from './dict-onboarding';
+import { MODELS_BY_PROVIDER } from '../shared/ai-models';
+import { SHORTCUT_DEFS, parseCombo } from '../shared/shortcuts';
+import { useShortcuts } from '../app/hooks/useShortcuts';
+import { ShortcutEditor } from '../app/components/ShortcutEditor';
 import type {
   AiProvider,
   AnkiMapping,
@@ -160,9 +166,6 @@ export function Onboarding() {
       setStep(STEPS[idx + 1].id);
     } else {
       // Last regular step ('demo') → mark complete and slide into 'done'.
-      // We DON'T open the demo URL automatically here — the user needs to
-      // click "Ir al reproductor" on the success screen so they understand
-      // what's about to happen (matches the mock UX exactly).
       setOnboarding({ completed: true, completedAt: Date.now() });
       setStep('done');
     }
@@ -187,9 +190,6 @@ export function Onboarding() {
 
   function skipAll() {
     setOnboarding({ completed: true, completedAt: Date.now() });
-    // Onboarding lives on its own extension tab — closing the window is
-    // the natural "skip" action. Falls through if `window.close` is
-    // disallowed (e.g. dev preview).
     try {
       window.close();
     } catch {
@@ -296,7 +296,7 @@ export function Onboarding() {
           key={step}
           className={direction === 1 ? 'sl-animate-step-fwd' : 'sl-animate-step-back'}
         >
-          <div className="max-w-2xl mx-auto px-6 py-10">
+          <div className="max-w-2xl mx-auto px-6 py-6">
             {step === 'welcome' && <WelcomeStep />}
             {step === 'lang' && (
               <LangStep
@@ -333,16 +333,16 @@ export function Onboarding() {
             {step === 'dict' && <DictStep />}
             {step === 'ai' && (
               <AIStep
-                provider={ai.provider}
-                setProvider={(v) => setAi({ ...ai, provider: v })}
-                apiKey={ai.apiKey}
-                setApiKey={(v) => setAi({ ...ai, apiKey: v })}
-                model={ai.model}
-                setModel={(v) => setAi({ ...ai, model: v })}
-                enrichOnSave={ai.enrichOnSave}
-                setEnrichOnSave={(v) => setAi({ ...ai, enrichOnSave: v })}
-                enrichOnHover={ai.enrichOnHover}
-                setEnrichOnHover={(v) => setAi({ ...ai, enrichOnHover: v })}
+                aiProvider={ai.provider}
+                setAiProvider={(v) => setAi({ ...ai, provider: v })}
+                aiApiKey={ai.apiKey}
+                setAiApiKey={(v) => setAi({ ...ai, apiKey: v })}
+                aiModel={ai.model}
+                setAiModel={(v) => setAi({ ...ai, model: v })}
+                aiEnrichOnSave={ai.enrichOnSave}
+                setAiEnrichOnSave={(v) => setAi({ ...ai, enrichOnSave: v })}
+                aiEnrichOnHover={ai.enrichOnHover}
+                setAiEnrichOnHover={(v) => setAi({ ...ai, enrichOnHover: v })}
                 isDarkMode={isDarkMode}
               />
             )}
@@ -404,41 +404,75 @@ export function Onboarding() {
   );
 }
 
-/* ─── Step sub-components ─────────────────────────────────────────────────── */
+/* ─── WelcomeStep ─────────────────────────────────────────────────────────── */
 
 function WelcomeStep() {
+  const features = [
+    {
+      icon: <Subtitles size={18} />,
+      iconBg: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 ring-1 ring-indigo-500/20',
+      title: 'Subtítulos interactivos',
+      desc: 'Hover sobre cualquier palabra: traducción, fonética y definición en un clic.',
+    },
+    {
+      icon: <LayoutGrid size={18} />,
+      iconBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 ring-1 ring-emerald-500/20',
+      title: 'Tarjetas Anki al instante',
+      desc: 'Guarda palabra + frase + frame + audio directamente en tu mazo, sin copiar nada.',
+    },
+    {
+      icon: <Sparkles size={18} />,
+      iconBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-300 ring-1 ring-amber-500/20',
+      title: 'IA opcional',
+      desc: 'Enriquece las tarjetas con definiciones contextuales, sinónimos y colocaciones.',
+    },
+  ];
+
   return (
-    <StepSection
-      title="Bienvenido a Kivara Lingo"
-      subtitle="Aprende idiomas mientras ves Netflix, HBO, Disney+, Prime o YouTube. Esta configuración rápida (≈ 1 minuto) dejará todo listo."
-    >
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          {
-            icon: <Subtitles size={18} />,
-            iconBg: 'bg-indigo-500/10 text-indigo-500 dark:bg-indigo-500/15 dark:text-indigo-400',
-            title: 'Subtítulos interactivos',
-            desc: 'Hover sobre cualquier palabra: traducción, fonética y definición en un clic.',
-          },
-          {
-            icon: <LayoutGrid size={18} />,
-            iconBg: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400',
-            title: 'Tarjetas Anki al instante',
-            desc: 'Guarda palabra + frase + frame + audio directamente en tu mazo, sin copiar nada.',
-          },
-          {
-            icon: <Sparkles size={18} />,
-            iconBg: 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400',
-            title: 'IA opcional',
-            desc: 'Enriquece las tarjetas con definiciones contextuales, sinónimos y colocaciones.',
-          },
-        ].map((f, i) => (
+    <section className="space-y-6">
+      {/* Hero — gradient panel with subtitle preview */}
+      <div className="relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-gradient-to-br from-indigo-50 via-white to-emerald-50/40 dark:from-indigo-500/10 dark:via-zinc-900 dark:to-emerald-500/5 p-6 sm:p-8">
+        {/* decorative glow */}
+        <div aria-hidden className="pointer-events-none absolute -top-20 -right-16 w-56 h-56 rounded-full bg-indigo-400/15 dark:bg-indigo-500/15 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-20 -left-16 w-56 h-56 rounded-full bg-emerald-400/10 dark:bg-emerald-500/10 blur-3xl" />
+
+        <div className="relative space-y-3">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/70 dark:bg-zinc-900/60 ring-1 ring-zinc-200/80 dark:ring-zinc-700/60 text-[10.5px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-300">
+            <Rocket size={10} /> Configuración ≈ 1 min · 7 pasos
+          </div>
+          <h2 className="text-[26px] sm:text-[28px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 leading-tight">
+            Bienvenido a <span className="text-indigo-600 dark:text-indigo-300">Kivara Lingo</span>
+          </h2>
+          <p className="text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-300 max-w-xl">
+            Aprende idiomas mientras ves Netflix, HBO, Disney+, Prime o YouTube. Tokeniza los subtítulos en vivo, guarda tarjetas Anki en un clic y sigue tu progreso.
+          </p>
+
+          {/* Subtitle preview — non-interactive mock */}
+          <div className="mt-4 pt-2">
+            <div className="inline-block rounded-md bg-zinc-900/90 dark:bg-black/70 px-3 py-1.5 shadow-lg ring-1 ring-white/10">
+              <span className="text-white text-[14px] leading-none">
+                <span className="border-b border-dashed border-white/30 px-0.5">I</span>{' '}
+                <span className="px-0.5 rounded bg-indigo-600 text-white shadow-[0_2px_8px_rgba(99,102,241,0.45)]">don't</span>{' '}
+                <span className="border-b border-dashed border-white/30 px-0.5">travel</span>{' '}
+                <span className="text-amber-300 border-b-2 border-dotted border-amber-400 px-0.5">these days</span>
+              </span>
+            </div>
+            <div className="mt-1 text-[10.5px] text-zinc-500 dark:text-zinc-400 italic">
+              Vista previa: tokens, MWE y palabras guardadas
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Feature tiles */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {features.map((f, i) => (
           <div
             key={f.title}
-            className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3 sl-animate-fade-up"
+            className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3 sl-animate-fade-up hover:shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700 transition-all"
             style={{ animationDelay: `${80 + i * 90}ms` }}
           >
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${f.iconBg}`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${f.iconBg}`}>
               {f.icon}
             </div>
             <div>
@@ -449,18 +483,27 @@ function WelcomeStep() {
         ))}
       </div>
 
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
-        <p className="text-[12px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
-          Si no tienes Anki instalado, descárgalo en{' '}
-          <a className="text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 hover:underline font-medium" href="https://apps.ankiweb.net" target="_blank" rel="noreferrer">
-            apps.ankiweb.net
-          </a>{' '}
-          e instala el complemento <span className="font-semibold text-zinc-700 dark:text-zinc-300">AnkiConnect</span> (código <span className="font-mono text-[11px] bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-300">2055492159</span>). Luego vuelve aquí.
-        </p>
+      {/* Anki requirement note */}
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 flex gap-3">
+        <div className="w-9 h-9 rounded-lg bg-amber-500/10 ring-1 ring-amber-500/20 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0">
+          <BookText size={16} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[12.5px] font-semibold text-zinc-800 dark:text-zinc-100 leading-snug">¿Sin Anki instalado?</p>
+          <p className="text-[12px] text-zinc-500 dark:text-zinc-400 leading-relaxed mt-1">
+            Descárgalo en{' '}
+            <a className="text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 hover:underline font-medium" href="https://apps.ankiweb.net" target="_blank" rel="noreferrer">
+              apps.ankiweb.net
+            </a>{' '}
+            e instala el complemento <span className="font-semibold text-zinc-700 dark:text-zinc-300">AnkiConnect</span> (código <span className="font-mono text-[11px] bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-300">2055492159</span>). Luego vuelve aquí.
+          </p>
+        </div>
       </div>
-    </StepSection>
+    </section>
   );
 }
+
+/* ─── AnkiStep ────────────────────────────────────────────────────────────── */
 
 interface AnkiStepProps {
   mapping: AnkiMapping;
@@ -470,62 +513,132 @@ interface AnkiStepProps {
 }
 
 function AnkiStep({ mapping, setMapping, ping, onRunPing }: AnkiStepProps) {
+  const state = ping.status;
+  const isOk = state === 'ok';
+  const isErr = state === 'error';
+  const isBusy = state === 'pinging';
+  const accent = isOk
+    ? 'emerald'
+    : isErr
+      ? 'rose'
+      : isBusy
+        ? 'indigo'
+        : 'zinc';
+  const accentClasses: Record<string, { text: string; bg: string; ring: string; line: string }> = {
+    emerald: { text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10', ring: 'ring-emerald-400/50', line: 'bg-emerald-400' },
+    rose:    { text: 'text-rose-600 dark:text-rose-400',       bg: 'bg-rose-50 dark:bg-rose-500/10',       ring: 'ring-rose-400/50',    line: 'bg-rose-400' },
+    indigo:  { text: 'text-indigo-600 dark:text-indigo-400',   bg: 'bg-indigo-50 dark:bg-indigo-500/10',   ring: 'ring-indigo-400/50',  line: 'bg-indigo-400' },
+    zinc:    { text: 'text-zinc-500 dark:text-zinc-400',       bg: 'bg-zinc-100 dark:bg-zinc-800',         ring: 'ring-zinc-300 dark:ring-zinc-700', line: 'bg-zinc-300 dark:bg-zinc-700' },
+  };
+  const a = accentClasses[accent];
+
   return (
     <StepSection
       title="Conexión con Anki"
       subtitle="AnkiConnect crea una pequeña API local cuando Anki está abierto. La dirección por defecto ya está configurada."
     >
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-4">
-        <div className="space-y-1.5">
-          <label className="text-[12px] font-semibold text-zinc-700 dark:text-zinc-300 block">URL de AnkiConnect</label>
-          <input
-            type="text"
-            value={mapping.ankiUrl}
-            onChange={(e) => setMapping({ ...mapping, ankiUrl: e.target.value })}
-            className="sl-input sl-lg w-full"
-          />
+      {/* Connection diagram */}
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <ConnNode icon={<Globe size={20} />} label="Kivara Lingo" sub="Extensión del navegador" tone="indigo" />
+          <ConnLink busy={isBusy} ok={isOk} err={isErr} accentLine={a.line} />
+          <ConnNode icon={<BookText size={20} />} label="Anki Desktop" sub="vía AnkiConnect" tone="amber" />
         </div>
-
-        <div className="flex items-center gap-3 flex-wrap">
-          <button
-            onClick={onRunPing}
-            disabled={ping.status === 'pinging'}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 shadow-sm transition-all"
-          >
-            {ping.status === 'pinging' ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-            <span style={{ fontSize: 13, fontWeight: 600 }}>Probar conexión</span>
-          </button>
-
-          {ping.status === 'ok' && (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/25">
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${a.bg}`}>
+            {isOk && (
               <span className="relative flex w-2 h-2">
                 <span className="absolute inset-0 rounded-full bg-emerald-400/50 animate-ping" style={{ animationDuration: '2s' }} />
                 <span className="relative w-2 h-2 rounded-full bg-emerald-500" />
               </span>
-              <span className="text-[12px] text-emerald-700 dark:text-emerald-400 font-medium">
-                Conectado · AnkiConnect v{ping.version}
-              </span>
-            </div>
-          )}
-          {ping.status === 'error' && (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/25">
-              <AlertTriangle size={13} className="text-rose-500 shrink-0" />
-              <span className="text-[12px] text-rose-700 dark:text-rose-400">{ping.error || 'No responde'}</span>
-            </div>
-          )}
+            )}
+            {isErr && <AlertTriangle size={12} className={a.text} />}
+            {isBusy && <Loader2 size={12} className={`${a.text} animate-spin`} />}
+            {state === 'idle' && <PlugZap size={12} className={a.text} />}
+            <span className={`text-[11px] font-semibold ${a.text}`}>
+              {isOk ? `Conectado · AnkiConnect v${ping.version}`
+                : isErr ? (ping.error || 'No responde')
+                  : isBusy ? 'Probando conexión…'
+                    : 'Pendiente de prueba'}
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-4">
-        <p className="text-[12px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+      {/* URL + ping action */}
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3">
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-1.5 text-[12px] font-semibold text-zinc-700 dark:text-zinc-300">
+            <Plug size={12} className="text-zinc-400" /> URL de AnkiConnect
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={mapping.ankiUrl}
+              onChange={(e) => setMapping({ ...mapping, ankiUrl: e.target.value })}
+              className="sl-input sl-lg flex-1 font-mono"
+            />
+            <button
+              onClick={onRunPing}
+              disabled={isBusy}
+              className="inline-flex items-center gap-2 px-4 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 shadow-sm transition-all shrink-0"
+            >
+              {isBusy ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+              <span style={{ fontSize: 13, fontWeight: 600 }}>Probar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-3 flex gap-2.5">
+        <AlertTriangle size={13} className="text-zinc-400 mt-0.5 shrink-0" />
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
           Si no responde: abre Anki, ve a <span className="font-medium text-zinc-700 dark:text-zinc-300">Tools → Add-ons → AnkiConnect → Config</span> y comprueba que{' '}
-          <span className="font-mono text-[11px] bg-white dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300">webBindAddress</span> es{' '}
-          <span className="font-mono text-[11px] bg-white dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300">127.0.0.1</span>.
+          <span className="font-mono text-[10px] bg-white dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300">webBindAddress</span> es{' '}
+          <span className="font-mono text-[10px] bg-white dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300">127.0.0.1</span>.
         </p>
       </div>
     </StepSection>
   );
 }
+
+function ConnNode({ icon, label, sub, tone }: { icon: React.ReactNode; label: string; sub: string; tone: 'indigo' | 'amber' }) {
+  const t = tone === 'indigo'
+    ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 ring-indigo-500/20'
+    : 'bg-amber-500/10 text-amber-600 dark:text-amber-300 ring-amber-500/20';
+  return (
+    <div className="flex flex-col items-center text-center gap-1.5">
+      <div className={`w-12 h-12 rounded-2xl ring-1 flex items-center justify-center ${t}`}>{icon}</div>
+      <div>
+        <div className="text-[12px] font-semibold text-zinc-800 dark:text-zinc-100 leading-tight">{label}</div>
+        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-tight mt-0.5">{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+function ConnLink({ busy, ok, err, accentLine }: { busy: boolean; ok: boolean; err: boolean; accentLine: string }) {
+  return (
+    <div className="relative h-12 w-20 flex items-center justify-center" aria-hidden>
+      <div className={`absolute inset-x-0 top-1/2 -translate-y-1/2 h-px ${accentLine} opacity-70`} />
+      {busy && (
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px overflow-hidden">
+          <div className="h-full w-1/3 bg-white/70 dark:bg-white/40 blur-[1px]" style={{ animation: 'sl-conn-flow 1.2s linear infinite' }} />
+        </div>
+      )}
+      <div className={`relative w-6 h-6 rounded-full flex items-center justify-center bg-white dark:bg-zinc-900 ring-1 ${
+        ok ? 'ring-emerald-400 text-emerald-500'
+          : err ? 'ring-rose-400 text-rose-500'
+            : busy ? 'ring-indigo-400 text-indigo-500'
+              : 'ring-zinc-300 dark:ring-zinc-700 text-zinc-400'
+      }`}>
+        {ok ? <CheckCircle2 size={13} /> : err ? <AlertTriangle size={12} /> : busy ? <Loader2 size={12} className="animate-spin" /> : <PlugZap size={12} />}
+      </div>
+    </div>
+  );
+}
+
+/* ─── MappingStep ─────────────────────────────────────────────────────────── */
 
 interface MappingStepProps {
   mapping: AnkiMapping;
@@ -552,170 +665,701 @@ function MappingStep({
       title="Mazo, modelo y campos"
       subtitle="Elegimos dónde guardar tus tarjetas y cómo Kivara Lingo mapea la información capturada a cada campo."
     >
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800 overflow-hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-        {/* Mazo */}
-        <div className="p-4 space-y-2">
-          <label className="text-[12px] font-semibold text-zinc-700 dark:text-zinc-300 block">Mazo destino</label>
-          <div className="flex gap-2">
-            {deckCreateMode ? (
-              <input
-                type="text"
-                autoFocus
-                value={mapping.deckName}
-                onChange={(e) => setMapping({ ...mapping, deckName: e.target.value })}
-                placeholder="Nombre del nuevo mazo"
-                className="sl-input sl-lg flex-1"
-              />
-            ) : (
-              <select
-                value={decks?.includes(mapping.deckName) ? mapping.deckName : ''}
-                onChange={(e) => setMapping({ ...mapping, deckName: e.target.value })}
-                disabled={!decks || decks.length === 0}
-                className="sl-select sl-lg flex-1"
-              >
-                <option value="">{decks?.length ? '— Selecciona un mazo —' : 'Cargando…'}</option>
-                {(decks ?? []).map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
+        {/* Mazo card */}
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-indigo-500/10 ring-1 ring-indigo-500/20 text-indigo-600 dark:text-indigo-300 flex items-center justify-center">
+              <LayoutGrid size={12} />
+            </div>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Mazo destino</span>
+            {mapping.deckName && !deckCreateMode && (
+              <CheckCircle2 size={12} className="ml-auto text-emerald-500" />
             )}
-            <button
-              onClick={onLoadDecks}
-              disabled={busy}
-              className="h-10 px-3.5 text-[12px] font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50 transition-colors shrink-0"
-            >
-              {busy ? <Loader2 size={13} className="animate-spin" /> : 'Refrescar'}
-            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              if (deckCreateMode) {
-                setDeckCreateMode(false);
-                if (decks && !decks.includes(mapping.deckName)) setMapping({ ...mapping, deckName: '' });
-              } else {
-                setDeckCreateMode(true);
-              }
-            }}
-            className="text-[12px] text-indigo-600 dark:text-indigo-400 hover:underline"
-          >
-            {deckCreateMode ? '← Elegir mazo existente' : '+ Crear nuevo mazo'}
-          </button>
-        </div>
-
-        {/* Modelo */}
-        <div className="p-4 space-y-2">
-          <label className="text-[12px] font-semibold text-zinc-700 dark:text-zinc-300 block">Modelo de nota</label>
-          {modelCreateMode ? (
-            <input
-              type="text"
-              autoFocus
-              value={mapping.modelName}
-              onChange={(e) => setMapping({ ...mapping, modelName: e.target.value })}
-              placeholder="Nombre del nuevo modelo"
-              className="sl-input sl-lg w-full"
-            />
-          ) : (
-            <select
-              value={mapping.modelName}
-              onChange={(e) => {
-                const m = e.target.value;
-                setMapping({ ...mapping, modelName: m });
-                if (m) onLoadFields(m);
-              }}
-              disabled={!models || models.length === 0}
-              className="sl-select sl-lg w-full"
-            >
-              <option value="">{models?.length ? '— Selecciona un modelo —' : 'Cargando…'}</option>
-              {(models ?? (mapping.modelName ? [mapping.modelName] : [])).map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          )}
-          <div className="flex items-center gap-3">
+          <div className="p-3 space-y-2">
+            <div className="flex gap-2">
+              {deckCreateMode ? (
+                <input
+                  type="text"
+                  autoFocus
+                  value={mapping.deckName}
+                  onChange={(e) => setMapping({ ...mapping, deckName: e.target.value })}
+                  placeholder="Nombre del nuevo mazo"
+                  className="sl-input sl-lg flex-1"
+                />
+              ) : (
+                <select
+                  value={decks?.includes(mapping.deckName) ? mapping.deckName : ''}
+                  onChange={(e) => setMapping({ ...mapping, deckName: e.target.value })}
+                  disabled={!decks || decks.length === 0}
+                  className="sl-select sl-lg flex-1"
+                >
+                  <option value="">{decks?.length ? '— Selecciona un mazo —' : 'Cargando…'}</option>
+                  {(decks ?? []).map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+              )}
+              <button
+                onClick={onLoadDecks}
+                disabled={busy}
+                className="h-10 px-3.5 text-[12px] font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50 transition-colors shrink-0"
+              >
+                {busy ? <Loader2 size={13} className="animate-spin" /> : 'Refrescar'}
+              </button>
+            </div>
             <button
               type="button"
               onClick={() => {
-                if (modelCreateMode) {
-                  setModelCreateMode(false);
-                  if (models && !models.includes(mapping.modelName)) setMapping({ ...mapping, modelName: '' });
+                if (deckCreateMode) {
+                  setDeckCreateMode(false);
+                  if (decks && !decks.includes(mapping.deckName)) setMapping({ ...mapping, deckName: '' });
                 } else {
-                  setModelCreateMode(true);
+                  setDeckCreateMode(true);
                 }
               }}
-              className="text-[12px] text-indigo-600 dark:text-indigo-400 hover:underline"
+              className="text-[11.5px] text-indigo-600 dark:text-indigo-400 hover:underline"
             >
-              {modelCreateMode ? '← Elegir modelo existente' : '+ Usar modelo nuevo'}
+              {deckCreateMode ? '← Elegir mazo existente' : '+ Crear nuevo mazo'}
             </button>
-            {busy && (
-              <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-500">
-                <Loader2 size={11} className="animate-spin" /> cargando campos…
-              </span>
+          </div>
+        </div>
+
+        {/* Modelo card */}
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-emerald-500/10 ring-1 ring-emerald-500/20 text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
+              <ListChecks size={12} />
+            </div>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Modelo de nota</span>
+            {mapping.modelName && !modelCreateMode && (
+              <CheckCircle2 size={12} className="ml-auto text-emerald-500" />
             )}
+          </div>
+          <div className="p-3 space-y-2">
+            {modelCreateMode ? (
+              <input
+                type="text"
+                autoFocus
+                value={mapping.modelName}
+                onChange={(e) => setMapping({ ...mapping, modelName: e.target.value })}
+                placeholder="Nombre del nuevo modelo"
+                className="sl-input sl-lg w-full"
+              />
+            ) : (
+              <select
+                value={mapping.modelName}
+                onChange={(e) => {
+                  const m = e.target.value;
+                  setMapping({ ...mapping, modelName: m });
+                  if (m) onLoadFields(m);
+                }}
+                disabled={!models || models.length === 0}
+                className="sl-select sl-lg w-full"
+              >
+                <option value="">{models?.length ? '— Selecciona un modelo —' : 'Cargando…'}</option>
+                {(models ?? (mapping.modelName ? [mapping.modelName] : [])).map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            )}
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  if (modelCreateMode) {
+                    setModelCreateMode(false);
+                    if (models && !models.includes(mapping.modelName)) setMapping({ ...mapping, modelName: '' });
+                  } else {
+                    setModelCreateMode(true);
+                  }
+                }}
+                className="text-[11.5px] text-indigo-600 dark:text-indigo-400 hover:underline"
+              >
+                {modelCreateMode ? '← Elegir existente' : '+ Modelo nuevo'}
+              </button>
+              {busy && (
+                <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-500">
+                  <Loader2 size={11} className="animate-spin" /> cargando…
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Field mapping */}
-      {fields && fields.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-[12px] font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
-              Mapeo de campos
-            </p>
-            <span className="inline-flex items-center gap-1 text-[10px] text-indigo-500 dark:text-indigo-400">
-              <Wand2 size={10} /> Auto-detectado
-            </span>
-          </div>
-          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800">
-            {fields.map((field) => {
-              const current: FieldSource = mapping.fieldSources[field] ?? 'manual';
-              const isAuto = current === detectFieldSource(field);
-              const badge = SOURCE_BADGE[current] ?? SOURCE_BADGE['manual']!;
-              return (
-                <div key={field} className="flex items-center gap-3 px-4 py-2.5">
-                  <div className="flex-1 min-w-0 flex items-center gap-2">
-                    <span className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200 truncate">{field}</span>
-                    {isAuto && (
-                      <span className="text-[9px] font-medium text-indigo-400 dark:text-indigo-500 shrink-0">auto</span>
-                    )}
+      {fields && fields.length > 0 && (() => {
+        const totalMapped = fields.filter((f) => (mapping.fieldSources[f] ?? 'manual') !== 'manual').length;
+        const autoCount = fields.filter((f) => (mapping.fieldSources[f] ?? 'manual') === detectFieldSource(f)).length;
+        return (
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+            <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 flex items-center gap-2 flex-wrap">
+              <div className="w-6 h-6 rounded-md bg-violet-500/10 ring-1 ring-violet-500/20 text-violet-600 dark:text-violet-300 flex items-center justify-center">
+                <Wand2 size={12} />
+              </div>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Mapeo de campos</span>
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500">·</span>
+              <span className="text-[10.5px] text-zinc-500 dark:text-zinc-400">
+                {totalMapped}/{fields.length} mapeados
+              </span>
+              <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-full ring-1 ring-indigo-500/15">
+                <Wand2 size={9} /> {autoCount} auto-detectados
+              </span>
+            </div>
+            <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              {fields.map((field) => {
+                const current: FieldSource = mapping.fieldSources[field] ?? 'manual';
+                const isAuto = current === detectFieldSource(field);
+                const badge = SOURCE_BADGE[current] ?? SOURCE_BADGE['manual']!;
+                const isManual = current === 'manual';
+                return (
+                  <div key={field} className="flex items-center gap-3 px-4 py-2.5">
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isManual ? 'bg-zinc-300 dark:bg-zinc-700' : 'bg-emerald-500'}`} />
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <span className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200 truncate font-mono">{field}</span>
+                      {isAuto && !isManual && (
+                        <span className="text-[9px] font-semibold text-indigo-500 dark:text-indigo-400 shrink-0 inline-flex items-center gap-0.5">
+                          <Wand2 size={8} /> auto
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md shrink-0 ${badge.color}`}>
+                      {badge.label}
+                    </span>
+                    <select
+                      value={current}
+                      onChange={(e) => {
+                        const src = e.target.value as FieldSource;
+                        const next = { ...mapping.fieldSources };
+                        if (src === 'manual') delete next[field];
+                        else next[field] = src;
+                        setMapping({ ...mapping, fieldSources: next });
+                      }}
+                      className="sl-select shrink-0"
+                      style={{ width: 160 }}
+                    >
+                      <option value="manual">— No mapear —</option>
+                      <option value="selection">Palabra</option>
+                      <option value="cue">Frase completa</option>
+                      <option value="phonetic">Fonética / IPA</option>
+                      <option value="translation">Traducción</option>
+                      <option value="bilingual">Bilingüe</option>
+                      <option value="monolingual">Monolingüe</option>
+                      <option value="examples">Ejemplos</option>
+                      <option value="frame">Picture (frame)</option>
+                      <option value="sentence-audio">Sentence audio</option>
+                      <option value="word-audio">Word audio</option>
+                    </select>
                   </div>
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md shrink-0 ${badge.color}`}>
-                    {badge.label}
-                  </span>
-                  <select
-                    value={current}
-                    onChange={(e) => {
-                      const src = e.target.value as FieldSource;
-                      const next = { ...mapping.fieldSources };
-                      if (src === 'manual') delete next[field];
-                      else next[field] = src;
-                      setMapping({ ...mapping, fieldSources: next });
-                    }}
-                    className="sl-select shrink-0"
-                    style={{ width: 160 }}
-                  >
-                    <option value="manual">— No mapear —</option>
-                    <option value="selection">Palabra</option>
-                    <option value="cue">Frase completa</option>
-                    <option value="phonetic">Fonética / IPA</option>
-                    <option value="translation">Traducción</option>
-                    <option value="bilingual">Bilingüe</option>
-                    <option value="monolingual">Monolingüe</option>
-                    <option value="examples">Ejemplos</option>
-                    <option value="frame">Picture (frame)</option>
-                    <option value="sentence-audio">Sentence audio</option>
-                    <option value="word-audio">Word audio</option>
-                  </select>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+            <div className="px-4 py-2.5 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/40 dark:bg-zinc-900/40">
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                Cada campo se detectó automáticamente por su nombre. Cambia cualquier asignación con el selector de la derecha.
+              </p>
+            </div>
           </div>
-          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed px-0.5">
-            Cada campo se detectó automáticamente por su nombre. Puedes cambiar cualquier asignación con el selector a la derecha.
+        );
+      })()}
+    </StepSection>
+  );
+}
+
+/* ─── AIStep ──────────────────────────────────────────────────────────────── */
+
+interface AIStepProps {
+  aiProvider: AiProvider;
+  setAiProvider: (v: AiProvider) => void;
+  aiApiKey: string;
+  setAiApiKey: (v: string) => void;
+  aiModel: string;
+  setAiModel: (v: string) => void;
+  aiEnrichOnSave: boolean;
+  setAiEnrichOnSave: (v: boolean) => void;
+  aiEnrichOnHover: boolean;
+  setAiEnrichOnHover: (v: boolean) => void;
+  isDarkMode: boolean;
+}
+
+function AIStep({
+  aiProvider, setAiProvider, aiApiKey, setAiApiKey, aiModel, setAiModel,
+  aiEnrichOnSave, setAiEnrichOnSave, aiEnrichOnHover, setAiEnrichOnHover, isDarkMode,
+}: AIStepProps) {
+  type ProviderTile = {
+    value: AiProvider;
+    label: string;
+    tag: string;
+    icon: React.ReactNode;
+    tone: 'zinc' | 'emerald' | 'amber' | 'sky';
+    defaultModel?: string;
+  };
+  const providers: ProviderTile[] = [
+    { value: 'disabled',  label: 'Sin IA',          tag: 'Solo diccionarios',   icon: <Ban size={18} />,      tone: 'zinc' },
+    { value: 'openai',    label: 'OpenAI',          tag: 'GPT-4o mini',         icon: <Sparkles size={18} />, tone: 'emerald', defaultModel: 'gpt-4o-mini' },
+    { value: 'anthropic', label: 'Anthropic',       tag: 'Claude Haiku',        icon: <Brain size={18} />,    tone: 'amber',   defaultModel: 'claude-haiku-4-5' },
+    { value: 'google-ai', label: 'Google Gemini',   tag: 'Gemini 1.5 Flash',    icon: <Zap size={18} />,      tone: 'sky',     defaultModel: 'gemini-1.5-flash' },
+  ];
+
+  const toneClasses: Record<ProviderTile['tone'], { ring: string; bg: string; iconBg: string; iconText: string; label: string }> = {
+    zinc:    { ring: 'ring-zinc-400/60 dark:ring-zinc-500/60',     bg: 'bg-zinc-50 dark:bg-zinc-800/40',         iconBg: 'bg-zinc-100 dark:bg-zinc-800',         iconText: 'text-zinc-500 dark:text-zinc-400',     label: 'text-zinc-700 dark:text-zinc-200' },
+    emerald: { ring: 'ring-emerald-500/70 dark:ring-emerald-400/70', bg: 'bg-emerald-50 dark:bg-emerald-500/10', iconBg: 'bg-emerald-500/10',                    iconText: 'text-emerald-600 dark:text-emerald-300', label: 'text-emerald-700 dark:text-emerald-300' },
+    amber:   { ring: 'ring-amber-500/70 dark:ring-amber-400/70',   bg: 'bg-amber-50 dark:bg-amber-500/10',       iconBg: 'bg-amber-500/10',                      iconText: 'text-amber-600 dark:text-amber-300',   label: 'text-amber-700 dark:text-amber-300' },
+    sky:     { ring: 'ring-sky-500/70 dark:ring-sky-400/70',       bg: 'bg-sky-50 dark:bg-sky-500/10',           iconBg: 'bg-sky-500/10',                        iconText: 'text-sky-600 dark:text-sky-300',       label: 'text-sky-700 dark:text-sky-300' },
+  };
+
+  const placeholderFor = (p: AiProvider) =>
+    p === 'openai' ? 'sk-...' : p === 'anthropic' ? 'sk-ant-...' : 'AIza...';
+
+  return (
+    <StepSection
+      title="Enriquecimiento IA (opcional)"
+      subtitle="Si quieres definiciones contextuales, sinónimos y matices generados por IA al guardar tarjetas. Puedes activarlo después en Settings."
+    >
+      {/* Provider tiles */}
+      <div className="grid grid-cols-2 gap-2.5">
+        {providers.map((p) => {
+          const active = aiProvider === p.value;
+          const t = toneClasses[p.tone];
+          return (
+            <button
+              key={p.value}
+              type="button"
+              onClick={() => {
+                setAiProvider(p.value);
+                if (p.defaultModel && !aiModel) setAiModel(p.defaultModel);
+              }}
+              className={[
+                'group relative flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all active:scale-[0.99]',
+                active
+                  ? `border-transparent ring-2 ${t.ring} ${t.bg} shadow-sm`
+                  : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm',
+              ].join(' ')}
+            >
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${t.iconBg} ${t.iconText}`}>
+                {p.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`text-[13px] font-semibold leading-tight ${active ? t.label : 'text-zinc-800 dark:text-zinc-100'}`}>{p.label}</p>
+                <p className="text-[10.5px] text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">{p.tag}</p>
+              </div>
+              {active && (
+                <CheckCircle2 size={15} className={`shrink-0 ${t.iconText}`} />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {aiProvider !== 'disabled' && (
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800 overflow-hidden">
+          <div className="p-4 space-y-1.5">
+            <label className="flex items-center gap-1.5 text-[12px] font-semibold text-zinc-700 dark:text-zinc-300">
+              <KeyRound size={12} className="text-zinc-400" /> API key
+            </label>
+            <input
+              type="password"
+              value={aiApiKey}
+              onChange={(e) => setAiApiKey(e.target.value)}
+              placeholder={placeholderFor(aiProvider)}
+              className="sl-input sl-lg w-full font-mono"
+            />
+            {!aiApiKey && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                <AlertTriangle size={11} />
+                Sin API key las llamadas IA se omitirán (no bloquea el flujo).
+              </p>
+            )}
+          </div>
+          <div className="p-4 space-y-1.5">
+            <label className="flex items-center gap-1.5 text-[12px] font-semibold text-zinc-700 dark:text-zinc-300">
+              <Cpu size={12} className="text-zinc-400" /> Modelo
+            </label>
+            {(() => {
+              const opts = MODELS_BY_PROVIDER[aiProvider as Exclude<AiProvider, 'disabled'>] ?? [];
+              const currentInList = opts.some((m) => m.value === aiModel);
+              return (
+                <>
+                  <select
+                    value={currentInList ? aiModel : ''}
+                    onChange={(e) => setAiModel(e.target.value)}
+                    className="sl-select sl-lg w-full font-mono"
+                  >
+                    <option value="">— Selecciona un modelo —</option>
+                    {opts.map((m) => (
+                      <option key={m.value} value={m.value}>{m.label} · {m.tag}</option>
+                    ))}
+                  </select>
+                  {aiModel && (
+                    <p className="text-[10.5px] text-zinc-500 dark:text-zinc-400 leading-snug pt-0.5">
+                      {opts.find((m) => m.value === aiModel)?.tag ?? 'Modelo personalizado'}
+                    </p>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+          <div className="p-4">
+            <ToggleRow
+              label="Enriquecer al guardar"
+              description="Llama a la IA cada vez que guardas una tarjeta en Anki."
+              on={aiEnrichOnSave}
+              onChange={setAiEnrichOnSave}
+              isDarkMode={isDarkMode}
+            />
+          </div>
+          <div className="p-4">
+            <ToggleRow
+              label="Sinónimos en hover"
+              description="Muestra colocaciones y sinónimos al hacer hover sobre una palabra."
+              on={aiEnrichOnHover}
+              onChange={setAiEnrichOnHover}
+              isDarkMode={isDarkMode}
+            />
+          </div>
+        </div>
+      )}
+
+      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed px-0.5">
+        Las respuestas se cachean en IndexedDB con TTL configurable para no hacer llamadas duplicadas. Puedes cambiar el proveedor en <span className="font-medium text-zinc-700 dark:text-zinc-300">Settings → IA premium</span> cuando quieras.
+      </p>
+    </StepSection>
+  );
+}
+
+/* ─── DemoStep ────────────────────────────────────────────────────────────── */
+
+function DemoStep() {
+  const items = [
+    { icon: <Subtitles size={16} />,         text: 'Subtítulos estilizados superpuestos sobre el reproductor.',                tone: 'indigo' as const },
+    { icon: <MousePointerClick size={16} />, text: 'Hover sobre cualquier palabra → popover con traducción y fonética.',       tone: 'sky' as const },
+    { icon: <Save size={16} />,              text: 'Clic en "Guardar" → nota en Anki con frame + audio capturado.',            tone: 'emerald' as const },
+    { icon: <LayoutGrid size={16} />,        text: 'Panel lateral listo con el mapeo de campos que acabas de configurar.',     tone: 'amber' as const },
+  ];
+  const toneMap = {
+    indigo:  'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 ring-indigo-500/20',
+    sky:     'bg-sky-500/10 text-sky-600 dark:text-sky-300 ring-sky-500/20',
+    emerald: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 ring-emerald-500/20',
+    amber:   'bg-amber-500/10 text-amber-600 dark:text-amber-300 ring-amber-500/20',
+  };
+  return (
+    <StepSection
+      title="¡Todo listo para probar!"
+      subtitle="Al pulsar Empezar abriremos un video corto en YouTube para que veas la extensión en acción."
+    >
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+        <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 flex items-center gap-2">
+          <Rocket size={13} className="text-indigo-500" />
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            Qué verás
+          </p>
+        </div>
+        <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          {items.map((item, i) => (
+            <div key={i} className="flex items-start gap-3 px-4 py-3">
+              <div className={`w-8 h-8 rounded-lg ring-1 flex items-center justify-center shrink-0 ${toneMap[item.tone]}`}>
+                {item.icon}
+              </div>
+              <p className="text-[13px] text-zinc-700 dark:text-zinc-300 leading-relaxed mt-1">{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <ShortcutsPreview />
+
+      <div className="rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/25 p-4 flex gap-3">
+        <Mic size={16} className="text-indigo-500 shrink-0 mt-0.5" />
+        <p className="text-[12px] text-indigo-700 dark:text-indigo-300 leading-relaxed">
+          Para activar la captura de audio del tab (necesaria para "Sentence audio" en las tarjetas), haz clic en el icono de la extensión en la barra del navegador → <span className="font-semibold">Activar captura de audio</span>.
+        </p>
+      </div>
+    </StepSection>
+  );
+}
+
+function ShortcutsPreview() {
+  const [customize, setCustomize] = useState(false);
+  const { map } = useShortcuts();
+
+  return (
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 flex items-center gap-2">
+        <Keyboard size={12} className="text-zinc-500 dark:text-zinc-400" />
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex-1">
+          Atajos de teclado
+        </p>
+        <button
+          type="button"
+          onClick={() => setCustomize((v) => !v)}
+          className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors shrink-0 normal-case tracking-normal"
+        >
+          {customize ? 'Ver defaults' : 'Personalizar'}
+        </button>
+      </div>
+
+      {!customize ? (
+        <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          {SHORTCUT_DEFS.map((s) => {
+            const combo = map[s.id] ?? s.defaultCombo;
+            const keys = combo ? parseCombo(combo) : [];
+            return (
+              <div key={s.id} className="flex items-center justify-between gap-2 px-4 py-1.5">
+                <span className="text-[11.5px] text-zinc-600 dark:text-zinc-400 truncate">{s.label}</span>
+                <span className="flex items-center gap-0.5 shrink-0">
+                  {keys.length === 0 ? (
+                    <span className="text-[10px] text-zinc-400 italic">—</span>
+                  ) : keys.map((k, i) => (
+                    <React.Fragment key={`${k}-${i}`}>
+                      {i > 0 && <span className="text-zinc-400 dark:text-zinc-600 text-[9px] mx-0.5">+</span>}
+                      <kbd className="font-sans text-[10px] text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/70 border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-px">
+                        {k}
+                      </kbd>
+                    </React.Fragment>
+                  ))}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="px-2 py-1.5">
+          <ShortcutEditor compact />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── DoneStep ────────────────────────────────────────────────────────────── */
+
+function DoneStep({ completedAt, onComplete }: { completedAt: number | null; onComplete: () => void }) {
+  return (
+    <StepSection title="¡Todo listo!" subtitle="">
+      <div className="flex flex-col items-center gap-8 py-8">
+        <div className="relative">
+          <div
+            className="absolute inset-0 rounded-full animate-pulse"
+            style={{ background: 'radial-gradient(circle, rgba(74,222,128,0.25) 0%, transparent 70%)' }}
+          />
+          <div className="relative w-20 h-20 rounded-full bg-emerald-50 dark:bg-emerald-500/15 ring-4 ring-emerald-200 dark:ring-emerald-500/30 ring-offset-2 ring-offset-white dark:ring-offset-zinc-950 flex items-center justify-center sl-animate-celebrate">
+            <CheckCircle2 size={36} className="text-emerald-600 dark:text-emerald-400" />
+          </div>
+        </div>
+
+        <div className="text-center space-y-2 max-w-sm">
+          <p className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">Kivara Lingo está listo</p>
+          <p className="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+            Para volver a este asistente ve a{' '}
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">Settings → Repetir configuración inicial</span>.
+          </p>
+          {completedAt && (
+            <p className="text-[10px] text-zinc-400 dark:text-zinc-600">
+              Completado el {new Date(completedAt).toLocaleString()}
+            </p>
+          )}
+        </div>
+
+        <button
+          onClick={onComplete}
+          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 shadow-sm hover:shadow-md hover:shadow-indigo-500/25 transition-all"
+        >
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Ir al reproductor</span>
+          <ExternalLink size={14} />
+        </button>
+      </div>
+    </StepSection>
+  );
+}
+
+/* ─── LangStep ────────────────────────────────────────────────────────────── */
+
+type LangMeta = { code: string; name: string; native: string; flag: string };
+
+const ONBOARDING_LANGS: LangMeta[] = [
+  { code: 'en', name: 'Inglés',     native: 'English',    flag: '🇬🇧' },
+  { code: 'es', name: 'Español',    native: 'Español',    flag: '🇪🇸' },
+  { code: 'fr', name: 'Francés',    native: 'Français',   flag: '🇫🇷' },
+  { code: 'de', name: 'Alemán',     native: 'Deutsch',    flag: '🇩🇪' },
+  { code: 'it', name: 'Italiano',   native: 'Italiano',   flag: '🇮🇹' },
+  { code: 'pt', name: 'Portugués',  native: 'Português',  flag: '🇵🇹' },
+  { code: 'ja', name: 'Japonés',    native: '日本語',      flag: '🇯🇵' },
+  { code: 'ko', name: 'Coreano',    native: '한국어',       flag: '🇰🇷' },
+  { code: 'zh', name: 'Chino',      native: '中文',        flag: '🇨🇳' },
+];
+
+function getLang(code: string): LangMeta {
+  return ONBOARDING_LANGS.find((l) => l.code === code) ?? ONBOARDING_LANGS[0];
+}
+
+function LangStep({
+  sourceLang, setSourceLang, targetLang, setTargetLang,
+}: {
+  sourceLang: string; setSourceLang: (v: string) => void;
+  targetLang: string; setTargetLang: (v: string) => void;
+}) {
+  const [activeSlot, setActiveSlot] = useState<'source' | 'target'>('source');
+  const sameLanguage = sourceLang === targetLang;
+  const learning = getLang(sourceLang);
+  const native = getLang(targetLang);
+
+  const swap = () => {
+    const a = sourceLang, b = targetLang;
+    setSourceLang(b);
+    setTargetLang(a);
+  };
+
+  const pickLang = (code: string) => {
+    if (activeSlot === 'source') {
+      // If user picks the same code as the other slot, auto-swap to avoid duplicate
+      if (code === targetLang) setTargetLang(sourceLang);
+      setSourceLang(code);
+      setActiveSlot('target');
+    } else {
+      if (code === sourceLang) setSourceLang(targetLang);
+      setTargetLang(code);
+      setActiveSlot('source');
+    }
+  };
+
+  return (
+    <StepSection
+      title="¿Qué idioma aprendes?"
+      subtitle="Configura el par de idiomas. Puedes cambiarlo en cualquier momento desde Settings → Idioma."
+    >
+      {/* Pair display: Aprendo ↔ Nativo */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
+        <SlotCard
+          icon={<GraduationCap size={13} />}
+          label="Aprendo"
+          lang={learning}
+          active={activeSlot === 'source'}
+          accent="indigo"
+          onClick={() => setActiveSlot('source')}
+        />
+        <button
+          type="button"
+          onClick={swap}
+          title="Intercambiar idiomas"
+          className="self-center w-9 h-9 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:shadow-md hover:shadow-indigo-500/10 transition-all flex items-center justify-center active:scale-95"
+        >
+          <ArrowLeftRight size={14} />
+        </button>
+        <SlotCard
+          icon={<Languages size={13} />}
+          label="Nativo"
+          lang={native}
+          active={activeSlot === 'target'}
+          accent="emerald"
+          onClick={() => setActiveSlot('target')}
+        />
+      </div>
+
+      {/* Helper line: which slot is being edited */}
+      <div className="flex items-center justify-center gap-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+        <span>Selecciona el idioma que</span>
+        <span className={`font-semibold ${activeSlot === 'source' ? 'text-indigo-600 dark:text-indigo-300' : 'text-emerald-600 dark:text-emerald-300'}`}>
+          {activeSlot === 'source' ? 'aprendes' : 'ya hablas'}
+        </span>
+      </div>
+
+      {/* Language grid */}
+      <div className="grid grid-cols-3 gap-2">
+        {ONBOARDING_LANGS.map((l) => {
+          const isLearning = l.code === sourceLang;
+          const isNative = l.code === targetLang;
+          const isActiveSelection =
+            (activeSlot === 'source' && isLearning) || (activeSlot === 'target' && isNative);
+          const accentRing = activeSlot === 'source'
+            ? 'ring-indigo-500/70 dark:ring-indigo-400/70 bg-indigo-50 dark:bg-indigo-500/10'
+            : 'ring-emerald-500/70 dark:ring-emerald-400/70 bg-emerald-50 dark:bg-emerald-500/10';
+          return (
+            <button
+              key={l.code}
+              type="button"
+              onClick={() => pickLang(l.code)}
+              className={[
+                'group relative flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl border transition-all duration-150 active:scale-[0.98]',
+                isActiveSelection
+                  ? `border-transparent ring-2 ${accentRing} shadow-sm`
+                  : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm',
+              ].join(' ')}
+            >
+              {/* Role badges in the corner — quietly show both assignments */}
+              <div className="absolute top-1.5 right-1.5 flex gap-0.5">
+                {isLearning && (
+                  <span title="Aprendo" className="w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+                    <GraduationCap size={9} strokeWidth={2.5} />
+                  </span>
+                )}
+                {isNative && (
+                  <span title="Nativo" className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                    <Languages size={9} strokeWidth={2.5} />
+                  </span>
+                )}
+              </div>
+              <span className="text-2xl leading-none select-none" aria-hidden>{l.flag}</span>
+              <span className="text-[12px] font-semibold text-zinc-800 dark:text-zinc-100 leading-tight">{l.name}</span>
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-tight">{l.native}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {sameLanguage && (
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/25 p-3 flex items-start gap-2">
+          <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+          <p className="text-[12px] text-amber-800 dark:text-amber-300 leading-relaxed">
+            El idioma de aprendizaje y el nativo son el mismo. Elige idiomas distintos para que las traducciones funcionen correctamente.
           </p>
         </div>
       )}
+
+      <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-3">
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+          Este par controla la dirección de las traducciones en los subtítulos, las tarjetas Anki y el enriquecimiento con IA.
+        </p>
+      </div>
     </StepSection>
+  );
+}
+
+function SlotCard({
+  icon, label, lang, active, accent, onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  lang: LangMeta;
+  active: boolean;
+  accent: 'indigo' | 'emerald';
+  onClick: () => void;
+}) {
+  const accentClasses = active
+    ? accent === 'indigo'
+      ? 'border-transparent ring-2 ring-indigo-500/70 dark:ring-indigo-400/70 bg-indigo-50/70 dark:bg-indigo-500/10'
+      : 'border-transparent ring-2 ring-emerald-500/70 dark:ring-emerald-400/70 bg-emerald-50/70 dark:bg-emerald-500/10'
+    : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700';
+  const labelColor = accent === 'indigo'
+    ? 'text-indigo-700 dark:text-indigo-300'
+    : 'text-emerald-700 dark:text-emerald-300';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-left rounded-xl border p-3 transition-all ${accentClasses}`}
+    >
+      <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${labelColor}`}>
+        {icon}<span>{label}</span>
+      </div>
+      <div className="mt-1.5 flex items-center gap-2.5">
+        <span className="text-2xl leading-none select-none" aria-hidden>{lang.flag}</span>
+        <div className="min-w-0">
+          <div className="text-[14px] font-semibold text-zinc-900 dark:text-zinc-50 leading-tight truncate">{lang.name}</div>
+          <div className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-tight truncate">{lang.native}</div>
+        </div>
+      </div>
+    </button>
   );
 }
 
@@ -753,7 +1397,6 @@ function DictStep() {
         setSelection(defaultSelection(CURATED_DICT_PACKS, titles));
       } catch (err) {
         // Dexie not available — degrade gracefully and let the user proceed.
-        // The packs section in Settings will surface real errors later.
         console.warn('[Kivara Lingo] could not list packs in onboarding', err);
         setSelection(defaultSelection(CURATED_DICT_PACKS, new Set()));
       }
@@ -778,8 +1421,6 @@ function DictStep() {
     if (toInstall.length === 0) return;
     setRunning(true);
     setTopError(null);
-    // Seed every selected pack as 'queued' so the UI shows the full pipeline
-    // before the first download starts.
     setStatuses((prev) => {
       const next = { ...prev };
       for (const p of toInstall) next[p.url] = { status: 'queued' };
@@ -825,27 +1466,26 @@ function DictStep() {
     [toInstall.length, selection, installedTitles],
   );
 
-  const totalSelectedSize = toInstall.length;
-
   return (
     <StepSection
       title="Diccionarios offline"
       subtitle="Recomendado — instala los packs marcados para que cada hover devuelva traducción, fonética y ejemplos sin depender de internet."
     >
-      <div className="rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/25 p-4 flex gap-3">
-        <ShieldCheck size={18} className="text-indigo-500 shrink-0 mt-0.5" />
-        <div className="text-[12px] text-indigo-800 dark:text-indigo-200 leading-relaxed space-y-1">
-          <p>
-            <strong className="font-semibold">Por qué importan:</strong> el diccionario incluido cubre ~4 100 palabras CEFR.
-            Los packs Wiktionary suben la cobertura local a ~98% y agregan IPA, ejemplos y categoría gramatical.
+      <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/25 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-500/10 dark:to-zinc-900 p-4 flex gap-3">
+        <div className="w-10 h-10 rounded-xl bg-indigo-500/15 ring-1 ring-indigo-500/25 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
+          <ShieldCheck size={18} />
+        </div>
+        <div className="text-[12px] text-indigo-900 dark:text-indigo-100 leading-relaxed space-y-1 min-w-0">
+          <p className="text-[12.5px]">
+            <strong className="font-semibold">Cobertura local ~98%</strong> con los packs Wiktionary, frente a ~4 100 palabras CEFR del diccionario incluido.
           </p>
-          <p className="text-indigo-700/80 dark:text-indigo-300/80">
+          <p className="text-[11.5px] text-indigo-700/80 dark:text-indigo-200/70">
             Todo se guarda en tu navegador (IndexedDB). Puedes modificar la selección luego desde Settings → Diccionarios offline.
           </p>
         </div>
       </div>
 
-      <ul className="space-y-2">
+      <ul className="space-y-2.5">
         {CURATED_DICT_PACKS.map((pack) => {
           const isInstalled = installedTitles.has(pack.title);
           const status = statuses[pack.url];
@@ -853,89 +1493,114 @@ function DictStep() {
           const isDisabled = pack.disabledInOnboarding;
           const checked = !isDisabled && !hasFailed && (selection.has(pack.url) || isInstalled);
           const checkboxDisabled = isInstalled || running || isDisabled || hasFailed;
-          const tierBorder =
-            pack.tier === 'core'
-              ? 'border-amber-300 dark:border-amber-700/60 bg-amber-50/40 dark:bg-amber-900/10'
-              : pack.tier === 'premium'
-                ? 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900'
+
+          // Tier visuals
+          const tier = pack.tier;
+          const tierMeta = tier === 'core'
+            ? { ribbon: 'bg-amber-400', icon: <BookText size={18} />, iconBg: 'bg-amber-500/10 ring-amber-500/25 text-amber-600 dark:text-amber-300', tag: 'Core', tagBg: 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300' }
+            : tier === 'recommended'
+              ? { ribbon: 'bg-indigo-400', icon: <Sparkles size={18} />, iconBg: 'bg-indigo-500/10 ring-indigo-500/25 text-indigo-600 dark:text-indigo-300', tag: 'Recomendado', tagBg: 'bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300' }
+              : { ribbon: 'bg-zinc-300 dark:bg-zinc-600', icon: <Brain size={18} />, iconBg: 'bg-zinc-500/10 ring-zinc-500/25 text-zinc-500 dark:text-zinc-400', tag: 'Premium', tagBg: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400' };
+
+          // Card state ring
+          const ringClass = isInstalled
+            ? 'border-transparent ring-2 ring-emerald-400/60 bg-emerald-50/40 dark:bg-emerald-500/5'
+            : hasFailed
+              ? 'border-transparent ring-2 ring-rose-400/60 bg-rose-50/30 dark:bg-rose-500/5'
+              : checked && !isDisabled
+                ? 'border-transparent ring-2 ring-indigo-400/60 bg-indigo-50/30 dark:bg-indigo-500/5'
                 : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900';
+
           return (
             <li
               key={pack.url}
-              className={`rounded-xl border ${tierBorder} px-4 py-3 flex items-start gap-3 transition-colors ${isDisabled ? 'opacity-60' : ''}`}
+              className={`relative rounded-xl border ${ringClass} overflow-hidden transition-all ${isDisabled ? 'opacity-60' : ''}`}
             >
-              <input
-                type="checkbox"
-                id={`dict-onb-${pack.url}`}
-                checked={checked}
-                disabled={checkboxDisabled}
-                onChange={() => toggle(pack.url)}
-                className="mt-1 accent-indigo-600 cursor-pointer disabled:cursor-not-allowed"
-              />
+              {/* Tier ribbon */}
+              <div className={`absolute left-0 top-0 bottom-0 w-1 ${tierMeta.ribbon}`} aria-hidden />
               <label
                 htmlFor={`dict-onb-${pack.url}`}
-                className="flex-1 min-w-0 cursor-pointer select-none"
+                className={`block pl-4 pr-4 py-3 ${checkboxDisabled ? 'cursor-default' : 'cursor-pointer'} select-none`}
               >
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">
-                    {pack.title}
-                  </span>
-                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400">{pack.size}</span>
-                  <span
-                    className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                      pack.tier === 'core'
-                        ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300'
-                        : pack.tier === 'premium'
-                          ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
-                          : 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'
-                    }`}
-                  >
-                    {pack.benefit}
-                  </span>
+                <div className="flex items-start gap-3">
+                  {/* Icon */}
+                  <div className={`w-10 h-10 rounded-xl ring-1 flex items-center justify-center shrink-0 ${tierMeta.iconBg}`}>
+                    {tierMeta.icon}
+                  </div>
+                  {/* Body */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100">{pack.title}</span>
+                      <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${tierMeta.tagBg}`}>
+                        {tierMeta.tag}
+                      </span>
+                      <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">{pack.size}</span>
+                      <span className="text-[10px] text-zinc-400 dark:text-zinc-500">·</span>
+                      <span className="text-[10px] text-zinc-500 dark:text-zinc-400 italic">{pack.benefit}</span>
+                    </div>
+                    <p className="text-[11.5px] text-zinc-600 dark:text-zinc-400 leading-snug mt-1">{pack.description}</p>
+                    {isDisabled && pack.disabledReason && (
+                      <p className="text-[10.5px] text-zinc-500 dark:text-zinc-500 mt-1.5 leading-snug flex items-start gap-1.5">
+                        <AlertTriangle size={11} className="text-amber-500 mt-0.5 shrink-0" />
+                        {pack.disabledReason}
+                      </p>
+                    )}
+                    <DictStepRowStatus isInstalled={isInstalled} installedTermCount={installedTermCounts[pack.title]} status={status} />
+                  </div>
+                  {/* Checkbox / state */}
+                  <div className="shrink-0 flex items-center justify-center w-6 h-6 mt-0.5">
+                    {isInstalled ? (
+                      <CheckCircle2 size={18} className="text-emerald-500" />
+                    ) : (
+                      <input
+                        type="checkbox"
+                        id={`dict-onb-${pack.url}`}
+                        checked={checked}
+                        disabled={checkboxDisabled}
+                        onChange={() => toggle(pack.url)}
+                        className="w-4 h-4 accent-indigo-600 cursor-pointer disabled:cursor-not-allowed"
+                      />
+                    )}
+                  </div>
                 </div>
-                <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-snug mt-0.5">
-                  {pack.description}
-                </p>
-                {isDisabled && pack.disabledReason && (
-                  <p className="text-[10px] text-zinc-500 dark:text-zinc-500 mt-1 leading-snug">
-                    {pack.disabledReason}
-                  </p>
-                )}
-                <DictStepRowStatus
-                  isInstalled={isInstalled}
-                  installedTermCount={installedTermCounts[pack.title]}
-                  status={status}
-                />
               </label>
             </li>
           );
         })}
       </ul>
 
-      <div className="flex items-center gap-3 flex-wrap">
+      {/* Install summary bar */}
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 flex items-center gap-3 flex-wrap">
+        <div className="w-9 h-9 rounded-lg bg-indigo-500/10 ring-1 ring-indigo-500/20 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
+          <Download size={15} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[12.5px] font-semibold text-zinc-800 dark:text-zinc-100 leading-tight">
+            {running
+              ? 'Instalando packs seleccionados…'
+              : toInstall.length === 0
+                ? allDone ? 'Todos los packs marcados están instalados' : 'Selecciona al menos un pack para continuar'
+                : `${toInstall.length} ${toInstall.length === 1 ? 'pack listo' : 'packs listos'} para instalar`}
+          </p>
+          <p className="text-[10.5px] text-zinc-500 dark:text-zinc-400 leading-tight mt-0.5">
+            {running ? 'Se ejecuta secuencialmente para evitar saturar el navegador.' : 'Puedes saltarte este paso e instalarlos luego desde Settings.'}
+          </p>
+        </div>
         <button
           type="button"
           onClick={() => void installAll()}
-          disabled={running || totalSelectedSize === 0}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm hover:shadow-md hover:shadow-indigo-500/20 transition-all"
+          disabled={running || toInstall.length === 0}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm hover:shadow-md hover:shadow-indigo-500/20 transition-all shrink-0"
         >
           {running ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-          <span className="text-[12px] font-medium">
+          <span className="text-[12px] font-semibold">
             {running
               ? 'Instalando…'
-              : totalSelectedSize === 0
-                ? allDone
-                  ? 'Todo listo'
-                  : 'Nada seleccionado'
-                : `Instalar ${totalSelectedSize} ${totalSelectedSize === 1 ? 'pack' : 'packs'}`}
+              : toInstall.length === 0
+                ? allDone ? 'Todo listo' : 'Nada seleccionado'
+                : `Instalar ${toInstall.length}`}
           </span>
         </button>
-        {allDone && totalSelectedSize === 0 && (
-          <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400">
-            <CheckCircle2 size={13} />
-            Los packs marcados ya están instalados.
-          </span>
-        )}
       </div>
 
       {topError && (
@@ -1005,289 +1670,16 @@ function DictStepRowStatus({ isInstalled, installedTermCount, status }: DictStep
   return null;
 }
 
-/* ─── AIStep ──────────────────────────────────────────────────────────────── */
-
-interface AIStepProps {
-  provider: AiProvider;
-  setProvider: (v: AiProvider) => void;
-  apiKey: string;
-  setApiKey: (v: string) => void;
-  model: string;
-  setModel: (v: string) => void;
-  enrichOnSave: boolean;
-  setEnrichOnSave: (v: boolean) => void;
-  enrichOnHover: boolean;
-  setEnrichOnHover: (v: boolean) => void;
-  isDarkMode: boolean;
-}
-
-function AIStep({
-  provider, setProvider, apiKey, setApiKey, model, setModel,
-  enrichOnSave, setEnrichOnSave, enrichOnHover, setEnrichOnHover, isDarkMode,
-}: AIStepProps) {
-  const providers: { value: AiProvider; label: string; badge?: string }[] = [
-    { value: 'disabled', label: 'Desactivado', badge: 'omitir' },
-    { value: 'openai', label: 'OpenAI', badge: 'GPT-4o' },
-    { value: 'anthropic', label: 'Anthropic', badge: 'Claude' },
-    { value: 'google-ai', label: 'Google Gemini', badge: 'Gemini' },
-  ];
-
-  return (
-    <StepSection
-      title="Enriquecimiento IA (opcional)"
-      subtitle="Si quieres definiciones contextuales, sinónimos y matices generados por IA al guardar tarjetas. Puedes activarlo después en Settings."
-    >
-      {/* Provider selector */}
-      <div className="grid grid-cols-2 gap-2">
-        {providers.map((p) => (
-          <button
-            key={p.value}
-            onClick={() => setProvider(p.value)}
-            className={`relative flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
-              provider === p.value
-                ? p.value === 'disabled'
-                  ? 'border-zinc-400 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800'
-                  : 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 shadow-sm shadow-indigo-500/10'
-                : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700'
-            }`}
-          >
-            <div className="flex-1 min-w-0">
-              <p className={`text-[13px] font-semibold leading-tight ${
-                provider === p.value && p.value !== 'disabled'
-                  ? 'text-indigo-700 dark:text-indigo-300'
-                  : 'text-zinc-800 dark:text-zinc-200'
-              }`}>{p.label}</p>
-              {p.badge && (
-                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">{p.badge}</p>
-              )}
-            </div>
-            {provider === p.value && (
-              <CheckCircle2 size={15} className={p.value === 'disabled' ? 'text-zinc-500' : 'text-indigo-500'} />
-            )}
-          </button>
-        ))}
-      </div>
-
-      {provider !== 'disabled' && (
-        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800 overflow-hidden">
-          <div className="p-4 space-y-1.5">
-            <label className="text-[12px] font-semibold text-zinc-700 dark:text-zinc-300 block">API key</label>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder={provider === 'openai' ? 'sk-...' : provider === 'anthropic' ? 'sk-ant-...' : 'AIza...'}
-              className="sl-input sl-lg w-full"
-            />
-            {!apiKey && (
-              <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                <AlertTriangle size={11} />
-                Sin API key las llamadas IA se omitirán (no bloquea el flujo).
-              </p>
-            )}
-          </div>
-          <div className="p-4 space-y-1.5">
-            <label className="text-[12px] font-semibold text-zinc-700 dark:text-zinc-300 block">Modelo</label>
-            <input
-              type="text"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              placeholder={
-                provider === 'openai' ? 'gpt-4o-mini'
-                : provider === 'anthropic' ? 'claude-3-5-haiku-latest'
-                : 'gemini-1.5-flash'
-              }
-              className="sl-input sl-lg w-full"
-            />
-          </div>
-          <div className="p-4 space-y-2">
-            <ToggleRow
-              label="Enriquecer al guardar"
-              description="Llama a la IA cada vez que guardas una tarjeta en Anki."
-              on={enrichOnSave}
-              onChange={setEnrichOnSave}
-              isDarkMode={isDarkMode}
-            />
-          </div>
-          <div className="p-4 space-y-2">
-            <ToggleRow
-              label="Sinónimos en hover"
-              description="Muestra colocaciones y sinónimos al hacer hover sobre una palabra."
-              on={enrichOnHover}
-              onChange={setEnrichOnHover}
-              isDarkMode={isDarkMode}
-            />
-          </div>
-        </div>
-      )}
-
-      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed px-0.5">
-        Las respuestas se cachean en IndexedDB con TTL configurable para no hacer llamadas duplicadas. Puedes cambiar el proveedor en <span className="font-medium text-zinc-700 dark:text-zinc-300">Settings → IA premium</span> cuando quieras.
-      </p>
-    </StepSection>
-  );
-}
-
-/* ─── DemoStep ────────────────────────────────────────────────────────────── */
-
-function DemoStep() {
-  return (
-    <StepSection
-      title="¡Todo listo para probar!"
-      subtitle="Al pulsar Empezar abriremos un video corto en YouTube para que veas la extensión en acción."
-    >
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-        <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-            Qué verás
-          </p>
-        </div>
-        <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-          {[
-            { num: '1', text: 'Subtítulos estilizados superpuestos sobre el reproductor.' },
-            { num: '2', text: 'Hover sobre cualquier palabra → popover con traducción y fonética.' },
-            { num: '3', text: 'Clic en "Guardar" → nota en Anki con frame + audio capturado.' },
-            { num: '4', text: 'Panel lateral listo con el mapeo de campos que acabas de configurar.' },
-          ].map((item) => (
-            <div key={item.num} className="flex items-start gap-3 px-4 py-3">
-              <span
-                className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 mt-0.5"
-                style={{ fontSize: 10, fontWeight: 700 }}
-              >
-                {item.num}
-              </span>
-              <p className="text-[13px] text-zinc-700 dark:text-zinc-300 leading-relaxed">{item.text}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/25 p-4">
-        <p className="text-[12px] text-indigo-700 dark:text-indigo-300 leading-relaxed">
-          Para activar la captura de audio del tab (necesaria para "Sentence audio" en las tarjetas), haz clic en el icono de la extensión en la barra del navegador → <span className="font-semibold">Activar captura de audio</span>.
-        </p>
-      </div>
-    </StepSection>
-  );
-}
-
-/* ─── DoneStep ────────────────────────────────────────────────────────────── */
-
-function DoneStep({ completedAt, onComplete }: { completedAt: number | null; onComplete: () => void }) {
-  return (
-    <StepSection title="¡Todo listo!" subtitle="">
-      <div className="flex flex-col items-center gap-8 py-8">
-        <div className="relative">
-          <div
-            className="absolute inset-0 rounded-full animate-pulse"
-            style={{ background: 'radial-gradient(circle, rgba(74,222,128,0.25) 0%, transparent 70%)' }}
-          />
-          <div className="relative w-20 h-20 rounded-full bg-emerald-50 dark:bg-emerald-500/15 ring-4 ring-emerald-200 dark:ring-emerald-500/30 ring-offset-2 ring-offset-white dark:ring-offset-zinc-950 flex items-center justify-center sl-animate-celebrate">
-            <CheckCircle2 size={36} className="text-emerald-600 dark:text-emerald-400" />
-          </div>
-        </div>
-
-        <div className="text-center space-y-2 max-w-sm">
-          <p className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">Kivara Lingo está listo</p>
-          <p className="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
-            Para volver a este asistente ve a{' '}
-            <span className="font-medium text-zinc-700 dark:text-zinc-300">Settings → Repetir configuración inicial</span>.
-          </p>
-          {completedAt && (
-            <p className="text-[10px] text-zinc-400 dark:text-zinc-600">
-              Completado el {new Date(completedAt).toLocaleString()}
-            </p>
-          )}
-        </div>
-
-        <button
-          onClick={onComplete}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 shadow-sm hover:shadow-md hover:shadow-indigo-500/25 transition-all"
-        >
-          <span style={{ fontSize: 14, fontWeight: 600 }}>Ir al reproductor</span>
-          <ExternalLink size={14} />
-        </button>
-      </div>
-    </StepSection>
-  );
-}
-
-/* ─── LangStep ────────────────────────────────────────────────────────────── */
-
-const ONBOARDING_LANGS = [
-  ['en', 'Inglés'],
-  ['es', 'Español'],
-  ['fr', 'Francés'],
-  ['de', 'Alemán'],
-  ['it', 'Italiano'],
-  ['pt', 'Portugués'],
-  ['ja', 'Japonés (日本語)'],
-  ['ko', 'Coreano (한국어)'],
-  ['zh', 'Chino (中文)'],
-] as const;
-
-function LangStep({
-  sourceLang, setSourceLang, targetLang, setTargetLang,
-}: {
-  sourceLang: string; setSourceLang: (v: string) => void;
-  targetLang: string; setTargetLang: (v: string) => void;
-}) {
-  const sameLanguage = sourceLang === targetLang;
-  return (
-    <StepSection
-      title="¿Qué idioma aprendes?"
-      subtitle="Configura el par de idiomas. Puedes cambiarlo en cualquier momento desde Settings → Idioma."
-    >
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800 overflow-hidden">
-        <div className="p-4 space-y-1.5">
-          <label className="text-[12px] font-semibold text-zinc-700 dark:text-zinc-300 block">Idioma que aprendo</label>
-          <select
-            value={sourceLang}
-            onChange={(e) => setSourceLang(e.target.value)}
-            className="sl-select sl-lg w-full"
-          >
-            {ONBOARDING_LANGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-        </div>
-        <div className="p-4 space-y-1.5">
-          <label className="text-[12px] font-semibold text-zinc-700 dark:text-zinc-300 block">Mi idioma nativo</label>
-          <select
-            value={targetLang}
-            onChange={(e) => setTargetLang(e.target.value)}
-            className="sl-select sl-lg w-full"
-          >
-            {ONBOARDING_LANGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-        </div>
-      </div>
-
-      {sameLanguage && (
-        <div className="rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/25 p-4">
-          <p className="text-[12px] text-amber-800 dark:text-amber-300 leading-relaxed">
-            El idioma de aprendizaje y el nativo son el mismo. Asegúrate de seleccionar idiomas distintos para que las traducciones funcionen correctamente.
-          </p>
-        </div>
-      )}
-
-      <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-4">
-        <p className="text-[12px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
-          Este par de idiomas controla la dirección de las traducciones en los subtítulos, las tarjetas Anki y el enriquecimiento con IA.
-        </p>
-      </div>
-    </StepSection>
-  );
-}
-
 /* ─── Shared primitives ───────────────────────────────────────────────────── */
 
 function StepSection({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-6">
-      <header className="space-y-2">
+    <section className="space-y-4">
+      <header className="space-y-1.5">
         <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{title}</h2>
         {subtitle && <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">{subtitle}</p>}
       </header>
-      <div className="space-y-4">{children}</div>
+      <div className="space-y-3">{children}</div>
     </section>
   );
 }

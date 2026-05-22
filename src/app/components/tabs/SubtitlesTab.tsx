@@ -3,6 +3,7 @@ import { SubtitleStyles } from '../../types';
 import {
   Type, Palette, AlignVerticalSpaceBetween, RotateCcw, AlignLeft, ChevronDown,
 } from 'lucide-react';
+import { InfoHint } from '../InfoHint';
 
 const DEFAULT_STYLES: SubtitleStyles = {
   fontSize: 32,
@@ -236,6 +237,7 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
         <Section
           icon={<AlignLeft size={10} />}
           title="Formato nativo"
+          hint="Respeta los saltos de línea y la alineación originales del archivo de subtítulos (SRT/VTT/ASS). Desactivado, Kivara reconstruye la línea para que ocupe el ancho disponible."
           collapsible
           open={nativeFormatOpen}
           onToggle={() => setNativeFormatOpen(!nativeFormatOpen)}
@@ -259,7 +261,7 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
 /* ---------- shared (matches CardsTab/SettingsTab look) ---------- */
 
 function Section({
-  icon, title, children, collapsible, open, onToggle,
+  icon, title, children, collapsible, open, onToggle, hint,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -267,10 +269,14 @@ function Section({
   collapsible?: boolean;
   open?: boolean;
   onToggle?: () => void;
+  hint?: React.ReactNode;
 }) {
   const header = (
     <div className="flex items-center justify-between gap-1.5 px-2.5 py-1.5 bg-zinc-50/60 dark:bg-zinc-900/60 border-b border-zinc-100 dark:border-zinc-800/60 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-      <span className="flex items-center gap-1.5">{icon}{title}</span>
+      <span className="flex items-center gap-1.5">
+        {icon}{title}
+        {hint && <InfoHint text={hint} />}
+      </span>
       {collapsible && (
         <ChevronDown
           size={12}

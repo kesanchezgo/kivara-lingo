@@ -171,10 +171,10 @@ export function SubtitleOverlay({
   const nativeAltText = altCue?.text?.trim() || null;
   const [translatedSentence, setTranslatedSentence] = useState<string | null>(null);
   useEffect(() => {
-    if (!showDualSubtitle) {
-      setTranslatedSentence(null);
-      return;
-    }
+    // Mock parity: the dual line is also visible on hover even when the
+    // user has the persistent toggle OFF, so we keep the translation
+    // pre-fetched regardless of `showDualSubtitle`. The toggle still
+    // controls visibility of the line — see the dual-caption JSX below.
     const src = targetSentence.trim();
     if (!src) {
       setTranslatedSentence(null);
@@ -193,28 +193,30 @@ export function SubtitleOverlay({
     }
     let cancelled = false;
     setTranslatedSentence(null);
-    const t = setTimeout(() => {
-      sendMessage(
-        'TRANSLATE',
-        { text: src, sourceLang: cueLanguage || 'en', targetLang: nativeLanguage },
-        'background',
-      )
-        .then((res) => {
-          if (cancelled) return;
-          const r = res as TranslateResponse;
-          if (r?.ok && r.translatedText && r.translatedText.trim() !== src) {
-            setTranslatedSentence(r.translatedText);
-          }
-        })
-        .catch(() => {
-          /* network errors are non-fatal — just hide the second line */
-        });
-    }, 120);
+    // No debounce — the cue id already changes only when the platform
+    // emits a new caption, so the previous cleanup cancels any in-flight
+    // request. Removing the 120 ms wait makes the dual line catch up to
+    // the source line as fast as the MT provider responds (instant when
+    // it's a cache hit).
+    sendMessage(
+      'TRANSLATE',
+      { text: src, sourceLang: cueLanguage || 'en', targetLang: nativeLanguage },
+      'background',
+    )
+      .then((res) => {
+        if (cancelled) return;
+        const r = res as TranslateResponse;
+        if (r?.ok && r.translatedText && r.translatedText.trim() !== src) {
+          setTranslatedSentence(r.translatedText);
+        }
+      })
+      .catch(() => {
+        /* network errors are non-fatal — just hide the second line */
+      });
     return () => {
       cancelled = true;
-      clearTimeout(t);
     };
-  }, [targetSentence, cueLanguage, nativeLanguage, showDualSubtitle, nativeAltText]);
+  }, [targetSentence, cueLanguage, nativeLanguage, nativeAltText, cue?.id]);
 
   // Final string shown on the bilingual line.
   const dualCaptionText = nativeAltText ?? translatedSentence;
@@ -296,10 +298,14 @@ export function SubtitleOverlay({
     hoveredKeyRef.current = key;
   };
   const handleTokenLeave = () => {
+    // 80 ms is enough to absorb cursor microjitter — the popover's
+    // invisible bridge already keeps the mouse "inside" while crossing
+    // the 12 px gap from token to popover plate, so we don't need a
+    // longer timeout. Mirrors the mock.
     wordHoverTimeout.current = setTimeout(() => {
       setHoveredId(null);
       hoveredKeyRef.current = null;
-    }, 180);
+    }, 80);
   };
 
   /**
@@ -435,6 +441,12 @@ export function SubtitleOverlay({
       : '0,0,0';
   };
   const backgroundColorWithOpacity = `rgba(${hexToRgb(bgColor)}, ${bgOpacity})`;
+  // En hover (modo aprendizaje) usamos la opacidad configurada por el
+  // usuario (Subtitles tab → "Opacidad en hover"), nunca menor que la
+  // opacidad base — así el plate puede volverse MÁS legible al hover, nunca
+  // menos. Mismo cálculo que el mock.
+  const hoverBgOpacity = Math.max(bgOpacity, (subtitleStyles.hoverOpacity ?? 80) / 100);
+  const backgroundColorOnHover = `rgba(${hexToRgb(bgColor)}, ${hoverBgOpacity})`;
 
   const verticalPercent =
     subtitleStyles.verticalOffset ??
@@ -494,6 +506,19 @@ export function SubtitleOverlay({
           )}
         </button>
       </div>
+
+      {/* Onboarding hint — invitation banner shown when no popover/capture is
+          active. Mock parity. Floats at the top of the video so the user
+          knows the subtitle is interactive (otherwise on a static cue it
+          looks like plain text). */}
+      {!isReading && !isHovered && captureState === 'idle' && (
+        <div
+          className="absolute top-8 left-1/2 -translate-x-1/2 bg-zinc-900/70 backdrop-blur-md border border-white/10 text-white/85 text-xs px-3 py-1.5 rounded-full pointer-events-none shadow-lg animate-in fade-in slide-in-from-top-2 duration-500 z-30"
+          style={{ fontFamily: 'var(--kvl-font-sans)' }}
+        >
+          Pasa el ratón sobre los subtítulos para interactuar
+        </div>
+      )}
 
       {/* Capture overlay — covers the full video area */}
       {!isReading && captureState !== 'idle' && (
@@ -677,8 +702,12 @@ export function SubtitleOverlay({
             textAlign: textAlignment,
             fontSize: `${subtitleStyles.fontSize}px`,
             color: subtitleStyles.color,
-            backgroundColor: !isReading && isHovered ? 'rgba(0,0,0,0.8)' : backgroundColorWithOpacity,
+            backgroundColor: !isReading && isHovered ? backgroundColorOnHover : backgroundColorWithOpacity,
             fontWeight: subtitleStyles.fontWeight,
+            // Pin the font family so the subtitle text always renders in
+            // our stack — never the host page's font (YouTube/Netflix etc.
+            // each use their own brand font that would otherwise leak in).
+            fontFamily: 'var(--kvl-font-sans)',
             textShadow: (() => {
               const s = subtitleStyles.textShadow;
               if (s <= 0) return 'none';
@@ -691,6 +720,13 @@ export function SubtitleOverlay({
               !isReading && isHovered
                 ? '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
                 : 'none',
+            // "Difuminar fondo en hover" toggle (SubtitlesTab) — applies
+            // a 2px backdrop-blur behind the plate during hover so busy
+            // scenes don't bleed through the popover. Mock parity.
+            backdropFilter:
+              !isReading && isHovered && subtitleStyles.hoverBlur ? 'blur(2px)' : undefined,
+            WebkitBackdropFilter:
+              !isReading && isHovered && subtitleStyles.hoverBlur ? 'blur(2px)' : undefined,
           }}
         >
           {isReading ? (
@@ -703,7 +739,6 @@ export function SubtitleOverlay({
               ))}
             </div>
           ) : (
-            <>
             <div className="flex flex-col" style={{ alignItems: flexJustify }}>
               {lineTokens.map((tokens, li) => (
                 <div key={li} className="block">
@@ -878,50 +913,33 @@ export function SubtitleOverlay({
                 </div>
               ))}
             </div>
+          )}
 
-            {/* Dual caption — native-language full sentence under the
-                source. Lives INSIDE the source plate so both lines share
-                one rounded box, exactly like the original Figma Make
-                mock: simple `text-zinc-300` over `text-[0.65em]`,
-                `opacity-90` baseline, no extra plate / weight / tracking.
-
-                Two layout fixes vs. the previous build:
-
-                  1. Always render the wrapper while the dual track is
-                     enabled (even before `dualCaptionText` resolves).
-                     Otherwise mounting the node a few hundred ms later —
-                     when the MT round-trip finishes or the platform's
-                     alt cue arrives — adds `mt-2` (~8 px) to the plate,
-                     which is centered around `top: verticalPercent%`,
-                     and that shifts the source text upward by ~4 px. By
-                     keeping the same DOM structure from the first frame
-                     the source line stays put.
-                  2. Apply `mt-2` only while the row is expanded (hover +
-                     text). Collapsed = `mt-0` so the wrapper truly costs
-                     zero vertical space. The `transition-all` then
-                     animates the margin together with `max-height` and
-                     `opacity`, so the source line settles smoothly when
-                     the user hovers/leaves. */}
-            {showDualSubtitle && (
-              <div
-                data-kivara-hover-zone="true"
-                className={`text-[0.65em] opacity-90 transition-all duration-300 ease-out overflow-hidden ${
-                  isHovered && dualCaptionText
-                    ? 'mt-2 max-h-20 opacity-100'
-                    : 'mt-0 max-h-0 opacity-0'
-                }`}
-                title={
-                  dualCaptionSource === 'native'
-                    ? 'Subtítulo nativo de la plataforma'
-                    : 'Traducción automática'
-                }
-                style={{ textAlign: textAlignment }}
-                aria-hidden={!isHovered || !dualCaptionText}
-              >
+          {/* Dual caption — native-language full sentence under the
+              source. 1:1 with the mock VideoPlayer:
+                - Wrapper always renders while `showDualSubtitle ||
+                  (!isReading && isHovered)` so it doesn't flash in
+                  AFTER the MT round-trip resolves (which would re-run
+                  the height transition mid-cue and look out of sync).
+                - Inner expand/collapse driven by `showDualSubtitle || isHovered`.
+                - The `<span>` itself only appears once `dualCaptionText`
+                  resolves, so the user never sees an empty grey line.
+                - `mt-2` constant, `transition-all duration-300`. */}
+          {(showDualSubtitle || (!isReading && isHovered)) && (
+            <div
+              data-kivara-hover-zone="true"
+              className={`mt-2 text-[0.65em] transition-all duration-300 overflow-hidden ${
+                showDualSubtitle || isHovered ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'
+              }`}
+              style={{
+                whiteSpace: subtitleStyles.keepNativeLineBreaks ? 'pre-line' : undefined,
+                textAlign: subtitleStyles.keepNativeAlignment ? 'left' : 'center',
+              }}
+            >
+              {dualCaptionText && (
                 <span className="text-zinc-300">{dualCaptionText}</span>
-              </div>
-            )}
-            </>
+              )}
+            </div>
           )}
         </div>
       </div>

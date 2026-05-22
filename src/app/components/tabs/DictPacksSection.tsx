@@ -5,7 +5,7 @@
  * via Dexie), lets them toggle each pack on/off, and offers four import
  * surfaces:
  *
- *   1. **Pack gallery**          — one-click "Importar" buttons for the
+ *   1. **Pack gallery**          — one-click "Instalar" buttons for the
  *                                  curated Wiktionary EN→ES / IPA / Monolingüe
  *                                  packs published by the kaikki-to-yomitan
  *                                  project. The URL is downloaded by the
@@ -26,28 +26,21 @@
  * All five paths share the same downstream pipeline (`dict_packs` +
  * `dict_terms` rows in Dexie), so once a pack is in IndexedDB every
  * surface — popover, save-card enrichment, options page — sees it.
+ *
+ * The visual structure now mirrors the Figma mock 1:1: the section lives
+ * inside the parent SettingsTab accordion, so its own header is implicit;
+ * we render compact sub-sections (Catálogo, Instalados, Importar, Cobertura)
+ * stacked inside the accordion body. All real wiring (Dexie, service-worker
+ * messaging, telemetry, real importers) is preserved unchanged.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BookText,
-  Trash2,
-  Upload,
-  Power,
-  PowerOff,
-  Loader2,
-  Globe,
-  Download,
-  FileText,
-  Library,
-  Trophy,
-  ChevronDown,
-  ChevronRight,
-  CheckCircle2,
+  Trash2, Upload, Power, PowerOff, Loader2,
+  Download, FileText, Library, Trophy, ChevronDown, CheckCircle2, BarChart3, Link2, Sparkles,
+  Package, Cloud, Ban,
 } from 'lucide-react';
 import type { DictPackRow, PackStatsRow } from '../../../shared/db';
-import {
-  importYomitanPackFromUrl,
-} from '../../../content/nlp/yomitan';
+import { importYomitanPackFromUrl } from '../../../content/nlp/yomitan';
 import { importCsvList } from '../../../content/nlp/csv-importer';
 import { autoImportDictFile } from '../../../content/nlp/dict-format-detect';
 import {
@@ -64,105 +57,22 @@ import {
   topPacksByHits,
 } from '../../../shared/telemetry';
 import { useKivaraStore } from '../../../shared/store';
+import {
+  RECOMMENDED_PACKS,
+  GROUP_LABELS,
+  type RecommendedPack,
+} from '../../../shared/dict-pack-catalog';
+import { InfoHint } from '../InfoHint';
 
 interface ImportFeedback {
   kind: 'ok' | 'err';
   message: string;
 }
 
-interface RecommendedPack {
-  /** Display title shown in the gallery card. */
-  title: string;
-  /** One-line description of what's inside. */
-  description: string;
-  /** ZIP download URL (Yomitan-format). */
-  url: string;
-  /** Approximate compressed size — surfaced so users know the cost. */
-  size: string;
-  /** Coverage / impact tier — colours the card border for quick scanning. */
-  tier: 'recommended' | 'core' | 'premium';
-  /** Group label used to bucket cards into UI sections. */
-  group: 'bilingual' | 'monolingual' | 'phonetic' | 'frequency' | 'examples';
-  /** ISO-ish language pair label ("EN → ES", "EN IPA", …). */
-  langs: string;
-  /** License / source attribution, surfaced as small caption text. */
-  license: string;
-}
-
-/**
- * Curated catalog of high-quality Wiktionary-derived packs published weekly
- * by the kaikki-to-yomitan project.
- *
- * Reference: https://github.com/themoeway/kaikki-to-yomitan
- */
-const PACKS_BASE_URL = 'https://pub-c3d38cca4dc2403b88934c56748f5144.r2.dev/releases/latest';
-
-const RECOMMENDED_PACKS: RecommendedPack[] = [
-  // Only packs whose ZIP we've verified exists at the CDN (HEAD 200).
-  // Variants without a published artifact (US/UK/AusE IPA, Tatoeba, freq)
-  // are tracked in the README backlog and will be added when published.
-  // Sizes are real HTTP `Content-Length` rounded — not estimates.
-  // ── Bilingüe (traducción) ──────────────────────────────────────────────
-  {
-    title: 'Wiktionary EN→ES',
-    description: 'Diccionario bilingüe inglés→español derivado de Wiktionary.',
-    url: `${PACKS_BASE_URL}/kty-en-es.zip`,
-    size: '≈1.5 MB',
-    tier: 'core',
-    group: 'bilingual',
-    langs: 'EN → ES',
-    license: 'CC-BY-SA · Wiktionary',
-  },
-  {
-    title: 'Wiktionary ES→EN',
-    description: 'Bilingüe inverso para usuarios que quieren mirar palabras en español.',
-    url: `${PACKS_BASE_URL}/kty-es-en.zip`,
-    size: '≈22 MB',
-    tier: 'recommended',
-    group: 'bilingual',
-    langs: 'ES → EN',
-    license: 'CC-BY-SA · Wiktionary',
-  },
-  // ── Monolingüe (inmersión) ─────────────────────────────────────────────
-  {
-    title: 'Wiktionary EN→EN',
-    description: 'Definiciones monolingües en inglés (B2+). Útil para inmersión.',
-    url: `${PACKS_BASE_URL}/kty-en-en.zip`,
-    size: '≈127 MB',
-    tier: 'premium',
-    group: 'monolingual',
-    langs: 'EN → EN',
-    license: 'CC-BY-SA · Wiktionary',
-  },
-  {
-    title: 'Wiktionary ES→ES',
-    description: 'Definiciones monolingües en español (RAE-style).',
-    url: `${PACKS_BASE_URL}/kty-es-es.zip`,
-    size: '≈38 MB',
-    tier: 'recommended',
-    group: 'monolingual',
-    langs: 'ES → ES',
-    license: 'CC-BY-SA · Wiktionary',
-  },
-  // ── IPA (pronunciación) ────────────────────────────────────────────────
-  {
-    title: 'Wiktionary EN IPA',
-    description: 'Transcripción IPA real para ~200 000 palabras inglesas.',
-    url: `${PACKS_BASE_URL}/kty-en-ipa.zip`,
-    size: '≈5 MB',
-    tier: 'recommended',
-    group: 'phonetic',
-    langs: 'EN IPA',
-    license: 'CC-BY-SA · Wiktionary',
-  },
-];
-
-const GROUP_LABELS: Record<RecommendedPack['group'], string> = {
-  bilingual: 'Bilingüe (EN → ES)',
-  monolingual: 'Monolingüe',
-  phonetic: 'Fonética / IPA',
-  frequency: 'Frecuencia y nivel',
-  examples: 'Oraciones de ejemplo',
+const TIER_META: Record<RecommendedPack['tier'], { label: string; pill: string; icon: React.ReactNode }> = {
+  core:        { label: 'Esencial',    pill: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',     icon: <Sparkles size={9} /> },
+  recommended: { label: 'Recomendado', pill: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300', icon: null },
+  premium:     { label: 'Avanzado',    pill: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300', icon: null },
 };
 
 export function DictPacksSection() {
@@ -177,6 +87,8 @@ export function DictPacksSection() {
   const [csvText, setCsvText] = useState('');
   const [importingCsv, setImportingCsv] = useState(false);
   const [stats, setStats] = useState<PackStatsRow[]>([]);
+  const [coverageOpen, setCoverageOpen] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvFileInputRef = useRef<HTMLInputElement>(null);
   const coverageFileInputRef = useRef<HTMLInputElement>(null);
@@ -188,7 +100,6 @@ export function DictPacksSection() {
     () => new Set(idlePacks(stats).map((r) => r.packId)),
     [stats],
   );
-
   const installedPackTitles = useMemo(
     () => new Set(packs.map((p) => p.title)),
     [packs],
@@ -210,30 +121,49 @@ export function DictPacksSection() {
 
   const refresh = useCallback(async () => {
     try {
-      const reply: unknown = await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: 'LIST_DICT_PACKS' }, resolve);
+      const reply: unknown = await new Promise((resolve, reject) => {
+        try {
+          chrome.runtime.sendMessage({ type: 'LIST_DICT_PACKS' }, (r) => {
+            // chrome.runtime.lastError fires when the service worker is gone
+            // (e.g. after the extension was reloaded but the page wasn't).
+            // We swallow it so the UI degrades gracefully instead of throwing.
+            const err = chrome.runtime.lastError;
+            if (err) reject(new Error(err.message));
+            else resolve(r);
+          });
+        } catch (sendErr) {
+          reject(sendErr);
+        }
       });
       const r = reply as { ok?: boolean; packs?: DictPackRow[] };
-      if (r?.ok && Array.isArray(r.packs)) {
-        setPacks(r.packs);
-      } else {
-        setPacks([]);
-      }
+      if (r?.ok && Array.isArray(r.packs)) setPacks(r.packs);
+      else setPacks([]);
     } catch (err) {
-      console.warn('[Kivara Lingo] could not list dict packs', err);
+      // "Extension context invalidated" is expected after a hot-reload —
+      // the user just needs to refresh the host page. No need to spam the
+      // console with a stack trace.
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!/context invalidated/i.test(msg)) {
+        console.warn('[Kivara Lingo] could not list dict packs', err);
+      }
       setPacks([]);
     }
     try {
       const rows = await readPackStats();
       setStats(rows);
     } catch (err) {
-      console.warn('[Kivara Lingo] could not read telemetry', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!/context invalidated/i.test(msg)) {
+        console.warn('[Kivara Lingo] could not read telemetry', err);
+      }
     }
   }, []);
 
   useEffect(() => {
     void refresh().finally(() => setLoading(false));
   }, [refresh]);
+
+  /* ── Coverage import / export ────────────────────────────────────────── */
 
   const onResetCoverage = useCallback(async () => {
     await resetCoverage();
@@ -266,7 +196,10 @@ export function DictPacksSection() {
     }
   }, []);
 
-  const onPickCoverageImport = useCallback(() => coverageFileInputRef.current?.click(), []);
+  const onPickCoverageImport = useCallback(
+    () => coverageFileInputRef.current?.click(),
+    [],
+  );
 
   const onCoverageFileChosen = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -293,8 +226,7 @@ export function DictPacksSection() {
     [refresh],
   );
 
-  const onPickFile = useCallback(() => fileInputRef.current?.click(), []);
-  const onPickCsvFile = useCallback(() => csvFileInputRef.current?.click(), []);
+  /* ── Import handlers (real importers, unchanged) ─────────────────────── */
 
   const onFileAuto = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -315,7 +247,7 @@ export function DictPacksSection() {
           const skipNote = result.skipped ? ` (${result.skipped} saltados)` : '';
           setFeedback({
             kind: 'ok',
-            message: `${result.pack.title} · ${result.termsImported.toLocaleString()} términos importados (${formatLabel[result.format]})${skipNote}`,
+            message: `${result.pack.title} · ${result.termsImported.toLocaleString()} términos (${formatLabel[result.format]})${skipNote}`,
           });
         } else {
           setFeedback({ kind: 'err', message: result.error });
@@ -419,10 +351,19 @@ export function DictPacksSection() {
   const onToggle = useCallback(
     async (pack: DictPackRow) => {
       await new Promise<void>((resolve) => {
-        chrome.runtime.sendMessage(
-          { type: 'SET_PACK_ENABLED', id: pack.id, enabled: !pack.enabled },
-          () => resolve(),
-        );
+        try {
+          chrome.runtime.sendMessage(
+            { type: 'SET_PACK_ENABLED', id: pack.id, enabled: !pack.enabled },
+            () => {
+              // Drain chrome.runtime.lastError so it doesn't surface as an
+              // "Unchecked runtime.lastError" warning when the worker is gone.
+              void chrome.runtime.lastError;
+              resolve();
+            },
+          );
+        } catch {
+          resolve();
+        }
       });
       await refresh();
     },
@@ -437,254 +378,222 @@ export function DictPacksSection() {
         return;
       }
       await new Promise<void>((resolve) => {
-        chrome.runtime.sendMessage(
-          { type: 'DELETE_DICT_PACK', id: pack.id },
-          () => resolve(),
-        );
+        try {
+          chrome.runtime.sendMessage(
+            { type: 'DELETE_DICT_PACK', id: pack.id },
+            () => {
+              void chrome.runtime.lastError;
+              resolve();
+            },
+          );
+        } catch {
+          resolve();
+        }
       });
       await refresh();
     },
     [refresh],
   );
 
-  return (
-    <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-      <header className="px-2.5 py-1.5 bg-zinc-50/60 dark:bg-zinc-900/60 border-b border-zinc-100 dark:border-zinc-800/60 flex items-center gap-2">
-        <BookText size={10} className="text-zinc-500" />
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex-1">
-          Diccionarios offline
-        </h3>
-        <span className="text-[10px] text-zinc-500 dark:text-zinc-500 normal-case">
-          {packs.length} {packs.length === 1 ? 'pack' : 'packs'}
-        </span>
-      </header>
-      <div className="p-2.5 space-y-3">
-        <p className="text-[10px] text-zinc-500 dark:text-zinc-500 leading-snug">
-          Importa packs en formato Yomitan (.zip) o StarDict, o pega una lista CSV/TSV personal.
-          Toda la data se guarda en IndexedDB — los packs grandes (50 MB+) no afectan al tamaño de la extensión.
-        </p>
+  const totals = aggregateCoverage(stats);
+  // Restrict the rendered groups to the ones the curated catalogue uses today
+  // (frequency / examples are placeholders for future packs).
+  const groups: RecommendedPack['group'][] = ['bilingual', 'monolingual', 'phonetic'];
 
-        {/* ── Pack gallery (Tier 3a + 4b) ─────────────────────────────── */}
+  return (
+    <div className="p-2.5 space-y-3">
+
+      {/* ── Catálogo recomendado ─────────────────────────────────────────── */}
+      <SubSection icon={<Library size={10} />} title="Catálogo recomendado">
         <div className="space-y-2">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-1 flex items-center gap-1.5">
-            <Library size={10} />
-            Packs recomendados
-          </div>
-          {(['bilingual', 'monolingual', 'phonetic', 'frequency', 'examples'] as const).map(
-            (group) => {
-              const cards = RECOMMENDED_PACKS.filter((p) => p.group === group);
-              if (cards.length === 0) return null;
-              return (
-                <div key={group} className="space-y-1">
-                  <div className="text-[9px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 normal-case">
-                    {GROUP_LABELS[group]}
-                  </div>
-                  <ul className="grid grid-cols-1 gap-1.5">
-                    {cards.map((p) => (
-                      <li
+          {groups.map((group) => {
+            const cards = RECOMMENDED_PACKS.filter((p) => p.group === group);
+            if (cards.length === 0) return null;
+            return (
+              <div key={group} className="space-y-1">
+                <div className="text-[9px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500 px-1">
+                  {GROUP_LABELS[group]}
+                </div>
+                <div className="space-y-1">
+                  {cards.map((p) => {
+                    const installed = isPackInstalled(p.title, p.url);
+                    const loading = importingUrl === p.url;
+                    const tier = TIER_META[p.tier];
+                    return (
+                      <div
                         key={p.url}
-                        className={`border rounded px-2 py-1.5 flex items-center gap-2 ${
-                          p.tier === 'core'
-                            ? 'border-amber-300 dark:border-amber-700/60 bg-amber-50/40 dark:bg-amber-900/10'
-                            : 'border-zinc-200 dark:border-zinc-800'
-                        }`}
+                        className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2 py-1.5 flex items-center gap-2"
+                        title={`${p.description} — ${p.license}`}
                       >
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-baseline gap-1.5 flex-wrap">
-                            <span className="text-[12px] font-medium text-zinc-800 dark:text-zinc-200 truncate normal-case">
-                              {p.title}
-                            </span>
-                            <span className="text-[9px] text-zinc-500 normal-case shrink-0">
-                              {p.langs}
-                            </span>
-                            <span className="text-[9px] text-zinc-500 normal-case shrink-0">
-                              · {p.size}
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11.5px] font-medium text-zinc-800 dark:text-zinc-200 truncate leading-tight">{p.title}</span>
+                            <span className={`shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded inline-flex items-center gap-0.5 ${tier.pill}`}>
+                              {tier.icon}{tier.label}
                             </span>
                           </div>
-                          <div className="text-[10px] text-zinc-500 normal-case leading-snug">
-                            {p.description}
-                          </div>
-                          <div className="text-[9px] text-zinc-400 normal-case leading-snug">
-                            {p.license}
+                          <div className="text-[9.5px] text-zinc-500 tabular-nums leading-tight font-mono mt-0.5">
+                            {p.langs} · {p.size}
                           </div>
                         </div>
-                        {isPackInstalled(p.title, p.url) ? (
-                          <span className="text-[10px] px-2 py-1 rounded border border-emerald-300 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 inline-flex items-center gap-1.5 shrink-0">
-                            <CheckCircle2 size={11} />
+                        {installed ? (
+                          <span className="shrink-0 text-[10px] font-medium px-1.5 py-1 rounded inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/70 dark:border-emerald-500/20">
+                            <CheckCircle2 size={10} />
                             Instalado
                           </span>
                         ) : (
                           <button
                             type="button"
                             onClick={() => void onImportUrl(p.url)}
-                            disabled={importingUrl === p.url || importing}
-                            className="text-[10px] px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                            title={`Importar desde ${p.url}`}
+                            disabled={loading || importing}
+                            className="shrink-0 text-[10px] font-semibold px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1 transition-colors"
                           >
-                            {importingUrl === p.url ? (
-                              <Loader2 size={11} className="animate-spin" />
-                            ) : (
-                              <Download size={11} />
-                            )}
-                            {importingUrl === p.url ? 'Descargando…' : 'Importar'}
+                            {loading ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
+                            {loading ? 'Descargando' : 'Instalar'}
                           </button>
                         )}
-                      </li>
-                    ))}
-                  </ul>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </SubSection>
+
+      {/* ── Instalados ────────────────────────────────────────────────────── */}
+      <SubSection
+        icon={<CheckCircle2 size={10} />}
+        title="Instalados"
+        trailing={
+          <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-500">
+            {loading ? '…' : packs.length}
+          </span>
+        }
+      >
+        {loading ? (
+          <div className="text-[10.5px] text-zinc-500 italic px-1">Cargando packs…</div>
+        ) : packs.length === 0 ? (
+          <EmptySub text="Aún no has instalado packs. Elige uno del catálogo de arriba." />
+        ) : (
+          <div className="space-y-1">
+            {packs.map((pack) => {
+              const idle = idlePackIds.has(String(pack.id));
+              return (
+                <div
+                  key={pack.id}
+                  className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2 py-1.5 flex items-center gap-1.5"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[11.5px] font-medium text-zinc-800 dark:text-zinc-200 truncate leading-tight">{pack.title}</span>
+                      {idle && (
+                        <span
+                          title="Sin uso en los últimos 30 días — considera deshabilitarlo"
+                          className="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
+                        >
+                          30d+ sin usar
+                        </span>
+                      )}
+                      {!pack.enabled && (
+                        <span className="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">
+                          off
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[9.5px] text-zinc-500 tabular-nums font-mono leading-tight mt-0.5">
+                      {pack.sourceLang} → {pack.targetLang} · {pack.termCount.toLocaleString()} términos · rev. {pack.revision}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void onToggle(pack)}
+                    className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-700/60 transition-colors"
+                    title={pack.enabled ? 'Deshabilitar' : 'Habilitar'}
+                  >
+                    {pack.enabled ? <Power size={12} /> : <PowerOff size={12} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void onDelete(pack)}
+                    className="p-1 rounded text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                    title="Eliminar"
+                  >
+                    <Trash2 size={12} />
+                  </button>
                 </div>
               );
-            },
-          )}
-        </div>
-
-        {/* ── Coverage / telemetry widget (Tier 4c + 5) ──────────────── */}
-        <CoverageWidget
-          stats={stats}
-          enabled={telemetry.enabled}
-          onToggle={(v) => setTelemetry({ enabled: v })}
-          onReset={() => void onResetCoverage()}
-          onExport={() => void onExportCoverage()}
-          onImport={onPickCoverageImport}
-        />
-        <input
-          ref={coverageFileInputRef}
-          type="file"
-          accept="application/json,.json"
-          className="hidden"
-          onChange={(e) => void onCoverageFileChosen(e)}
-        />
-
-        {/* ── Top packs ranking (Tier 6b) ─────────────────────────────── */}
-        <TopPacksSection stats={stats} packs={packs} />
-
-        {/* ── Installed packs list ────────────────────────────────────── */}
-        {loading ? (
-          <div className="text-[11px] text-zinc-500 italic">Cargando packs…</div>
-        ) : packs.length === 0 ? null : (
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">
-              Instalados
-            </div>
-            <ul className="space-y-1.5">
-              {packs.map((pack) => {
-                const idle = idlePackIds.has(pack.id);
-                return (
-                  <li
-                    key={pack.id}
-                    className="border border-zinc-200 dark:border-zinc-800 rounded px-2 py-1.5 flex items-center gap-2"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-1.5 flex-wrap">
-                        <span className="text-[12px] font-medium text-zinc-800 dark:text-zinc-200 truncate normal-case">
-                          {pack.title}
-                        </span>
-                        <span className="text-[9px] text-zinc-500 normal-case shrink-0">
-                          {pack.sourceLang} → {pack.targetLang}
-                        </span>
-                        {idle && (
-                          <span
-                            className="text-[9px] px-1 py-0.5 rounded border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 normal-case shrink-0"
-                            title={idleHint(pack.termCount)}
-                          >
-                            Sin usar 30d+
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-zinc-500 normal-case flex gap-2">
-                        <span>{pack.termCount.toLocaleString()} términos</span>
-                        <span>· rev. {pack.revision}</span>
-                        {!pack.enabled && (
-                          <span className="text-rose-400">· deshabilitado</span>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => void onToggle(pack)}
-                      className="p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
-                      title={pack.enabled ? 'Deshabilitar' : 'Habilitar'}
-                    >
-                      {pack.enabled ? <Power size={12} /> : <PowerOff size={12} />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void onDelete(pack)}
-                      className="p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/20 text-rose-500"
-                      title="Eliminar"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            })}
           </div>
         )}
+      </SubSection>
 
-        {/* ── Import from URL ─────────────────────────────────────────── */}
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-1 flex items-center gap-1.5">
-            <Globe size={10} />
-            Importar desde URL
+      {/* ── Importar manualmente ──────────────────────────────────────────── */}
+      <SubSection
+        icon={<Upload size={10} />}
+        title="Importar manualmente"
+        hint="ZIP de Yomitan/StarDict desde URL, archivo local o lista CSV/TSV. Todo se guarda en IndexedDB del navegador."
+      >
+        <div className="space-y-2">
+          <div className="space-y-1">
+            <label className="flex items-center gap-1 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
+              <Link2 size={10} className="text-zinc-400" />
+              Desde URL
+            </label>
+            <div className="flex gap-1.5">
+              <input
+                type="url"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="https://…/pack.zip"
+                className="sl-input sl-mono flex-1 min-w-0"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && urlInput.trim() && !importingUrl) {
+                    void onImportUrl(urlInput);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => void onImportUrl(urlInput)}
+                disabled={!urlInput.trim() || !!importingUrl}
+                className="text-[10px] font-semibold px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1 transition-colors"
+              >
+                {importingUrl === urlInput.trim() ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
+                Descargar
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <input
-              type="url"
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              placeholder="https://…/pack.zip"
-              className="sl-input flex-1 text-[11px] py-1 px-1.5"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && urlInput.trim() && !importingUrl) {
-                  void onImportUrl(urlInput);
-                }
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => void onImportUrl(urlInput)}
-              disabled={!urlInput.trim() || !!importingUrl}
-              className="text-[11px] px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {importingUrl === urlInput.trim() ? (
-                <Loader2 size={11} className="animate-spin" />
-              ) : (
-                <Download size={11} />
-              )}
-              Descargar
-            </button>
-          </div>
-          <p className="text-[10px] text-zinc-500 dark:text-zinc-500 mt-1 leading-snug">
-            Cualquier ZIP de Yomitan público (R2, GitHub Pages, …). La extensión hace la descarga
-            por ti — no necesitas guardar el archivo a disco.
-          </p>
-        </div>
 
-        {/* ── Action row: unified file picker + CSV drawer toggle ─── */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-zinc-100 dark:border-zinc-800/60">
-          <button
-            type="button"
-            onClick={onPickFile}
-            disabled={importing}
-            className="text-[11px] px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Importar archivo de diccionario (Yomitan .zip, StarDict .zip o CSV/TSV)"
-          >
-            {importing ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
-            Importar archivo
-          </button>
-          <button
-            type="button"
-            onClick={() => setCsvOpen((v) => !v)}
-            className="text-[11px] px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1.5"
-            title="Pegar una lista CSV/TSV directamente desde el portapapeles"
-          >
-            <FileText size={11} />
-            Pegar CSV/TSV
-          </button>
-          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 normal-case">
-            Detecta Yomitan / StarDict / CSV automáticamente.
-          </span>
+          <div className="space-y-1">
+            <label className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">Otras fuentes</label>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing}
+                className="flex-1 text-[11px] font-medium px-2 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/10 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Importar archivo local (Yomitan .zip, StarDict .zip o CSV/TSV)"
+              >
+                {importing ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+                Archivo local
+              </button>
+              <button
+                type="button"
+                onClick={() => setCsvOpen((v) => !v)}
+                className={`flex-1 text-[11px] font-medium px-2 py-1.5 rounded-md border inline-flex items-center justify-center gap-1.5 transition-colors ${
+                  csvOpen
+                    ? 'border-indigo-300 dark:border-indigo-500/50 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300'
+                    : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/10'
+                }`}
+              >
+                <FileText size={11} />
+                Pegar CSV/TSV
+              </button>
+            </div>
+          </div>
+
           <input
             ref={fileInputRef}
             type="file"
@@ -699,393 +608,371 @@ export function DictPacksSection() {
             onChange={(e) => void onCsvFile(e)}
             className="hidden"
           />
-        </div>
 
-        {/* ── CSV import drawer (Tier 3b) ─────────────────────────────── */}
-        {csvOpen && (
-          <div className="rounded border border-zinc-200 dark:border-zinc-800 p-2 space-y-2 bg-zinc-50/60 dark:bg-zinc-900/40">
-            <div className="flex items-center gap-1.5">
-              <input
-                type="text"
-                value={csvTitle}
-                onChange={(e) => setCsvTitle(e.target.value)}
-                placeholder="Título de la lista"
-                className="sl-input flex-1 text-[11px] py-1 px-1.5"
+          {csvOpen && (
+            <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 p-2 space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={csvTitle}
+                  onChange={(e) => setCsvTitle(e.target.value)}
+                  placeholder="Título de la lista"
+                  className="sl-input flex-1 min-w-0"
+                />
+                <button
+                  type="button"
+                  onClick={() => csvFileInputRef.current?.click()}
+                  className="text-[10px] px-1.5 py-1 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1"
+                  title="Cargar archivo CSV/TSV"
+                >
+                  <Upload size={10} />
+                  Archivo
+                </button>
+              </div>
+              <textarea
+                value={csvText}
+                onChange={(e) => setCsvText(e.target.value)}
+                placeholder={'word, translation, phonetic, definition, example\nhello, hola, /heˈloʊ/, A greeting, Hello world!'}
+                rows={4}
+                className="sl-input sl-mono w-full"
+                title="Coma o tabulador como separador. Cabecera opcional."
               />
-              <button
-                type="button"
-                onClick={onPickCsvFile}
-                className="text-[10px] px-1.5 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1"
-                title="Cargar archivo .csv / .tsv"
-              >
-                <Upload size={10} />
-                Archivo…
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => void onImportCsv()}
+                  disabled={!csvText.trim() || importingCsv}
+                  className="text-[10px] font-semibold px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1 transition-colors"
+                >
+                  {importingCsv ? <Loader2 size={10} className="animate-spin" /> : <Upload size={10} />}
+                  Importar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setCsvOpen(false); setCsvText(''); }}
+                  className="text-[10px] font-medium px-2 py-1 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
-            <textarea
-              value={csvText}
-              onChange={(e) => setCsvText(e.target.value)}
-              placeholder={'word, translation, phonetic, definition, example\nhello, hola, /heˈloʊ/, A greeting, Hello world!'}
-              rows={5}
-              className="sl-input w-full text-[11px] font-mono py-1 px-1.5 leading-tight"
-            />
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void onImportCsv()}
-                disabled={!csvText.trim() || importingCsv}
-                className="text-[11px] px-2 py-1 rounded border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30 inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {importingCsv ? (
-                  <Loader2 size={11} className="animate-spin" />
-                ) : (
-                  <Upload size={11} />
-                )}
-                Importar lista
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCsvOpen(false);
-                  setCsvText('');
-                }}
-                className="text-[11px] px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-              >
-                Cancelar
-              </button>
-              <span className="text-[10px] text-zinc-500 normal-case leading-snug">
-                Coma o tabulador como separador. Cabecera opcional.
-              </span>
-            </div>
-          </div>
-        )}
+          )}
 
-        {feedback && (
-          <div
-            className={`text-[10px] leading-snug normal-case pt-0.5 ${
-              feedback.kind === 'ok' ? 'text-emerald-500' : 'text-rose-400'
-            }`}
-          >
-            {feedback.message}
+          {feedback && (
+            <div className={`rounded-md text-[10.5px] leading-snug px-2 py-1 border ${
+              feedback.kind === 'ok'
+                ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200/70 dark:border-emerald-500/20'
+                : 'text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 border-rose-200/70 dark:border-rose-500/20'
+            }`}>
+              {feedback.message}
+            </div>
+          )}
+        </div>
+      </SubSection>
+
+      {/* ── Cobertura local (colapsable) ──────────────────────────────────── */}
+      <SubSection
+        icon={<BarChart3 size={10} />}
+        title="Cobertura local"
+        collapsible
+        open={coverageOpen}
+        onToggle={() => setCoverageOpen((v) => !v)}
+        hint={
+          <>
+            Estadística <strong>100% local</strong> (no sale del navegador) de cómo se resuelven tus búsquedas: cuántas vinieron del <em>bundle</em> incluido, de un <em>pack</em> instalado, del traductor <em>remoto</em>, o no tuvieron resultado (<em>miss</em>). Útil para decidir qué packs instalar o desactivar. Puedes apagar la telemetría o exportar/borrar los datos en cualquier momento.
+          </>
+        }
+        trailing={
+          <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-500">
+            {totals.total > 0 ? `${totals.total.toLocaleString()} lookups` : 'sin datos'}
+          </span>
+        }
+      >
+        <div className="space-y-2">
+          <CoverageStats totals={totals} />
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <label className="text-[10px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1 cursor-pointer mr-auto">
+              <input
+                type="checkbox"
+                checked={telemetry.enabled}
+                onChange={(e) => setTelemetry({ enabled: e.target.checked })}
+                className="accent-indigo-500"
+              />
+              Telemetría local
+            </label>
+            <button
+              type="button"
+              onClick={() => void onExportCoverage()}
+              disabled={totals.total === 0}
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Descargar un JSON con el snapshot actual."
+            >
+              Exportar
+            </button>
+            <button
+              type="button"
+              onClick={onPickCoverageImport}
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+              title="Cargar un snapshot exportado antes (se fusiona)."
+            >
+              Importar
+            </button>
+            <button
+              type="button"
+              onClick={() => void onResetCoverage()}
+              disabled={totals.total === 0}
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Borrar todos los contadores."
+            >
+              Reiniciar
+            </button>
           </div>
-        )}
-      </div>
-    </section>
+          <input
+            ref={coverageFileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(e) => void onCoverageFileChosen(e)}
+          />
+          <TopPacksSection stats={stats} packs={packs} idlePackIds={idlePackIds} />
+        </div>
+      </SubSection>
+    </div>
   );
 }
 
-interface CoverageWidgetProps {
-  stats: PackStatsRow[];
-  enabled: boolean;
-  onToggle: (v: boolean) => void;
-  onReset: () => void;
-  onExport: () => void;
-  onImport: () => void;
-}
+/* ─── SubSection — inline subsection inside the parent Accordion ─────────── */
 
-/** Human-readable explanation for each bucket — surfaced as a tooltip. */
-const COVERAGE_HELP: Record<'bundle' | 'packs' | 'remote' | 'misses', string> = {
-  bundle:
-    'Palabras resueltas por el diccionario que viene incluido con la extensión (en.json, ≈4 100 entradas CEFR).',
-  packs:
-    'Palabras resueltas por algún pack que vos instalaste (Yomitan, StarDict, CSV personal).',
-  remote:
-    'Palabras que no estaban offline y se resolvieron en el traductor remoto (Google / DeepL). Reducir este número instalando más packs.',
-  misses:
-    'Palabras que nadie resolvió — quedaste sin definición. Suele indicar un dominio nuevo (técnico, jerga) o un pack faltante.',
-};
-
-/** Build the actionable "what should I do next?" hint based on current ratios. */
-function coverageHint(totals: ReturnType<typeof aggregateCoverage>): string | null {
-  if (totals.total === 0) return null;
-  if (totals.total < 20) {
-    return 'Pocos lookups todavía — seguí navegando para que los porcentajes se estabilicen.';
-  }
-  const missRatio = totals.misses / totals.total;
-  const remoteRatio = totals.remoteHits / totals.total;
-  if (missRatio >= 0.2) {
-    return `Sin match: ${(missRatio * 100).toFixed(0)}% — considera instalar un pack monolingüe o de dominio específico.`;
-  }
-  if (remoteRatio >= 0.3) {
-    return `Remoto: ${(remoteRatio * 100).toFixed(0)}% — instalar el pack EN→ES bajaría este número.`;
-  }
-  if (totals.localCoverage >= 0.85) {
-    return 'Buena cobertura local — el traductor remoto casi no se usa.';
-  }
-  return null;
-}
-
-/**
- * Local-only coverage widget that surfaces "how much of my reading is served
- * offline vs. via the remote translator vs. completely missed". Everything is
- * read from the `pack_stats` Dexie table — never sent off-device.
- */
-function CoverageWidget({
-  stats,
-  enabled,
-  onToggle,
-  onReset,
-  onExport,
-  onImport,
-}: CoverageWidgetProps) {
-  const totals = aggregateCoverage(stats);
-  const pct = (n: number) =>
-    totals.total > 0 ? `${Math.round((n / totals.total) * 100)}%` : '—';
-  const hint = coverageHint(totals);
+function SubSection({
+  icon, title, children, trailing, hint, collapsible, open, onToggle,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+  trailing?: React.ReactNode;
+  hint?: React.ReactNode;
+  collapsible?: boolean;
+  open?: boolean;
+  onToggle?: () => void;
+}) {
+  const header = (
+    <div className="flex items-center gap-1.5 px-0.5">
+      <span className="text-zinc-500 dark:text-zinc-400 inline-flex">{icon}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{title}</span>
+      {hint && <InfoHint text={hint} />}
+      <span className="ml-auto flex items-center gap-1.5">
+        {trailing}
+        {collapsible && (
+          <ChevronDown size={11} className={`text-zinc-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        )}
+      </span>
+    </div>
+  );
   return (
-    <div className="rounded border border-zinc-200 dark:border-zinc-800 p-2 space-y-1.5 bg-zinc-50/60 dark:bg-zinc-900/40">
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex-1 min-w-0">
-          Cobertura local
+    <div className="space-y-1.5">
+      {collapsible ? (
+        <button type="button" onClick={onToggle} className="w-full text-left">
+          {header}
+        </button>
+      ) : header}
+      {(!collapsible || open) && children}
+    </div>
+  );
+}
+
+interface CoverageTotals {
+  bundleHits: number;
+  packHits: number;
+  remoteHits: number;
+  misses: number;
+  total: number;
+  localCoverage: number;
+}
+
+const COVERAGE_META = [
+  {
+    key: 'bundle' as const,
+    label: 'Bundle',
+    icon: <Package size={9} />,
+    bar: 'bg-sky-400 dark:bg-sky-500',
+    swatch: 'text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-500/10',
+    desc: 'Diccionario incluido (~4 100 entradas CEFR).',
+  },
+  {
+    key: 'packs' as const,
+    label: 'Packs',
+    icon: <Library size={9} />,
+    bar: 'bg-indigo-400 dark:bg-indigo-500',
+    swatch: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10',
+    desc: 'Resuelto por un pack instalado.',
+  },
+  {
+    key: 'remote' as const,
+    label: 'Remoto',
+    icon: <Cloud size={9} />,
+    bar: 'bg-amber-400 dark:bg-amber-500',
+    swatch: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10',
+    desc: 'Resuelto por traductor remoto.',
+  },
+  {
+    key: 'miss' as const,
+    label: 'Miss',
+    icon: <Ban size={9} />,
+    bar: 'bg-rose-400 dark:bg-rose-500',
+    swatch: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10',
+    desc: 'Sin definición encontrada.',
+  },
+];
+
+function CoverageStats({ totals }: { totals: CoverageTotals }) {
+  const values: Record<'bundle' | 'packs' | 'remote' | 'miss', number> = {
+    bundle: totals.bundleHits,
+    packs: totals.packHits,
+    remote: totals.remoteHits,
+    miss: totals.misses,
+  };
+  const hasData = totals.total > 0;
+  const localPct = Math.round(totals.localCoverage * 100);
+
+  return (
+    <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 p-2 space-y-2">
+      {/* Stacked bar — visual share */}
+      <div className="space-y-1">
+        <div className="flex h-1.5 rounded-full overflow-hidden bg-zinc-200/70 dark:bg-zinc-800">
+          {hasData
+            ? COVERAGE_META.map((m) => {
+                const pct = (values[m.key] / totals.total) * 100;
+                if (pct === 0) return null;
+                return <div key={m.key} className={m.bar} style={{ width: `${pct}%` }} title={`${m.label} · ${Math.round(pct)}%`} />;
+              })
+            : <div className="w-full bg-zinc-200/40 dark:bg-zinc-800/40" />}
         </div>
-        <label
-          className="text-[10px] text-zinc-500 normal-case flex items-center gap-1 cursor-pointer"
-          title="Activar/desactivar el registro de cobertura. Los contadores existentes se conservan."
-        >
-          <input
-            type="checkbox"
-            checked={enabled}
-            onChange={(e) => onToggle(e.target.checked)}
-            className="accent-amber-500"
-          />
-          Telemetría local
-        </label>
-        <button
-          type="button"
-          onClick={onExport}
-          disabled={totals.total === 0}
-          className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
-          title="Descargar un JSON con el snapshot actual. Útil como backup o para mover entre máquinas."
-        >
-          Exportar
-        </button>
-        <button
-          type="button"
-          onClick={onImport}
-          className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-          title="Cargar un snapshot exportado antes. Se fusiona con los contadores actuales (no los reemplaza)."
-        >
-          Importar
-        </button>
-        <button
-          type="button"
-          onClick={onReset}
-          disabled={totals.total === 0}
-          className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
-          title="Borrar todos los contadores y empezar desde cero."
-        >
-          Reiniciar
-        </button>
-      </div>
-      <div className="grid grid-cols-4 gap-1.5 text-[10px] normal-case">
-        <CoverageCell
-          label="Bundle"
-          value={totals.bundleHits}
-          pct={pct(totals.bundleHits)}
-          help={COVERAGE_HELP.bundle}
-        />
-        <CoverageCell
-          label="Packs"
-          value={totals.packHits}
-          pct={pct(totals.packHits)}
-          help={COVERAGE_HELP.packs}
-        />
-        <CoverageCell
-          label="Remoto"
-          value={totals.remoteHits}
-          pct={pct(totals.remoteHits)}
-          help={COVERAGE_HELP.remote}
-        />
-        <CoverageCell
-          label="Sin match"
-          value={totals.misses}
-          pct={pct(totals.misses)}
-          help={COVERAGE_HELP.misses}
-        />
-      </div>
-      {totals.total === 0 ? (
-        <div className="text-[10px] text-zinc-500 normal-case leading-snug space-y-0.5">
-          <div>
-            Aún no hay lookups registrados.{' '}
-            <span className="text-zinc-700 dark:text-zinc-300">
-              Haz hover sobre palabras en una página
-            </span>{' '}
-            para empezar a medir.
-          </div>
-          <div className="text-zinc-400 dark:text-zinc-500">
-            Si la telemetría está desactivada los hover no se contabilizan — actívala arriba.
-          </div>
+        <div className="flex items-center justify-between text-[9.5px] text-zinc-500 dark:text-zinc-500">
+          <span className="inline-flex items-center gap-1">
+            <CheckCircle2 size={9} className="text-emerald-500" />
+            <span className="tabular-nums">{hasData ? `${localPct}% local` : '— local'}</span>
+          </span>
+          <span className="font-mono tabular-nums">{hasData ? totals.total.toLocaleString() : '0'} lookups</span>
         </div>
-      ) : (
-        <div className="text-[10px] text-zinc-500 normal-case leading-snug space-y-0.5">
-          <div>
-            Offline (bundle + packs) cubre{' '}
-            <span className="font-medium text-zinc-700 dark:text-zinc-300">
-              {(totals.localCoverage * 100).toFixed(0)}%
-            </span>{' '}
-            de {totals.total.toLocaleString()} lookups.
-          </div>
-          {hint && <div className="text-zinc-600 dark:text-zinc-400">{hint}</div>}
+      </div>
+
+      {/* Per-source rows */}
+      <ul className="grid grid-cols-2 gap-1">
+        {COVERAGE_META.map((m) => {
+          const value = values[m.key];
+          const pct = hasData ? Math.round((value / totals.total) * 100) : 0;
+          return (
+            <li
+              key={m.key}
+              className="flex items-center gap-1.5 rounded bg-white dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800/60 px-1.5 py-1 cursor-help"
+              title={m.desc}
+            >
+              <span className={`inline-flex items-center justify-center w-4 h-4 rounded ${m.swatch}`}>
+                {m.icon}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300 leading-none">{m.label}</span>
+                  <span className="text-[9px] text-zinc-400 dark:text-zinc-500 tabular-nums ml-auto">{hasData ? `${pct}%` : '—'}</span>
+                </div>
+                <div className="text-[10.5px] font-mono tabular-nums text-zinc-800 dark:text-zinc-200 leading-tight">
+                  {value.toLocaleString()}
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {!hasData && (
+        <div className="text-[9.5px] text-zinc-500 dark:text-zinc-500 italic leading-snug text-center pt-0.5">
+          Aún sin datos. Empieza a buscar palabras y verás de dónde salen tus definiciones.
         </div>
       )}
-      <div className="text-[9px] text-zinc-400 dark:text-zinc-500 normal-case leading-snug">
-        Todo se guarda local en IndexedDB · nada sale del navegador.
-      </div>
     </div>
   );
 }
 
-function CoverageCell({
-  label,
-  value,
-  pct,
-  help,
-}: {
-  label: string;
-  value: number;
-  pct: string;
-  help: string;
-}) {
+function EmptySub({ text }: { text: string }) {
   return (
-    <div
-      className="border border-zinc-200 dark:border-zinc-800 rounded px-1.5 py-1 bg-white dark:bg-zinc-900 cursor-help"
-      title={help}
-    >
-      <div className="text-[9px] uppercase tracking-wider text-zinc-500">{label}</div>
-      <div className="text-[12px] font-medium text-zinc-800 dark:text-zinc-200 normal-case">
-        {value.toLocaleString()}
-      </div>
-      <div className="text-[9px] text-zinc-400 normal-case">{pct}</div>
+    <div className="rounded-md border border-dashed border-zinc-300 dark:border-zinc-700 px-2 py-3 text-center text-[10.5px] text-zinc-500 dark:text-zinc-400 leading-snug">
+      {text}
     </div>
   );
-}
-
-/**
- * Rough on-disk footprint estimate for an installed pack.
- *
- * IndexedDB rows for dict_terms tend to land around 200 bytes each once
- * Dexie wraps the definitions array, headword, tags, and key indices. Empirical
- * measurements on the bundled Wiktionary EN→ES pack put it at ~190 bytes/term.
- * Used purely for the "Considera eliminarlo" hint, never persisted — accuracy
- * here is intentionally directional, not exact.
- */
-const AVG_TERM_BYTES = 200;
-
-function estimatePackSize(termCount: number): string {
-  const bytes = Math.max(0, termCount) * AVG_TERM_BYTES;
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`;
-}
-
-function idleHint(termCount: number): string {
-  return `No se usa hace 30 días o más. Considera eliminarlo para liberar ~${estimatePackSize(
-    termCount,
-  )}.`;
 }
 
 interface TopPacksSectionProps {
   stats: PackStatsRow[];
   packs: DictPackRow[];
+  idlePackIds: ReadonlySet<string>;
 }
 
 /**
- * Collapsible "Top packs" ranking that surfaces which user-installed packs
- * are doing the heavy lifting. Synthetic buckets (`bundle`, `remote`, `miss`)
- * are intentionally excluded — those already have their own cells in the
- * coverage widget.
- *
- * The section auto-hides when there's nothing to show (no real packs with
- * lookups yet) so it doesn't take up vertical space on a fresh install.
+ * "Top packs" ranking. Synthetic buckets (`bundle`, `remote`, `miss`) are
+ * already covered by `CoverageStats` above so they're filtered out via
+ * `topPacksByHits`. The section auto-hides when there's nothing real to show
+ * yet (fresh install).
  */
-function TopPacksSection({ stats, packs }: TopPacksSectionProps) {
-  const [open, setOpen] = useState(false);
+function TopPacksSection({ stats, packs, idlePackIds }: TopPacksSectionProps) {
   const ranking = useMemo(() => topPacksByHits(stats, 10), [stats]);
   const packById = useMemo(() => {
     const m = new Map<string, DictPackRow>();
-    for (const p of packs) m.set(p.id, p);
+    for (const p of packs) m.set(String(p.id), p);
     return m;
   }, [packs]);
-  const idleIds = useMemo(
-    () => new Set(idlePacks(stats, DEFAULT_IDLE_THRESHOLD_MS).map((r) => r.packId)),
-    [stats],
-  );
+
   if (ranking.length === 0) return null;
+
   const totalHits = ranking.reduce((acc, r) => acc + r.hits, 0);
+
   return (
-    <div className="rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/40">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-1.5 px-2 py-1.5 text-left"
-        aria-expanded={open}
-      >
-        {open ? (
-          <ChevronDown size={10} className="text-zinc-500" />
-        ) : (
-          <ChevronRight size={10} className="text-zinc-500" />
-        )}
+    <div className="space-y-1">
+      <div className="flex items-center gap-1.5 px-0.5">
         <Trophy size={10} className="text-amber-500" />
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex-1">
-          Top packs
-        </span>
-        <span className="text-[10px] text-zinc-500 normal-case">
-          {ranking.length} · {totalHits.toLocaleString()} hits
-        </span>
-      </button>
-      {open && (
-        <ol className="px-2 pb-2 space-y-1">
-          {ranking.map((row, idx) => {
-            const pack = packById.get(row.packId);
-            const title = pack?.title ?? row.packId;
-            const langs = pack ? `${pack.sourceLang} → ${pack.targetLang}` : null;
-            const share = totalHits > 0 ? Math.round((row.hits / totalHits) * 100) : 0;
-            return (
-              <li
-                key={row.packId}
-                className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 rounded px-1.5 py-1 bg-white dark:bg-zinc-900"
-              >
-                <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 w-4 shrink-0 text-right tabular-nums">
-                  {idx + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-1.5 flex-wrap">
-                    <span className="text-[11px] font-medium text-zinc-800 dark:text-zinc-200 truncate normal-case">
-                      {title}
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex-1">Top packs</span>
+        <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-500">{totalHits.toLocaleString()} hits</span>
+      </div>
+      <ol className="space-y-1">
+        {ranking.map((row, idx) => {
+          const pack = packById.get(row.packId);
+          const title = pack?.title ?? row.packId;
+          const langs = pack ? `${pack.sourceLang} → ${pack.targetLang}` : null;
+          const share = totalHits > 0 ? Math.round((row.hits / totalHits) * 100) : 0;
+          const isIdle = idlePackIds.has(row.packId);
+          return (
+            <li
+              key={row.packId}
+              className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2 py-1 flex items-center gap-2"
+            >
+              <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 w-4 shrink-0 text-right tabular-nums">{idx + 1}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-1.5 flex-wrap">
+                  <span className="text-[11px] font-medium text-zinc-800 dark:text-zinc-200 truncate">{title}</span>
+                  {langs && <span className="text-[9px] text-zinc-500 shrink-0 font-mono">{langs}</span>}
+                  {isIdle && (
+                    <span
+                      title="Sin uso en los últimos 30 días"
+                      className="text-[9px] px-1 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 shrink-0"
+                    >
+                      30d+
                     </span>
-                    {langs && (
-                      <span className="text-[9px] text-zinc-500 normal-case shrink-0">
-                        {langs}
-                      </span>
-                    )}
-                    {idleIds.has(row.packId) && (
-                      <span
-                        className="text-[9px] px-1 py-0.5 rounded border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 normal-case shrink-0"
-                        title={idleHint(pack?.termCount ?? 0)}
-                      >
-                        Sin usar 30d+
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[9px] text-zinc-500 normal-case">
-                    {row.hits.toLocaleString()} hits · {share}%
-                    {pack ? ` · ${pack.termCount.toLocaleString()} términos` : ' · pack borrado'}
-                  </div>
+                  )}
                 </div>
-                <div className="w-16 h-1 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden shrink-0">
-                  <div
-                    className="h-full bg-amber-400 dark:bg-amber-500"
-                    style={{ width: `${share}%` }}
-                  />
+                <div className="text-[9px] text-zinc-500 dark:text-zinc-500 tabular-nums">
+                  {row.hits.toLocaleString()} hits · {share}%
+                  {pack ? ` · ${pack.termCount.toLocaleString()} términos` : ' · pack borrado'}
                 </div>
-              </li>
-            );
-          })}
-        </ol>
-      )}
+              </div>
+              <div className="w-16 h-1 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden shrink-0">
+                <div className="h-full bg-amber-400 dark:bg-amber-500" style={{ width: `${share}%` }} />
+              </div>
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }
 
 // Re-export the pseudo-ids so callers can correlate stats rows with packs.
-export { BUNDLE_PACK_ID, MISS_PACK_ID, REMOTE_PACK_ID };
+export { BUNDLE_PACK_ID, MISS_PACK_ID, REMOTE_PACK_ID, DEFAULT_IDLE_THRESHOLD_MS };
