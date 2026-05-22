@@ -8,10 +8,10 @@ needing any API key from the user.
 
 | Tier | Always on? | Sources |
 |---|---|---|
-| **Local** | ✅ | Bundled `en.json` + `en-extensions` + ACL collocations + Yomitan packs (`kty-en-es`, `kty-en-en`, `kty-en-ipa`) |
+| **Local** | ✅ | Bundled `en.json` + `en-extensions` + Oxford 3000/5000 CEFR + Oxford Phrasal Academic Lexicon + Academic Collocation List + Fernald Thesaurus 1896 + Yomitan packs (`kty-en-es`, `kty-en-en`, `kty-en-ipa`) |
 | **Standard** | ✅ | Free Dictionary API · Datamuse |
 | **VIP** | toggle in Settings | Cambridge · Oxford Learner's · Longman · Collins · Merriam-Webster · Reverso · Linguee · WordReference · SpanishDict · Forvo · Lingua Libre · Etymonline · Unsplash · Pixabay · Wikimedia Commons · DuckDuckGo Images · YouGlish · Google TTS fallback |
-| **AI** | toggle + API key | OpenAI / Anthropic / Gemini — generates contextual definition, synonyms, collocations, register, **mnemonic**, **etymology** |
+| **AI** | toggle + API key | OpenAI / Anthropic / Gemini — generates contextual definition, synonyms, collocations, register, **mnemonic**, **etymology**, and **DALL-E 3 image** (OpenAI only, save-time only, ~$0.04/card) |
 
 Every source is independent: a Cambridge timeout never blocks Reverso.
 Failures are silent — the popover just renders less.
@@ -38,6 +38,32 @@ RESOLVE_WORD or createCardFromRequest
              generates mnemonic + etymology + register
              patches `entry.vip`
 ```
+
+## Bundled offline assets
+
+Six bundled JSONs ship with the extension (no download, no network).
+They merge into `dictionary.ts` at module load time so the popover
+has rich data even with VIP off and zero internet.
+
+| File | Entries | Source | What it adds |
+|---|---|---|---|
+| `src/assets/dictionaries/en.json` | 4 151 | Curated (audited 2026-05) | Translation, bilingual, monolingual, IPA, level, examples |
+| `src/assets/dictionaries/en-extensions.json` | ~250 | Hand-curated | Phrasal verbs + idioms missed by the bundle |
+| `src/assets/dictionaries/en-cefr.json` | 4 950 | Oxford 3000 + 5000 (jnoodle/English-Vocabulary-Word-List) | `level: A2 \| B2` overlay |
+| `src/assets/mwes/en.json` | ~150 | Hand-curated | Common MWE entries |
+| `src/assets/mwes/en-phrasal-academic.json` | 672 | Oxford Phrasal Academic Lexicon | Academic phrases tokenized as MWE |
+| `src/assets/collocations/academic-collocation-list.json` | 2 469 | Ackermann & Chen 2013 (open access) | `collocations` overlay |
+| `src/assets/thesaurus/en-thesaurus.json` | 610 | Fernald 1896 (public domain) | `synonyms` + `antonyms` overlay |
+
+Total bundle weight: ~2.5 MB raw, ~250 KB gzipped — negligible
+overhead in the extension package.
+
+To regenerate after upstream updates:
+```bash
+node .tmp-build-bundles.cjs   # Oxford 3000/5000 + Phrasal
+node .tmp-build-thesaurus.cjs # Fernald thesaurus
+```
+(Scripts are deleted after each release; the JSONs are committed.)
 
 ## Source contract
 
@@ -101,12 +127,12 @@ note field to one of:
 | `phonetic` | local OR enriched (Cambridge / Oxford / FreeDict / IPA pack) |
 | `translation`, `bilingual`, `monolingual` | local + enriched chain |
 | `examples` | local OR enriched (Reverso / Linguee / WordRef / Cambridge) |
-| `synonyms` | enriched (Datamuse + WordNet pack + Cambridge thesaurus) |
-| `antonyms` | enriched (Datamuse + WordNet pack) |
-| `collocations` | bundled ACL + Datamuse + Cambridge / Oxford |
+| `synonyms` | bundled Fernald thesaurus + Datamuse + WordNet pack + Cambridge thesaurus |
+| `antonyms` | bundled Fernald thesaurus + Datamuse + WordNet pack |
+| `collocations` | bundled Academic Collocation List + Datamuse + Cambridge / Oxford |
 | `etymology` | Etymonline + AI |
 | `mnemonic` | AI |
-| `image` | Unsplash → Pixabay → Wikimedia → DuckDuckGo |
+| `image` | Unsplash → Pixabay → Wikimedia → DuckDuckGo → DALL-E 3 (paid fallback) |
 | `frame` | live video frame, falls back to `image` URL |
 | `sentence-audio` | live tab capture (or sentence TTS) |
 | `word-audio` | Forvo → Cambridge → Oxford → Lingua Libre → Wikimedia → Google TTS |
