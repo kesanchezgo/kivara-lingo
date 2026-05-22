@@ -257,6 +257,19 @@ export interface TranslateSettings {
    * Trancy. Default true.
    */
   showDualSubtitle: boolean;
+  /**
+   * Auto-select the audio track that matches the user's `sourceLang` when
+   * the platform exposes multiple language audio tracks (HBO Max,
+   * Disney+, Prime Video). Off by default — many users prefer the audio
+   * track that ships native to their region (LATAM dub, etc.) and use
+   * Kivara only for subtitles. Switching this on means: when the player
+   * loads a manifest with multiple audio AdaptationSets, we pick the one
+   * tagged `sourceLang` and tell the player to use it. Doesn't affect
+   * YouTube (single audio track per video). Doesn't affect Netflix
+   * (audio track switch happens via the Netflix player API which is
+   * heavily restricted in the browser).
+   */
+  autoSelectSourceAudio: boolean;
 }
 
 export interface AsrSettings {

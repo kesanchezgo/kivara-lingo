@@ -25,6 +25,18 @@ function syncTargetLangToDOM() {
   document.documentElement.setAttribute('data-kivara-target-lang', lang);
 }
 syncTargetLangToDOM();
+
+// Audio auto-selection toggle — see TranslateSettings.autoSelectSourceAudio
+// for rationale. Stored as a DOM attribute so the ISOLATED-world bus can
+// branch on it without importing the Zustand store.
+function syncAutoSourceAudioToDOM() {
+  const on = useKivaraStore.getState().translate.autoSelectSourceAudio;
+  document.documentElement.setAttribute(
+    'data-kivara-auto-source-audio',
+    on ? '1' : '0',
+  );
+}
+syncAutoSourceAudioToDOM();
 useKivaraStore.subscribe((state, prev) => {
   if (state.translate.sourceLang !== prev.translate.sourceLang) {
     syncSourceLangToDOM();
@@ -43,6 +55,15 @@ useKivaraStore.subscribe((state, prev) => {
     // Target language changed — same reasoning. The user wants Portuguese
     // now, the bus has Spanish cached; force a re-fetch.
     clearBus();
+    reprocessLastDashManifest();
+  }
+  if (
+    state.translate.autoSelectSourceAudio !== prev.translate.autoSelectSourceAudio
+  ) {
+    syncAutoSourceAudioToDOM();
+    // Replay the last manifest so the audio-track switch fires
+    // immediately when the user flips the toggle on, instead of
+    // waiting for the player to reload.
     reprocessLastDashManifest();
   }
 });

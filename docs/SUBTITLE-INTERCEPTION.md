@@ -152,6 +152,7 @@ in `content/index.tsx`:
 ```ts
 document.documentElement.setAttribute('data-kivara-source-lang', 'en');
 document.documentElement.setAttribute('data-kivara-target-lang', 'es');
+document.documentElement.setAttribute('data-kivara-auto-source-audio', '0' | '1');
 ```
 
 The MAIN-world interceptor and the ISOLATED bus both read these
@@ -163,6 +164,26 @@ When the user changes either language in the panel, two things happen:
 2. `reprocessLastDashManifest()` replays the last MPD we saw with the
    new language settings, so the user doesn't have to wait for the
    player to refresh its manifest.
+
+### Audio auto-select (opt-in)
+
+When `translate.autoSelectSourceAudio` is on, after we parse the MPD
+we call `parseDashAudioTracks(body)` to enumerate every audio
+language the platform offers. If the player's `<video>.audioTracks`
+list contains a track whose `language` matches the user's
+`sourceLang`, we set its `enabled` flag to `true` and disable the
+others. This switches HBO Max / Disney+ / Prime audio to the source
+language so the user hears AND reads what they're learning.
+
+We never disable a track without enabling its replacement first, so
+playback never goes silent during the swap.
+
+Caveats:
+- YouTube has only one audio track per video (no-op there).
+- Netflix doesn't expose `audioTracks` on the `<video>` element
+  (their player buffers via MSE without surfacing the track list).
+- Safari's `audioTracks` API is behind a vendor prefix; we silently
+  bail in that case. Chromium-based browsers work.
 
 ## When something breaks
 

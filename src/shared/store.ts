@@ -96,6 +96,8 @@ export const DEFAULT_TRANSLATE: TranslateSettings = {
   // Dual caption (target-language subtitle below the source) is on by default
   // — matches Language Reactor / Trancy behaviour and the user-provided mock.
   showDualSubtitle: true,
+  // Off by default — see TranslateSettings.autoSelectSourceAudio docstring.
+  autoSelectSourceAudio: false,
 };
 
 export const DEFAULT_ASR: AsrSettings = {

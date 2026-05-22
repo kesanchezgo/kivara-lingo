@@ -49,6 +49,27 @@ export interface DashSubtitleTrack {
   segmentUrls: string[];
 }
 
+/**
+ * Lightweight summary of an audio AdaptationSet from the MPD. Used by the
+ * `autoSelectSourceAudio` setting to identify which audio track to switch
+ * the player to. We don't download anything — the player owns the actual
+ * audio buffers, we just need to tell it which track to use.
+ */
+export interface DashAudioTrack {
+  /** Adaptation set id from the MPD. */
+  id: string;
+  /** Primary language subtag, lowercased. */
+  language: string;
+  /** Full BCP-47 tag from the manifest. */
+  fullLanguage: string;
+  /**
+   * MPD `Role` value, if any. `main` is the canonical primary track,
+   * `alternate` is descriptive audio / commentary / etc. We always
+   * prefer `main` over alternate roles when matching a language.
+   */
+  role: string | null;
+}
+
 interface SegmentTemplate {
   media: string;
   startNumber: number;
@@ -158,6 +179,47 @@ function readRole(adaptation: Element): DashSubtitleTrack['role'] {
     return value;
   }
   return null;
+}
+
+/**
+ * Parse the audio AdaptationSets from a DASH MPD body. Returns one entry
+ * per language (de-duplicated by primary subtag — the MPD often has
+ * multiple bitrates of the same language, but we only need to know which
+ * languages exist).
+ */
+export function parseDashAudioTracks(
+  mpdBody: string,
+): DashAudioTrack[] {
+  let doc: Document;
+  try {
+    const parser = new DOMParser();
+    doc = parser.parseFromString(mpdBody, 'application/xml');
+  } catch {
+    return [];
+  }
+  if (doc.getElementsByTagName('parsererror').length > 0) return [];
+
+  const seen = new Map<string, DashAudioTrack>();
+  const adaptationSets = Array.from(doc.getElementsByTagName('AdaptationSet'));
+  for (const adaptation of adaptationSets) {
+    if (adaptation.getAttribute('contentType') !== 'audio') continue;
+    const lang = (adaptation.getAttribute('lang') || '').trim();
+    if (!lang) continue;
+    const primary = lang.toLowerCase().split(/[-_]/)[0];
+    if (!primary) continue;
+    const role = adaptation.querySelector(
+      ':scope > Role[schemeIdUri="urn:mpeg:dash:role:2011"]',
+    )?.getAttribute('value') ?? null;
+    const id = adaptation.getAttribute('id') ?? '';
+    // First "main" role wins; otherwise first occurrence of the language.
+    const existing = seen.get(primary);
+    if (!existing) {
+      seen.set(primary, { id, language: primary, fullLanguage: lang, role });
+    } else if (role === 'main' && existing.role !== 'main') {
+      seen.set(primary, { id, language: primary, fullLanguage: lang, role });
+    }
+  }
+  return Array.from(seen.values());
 }
 
 function readSegmentTemplate(rep: Element): SegmentTemplate | null {

@@ -25,6 +25,7 @@
 import { parseAny, detectTrackLanguage, type RawCue } from './parsers';
 import {
   parseDashSubtitleTracks,
+  parseDashAudioTracks,
   downloadDashSubtitleTrack,
   pickBestTrack,
 } from './dash-subtitle-loader';
@@ -177,6 +178,94 @@ async function handleDashManifest(mpdUrl: string, body: string): Promise<void> {
     const tgt = pickBestTrack(tracks, targetLang);
     if (tgt) void downloadAndPublishDashTrack(tgt, targetPrimary);
   }
+
+  // Audio auto-select — opt-in via `translate.autoSelectSourceAudio`.
+  // When on, switch the player's audio track to the one tagged with
+  // the user's source language, so they hear AND read the language
+  // they're learning. This is purely a UX convenience — we don't
+  // download audio (the player owns the buffers), we just call
+  // `audioTrack.enabled = true` on the matching HTMLMediaElement track.
+  if (
+    document.documentElement.getAttribute('data-kivara-auto-source-audio') === '1'
+  ) {
+    const audioTracks = parseDashAudioTracks(body);
+    if (audioTracks.length > 1) {
+      // Wait one tick so the media element has a chance to be created /
+      // populated by the player before we try to enumerate its
+      // audioTracks list.
+      window.setTimeout(() => {
+        applyAudioTrackSelection(sourcePrimary, audioTracks);
+      }, 200);
+    }
+  }
+}
+
+/**
+ * Switch the page's <video> element to the audio track matching
+ * `desiredLang`. Uses the standard HTMLMediaElement.audioTracks API,
+ * which is supported by Chrome / Edge on most DASH-MSE players (HBO Max,
+ * Disney+). Returns silently when:
+ *   - no <video> element is on the page yet
+ *   - audioTracks isn't populated (some players hide it behind the
+ *     internal MSE buffer)
+ *   - the desired language isn't in the list
+ *
+ * Safe by design: we never DISABLE the user's current track unless we
+ * have a replacement enabled, so playback never goes silent. We also
+ * skip when the desired track is already the active one.
+ */
+function applyAudioTrackSelection(
+  desiredLang: string,
+  knownAudioLangs: Array<{ language: string; fullLanguage: string }>,
+): void {
+  const video = document.querySelector<HTMLVideoElement>('video');
+  if (!video) return;
+  // Some browsers don't expose audioTracks (Firefox needs a flag,
+  // Safari hides it behind a vendor prefix). Bail silently — we only
+  // help on Chromium where audioTracks is standard.
+  const tracks = (video as unknown as { audioTracks?: AudioTrackList }).audioTracks;
+  if (!tracks || typeof tracks.length !== 'number' || tracks.length === 0) {
+    return;
+  }
+  // Find the matching track. The browser usually populates
+  // `track.language` from the MPD AdaptationSet's `lang`, so we can
+  // match by primary subtag.
+  let target: AudioTrack | null = null;
+  for (let i = 0; i < tracks.length; i += 1) {
+    const t = tracks[i];
+    const primary = (t.language || '').toLowerCase().split(/[-_]/)[0];
+    if (primary === desiredLang) {
+      target = t;
+      break;
+    }
+  }
+  if (!target) {
+    // Fallback: some MPDs don't surface lang on the audioTrack object,
+    // only on the `kind` or `label`. Try matching by label substring.
+    for (let i = 0; i < tracks.length; i += 1) {
+      const t = tracks[i];
+      const labelLower = (t.label || '').toLowerCase();
+      if (labelLower.includes(desiredLang)) {
+        target = t;
+        break;
+      }
+    }
+  }
+  if (!target) return;
+  if (target.enabled) return; // already on
+  // Enable target FIRST so playback never goes silent during the
+  // transition. Then disable everything else.
+  target.enabled = true;
+  for (let i = 0; i < tracks.length; i += 1) {
+    if (tracks[i] !== target && tracks[i].enabled) {
+      tracks[i].enabled = false;
+    }
+  }
+  // Note: knownAudioLangs is currently unused here — we trust
+  // `audioTracks` from the media element. We keep the parameter for
+  // future use (e.g. logging which tracks the platform offers vs which
+  // the browser exposes, for debugging mismatches).
+  void knownAudioLangs;
 }
 
 /**

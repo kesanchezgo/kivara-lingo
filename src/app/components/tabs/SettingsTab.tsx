@@ -201,6 +201,16 @@ export function SettingsTab() {
               </select>
             </div>
           </div>
+          <QuickRow
+            label="Audio en idioma de aprendizaje"
+            info={<>Cuando la plataforma ofrece varias pistas de audio (HBO Max, Disney+, etc.), Kivara cambia automáticamente al audio del idioma que estás aprendiendo. Útil si quieres escuchar Y leer el idioma. <br /><br />En YouTube no aplica (un solo audio por video). En Netflix no funciona porque su reproductor no expone la API de audioTracks.</>}
+            hint={translate.autoSelectSourceAudio ? 'activo' : 'manual'}
+          >
+            <Toggle
+              on={translate.autoSelectSourceAudio}
+              onChange={(v) => setTranslate({ ...translate, autoSelectSourceAudio: v })}
+            />
+          </QuickRow>
         </div>
 
         {/* ── Traducción ─────────────────────────────────────────────── */}
