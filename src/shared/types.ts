@@ -419,12 +419,14 @@ export interface VipSettings {
   collins: boolean;
   merriamWebster: boolean;
   oxfordCollocations: boolean;
+  ozdic: boolean;
 
   /* ── Bilingual / contextual translations ──────────────────────────── */
   reverso: boolean;
   linguee: boolean;
   wordReference: boolean;
   spanishDict: boolean;
+  tatoeba: boolean;
 
   /* ── Audio sources (word-level pronunciation) ─────────────────────── */
   cambridgeAudio: boolean;

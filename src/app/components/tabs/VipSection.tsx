@@ -36,7 +36,8 @@ const DICT_SOURCES: SourceMeta[] = [
   { key: 'longman', label: 'Longman LDOCE', hint: 'Definiciones simples (Defining Vocabulary 2 000).' },
   { key: 'collins', label: 'Collins COBUILD', hint: 'Estilo "If something is X…" + ejemplos del corpus.' },
   { key: 'merriamWebster', label: 'Merriam-Webster', hint: 'American English authority, etimología detallada.' },
-  { key: 'oxfordCollocations', label: 'Oxford Collocations', hint: 'Pack importable ofrece ~250 000 collocations curadas.' },
+  { key: 'ozdic', label: 'Oxford Collocations', hint: 'Mirror de OCD (ozdic.com): 250 000 collocations curadas Oxford con patrones gramaticales (ADJ, VERB, PREP).' },
+  { key: 'oxfordCollocations', label: 'Oxford Coll. pack', hint: 'Reservado para un pack importable offline (placeholder).' },
 ];
 
 const BILINGUAL_SOURCES: SourceMeta[] = [
@@ -44,6 +45,7 @@ const BILINGUAL_SOURCES: SourceMeta[] = [
   { key: 'linguee', label: 'Linguee', hint: 'Traducciones y ejemplos curados de la web.' },
   { key: 'wordReference', label: 'WordReference', hint: 'Equivalencias EN-ES naturales.' },
   { key: 'spanishDict', label: 'SpanishDict', hint: 'Conjugación + ejemplos paralelos.' },
+  { key: 'tatoeba', label: 'Tatoeba', hint: 'Corpus comunitario CC-BY de oraciones paralelas (api.tatoeba.org).' },
 ];
 
 const AUDIO_SOURCES: SourceMeta[] = [

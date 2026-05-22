@@ -10,7 +10,7 @@ needing any API key from the user.
 |---|---|---|
 | **Local** | ✅ | Bundled `en.json` + `en-extensions` + Oxford 3000/5000 CEFR + Oxford Phrasal Academic Lexicon + Academic Collocation List + Fernald Thesaurus 1896 + Yomitan packs (`kty-en-es`, `kty-en-en`, `kty-en-ipa`) |
 | **Standard** | ✅ | Free Dictionary API · Datamuse |
-| **VIP** | toggle in Settings | Cambridge · Oxford Learner's · Longman · Collins · Merriam-Webster · Reverso · Linguee · WordReference · SpanishDict · Forvo · Lingua Libre · Etymonline · Unsplash · Pixabay · Wikimedia Commons · DuckDuckGo Images · YouGlish · Google TTS fallback |
+| **VIP** | toggle in Settings | Cambridge · Oxford Learner's · Longman · Collins · Merriam-Webster · **Ozdic (Oxford Collocations)** · Reverso · Linguee · WordReference · SpanishDict · **Tatoeba** · Forvo · Lingua Libre · Etymonline · Unsplash · Pixabay · Wikimedia Commons · DuckDuckGo Images · YouGlish · Google TTS fallback |
 | **AI** | toggle + API key | OpenAI / Anthropic / Gemini — generates contextual definition, synonyms, collocations, register, **mnemonic**, **etymology**, and **DALL-E 3 image** (OpenAI only, save-time only, ~$0.04/card) |
 
 Every source is independent: a Cambridge timeout never blocks Reverso.
@@ -129,7 +129,7 @@ note field to one of:
 | `examples` | local OR enriched (Reverso / Linguee / WordRef / Cambridge) |
 | `synonyms` | bundled Fernald thesaurus + Datamuse + WordNet pack + Cambridge thesaurus |
 | `antonyms` | bundled Fernald thesaurus + Datamuse + WordNet pack |
-| `collocations` | bundled Academic Collocation List + Datamuse + Cambridge / Oxford |
+| `collocations` | bundled Academic Collocation List + Datamuse + Cambridge / Oxford Learner's / **Ozdic (OCD)** |
 | `etymology` | Etymonline + AI |
 | `mnemonic` | AI |
 | `image` | Unsplash → Pixabay → Wikimedia → DuckDuckGo → DALL-E 3 (paid fallback) |

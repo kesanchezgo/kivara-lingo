@@ -39,10 +39,12 @@ import { oxfordLearnersSource } from './sources/oxford-learners';
 import { longmanSource } from './sources/longman';
 import { collinsSource } from './sources/collins';
 import { merriamWebsterSource } from './sources/merriam-webster';
+import { ozdicSource } from './sources/ozdic';
 import { reversoSource } from './sources/reverso-context';
 import { lingueeSource } from './sources/linguee';
 import { wordReferenceSource } from './sources/wordreference';
 import { spanishDictSource } from './sources/spanishdict';
+import { tatoebaSource } from './sources/tatoeba';
 import { forvoSource } from './sources/forvo';
 import { linguaLibreSource } from './sources/lingua-libre';
 import { googleTtsSource } from './sources/google-tts';
@@ -78,10 +80,12 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   collins: collinsSource,
   merriamWebster: merriamWebsterSource,
   oxfordCollocations: null, // pack-based, handled separately
+  ozdic: ozdicSource,
   reverso: reversoSource,
   linguee: lingueeSource,
   wordReference: wordReferenceSource,
   spanishDict: spanishDictSource,
+  tatoeba: tatoebaSource,
   cambridgeAudio: null, // audio extracted by `cambridgeSource`
   oxfordAudio: null, // audio extracted by `oxfordLearnersSource`
   forvo: forvoSource,

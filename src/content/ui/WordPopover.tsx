@@ -902,6 +902,8 @@ function formatSource(source: string | null): string {
       return 'Collins';
     case 'merriamWebster':
       return 'Merriam-Webster';
+    case 'ozdic':
+      return 'Oxford Coll.';
     case 'reverso':
       return 'Reverso';
     case 'linguee':
@@ -910,6 +912,8 @@ function formatSource(source: string | null): string {
       return 'WordReference';
     case 'spanishDict':
       return 'SpanishDict';
+    case 'tatoeba':
+      return 'Tatoeba';
     case 'forvo':
       return 'Forvo';
     case 'linguaLibre':
