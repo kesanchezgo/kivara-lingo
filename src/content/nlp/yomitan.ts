@@ -864,22 +864,42 @@ function dictTermToEntry(
       type: 'word',
       phonetic: row.reading ? (cleanIpa(row.reading) ?? undefined) : undefined,
       translation: '—',
-      monolingual: senses[0],
+      monolingual: trimGloss(senses[0]),
       examples: exampleAccum.length > 0 ? exampleAccum.slice(0, 5) : undefined,
       lemmaOf,
     };
   }
-  const translation = senses[0] ?? '—';
-  const bilingual = senses.length > 1 ? senses.slice(1, 4).join(' · ') : undefined;
+  const translation = trimGloss(senses[0]) ?? '—';
+  const bilingual = senses.length > 1
+    ? senses.slice(1, 4).map(trimGloss).filter(Boolean).join(' · ')
+    : undefined;
   return {
     token: surfaceToken,
     type: 'word',
     phonetic: row.reading ? (cleanIpa(row.reading) ?? undefined) : undefined,
     translation,
-    bilingual,
+    bilingual: bilingual || undefined,
     examples: exampleAccum.length > 0 ? exampleAccum.slice(0, 5) : undefined,
     lemmaOf,
   };
+}
+
+/**
+ * Trim a single Yomitan gloss down to a popover-friendly line:
+ *  - drop trailing whitespace
+ *  - keep only the first sentence (so multi-sense Wiktionary entries
+ *    don't dump four senses into one line)
+ *  - cap at 180 chars + ellipsis as a last resort for runaway entries
+ */
+function trimGloss(s: string | undefined): string | undefined {
+  if (!s) return undefined;
+  let t = s.trim();
+  if (!t) return undefined;
+  // First sentence — `. `, `! `, `? ` (keep the punctuation in the result).
+  const m = t.match(/^[\s\S]*?[.!?](?=\s|$)/);
+  if (m && m[0].length > 8) t = m[0];
+  if (t.length > 180) t = t.slice(0, 177).replace(/\s+\S*$/, '') + '…';
+  return t;
 }
 
 /**
@@ -954,6 +974,27 @@ function walkForText(d: unknown, examples: string[]): string {
   //    badges read as noise inside the `monolingual` field.
   if (dataContent === 'tags' || dataContent === 'tag') {
     return '';
+  }
+  // 4. Wiktionary metadata sections shipped by kty-en-en (the EN→EN
+  //    monolingual pack) — Etymology, Grammar, Pronunciation,
+  //    Conjugation, Inflection, Synonyms, Antonyms, Translations,
+  //    Quotations, References, Anagrams, Trivia, See also, Notes, etc.
+  //    These are wrapped in `details-entry-<Section>` and their inner
+  //    content lives in `<Section>-content`. None of them belong in the
+  //    one-line monolingual gloss the popover renders, and they're the
+  //    reason hovering `pants` showed half a page of Proto-Indo-
+  //    European etymology. We drop the whole subtree.
+  if (typeof dataContent === 'string') {
+    if (
+      /^details-entry-(?!definitions?$|examples?$)/i.test(dataContent) ||
+      /-content$/i.test(dataContent) && !/^definition/i.test(dataContent) ||
+      dataContent === 'preamble' ||
+      dataContent === 'glosses-source' ||
+      dataContent === 'wikilink' ||
+      dataContent === 'backlink'
+    ) {
+      return '';
+    }
   }
 
   // Plain text leaf or text-typed node.

@@ -5448,7 +5448,6 @@
     "type": "word",
     "level": "A2",
     "phonetic": "/kɔːzd/",
-    "bilingual": "(verbo) han procedido (a la firma del presente contrato por medio de sus apoderados)",
     "monolingual": "simple past and past participle of cause"
   },
   "caution": {
@@ -13708,7 +13707,6 @@
     "type": "word",
     "level": "A1",
     "phonetic": "/ˈfeɪ̯s/",
-    "bilingual": "(sust.) {cara",
     "monolingual": "The front part of the head of a human or other animal, featuring the eyes, nose, and mouth, and the surrounding area.",
     "examples": [
       "That girl has a pretty face."
@@ -26965,7 +26963,6 @@
     "type": "word",
     "level": "A2",
     "phonetic": "/ˈpiːs/",
-    "bilingual": "(sust.) \"Paz,",
     "monolingual": "A state of tranquility, quiet, and harmony. For instance, a state free from civil disturbance.",
     "examples": [
       "Our lounge strives to maintain an environment of peace for the comfort of our customers."
@@ -30984,8 +30981,7 @@
     "level": "A2",
     "translation": "liberado",
     "phonetic": "/ɹɪˈliːst/",
-    "bilingual": "(adj.) liberado",
-    "monolingual": "This term needs a definition. Please help out and add a definition, then remove the text {{rfdef}}."
+    "bilingual": "(adj.) liberado"
   },
   "relentless": {
     "token": "relentless",
@@ -34398,7 +34394,6 @@
     "type": "word",
     "level": "A1",
     "phonetic": "/saɪd/",
-    "bilingual": "(sust.) cara}}",
     "monolingual": "A bounding straight edge of a two-dimensional shape.",
     "examples": [
       "A square has four sides."
@@ -37393,7 +37388,6 @@
     "type": "word",
     "level": "A2",
     "phonetic": "/ˈsuːpə/",
-    "bilingual": "(adj.) Mostrar archivos ocultos y directorios al previsualizar recursos compartidos",
     "monolingual": "Of excellent quality, superfine.",
     "examples": [
       "The party was super awesome."
@@ -42422,7 +42416,6 @@
     "token": "who",
     "type": "word",
     "level": "A1",
-    "bilingual": "(pron.) sólo respira intencionando que eres un ser ilimitado, que el poder de crear está adentro tuyo.",
     "monolingual": "What person or people; which person or people; asks for the identity of someone; used in a direct or indirect question.",
     "examples": [
       "You're getting married‽ Who to? (direct question)"
