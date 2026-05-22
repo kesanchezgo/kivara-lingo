@@ -21,10 +21,27 @@ export function detectFieldSource(fieldName: string): FieldSource {
     if (/word|palabra|term/.test(n)) return 'word-audio';
     return 'sentence-audio'; // default: cue/sentence audio
   }
-  if (/picture|image|imagen|frame|screenshot/.test(n)) return 'frame';
+  if (/picture|image|imagen|frame|screenshot/.test(n)) {
+    // "Picture" / "Image" with no "frame" / "screenshot" suffix is the
+    // generic illustrative image slot — fed by the VIP image chain
+    // (Unsplash / Pixabay / Wikimedia / DuckDuckGo). When the user
+    // names the field "Frame" or "Screenshot" we keep the legacy
+    // behaviour and fill it with the live video frame.
+    if (/frame|screenshot|captura/.test(n)) return 'frame';
+    return 'image';
+  }
   if (/phon|ipa|pronun/.test(n)) return 'phonetic';
   if (/monoling|definition|definición|meaning|sentido/.test(n)) return 'monolingual';
   if (/biling/.test(n)) return 'bilingual';
+  // Multi-source enrichment fields. Match before the generic "example"
+  // / "translation" rules so a field literally called "Synonyms" or
+  // "Collocations" gets the dedicated source.
+  if (/synonym|sinónimo|sinonimo/.test(n)) return 'synonyms';
+  if (/antonym|antónimo|antonimo|opposite/.test(n)) return 'antonyms';
+  if (/colloc|colocac|combinaciones|combos|chunk/.test(n)) return 'collocations';
+  if (/etymolog|etimolog|origin/.test(n)) return 'etymology';
+  if (/mnemonic|nemot|mnemot|memo/.test(n)) return 'mnemonic';
+  if (/youglish|video|youtube/.test(n)) return 'video-link';
   if (/example|ejemplo/.test(n)) return 'examples';
   if (/translation|traduccion|traducción|native|spanish|español/.test(n)) return 'translation';
   if (/sentence|frase|context|cue|reverso|extra/.test(n)) return 'cue';

@@ -36,7 +36,10 @@ function buildPrompt(req: AiEnrichRequest): string {
     'Eres un asistente de aprendizaje de idiomas. Devuelve SOLO JSON con las claves',
     'contextualDefinition (string), synonyms (array<=5 de strings), collocations (array<=5 de strings),',
     'nuancedTranslation (string), register (formal|neutral|informal|slang|literary),',
-    'appropriateness (string corta).',
+    'appropriateness (string corta), mnemonic (string corta en el idioma nativo del',
+    'usuario, ayuda mnemotécnica memorable o asociación sonora),',
+    'etymology (string corta en el idioma nativo del usuario, origen breve de la',
+    'palabra en 1-2 oraciones máximo).',
     `Idioma fuente: ${req.sourceLang}.`,
     `Idioma nativo del usuario: ${req.nativeLang}.`,
     `Palabra/frase objetivo: "${req.token}".`,
@@ -54,6 +57,8 @@ function emptyPayload(): AiEnrichmentPayload {
     nuancedTranslation: '',
     register: 'neutral',
     appropriateness: '',
+    mnemonic: '',
+    etymology: '',
   };
 }
 
@@ -79,6 +84,8 @@ function parsePayload(raw: unknown): AiEnrichmentPayload {
     out.register = obj.register;
   }
   if (typeof obj.appropriateness === 'string') out.appropriateness = obj.appropriateness;
+  if (typeof obj.mnemonic === 'string') out.mnemonic = obj.mnemonic;
+  if (typeof obj.etymology === 'string') out.etymology = obj.etymology;
   return out;
 }
 

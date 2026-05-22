@@ -133,11 +133,12 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
     case 'mnemonic':
       return ctx.mnemonic;
     case 'image':
-      // Anki accepts <img src="https://…"> in fields. We embed the
-      // remote URL directly so the deck stays small (no download).
-      // Users who sync to AnkiWeb / mobile can later replace via the
-      // built-in "Replace remote URLs" feature.
-      return ctx.imageUrl ? `<img src="${ctx.imageUrl}" alt="${ctx.request.token}">` : '';
+      // The wrapper below downloads the URL and attaches it as an
+      // AnkiConnect `pictures[]` entry. We leave the field text empty
+      // so the binary attachment is the only content for this field.
+      // (When the download fails the warning surfaces and the field
+      // stays empty — a legible failure mode.)
+      return '';
     case 'video-link':
       return ctx.videoLink ? `<a href="${ctx.videoLink}">YouGlish</a>` : '';
     case 'tts':
@@ -311,6 +312,15 @@ export async function createCardFromRequest(
     warnings.push(`Enriquecimiento parcial: ${reason}`);
   }
 
+  // AI mnemonic / etymology overlay. The AI provider returns higher-
+  // quality text when configured (proper grammar, native-language,
+  // mnemonic-specific structure), so we let it override the
+  // Etymonline scrape and Datamuse mnemonic placeholder when present.
+  if (aiData) {
+    if (aiData.mnemonic && !ctx.mnemonic) ctx.mnemonic = aiData.mnemonic;
+    if (aiData.etymology && !ctx.etymology) ctx.etymology = aiData.etymology;
+  }
+
   // Fill the phonetic field on cards where the local dictionary stack
   // resolved a translation but didn't carry IPA. Best-effort, cached, and
   // never blocks the save longer than the augmenter's own timeout.
@@ -337,24 +347,57 @@ export async function createCardFromRequest(
     }
   }
 
-  // Frame
+  // Frame + image fields. The user's note model can map any field to:
+  //   - `frame` (the live video frame captured at save-time), or
+  //   - `image` (a hero image fetched by the multi-source enrichment
+  //              chain — Unsplash / Pixabay / Wikimedia / DDG).
+  // The two paths are independent: the user can have BOTH a frame and
+  // an image field on the same model. We also implement a graceful
+  // fallback: when a `frame` field is mapped but the live capture
+  // failed (e.g. the user saved from a screen with no `<video>`), we
+  // fall back to the VIP image so the card still has a picture.
   const pictures: AnkiMedia[] = [];
-  if (request.frame) {
-    const frameField = fieldMapping.find(([, s]) => s === 'frame')?.[0];
-    if (frameField) {
-      const filename = safeFilename(request.token, 'jpg');
-      try {
-        await ankiConnect.storeMediaFile(
-          filename,
-          dataUrlToBase64(request.frame),
-          mapping.ankiUrl,
-          mapping.apiKey,
-        );
-        pictures.push({ filename, data: dataUrlToBase64(request.frame), fields: [frameField] });
-      } catch (err) {
-        const reason = err instanceof Error ? err.message : 'frame';
-        warnings.push(`No se pudo guardar el frame: ${reason}`);
+  const frameField = fieldMapping.find(([, s]) => s === 'frame')?.[0];
+  const imageField = fieldMapping.find(([, s]) => s === 'image')?.[0];
+
+  if (request.frame && frameField) {
+    const filename = safeFilename(request.token, 'jpg');
+    try {
+      const data = dataUrlToBase64(request.frame);
+      await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
+      pictures.push({ filename, data, fields: [frameField] });
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : 'frame';
+      warnings.push(`No se pudo guardar el frame: ${reason}`);
+    }
+  }
+
+  // Image field: download the URL chosen by the orchestrator and
+  // attach it. Same flow handles the fallback: if `frame` was
+  // mapped but no frame got captured, AND the image URL is
+  // available, attach it to the frame field too.
+  const imageTargets: string[] = [];
+  if (imageField) imageTargets.push(imageField);
+  if (frameField && !request.frame && !imageTargets.includes(frameField)) {
+    imageTargets.push(frameField);
+  }
+  if (imageTargets.length > 0 && ctx.imageUrl) {
+    try {
+      const res = await fetch(ctx.imageUrl, { credentials: 'omit' });
+      if (res.ok) {
+        const buf = await res.arrayBuffer();
+        const mime = res.headers.get('content-type') ?? 'image/jpeg';
+        const ext = /png/i.test(mime) ? 'png' : /webp/i.test(mime) ? 'webp' : 'jpg';
+        const filename = safeFilename(`${request.token}_img`, ext);
+        const data = arrayBufferToBase64(buf);
+        await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
+        pictures.push({ filename, data, fields: imageTargets });
+      } else {
+        warnings.push(`Imagen VIP no descargable: HTTP ${res.status}`);
       }
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : 'image';
+      warnings.push(`Imagen VIP: ${reason}`);
     }
   }
 

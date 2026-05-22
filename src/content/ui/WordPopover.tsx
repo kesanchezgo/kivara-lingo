@@ -584,6 +584,14 @@ export function WordPopover({
               {meta.vip.etymology}
             </div>
           )}
+          {meta.vip?.mnemonic && (
+            <div className="mt-2 text-[10.5px] text-violet-200/90 italic leading-snug normal-case border-l-2 border-violet-700/40 pl-2 bg-violet-500/5 py-1 rounded-r">
+              <span className="text-[9px] uppercase tracking-wider text-violet-300/90 font-semibold not-italic mr-1">
+                Mnemotécnico
+              </span>
+              {meta.vip.mnemonic}
+            </div>
+          )}
           {meta.vip?.imageUrl && (
             <img
               src={meta.vip.imageUrl}

@@ -467,6 +467,18 @@ export interface AiEnrichment {
   register: 'formal' | 'neutral' | 'informal' | 'slang' | 'literary';
   /** How appropriate the token is for the platform's typical audience */
   appropriateness: string;
+  /**
+   * Memorable mnemonic that helps the user remember the word — typically
+   * a sound-alike association or a vivid image. One sentence, written in
+   * the user's native language.
+   */
+  mnemonic?: string;
+  /**
+   * Concise etymology / origin paragraph — one or two sentences in the
+   * user's native language. Complements the Etymonline scrape (when
+   * available) with an LLM-generated plain-language summary.
+   */
+  etymology?: string;
   /** Which provider was used (filled by the wrapper) */
   provider: AiProvider;
   /** Latency of the call in ms (filled by the wrapper) */

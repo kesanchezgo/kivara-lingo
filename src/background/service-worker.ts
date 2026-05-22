@@ -650,8 +650,23 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
           sourceLang,
           nativeLang,
         });
-        if (ai.ok) waves.push({ stage: 'ai', data: ai.data });
-        else waves.push({ stage: 'error', scope: 'ai', message: ai.error });
+        if (ai.ok) {
+          waves.push({ stage: 'ai', data: ai.data });
+          // Patch the local entry with AI-generated mnemonic / etymology
+          // so the popover renders them inside the same VIP block as the
+          // chain results, and the Anki mapper sees them when the user
+          // hits save.
+          if (local) {
+            const newVip = { ...(local.vip ?? {}) };
+            if (ai.data.mnemonic && !newVip.mnemonic) newVip.mnemonic = ai.data.mnemonic;
+            if (ai.data.etymology && !newVip.etymology) newVip.etymology = ai.data.etymology;
+            local.vip = newVip;
+            const localWave = waves.find((w) => w.stage === 'local');
+            if (localWave && localWave.stage === 'local') {
+              localWave.entry = local;
+            }
+          }
+        } else waves.push({ stage: 'error', scope: 'ai', message: ai.error });
       } catch (err) {
         waves.push({
           stage: 'error',

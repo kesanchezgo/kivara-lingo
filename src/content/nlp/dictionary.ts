@@ -1,6 +1,7 @@
 import enDict from '../../assets/dictionaries/en.json';
 import enMwes from '../../assets/mwes/en.json';
 import enExtensions from '../../assets/dictionaries/en-extensions.json';
+import enCollocations from '../../assets/collocations/academic-collocation-list.json';
 import type { DictionaryEntry } from '../../shared/types';
 import { lemmaCandidates } from './lemma';
 
@@ -11,6 +12,11 @@ const { _meta: _enExtMeta, ...enExtensionEntries } = enExtensions as Record<
   unknown
 >;
 void _enExtMeta;
+const { _meta: _enCollMeta, ...enCollocationEntries } = enCollocations as Record<
+  string,
+  unknown
+>;
+void _enCollMeta;
 
 const enMerged: Record<string, DictionaryEntry> = {
   ...(enMwes as Record<string, DictionaryEntry>),
@@ -24,6 +30,36 @@ for (const [key, value] of Object.entries(
     ...(enMerged[key] ?? {}),
     ...value,
   };
+}
+
+// Overlay the Academic Collocation List (Ackermann & Chen 2013) so every
+// entry the bundled dictionary already covers also gets up to ~12
+// curated academic collocations. The popover renders these under
+// "Combinaciones" without any network call.
+for (const [key, value] of Object.entries(
+  enCollocationEntries as Record<string, string[]>,
+)) {
+  if (!Array.isArray(value)) continue;
+  const existing = enMerged[key];
+  if (existing) {
+    enMerged[key] = {
+      ...existing,
+      collocations: [
+        ...(existing.collocations ?? []),
+        ...value.filter((v) => !existing.collocations?.includes(v)),
+      ].slice(0, 12),
+    };
+  } else {
+    // Words present only in the collocation list (no full bundled entry)
+    // get a stub so the popover can still surface the chunks. The
+    // tokenizer's headword-set check picks them up too.
+    enMerged[key] = {
+      token: key,
+      type: 'word',
+      translation: '\u2014',
+      collocations: value.slice(0, 12),
+    };
+  }
 }
 
 const DICTIONARIES: Record<string, Record<string, DictionaryEntry>> = {
