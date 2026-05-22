@@ -366,13 +366,13 @@ export function SettingsTab() {
         {/* ── VIP enrichment chain ─────────────────────────────────── */}
         <Accordion
           icon={<Sparkles size={10} />}
-          title="VIP — Enriquecimiento máximo"
-          summary={vip.enabled ? 'activado' : 'desactivado'}
+          title="Enriquecimiento (Standard + VIP)"
+          summary={vip.enabled ? 'VIP activo' : 'solo Standard'}
           summaryColor={vip.enabled ? 'text-fuchsia-500 dark:text-fuchsia-400' : undefined}
           open={isOpen('vip')}
           onToggle={() => toggle('vip')}
           noPadding
-          description="Cambridge, Oxford, Longman, Collins, Reverso, Linguee, WordReference, SpanishDict, Forvo, Lingua Libre, YouGlish, Unsplash, Pixabay, Wikimedia, DuckDuckGo. Uso personal — todas las fuentes son scraping/HTML público sin token."
+          description="Datos locales bundleados, dos APIs gratuitas (Free Dictionary, Datamuse) y, opcionalmente, hasta 18 fuentes VIP scrape: Cambridge, Oxford, Longman, Collins, Merriam-Webster, Ozdic, Reverso, Linguee, WordReference, SpanishDict, Tatoeba, Forvo, Lingua Libre, Etymonline, Unsplash, Pixabay, Wikimedia, DuckDuckGo, YouGlish, Google TTS."
         >
           <VipSection />
         </Accordion>

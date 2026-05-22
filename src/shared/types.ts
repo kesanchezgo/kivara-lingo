@@ -412,7 +412,11 @@ export interface VipSettings {
   /** Master switch. When false, none of the VIP sources are consulted. */
   enabled: boolean;
 
-  /* ── Definitions / collocations dictionaries ──────────────────────── */
+  /* ── Standard tier (free, no token, run regardless of VIP) ────────── */
+  freeDictionary: boolean;
+  datamuse: boolean;
+
+  /* ── Diccionarios premium (definitions, IPA, examples, collocations) ─ */
   cambridge: boolean;
   oxfordLearners: boolean;
   longman: boolean;

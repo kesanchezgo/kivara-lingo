@@ -124,6 +124,10 @@ export const DEFAULT_AI: AiSettings = {
  */
 export const DEFAULT_VIP: VipSettings = {
   enabled: false,
+  // Standard tier — on by default since they don't need VIP master
+  // switched on (they're free APIs without scraping or tokens).
+  freeDictionary: true,
+  datamuse: true,
   cambridge: true,
   oxfordLearners: true,
   longman: true,

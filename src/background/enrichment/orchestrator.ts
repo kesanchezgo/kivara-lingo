@@ -57,13 +57,18 @@ import { etymonlineSource } from './sources/etymonline';
 import { getDB } from '../../shared/db';
 
 /**
- * Standard-tier sources — always queried, even with VIP off. These are
- * the ones with no rate limit, no scraping, no licence concerns.
+ * Standard tier: always queried regardless of the VIP master switch
+ * (free APIs, no scraping, no token). Each source can still be
+ * disabled individually from `VipSettings.freeDictionary` /
+ * `.datamuse` — we just consult the toggle here so the user can
+ * silence one without flipping the master.
  */
-const STANDARD_SOURCES: EnrichmentSource[] = [
-  freeDictionarySource,
-  datamuseSource,
-];
+function getStandardSources(vip: VipSettings): EnrichmentSource[] {
+  const out: EnrichmentSource[] = [];
+  if (vip.freeDictionary) out.push(freeDictionarySource);
+  if (vip.datamuse) out.push(datamuseSource);
+  return out;
+}
 
 /**
  * VIP-tier sources, keyed by their `VipSettings` flag. The
@@ -73,6 +78,11 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   enabled: null,
   perSourceTimeoutMs: null,
   cacheTtlDays: null,
+
+  // Standard tier — runs regardless of `enabled`, but each source is
+  // still individually togglable from the UI.
+  freeDictionary: freeDictionarySource,
+  datamuse: datamuseSource,
 
   cambridge: cambridgeSource,
   oxfordLearners: oxfordLearnersSource,
@@ -136,11 +146,13 @@ export async function runEnrichment(
   }
 
   // Build the active source list.
-  const active: EnrichmentSource[] = [...STANDARD_SOURCES];
+  const active: EnrichmentSource[] = [...getStandardSources(opts.vip)];
   if (opts.vip.enabled) {
     for (const [flag, source] of Object.entries(VIP_SOURCES)) {
       if (!source) continue;
       const k = flag as keyof VipSettings;
+      // Skip Standard sources here — they were already added above.
+      if (k === 'freeDictionary' || k === 'datamuse') continue;
       if (opts.vip[k] === true) active.push(source);
     }
   }

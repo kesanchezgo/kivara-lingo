@@ -30,6 +30,11 @@ interface SourceMeta {
   hint: string;
 }
 
+const STANDARD_SOURCES: SourceMeta[] = [
+  { key: 'freeDictionary', label: 'Free Dictionary API', hint: 'IPA + audio MP3 de Wikimedia + sinónimos. Gratis sin token (api.dictionaryapi.dev).' },
+  { key: 'datamuse', label: 'Datamuse', hint: 'Collocations corpus-based + relaciones. Gratis sin token (api.datamuse.com).' },
+];
+
 const DICT_SOURCES: SourceMeta[] = [
   { key: 'cambridge', label: 'Cambridge', hint: 'Definiciones, collocations, IPA y audio UK/US.' },
   { key: 'oxfordLearners', label: 'Oxford Learner\u2019s', hint: 'Definiciones learner-grade y ejemplos curados.' },
@@ -77,7 +82,33 @@ export function VipSection() {
 
   return (
     <div className="p-2.5 space-y-3">
-      {/* Master switch */}
+      {/* Bundled overlays — read-only info panel. These ship inside the
+          extension; the user doesn't choose them, but they should know
+          they're active so the popover's data feels less magical. */}
+      <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2.5 py-2 space-y-1.5">
+        <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+          <span>Datos locales (siempre activos)</span>
+          <InfoHint message="Bundled con la extensión. Suman ~250 KB y se cargan a memoria al instante. No requieren internet." />
+        </div>
+        <ul className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-snug space-y-0.5 ml-1">
+          <li>• Dict. curado (4 151 entradas) + extensiones</li>
+          <li>• Oxford 3000/5000 CEFR (4 950 niveles A2/B2)</li>
+          <li>• Phrasal Academic Lexicon (672 frases)</li>
+          <li>• Academic Collocation List (2 469 chunks)</li>
+          <li>• Fernald Thesaurus 1896 (610 sin/ant)</li>
+        </ul>
+      </div>
+
+      {/* Standard tier — runs regardless of master switch, free APIs. */}
+      <SubGroup
+        title="Estándar (gratis, siempre activo)"
+        hint="APIs gratuitas sin token: corpus de Datamuse y diccionario Wikimedia. Si las desactivas, sólo quedan los datos locales y los packs Yomitan."
+        sources={STANDARD_SOURCES}
+        vip={vip}
+        setKey={setKey}
+      />
+
+      {/* VIP master switch */}
       <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2.5 py-2">
         <label className="flex items-center justify-between gap-2 cursor-pointer">
           <span className="flex flex-col">
@@ -100,14 +131,13 @@ export function VipSection() {
 
       {!vip.enabled && (
         <div className="text-[10.5px] text-zinc-500 italic px-1 leading-snug">
-          VIP está desactivado. Solo se usan las fuentes Standard (Free Dictionary API y
-          Datamuse) que no requieren ninguna conexión a sitios externos pesados.
+          VIP está desactivado. Solo se usan los datos locales + las fuentes Standard arriba.
         </div>
       )}
 
       {vip.enabled && (
         <>
-          <SubGroup title="Diccionarios" hint="Definiciones, IPA, ejemplos y collocations." sources={DICT_SOURCES} vip={vip} setKey={setKey} />
+          <SubGroup title="Diccionarios premium" hint="Definiciones, IPA, ejemplos y collocations." sources={DICT_SOURCES} vip={vip} setKey={setKey} />
           <SubGroup title="Bilingüe" hint="Traducción + frases paralelas EN-ES." sources={BILINGUAL_SOURCES} vip={vip} setKey={setKey} />
           <SubGroup title="Audio" hint="Pronunciación a nivel de palabra. Para audio de la frase completa se usa la captura del video." sources={AUDIO_SOURCES} vip={vip} setKey={setKey} />
           <SubGroup title="Imágenes" hint="Imagen para el frente de la tarjeta cuando no hay frame del video. Si tienes OpenAI configurado en IA premium con enrichOnSave, DALL-E 3 genera una ilustración mnemónica como último fallback (~$0.04 por tarjeta)." sources={IMAGE_SOURCES} vip={vip} setKey={setKey} />

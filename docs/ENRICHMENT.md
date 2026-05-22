@@ -39,6 +39,16 @@ RESOLVE_WORD or createCardFromRequest
              patches `entry.vip`
 ```
 
+## Where the user controls each tier
+
+| Tier | UI location | Toggle behaviour |
+|---|---|---|
+| **Bundled overlays** | Settings → "Enriquecimiento (Standard + VIP)" → top info panel (read-only) | Always active. Shipped with the extension as ~250 KB of JSON. |
+| **Yomitan packs** | Settings → "Diccionarios offline" | Each pack has `Instalar` / `Eliminar` / on/off toggle. |
+| **Standard tier** (Free Dictionary + Datamuse) | Settings → "Enriquecimiento" → "Estándar (gratis, siempre activo)" | Both default-on. Each source individually disable-able from a checkbox. Runs **regardless** of VIP master switch. |
+| **VIP tier** (18 scrape sources) | Settings → "Enriquecimiento" → master toggle → groups | Master switch off by default. Once on, every source defaults on with individual checkboxes grouped by category. |
+| **AI** | Settings → "IA premium" | Provider + API key selector. `enrichOnHover` / `enrichOnSave` flags decide when to fire. |
+
 ## Bundled offline assets
 
 Six bundled JSONs ship with the extension (no download, no network).
