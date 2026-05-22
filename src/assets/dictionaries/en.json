@@ -1009,7 +1009,6 @@
     "type": "word",
     "level": "A2",
     "translation": "no es",
-    "phonetic": "/Template:IPAchar\"},\"params\":{\"1\":{\"wt\":\"/",
     "bilingual": "(verbo) no es",
     "monolingual": "Am not.",
     "examples": [
@@ -5448,7 +5447,6 @@
     "token": "caused",
     "type": "word",
     "level": "A2",
-    "translation": "han procedido (a la firma del presente contrato por medio de sus apoderados)",
     "phonetic": "/kɔːzd/",
     "bilingual": "(verbo) han procedido (a la firma del presente contrato por medio de sus apoderados)",
     "monolingual": "simple past and past participle of cause"
@@ -8452,7 +8450,6 @@
     "type": "word",
     "level": "A1",
     "translation": "que podría",
-    "phonetic": "/Template:IPAchar\"},\"params\":{\"1\":{\"wt\":\"/",
     "bilingual": "(verbo) que podría",
     "monolingual": "simple past of can",
     "examples": [
@@ -12026,7 +12023,6 @@
     "translation": "ocho",
     "phonetic": "/eɪt/",
     "bilingual": "(sust.) ocho",
-    "monolingual": "NATO & ICAO radiotelephony clear code (spelling-alphabet name) for the digit 8.",
     "examples": [
       "He works eight hours a day."
     ]
@@ -12036,7 +12032,6 @@
     "type": "word",
     "level": "A1",
     "translation": "o bien",
-    "phonetic": "/Template:IPAfont\"},\"params\":{\"1\":{\"wt\":\"/",
     "bilingual": "(det.) o bien",
     "monolingual": "Any one (of two).",
     "examples": [
@@ -13712,7 +13707,6 @@
     "token": "face",
     "type": "word",
     "level": "A1",
-    "translation": "{cara",
     "phonetic": "/ˈfeɪ̯s/",
     "bilingual": "(sust.) {cara",
     "monolingual": "The front part of the head of a human or other animal, featuring the eyes, nose, and mouth, and the surrounding area.",
@@ -13943,7 +13937,6 @@
     "token": "far",
     "type": "word",
     "level": "A1",
-    "translation": "Selecciona la anterioridad en la cual los clientes pueden reservar",
     "phonetic": "/fɑː/",
     "examples": [
       "He went to a far land."
@@ -14586,7 +14579,6 @@
     "translation": "cinco",
     "phonetic": "/ˈfaɪ̯v/",
     "bilingual": "(sust.) cinco",
-    "monolingual": "NATO & ICAO radiotelephony clear code (spelling-alphabet name) for the digit 5.",
     "examples": [
       "He wrote a five followed by four zeroes."
     ]
@@ -15210,7 +15202,6 @@
     "translation": "cuatro",
     "phonetic": "/foɹ/",
     "bilingual": "(sust.) cuatro",
-    "monolingual": "NATO & ICAO radiotelephony clear code (spelling-alphabet name) for the digit 4.",
     "examples": [
       "There are four seasons: spring, summer, autumn and winter."
     ]
@@ -16541,7 +16532,6 @@
     "type": "word",
     "level": "A1",
     "translation": "estupendo",
-    "phonetic": "/Template:IPAchar\"},\"params\":{\"1\":{\"wt\":\"/",
     "bilingual": "(adj.) estupendo",
     "monolingual": "Taking much space; large. Much, more than usual.",
     "examples": [
@@ -17205,7 +17195,6 @@
     "token": "he's",
     "type": "word",
     "level": "A1",
-    "translation": "él \" s",
     "phonetic": "/ˈhiːz/",
     "monolingual": "Contraction of he +‎ is."
   },
@@ -17303,7 +17292,6 @@
     "type": "word",
     "level": "A1",
     "translation": "corazón",
-    "phonetic": "/Template:IPAchar\"},\"params\":{\"1\":{\"wt\":\"/",
     "bilingual": "(sust.) corazón",
     "monolingual": "A muscular organ that pumps blood through the body, traditionally thought to be the seat of emotion.",
     "examples": [
@@ -24827,7 +24815,6 @@
     "translation": "nueve",
     "phonetic": "/naɪn/",
     "bilingual": "(sust.) nueve",
-    "monolingual": "NATO & ICAO radiotelephony clear code (spelling-alphabet name) for the digit 9.",
     "examples": [
       "A cat has nine lives."
     ]
@@ -25703,9 +25690,7 @@
     "type": "word",
     "level": "A1",
     "translation": "un",
-    "phonetic": "/Template:IPAchar\"},\"params\":{\"1\":{\"wt\":\"/",
     "bilingual": "(sust.) un",
-    "monolingual": "NATO & ICAO radiotelephony clear code (spelling-alphabet name) for the digit 1.",
     "examples": [
       "In some religions, there is more than one god."
     ]
@@ -26979,7 +26964,6 @@
     "token": "peace",
     "type": "word",
     "level": "A2",
-    "translation": "\"Paz,",
     "phonetic": "/ˈpiːs/",
     "bilingual": "(sust.) \"Paz,",
     "monolingual": "A state of tranquility, quiet, and harmony. For instance, a state free from civil disturbance.",
@@ -33884,7 +33868,6 @@
     "translation": "siete",
     "phonetic": "/ˈsɛvən/",
     "bilingual": "(sust.) siete",
-    "monolingual": "NATO & ICAO radiotelephony clear code (spelling-alphabet name) for the digit 7.",
     "examples": [
       "He wrote three sevens on the paper."
     ]
@@ -34042,7 +34025,6 @@
     "type": "word",
     "level": "A1",
     "translation": "ella",
-    "phonetic": "/Template:IPAchar\"},\"params\":{\"1\":{\"wt\":\"/",
     "examples": [
       "I asked Mary, but she said that she didn't know."
     ]
@@ -34288,7 +34270,6 @@
     "type": "word",
     "level": "A1",
     "translation": "deberá",
-    "phonetic": "/Template:IPAchar\"},\"params\":{\"1\":{\"wt\":\"/",
     "bilingual": "(verbo) deberá",
     "monolingual": "simple past of shall",
     "examples": [
@@ -34416,7 +34397,6 @@
     "token": "side",
     "type": "word",
     "level": "A1",
-    "translation": "cara}}",
     "phonetic": "/saɪd/",
     "bilingual": "(sust.) cara}}",
     "monolingual": "A bounding straight edge of a two-dimensional shape.",
@@ -34767,7 +34747,6 @@
     "translation": "seis",
     "phonetic": "/sɪks/",
     "bilingual": "(sust.) seis",
-    "monolingual": "NATO & ICAO radiotelephony clear code (spelling-alphabet name) for the digit 6.",
     "examples": [
       "The fives and sixes will have a snack first, then the older kids."
     ]
@@ -36618,7 +36597,6 @@
     "translation": "parar",
     "phonetic": "/stɒp/",
     "bilingual": "(sust.) parar",
-    "monolingual": "ITU & IMO radiotelephony clear code (spelling-alphabet name) for full stop / period.",
     "examples": [
       "I stopped at the traffic lights."
     ]
@@ -36797,7 +36775,6 @@
     "type": "word",
     "level": "A2",
     "translation": "Calle",
-    "phonetic": "/Template:IPAchar\"},\"params\":{\"1\":{\"wt\":\"/",
     "bilingual": "(sust.) Calle",
     "monolingual": "A paved part of road, usually in a village or a town.",
     "examples": [
@@ -37415,7 +37392,6 @@
     "token": "super",
     "type": "word",
     "level": "A2",
-    "translation": "Mostrar archivos ocultos y directorios al previsualizar recursos compartidos",
     "phonetic": "/ˈsuːpə/",
     "bilingual": "(adj.) Mostrar archivos ocultos y directorios al previsualizar recursos compartidos",
     "monolingual": "Of excellent quality, superfine.",
@@ -39010,7 +38986,6 @@
     "translation": "tres",
     "phonetic": "/θɹiː/",
     "bilingual": "(sust.) tres",
-    "monolingual": "NATO & ICAO radiotelephony clear code (spelling-alphabet name) for the digit 3.",
     "examples": [
       "Put all the threes in a separate container."
     ]
@@ -40300,7 +40275,6 @@
     "translation": "dos",
     "phonetic": "/tu/",
     "bilingual": "(sust.) dos",
-    "monolingual": "NATO & ICAO radiotelephony clear code (spelling-alphabet name) for the digit 2.",
     "examples": [
       "The number 2202 contains three twos."
     ]
@@ -42448,8 +42422,6 @@
     "token": "who",
     "type": "word",
     "level": "A1",
-    "translation": "sólo respira intencionando que eres un ser ilimitado, que el poder de crear está adentro tuyo.",
-    "phonetic": "/Template:IPAchar\"},\"params\":{\"1\":{\"wt\":\"/",
     "bilingual": "(pron.) sólo respira intencionando que eres un ser ilimitado, que el poder de crear está adentro tuyo.",
     "monolingual": "What person or people; which person or people; asks for the identity of someone; used in a direct or indirect question.",
     "examples": [
@@ -42472,7 +42444,6 @@
     "type": "word",
     "level": "A1",
     "translation": "conjunto",
-    "phonetic": "/Template:IPAchar\"},\"params\":{\"1\":{\"wt\":\"/",
     "bilingual": "(adj.) conjunto",
     "monolingual": "Entire, undivided.",
     "examples": [
@@ -42834,7 +42805,6 @@
     "type": "word",
     "level": "A1",
     "translation": "mujer",
-    "phonetic": "/Template:IPAchar\"},\"params\":{\"1\":{\"wt\":\"/",
     "bilingual": "(sust.) mujer",
     "monolingual": "An adult female human.",
     "examples": [
@@ -42865,7 +42835,6 @@
     "type": "word",
     "level": "A1",
     "translation": "no",
-    "phonetic": "/Template:IPAchar\"},\"params\":{\"1\":{\"wt\":\"/",
     "bilingual": "(verbo) no",
     "monolingual": "will not (negative auxiliary); used to indicate a future non-occurring action.",
     "examples": [
@@ -43088,7 +43057,6 @@
     "type": "word",
     "level": "A1",
     "translation": "diría",
-    "phonetic": "/Template:IPAchar\"},\"params\":{\"1\":{\"wt\":\"/",
     "bilingual": "(verbo) diría",
     "monolingual": "Past tense of will; usually followed by a bare infinitive. Used to form the \"anterior future\", or \"future in the past\", indicating a futurity relative to a past time.",
     "examples": [

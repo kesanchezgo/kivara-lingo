@@ -628,17 +628,13 @@ export async function listYomitanPacks(): Promise<DictPackRow[]> {
  */
 export async function getYomitanHeadwords(lang = 'en'): Promise<string[]> {
   const db = getDB();
-  // Pull the enabled packs for this source language. Same fallback as
-  // lookupYomitanTerm to handle older Dexie boolean indexing.
-  const allPacks = await db.dict_packs
-    .where('enabled')
-    .equals(1 as unknown as number)
-    .toArray()
-    .catch(async () =>
-      (await db.dict_packs.toArray()).filter((p) => p.enabled),
-    );
+  // Same caveat as `lookupYomitanTerm` — IndexedDB doesn't index booleans
+  // reliably, so we scan and filter in JS. The `dict_packs` table is tiny.
+  const allPacks = await db.dict_packs.toArray();
   const packs = allPacks.filter(
-    (p) => p.sourceLang === lang || p.sourceLang.startsWith(lang),
+    (p) =>
+      p.enabled &&
+      (p.sourceLang === lang || p.sourceLang.startsWith(lang)),
   );
   if (packs.length === 0) return [];
   const packIds = new Set(packs.map((p) => p.id));
@@ -677,13 +673,18 @@ export async function lookupYomitanTerm(
 ): Promise<{ entry: DictionaryEntry; pack: DictPackRow } | undefined> {
   const db = getDB();
   // 1. List enabled packs for the right source language.
-  const allPacks = await db.dict_packs.where('enabled').equals(1 as unknown as number).toArray()
-    .catch(async () =>
-      // older Dexie indexes booleans as 0/1 — fall back to scan if the index
-      // returns nothing (some Chrome versions reject the boolean cast above).
-      (await db.dict_packs.toArray()).filter((p) => p.enabled),
-    );
-  const packs = allPacks.filter((p) => p.sourceLang === lang || p.sourceLang.startsWith(lang));
+  //    IndexedDB does NOT index boolean values — depending on the
+  //    Chrome version the `where('enabled').equals(1)` query either
+  //    throws (caught below) or silently returns an empty cursor. We
+  //    can't rely on the index, so we always scan and filter in JS.
+  //    The `dict_packs` table is small (a handful of rows even for
+  //    power users) so the scan is essentially free.
+  const allPacks = await db.dict_packs.toArray();
+  const packs = allPacks.filter(
+    (p) =>
+      p.enabled &&
+      (p.sourceLang === lang || p.sourceLang.startsWith(lang)),
+  );
   if (packs.length === 0) return undefined;
   const packIds = new Set(packs.map((p) => p.id));
   // Convenience map for kind lookup. A pack is *bilingual* when its

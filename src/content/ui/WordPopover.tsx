@@ -382,7 +382,7 @@ export function WordPopover({
                   MWE
                 </span>
               )}
-              {isUnknown && (
+              {isUnknown && !resolved.entry && (
                 <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 bg-zinc-700/40 ring-1 ring-zinc-600/40 px-1 py-px rounded shrink-0">
                   Sin dicc.
                 </span>
