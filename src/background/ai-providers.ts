@@ -223,11 +223,23 @@ async function callGemini(
 ): Promise<AiProviderResult> {
   if (!settings.apiKey)
     return { ok: false, error: 'Gemini API key missing', provider: 'google-ai' };
-  const model = settings.model || 'gemini-1.5-flash';
+  const model = settings.model || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(settings.apiKey)}`;
+  // Gemini 2.5+ models default to "thinking" mode which can swallow up
+  // to ~500 tokens of internal reasoning before producing output. With
+  // `thinkingBudget: 0` the model skips that step and behaves like a
+  // standard chat model — much cheaper, still accurate for our short
+  // structured-JSON prompt. `maxOutputTokens` is set generously so the
+  // JSON envelope (~700 tokens for our enrichment) never gets cut.
   const body = {
     contents: [{ role: 'user', parts: [{ text: buildPrompt(req) }] }],
-    generationConfig: { responseMimeType: 'application/json' },
+    generationConfig: {
+      responseMimeType: 'application/json',
+      maxOutputTokens: 1500,
+      // `thinkingConfig` is honored by 2.5-flash / 2.5-pro; older 2.0
+      // models silently ignore the field.
+      thinkingConfig: { thinkingBudget: 0 },
+    },
   };
   let resp: Response;
   try {

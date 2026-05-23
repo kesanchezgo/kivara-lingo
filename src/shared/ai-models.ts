@@ -38,11 +38,11 @@ export const MODELS_BY_PROVIDER: Record<
     { value: 'claude-opus-4-7',          label: 'Claude Opus 4.7',   tag: 'Máxima calidad' },
   ],
   'google-ai': [
-    { value: 'gemini-1.5-flash',    label: 'Gemini 1.5 Flash',    tag: 'Rápido · económico' },
-    { value: 'gemini-1.5-flash-8b', label: 'Gemini 1.5 Flash-8B', tag: 'Ultra ligero' },
-    { value: 'gemini-1.5-pro',      label: 'Gemini 1.5 Pro',      tag: 'Calidad' },
-    { value: 'gemini-2.0-flash',    label: 'Gemini 2.0 Flash',    tag: 'Última gen · multimodal' },
-    { value: 'gemini-2.5-pro',      label: 'Gemini 2.5 Pro',      tag: 'Máxima calidad' },
+    { value: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash',      tag: 'Recomendado · 1500/día' },
+    { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite', tag: 'Ultra ligero' },
+    { value: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro',        tag: 'Máxima calidad' },
+    { value: 'gemini-flash-latest',   label: 'Gemini Flash latest',   tag: 'Última gen (rolling)' },
+    { value: 'gemini-2.0-flash',      label: 'Gemini 2.0 Flash',      tag: 'Estable · multimodal' },
   ],
 };
 
@@ -62,5 +62,5 @@ export const PLACEHOLDER_BY_PROVIDER: Record<Exclude<AiProvider, 'disabled'>, st
 export const DEFAULT_MODEL_BY_PROVIDER: Record<Exclude<AiProvider, 'disabled'>, string> = {
   openai: 'gpt-4o-mini',
   anthropic: 'claude-haiku-4-5',
-  'google-ai': 'gemini-1.5-flash',
+  'google-ai': 'gemini-2.5-flash',
 };

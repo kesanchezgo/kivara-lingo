@@ -59,7 +59,7 @@ export const AI_PRESETS: AiPreset[] = [
     provider: 'google-ai',
     label: 'Google Gemini',
     tagline: 'Tier gratis amplio · ideal para empezar',
-    defaultModel: 'gemini-1.5-flash',
+    defaultModel: 'gemini-2.5-flash',
     getKeyUrl: 'https://aistudio.google.com/apikey',
     pricingNote: '1 500 requests/día gratis',
     hasFreeTier: true,

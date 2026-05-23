@@ -575,8 +575,9 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
   // ON in settings, additionally runs every enabled scrape source
   // (Cambridge / Oxford Learner's / Longman / Collins / M-W /
   // Reverso / Linguee / WordReference / SpanishDict / Forvo /
-  // Lingua Libre / Etymonline / Unsplash / Pixabay / Wikimedia /
-  // DuckDuckGo / YouGlish / Google TTS fallback).
+  // Lingua Libre / Etymonline / Bing Images / Openverse / Pixabay /
+  // Wikimedia / DuckDuckGo / Unsplash (BYOK) / YouGlish / Google
+  // TTS fallback). Etymonline / Ozdic / Tatoeba round out the chain.
   //
   // The enrichment runs in parallel with all the other waves above
   // — we don't block the popover on it. The merged result patches
