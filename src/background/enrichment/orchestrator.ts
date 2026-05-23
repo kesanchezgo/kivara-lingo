@@ -50,6 +50,8 @@ import { linguaLibreSource } from './sources/lingua-libre';
 import { googleTtsSource } from './sources/google-tts';
 import { unsplashSource } from './sources/unsplash';
 import { pixabaySource } from './sources/pixabay';
+import { bingImagesSource } from './sources/bing-images';
+import { openverseSource } from './sources/openverse';
 import { wikimediaCommonsSource } from './sources/wikimedia-commons';
 import { duckduckgoImagesSource } from './sources/duckduckgo-images';
 import { youglishSource } from './sources/youglish';
@@ -78,6 +80,8 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   enabled: null,
   perSourceTimeoutMs: null,
   cacheTtlDays: null,
+  unsplashAccessKey: null,
+  pixabayApiKey: null,
 
   // Standard tier — runs regardless of `enabled`, but each source is
   // still individually togglable from the UI.
@@ -103,9 +107,12 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   googleTtsFallback: googleTtsSource,
   unsplash: unsplashSource,
   pixabay: pixabaySource,
+  bingImages: bingImagesSource,
+  openverse: openverseSource,
   wikimediaCommons: wikimediaCommonsSource,
   duckduckgoImages: duckduckgoImagesSource,
   youglish: youglishSource,
+  etymonline: etymonlineSource,
 };
 
 interface RunOptions {
@@ -138,6 +145,12 @@ export async function runEnrichment(
     timeoutMs: opts.vip.perSourceTimeoutMs ?? 4000,
     signal: opts.signal,
   };
+  // Pass BYOK image-source credentials through the ctx — sources read
+  // them off the ctx via type cast (see unsplash.ts / pixabay.ts).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (ctx as any).unsplashAccessKey = opts.vip.unsplashAccessKey;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (ctx as any).pixabayApiKey = opts.vip.pixabayApiKey;
 
   const cacheKey = makeCacheKey(token, ctx);
   if (!opts.bypassCache) {

@@ -2,40 +2,28 @@
  * Reverso Context — VIP source.
  *
  * Reverso ships translations of source-language sentences pulled from
- * real-world parallel corpora (subtitles, news, books). Pattern based
- * on `s0ftik3/reverso-api` and `Overmiind/ReversoAPI`.
+ * real-world parallel corpora (subtitles, news, books).
  *
- * The site has a JSON endpoint we can hit directly:
- *   POST https://context.reverso.net/bst-query-service
+ * Verified live 2026-05: the JSON `bst-query-service` endpoint accepts
+ * any well-formed POST but returns an empty `list: []` when called
+ * cross-origin without a session cookie. The HTML page, by contrast,
+ * embeds 13+ example pairs as plain markup that we can scrape:
  *
- * Returns up to 50 sentence pairs per query.
+ *   GET https://context.reverso.net/translation/<src>-<tgt>/<word>
  *
- * IMPORTANT: Reverso sits behind Cloudflare and rejects requests from
- * non-browser User-Agents (curl, Node, server-side fetches all return
- * 403). The extension service worker uses the browser's real network
- * stack with cookies and `chrome-extension://` origin, so the request
- * can succeed where a Node-side audit cannot. If it does fail at
- * runtime (CF challenge, geo-block), we degrade silently and let
- * Linguee / WordReference / SpanishDict cover the gap.
+ *   <div class="example">
+ *     <div class="src ltr">… source sentence …</div>
+ *     <div class="trg ltr">… translated sentence …</div>
+ *   </div>
  *
- * NOTE: the audit on 2026-05-22 confirmed the POST endpoint is still
- * the right URL but is blocked from non-browser clients; the SW's
- * fetch is the only way to hit it without a paid API.
+ * The page also embeds a `var response = { firstSrcExample, firstTrgExample,
+ * comment }` JS literal at the top with the headword's primary
+ * translation — we extract `comment` for the translations[] slot.
  */
 
-import { fetchWithTimeout } from '../fetcher';
+import { fetchHtml } from '../fetcher';
+import { extractByClass, stripHtml } from '../html-utils';
 import type { EnrichmentSource, SourcePartial } from '../types';
-
-const QUERY_URL = 'https://context.reverso.net/bst-query-service';
-
-interface ReversoPair {
-  s_text?: string;
-  t_text?: string;
-}
-
-interface ReversoResponse {
-  list?: ReversoPair[];
-}
 
 const LANG_MAP: Record<string, string> = {
   en: 'english',
@@ -58,65 +46,59 @@ export const reversoSource: EnrichmentSource = {
     const tgt = LANG_MAP[(ctx.targetLang || 'es').slice(0, 2)];
     if (!src || !tgt || src === tgt) return {};
 
-    // Reverso expects POST JSON. We can't easily POST through
-    // fetchWithTimeout (it's GET-only). Inline a minimal POST here.
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), ctx.timeoutMs);
-    if (ctx.signal) ctx.signal.addEventListener('abort', () => ctrl.abort(), { once: true });
-
-    let data: ReversoResponse | null = null;
-    try {
-      const res = await fetch(QUERY_URL, {
-        method: 'POST',
-        credentials: 'omit',
-        cache: 'no-store',
-        signal: ctrl.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          // Some browsers strip User-Agent on cross-origin fetches; we
-          // set it but rely on the browser's real one when missing.
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-          Accept: 'application/json,text/plain,*/*',
-          'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
-          Origin: 'https://context.reverso.net',
-          Referer: `https://context.reverso.net/translation/${src}-${tgt}/${encodeURIComponent(token)}`,
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-        body: JSON.stringify({
-          source_text: token,
-          target_text: '',
-          source_lang: src,
-          target_lang: tgt,
-          npage: 1,
-          mode: 0,
-        }),
-      });
-      if (!res.ok) return {};
-      data = (await res.json()) as ReversoResponse;
-    } catch {
-      return {};
-    } finally {
-      clearTimeout(t);
-    }
+    const slug = encodeURIComponent(token.trim());
+    const url = `https://context.reverso.net/translation/${src}-${tgt}/${slug}`;
+    const html = await fetchHtml(url, {
+      timeoutMs: ctx.timeoutMs,
+      signal: ctx.signal,
+      headers: {
+        Referer: 'https://context.reverso.net/',
+      },
+    });
+    if (!html) return {};
 
     const partial: SourcePartial = {};
-    const examples: Array<{ text: string; translation?: string }> = [];
-    const translations = new Set<string>();
 
-    for (const pair of data?.list ?? []) {
-      const s = (pair.s_text ?? '').replace(/<[^>]+>/g, '').trim();
-      const tt = (pair.t_text ?? '').replace(/<[^>]+>/g, '').trim();
-      if (!s || !tt) continue;
-      // Short translations (< 4 words) are typically the headword
-      // translation — shove them into translations[].
-      if (tt.split(/\s+/).length <= 3 && tt.length < 40) translations.add(tt);
-      if (s.length > 8 && s.length < 220) examples.push({ text: s, translation: tt });
-      if (examples.length >= 6) break;
+    // Extract the inline `var response = { ... }` block with the
+    // headword's primary translation comment.
+    const responseMatch = /var\s+response\s*=\s*\{([\s\S]*?)\};/i.exec(html);
+    if (responseMatch) {
+      const body = responseMatch[1];
+      const commentMatch = /comment:\s*"([^"]*)"/i.exec(body);
+      if (commentMatch && commentMatch[1]) {
+        const translations = commentMatch[1]
+          .split(/[,;]/)
+          .map((t) => t.trim())
+          .filter((t) => t && t.length < 60);
+        if (translations.length) {
+          partial.translations = Array.from(new Set(translations)).slice(0, 6);
+        }
+      }
     }
 
+    // Each example block has `<div class="src ltr">…</div>` + `<div
+    // class="trg ltr">…</div>` as siblings.
+    const exampleBlocks = extractByClass(html, 'example', 'div');
+    const examples: Array<{ text: string; translation?: string }> = [];
+    for (const block of exampleBlocks) {
+      const srcs = [
+        ...extractByClass(block, 'src', 'div'),
+        ...extractByClass(block, 'src', 'span'),
+      ];
+      const trgs = [
+        ...extractByClass(block, 'trg', 'div'),
+        ...extractByClass(block, 'trg', 'span'),
+      ];
+      if (!srcs.length || !trgs.length) continue;
+      const sourceText = stripHtml(srcs[0]);
+      const targetText = stripHtml(trgs[0]);
+      if (sourceText.length > 8 && sourceText.length < 220) {
+        examples.push({ text: sourceText, translation: targetText || undefined });
+      }
+      if (examples.length >= 6) break;
+    }
     if (examples.length) partial.examples = examples;
-    if (translations.size) partial.translations = Array.from(translations).slice(0, 6);
+
     return partial;
   },
 };

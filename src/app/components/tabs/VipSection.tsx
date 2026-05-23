@@ -62,14 +62,20 @@ const AUDIO_SOURCES: SourceMeta[] = [
 ];
 
 const IMAGE_SOURCES: SourceMeta[] = [
-  { key: 'unsplash', label: 'Unsplash', hint: 'Fotos profesionales con licencia abierta.' },
-  { key: 'pixabay', label: 'Pixabay', hint: 'Stock variado CC0.' },
+  { key: 'unsplash', label: 'Unsplash (BYOK)', hint: 'Fotos profesionales con licencia Unsplash. Necesita clave gratuita (input abajo). Sin clave queda inactivo.' },
+  { key: 'pixabay', label: 'Pixabay', hint: 'Stock variado, licencia libre. Funciona sin clave por scraping; con clave (input abajo) usa la API oficial (más estable).' },
+  { key: 'bingImages', label: 'Bing Images', hint: 'Búsqueda web sin token. ~25 fotos por consulta, licencia mixta — ideal cuando importa la pertinencia más que la licencia.' },
+  { key: 'openverse', label: 'Openverse', hint: 'Imágenes CC-BY / CC0 (Flickr + Wikimedia + museos) vía API pública sin token.' },
   { key: 'wikimediaCommons', label: 'Wikimedia Commons', hint: 'Imágenes CC con metadata, ideal para términos nicho.' },
   { key: 'duckduckgoImages', label: 'DuckDuckGo Images', hint: 'Búsqueda última-milla cuando todo lo anterior falla.' },
 ];
 
 const VIDEO_SOURCES: SourceMeta[] = [
   { key: 'youglish', label: 'YouGlish', hint: 'Enlaces a videos de YouTube con la palabra pronunciada.' },
+];
+
+const ETYMOLOGY_SOURCES: SourceMeta[] = [
+  { key: 'etymonline', label: 'Etymonline', hint: 'Etimología profesional (etymonline.com): origen + evolución histórica.' },
 ];
 
 export function VipSection() {
@@ -141,6 +147,50 @@ export function VipSection() {
           <SubGroup title="Bilingüe" hint="Traducción + frases paralelas EN-ES." sources={BILINGUAL_SOURCES} vip={vip} setKey={setKey} />
           <SubGroup title="Audio" hint="Pronunciación a nivel de palabra. Para audio de la frase completa se usa la captura del video." sources={AUDIO_SOURCES} vip={vip} setKey={setKey} />
           <SubGroup title="Imágenes" hint="Imagen para el frente de la tarjeta cuando no hay frame del video. Si tienes OpenAI configurado en IA premium con enrichOnSave, DALL-E 3 genera una ilustración mnemónica como último fallback (~$0.04 por tarjeta)." sources={IMAGE_SOURCES} vip={vip} setKey={setKey} />
+
+          {/* Optional API keys for Unsplash + Pixabay — both are free
+              with no credit card required, but require a one-time
+              developer signup. Without keys, Unsplash is inactive
+              (Anubis JS-challenge gate) and Pixabay falls back to
+              HTML scraping. */}
+          <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2.5 py-2 space-y-2">
+            <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+              <span>Claves API opcionales (gratis sin tarjeta)</span>
+              <InfoHint message="Ambas plataformas regalan tier gratuito generoso (Unsplash 50/h, Pixabay 100/min). Sin clave: Unsplash queda inactivo, Pixabay usa scraping." />
+            </div>
+            <label className="flex flex-col gap-1 text-[11px] text-zinc-700 dark:text-zinc-300">
+              <span className="flex items-center justify-between gap-1">
+                <span>Unsplash Access Key</span>
+                <a href="https://unsplash.com/developers" target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-500 hover:underline">obtener</a>
+              </span>
+              <input
+                type="password"
+                value={vip.unsplashAccessKey || ''}
+                onChange={(e) => setKey('unsplashAccessKey', e.target.value)}
+                placeholder="(opcional)"
+                className="sl-input"
+                spellCheck={false}
+                autoComplete="off"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-[11px] text-zinc-700 dark:text-zinc-300">
+              <span className="flex items-center justify-between gap-1">
+                <span>Pixabay API Key</span>
+                <a href="https://pixabay.com/api/docs/" target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-500 hover:underline">obtener</a>
+              </span>
+              <input
+                type="password"
+                value={vip.pixabayApiKey || ''}
+                onChange={(e) => setKey('pixabayApiKey', e.target.value)}
+                placeholder="(opcional, scrape activo sin clave)"
+                className="sl-input"
+                spellCheck={false}
+                autoComplete="off"
+              />
+            </label>
+          </div>
+
+          <SubGroup title="Etimología" hint="Origen e historia de la palabra (rendido en la cara trasera de la tarjeta)." sources={ETYMOLOGY_SOURCES} vip={vip} setKey={setKey} />
           <SubGroup title="Video" hint="Enlaces a pronunciación en contexto real." sources={VIDEO_SOURCES} vip={vip} setKey={setKey} />
 
           {/* Fine tuning */}
@@ -218,7 +268,7 @@ function SubGroup({
           >
             <input
               type="checkbox"
-              checked={Boolean(vip[s.key])}
+              checked={vip[s.key] === true}
               onChange={(e) => setKey(s.key, e.target.checked as VipSettings[typeof s.key])}
               className="sl-checkbox shrink-0"
             />

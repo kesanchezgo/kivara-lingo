@@ -441,13 +441,33 @@ export interface VipSettings {
   googleTtsFallback: boolean;
 
   /* ── Image sources for the card front ─────────────────────────────── */
+  /**
+   * Unsplash — uses the official API when `unsplashAccessKey` is set,
+   * otherwise inactive (no scraping fallback because Unsplash now sits
+   * behind an Anubis JS-challenge gate that blocks all server-side and
+   * SW fetches). Free Demo tier: 50 requests/hour at
+   * https://unsplash.com/developers (no credit card).
+   */
   unsplash: boolean;
+  /** Pixabay — uses the official API when `pixabayApiKey` is set, otherwise
+   *  falls back to scraping `pixabay.com/images/search/`. Free key: 100
+   *  requests/minute at https://pixabay.com/api/docs/ (no credit card). */
   pixabay: boolean;
+  /** Bing Images — async image-search endpoint, no token, ~25 cards per
+   *  query. Mixed-license images so prefer Openverse / Wikimedia for
+   *  reusable photos. */
+  bingImages: boolean;
+  /** Openverse — CC-licensed image API (Flickr + Wikimedia + museums).
+   *  No token, ~240 results per query. Best free image source. */
+  openverse: boolean;
   wikimediaCommons: boolean;
   duckduckgoImages: boolean;
 
   /* ── Video real-world pronunciation links ─────────────────────────── */
   youglish: boolean;
+
+  /* ── Etymology ────────────────────────────────────────────────────── */
+  etymonline: boolean;
 
   /**
    * Per-request timeout (ms). Fast sources should respond in 200-800 ms;
@@ -458,6 +478,24 @@ export interface VipSettings {
 
   /** TTL (days) for cached VIP responses in IndexedDB. */
   cacheTtlDays: number;
+
+  /**
+   * Optional Unsplash API access key. When empty, the Unsplash source is
+   * inactive (their public site moved behind a JS-challenge gate that
+   * blocks all server-side / SW scraping). When set, we hit
+   * `api.unsplash.com/search/photos` directly. Free Demo tier (50
+   * requests/hour) is enough for personal use; sign up at
+   * https://unsplash.com/developers without a credit card.
+   */
+  unsplashAccessKey: string;
+
+  /**
+   * Optional Pixabay API key. When empty, the Pixabay source falls back
+   * to HTML scraping (works but rate-limited by Cloudflare). When set,
+   * we hit `pixabay.com/api/` directly. Free tier is 100 requests/minute;
+   * sign up at https://pixabay.com/api/docs/ without a credit card.
+   */
+  pixabayApiKey: string;
 }
 
 export interface AiEnrichment {

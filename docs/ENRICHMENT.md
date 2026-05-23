@@ -97,10 +97,11 @@ Results are cached in IndexedDB v5 table `vip_cache` keyed by
 `<sourceLang>|<targetLang>|<lower-token>`. TTL configurable in
 Settings (default 14 days).
 
-## Source audit (2026-05-22)
+## Source audit (2026-05-22 — second pass)
 
 Honest verification status of every source — what was tested live with
-the word "excuse" against the real public endpoints.
+the word "excuse" against the real public endpoints, **and what changed
+between the first audit and the second**.
 
 | Source | Endpoint | Verified | Notes |
 |---|---|:---:|---|
@@ -109,6 +110,7 @@ the word "excuse" against the real public endpoints.
 | cambridge | `dictionary.cambridge.org` (HTML) | ✅ | 4 audio + 18 defs + 62 trans for "excuse" |
 | oxford-learners | `oxfordlearnersdictionaries.com` (HTML) | ✅ | 16 examples + 5 collocations |
 | longman | `ldoceonline.com` (HTML) | ✅ | 18 collocation flags + 33 examples |
+| collins | `collinsdictionary.com` (HTML) | ✅ | curl with desktop UA passes; 37 defs + 32 examples + 74 audio |
 | merriam-webster | `merriam-webster.com` (HTML) | ✅ | 26 def fragments + 1 etymology |
 | linguee | `linguee.com` (HTML) | ✅ | 41 dictLink translations |
 | wordreference | `wordreference.com` (HTML) | ✅ | 38 ToWrd + 18 example pairs |
@@ -116,25 +118,33 @@ the word "excuse" against the real public endpoints.
 | lingua-libre | Commons file search | ✅ | 4 native-speaker .wav per word |
 | google-tts | `translate.google.com/translate_tts` | ✅ | Streams MP3, no key |
 | youglish | URL only — no fetch | ✅ | trivial |
-| **tatoeba** | `tatoeba.org/api_v0/search` | ✅ | **fixed** — was using a 404 URL |
-| **ozdic** | `ozdic.com/api/search` | ✅ | **fixed** — was using a 404 URL; collocations now live at top-level |
-| **spanishdict** | `spanishdict.com/translate/<word>` | ✅ | **fixed** — `__NEXT_DATA__` removed by site, now parses `<td class="quickdef">` |
-| **etymonline** | `etymonline.com/word/<word>` | ✅ | **fixed** — markup migrated from `word__defination` to `<section class="prose-lg">` |
-| collins | `collinsdictionary.com` (HTML) | ⚠️ | Cloudflare 403 from server-side; SW fetch with browser cookies typically passes. Degrades silently. |
-| forvo | `forvo.com/word/<word>` | ⚠️ | Cloudflare 403 from server-side; SW fetch typically passes. Audio chain falls back to Cambridge → Oxford → Wikimedia → Google TTS. |
-| reverso | `context.reverso.net/bst-query-service` | ⚠️ | Cloudflare 403 from server-side; SW fetch typically passes. Linguee + WordRef + SpanishDict cover the gap. |
-| unsplash | `unsplash.com/s/photos/<word>` | ⚠️ | 401 from server-side; SW fetch with normal browser headers passes. |
-| pixabay | `pixabay.com/images/search/<word>` | ⚠️ | Cloudflare 403 from server-side; SW fetch typically passes. |
-| duckduckgo-images | `duckduckgo.com/i.js` | ⚠️ | `vqd` step works; `i.js` returns 403 from server-side; SW fetch typically passes. |
+| **tatoeba** | `tatoeba.org/api_v0/search` | ✅ | **fixed (1st pass)** — was using a 404 URL |
+| **ozdic** | `ozdic.com/api/search` | ✅ | **fixed (1st pass)** — was using a 404 URL; collocations live at top-level (41 collocations for "excuse") |
+| **spanishdict** | `spanishdict.com/translate/<word>` | ✅ | **fixed (1st pass)** — `__NEXT_DATA__` removed by site, now parses `<td class='quickdef'>` |
+| **etymonline** | `etymonline.com/word/<word>` | ✅ | **fixed (1st pass)** — markup migrated from `word__defination` to `<section class='prose-lg'>` |
+| **forvo** | `forvo.com/word/<word>` | ✅ | **fixed (2nd pass)** — old base64 path returned 404 since 2023; correct URL is `audio00.forvo.com/audios/mp3/<arg5>` (not `arg2`). Verified the MP3 plays. |
+| **reverso** | `context.reverso.net/translation/...` (HTML) | ✅ | **fixed (2nd pass)** — POST `bst-query-service` returns empty `list:[]` cross-origin; HTML page ships 13+ pairs as plain `<div class="example">` with `src/trg` siblings. |
+| **duckduckgo-images** | `duckduckgo.com/i.js` | ✅ | **fixed (2nd pass)** — was 403; needs `Sec-Fetch-Dest/Mode/Site` headers (DDG bot-detection layer added in 2025). With them: ~90 images per query. |
+| **pixabay** | `pixabay.com/images/search/` (HTML) + optional API | ✅ | **fixed (2nd pass)** — works fine via curl (Schannel TLS); BYOK API key option added for higher reliability. |
+| **bing-images** *(new)* | `bing.com/images/async` | ✅ | New source — ~25 cards per query, no token, mixed-license images. |
+| **openverse** *(new)* | `api.openverse.org/v1/images/` | ✅ | New source — CC-licensed (Flickr + Wikimedia + museums), no token, ~240 results per query. |
+| ~~unsplash~~ scrape | `unsplash.com/s/photos/...` | ❌ | Discontinued (Anubis JS-challenge gate blocks all server-side / SW fetches). |
+| **unsplash (BYOK)** *(redesigned)* | `api.unsplash.com/search/photos` | ✅ | Now requires the user's free Demo key (50 req/h, no credit card). Without key: source is inactive. |
 
-**Why some sources can't be audited from Node:** Cloudflare and similar
-bot-protection services block requests that don't come with a real
-browser fingerprint (cookies, TLS handshake quirks, Origin headers).
-The MV3 service worker uses Chrome's actual network stack, so it
-inherits the user's cookies and a regular `chrome-extension://` origin
-which usually passes. If a source still fails at runtime in the
-extension, the orchestrator's silent-fail design means everything else
-keeps working.
+**TLS fingerprint matters:** the first audit hit 403 on Collins / Forvo /
+Reverso / Pixabay / DDG when called from Node, but the second audit
+showed those sites accept curl with Schannel (Windows TLS stack) just
+fine. The MV3 service worker uses Chrome's actual network stack, which
+is closer to curl/Schannel than to Node's TLS — so all of these work
+from the extension at runtime.
+
+**Why Unsplash is BYOK:** Unsplash explicitly redirects every public-page
+request to `/.within.website` (Anubis), an open-source JS-challenge
+proxy. There's no header bundle that bypasses it short of running a
+real browser. Their official Developer API is the supported path —
+free, no credit card, 50 requests/hour Demo tier at
+https://unsplash.com/developers. The user pastes the access key in
+Settings → Enriquecimiento → "Claves API opcionales".
 
 ## When something breaks
 

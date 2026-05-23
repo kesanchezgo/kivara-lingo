@@ -147,11 +147,16 @@ export const DEFAULT_VIP: VipSettings = {
   googleTtsFallback: true,
   unsplash: true,
   pixabay: true,
+  bingImages: true,
+  openverse: true,
   wikimediaCommons: true,
   duckduckgoImages: true,
   youglish: true,
+  etymonline: true,
   perSourceTimeoutMs: 4000,
   cacheTtlDays: 14,
+  unsplashAccessKey: '',
+  pixabayApiKey: '',
 };
 
 export const DEFAULT_TTS: TtsSettings = {
@@ -262,13 +267,15 @@ export interface KivaraState {
  * write, decrypt them on read — keeping the in-memory store plaintext for
  * the React components.
  */
-const SECRET_FIELDS: Array<{ section: 'translate' | 'ai' | 'ankiMapping' | 'tts'; field: string }> = [
+const SECRET_FIELDS: Array<{ section: 'translate' | 'ai' | 'ankiMapping' | 'tts' | 'vip'; field: string }> = [
   { section: 'translate', field: 'deeplToken' },
   { section: 'translate', field: 'googleToken' },
   { section: 'translate', field: 'libreTranslateToken' },
   { section: 'ai', field: 'apiKey' },
   { section: 'ankiMapping', field: 'apiKey' },
   { section: 'tts', field: 'elevenLabsApiKey' },
+  { section: 'vip', field: 'unsplashAccessKey' },
+  { section: 'vip', field: 'pixabayApiKey' },
 ];
 
 async function transformSecrets(

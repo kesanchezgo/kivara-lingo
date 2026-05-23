@@ -924,6 +924,10 @@ function formatSource(source: string | null): string {
       return 'Unsplash';
     case 'pixabay':
       return 'Pixabay';
+    case 'bingImages':
+      return 'Bing';
+    case 'openverse':
+      return 'Openverse';
     case 'wikimediaCommons':
       return 'Wikimedia';
     case 'duckduckgoImages':

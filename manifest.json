@@ -80,7 +80,14 @@
     "https://cdn.pixabay.com/*",
     "https://youglish.com/*",
     "https://*.youtube.com/embed/*",
-    "https://www.etymonline.com/*"
+    "https://www.etymonline.com/*",
+    "https://api.unsplash.com/*",
+    "https://www.bing.com/*",
+    "https://*.bing.net/*",
+    "https://api.openverse.org/*",
+    "https://api.openverse.engineering/*",
+    "https://audio00.forvo.com/*",
+    "https://audio12.forvo.com/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
