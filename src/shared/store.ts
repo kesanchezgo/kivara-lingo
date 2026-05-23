@@ -138,6 +138,8 @@ export const DEFAULT_VIP: VipSettings = {
   freeDictionary: true,
   datamuse: true,
   wiktionary: true,
+  wiktionaryApi: true,
+  mobyThesaurus: true,
   bundled: true,
   yomitanPacks: true,
   cambridge: true,

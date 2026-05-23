@@ -35,6 +35,8 @@ import type {
 import { freeDictionarySource } from './sources/free-dictionary';
 import { datamuseSource } from './sources/datamuse';
 import { wiktionarySource } from './sources/wiktionary';
+import { wiktionaryApiSource } from './sources/wiktionary-api';
+import { mobyThesaurusSource } from './sources/moby-thesaurus';
 import { bundledSource } from './sources/bundled';
 import { yomitanPacksSource } from './sources/yomitan-packs';
 import { cambridgeSource } from './sources/cambridge';
@@ -86,6 +88,8 @@ const STANDARD_SOURCE_KEYS = new Set<keyof VipSettings>([
   'freeDictionary',
   'datamuse',
   'wiktionary',
+  'wiktionaryApi',
+  'mobyThesaurus',
   'bundled',
   'yomitanPacks',
   'etymonline',
@@ -126,6 +130,8 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   freeDictionary: freeDictionarySource,
   datamuse: datamuseSource,
   wiktionary: wiktionarySource,
+  wiktionaryApi: wiktionaryApiSource,
+  mobyThesaurus: mobyThesaurusSource,
   bundled: bundledSource,
   yomitanPacks: yomitanPacksSource,
 

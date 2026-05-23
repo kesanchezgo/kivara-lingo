@@ -54,6 +54,8 @@
     "https://upload.wikimedia.org/*",
     "https://en.wiktionary.org/*",
     "https://*.wiktionary.org/*",
+    "https://freedictionaryapi.com/*",
+    "https://moby-thesaurus.org/*",
     "https://*.dictionary.cambridge.org/*",
     "https://dictionary.cambridge.org/*",
     "https://www.oxfordlearnersdictionaries.com/*",

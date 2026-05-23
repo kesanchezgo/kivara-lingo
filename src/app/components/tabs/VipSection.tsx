@@ -36,6 +36,8 @@ const STD_DICT_SOURCES: SourceMeta[] = [
   { key: 'bundled', label: 'Bundled (offline)', hint: 'Diccionario curado + extensiones + CEFR + thesaurus + collocations académicas. ~10 893 entradas, ~250 KB. Funciona offline.' },
   { key: 'yomitanPacks', label: 'Yomitan packs', hint: 'Packs Wiktionary instalados (kty-en-es: 67k entradas, kty-en-en: 500k, kty-en-ipa: 200k). Cubren phrasals, idioms, MWE y slang.' },
   { key: 'wiktionary', label: 'Wiktionary REST', hint: 'API oficial Wikimedia (en.wiktionary.org/api/rest_v1). Cubre phrasal verbs, idioms y MWE multi-palabra que otros diccionarios no indexan. Sin token.' },
+  { key: 'wiktionaryApi', label: 'WiktionaryAPI', hint: 'freedictionaryapi.com — mirror Wiktionary con datos completos para frases multi-palabra (kick the bucket → 18+ sinónimos, big deal → 2 senses). Sin token.' },
+  { key: 'mobyThesaurus', label: 'Moby Thesaurus', hint: 'Tesauro público de Grady Ward (1996). 30k entradas con hasta 100+ sinónimos por palabra común. Sin token, sin antónimos.' },
   { key: 'freeDictionary', label: 'Free Dictionary API', hint: 'IPA + audio MP3 de Wikimedia + sinónimos. Gratis sin token (api.dictionaryapi.dev).' },
   { key: 'datamuse', label: 'Datamuse', hint: 'Collocations corpus-based + relaciones. Gratis sin token (api.datamuse.com).' },
 ];

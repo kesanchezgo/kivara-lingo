@@ -445,6 +445,18 @@ export interface VipSettings {
    */
   wiktionary: boolean;
   /**
+   * freedictionaryapi.com — Wiktionary REST mirror with full data for
+   * multi-word phrases (kick the bucket → 18 synonyms with bite the
+   * dust, buy the farm, etc.). CC-BY-SA, no token. Default true.
+   */
+  wiktionaryApi: boolean;
+  /**
+   * Moby Thesaurus (moby-thesaurus.org). Public-domain synonym list
+   * by Grady Ward (1996). Up to 100+ synonyms for common words.
+   * No antonyms (unidirectional). Default true.
+   */
+  mobyThesaurus: boolean;
+  /**
    * Bundled dictionary lookup (en.json + en-extensions + en-cefr + mwes +
    * thesaurus + Academic Collocation List). Always available offline.
    * Default true.
