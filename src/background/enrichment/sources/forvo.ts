@@ -14,6 +14,13 @@
  *
  * Each row also lists the speaker's locale (US, UK, Australia, etc.)
  * so we can tag accents.
+ *
+ * IMPORTANT: Forvo sits behind Cloudflare bot-detection and returns
+ * 403 to non-browser clients (curl, Node). The extension service
+ * worker uses the browser's real network stack so the request can
+ * succeed at runtime where a Node-side audit can't. If a 403 happens
+ * in production we degrade silently and the audio chain falls back
+ * to Cambridge / Oxford / Wikimedia / Google TTS.
  */
 
 import { fetchHtml } from '../fetcher';

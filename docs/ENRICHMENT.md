@@ -97,6 +97,45 @@ Results are cached in IndexedDB v5 table `vip_cache` keyed by
 `<sourceLang>|<targetLang>|<lower-token>`. TTL configurable in
 Settings (default 14 days).
 
+## Source audit (2026-05-22)
+
+Honest verification status of every source — what was tested live with
+the word "excuse" against the real public endpoints.
+
+| Source | Endpoint | Verified | Notes |
+|---|---|:---:|---|
+| free-dictionary | `api.dictionaryapi.dev` | ✅ | JSON API, no key |
+| datamuse | `api.datamuse.com` | ✅ | JSON API, no key |
+| cambridge | `dictionary.cambridge.org` (HTML) | ✅ | 4 audio + 18 defs + 62 trans for "excuse" |
+| oxford-learners | `oxfordlearnersdictionaries.com` (HTML) | ✅ | 16 examples + 5 collocations |
+| longman | `ldoceonline.com` (HTML) | ✅ | 18 collocation flags + 33 examples |
+| merriam-webster | `merriam-webster.com` (HTML) | ✅ | 26 def fragments + 1 etymology |
+| linguee | `linguee.com` (HTML) | ✅ | 41 dictLink translations |
+| wordreference | `wordreference.com` (HTML) | ✅ | 38 ToWrd + 18 example pairs |
+| wikimedia-commons | `commons.wikimedia.org/w/api.php` | ✅ | 4 image hits per query |
+| lingua-libre | Commons file search | ✅ | 4 native-speaker .wav per word |
+| google-tts | `translate.google.com/translate_tts` | ✅ | Streams MP3, no key |
+| youglish | URL only — no fetch | ✅ | trivial |
+| **tatoeba** | `tatoeba.org/api_v0/search` | ✅ | **fixed** — was using a 404 URL |
+| **ozdic** | `ozdic.com/api/search` | ✅ | **fixed** — was using a 404 URL; collocations now live at top-level |
+| **spanishdict** | `spanishdict.com/translate/<word>` | ✅ | **fixed** — `__NEXT_DATA__` removed by site, now parses `<td class="quickdef">` |
+| **etymonline** | `etymonline.com/word/<word>` | ✅ | **fixed** — markup migrated from `word__defination` to `<section class="prose-lg">` |
+| collins | `collinsdictionary.com` (HTML) | ⚠️ | Cloudflare 403 from server-side; SW fetch with browser cookies typically passes. Degrades silently. |
+| forvo | `forvo.com/word/<word>` | ⚠️ | Cloudflare 403 from server-side; SW fetch typically passes. Audio chain falls back to Cambridge → Oxford → Wikimedia → Google TTS. |
+| reverso | `context.reverso.net/bst-query-service` | ⚠️ | Cloudflare 403 from server-side; SW fetch typically passes. Linguee + WordRef + SpanishDict cover the gap. |
+| unsplash | `unsplash.com/s/photos/<word>` | ⚠️ | 401 from server-side; SW fetch with normal browser headers passes. |
+| pixabay | `pixabay.com/images/search/<word>` | ⚠️ | Cloudflare 403 from server-side; SW fetch typically passes. |
+| duckduckgo-images | `duckduckgo.com/i.js` | ⚠️ | `vqd` step works; `i.js` returns 403 from server-side; SW fetch typically passes. |
+
+**Why some sources can't be audited from Node:** Cloudflare and similar
+bot-protection services block requests that don't come with a real
+browser fingerprint (cookies, TLS handshake quirks, Origin headers).
+The MV3 service worker uses Chrome's actual network stack, so it
+inherits the user's cookies and a regular `chrome-extension://` origin
+which usually passes. If a source still fails at runtime in the
+extension, the orchestrator's silent-fail design means everything else
+keeps working.
+
 ## When something breaks
 
 A source's HTML changes? Symptoms:

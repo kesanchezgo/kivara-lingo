@@ -1,16 +1,26 @@
 /**
- * Reverso Context scraper — VIP source.
+ * Reverso Context — VIP source.
  *
  * Reverso ships translations of source-language sentences pulled from
  * real-world parallel corpora (subtitles, news, books). Pattern based
  * on `s0ftik3/reverso-api` and `Overmiind/ReversoAPI`.
  *
- * The site has a JSON endpoint we can hit directly without HTML
- * parsing: `https://context.reverso.net/bst-query-service` (POST).
+ * The site has a JSON endpoint we can hit directly:
+ *   POST https://context.reverso.net/bst-query-service
+ *
  * Returns up to 50 sentence pairs per query.
  *
- * Each pair becomes an example with `text` (source) + `translation`
- * (target). Perfect for "real" context examples.
+ * IMPORTANT: Reverso sits behind Cloudflare and rejects requests from
+ * non-browser User-Agents (curl, Node, server-side fetches all return
+ * 403). The extension service worker uses the browser's real network
+ * stack with cookies and `chrome-extension://` origin, so the request
+ * can succeed where a Node-side audit cannot. If it does fail at
+ * runtime (CF challenge, geo-block), we degrade silently and let
+ * Linguee / WordReference / SpanishDict cover the gap.
+ *
+ * NOTE: the audit on 2026-05-22 confirmed the POST endpoint is still
+ * the right URL but is blocked from non-browser clients; the SW's
+ * fetch is the only way to hit it without a paid API.
  */
 
 import { fetchWithTimeout } from '../fetcher';
@@ -63,10 +73,15 @@ export const reversoSource: EnrichmentSource = {
         signal: ctrl.signal,
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0',
-          Accept: 'application/json',
+          // Some browsers strip User-Agent on cross-origin fetches; we
+          // set it but rely on the browser's real one when missing.
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+          Accept: 'application/json,text/plain,*/*',
+          'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
           Origin: 'https://context.reverso.net',
-          Referer: 'https://context.reverso.net/',
+          Referer: `https://context.reverso.net/translation/${src}-${tgt}/${encodeURIComponent(token)}`,
+          'X-Requested-With': 'XMLHttpRequest',
         },
         body: JSON.stringify({
           source_text: token,

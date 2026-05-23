@@ -1,24 +1,44 @@
 /**
  * Ozdic — Oxford Collocations Dictionary mirror — VIP source.
  *
- * `ozdic.com` is the most complete free mirror of the Oxford
- * Collocations Dictionary, structured by part-of-speech and grammatical
- * pattern (ADJ + noun, VERB + noun, PREP, etc.). Each entry ships a
- * JSON tree inside `<script id="__NUXT_DATA__">` (Nuxt 3 hydration
- * payload). We parse that tree and flatten it into a list of
- * collocations like `"perfect excuse"`, `"give an excuse"`,
- * `"excuse for"`.
+ * Ozdic is a Nuxt 3 application that fronts a JSON API. We hit the
+ * search endpoint directly — much more reliable than parsing the
+ * `__NUXT_DATA__` blob from the page HTML.
  *
- * NUXT_DATA format: a flat array where each element is either a
- * primitive value, an inline array of references, or a `{key:refIndex}`
- * object. References are integer indices into the same array. We
- * recursively expand starting at index 0 with a `seen` guard against
- * cycles.
+ *   GET https://ozdic.com/api/search?q=<word>
  *
- * Verified live 2026-05.
+ * Verified live 2026-05 returning JSON shape:
+ *   {
+ *     word: "excuse",
+ *     pos: [{ p: "verb", n: 4 }, { p: "noun", n: 3 }],
+ *     definitions: [
+ *       {
+ *         pos: "verb",
+ *         senses: [{ gloss: "...", examples: ["..."] }]
+ *       }
+ *     ],
+ *     collocations: [
+ *       {
+ *         n: 1,
+ *         gloss: "(noun.) reason given",
+ *         groups: [
+ *           {
+ *             cat: "ADJ" | "VERB + NOUN" | "PREP" | ...,
+ *             clusters: [
+ *               { words: ["good", "legitimate"], example: "..." }
+ *             ]
+ *           }
+ *         ]
+ *       }
+ *     ]
+ *   }
+ *
+ * NOTE: previous draft used `/collocation/<word>` (404) and looked for
+ * `senses[].collocations[]`. Audit run on 2026-05-22 confirmed the JSON
+ * endpoint above is live and that collocations live at the top level.
  */
 
-import { fetchHtml } from '../fetcher';
+import { fetchJson } from '../fetcher';
 import type { EnrichmentSource, SourcePartial } from '../types';
 
 interface OzdicCluster {
@@ -27,146 +47,111 @@ interface OzdicCluster {
 }
 
 interface OzdicGroup {
-  /** "ADJ.", "VERB + EXCUSE", "PREP.", etc. */
   cat?: string;
   clusters?: OzdicCluster[];
 }
 
-interface OzdicCollocSection {
+interface OzdicCollocation {
   n?: number;
   gloss?: string;
   groups?: OzdicGroup[];
 }
 
-interface OzdicWord {
-  word?: string;
-  collocations?: OzdicCollocSection[];
+interface OzdicSense {
+  gloss?: string;
+  examples?: string[];
 }
 
-/**
- * Minimal parser for Nuxt 3 inline payload format. The full client
- * uses devalue.js — we re-implement just the subset that ozdic
- * actually emits (objects, arrays, primitives, ShallowReactive
- * markers).
- */
-function parseNuxtData(text: string): unknown {
-  let arr: unknown[];
-  try {
-    arr = JSON.parse(text);
-  } catch {
-    return null;
-  }
-  if (!Array.isArray(arr) || arr.length === 0) return null;
+interface OzdicDefinition {
+  pos?: string;
+  senses?: OzdicSense[];
+}
 
-  function expand(idx: unknown, seen: Set<number>): unknown {
-    if (typeof idx !== 'number') return idx;
-    if (seen.has(idx)) return null;
-    seen.add(idx);
-    const v = arr[idx];
-    if (v === null || typeof v !== 'object') return v;
-    if (Array.isArray(v)) {
-      // ShallowReactive / Reactive markers: ['ShallowReactive', N]
-      if (typeof v[0] === 'string' && v.length === 2) {
-        return expand(v[1], new Set(seen));
-      }
-      return v.map((i) => expand(i, new Set(seen)));
-    }
-    const out: Record<string, unknown> = {};
-    for (const [k, ref] of Object.entries(v as Record<string, unknown>)) {
-      out[k] = expand(ref, new Set(seen));
-    }
-    return out;
-  }
-
-  return expand(0, new Set());
+interface OzdicResponse {
+  word?: string;
+  definitions?: OzdicDefinition[];
+  collocations?: OzdicCollocation[];
 }
 
 export const ozdicSource: EnrichmentSource = {
   id: 'ozdic',
   label: 'Oxford Coll.',
   async enrich(token, ctx): Promise<SourcePartial> {
-    if ((ctx.sourceLang || 'en').slice(0, 2) !== 'en') return {};
-    const slug = encodeURIComponent(token.trim().toLowerCase());
-    const url = `https://ozdic.com/word/${slug}`;
-    const html = await fetchHtml(url, {
+    const src = (ctx.sourceLang || 'en').slice(0, 2);
+    if (src !== 'en') return {};
+
+    const url = `https://ozdic.com/api/search?q=${encodeURIComponent(token.trim().toLowerCase())}`;
+    const data = await fetchJson<OzdicResponse>(url, {
       timeoutMs: ctx.timeoutMs,
       signal: ctx.signal,
     });
-    if (!html) return {};
-
-    const m = /<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]+?)<\/script>/i.exec(html);
-    if (!m) return {};
-    const parsed = parseNuxtData(m[1]) as Record<string, unknown> | null;
-    if (!parsed) return {};
-
-    // The data is keyed by `word-<token>`. Multiple POS share the same
-    // entry; the structure groups collocations by sense (`gloss`) and
-    // pattern category.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = (parsed as any)?.data ?? {};
-    const wordKey = `word-${token.trim().toLowerCase()}`;
-    const word: OzdicWord | undefined = data[wordKey];
-    if (!word?.collocations) return {};
+    if (!data?.definitions?.length) return {};
 
     const collocations = new Set<string>();
     const examples: Array<{ text: string }> = [];
+    const definitions: string[] = [];
+    const headword = (data.word || token).trim().toLowerCase();
 
-    for (const sec of word.collocations) {
-      for (const group of sec.groups ?? []) {
+    for (const def of data.definitions) {
+      for (const sense of def.senses ?? []) {
+        if (sense.gloss) {
+          const g = sense.gloss.trim();
+          if (g && g.length > 6) definitions.push(g);
+        }
+        for (const ex of sense.examples ?? []) {
+          const t = (ex || '').trim();
+          if (t.length > 8 && t.length < 220) examples.push({ text: t });
+        }
+      }
+    }
+
+    // Top-level `collocations[].groups[].clusters[].words[]` with `cat`
+    // telling us which side of the headword the collocate goes on.
+    // The `cat` field includes the actual headword in upper-case
+    // (e.g. "VERB + EXCUSE", "EXCUSE + VERB"), so we match against
+    // the headword to decide the phrase order.
+    const HW = headword.toUpperCase();
+    const verbBefore = new RegExp(`VERB\\s*\\+\\s*${HW}`);
+    const verbAfter = new RegExp(`${HW}\\s*\\+\\s*VERB`);
+    for (const block of data.collocations ?? []) {
+      for (const group of block.groups ?? []) {
         const cat = (group.cat || '').toUpperCase();
         for (const cluster of group.clusters ?? []) {
           for (const w of cluster.words ?? []) {
-            // Render the collocation in a natural reading order:
-            //   ADJ.        → "<adj> <token>"          (perfect excuse)
-            //   VERB + N    → "<verb> <token>"         (give excuse)
-            //   N + VERB    → "<token> <verb>"         (excuse arises)
-            //   PREP.       → "<token> <prep>"         (excuse for)
-            //   QUANT.      → "<quant> of <token>"     (lots of fun)
-            //   PHRASES     → cluster word as-is (already a full phrase)
-            const phrase = renderCollocation(token, cat, w);
+            const word = (w || '').trim();
+            if (!word) continue;
+            let phrase: string;
+            if (/^ADJ/.test(cat)) {
+              phrase = `${word} ${headword}`;
+            } else if (verbBefore.test(cat) || /^VERB$/.test(cat)) {
+              phrase = `${word} ${headword}`;
+            } else if (verbAfter.test(cat)) {
+              phrase = `${headword} ${word}`;
+            } else if (/^PREP/.test(cat)) {
+              phrase = `${headword} ${word}`;
+            } else if (/^QUANT/.test(cat)) {
+              phrase = `${word} of ${headword}`;
+            } else if (/^PHR|^PHRASES?$/.test(cat)) {
+              phrase = word; // phrases are full chunks already
+            } else {
+              phrase = `${word} ${headword}`;
+            }
             if (phrase && phrase.length < 60) collocations.add(phrase);
+            if (collocations.size >= 24) break;
           }
+          // Cluster-level example sentence (sometimes the only clean
+          // example the entry provides).
           if (cluster.example && cluster.example.length > 8 && cluster.example.length < 220) {
-            examples.push({ text: cluster.example });
+            examples.push({ text: cluster.example.trim() });
           }
         }
       }
     }
 
     const partial: SourcePartial = {};
-    if (collocations.size) {
-      partial.collocations = Array.from(collocations).slice(0, 18);
-    }
+    if (definitions.length) partial.definitions = definitions.slice(0, 4);
     if (examples.length) partial.examples = examples.slice(0, 6);
+    if (collocations.size) partial.collocations = Array.from(collocations).slice(0, 20);
     return partial;
   },
 };
-
-/**
- * Combine a head token with a collocate word using the OCD pattern
- * category as a hint about the natural order. When the category is
- * unknown we fall back to "<token> <word>" which is the most common
- * reading.
- */
-function renderCollocation(token: string, cat: string, word: string): string {
-  const t = token.trim().toLowerCase();
-  const w = word.trim().toLowerCase();
-  if (!w) return '';
-  // Already a phrase containing the headword (PHRASES section often
-  // lists "no excuse for", "with the excuse that", etc.).
-  if (w.includes(' ') && (w.includes(t) || t.includes(' '))) return w;
-  // Verb-after patterns.
-  if (/(NOUN|N)\s*\+\s*VERB|^VERB$/.test(cat)) return `${t} ${w}`;
-  // Verb-before patterns.
-  if (/VERB\s*\+\s*NOUN|VERB\s*\+/.test(cat)) return `${w} ${t}`;
-  // Adjective patterns.
-  if (/^ADJ/.test(cat)) return `${w} ${t}`;
-  // Adverb modifying verb / adj.
-  if (/^ADV/.test(cat)) return `${w} ${t}`;
-  // Preposition patterns.
-  if (/^PREP/.test(cat)) return `${t} ${w}`;
-  // Quantifier ("a lot of <noun>").
-  if (/QUANT/.test(cat)) return `${w} of ${t}`;
-  // Default: assume word follows the head.
-  return `${t} ${w}`;
-}

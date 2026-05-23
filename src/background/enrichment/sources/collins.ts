@@ -11,6 +11,13 @@
  *   - `<div class="cit type-example">` example sentences
  *   - `<span class="pron type-">` IPA
  *   - `<a class="hwd_sound type-" data-src-mp3="…">` audio
+ *
+ * IMPORTANT: Collins sits behind Cloudflare bot protection and returns
+ * 403 to non-browser clients. The extension service worker uses the
+ * browser's real network stack with cookies and can succeed where a
+ * Node-side audit can't. If a 403 happens in production we degrade
+ * silently — Cambridge / Oxford / Longman cover the same definition
+ * fields.
  */
 
 import { fetchHtml, resolveUrl } from '../fetcher';
