@@ -59,16 +59,48 @@ import { etymonlineSource } from './sources/etymonline';
 import { getDB } from '../../shared/db';
 
 /**
- * Standard tier: always queried regardless of the VIP master switch
- * (free APIs, no scraping, no token). Each source can still be
- * disabled individually from `VipSettings.freeDictionary` /
- * `.datamuse` — we just consult the toggle here so the user can
+ * Standard tier: always queried regardless of the VIP master switch.
+ * All sources here are FREE APIs (no token, no scraping of paid
+ * dictionaries). Each can still be disabled individually from its
+ * `VipSettings` flag — we just consult the toggle so the user can
  * silence one without flipping the master.
+ *
+ * Reclassified 2026-05-23 from VIP → Standard:
+ *   - etymonline (etymology, public website with no commercial dict)
+ *   - bingImages, openverse, wikimediaCommons, duckduckgoImages
+ *     (image search APIs, no token)
+ *   - tatoeba (CC-BY parallel sentences API)
+ *   - linguaLibre (Wikimedia file-search API for native pronunciations)
+ *   - youglish (URL-only, no fetch)
+ *   - googleTtsFallback (synthetic TTS fallback)
+ *
+ * VIP tier (the remaining 11) keeps the scrapes of commercial
+ * dictionaries (Cambridge / Oxford / Longman / Collins / Merriam-Webster
+ * / Reverso / Linguee / WordReference / SpanishDict / Forvo / Ozdic) +
+ * BYOK image APIs (Unsplash, Pixabay).
  */
+const STANDARD_SOURCE_KEYS = new Set<keyof VipSettings>([
+  'freeDictionary',
+  'datamuse',
+  'etymonline',
+  'tatoeba',
+  'linguaLibre',
+  'googleTtsFallback',
+  'bingImages',
+  'openverse',
+  'wikimediaCommons',
+  'duckduckgoImages',
+  'youglish',
+]);
+
 function getStandardSources(vip: VipSettings): EnrichmentSource[] {
   const out: EnrichmentSource[] = [];
-  if (vip.freeDictionary) out.push(freeDictionarySource);
-  if (vip.datamuse) out.push(datamuseSource);
+  for (const [flag, source] of Object.entries(VIP_SOURCES)) {
+    if (!source) continue;
+    const k = flag as keyof VipSettings;
+    if (!STANDARD_SOURCE_KEYS.has(k)) continue;
+    if (vip[k] === true) out.push(source);
+  }
   return out;
 }
 
@@ -159,13 +191,16 @@ export async function runEnrichment(
   }
 
   // Build the active source list.
+  // Standard tier always runs (gated only by per-source toggles, not
+  // the VIP master switch).
   const active: EnrichmentSource[] = [...getStandardSources(opts.vip)];
+  // VIP tier runs only when the master switch is on.
   if (opts.vip.enabled) {
     for (const [flag, source] of Object.entries(VIP_SOURCES)) {
       if (!source) continue;
       const k = flag as keyof VipSettings;
       // Skip Standard sources here — they were already added above.
-      if (k === 'freeDictionary' || k === 'datamuse') continue;
+      if (STANDARD_SOURCE_KEYS.has(k)) continue;
       if (opts.vip[k] === true) active.push(source);
     }
   }

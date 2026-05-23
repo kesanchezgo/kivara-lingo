@@ -30,12 +30,37 @@ interface SourceMeta {
   hint: string;
 }
 
-const STANDARD_SOURCES: SourceMeta[] = [
+/* ── Standard tier: free APIs, no token, run regardless of VIP master switch ── */
+
+const STD_DICT_SOURCES: SourceMeta[] = [
   { key: 'freeDictionary', label: 'Free Dictionary API', hint: 'IPA + audio MP3 de Wikimedia + sinónimos. Gratis sin token (api.dictionaryapi.dev).' },
   { key: 'datamuse', label: 'Datamuse', hint: 'Collocations corpus-based + relaciones. Gratis sin token (api.datamuse.com).' },
 ];
 
-const DICT_SOURCES: SourceMeta[] = [
+const STD_BILINGUAL_SOURCES: SourceMeta[] = [
+  { key: 'tatoeba', label: 'Tatoeba', hint: 'Corpus comunitario CC-BY de oraciones paralelas EN-ES (api.tatoeba.org). Sin token.' },
+];
+
+const STD_AUDIO_SOURCES: SourceMeta[] = [
+  { key: 'linguaLibre', label: 'Lingua Libre', hint: 'Wikimedia: pronunciaciones CC-BY de hablantes nativos. Sin token.' },
+  { key: 'googleTtsFallback', label: 'Google TTS fallback', hint: 'Síntesis sintética cuando ninguna grabación humana respondió. Sin token.' },
+];
+
+const STD_IMAGE_SOURCES: SourceMeta[] = [
+  { key: 'bingImages', label: 'Bing Images', hint: 'Búsqueda web sin token. ~25 fotos por consulta, licencia mixta — ideal cuando importa la pertinencia más que la licencia.' },
+  { key: 'openverse', label: 'Openverse', hint: 'Imágenes CC-BY / CC0 (Flickr + Wikimedia + museos) vía API pública sin token.' },
+  { key: 'wikimediaCommons', label: 'Wikimedia Commons', hint: 'Imágenes CC con metadata, ideal para términos nicho.' },
+  { key: 'duckduckgoImages', label: 'DuckDuckGo Images', hint: 'Búsqueda última-milla cuando todo lo anterior falla.' },
+];
+
+const STD_ETY_VIDEO: SourceMeta[] = [
+  { key: 'etymonline', label: 'Etymonline', hint: 'Etimología profesional (etymonline.com): origen + evolución histórica. Sin token.' },
+  { key: 'youglish', label: 'YouGlish', hint: 'Enlaces a videos de YouTube con la palabra pronunciada. URL only, sin fetch.' },
+];
+
+/* ── VIP tier: scrapes of commercial dictionaries + BYOK image APIs ── */
+
+const VIP_DICT_SOURCES: SourceMeta[] = [
   { key: 'cambridge', label: 'Cambridge', hint: 'Definiciones, collocations, IPA y audio UK/US.' },
   { key: 'oxfordLearners', label: 'Oxford Learner\u2019s', hint: 'Definiciones learner-grade y ejemplos curados.' },
   { key: 'longman', label: 'Longman LDOCE', hint: 'Definiciones simples (Defining Vocabulary 2 000).' },
@@ -45,37 +70,22 @@ const DICT_SOURCES: SourceMeta[] = [
   { key: 'oxfordCollocations', label: 'Oxford Coll. pack', hint: 'Reservado para un pack importable offline (placeholder).' },
 ];
 
-const BILINGUAL_SOURCES: SourceMeta[] = [
+const VIP_BILINGUAL_SOURCES: SourceMeta[] = [
   { key: 'reverso', label: 'Reverso Context', hint: 'Frases EN-ES de subtítulos / libros / prensa.' },
   { key: 'linguee', label: 'Linguee', hint: 'Traducciones y ejemplos curados de la web.' },
   { key: 'wordReference', label: 'WordReference', hint: 'Equivalencias EN-ES naturales.' },
   { key: 'spanishDict', label: 'SpanishDict', hint: 'Conjugación + ejemplos paralelos.' },
-  { key: 'tatoeba', label: 'Tatoeba', hint: 'Corpus comunitario CC-BY de oraciones paralelas (api.tatoeba.org).' },
 ];
 
-const AUDIO_SOURCES: SourceMeta[] = [
-  { key: 'cambridgeAudio', label: 'Cambridge audio', hint: 'MP3 oficial UK + US.' },
-  { key: 'oxfordAudio', label: 'Oxford audio', hint: 'MP3 oficial UK + US.' },
+const VIP_AUDIO_SOURCES: SourceMeta[] = [
+  { key: 'cambridgeAudio', label: 'Cambridge audio', hint: 'MP3 oficial UK + US (extraído por la fuente Cambridge).' },
+  { key: 'oxfordAudio', label: 'Oxford audio', hint: 'MP3 oficial UK + US (extraído por la fuente Oxford).' },
   { key: 'forvo', label: 'Forvo', hint: 'Pronunciación humana de hablantes nativos.' },
-  { key: 'linguaLibre', label: 'Lingua Libre', hint: 'Wikimedia: CC-BY hablantes nativos.' },
-  { key: 'googleTtsFallback', label: 'Google TTS fallback', hint: 'Síntesis cuando ninguna grabación humana respondió.' },
 ];
 
-const IMAGE_SOURCES: SourceMeta[] = [
+const VIP_IMAGE_SOURCES: SourceMeta[] = [
   { key: 'unsplash', label: 'Unsplash (BYOK)', hint: 'Fotos profesionales con licencia Unsplash. Necesita clave gratuita (input abajo). Sin clave queda inactivo.' },
   { key: 'pixabay', label: 'Pixabay', hint: 'Stock variado, licencia libre. Funciona sin clave por scraping; con clave (input abajo) usa la API oficial (más estable).' },
-  { key: 'bingImages', label: 'Bing Images', hint: 'Búsqueda web sin token. ~25 fotos por consulta, licencia mixta — ideal cuando importa la pertinencia más que la licencia.' },
-  { key: 'openverse', label: 'Openverse', hint: 'Imágenes CC-BY / CC0 (Flickr + Wikimedia + museos) vía API pública sin token.' },
-  { key: 'wikimediaCommons', label: 'Wikimedia Commons', hint: 'Imágenes CC con metadata, ideal para términos nicho.' },
-  { key: 'duckduckgoImages', label: 'DuckDuckGo Images', hint: 'Búsqueda última-milla cuando todo lo anterior falla.' },
-];
-
-const VIDEO_SOURCES: SourceMeta[] = [
-  { key: 'youglish', label: 'YouGlish', hint: 'Enlaces a videos de YouTube con la palabra pronunciada.' },
-];
-
-const ETYMOLOGY_SOURCES: SourceMeta[] = [
-  { key: 'etymonline', label: 'Etymonline', hint: 'Etimología profesional (etymonline.com): origen + evolución histórica.' },
 ];
 
 export function VipSection() {
@@ -106,24 +116,32 @@ export function VipSection() {
       </div>
 
       {/* Standard tier — runs regardless of master switch, free APIs. */}
-      <SubGroup
-        title="Estándar (gratis, siempre activo)"
-        hint="APIs gratuitas sin token: corpus de Datamuse y diccionario Wikimedia. Si las desactivas, sólo quedan los datos locales y los packs Yomitan."
-        sources={STANDARD_SOURCES}
-        vip={vip}
-        setKey={setKey}
-      />
+      <div className="rounded-md bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200/40 dark:border-emerald-900/40 px-2.5 py-2">
+        <div className="text-[11.5px] font-semibold text-emerald-800 dark:text-emerald-300 mb-1">
+          Estándar (gratis, sin tokens, siempre activo)
+        </div>
+        <div className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 leading-snug">
+          11 fuentes públicas que no requieren clave ni scraping de diccionarios comerciales.
+          Funcionan independiente del switch VIP. Cada una se puede silenciar abajo.
+        </div>
+      </div>
+
+      <SubGroup title="Standard · diccionario y relaciones" hint="APIs JSON públicas." sources={STD_DICT_SOURCES} vip={vip} setKey={setKey} />
+      <SubGroup title="Standard · ejemplos bilingües" hint="Corpus paralelo CC-BY de Tatoeba." sources={STD_BILINGUAL_SOURCES} vip={vip} setKey={setKey} />
+      <SubGroup title="Standard · audio" hint="Pronunciación nativa (Lingua Libre Wikimedia) + síntesis de fallback." sources={STD_AUDIO_SOURCES} vip={vip} setKey={setKey} />
+      <SubGroup title="Standard · imágenes" hint="Búsquedas web sin token." sources={STD_IMAGE_SOURCES} vip={vip} setKey={setKey} />
+      <SubGroup title="Standard · etimología y video" hint="Etymonline (origen) + YouGlish (videos con la palabra hablada)." sources={STD_ETY_VIDEO} vip={vip} setKey={setKey} />
 
       {/* VIP master switch */}
-      <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2.5 py-2">
+      <div className="rounded-md bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200/40 dark:border-amber-900/40 px-2.5 py-2">
         <label className="flex items-center justify-between gap-2 cursor-pointer">
           <span className="flex flex-col">
-            <span className="text-[11.5px] font-semibold text-zinc-800 dark:text-zinc-200">
-              Activar VIP
+            <span className="text-[11.5px] font-semibold text-amber-900 dark:text-amber-300">
+              Activar VIP (scrapes de diccionarios comerciales)
             </span>
-            <span className="text-[10px] text-zinc-500 dark:text-zinc-500 leading-snug mt-0.5">
-              Consulta hasta 20 fuentes en paralelo (diccionarios, scrapes y audio nativo).
-              Cada palabra tarda 1-3&nbsp;s la primera vez; las siguientes son instantáneas (caché).
+            <span className="text-[10px] text-amber-800/70 dark:text-amber-400/70 leading-snug mt-0.5">
+              Cambridge · Oxford · Longman · Collins · Merriam-Webster · Reverso · Linguee · WordReference · SpanishDict · Forvo · Ozdic
+              + claves opcionales Unsplash/Pixabay. Cada palabra tarda 1-3&nbsp;s la primera vez; las siguientes son instantáneas (caché).
             </span>
           </span>
           <input
@@ -137,16 +155,16 @@ export function VipSection() {
 
       {!vip.enabled && (
         <div className="text-[10.5px] text-zinc-500 italic px-1 leading-snug">
-          VIP está desactivado. Solo se usan los datos locales + las fuentes Standard arriba.
+          VIP está desactivado. La tarjeta usa solo datos locales + las 11 fuentes Standard arriba.
         </div>
       )}
 
       {vip.enabled && (
         <>
-          <SubGroup title="Diccionarios premium" hint="Definiciones, IPA, ejemplos y collocations." sources={DICT_SOURCES} vip={vip} setKey={setKey} />
-          <SubGroup title="Bilingüe" hint="Traducción + frases paralelas EN-ES." sources={BILINGUAL_SOURCES} vip={vip} setKey={setKey} />
-          <SubGroup title="Audio" hint="Pronunciación a nivel de palabra. Para audio de la frase completa se usa la captura del video." sources={AUDIO_SOURCES} vip={vip} setKey={setKey} />
-          <SubGroup title="Imágenes" hint="Imagen para el frente de la tarjeta cuando no hay frame del video. Si tienes OpenAI configurado en IA premium con enrichOnSave, DALL-E 3 genera una ilustración mnemónica como último fallback (~$0.04 por tarjeta)." sources={IMAGE_SOURCES} vip={vip} setKey={setKey} />
+          <SubGroup title="VIP · diccionarios comerciales" hint="Scrapes de los grandes learner's dictionaries." sources={VIP_DICT_SOURCES} vip={vip} setKey={setKey} />
+          <SubGroup title="VIP · bilingüe (premium)" hint="Reverso/Linguee/WordRef/SpanishDict — pares EN-ES de mejor calidad." sources={VIP_BILINGUAL_SOURCES} vip={vip} setKey={setKey} />
+          <SubGroup title="VIP · audio (premium)" hint="MP3 oficiales de Cambridge/Oxford + Forvo (hablantes nativos)." sources={VIP_AUDIO_SOURCES} vip={vip} setKey={setKey} />
+          <SubGroup title="VIP · imágenes (BYOK opcional)" hint="Unsplash y Pixabay con clave gratis. Sin VIP, las imágenes Standard cubren bien." sources={VIP_IMAGE_SOURCES} vip={vip} setKey={setKey} />
 
           {/* Optional API keys for Unsplash + Pixabay — both are free
               with no credit card required, but require a one-time
@@ -189,9 +207,6 @@ export function VipSection() {
               />
             </label>
           </div>
-
-          <SubGroup title="Etimología" hint="Origen e historia de la palabra (rendido en la cara trasera de la tarjeta)." sources={ETYMOLOGY_SOURCES} vip={vip} setKey={setKey} />
-          <SubGroup title="Video" hint="Enlaces a pronunciación en contexto real." sources={VIDEO_SOURCES} vip={vip} setKey={setKey} />
 
           {/* Fine tuning */}
           <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2.5 py-2 space-y-2">
