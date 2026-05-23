@@ -60,7 +60,7 @@ describe('pickModelForProvider', () => {
   it('falls back to the preset default when the current model is empty', () => {
     expect(pickModelForProvider('openai', '')).toBe('gpt-4o-mini');
     expect(pickModelForProvider('anthropic', '')).toBe('claude-3-5-haiku-latest');
-    expect(pickModelForProvider('google-ai', '')).toBe('gemini-1.5-flash');
+    expect(pickModelForProvider('google-ai', '')).toBe('gemini-2.5-flash');
   });
 
   it('preserves a model id that already matches the new provider naming', () => {
@@ -76,7 +76,7 @@ describe('pickModelForProvider', () => {
   it('replaces a mismatched model id with the new provider default', () => {
     expect(pickModelForProvider('openai', 'gemini-1.5-flash')).toBe('gpt-4o-mini');
     expect(pickModelForProvider('anthropic', 'gpt-4o-mini')).toBe('claude-3-5-haiku-latest');
-    expect(pickModelForProvider('google-ai', 'claude-3-5-sonnet')).toBe('gemini-1.5-flash');
+    expect(pickModelForProvider('google-ai', 'claude-3-5-sonnet')).toBe('gemini-2.5-flash');
   });
 
   it('trims surrounding whitespace before deciding', () => {

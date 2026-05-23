@@ -88,11 +88,13 @@ export const DEFAULT_TRANSLATE: TranslateSettings = {
   libreTranslateUrl: 'https://libretranslate.com',
   libreTranslateToken: '',
   myMemoryEmail: '',
-  // The original lingva.ml host went down in 2024; thedaviddelta runs a
-  // long-lived Vercel deployment at this domain. Users can point at their own
-  // self-hosted instance or any of the mirrors listed at
-  // https://github.com/thedaviddelta/lingva-translate#instances .
-  lingvaUrl: 'https://lingva.thedaviddelta.com',
+  // The original lingva.ml went down briefly in 2024 but came back in 2025
+  // and is once again the canonical instance. The Vercel deployment at
+  // `thedaviddelta.com` was DEPLOYMENT_PAUSED in 2026-Q2, so we no longer
+  // default to it. The translator implementation falls back automatically
+  // to a curated mirror list (`translate.plausibility.cloud`, `lingva.lunar.icu`)
+  // if the configured host returns 5xx, so this default is safe.
+  lingvaUrl: 'https://lingva.ml',
   cacheTtlDays: 30,
   // Dual caption (target-language subtitle below the source) is on by default
   // — matches Language Reactor / Trancy behaviour and the user-provided mock.

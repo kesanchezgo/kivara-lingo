@@ -259,6 +259,25 @@ async function callMyMemory(
 }
 
 /**
+ * Lingva mirrors known to host `/api/v1/:src/:tgt/:query` and respond
+ * with `{ translation: "..." }`. Probed live 2026-05-22:
+ *
+ *   ✓ lingva.ml                   (200, returns translation)
+ *   ✗ lingva.thedaviddelta.com    (503 DEPLOYMENT_PAUSED — moved off Vercel)
+ *   ✓ translate.plausibility.cloud (200)
+ *   ✓ lingva.lunar.icu            (200)
+ *
+ * The chain tries the user-configured `lingvaUrl` first, then falls back
+ * to the curated mirror list below. A 503/timeout doesn't penalise the
+ * Lingva tier — we just hop to the next mirror until one answers.
+ */
+const LINGVA_FALLBACK_MIRRORS = [
+  'https://lingva.ml',
+  'https://translate.plausibility.cloud',
+  'https://lingva.lunar.icu',
+];
+
+/**
  * Lingva is an unauthenticated front-end / scraper for Google Translate.
  * Reference: https://github.com/thedaviddelta/lingva-translate
  *
@@ -272,37 +291,43 @@ async function callLingva(
   target: string,
   baseUrl: string,
 ): Promise<ProviderResult | ProviderError> {
-  const host = (baseUrl || 'https://lingva.thedaviddelta.com').replace(/\/+$/, '');
   const src = toTwoLetter(source) || 'auto';
   const tgt = toTwoLetter(target);
-  // encodeURIComponent on the whole query so question marks / emoji / slashes
-  // round-trip cleanly. Lingva's URL routing matches the last segment greedily
-  // so this is the safe encoding.
-  const url = `${host}/api/v1/${src}/${tgt}/${encodeURIComponent(text)}`;
-  try {
-    const res = await withTimeout(url, { method: 'GET' });
-    if (!res.ok) {
-      return {
-        ok: false,
-        error: `Lingva ${res.status}`,
-        provider: 'lingva',
-        transient: res.status >= 500 || res.status === 429,
-      };
-    }
-    const json = (await res.json()) as { translation?: string };
-    const translated = json.translation?.trim();
-    if (!translated) {
-      return { ok: false, error: 'Lingva empty response', provider: 'lingva' };
-    }
-    return { ok: true, translatedText: translated, provider: 'lingva' };
-  } catch (err) {
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : 'Lingva error',
-      provider: 'lingva',
-      transient: true,
-    };
+  const path = `/api/v1/${src}/${tgt}/${encodeURIComponent(text)}`;
+
+  // Try the user's configured host first, then walk the fallback mirrors.
+  // Skip duplicates so a host already in the fallback list isn't tried twice.
+  const userHost = (baseUrl || '').replace(/\/+$/, '');
+  const candidates: string[] = [];
+  if (userHost) candidates.push(userHost);
+  for (const m of LINGVA_FALLBACK_MIRRORS) {
+    if (!candidates.includes(m)) candidates.push(m);
   }
+
+  let lastError = 'Lingva unreachable';
+  let anyTransient = false;
+  for (const host of candidates) {
+    const url = `${host}${path}`;
+    try {
+      const res = await withTimeout(url, { method: 'GET' });
+      if (!res.ok) {
+        lastError = `Lingva ${res.status} (${host})`;
+        anyTransient = anyTransient || res.status >= 500 || res.status === 429;
+        continue;
+      }
+      const json = (await res.json()) as { translation?: string };
+      const translated = json.translation?.trim();
+      if (!translated) {
+        lastError = `Lingva empty response (${host})`;
+        continue;
+      }
+      return { ok: true, translatedText: translated, provider: 'lingva' };
+    } catch (err) {
+      lastError = err instanceof Error ? `${err.message} (${host})` : `Lingva error (${host})`;
+      anyTransient = true;
+    }
+  }
+  return { ok: false, error: lastError, provider: 'lingva', transient: anyTransient };
 }
 
 /**

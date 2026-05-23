@@ -31,9 +31,13 @@ describe('detectFieldSource', () => {
   });
 
   it('maps picture/frame fields', () => {
-    expect(detectFieldSource('Picture')).toBe('frame');
-    expect(detectFieldSource('image')).toBe('frame');
+    // "Picture" / "Image" map to the generic illustrative image slot
+    // (fed by the VIP image chain). "Frame" / "Screenshot" still map
+    // to the live video frame for users who explicitly want that.
+    expect(detectFieldSource('Picture')).toBe('image');
+    expect(detectFieldSource('image')).toBe('image');
     expect(detectFieldSource('Screenshot')).toBe('frame');
+    expect(detectFieldSource('Frame')).toBe('frame');
   });
 
   it('maps phonetic fields', () => {
@@ -72,7 +76,9 @@ describe('autoMapFields', () => {
       translation: 'translation',
       bilingual: 'bilingual',
       monolingual: 'monolingual',
-      picture: 'frame',
+      // "picture" → generic illustrative slot (VIP image chain).
+      // Users who want the literal video frame name the field "Frame".
+      picture: 'image',
       'sentence audio': 'sentence-audio',
       'word audio': 'word-audio',
     });
