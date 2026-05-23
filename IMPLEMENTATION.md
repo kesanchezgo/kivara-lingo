@@ -664,7 +664,7 @@ Nueva capa opcional implementada en Bloques 1-3. Vive en `src/background/ai-prov
 |---|---|---|
 | OpenAI | `POST https://api.openai.com/v1/chat/completions` (`response_format: { type: 'json_object' }`) | `gpt-4o-mini` |
 | Anthropic | `POST https://api.anthropic.com/v1/messages` (`anthropic-version: 2023-06-01`) | `claude-3-5-haiku-latest` |
-| Google Gemini | `POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}` (`responseMimeType: application/json`) | `gemini-1.5-flash` |
+| Google Gemini | `POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}` (`responseMimeType: application/json`, `thinkingConfig.thinkingBudget: 0`) | `gemini-2.5-flash` |
 | `disabled` | — | — (default; no se hacen requests) |
 
 **Prompt común** (verbatim, lo usan los tres adapters):

@@ -119,7 +119,7 @@ La capa de enriquecimiento contextual usa el proveedor LLM que tú elijas. Confi
 |---|---|---|
 | OpenAI | `https://api.openai.com/v1/chat/completions` | `gpt-4o-mini` |
 | Anthropic | `https://api.anthropic.com/v1/messages` | `claude-3-5-haiku-latest` |
-| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/...` | `gemini-1.5-flash` |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/...` | `gemini-2.5-flash` |
 | Disabled (default) | — | — |
 
 Pega tu API key, elige el modelo, activa **Enriquecer al guardar** y/o **Enriquecer al pasar el ratón** según prefieras. La key viaja por `chrome.storage.sync` (cifrado por Chrome) y nunca sale del navegador hacia ningún servidor que no sea el del provider que elegiste.
