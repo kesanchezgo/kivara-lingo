@@ -386,7 +386,7 @@ export interface AiSettings {
   provider: AiProvider;
   /** API key (chrome.storage.sync — never committed) */
   apiKey: string;
-  /** Model identifier (e.g. gpt-4o-mini, claude-3-5-haiku-latest, gemini-1.5-flash) */
+  /** Model identifier (e.g. gpt-4o-mini, claude-haiku-4-5, gemini-2.5-flash) */
   model: string;
   /** Optional native language override (defaults to translate.targetLanguage) */
   nativeLanguage?: string;
@@ -396,6 +396,26 @@ export interface AiSettings {
   enrichOnHover: boolean;
   /** Cache TTL in days for AI responses (default 30) */
   cacheTtlDays: number;
+  /**
+   * When true, AI mnemonic overrides the bundled / scraped one. When
+   * false, the AI mnemonic is suppressed even if the provider returns
+   * one — useful for users who prefer Etymology online's literal
+   * etymology over an LLM paraphrase. Default true.
+   */
+  preferAiMnemonic: boolean;
+  /**
+   * When true, AI etymology overrides Etymonline's scrape. When false,
+   * Etymonline's text wins whenever it's available. Default true (LLM
+   * is more reliable when Etymonline returns empty).
+   */
+  preferAiEtymology: boolean;
+  /**
+   * When true, the OpenAI DALL-E 3 image generator is used as the last
+   * fallback for the `image` Anki field when no free source returned a
+   * photo. Costs ~$0.04 per card. Default false — opt-in to avoid
+   * surprise charges.
+   */
+  enableDalleFallback: boolean;
 }
 
 /**

@@ -115,6 +115,13 @@ export const DEFAULT_AI: AiSettings = {
   enrichOnSave: false,
   enrichOnHover: false,
   cacheTtlDays: 30,
+  // AI overlay defaults: mnemonic ON (LLMs write better mnemonics
+  // than the bundled placeholders), etymology ON (Etymonline often
+  // returns nothing for inflected forms, LLM fills the gap), DALL-E
+  // OFF (paid, opt-in only).
+  preferAiMnemonic: true,
+  preferAiEtymology: true,
+  enableDalleFallback: false,
 };
 
 /**

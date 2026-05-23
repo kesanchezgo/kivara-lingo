@@ -314,19 +314,28 @@ export async function createCardFromRequest(
 
   // AI mnemonic / etymology overlay. The AI provider returns higher-
   // quality text when configured (proper grammar, native-language,
-  // mnemonic-specific structure), so we let it override the
-  // Etymonline scrape and Datamuse mnemonic placeholder when present.
+  // mnemonic-specific structure), so we let it fill the field when
+  // the VIP scrape didn't. Whether AI also _overrides_ a Etymonline
+  // hit is controlled by the user via `preferAiMnemonic` /
+  // `preferAiEtymology` (default true: LLM wins for tone consistency).
   if (aiData) {
-    if (aiData.mnemonic && !ctx.mnemonic) ctx.mnemonic = aiData.mnemonic;
-    if (aiData.etymology && !ctx.etymology) ctx.etymology = aiData.etymology;
+    const aiSettings = await getAiSettings();
+    if (aiData.mnemonic && (!ctx.mnemonic || aiSettings.preferAiMnemonic !== false)) {
+      ctx.mnemonic = aiData.mnemonic;
+    }
+    if (aiData.etymology && (!ctx.etymology || aiSettings.preferAiEtymology !== false)) {
+      ctx.etymology = aiData.etymology;
+    }
   }
 
   // AI image generation — DALL-E 3 only fires when:
   //   - The user has `enrichOnSave` AND `provider === 'openai'`
+  //   - The user has explicitly opted into `enableDalleFallback`
+  //     (paid, ~$0.04/card)
   //   - A note field is mapped to `image`
-  //   - The chain didn't already provide a free image (Unsplash /
-  //     Pixabay / Wikimedia / DDG). DALL-E costs ~$0.04/image, so we
-  //     only call it when we have nothing better.
+  //   - The chain didn't already provide a free image (Bing /
+  //     Openverse / Pixabay / Wikimedia / DDG / Unsplash). DALL-E
+  //     costs are only incurred when every free source missed.
   try {
     const imageMapped = Object.values(mapping.fieldSources ?? {}).some(
       (s) => s === 'image',
@@ -336,7 +345,8 @@ export async function createCardFromRequest(
       if (
         aiSettings.enrichOnSave &&
         aiSettings.provider === 'openai' &&
-        aiSettings.apiKey
+        aiSettings.apiKey &&
+        aiSettings.enableDalleFallback === true
       ) {
         const { generateAiImage } = await import('./ai-providers');
         const prompt =

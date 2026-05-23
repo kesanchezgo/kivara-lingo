@@ -929,6 +929,17 @@ function AiByokSection() {
             <Row label="Enriquecer en hover">
               <Toggle on={ai.enrichOnHover} onChange={(v) => setAi({ ...ai, enrichOnHover: v })} />
             </Row>
+            <Row label="IA escribe el mnemónico">
+              <Toggle on={ai.preferAiMnemonic !== false} onChange={(v) => setAi({ ...ai, preferAiMnemonic: v })} />
+            </Row>
+            <Row label="IA escribe la etimología">
+              <Toggle on={ai.preferAiEtymology !== false} onChange={(v) => setAi({ ...ai, preferAiEtymology: v })} />
+            </Row>
+            {ai.provider === 'openai' && (
+              <Row label="DALL-E 3 si no hay foto (~$0.04)">
+                <Toggle on={ai.enableDalleFallback === true} onChange={(v) => setAi({ ...ai, enableDalleFallback: v })} />
+              </Row>
+            )}
             <Row label="Idioma nativo (override)">
               <input
                 type="text"
