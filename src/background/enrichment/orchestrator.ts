@@ -34,6 +34,9 @@ import type {
 
 import { freeDictionarySource } from './sources/free-dictionary';
 import { datamuseSource } from './sources/datamuse';
+import { wiktionarySource } from './sources/wiktionary';
+import { bundledSource } from './sources/bundled';
+import { yomitanPacksSource } from './sources/yomitan-packs';
 import { cambridgeSource } from './sources/cambridge';
 import { oxfordLearnersSource } from './sources/oxford-learners';
 import { longmanSource } from './sources/longman';
@@ -82,6 +85,9 @@ import { getDB } from '../../shared/db';
 const STANDARD_SOURCE_KEYS = new Set<keyof VipSettings>([
   'freeDictionary',
   'datamuse',
+  'wiktionary',
+  'bundled',
+  'yomitanPacks',
   'etymonline',
   'tatoeba',
   'linguaLibre',
@@ -119,6 +125,9 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   // still individually togglable from the UI.
   freeDictionary: freeDictionarySource,
   datamuse: datamuseSource,
+  wiktionary: wiktionarySource,
+  bundled: bundledSource,
+  yomitanPacks: yomitanPacksSource,
 
   cambridge: cambridgeSource,
   oxfordLearners: oxfordLearnersSource,

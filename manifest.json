@@ -53,6 +53,7 @@
     "https://commons.wikimedia.org/*",
     "https://upload.wikimedia.org/*",
     "https://en.wiktionary.org/*",
+    "https://*.wiktionary.org/*",
     "https://*.dictionary.cambridge.org/*",
     "https://dictionary.cambridge.org/*",
     "https://www.oxfordlearnersdictionaries.com/*",

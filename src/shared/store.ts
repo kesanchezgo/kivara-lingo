@@ -137,6 +137,9 @@ export const DEFAULT_VIP: VipSettings = {
   // switched on (they're free APIs without scraping or tokens).
   freeDictionary: true,
   datamuse: true,
+  wiktionary: true,
+  bundled: true,
+  yomitanPacks: true,
   cambridge: true,
   oxfordLearners: true,
   longman: true,

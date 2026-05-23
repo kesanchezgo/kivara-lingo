@@ -435,6 +435,28 @@ export interface VipSettings {
   /* ── Standard tier (free, no token, run regardless of VIP) ────────── */
   freeDictionary: boolean;
   datamuse: boolean;
+  /**
+   * Wiktionary REST API (`en.wiktionary.org/api/rest_v1/page/definition/`).
+   * Best free source for phrasal verbs ("look up"), idioms ("kick the
+   * bucket") and compound MWEs ("big deal") — gaps the commercial
+   * scrape sources (Cambridge / Oxford / Longman) miss for multi-word
+   * expressions. Returns clean JSON with definitions + examples + POS.
+   * Default true.
+   */
+  wiktionary: boolean;
+  /**
+   * Bundled dictionary lookup (en.json + en-extensions + en-cefr + mwes +
+   * thesaurus + Academic Collocation List). Always available offline.
+   * Default true.
+   */
+  bundled: boolean;
+  /**
+   * Yomitan packs installed by the user (kty-en-es / kty-en-en /
+   * kty-en-ipa / etc.). Queries the IndexedDB-backed `dict_terms`
+   * table. Most powerful Standard source for phrasal verbs, idioms,
+   * MWEs and slang — `kty-en-es` alone has ~67k headwords. Default true.
+   */
+  yomitanPacks: boolean;
 
   /* ── Diccionarios premium (definitions, IPA, examples, collocations) ─ */
   cambridge: boolean;
