@@ -54,11 +54,34 @@ export const cambridgeSource: EnrichmentSource = {
     });
     if (!html) return {};
 
+    // Guard against Cambridge's "no exact match" landing page, which
+    // still returns HTTP 200 but renders an unrelated nearby entry
+    // (e.g. querying "big girl" lands on "bear", and stray IPA blocks
+    // like "party animal" leak into multi-word queries). We only trust
+    // the scrape when the page's headword block (`di-title`) matches
+    // the queried token — otherwise we'd poison the merge with another
+    // word's IPA / definition.
+    const diTitle = /<div\b[^>]*\bclass\s*=\s*["'][^"']*\bdi-title\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i.exec(html);
+    const headword = diTitle ? stripHtml(diTitle[1]).toLowerCase().trim() : '';
+    const wanted = token.trim().toLowerCase();
+    if (!headword || (headword !== wanted && !headword.includes(wanted) && !wanted.includes(headword))) {
+      return {};
+    }
+
     const partial: SourcePartial = {};
 
-    // IPA — keep the first occurrence (typically UK), fall back to US.
-    const ipas = extractByClass(html, 'ipa', 'span').map(stripHtml);
-    if (ipas.length) partial.phonetic = `/${ipas[0].replace(/^\/+|\/+$/g, '')}/`;
+    // IPA — must belong to the headword, not a stray nearby entry.
+    // The headword's pronunciation always renders within ~1.3k chars
+    // of the `di-title`; an IPA span much farther away (e.g. 16k chars
+    // for "kick the bucket") belongs to an unrelated "see also" entry
+    // like "party animal", so we ignore it.
+    const diIdxForIpa = html.search(/class\s*=\s*["'][^"']*\bdi-title\b/i);
+    const afterDi = diIdxForIpa >= 0 ? html.slice(diIdxForIpa) : html;
+    const firstIpaOffset = afterDi.search(/class\s*=\s*["'][^"']*\bipa\b/i);
+    if (firstIpaOffset >= 0 && firstIpaOffset < 3000) {
+      const ipas = extractByClass(afterDi, 'ipa', 'span').map(stripHtml);
+      if (ipas.length) partial.phonetic = `/${ipas[0].replace(/^\/+|\/+$/g, '')}/`;
+    }
 
     // Audio — UK + US `<source>` elements. Cambridge usually ships
     // `uk_pron.mp3` and `us_pron.mp3` paths.

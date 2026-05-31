@@ -49,7 +49,11 @@ export const wordReferenceSource: EnrichmentSource = {
       .map(stripHtml)
       // WR appends the part of speech after the word; trim it.
       .map((s) => s.split(/\s+(?:nf|nm|adj|adv|vt|vi|prep|pron|conj|det|noun|verb|adjective)\b/i)[0])
-      .filter((s) => s && s.length < 60);
+      .map((s) => s.trim())
+      // Drop the language header cells ("Inglés" / "Español") that WR
+      // renders as the first `ToWrd` of every results table, and any
+      // empty residue.
+      .filter((s) => s && s.length < 60 && !/^(?:Inglés|Español|English|Spanish|Principal Translations|Compound Forms)$/i.test(s));
     if (translations.length) {
       partial.translations = Array.from(new Set(translations)).slice(0, 6);
     }
