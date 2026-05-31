@@ -247,6 +247,14 @@ async function callMyMemory(
         transient: true,
       };
     }
+    // Echo guard: when MyMemory has no translation it sometimes returns
+    // the source text unchanged (e.g. a nonsense token or an untranslat-
+    // able proper noun). Treat an exact case-insensitive echo as "no
+    // translation" so the popover doesn't show the English word as its
+    // own Spanish translation.
+    if (translated.toLowerCase() === text.trim().toLowerCase()) {
+      return { ok: false, error: 'MyMemory echoed source', provider: 'mymemory' };
+    }
     return { ok: true, translatedText: translated, provider: 'mymemory' };
   } catch (err) {
     return {

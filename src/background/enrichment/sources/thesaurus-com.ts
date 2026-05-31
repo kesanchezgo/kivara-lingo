@@ -62,6 +62,17 @@ export const thesaurusComSource: EnrichmentSource = {
     });
     if (!html) return {};
 
+    // Guard against thesaurus.com's autocorrect: querying a nonsense or
+    // misspelled token (e.g. "zxqwflumph") silently serves a different
+    // word's page ("galumph"), which would poison the merge with
+    // unrelated synonyms/antonyms. We only trust the scrape when the
+    // page's headword (`hdr-headword`) matches the queried token.
+    const hwMatch =
+      /<h1\b[^>]*\bclass\s*=\s*["'][^"']*hdr-headword[^"']*["'][^>]*>([^<]+)<\/h1>/i.exec(html) ||
+      /<h1\b[^>]*>([^<]+)<\/h1>/i.exec(html);
+    const headword = hwMatch ? clean(hwMatch[1]).toLowerCase() : '';
+    if (!headword || headword !== slug) return {};
+
     const partial: SourcePartial = {};
     const synonyms = new Set<string>();
     const antonyms = new Set<string>();

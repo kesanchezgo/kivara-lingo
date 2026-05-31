@@ -21,7 +21,6 @@ import React from 'react';
 import { useKivaraStore } from '../../../shared/store';
 import { InfoHint } from '../InfoHint';
 import type { VipSettings } from '../../../shared/types';
-
 type VipKey = keyof VipSettings;
 
 interface SourceMeta {
@@ -259,6 +258,9 @@ export function VipSection() {
           </div>
         </>
       )}
+
+      {/* Cache management — always visible (Standard mode also caches). */}
+      <CacheManager />
     </div>
   );
 }
@@ -311,3 +313,127 @@ function SubGroup({
   );
 }
 
+
+interface CacheBucket {
+  id: 'enrichment' | 'translation' | 'ai' | 'media';
+  label: string;
+  count: number;
+  bytes: number;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes <= 0) return '0 KB';
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+/**
+ * Cache management panel. Shows per-bucket row counts + approximate size
+ * and lets the user wipe everything (with a confirm) or a single bucket.
+ * Talks to the service worker via GET_CACHE_STATS / CLEAR_CACHE.
+ */
+function CacheManager() {
+  const [buckets, setBuckets] = React.useState<CacheBucket[] | null>(null);
+  const [busy, setBusy] = React.useState(false);
+  const [confirming, setConfirming] = React.useState(false);
+
+  const refresh = React.useCallback(() => {
+    try {
+      chrome.runtime.sendMessage({ type: 'GET_CACHE_STATS' }, (res) => {
+        if (chrome.runtime.lastError) return;
+        if (res?.ok && res.stats?.buckets) setBuckets(res.stats.buckets);
+      });
+    } catch {
+      // chrome.runtime not available (e.g. storybook) — leave null.
+    }
+  }, []);
+
+  React.useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const clearAll = () => {
+    setBusy(true);
+    try {
+      chrome.runtime.sendMessage({ type: 'CLEAR_CACHE', which: 'all' }, (res) => {
+        setBusy(false);
+        setConfirming(false);
+        if (chrome.runtime.lastError) return;
+        if (res?.ok) refresh();
+      });
+    } catch {
+      setBusy(false);
+      setConfirming(false);
+    }
+  };
+
+  const total = buckets?.reduce((a, b) => a + b.count, 0) ?? 0;
+  const totalBytes = buckets?.reduce((a, b) => a + b.bytes, 0) ?? 0;
+
+  return (
+    <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2.5 py-2 space-y-2">
+      <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+        <span>Caché almacenada</span>
+        <InfoHint message="Resultados guardados localmente (IndexedDB) para que re-consultar la misma palabra/subtítulo sea instantáneo. No incluye tus diccionarios instalados ni tus tarjetas guardadas." />
+      </div>
+
+      {buckets === null ? (
+        <div className="text-[10.5px] text-zinc-500 italic">Cargando…</div>
+      ) : total === 0 ? (
+        <div className="text-[10.5px] text-zinc-500 italic">La caché está vacía.</div>
+      ) : (
+        <ul className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-snug space-y-0.5">
+          {buckets.map((b) => (
+            <li key={b.id} className="flex items-center justify-between gap-2">
+              <span className="truncate">{b.label}</span>
+              <span className="tabular-nums text-zinc-500 shrink-0">
+                {b.count} · {formatBytes(b.bytes)}
+              </span>
+            </li>
+          ))}
+          <li className="flex items-center justify-between gap-2 pt-0.5 mt-0.5 border-t border-zinc-200/60 dark:border-zinc-800/70 font-medium text-zinc-700 dark:text-zinc-300">
+            <span>Total</span>
+            <span className="tabular-nums">{total} · {formatBytes(totalBytes)}</span>
+          </li>
+        </ul>
+      )}
+
+      {!confirming ? (
+        <button
+          type="button"
+          disabled={busy || total === 0}
+          onClick={() => setConfirming(true)}
+          className="w-full text-[11px] rounded-md border border-red-300/60 dark:border-red-900/50 text-red-600 dark:text-red-400 px-2 py-1.5 hover:bg-red-50/60 dark:hover:bg-red-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          Limpiar caché
+        </button>
+      ) : (
+        <div className="space-y-1.5">
+          <div className="text-[10.5px] text-amber-700 dark:text-amber-400 leading-snug">
+            Esto borra todos los resultados guardados (palabras, traducciones, IA, dedup multimedia).
+            La próxima consulta de cada palabra volverá a tardar 1-3&nbsp;s mientras se rellena de nuevo.
+            <strong className="font-medium"> No</strong> afecta tus diccionarios instalados ni tus tarjetas Anki.
+          </div>
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={clearAll}
+              className="flex-1 text-[11px] rounded-md bg-red-600 text-white px-2 py-1.5 hover:bg-red-700 disabled:opacity-50 transition-colors"
+            >
+              {busy ? 'Limpiando…' : 'Sí, limpiar todo'}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setConfirming(false)}
+              className="flex-1 text-[11px] rounded-md border border-zinc-300/60 dark:border-zinc-700/60 text-zinc-600 dark:text-zinc-300 px-2 py-1.5 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/40 transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

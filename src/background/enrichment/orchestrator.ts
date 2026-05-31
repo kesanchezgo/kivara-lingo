@@ -211,7 +211,7 @@ export async function runEnrichment(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (ctx as any).pixabayApiKey = opts.vip.pixabayApiKey;
 
-  const cacheKey = makeCacheKey(token, ctx);
+  const cacheKey = makeCacheKey(token, ctx, opts.vip.enabled);
   if (!opts.bypassCache) {
     const cached = await readCache(cacheKey, opts.vip.cacheTtlDays ?? 14);
     if (cached) return cached;
@@ -414,8 +414,13 @@ interface CacheRow {
   storedAt: number;
 }
 
-function makeCacheKey(token: string, ctx: EnrichmentContext): string {
-  return `${ctx.sourceLang}|${ctx.targetLang}|${token.trim().toLowerCase()}`;
+function makeCacheKey(token: string, ctx: EnrichmentContext, vipEnabled: boolean): string {
+  // Tier is part of the key: a word looked up in Standard mode must NOT
+  // satisfy a later VIP lookup (the VIP result is a superset). Without
+  // this, flipping the VIP switch ON would keep serving the stale
+  // Standard-only payload from cache until the TTL expired.
+  const tier = vipEnabled ? 'vip' : 'std';
+  return `${tier}|${ctx.sourceLang}|${ctx.targetLang}|${token.trim().toLowerCase()}`;
 }
 
 async function readCache(key: string, ttlDays: number): Promise<EnrichmentResult | null> {
@@ -439,5 +444,48 @@ async function writeCache(key: string, payload: EnrichmentResult): Promise<void>
     await (db as any).vip_cache?.put({ key, payload, storedAt: Date.now() });
   } catch {
     // ignore — cache misses are recoverable.
+  }
+}
+
+/* ─── Cache management (exposed to the side-panel via the SW) ──────────── */
+
+/**
+ * Count of cached enrichment rows + an approximate byte size. Cheap
+ * enough to call on panel open (one full-table scan of a table that
+ * rarely exceeds a few hundred rows).
+ */
+export async function getEnrichmentCacheStats(): Promise<{ count: number; bytes: number }> {
+  try {
+    const db = getDB();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = (await (db as any).vip_cache?.toArray()) as CacheRow[] | undefined;
+    if (!rows || !rows.length) return { count: 0, bytes: 0 };
+    let bytes = 0;
+    for (const r of rows) {
+      // Approximate: the JSON length of the payload + key. Good enough
+      // for a human-readable "~X KB" display.
+      try {
+        bytes += r.key.length + JSON.stringify(r.payload).length;
+      } catch {
+        // skip rows that won't serialise
+      }
+    }
+    return { count: rows.length, bytes };
+  } catch {
+    return { count: 0, bytes: 0 };
+  }
+}
+
+/** Wipe every cached enrichment row. Returns how many were removed. */
+export async function clearEnrichmentCache(): Promise<number> {
+  try {
+    const db = getDB();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const count = (await (db as any).vip_cache?.count()) as number | undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (db as any).vip_cache?.clear();
+    return count ?? 0;
+  } catch {
+    return 0;
   }
 }

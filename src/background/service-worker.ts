@@ -41,7 +41,7 @@ import { speak } from './tts';
 import { enrichWithAi, getAiSettings, getResolvedNativeLang } from './ai-enrich';
 import { getVipSettings, loadTranslateTargetLang } from './vip-settings';
 import { runEnrichment } from './enrichment/orchestrator';
-import { getMissingPhonetic } from './phonetic-augment';
+import { getCacheStats, clearCaches } from './cache-admin';import { getMissingPhonetic } from './phonetic-augment';
 import { lookupDictionary } from '../content/nlp/dictionary';
 import { lookupYomitanTerm, listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';
 import {
@@ -796,6 +796,32 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         sendResponse({ ok: true, packs });
       } catch (err) {
         sendResponse({ ok: false, error: (err as Error).message, packs: [] });
+      }
+    })();
+    return true;
+  }
+  // Cache management — the side-panel asks for per-bucket stats and can
+  // request a wipe. Proxied through the SW because the panel and content
+  // script can't see the extension-origin IndexedDB directly.
+  if (message?.type === 'GET_CACHE_STATS') {
+    void (async () => {
+      try {
+        const stats = await getCacheStats();
+        sendResponse({ ok: true, stats });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  if (message?.type === 'CLEAR_CACHE') {
+    void (async () => {
+      try {
+        const which = typeof message.which === 'string' ? message.which : 'all';
+        const removed = await clearCaches(which);
+        sendResponse({ ok: true, removed });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
       }
     })();
     return true;
