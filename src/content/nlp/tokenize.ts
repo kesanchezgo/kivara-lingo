@@ -1,6 +1,7 @@
 import type { DictionaryEntry } from '../../shared/types';
 import { getDictionary, lookupDictionary } from './dictionary';
 import { isLikelyProperNoun, lemmaCandidates } from './lemma';
+import { mweLemmaCandidates } from './mwe-lemma';
 import { hasYomitanHeadword } from './yomitan-headwords';
 
 /**
@@ -110,17 +111,35 @@ export function tokenizeSentence(
     // 1. Try MWE matches (longest first).
     for (let len = Math.min(MAX_MWE_LEN, words.length - i); len >= 2; len--) {
       const phrase = words.slice(i, i + len).map((w) => w.text).join(' ').toLowerCase();
-      const entry = dict[phrase];
-      if (entry?.type === 'phrase' && !expanded.has(phrase)) {
+      // Probe the literal phrase first, then lemmatized candidates so an
+      // inflected MWE in speech ("big girls", "kicked the bucket",
+      // "looking up") still resolves to its dictionary citation form.
+      let entry = dict[phrase];
+      let matchedKey = phrase;
+      if (!(entry?.type === 'phrase')) {
+        const candidates = mweLemmaCandidates(phrase);
+        for (let c = 1; c < candidates.length; c += 1) {
+          const hit = dict[candidates[c]];
+          if (hit?.type === 'phrase') {
+            entry = hit;
+            matchedKey = candidates[c];
+            break;
+          }
+        }
+      }
+      if (entry?.type === 'phrase' && !expanded.has(phrase) && !expanded.has(matchedKey)) {
         const text = words.slice(i, i + len).map((w) => w.text).join(' ');
         let kind: TokenKind = 'mwe';
-        if (ignored.has(phrase)) kind = 'ignored';
-        else if (mastered.has(phrase)) kind = 'mastered';
+        if (ignored.has(matchedKey) || ignored.has(phrase)) kind = 'ignored';
+        else if (mastered.has(matchedKey) || mastered.has(phrase)) kind = 'mastered';
         wordKey.set(words[i].idx, {
           text,
-          key: phrase,
+          key: matchedKey,
           kind,
           mweKind: entry.phraseKind ?? 'idiom',
+          // Record the inflected→citation mapping so the popover can show
+          // "big girls → big girl" the same way it does for single words.
+          lemma: matchedKey !== phrase ? matchedKey : undefined,
         });
         for (let k = 1; k < len; k++) {
           wordKey.set(words[i + k].idx, { text: '', key: '', kind: 'mwe' });
@@ -226,6 +245,17 @@ export function tokenizeSentence(
 export function lookup(token: string, lang = 'en'): DictionaryEntry {
   const literal = lookupDictionary(token, lang);
   if (literal) return literal;
+
+  // Multi-word phrase: try MWE lemma candidates ("big girls" → "big girl",
+  // "kicked the bucket" → "kick the bucket") before falling back to the
+  // single-word lemmatizer.
+  if (token.includes(' ')) {
+    const mweCandidates = mweLemmaCandidates(token);
+    for (let i = 1; i < mweCandidates.length; i += 1) {
+      const hit = lookupDictionary(mweCandidates[i], lang);
+      if (hit) return { ...hit, token, lemmaOf: mweCandidates[i] };
+    }
+  }
 
   const candidates = lemmaCandidates(token);
   for (let i = 1; i < candidates.length; i++) {

@@ -1,6 +1,7 @@
 import enDict from '../../assets/dictionaries/en.json';
 import enMwes from '../../assets/mwes/en.json';
 import enPhrasalAcademic from '../../assets/mwes/en-phrasal-academic.json';
+import enMweIndex from '../../assets/mwes/en-mwe-index.json';
 import enIdioms from '../../assets/dictionaries/en-idioms.json';
 import enExtensions from '../../assets/dictionaries/en-extensions.json';
 import enCefr from '../../assets/dictionaries/en-cefr.json';
@@ -39,7 +40,38 @@ const { _meta: _enThesMeta, ...enThesaurusEntries } = enThesaurus as Record<
 >;
 void _enThesMeta;
 
+// Particles that mark a 2-word phrase as a phrasal verb (used to tag the
+// keys-only Wiktionary MWE index entries; richer overlays override).
+const PHRASAL_PARTICLES = new Set([
+  'up', 'down', 'on', 'off', 'in', 'out', 'over', 'under', 'away',
+  'back', 'through', 'around', 'about', 'along', 'apart', 'aside',
+  'forward', 'together',
+]);
+
 const enMerged: Record<string, DictionaryEntry> = {
+  // Wiktionary MWE phrase index — KEYS-ONLY stubs (13.5k idioms, phrasal
+  // verbs and proverbs from Wiktionary's categories). Lowest priority:
+  // these only make the tokenizer RECOGNISE the span as a multi-word
+  // expression; the rich definition/translation is filled by the online
+  // enrichment chain on hover (or by a richer bundled source below if it
+  // also covers the phrase). The `phraseKind` is a best-effort guess
+  // refined by the richer overlays that follow.
+  ...(Object.fromEntries(
+    (enMweIndex as string[]).map((phrase) => [
+      phrase,
+      {
+        token: phrase,
+        type: 'phrase' as const,
+        // Heuristic: a 2-word phrase ending in a particle is usually a
+        // phrasal verb; everything else defaults to idiom. Overlays below
+        // (NTC idioms, en.json) override when they know better.
+        phraseKind: PHRASAL_PARTICLES.has(phrase.split(' ').slice(-1)[0])
+          ? ('phrasal' as const)
+          : ('idiom' as const),
+        translation: '\u2014',
+      },
+    ]),
+  )),
   ...(enMwes as Record<string, DictionaryEntry>),
   // Oxford Phrasal Academic Lexicon — academic chunks tokenized as a
   // single MWE. Lower priority than `en.json` proper, so an entry

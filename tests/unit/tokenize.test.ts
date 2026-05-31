@@ -42,4 +42,27 @@ describe('tokenizeSentence', () => {
     const tokens = tokenizeSentence("", new Set());
     expect(tokens).toEqual([]);
   });
+
+  it('detects an inflected MWE via lemmatization ("big girls" → "big girl")', () => {
+    const tokens = tokenizeSentence("at least big girls don't cry", new Set());
+    const mwe = tokens.find((t) => t.kind === 'mwe' && t.key === 'big girl');
+    expect(mwe).toBeDefined();
+    // The surface form keeps the inflection; the key is the citation form.
+    expect(mwe?.text.toLowerCase()).toBe('big girls');
+    expect(mwe?.lemma).toBe('big girl');
+  });
+
+  it('detects a past-tense verb-headed MWE ("kicked the bucket" → "kick the bucket")', () => {
+    const tokens = tokenizeSentence("the old horse kicked the bucket", new Set());
+    const mwe = tokens.find((t) => t.kind === 'mwe' && t.key === 'kick the bucket');
+    expect(mwe).toBeDefined();
+    expect(mwe?.text.toLowerCase()).toBe('kicked the bucket');
+  });
+
+  it('detects a gerund phrasal verb ("looking up" → "look up")', () => {
+    const tokens = tokenizeSentence("she was looking up the word", new Set());
+    const mwe = tokens.find((t) => t.kind === 'mwe' && t.key === 'look up');
+    expect(mwe).toBeDefined();
+  });
 });
+
