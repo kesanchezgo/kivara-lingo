@@ -76,16 +76,25 @@ function useResolveWord(
   useEffect(() => {
     // 1) Synchronous local-dict pass — always cheap, no need to wait.
     const local = lookupDictionary(token, sourceLang) ?? null;
+    // A local STUB (MWE keys-index hit, or an idiom entry with no bundled
+    // translation) carries `translation: '—'`. Treat that as "no real
+    // translation yet" so the popover shows the loading skeleton instead
+    // of a bare "—" until the remote/enrichment waves arrive.
+    const localTr = (local?.translation ?? '').trim();
+    const localHasRealTranslation = !!local && localTr !== '' && localTr !== '—';
     setState({
       ...INITIAL_STATE,
       entry: local,
-      remoteLoading: !local,
+      // Keep showing the loading affordance whenever we don't yet have a
+      // real translation — whether there's no local entry at all, or only
+      // a placeholder stub.
+      remoteLoading: !localHasRealTranslation,
       // Even when the local dict produces a hit we still attempt a remote
       // lookup in chain mode — the popover prefers the local entry for
       // phonetics + level metadata but augments with the remote translation
       // when our dict only has a tilde-placeholder. Setting source eagerly
       // here so the badge has something to show during the loading window.
-      source: local ? 'dictionary' : null,
+      source: localHasRealTranslation ? 'dictionary' : null,
       aiLoading: includeAi,
     });
     if (!token.trim()) return;
@@ -128,25 +137,53 @@ function useResolveWord(
 function applyWaves(waves: ResolveWordWave[], setState: React.Dispatch<React.SetStateAction<ResolveState>>): void {
   for (const wave of waves) {
     if (wave.stage === 'local') {
-      setState((prev) => ({ ...prev, entry: prev.entry ?? wave.entry ?? null }));
+      // The background's `local` wave is the AUTHORITATIVE merged entry:
+      // local dictionary + remote translation + the full enrichment chain
+      // (synonyms / antonyms / collocations / examples / etymology / image
+      // / audio / vip block). It always supersedes the popover's own
+      // synchronous stub, so adopt it wholesale when present.
+      setState((prev) => {
+        const incoming = wave.entry;
+        if (!incoming) return prev;
+        const incomingTr = (incoming.translation ?? '').trim();
+        const incomingReal = incomingTr !== '' && incomingTr !== '—';
+        return {
+          ...prev,
+          entry: incoming,
+          // If the merged entry already carries a real translation we're no
+          // longer waiting on the network.
+          remoteLoading: incomingReal ? false : prev.remoteLoading,
+        };
+      });
     } else if (wave.stage === 'remote') {
       setState((prev) => {
-        const hadGoodLocal =
-          prev.entry?.translation && prev.entry.translation !== '—';
+        const prevTr = (prev.entry?.translation ?? '').trim();
+        const prevReal = prevTr !== '' && prevTr !== '—';
         return {
           ...prev,
           remoteLoading: false,
           remoteError: null,
-          source: hadGoodLocal
-            ? prev.source ?? 'dictionary'
+          source: prevReal
+            ? prev.source ?? wave.provider
             : wave.cached
               ? 'cache'
               : wave.provider,
-          entry: hadGoodLocal
-            ? prev.entry
+          // Never DOWNGRADE a rich merged entry to a translation-only stub.
+          // If we already have an entry, just fill its translation when it
+          // was still a placeholder; otherwise synthesize a minimal one.
+          entry: prev.entry
+            ? {
+                ...prev.entry,
+                translation: prevReal ? prev.entry.translation : wave.translation,
+                bilingual:
+                  prev.entry.bilingual && prev.entry.bilingual !== '—'
+                    ? prev.entry.bilingual
+                    : wave.translation,
+                source: prev.entry.source ?? wave.provider,
+              }
             : {
-                token: prev.entry?.token ?? '',
-                type: prev.entry?.type ?? 'word',
+                token: '',
+                type: 'word',
                 translation: wave.translation,
                 bilingual: wave.translation,
                 source: wave.provider,
@@ -168,9 +205,14 @@ function applyWaves(waves: ResolveWordWave[], setState: React.Dispatch<React.Set
   setState((prev) => {
     const sawRemote = waves.some((w) => w.stage === 'remote' || (w.stage === 'error' && w.scope === 'remote'));
     const sawAi = waves.some((w) => w.stage === 'ai' || (w.stage === 'error' && w.scope === 'ai'));
+    const prevTr = (prev.entry?.translation ?? '').trim();
+    const prevReal = prevTr !== '' && prevTr !== '—';
     return {
       ...prev,
-      remoteLoading: prev.remoteLoading && !sawRemote && !prev.entry ? false : prev.remoteLoading,
+      // Stop the spinner if a real translation landed via the local wave
+      // even when no dedicated remote wave was emitted (e.g. served fully
+      // from the enrichment chain).
+      remoteLoading: prevReal ? false : prev.remoteLoading && !sawRemote && !prev.entry ? false : prev.remoteLoading,
       aiLoading: prev.aiLoading && !sawAi ? false : prev.aiLoading,
     };
   });
