@@ -304,4 +304,27 @@ const BASELINE_CSS = `
   :host *::after {
     box-sizing: border-box;
   }
+
+  /* Thin, unobtrusive scrollbar for the word-popover body when a long
+   * (VIP + image + etymology) card has to scroll. Matches the dark glass
+   * aesthetic of the popover so it never looks like the host page's
+   * native scrollbar. */
+  .kvl-popover-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(113, 113, 122, 0.5) transparent;
+    overscroll-behavior: contain;
+  }
+  .kvl-popover-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+  .kvl-popover-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .kvl-popover-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(113, 113, 122, 0.5);
+    border-radius: 3px;
+  }
+  .kvl-popover-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(161, 161, 170, 0.7);
+  }
 `;

@@ -247,6 +247,10 @@ export function WordPopover({
   // at the token center — same trick the Figma mock uses.
   const rootRef = useRef<HTMLDivElement>(null);
   const arrowRef = useRef<HTMLDivElement>(null);
+  // Max height for the scrollable body, computed from the space available
+  // above the hovered token inside the video boundary. Long cards (VIP +
+  // image + etymology) then scroll instead of overflowing off the top.
+  const [bodyMaxHeight, setBodyMaxHeight] = useState<number>(420);
 
   useLayoutEffect(() => {
     if (!visible) return;
@@ -256,7 +260,7 @@ export function WordPopover({
     const boundary = el.closest('[data-popover-boundary]') as HTMLElement | null;
     if (!boundary) return;
     const pad = 8;
-    const halfW = el.offsetWidth / 2 || 144; // w-72 = 288 / 2
+    const halfW = el.offsetWidth / 2 || 170; // width 340 / 2
     const pr = parent.getBoundingClientRect();
     const b = boundary.getBoundingClientRect();
     const centerX = pr.left + pr.width / 2;
@@ -267,6 +271,19 @@ export function WordPopover({
     else if (popoverLeft < b.left + pad) dx = b.left + pad - popoverLeft;
     el.style.marginLeft = `${dx}px`;
     if (arrowRef.current) arrowRef.current.style.marginLeft = `${-dx}px`;
+
+    // Vertical: the popover is anchored `bottom-full` (grows upward from
+    // the token). Cap the scrollable body to the room available between
+    // the boundary top and the token, minus the header/footer chrome and
+    // the 12px arrow gap, so a tall card scrolls instead of being clipped
+    // off the top of the video.
+    const spaceAbove = pr.top - b.top - pad - 12;
+    // Reserve ~150px for the fixed header + action row + arrow so only the
+    // middle body scrolls. Clamp to a sane min so it never collapses.
+    const chrome = 150;
+    const avail = Math.max(120, Math.floor(spaceAbove - chrome));
+    // Never grow taller than a comfortable reading height.
+    setBodyMaxHeight(Math.min(avail, 460));
   }, [visible, token]);
 
   if (!visible) return null;
@@ -281,6 +298,16 @@ export function WordPopover({
   const isPhrasal = isMWE && mweKind === 'phrasal';
   const isUnknown = kind === 'unknown';
   const isMastered = kind === 'mastered';
+
+  // The card body is still "resolving" while we wait on the remote
+  // translator / enrichment chain AND don't yet have a real translation
+  // to show. We treat the bare "—" placeholder (from an MWE keys-index
+  // stub) as "not ready" so the loading skeleton shows instead of the
+  // dash, and so the rich fields all appear together once the merged
+  // entry lands — no more flickering in field-by-field.
+  const metaTr = (meta.translation ?? '').trim();
+  const hasRealTranslation = metaTr !== '' && metaTr !== '—';
+  const isResolving = resolved.remoteLoading && !hasRealTranslation;
 
   // CEFR level → colour. Mirrors the Common European Framework convention
   // used by Migaku/Trancy popovers (A1 = beginner green, climbing through
@@ -422,7 +449,7 @@ export function WordPopover({
         // chain, so we pin it explicitly here.
         fontFamily: 'var(--kvl-font-sans)',
         textAlign: 'left',
-        width: '288px',
+        width: '340px',
         maxWidth: 'calc(100vw - 32px)',
         zIndex: 2147483646,
       }}
@@ -498,15 +525,21 @@ export function WordPopover({
           )}
         </div>
 
-        <div className="px-3 py-2 space-y-1.5">
-          {/* Wave 1+2 — translation. */}
-          {resolved.remoteLoading && !meta.translation ? (
-            <SkeletonLine width="70%" />
+        <div
+          className="px-3 py-2 space-y-1.5 overflow-y-auto kvl-popover-scroll"
+          style={{ maxHeight: bodyMaxHeight }}
+        >
+          {isResolving ? (
+            /* Unified loading state — mimics the final card layout so the
+               content doesn't pop in field-by-field. Mirrors the mock's
+               visual language (zinc skeleton bars, same paddings). */
+            <LoadingCard hasSentence={!!(sentence && sentence.trim() && sentence.trim().toLowerCase() !== headword.toLowerCase())} />
           ) : (
-            <div className="text-[13px] text-white leading-snug normal-case">
-              {meta.translation || '—'}
-            </div>
-          )}
+          <>
+          {/* Wave 1+2 — translation. */}
+          <div className="text-[13px] text-white leading-snug normal-case">
+            {meta.translation || '—'}
+          </div>
           {meta.bilingual && meta.bilingual !== meta.translation && (
             <div className="text-[11px] text-zinc-400 leading-snug normal-case">{meta.bilingual}</div>
           )}
@@ -664,6 +697,8 @@ export function WordPopover({
               </div>
             );
           })()}
+          </>
+          )}
         </div>
 
         {/* Wave 3 — AI enrichment (synonyms / collocations / register). */}
@@ -803,6 +838,36 @@ function SkeletonLine({ width }: { width: string }) {
       className="h-3 rounded bg-zinc-700/60 animate-pulse"
       style={{ width }}
     />
+  );
+}
+
+/**
+ * Unified loading skeleton for the popover body. Mirrors the final card's
+ * layout (translation line, sentence block, a couple of chip rows) so the
+ * content reveals all at once instead of popping in field-by-field. Uses
+ * the same zinc skeleton bars as the mock's loading affordance.
+ */
+function LoadingCard({ hasSentence }: { hasSentence: boolean }) {
+  return (
+    <div className="space-y-2.5 py-0.5" aria-busy="true" aria-label="Cargando">
+      {/* translation line */}
+      <SkeletonLine width="60%" />
+      {/* bilingual / pos line */}
+      <SkeletonLine width="42%" />
+      {/* sentence context block */}
+      {hasSentence && (
+        <div className="mt-1.5 border-l-2 border-indigo-500/30 pl-2 space-y-1.5 py-0.5">
+          <SkeletonLine width="92%" />
+          <SkeletonLine width="78%" />
+        </div>
+      )}
+      {/* a chip row (synonyms/collocations placeholder) */}
+      <div className="flex gap-1 pt-0.5">
+        <div className="h-4 w-12 rounded bg-zinc-700/50 animate-pulse" />
+        <div className="h-4 w-16 rounded bg-zinc-700/50 animate-pulse" />
+        <div className="h-4 w-10 rounded bg-zinc-700/50 animate-pulse" />
+      </div>
+    </div>
   );
 }
 
