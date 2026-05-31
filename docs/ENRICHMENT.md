@@ -1,7 +1,7 @@
 # Multi-source enrichment — Standard + VIP
 
 How Kivara Lingo populates the popover and the Anki card with rich
-data from up to 22 dictionaries / scrapes / image sources without
+data from up to 30 dictionaries / scrapes / image sources without
 needing any API key from the user.
 
 ## Tier overview
@@ -9,8 +9,8 @@ needing any API key from the user.
 | Tier | Always on? | Sources |
 |---|---|---|
 | **Local** | ✅ | Bundled `en.json` + `en-extensions` + Oxford 3000/5000 CEFR + Oxford Phrasal Academic Lexicon + Academic Collocation List + Fernald Thesaurus 1896 + Yomitan packs (`kty-en-es`, `kty-en-en`, `kty-en-ipa`, `kty-es-en`, `kty-es-es`) |
-| **Standard** | ✅ | Free Dictionary API · Datamuse |
-| **VIP** | toggle in Settings | Cambridge · Oxford Learner's · Longman · Collins · Merriam-Webster · **Ozdic (Oxford Collocations)** · Reverso · Linguee · WordReference · SpanishDict · **Tatoeba** · Forvo · Lingua Libre · Etymonline · **Unsplash (BYOK)** · **Pixabay (BYOK opt.)** · **Bing Images** · **Openverse** · Wikimedia Commons · DuckDuckGo Images · YouGlish · Google TTS fallback |
+| **Standard** | ✅ | Free Dictionary API · Datamuse · Wiktionary REST · **Wiktionary HTML** (etymology + synonyms + antonyms + related terms para frases multi-palabra) · WiktionaryAPI (freedictionaryapi.com mirror) · Moby Thesaurus · Bundled · Yomitan packs · Etymonline · Tatoeba · Lingua Libre · Google TTS · Bing Images · Openverse · Wikimedia Commons · DuckDuckGo Images · YouGlish |
+| **VIP** | toggle in Settings | Cambridge · Oxford Learner's · Longman · Collins · Merriam-Webster · **Ozdic (Oxford Collocations)** · Reverso · Linguee · WordReference · SpanishDict · Forvo · **Unsplash (BYOK)** · **Pixabay (BYOK opt.)** |
 | **AI** | toggle + API key | OpenAI / Anthropic / Gemini — generates contextual definition, synonyms, collocations, register, **mnemonic**, **etymology**, and **DALL-E 3 image** (OpenAI only, opt-in via `enableDalleFallback`, ~$0.04/card) |
 
 Every source is independent: a Cambridge timeout never blocks Reverso.

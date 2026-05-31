@@ -445,6 +445,16 @@ export interface VipSettings {
    */
   wiktionary: boolean;
   /**
+   * Wiktionary HTML page parser (`en.wiktionary.org/api/rest_v1/page/html`).
+   * Complements `wiktionary` (definition JSON) by extracting the etymology
+   * section, synonyms, antonyms and related/derived terms — sections the
+   * REST definition endpoint does NOT expose, especially for multi-word
+   * phrases. Verified live for "kick the bucket" (full etymology), "piece
+   * of cake" (etymology + "easy as pie"), "turn off" (8 synonyms + 1
+   * antonym), "give up" (5 related terms). Default true.
+   */
+  wiktionaryHtml: boolean;
+  /**
    * freedictionaryapi.com — Wiktionary REST mirror with full data for
    * multi-word phrases (kick the bucket → 18 synonyms with bite the
    * dust, buy the farm, etc.). CC-BY-SA, no token. Default true.
@@ -456,6 +466,31 @@ export interface VipSettings {
    * No antonyms (unidirectional). Default true.
    */
   mobyThesaurus: boolean;
+  /**
+   * Thesaurus.com (thesaurus.com/browse/<word>). Best free source for
+   * antonyms of single-word abstract / technical nouns where every
+   * other source returns nothing (algorithm → deviation, idleness,
+   * inaction; apple → 66 antonyms; house → 157 antonyms; computer →
+   * 29 antonyms). Single-word only — skips silently for phrases.
+   * Default true.
+   */
+  thesaurusCom: boolean;
+  /**
+   * WordHippo (wordhippo.com). Best free source for ANTONYMS of
+   * compound MWEs, phrasal verbs and idioms — covers cases no other
+   * source touches (kick the bucket → bring back to life, big deal
+   * → small potatoes, look up → look down on, apple → country).
+   * Parsed from the deterministic `og:description` meta tag, no
+   * token. Default true.
+   */
+  wordHippo: boolean;
+  /**
+   * theidioms.com — origin / meaning of English idioms. Best free
+   * source for idiom etymology (kick the bucket, piece of cake, big
+   * deal). Skips silently for single-word lookups (404 there).
+   * Default true.
+   */
+  theIdioms: boolean;
   /**
    * Bundled dictionary lookup (en.json + en-extensions + en-cefr + mwes +
    * thesaurus + Academic Collocation List). Always available offline.

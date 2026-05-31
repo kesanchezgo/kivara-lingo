@@ -10,6 +10,7 @@
  */
 
 import { DEFAULT_VIP, DEFAULT_TRANSLATE } from '../shared/store';
+import { decryptSecret } from '../shared/secret-store';
 import type { VipSettings } from '../shared/types';
 
 const STORE_KEY = 'kivara-lingo-state';
@@ -22,7 +23,19 @@ export async function getVipSettings(): Promise<VipSettings> {
     const parsed = JSON.parse(value);
     const vip = parsed?.state?.vip ?? parsed?.vip;
     if (vip && typeof vip === 'object') {
-      return { ...DEFAULT_VIP, ...vip };
+      const merged: VipSettings = { ...DEFAULT_VIP, ...vip };
+      // Transparent decryption — the BYOK image keys are stored as
+      // ciphertext in chrome.storage (see secret-store.ts) but the
+      // enrichment sources expect plaintext. `decryptSecret` passes
+      // plaintext through unchanged, so legacy installs without
+      // encrypted keys keep working.
+      if (merged.unsplashAccessKey) {
+        merged.unsplashAccessKey = await decryptSecret(merged.unsplashAccessKey);
+      }
+      if (merged.pixabayApiKey) {
+        merged.pixabayApiKey = await decryptSecret(merged.pixabayApiKey);
+      }
+      return merged;
     }
   } catch (err) {
     console.warn('[Kivara Lingo] could not read VIP settings', err);

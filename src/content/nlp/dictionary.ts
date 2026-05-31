@@ -1,6 +1,7 @@
 import enDict from '../../assets/dictionaries/en.json';
 import enMwes from '../../assets/mwes/en.json';
 import enPhrasalAcademic from '../../assets/mwes/en-phrasal-academic.json';
+import enIdioms from '../../assets/dictionaries/en-idioms.json';
 import enExtensions from '../../assets/dictionaries/en-extensions.json';
 import enCefr from '../../assets/dictionaries/en-cefr.json';
 import enCollocations from '../../assets/collocations/academic-collocation-list.json';
@@ -27,6 +28,11 @@ const { _meta: _enPhrasalMeta, ...enPhrasalAcademicEntries } = enPhrasalAcademic
   unknown
 >;
 void _enPhrasalMeta;
+const { _meta: _enIdiomsMeta, ...enIdiomsEntries } = enIdioms as Record<
+  string,
+  unknown
+>;
+void _enIdiomsMeta;
 const { _meta: _enThesMeta, ...enThesaurusEntries } = enThesaurus as Record<
   string,
   unknown
@@ -39,6 +45,26 @@ const enMerged: Record<string, DictionaryEntry> = {
   // single MWE. Lower priority than `en.json` proper, so an entry
   // already covered by the curated dict keeps its richer fields.
   ...(enPhrasalAcademicEntries as Record<string, DictionaryEntry>),
+  // NTC's American Idioms Dictionary — 14 318 idiomatic phrases with
+  // definitions and examples, derived from the public-domain
+  // `zaghloul404/englishidioms` dataset (NTC, 1996). Covers gaps in
+  // Wiktionary / Free Dictionary for multi-word expressions like
+  // "kick the bucket", "piece of cake", "get a kick out of".
+  ...(Object.fromEntries(
+    Object.entries(enIdiomsEntries as Record<string, { monolingual?: string; examples?: string[] }>).map(
+      ([key, value]) => [
+        key,
+        {
+          token: key,
+          type: 'phrase' as const,
+          phraseKind: 'idiom' as const,
+          translation: '\u2014', // bilingual chain or AI fills this
+          monolingual: value.monolingual,
+          examples: value.examples,
+        },
+      ],
+    ),
+  )),
   ...(enDict as Record<string, DictionaryEntry>),
 };
 

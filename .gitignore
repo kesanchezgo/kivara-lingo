@@ -55,6 +55,9 @@ test.js
 test.cjs
 test.mjs
 
+# Throwaway simulation / audit / debug scratch files (prefixed .tmp-)
+.tmp-*
+
 # Page templates used for local debugging (contain personal HTML snapshots)
 *_page_template.html
 

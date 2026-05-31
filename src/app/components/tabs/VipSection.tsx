@@ -36,8 +36,12 @@ const STD_DICT_SOURCES: SourceMeta[] = [
   { key: 'bundled', label: 'Bundled (offline)', hint: 'Diccionario curado + extensiones + CEFR + thesaurus + collocations académicas. ~10 893 entradas, ~250 KB. Funciona offline.' },
   { key: 'yomitanPacks', label: 'Yomitan packs', hint: 'Packs Wiktionary instalados (kty-en-es: 67k entradas, kty-en-en: 500k, kty-en-ipa: 200k). Cubren phrasals, idioms, MWE y slang.' },
   { key: 'wiktionary', label: 'Wiktionary REST', hint: 'API oficial Wikimedia (en.wiktionary.org/api/rest_v1). Cubre phrasal verbs, idioms y MWE multi-palabra que otros diccionarios no indexan. Sin token.' },
+  { key: 'wiktionaryHtml', label: 'Wiktionary HTML', hint: 'Parser de la página HTML completa de Wiktionary: etimología + sinónimos + antónimos + términos relacionados que el endpoint JSON no expone. Crucial para frases multi-palabra (kick the bucket, piece of cake, turn off). Sin token.' },
   { key: 'wiktionaryApi', label: 'WiktionaryAPI', hint: 'freedictionaryapi.com — mirror Wiktionary con datos completos para frases multi-palabra (kick the bucket → 18+ sinónimos, big deal → 2 senses). Sin token.' },
   { key: 'mobyThesaurus', label: 'Moby Thesaurus', hint: 'Tesauro público de Grady Ward (1996). 30k entradas con hasta 100+ sinónimos por palabra común. Sin token, sin antónimos.' },
+  { key: 'thesaurusCom', label: 'Thesaurus.com', hint: 'Antónimos profesionales para sustantivos abstractos / técnicos (algorithm → deviation, idleness; apple → 66 antónimos; house → 157). Solo palabra simple. Sin token.' },
+  { key: 'wordHippo', label: 'WordHippo', hint: 'Antónimos de phrasals, idioms, MWE y sustantivos concretos (kick the bucket → bring back to life, big deal → small potatoes, apple → country) que ningún otro tesauro free cubre. Sin token.' },
+  { key: 'theIdioms', label: 'TheIdioms', hint: 'theidioms.com — origen e historia de idioms en inglés. Mejor fuente gratuita para etimología de frases (kick the bucket, piece of cake, big deal). Solo aplica a frases multi-palabra.' },
   { key: 'freeDictionary', label: 'Free Dictionary API', hint: 'IPA + audio MP3 de Wikimedia + sinónimos. Gratis sin token (api.dictionaryapi.dev).' },
   { key: 'datamuse', label: 'Datamuse', hint: 'Collocations corpus-based + relaciones. Gratis sin token (api.datamuse.com).' },
 ];
@@ -126,7 +130,7 @@ export function VipSection() {
           Estándar (gratis, sin tokens, siempre activo)
         </div>
         <div className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 leading-snug">
-          11 fuentes públicas que no requieren clave ni scraping de diccionarios comerciales.
+          20 fuentes públicas que no requieren clave ni scraping de diccionarios comerciales.
           Funcionan independiente del switch VIP. Cada una se puede silenciar abajo.
         </div>
       </div>
@@ -160,7 +164,7 @@ export function VipSection() {
 
       {!vip.enabled && (
         <div className="text-[10.5px] text-zinc-500 italic px-1 leading-snug">
-          VIP está desactivado. La tarjeta usa solo datos locales + las 11 fuentes Standard arriba.
+          VIP está desactivado. La tarjeta usa solo datos locales + las 20 fuentes Standard arriba.
         </div>
       )}
 
@@ -306,3 +310,4 @@ function SubGroup({
     </div>
   );
 }
+

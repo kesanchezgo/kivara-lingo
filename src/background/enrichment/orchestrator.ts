@@ -35,8 +35,12 @@ import type {
 import { freeDictionarySource } from './sources/free-dictionary';
 import { datamuseSource } from './sources/datamuse';
 import { wiktionarySource } from './sources/wiktionary';
+import { wiktionaryHtmlSource } from './sources/wiktionary-html';
 import { wiktionaryApiSource } from './sources/wiktionary-api';
+import { wordHippoSource } from './sources/wordhippo';
+import { theIdiomsSource } from './sources/the-idioms';
 import { mobyThesaurusSource } from './sources/moby-thesaurus';
+import { thesaurusComSource } from './sources/thesaurus-com';
 import { bundledSource } from './sources/bundled';
 import { yomitanPacksSource } from './sources/yomitan-packs';
 import { cambridgeSource } from './sources/cambridge';
@@ -88,8 +92,12 @@ const STANDARD_SOURCE_KEYS = new Set<keyof VipSettings>([
   'freeDictionary',
   'datamuse',
   'wiktionary',
+  'wiktionaryHtml',
   'wiktionaryApi',
   'mobyThesaurus',
+  'thesaurusCom',
+  'wordHippo',
+  'theIdioms',
   'bundled',
   'yomitanPacks',
   'etymonline',
@@ -130,8 +138,12 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   freeDictionary: freeDictionarySource,
   datamuse: datamuseSource,
   wiktionary: wiktionarySource,
+  wiktionaryHtml: wiktionaryHtmlSource,
   wiktionaryApi: wiktionaryApiSource,
   mobyThesaurus: mobyThesaurusSource,
+  thesaurusCom: thesaurusComSource,
+  wordHippo: wordHippoSource,
+  theIdioms: theIdiomsSource,
   bundled: bundledSource,
   yomitanPacks: yomitanPacksSource,
 
@@ -355,6 +367,17 @@ function mergeFields(
   if (synonyms.size) entry.synonyms = Array.from(synonyms).slice(0, 12);
   if (antonyms.size) entry.antonyms = Array.from(antonyms).slice(0, 8);
   if (collocations.size) entry.collocations = Array.from(collocations).slice(0, 12);
+  // Multi-word fallback: for idioms / phrasals / MWEs, when no
+  // collocations were found, promote multi-word synonyms (which are
+  // themselves fixed phrases like "easy as pie", "child's play") into
+  // the collocations slot. Single-word synonyms are skipped — they
+  // wouldn't match the "collocation" semantics. This closes the gap
+  // for entries like "piece of cake" which have rich synonym lists
+  // but no separate "Related terms" section in Wiktionary.
+  if (!entry.collocations && token.includes(' ') && synonyms.size) {
+    const mwe = Array.from(synonyms).filter((s) => s.includes(' '));
+    if (mwe.length) entry.collocations = mwe.slice(0, 12);
+  }
   if (audio.length) entry.audio = audio.slice(0, 8);
 
   // VIP block surfaces full source-attributed lists.
