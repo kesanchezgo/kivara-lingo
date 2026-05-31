@@ -31,17 +31,51 @@ const ENTITIES: Record<string, string> = {
 /** Strip HTML tags and decode common entities. Best-effort, never throws. */
 export function stripHtml(html: string): string {
   if (!html) return '';
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<\/?[^>]+>/g, ' ')
-    .replace(/&#x([0-9a-f]+);/gi, (_, hex) =>
-      String.fromCodePoint(parseInt(hex, 16)),
-    )
-    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
-    .replace(/&[a-z][a-z0-9]+;/gi, (e) => ENTITIES[e.toLowerCase()] ?? e)
+  return decodeJsUnicode(
+    html
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<\/?[^>]+>/g, ' ')
+      .replace(/&#x([0-9a-f]+);/gi, (_, hex) =>
+        String.fromCodePoint(parseInt(hex, 16)),
+      )
+      .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+      .replace(/&[a-z][a-z0-9]+;/gi, (e) => ENTITIES[e.toLowerCase()] ?? e),
+  )
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/**
+ * Decode JavaScript/JSON unicode escape sequences that survive when we
+ * scrape text out of an inline `<script>` JS literal instead of a parsed
+ * JSON value. Sources like Reverso embed the headword translation in a
+ * `var response = { comment: "s\u00e9ptimo" }` block; the regex that
+ * pulls `comment` gets the raw `\u00e9` (and `\uD83D\uDE00` surrogate
+ * pairs) which would otherwise render literally in the popover.
+ *
+ * Handles:
+ *   - `\uXXXX` (incl. surrogate pairs via String.fromCharCode chaining)
+ *   - `\xXX`   (2-digit hex)
+ *   - escaped quotes/slashes/newlines that bleed in from JS literals
+ */
+export function decodeJsUnicode(s: string): string {
+  if (!s || s.indexOf('\\') === -1) return s;
+  let out = s
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) =>
+      String.fromCharCode(parseInt(h, 16)),
+    )
+    .replace(/\\x([0-9a-fA-F]{2})/g, (_, h) =>
+      String.fromCharCode(parseInt(h, 16)),
+    );
+  // Common JS string-literal escapes that leak from scraped inline JS.
+  out = out
+    .replace(/\\"/g, '"')
+    .replace(/\\'/g, "'")
+    .replace(/\\\//g, '/')
+    .replace(/\\n/g, ' ')
+    .replace(/\\t/g, ' ');
+  return out;
 }
 
 /**

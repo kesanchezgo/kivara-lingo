@@ -546,11 +546,30 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
   }
 
   let remoteServed = false;
-  if (!local) {
+  // Run the remote translator when there's no local entry at all, OR when
+  // the local entry is a placeholder stub with no real translation yet —
+  // e.g. an MWE recognised only via the Wiktionary keys-index
+  // (`translation: '—'`). Without this, recognised-but-unbundled phrases
+  // like "big girl" / "at least" would show the "—" placeholder forever.
+  const localTranslation = (local?.translation ?? '').trim();
+  const localHasRealTranslation =
+    !!local && localTranslation !== '' && localTranslation !== '—';
+  if (!local || (!localHasRealTranslation && !yomitanPackTitle)) {
     try {
       const remote = await translateText({ text: token, sourceLang });
       if (remote.ok && remote.translatedText) {
         remoteServed = true;
+        // Patch the local entry in place so the enrichment merge below
+        // and the popover both see the real translation instead of '—'.
+        if (local && !localHasRealTranslation) {
+          local = {
+            ...local,
+            translation: remote.translatedText,
+            bilingual: local.bilingual && local.bilingual !== '—' ? local.bilingual : remote.translatedText,
+          };
+          const lw = waves.find((w) => w.stage === 'local');
+          if (lw && lw.stage === 'local') lw.entry = local;
+        }
         waves.push({
           stage: 'remote',
           translation: remote.translatedText,
@@ -599,8 +618,28 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
     // genuinely populated by Yomitan packs (i.e. resolvedPackId is
     // not the bundled fallback or null).
     if (result.entry) {
+      // Prefer a real translation from the enrichment chain (Reverso /
+      // WordReference / SpanishDict) over a bare MyMemory fallback or the
+      // '—' placeholder, but never downgrade a good local/Yomitan one.
+      const localTr = (local?.translation ?? '').trim();
+      const localTrReal = localTr !== '' && localTr !== '—';
+      const chainTr = (result.entry.translation ?? '').trim();
+      const chainTrReal = chainTr !== '' && chainTr !== '—';
+      const bestTranslation =
+        localTrReal && (resolvedPackId && resolvedPackId !== BUNDLE_PACK_ID)
+          ? local!.translation // trust Yomitan pack translation
+          : chainTrReal
+            ? result.entry.translation
+            : localTrReal
+              ? local!.translation
+              : result.entry.translation;
       const merged: DictionaryEntry = {
         ...(local ?? result.entry),
+        translation: bestTranslation,
+        bilingual:
+          (local?.bilingual && local.bilingual !== '—' ? local.bilingual : undefined) ??
+          (result.entry.bilingual && result.entry.bilingual !== '—' ? result.entry.bilingual : undefined) ??
+          local?.bilingual ?? result.entry.bilingual,
         // VIP-overridable fields:
         synonyms: result.entry.synonyms ?? local?.synonyms,
         antonyms: result.entry.antonyms ?? local?.antonyms,
@@ -610,6 +649,10 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
         // Phonetic: prefer the local one only when it exists; otherwise
         // adopt the Cambridge/Oxford one from the chain.
         phonetic: local?.phonetic ?? result.entry.phonetic,
+        // Monolingual: keep local when present, else the chain's.
+        monolingual:
+          (local?.monolingual && local.monolingual !== '—' ? local.monolingual : undefined) ??
+          result.entry.monolingual ?? local?.monolingual,
         // Examples: keep the locally curated ones when present;
         // otherwise the chain's (already merged from Reverso /
         // Linguee / Cambridge / etc.).

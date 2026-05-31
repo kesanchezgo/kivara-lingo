@@ -22,7 +22,7 @@
  */
 
 import { fetchHtml } from '../fetcher';
-import { extractByClass, stripHtml } from '../html-utils';
+import { extractByClass, stripHtml, decodeJsUnicode } from '../html-utils';
 import type { EnrichmentSource, SourcePartial } from '../types';
 
 const LANG_MAP: Record<string, string> = {
@@ -66,7 +66,7 @@ export const reversoSource: EnrichmentSource = {
       const body = responseMatch[1];
       const commentMatch = /comment:\s*"([^"]*)"/i.exec(body);
       if (commentMatch && commentMatch[1]) {
-        const translations = commentMatch[1]
+        const translations = decodeJsUnicode(commentMatch[1])
           .split(/[,;]/)
           .map((t) => t.trim())
           .filter((t) => t && t.length < 60);
