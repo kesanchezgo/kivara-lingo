@@ -38,6 +38,16 @@ interface WordPopoverProps {
 interface ResolveState {
   /** Best-known dictionary entry for the token (local + remote merged). */
   entry: DictionaryEntry | null;
+  /**
+   * True from the moment we dispatch RESOLVE_WORD until its (single)
+   * response lands. The background resolves local + remote + enrichment
+   * + AI server-side and replies once, so while this is true we don't yet
+   * have the COMPLETE card — the popover shows the unified loading
+   * skeleton and then reveals everything at once. This makes the loading
+   * affordance behave identically for every word, whether or not the
+   * bundled dictionary already had a partial local hit.
+   */
+  resolving: boolean;
   /** True while waiting on the remote translator (entry comes from neither cache nor dict). */
   remoteLoading: boolean;
   remoteError: string | null;
@@ -57,6 +67,7 @@ interface ResolveState {
 
 const INITIAL_STATE: ResolveState = {
   entry: null,
+  resolving: false,
   remoteLoading: false,
   remoteError: null,
   source: null,
@@ -74,26 +85,21 @@ function useResolveWord(
   const [state, setState] = useState<ResolveState>(INITIAL_STATE);
 
   useEffect(() => {
-    // 1) Synchronous local-dict pass — always cheap, no need to wait.
+    // 1) Synchronous local-dict pass — gives the header its word / level /
+    //    phonetic instantly. The BODY, however, waits for the single
+    //    RESOLVE_WORD response (which carries the fully-merged entry) so
+    //    the rich fields reveal together instead of popping in piecemeal.
     const local = lookupDictionary(token, sourceLang) ?? null;
-    // A local STUB (MWE keys-index hit, or an idiom entry with no bundled
-    // translation) carries `translation: '—'`. Treat that as "no real
-    // translation yet" so the popover shows the loading skeleton instead
-    // of a bare "—" until the remote/enrichment waves arrive.
     const localTr = (local?.translation ?? '').trim();
     const localHasRealTranslation = !!local && localTr !== '' && localTr !== '—';
     setState({
       ...INITIAL_STATE,
       entry: local,
-      // Keep showing the loading affordance whenever we don't yet have a
-      // real translation — whether there's no local entry at all, or only
-      // a placeholder stub.
+      // `resolving` drives the unified body skeleton for every word.
+      resolving: !!token.trim(),
+      // `remoteLoading` retained for the legacy translation-only path /
+      // error messaging; true until a real translation is known.
       remoteLoading: !localHasRealTranslation,
-      // Even when the local dict produces a hit we still attempt a remote
-      // lookup in chain mode — the popover prefers the local entry for
-      // phonetics + level metadata but augments with the remote translation
-      // when our dict only has a tilde-placeholder. Setting source eagerly
-      // here so the badge has something to show during the loading window.
       source: localHasRealTranslation ? 'dictionary' : null,
       aiLoading: includeAi,
     });
@@ -110,10 +116,14 @@ function useResolveWord(
         )) as ResolveWordResponse;
         if (controller.signal.aborted) return;
         applyWaves(resp.waves, setState);
+        // The response carries everything — clear the unified loading flag
+        // so the complete card reveals at once.
+        setState((prev) => ({ ...prev, resolving: false }));
       } catch (err) {
         if (controller.signal.aborted) return;
         setState((prev) => ({
           ...prev,
+          resolving: false,
           remoteLoading: false,
           aiLoading: false,
           remoteError: prev.entry ? null : (err instanceof Error ? err.message : 'unknown'),
@@ -299,15 +309,13 @@ export function WordPopover({
   const isUnknown = kind === 'unknown';
   const isMastered = kind === 'mastered';
 
-  // The card body is still "resolving" while we wait on the remote
-  // translator / enrichment chain AND don't yet have a real translation
-  // to show. We treat the bare "—" placeholder (from an MWE keys-index
-  // stub) as "not ready" so the loading skeleton shows instead of the
-  // dash, and so the rich fields all appear together once the merged
-  // entry lands — no more flickering in field-by-field.
-  const metaTr = (meta.translation ?? '').trim();
-  const hasRealTranslation = metaTr !== '' && metaTr !== '—';
-  const isResolving = resolved.remoteLoading && !hasRealTranslation;
+  // The card body shows the unified loading skeleton from the moment we
+  // dispatch RESOLVE_WORD until its single response lands — identically
+  // for every word, so the rich fields always reveal together instead of
+  // popping in field-by-field. A word fully covered by the bundle still
+  // briefly shows the skeleton (one frame) which is fine; the common case
+  // (network enrichment) shows it for the whole fetch.
+  const isResolving = resolved.resolving;
 
   // CEFR level → colour. Mirrors the Common European Framework convention
   // used by Migaku/Trancy popovers (A1 = beginner green, climbing through
