@@ -7,7 +7,8 @@ import type {
   AiEnrichment,
   DictionaryEntry,
   ResolveWordResponse,
-  ResolveWordWave,
+  ResolveWordStreamMsg,
+  ResolveWordStreamRequest,
 } from '../../shared/types';
 import { lookupDictionary } from '../nlp/dictionary';
 
@@ -39,15 +40,19 @@ interface ResolveState {
   /** Best-known dictionary entry for the token (local + remote merged). */
   entry: DictionaryEntry | null;
   /**
-   * True from the moment we dispatch RESOLVE_WORD until its (single)
-   * response lands. The background resolves local + remote + enrichment
-   * + AI server-side and replies once, so while this is true we don't yet
-   * have the COMPLETE card — the popover shows the unified loading
-   * skeleton and then reveals everything at once. This makes the loading
-   * affordance behave identically for every word, whether or not the
-   * bundled dictionary already had a partial local hit.
+   * True from the moment we open the resolve stream until the ESSENTIAL
+   * fold (translation / definition / IPA) is ready — i.e. the `local` or
+   * `translation` phase with a real translation. Drives the unified body
+   * skeleton; once false the card's top fold paints.
    */
   resolving: boolean;
+  /**
+   * True while the slower EXTRAS (synonyms / antonyms / collocations /
+   * examples / etymology / VIP) are still streaming in after the essential
+   * fold already painted. Drives a subtle inline "loading more" affordance
+   * at the bottom of the card instead of blocking the whole popover.
+   */
+  enriching: boolean;
   /** True while waiting on the remote translator (entry comes from neither cache nor dict). */
   remoteLoading: boolean;
   remoteError: string | null;
@@ -68,6 +73,7 @@ interface ResolveState {
 const INITIAL_STATE: ResolveState = {
   entry: null,
   resolving: false,
+  enriching: false,
   remoteLoading: false,
   remoteError: null,
   source: null,
@@ -86,146 +92,180 @@ function useResolveWord(
 
   useEffect(() => {
     // 1) Synchronous local-dict pass — gives the header its word / level /
-    //    phonetic instantly. The BODY, however, waits for the single
-    //    RESOLVE_WORD response (which carries the fully-merged entry) so
-    //    the rich fields reveal together instead of popping in piecemeal.
+    //    phonetic instantly. The streaming phases below then progressively
+    //    fill the essential fold and the slower extras.
     const local = lookupDictionary(token, sourceLang) ?? null;
     const localTr = (local?.translation ?? '').trim();
     const localHasRealTranslation = !!local && localTr !== '' && localTr !== '—';
     setState({
       ...INITIAL_STATE,
       entry: local,
-      // `resolving` drives the unified body skeleton for every word.
-      resolving: !!token.trim(),
-      // `remoteLoading` retained for the legacy translation-only path /
-      // error messaging; true until a real translation is known.
+      // `resolving` drives the unified body skeleton until the essential
+      // fold (translation) is known. Words already covered by the bundle
+      // skip straight past it.
+      resolving: !!token.trim() && !localHasRealTranslation,
+      // `enriching` drives the subtle "loading more" footer while the
+      // slower extras stream in after the essential fold paints.
+      enriching: !!token.trim(),
       remoteLoading: !localHasRealTranslation,
       source: localHasRealTranslation ? 'dictionary' : null,
       aiLoading: includeAi,
     });
     if (!token.trim()) return;
 
-    const controller = new AbortController();
+    // 2) Open the streaming port. The SW emits phases (local → translation
+    //    → enrichment → ai → done) as each is ready, so the essential
+    //    fields paint in <1 s while the extras stream in without blocking.
+    let port: chrome.runtime.Port | null = null;
+    let closed = false;
 
-    void (async () => {
-      try {
-        const resp = (await sendMessage(
-          'RESOLVE_WORD',
-          { token, sentence, sourceLang, includeAi },
-          'background',
-        )) as ResolveWordResponse;
-        if (controller.signal.aborted) return;
-        applyWaves(resp.waves, setState);
-        // The response carries everything — clear the unified loading flag
-        // so the complete card reveals at once.
-        setState((prev) => ({ ...prev, resolving: false }));
-      } catch (err) {
-        if (controller.signal.aborted) return;
-        setState((prev) => ({
-          ...prev,
-          resolving: false,
-          remoteLoading: false,
-          aiLoading: false,
-          remoteError: prev.entry ? null : (err instanceof Error ? err.message : 'unknown'),
-        }));
+    const adoptEntry = (
+      incoming: DictionaryEntry | null,
+      patch: Partial<ResolveState> = {},
+    ) => {
+      setState((prev) => {
+        if (!incoming) return { ...prev, ...patch };
+        // Always adopt the latest merged entry — each phase carries the
+        // best-known entry so far (superset of the previous).
+        return { ...prev, entry: incoming, ...patch };
+      });
+    };
+
+    try {
+      port = chrome.runtime.connect({ name: 'kvl-resolve-word' });
+    } catch {
+      port = null;
+    }
+
+    if (!port) {
+      // Streaming unavailable (e.g. SW asleep on a cold start in some
+      // builds) — fall back to the legacy one-shot message so the popover
+      // still resolves.
+      void (async () => {
+        try {
+          const resp = (await sendMessage(
+            'RESOLVE_WORD',
+            { token, sentence, sourceLang, includeAi },
+            'background',
+          )) as ResolveWordResponse;
+          if (closed) return;
+          const localWave = resp.waves.find((w) => w.stage === 'local');
+          const aiWave = resp.waves.find((w) => w.stage === 'ai');
+          setState((prev) => ({
+            ...prev,
+            entry: (localWave && localWave.stage === 'local' ? localWave.entry : null) ?? prev.entry,
+            resolving: false,
+            enriching: false,
+            remoteLoading: false,
+            aiLoading: false,
+            ai: aiWave && aiWave.stage === 'ai' ? aiWave.data : prev.ai,
+          }));
+        } catch (err) {
+          if (closed) return;
+          setState((prev) => ({
+            ...prev,
+            resolving: false,
+            enriching: false,
+            remoteLoading: false,
+            aiLoading: false,
+            remoteError: prev.entry ? null : err instanceof Error ? err.message : 'unknown',
+          }));
+        }
+      })();
+      return () => {
+        closed = true;
+      };
+    }
+
+    port.onMessage.addListener((raw) => {
+      if (closed) return;
+      const msg = raw as ResolveWordStreamMsg;
+      switch (msg.phase) {
+        case 'local':
+          adoptEntry(msg.entry, {
+            // If the local entry already has a real translation, drop the
+            // essential-fold skeleton immediately.
+            resolving:
+              !!(msg.entry && (msg.entry.translation ?? '').trim() &&
+              (msg.entry.translation ?? '').trim() !== '—')
+                ? false
+                : true,
+          });
+          break;
+        case 'translation':
+          adoptEntry(msg.entry, {
+            resolving: false,
+            remoteLoading: false,
+            remoteError: null,
+            source: msg.cached ? 'cache' : msg.provider,
+          });
+          break;
+        case 'enrichment':
+          // Extras arrived — adopt the richer entry. Keep `enriching` true
+          // until `done` (AI may still patch etymology/mnemonic).
+          adoptEntry(msg.entry, { resolving: false, remoteLoading: false });
+          break;
+        case 'ai':
+          setState((prev) => ({ ...prev, ai: msg.data, aiLoading: false, aiError: null }));
+          break;
+        case 'error':
+          setState((prev) =>
+            msg.scope === 'ai'
+              ? { ...prev, aiLoading: false, aiError: msg.message }
+              : {
+                  ...prev,
+                  remoteLoading: false,
+                  // Only surface a translate error when we have nothing.
+                  remoteError: prev.entry ? prev.remoteError : msg.message,
+                },
+          );
+          break;
+        case 'done':
+          setState((prev) => ({
+            ...prev,
+            resolving: false,
+            enriching: false,
+            remoteLoading: false,
+            aiLoading: false,
+          }));
+          break;
       }
-    })();
+    });
+
+    port.onDisconnect.addListener(() => {
+      if (closed) return;
+      setState((prev) => ({
+        ...prev,
+        resolving: false,
+        enriching: false,
+        remoteLoading: false,
+        aiLoading: false,
+      }));
+    });
+
+    try {
+      port.postMessage({
+        kind: 'resolve-word',
+        token,
+        sentence,
+        sourceLang,
+        includeAi,
+      } satisfies ResolveWordStreamRequest);
+    } catch {
+      /* port died before first post — onDisconnect will clear flags */
+    }
 
     return () => {
-      controller.abort();
+      closed = true;
+      try {
+        port?.disconnect();
+      } catch {
+        /* ignore */
+      }
     };
   }, [token, sentence, sourceLang, includeAi]);
 
   return state;
-}
-
-/**
- * Merge the wave array returned by the background into the popover's local
- * state. The waves arrive together (the SW resolves all three sequentially
- * before responding) so we apply them in order to mimic streaming.
- */
-function applyWaves(waves: ResolveWordWave[], setState: React.Dispatch<React.SetStateAction<ResolveState>>): void {
-  for (const wave of waves) {
-    if (wave.stage === 'local') {
-      // The background's `local` wave is the AUTHORITATIVE merged entry:
-      // local dictionary + remote translation + the full enrichment chain
-      // (synonyms / antonyms / collocations / examples / etymology / image
-      // / audio / vip block). It always supersedes the popover's own
-      // synchronous stub, so adopt it wholesale when present.
-      setState((prev) => {
-        const incoming = wave.entry;
-        if (!incoming) return prev;
-        const incomingTr = (incoming.translation ?? '').trim();
-        const incomingReal = incomingTr !== '' && incomingTr !== '—';
-        return {
-          ...prev,
-          entry: incoming,
-          // If the merged entry already carries a real translation we're no
-          // longer waiting on the network.
-          remoteLoading: incomingReal ? false : prev.remoteLoading,
-        };
-      });
-    } else if (wave.stage === 'remote') {
-      setState((prev) => {
-        const prevTr = (prev.entry?.translation ?? '').trim();
-        const prevReal = prevTr !== '' && prevTr !== '—';
-        return {
-          ...prev,
-          remoteLoading: false,
-          remoteError: null,
-          source: prevReal
-            ? prev.source ?? wave.provider
-            : wave.cached
-              ? 'cache'
-              : wave.provider,
-          // Never DOWNGRADE a rich merged entry to a translation-only stub.
-          // If we already have an entry, just fill its translation when it
-          // was still a placeholder; otherwise synthesize a minimal one.
-          entry: prev.entry
-            ? {
-                ...prev.entry,
-                translation: prevReal ? prev.entry.translation : wave.translation,
-                bilingual:
-                  prev.entry.bilingual && prev.entry.bilingual !== '—'
-                    ? prev.entry.bilingual
-                    : wave.translation,
-                source: prev.entry.source ?? wave.provider,
-              }
-            : {
-                token: '',
-                type: 'word',
-                translation: wave.translation,
-                bilingual: wave.translation,
-                source: wave.provider,
-              },
-        };
-      });
-    } else if (wave.stage === 'ai') {
-      setState((prev) => ({ ...prev, ai: wave.data, aiLoading: false, aiError: null }));
-    } else if (wave.stage === 'error') {
-      setState((prev) =>
-        wave.scope === 'remote'
-          ? { ...prev, remoteLoading: false, remoteError: wave.message }
-          : { ...prev, aiLoading: false, aiError: wave.message },
-      );
-    }
-  }
-  // If the background omitted a wave (e.g. AI was requested but provider is
-  // disabled), flip the corresponding loading flag off.
-  setState((prev) => {
-    const sawRemote = waves.some((w) => w.stage === 'remote' || (w.stage === 'error' && w.scope === 'remote'));
-    const sawAi = waves.some((w) => w.stage === 'ai' || (w.stage === 'error' && w.scope === 'ai'));
-    const prevTr = (prev.entry?.translation ?? '').trim();
-    const prevReal = prevTr !== '' && prevTr !== '—';
-    return {
-      ...prev,
-      // Stop the spinner if a real translation landed via the local wave
-      // even when no dedicated remote wave was emitted (e.g. served fully
-      // from the enrichment chain).
-      remoteLoading: prevReal ? false : prev.remoteLoading && !sawRemote && !prev.entry ? false : prev.remoteLoading,
-      aiLoading: prev.aiLoading && !sawAi ? false : prev.aiLoading,
-    };
-  });
 }
 
 export function WordPopover({
@@ -309,12 +349,12 @@ export function WordPopover({
   const isUnknown = kind === 'unknown';
   const isMastered = kind === 'mastered';
 
-  // The card body shows the unified loading skeleton from the moment we
-  // dispatch RESOLVE_WORD until its single response lands — identically
-  // for every word, so the rich fields always reveal together instead of
-  // popping in field-by-field. A word fully covered by the bundle still
-  // briefly shows the skeleton (one frame) which is fine; the common case
-  // (network enrichment) shows it for the whole fetch.
+  // The card body shows the unified loading skeleton only until the
+  // ESSENTIAL fold (translation / definition / IPA) is known — typically
+  // <1 s, or instant for bundled words. After that the essential fields
+  // paint and the slower extras (synonyms / antonyms / collocations /
+  // examples / etymology) stream in under a subtle "buscando más…" footer
+  // (driven by `resolved.enriching`) instead of blocking the whole card.
   const isResolving = resolved.resolving;
 
   // CEFR level → colour. Mirrors the Common European Framework convention
@@ -705,6 +745,20 @@ export function WordPopover({
               </div>
             );
           })()}
+          {/* Streaming affordance — once the essential fold is painted but
+              the slower extras (synonyms / antonyms / collocations /
+              examples / etymology) are still arriving, show a subtle
+              inline "buscando más" row instead of blocking the card. */}
+          {resolved.enriching && (
+            <div className="flex items-center gap-1.5 pt-1 text-[10px] text-zinc-500 normal-case">
+              <span className="inline-flex gap-0.5" aria-hidden="true">
+                <span className="w-1 h-1 rounded-full bg-indigo-400/70 animate-pulse" style={{ animationDelay: '0ms' }} />
+                <span className="w-1 h-1 rounded-full bg-indigo-400/70 animate-pulse" style={{ animationDelay: '150ms' }} />
+                <span className="w-1 h-1 rounded-full bg-indigo-400/70 animate-pulse" style={{ animationDelay: '300ms' }} />
+              </span>
+              <span>buscando más…</span>
+            </div>
+          )}
           </>
           )}
         </div>

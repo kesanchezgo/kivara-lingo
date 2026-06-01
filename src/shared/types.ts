@@ -675,6 +675,45 @@ export interface ResolveWordResponse {
   waves: ResolveWordWave[];
 }
 
+/**
+ * Streaming protocol for the word popover, transported over a
+ * `chrome.runtime.connect` Port (port name `kvl-resolve-word`).
+ *
+ * The service worker emits these phases as soon as each is ready so the
+ * popover paints the essential fields (translation / definition / IPA)
+ * in <1 s and fills in the slower extras (synonyms / antonyms /
+ * collocations / examples / etymology / VIP) without blocking:
+ *
+ *   1. `local`       — bundled/Yomitan dictionary hit (instant). May carry
+ *                      a real translation already (known words) or a "—"
+ *                      placeholder (unknown words / MWE stubs).
+ *   2. `translation` — remote translator result, only emitted when the
+ *                      local layer had no real translation.
+ *   3. `enrichment`  — the fully-merged entry (synonyms / antonyms /
+ *                      collocations / examples / etymology / VIP block).
+ *   4. `ai`          — optional AI enrichment.
+ *   5. `done`        — terminal; the popover stops every spinner.
+ *
+ * Each `entry`-bearing phase carries the BEST-KNOWN merged entry so far,
+ * so the popover can simply adopt the latest non-null entry.
+ */
+export type ResolveWordStreamMsg =
+  | { phase: 'local'; entry: DictionaryEntry | null }
+  | { phase: 'translation'; entry: DictionaryEntry | null; provider: string; cached: boolean }
+  | { phase: 'enrichment'; entry: DictionaryEntry | null }
+  | { phase: 'ai'; data: AiEnrichment }
+  | { phase: 'error'; scope: 'remote' | 'ai' | 'enrichment'; message: string }
+  | { phase: 'done' };
+
+/** Request envelope sent once over the resolve-word port. */
+export interface ResolveWordStreamRequest {
+  kind: 'resolve-word';
+  token: string;
+  sentence: string;
+  sourceLang: string;
+  includeAi?: boolean;
+}
+
 export interface OnboardingState {
   /** Whether the user has completed initial setup */
   completed: boolean;

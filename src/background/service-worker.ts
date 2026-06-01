@@ -18,6 +18,8 @@ import type {
   ResolveWordRequest,
   ResolveWordResponse,
   ResolveWordWave,
+  ResolveWordStreamMsg,
+  ResolveWordStreamRequest,
   TranscribeRequest,
   TranscribeResponse,
   TranslateRequest,
@@ -38,19 +40,10 @@ import {
 } from './audio-capture-manager';
 import { translateText } from './translate';
 import { speak } from './tts';
-import { enrichWithAi, getAiSettings, getResolvedNativeLang } from './ai-enrich';
-import { getVipSettings, loadTranslateTargetLang } from './vip-settings';
-import { runEnrichment } from './enrichment/orchestrator';
-import { getCacheStats, clearCaches } from './cache-admin';import { getMissingPhonetic } from './phonetic-augment';
-import { lookupDictionary } from '../content/nlp/dictionary';
-import { lookupYomitanTerm, listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';
-import {
-  BUNDLE_PACK_ID,
-  MISS_PACK_ID,
-  REMOTE_PACK_ID,
-  recordLookupHit,
-  recordMiss,
-} from '../shared/telemetry';
+import { enrichWithAi } from './ai-enrich';
+import { resolveWordStreaming } from './resolve-word';
+import { getCacheStats, clearCaches } from './cache-admin';
+import { listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';
 
 console.log('[Kivara Lingo] service worker booting');
 
@@ -458,272 +451,112 @@ onMessage('AI_ENRICH', async ({ data }) => {
  * spinner so this single round-trip is acceptable.
  */
 onMessage('RESOLVE_WORD', async ({ data }) => {
+  // Legacy one-shot path (kept for callers that don't use the streaming
+  // port). Reuses the SAME phased resolver as the stream so quality never
+  // diverges — it just collects every emit into a waves[] array and maps
+  // the stream phases back onto the legacy wave shape.
   const req = data as unknown as ResolveWordRequest;
   const waves: ResolveWordWave[] = [];
-  const sourceLang = req.sourceLang || 'en';
-  const token = (req.token ?? '').trim();
-  const sentence = req.sentence ?? '';
-  if (!token) {
-    const empty: ResolveWordResponse = { ok: true, waves: [{ stage: 'local', entry: null }] };
-    return asJson(empty);
-  }
-
-  // 1. User-installed Yomitan packs FIRST. They're higher quality than
-  //    the bundled `en.json` (which has 4 151 hand-curated entries plus
-  //    some imported scrap from a Wiktionary mirror) so when both have
-  //    a hit we trust the Yomitan pack. The pack lookup is async (one
-  //    IndexedDB hop), but cached on the same DB connection so a second
-  //    hover for the same word is essentially free.
-  let local: DictionaryEntry | null = null;
-  let resolvedPackId: string | null = null;
-  let yomitanPackTitle: string | null = null;
-  try {
-    const hit = await lookupYomitanTerm(token, sourceLang);
-    if (hit) {
-      local = hit.entry;
-      yomitanPackTitle = hit.pack.title;
-      resolvedPackId = hit.pack.id;
-    }
-  } catch (err) {
-    // Pack lookup errors are non-fatal — fall through to bundled.
-    console.warn('[Kivara Lingo] yomitan lookup failed', err);
-  }
-
-  // 2. Bundled dictionary (fast, sync). Only consult when the Yomitan
-  //    layer didn't have a hit. The bundle is curated for high-frequency
-  //    words and ships their CEFR `level` (A1, A2, B1...) which the
-  //    Yomitan packs don't carry; so when the Yomitan layer hits but
-  //    the bundle ALSO has the same word, we splice in the level so the
-  //    popover badge keeps working.
-  if (!local) {
-    const bundleHit = lookupDictionary(token, sourceLang);
-    if (bundleHit) {
-      local = bundleHit;
-      resolvedPackId = BUNDLE_PACK_ID;
-    }
-  } else {
-    const bundleHit = lookupDictionary(token, sourceLang);
-    if (bundleHit) {
-      // Splice in the bundle's CEFR `level` so the popover badge keeps
-      // working, and use its IPA / examples when the Yomitan hit didn't
-      // ship them. Crucially we DO NOT overwrite the Yomitan
-      // `translation` / `monolingual` / `bilingual` — those are higher
-      // quality and the whole point of preferring the pack.
-      const merged: DictionaryEntry = { ...local };
-      if (!merged.level && bundleHit.level) merged.level = bundleHit.level;
-      if (!merged.phonetic && bundleHit.phonetic) merged.phonetic = bundleHit.phonetic;
-      if ((!merged.examples || merged.examples.length === 0) && bundleHit.examples) {
-        merged.examples = bundleHit.examples;
-      }
-      local = merged;
-    }
-  }
-
-  // Augment a missing IPA from the public Wiktionary mirror so the hover
-  // popover (and any downstream save) carries pronunciation. Cached
-  // aggressively — first hover for a given word may add ~200-500 ms; later
-  // hovers are zero-latency. We only consult the API when the local stack
-  // already resolved the word (local hit + IPA gap); a full miss falls
-  // through to the remote translator chain as before.
-  if (local && !local.phonetic) {
-    try {
-      const augmented = await getMissingPhonetic(token, sourceLang);
-      if (augmented) local = { ...local, phonetic: augmented };
-    } catch {
-      // Best-effort — never fail RESOLVE_WORD because of the augmenter.
-    }
-  }
-  waves.push({ stage: 'local', entry: local ?? null });
-  // Emit a synthetic 'remote' wave so the popover shows "via <pack>" without
-  // hitting the network when a Yomitan pack already covered the word.
-  if (local && yomitanPackTitle) {
-    waves.push({
-      stage: 'remote',
-      translation: local.translation,
-      provider: `pack:${yomitanPackTitle}`,
-      cached: false,
-    });
-  }
-
-  let remoteServed = false;
-  // Run the remote translator when there's no local entry at all, OR when
-  // the local entry is a placeholder stub with no real translation yet —
-  // e.g. an MWE recognised only via the Wiktionary keys-index
-  // (`translation: '—'`). Without this, recognised-but-unbundled phrases
-  // like "big girl" / "at least" would show the "—" placeholder forever.
-  const localTranslation = (local?.translation ?? '').trim();
-  const localHasRealTranslation =
-    !!local && localTranslation !== '' && localTranslation !== '—';
-  if (!local || (!localHasRealTranslation && !yomitanPackTitle)) {
-    try {
-      const remote = await translateText({ text: token, sourceLang });
-      if (remote.ok && remote.translatedText) {
-        remoteServed = true;
-        // Patch the local entry in place so the enrichment merge below
-        // and the popover both see the real translation instead of '—'.
-        if (local && !localHasRealTranslation) {
-          local = {
-            ...local,
-            translation: remote.translatedText,
-            bilingual: local.bilingual && local.bilingual !== '—' ? local.bilingual : remote.translatedText,
-          };
-          const lw = waves.find((w) => w.stage === 'local');
-          if (lw && lw.stage === 'local') lw.entry = local;
-        }
-        waves.push({
-          stage: 'remote',
-          translation: remote.translatedText,
-          provider: remote.provider ?? 'offline',
-          cached: remote.cached ?? false,
-        });
-      } else if (!remote.ok) {
-        waves.push({ stage: 'error', scope: 'remote', message: remote.error ?? 'translate failed' });
-      }
-    } catch (err) {
-      waves.push({
-        stage: 'error',
-        scope: 'remote',
-        message: err instanceof Error ? err.message : 'translate threw',
-      });
-    }
-  }
-
-  // Multi-source enrichment chain. Always runs the Standard tier
-  // (Free Dictionary API + Datamuse) for audio, synonyms, antonyms,
-  // collocations. When the user has flipped the VIP master switch
-  // ON in settings, additionally runs every enabled scrape source
-  // (Cambridge / Oxford Learner's / Longman / Collins / M-W /
-  // Reverso / Linguee / WordReference / SpanishDict / Forvo /
-  // Lingua Libre / Etymonline / Bing Images / Openverse / Pixabay /
-  // Wikimedia / DuckDuckGo / Unsplash (BYOK) / YouGlish / Google
-  // TTS fallback). Etymonline / Ozdic / Tatoeba round out the chain.
-  //
-  // The enrichment runs in parallel with all the other waves above
-  // — we don't block the popover on it. The merged result patches
-  // the local entry's missing fields and ships a `vip` block via
-  // the `local` wave (already pushed earlier; we update it in
-  // place by mutating the `entry` reference the wave holds).
-  try {
-    const vipSettings = await getVipSettings();
-    const targetLang =
-      (await loadTranslateTargetLang()) || sourceLang;
-    const result = await runEnrichment(token, {
-      sourceLang,
-      targetLang,
-      sentence,
-      vip: vipSettings,
-      purpose: 'popover',
-    });
-    // Merge any fields the local layer didn't populate. We trust
-    // local for `translation` / `monolingual` only when those were
-    // genuinely populated by Yomitan packs (i.e. resolvedPackId is
-    // not the bundled fallback or null).
-    if (result.entry) {
-      // Prefer a real translation from the enrichment chain (Reverso /
-      // WordReference / SpanishDict) over a bare MyMemory fallback or the
-      // '—' placeholder, but never downgrade a good local/Yomitan one.
-      const localTr = (local?.translation ?? '').trim();
-      const localTrReal = localTr !== '' && localTr !== '—';
-      const chainTr = (result.entry.translation ?? '').trim();
-      const chainTrReal = chainTr !== '' && chainTr !== '—';
-      const bestTranslation =
-        localTrReal && (resolvedPackId && resolvedPackId !== BUNDLE_PACK_ID)
-          ? local!.translation // trust Yomitan pack translation
-          : chainTrReal
-            ? result.entry.translation
-            : localTrReal
-              ? local!.translation
-              : result.entry.translation;
-      const merged: DictionaryEntry = {
-        ...(local ?? result.entry),
-        translation: bestTranslation,
-        bilingual:
-          (local?.bilingual && local.bilingual !== '—' ? local.bilingual : undefined) ??
-          (result.entry.bilingual && result.entry.bilingual !== '—' ? result.entry.bilingual : undefined) ??
-          local?.bilingual ?? result.entry.bilingual,
-        // VIP-overridable fields:
-        synonyms: result.entry.synonyms ?? local?.synonyms,
-        antonyms: result.entry.antonyms ?? local?.antonyms,
-        collocations: result.entry.collocations ?? local?.collocations,
-        audio: result.entry.audio ?? local?.audio,
-        vip: result.entry.vip,
-        // Phonetic: prefer the local one only when it exists; otherwise
-        // adopt the Cambridge/Oxford one from the chain.
-        phonetic: local?.phonetic ?? result.entry.phonetic,
-        // Monolingual: keep local when present, else the chain's.
-        monolingual:
-          (local?.monolingual && local.monolingual !== '—' ? local.monolingual : undefined) ??
-          result.entry.monolingual ?? local?.monolingual,
-        // Examples: keep the locally curated ones when present;
-        // otherwise the chain's (already merged from Reverso /
-        // Linguee / Cambridge / etc.).
-        examples: (local?.examples?.length ?? 0) > 0 ? local!.examples : result.entry.examples,
-      };
-      // Replace the entry on the already-pushed `local` wave so the
-      // popover gets the enriched view in a single response.
-      const localWave = waves.find((w) => w.stage === 'local');
-      if (localWave && localWave.stage === 'local') {
-        localWave.entry = merged;
-      }
-      local = merged;
-    }
-  } catch (err) {
-    console.warn('[Kivara Lingo] enrichment chain threw', err);
-  }
-
-  // Local-only telemetry — record exactly one bucket per RESOLVE_WORD so the
-  // coverage widget can answer "how much was served by offline sources vs.
-  // remote vs. nothing".
-  void (async () => {
-    if (resolvedPackId) {
-      await recordLookupHit(resolvedPackId);
-    } else if (remoteServed) {
-      await recordLookupHit(REMOTE_PACK_ID);
-    } else {
-      await recordMiss(MISS_PACK_ID);
-    }
-  })();
-
-  if (req.includeAi) {
-    const settings = await getAiSettings();
-    if (settings.provider !== 'disabled' && settings.apiKey && settings.enrichOnHover) {
-      const nativeLang = await getResolvedNativeLang(settings);
-      try {
-        const ai = await enrichWithAi({
-          token,
-          sentence,
-          sourceLang,
-          nativeLang,
-        });
-        if (ai.ok) {
-          waves.push({ stage: 'ai', data: ai.data });
-          // Patch the local entry with AI-generated mnemonic / etymology
-          // so the popover renders them inside the same VIP block as the
-          // chain results, and the Anki mapper sees them when the user
-          // hits save.
-          if (local) {
-            const newVip = { ...(local.vip ?? {}) };
-            if (ai.data.mnemonic && !newVip.mnemonic) newVip.mnemonic = ai.data.mnemonic;
-            if (ai.data.etymology && !newVip.etymology) newVip.etymology = ai.data.etymology;
-            local.vip = newVip;
-            const localWave = waves.find((w) => w.stage === 'local');
-            if (localWave && localWave.stage === 'local') {
-              localWave.entry = local;
-            }
+  let lastEntry: DictionaryEntry | null = null;
+  await resolveWordStreaming(
+    {
+      token: req.token ?? '',
+      sentence: req.sentence ?? '',
+      sourceLang: req.sourceLang || 'en',
+      includeAi: !!req.includeAi,
+    },
+    (msg: ResolveWordStreamMsg) => {
+      switch (msg.phase) {
+        case 'local':
+          lastEntry = msg.entry;
+          waves.push({ stage: 'local', entry: msg.entry });
+          break;
+        case 'translation':
+          lastEntry = msg.entry ?? lastEntry;
+          // Keep the local wave's entry in sync so the consumer sees the
+          // merged entry on the single 'local' wave.
+          {
+            const lw = waves.find((w) => w.stage === 'local');
+            if (lw && lw.stage === 'local') lw.entry = lastEntry;
           }
-        } else waves.push({ stage: 'error', scope: 'ai', message: ai.error });
-      } catch (err) {
-        waves.push({
-          stage: 'error',
-          scope: 'ai',
-          message: err instanceof Error ? err.message : 'AI threw',
-        });
+          waves.push({
+            stage: 'remote',
+            translation: msg.entry?.translation ?? '',
+            provider: msg.provider,
+            cached: msg.cached,
+          });
+          break;
+        case 'enrichment':
+          lastEntry = msg.entry ?? lastEntry;
+          {
+            const lw = waves.find((w) => w.stage === 'local');
+            if (lw && lw.stage === 'local') lw.entry = lastEntry;
+          }
+          break;
+        case 'ai':
+          waves.push({ stage: 'ai', data: msg.data });
+          break;
+        case 'error':
+          if (msg.scope === 'ai') {
+            waves.push({ stage: 'error', scope: 'ai', message: msg.message });
+          } else {
+            waves.push({ stage: 'error', scope: 'remote', message: msg.message });
+          }
+          break;
+        case 'done':
+          break;
       }
-    }
-  }
-
+    },
+  );
   const response: ResolveWordResponse = { ok: true, waves };
   return asJson(response);
+});
+
+/**
+ * Streaming transport for the word popover. The content script opens a
+ * Port named `kvl-resolve-word`, posts a single ResolveWordStreamRequest,
+ * and receives ResolveWordStreamMsg phases as they're produced — so the
+ * essential fields paint in <1 s while the slower extras stream in.
+ */
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== 'kvl-resolve-word') return;
+  let cancelled = false;
+  port.onDisconnect.addListener(() => {
+    cancelled = true;
+  });
+  port.onMessage.addListener((raw) => {
+    const msg = raw as ResolveWordStreamRequest;
+    if (!msg || msg.kind !== 'resolve-word') return;
+    void resolveWordStreaming(
+      {
+        token: msg.token ?? '',
+        sentence: msg.sentence ?? '',
+        sourceLang: msg.sourceLang || 'en',
+        includeAi: !!msg.includeAi,
+      },
+      (out: ResolveWordStreamMsg) => {
+        if (cancelled) return;
+        try {
+          port.postMessage(out);
+        } catch {
+          // Port closed mid-stream (popover dismissed) — stop emitting.
+          cancelled = true;
+        }
+      },
+    ).catch((err) => {
+      if (cancelled) return;
+      try {
+        port.postMessage({
+          phase: 'error',
+          scope: 'enrichment',
+          message: err instanceof Error ? err.message : 'resolve threw',
+        } satisfies ResolveWordStreamMsg);
+        port.postMessage({ phase: 'done' } satisfies ResolveWordStreamMsg);
+      } catch {
+        /* ignore */
+      }
+    });
+  });
 });
 
 async function broadcastToActive(message: { type: string; [k: string]: unknown }) {
