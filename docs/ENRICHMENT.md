@@ -6,40 +6,63 @@ needing any API key from the user.
 
 ## Tier overview
 
-| Tier | Always on? | Sources |
-|---|---|---|
-| **Local** | ✅ | Bundled `en.json` + `en-extensions` + Oxford 3000/5000 CEFR + Oxford Phrasal Academic Lexicon + Academic Collocation List + Fernald Thesaurus 1896 + Yomitan packs (`kty-en-es`, `kty-en-en`, `kty-en-ipa`, `kty-es-en`, `kty-es-es`) |
-| **Standard** | ✅ | Free Dictionary API · Datamuse · Wiktionary REST · **Wiktionary HTML** (etymology + synonyms + antonyms + related terms para frases multi-palabra) · WiktionaryAPI (freedictionaryapi.com mirror) · Moby Thesaurus · Bundled · Yomitan packs · Etymonline · Tatoeba · Lingua Libre · Google TTS · Bing Images · Openverse · Wikimedia Commons · DuckDuckGo Images · YouGlish |
-| **VIP** | toggle in Settings | Cambridge · Oxford Learner's · Longman · Collins · Merriam-Webster · **Ozdic (Oxford Collocations)** · Reverso · Linguee · WordReference · SpanishDict · Forvo · **Unsplash (BYOK)** · **Pixabay (BYOK opt.)** |
-| **AI** | toggle + API key | OpenAI / Anthropic / Gemini — generates contextual definition, synonyms, collocations, register, **mnemonic**, **etymology**, and **DALL-E 3 image** (OpenAI only, opt-in via `enableDalleFallback`, ~$0.04/card) |
+| Tier | Always on? | # fuentes | Sources |
+|---|---|:---:|---|
+| **Local** | ✅ | — | Bundled `en.json` + `en-extensions` + `en-idioms` (14 318 NTC idioms) + Oxford 3000/5000 CEFR + Oxford Phrasal Academic Lexicon + Academic Collocation List + Fernald Thesaurus 1896 + MWE index (13 501 frases) + Yomitan packs (`kty-en-es`, `kty-en-en`, `kty-en-ipa`, `kty-es-en`, `kty-es-es`) |
+| **Standard** | ✅ | **20** | free-dictionary · datamuse · wiktionary-rest · **wiktionary-html** (etymology + synonyms + antonyms + related terms, scoped to English section, phrasal fallback) · wiktionary-api (freedictionaryapi.com) · moby-thesaurus · **thesaurus-com** (antonyms para sustantivos técnicos/abstractos, con autocorrect guard) · **wordhippo** (antonyms para MWEs/phrasals/idioms) · **the-idioms** (etimología de idioms) · etymonline · tatoeba · lingua-libre · google-tts · bing-images · openverse · wikimedia-commons · duckduckgo-images · youglish · mymemory · lingva |
+| **VIP** | toggle in Settings | **13** | cambridge · oxford-learners · longman · collins · merriam-webster · **ozdic** (Oxford Collocations) · reverso · linguee · wordreference · spanishdict · forvo · **unsplash (BYOK)** · **pixabay (BYOK opt.)** |
+| **AI** | toggle + API key | — | OpenAI / Anthropic / Gemini — genera definición contextual, sinónimos, colocaciones, registro, **mnemónico**, **etimología**, y **imagen DALL-E 3** (solo OpenAI, opt-in via `enableDalleFallback`, ~$0.04/tarjeta) |
 
 Every source is independent: a Cambridge timeout never blocks Reverso.
 Failures are silent — the popover just renders less.
 
 ## The flow
 
+### Arquitectura de streaming (port `kvl-resolve-word`)
+
+El content script abre un puerto al service worker (`src/background/resolve-word.ts`) y recibe fases a medida que están listas. Las fases de traducción, enriquecimiento e IA se lanzan en paralelo (`Promise.allSettled`), por lo que el tiempo total es `max(t2, t3, t4)`, no la suma.
+
 ```
-hover token / save card
+hover token
         │
         ▼
-RESOLVE_WORD or createCardFromRequest
+content script abre port kvl-resolve-word
         │
-        ├── 1. Local (sync, < 1 ms)
-        │    bundled + Yomitan packs (lemma-aware)
+        ▼
+resolve-word.ts (src/background/resolve-word.ts)
         │
-        ├── 2. runEnrichment(token, ctx)  (parallel, ~300-2000 ms)
-        │    fan-out across enabled sources
-        │       ├── freeDictionarySource         ← Standard
-        │       ├── datamuseSource               ← Standard
-        │       └── (vip) cambridgeSource, oxford..., longman..., etc.
-        │    merge → { entry, vip, successfulSources, failedSources }
+        ├── fase: local  (sync, < 1 ms)
+        │    bundled + Yomitan packs (lemma-aware, MWE-aware)
+        │    → emite { phase: 'local', entry }
+        │    → content pinta el fold esencial, oculta skeleton
         │
-        └── 3. AI (only if `enrichOnHover` / `enrichOnSave`)
-             generates mnemonic + etymology + register
-             patches `entry.vip`, gated by `preferAiMnemonic` /
-             `preferAiEtymology` so the user can keep Etymonline's
-             scrape over the LLM paraphrase.
+        ├── fase: translation  (~200–500 ms)  ┐
+        │    MyMemory ∥ Lingva (callChainRaced) │ lanzadas en
+        │    → emite { phase: 'translation' }  │ paralelo
+        │                                       │
+        ├── fase: enrichment  (~300–2000 ms)   │
+        │    fan-out a 20–33 fuentes            │
+        │    purpose: 'popover' → excluye 6     │
+        │    fuentes de imagen + cap 2.5 s      │
+        │    purpose: 'card' → todas + timeout  │
+        │    completo                           │
+        │    → emite { phase: 'enrichment' }   ┘
+        │
+        ├── fase: ai  (~1–3 s, solo si activo)
+        │    OpenAI / Anthropic / Gemini
+        │    gated por preferAiMnemonic / preferAiEtymology
+        │    → emite { phase: 'ai' }
+        │
+        └── fase: done
+             → emite { phase: 'done' }
+             → content oculta footer "buscando más…"
 ```
+
+**Indicadores de UX durante la resolución:**
+- `resolving` flag → muestra `LoadingCard` skeleton hasta que llega la fase `local`.
+- `enriching` flag → muestra footer "buscando más…" con puntos de pulso índigo mientras llegan las fases `enrichment` / `ai`.
+
+**Fallback legacy:** el mensaje `RESOLVE_WORD` (sin port) sigue funcionando y reutiliza el mismo resolver. Se usa para creación de tarjetas desde el panel.
 
 ## Where the user controls each tier
 
@@ -54,7 +77,7 @@ RESOLVE_WORD or createCardFromRequest
 
 ## Bundled offline assets
 
-Seven bundled JSONs ship with the extension (no download, no network).
+Eight bundled JSONs ship with the extension (no download, no network).
 They merge into `dictionary.ts` at module load time so the popover
 has rich data even with VIP off and zero internet.
 
@@ -63,12 +86,14 @@ has rich data even with VIP off and zero internet.
 | `src/assets/dictionaries/en.json` | 4 151 | Curated (audited 2026-05) | Translation, bilingual, monolingual (≤360 chars), IPA, level, examples |
 | `src/assets/dictionaries/en-extensions.json` | 357 | Hand-curated | Phrasal verbs + idioms + cognates missed by the bundle |
 | `src/assets/dictionaries/en-cefr.json` | 4 951 | Oxford 3000 + 5000 (jnoodle/English-Vocabulary-Word-List) | `level: A2 \| B2` overlay |
+| `src/assets/dictionaries/en-idioms.json` | 14 318 | NTC's American Idioms Dictionary (zaghloul404/englishidioms, public domain) | Idioms con definición + ejemplos |
 | `src/assets/mwes/en.json` | 150 | Hand-curated | Common MWE entries |
 | `src/assets/mwes/en-phrasal-academic.json` | 673 | Oxford Phrasal Academic Lexicon | Academic phrases tokenized as MWE (translation field is `—` placeholder by design) |
+| `src/assets/mwes/en-mwe-index.json` | 13 501 | Wiktionary idioms + phrasal verbs + proverbs categories | Keys-only index (~40 KB gzip) para detección de MWEs. Construido por `scripts/build-mwe-index.cjs`. |
 | `src/assets/collocations/academic-collocation-list.json` | 472 | Ackermann & Chen 2013 (open access) | `collocations` overlay |
 | `src/assets/thesaurus/en-thesaurus.json` | 611 | Fernald 1896 (public domain) | `synonyms` + `antonyms` overlay (uses `syn`/`ant` keys internally) |
 
-Total bundle weight: ~2.5 MB raw, ~250 KB gzipped.
+Total bundle weight: ~3.5 MB raw, ~300 KB gzipped.
 
 ### Bundle integrity guarantees (audited 2026-05-23)
 
@@ -135,17 +160,20 @@ Sources MUST never throw — return `{}` on any failure.
 
 ## Cache
 
-Results are cached in IndexedDB v5 table `vip_cache` keyed by
-`<sourceLang>|<targetLang>|<lower-token>`. TTL configurable in
-Settings (default 14 days).
+Los resultados se cachean en dos capas:
 
-## End-to-end card simulation (2026-05-23)
+1. **LRU en memoria** (300 entradas): re-hover = ~0 ms. Se limpia con `clearMemEnrichmentCache()` cuando el usuario borra la caché desde la UI.
+2. **IndexedDB** tabla `vip_cache`: TTL configurable en Settings (default 14 días).
 
-Tested 7 words spanning all major lexical categories against both
-flows, using **all** Standard resources (bundled JSONs, Yomitan packs,
-free APIs, translator chain) plus AI off so the comparison is honest.
+**Clave de caché:** `<tier>|<purpose>|<sourceLang>|<targetLang>|<lower-token>`. Incluye `tier` y `purpose` para evitar que una entrada Standard satisfaga una consulta VIP, o que una entrada `popover` (sin imágenes) satisfaga una consulta `card`.
 
-### Test corpus
+**Gestión desde la UI:** Settings → Enriquecimiento → panel `CacheManager` muestra estadísticas por bucket (enrichment, translation, AI, media) con número de filas y tamaño aproximado. El botón "Limpiar caché" pide confirmación y explica qué se borra. Los mensajes SW `GET_CACHE_STATS` / `CLEAR_CACHE` son manejados por `src/background/cache-admin.ts`.
+
+## End-to-end card simulation (2026-05-23, actualizado)
+
+Tested against both flows using **all** Standard resources (bundled JSONs, Yomitan packs, free APIs, translator chain) plus AI off.
+
+### Test corpus (20 palabras × 11 campos)
 
 | Word | Type |
 |---|---|
@@ -156,50 +184,45 @@ free APIs, translator chain) plus AI off so the comparison is honest.
 | kick the bucket | idiom |
 | lit | modern slang |
 | big deal | compound MWE |
-
-### Two scoring methods
-
-**Raw (universal 11 fields):** counts how many of the 11 possible
-fields (Phonetic, Translation, Bilingual, Monolingual, Examples,
-Synonyms, Antonyms, Collocations, Etymology, Image, Word audio) are
-filled. Penalises words for missing fields that don't apply (e.g.
-"antonyms of apple" — apple doesn't have an opposite).
-
-**Fair (applicable fields only):** counts only fields that are
-linguistically expected for the word type. Concrete nouns don't have
-antonyms; idioms don't have indexable etymology in Etymonline;
-phrasals don't have collocations as a fixed-phrase category.
+| tensor | technical noun |
+| serendipity | abstract noun |
+| nevertheless | connector |
+| … (20 total) | … |
 
 ### Results
 
 | Tier | Raw scoring | Fair scoring |
 |---|---|---|
-| **Standard** (bundled + Yomitan + free APIs) | 85.7 % | **98.4 %** |
-| **VIP** (Standard + commercial-dict scrapes) | 88.3 % | **100 %** |
-| **Δ** | +2.6 pp | +1.6 pp |
+| **Standard** (20 fuentes) | 87.3 % | **98.6 %** |
+| **VIP** (Standard + 13 fuentes) | 90.9 % | **100 %** |
+| **Δ** | +3.6 pp | +1.4 pp |
 
 ### Tier composition
 
-**Standard tier (free, no token, no commercial-dict scraping):**
+**Standard tier (20 fuentes — free, no token, no commercial-dict scraping):**
 
-1. Bundled JSONs (4 151 + 357 + 4 951 + 150 + 673 + 472 + 611 entries)
-2. Yomitan packs (`kty-en-es`, `kty-es-en`, `kty-en-en`, `kty-es-es`,
-   `kty-en-ipa`)
-3. Free Dictionary API (`api.dictionaryapi.dev`)
-4. Datamuse (`api.datamuse.com`)
-5. Tatoeba (`tatoeba.org/api_v0/search`)
-6. Lingua Libre (Wikimedia file-search)
-7. Wikimedia Commons (image search)
-8. Etymonline (etymology scrape, no commercial dict)
-9. Bing Images (web search)
-10. Openverse (CC-licensed images)
-11. DuckDuckGo Images
-12. YouGlish (URL only)
-13. Google TTS fallback (synthetic audio)
-14. MyMemory (translator chain)
-15. Lingva (translator chain, multi-mirror)
+1. Bundled JSONs (en.json + en-extensions + en-idioms + en-cefr + MWEs + collocations + thesaurus)
+2. Yomitan packs (`kty-en-es`, `kty-es-en`, `kty-en-en`, `kty-es-es`, `kty-en-ipa`)
+3. free-dictionary (`api.dictionaryapi.dev`)
+4. datamuse (`api.datamuse.com`)
+5. wiktionary-rest (REST API)
+6. **wiktionary-html** (HTML parse — etymology, synonyms, antonyms, related terms)
+7. wiktionary-api (freedictionaryapi.com)
+8. moby-thesaurus
+9. **thesaurus-com** (antonyms para sustantivos técnicos/abstractos)
+10. **wordhippo** (antonyms para MWEs/phrasals/idioms)
+11. **the-idioms** (etimología de idioms)
+12. etymonline
+13. tatoeba
+14. lingua-libre
+15. google-tts
+16. bing-images
+17. openverse
+18. wikimedia-commons
+19. duckduckgo-images
+20. youglish
 
-**VIP tier (commercial-dict scrapes + BYOK):**
+**VIP tier (13 fuentes — commercial-dict scrapes + BYOK):**
 
 1. Cambridge English-Spanish
 2. Oxford Learner's
@@ -247,6 +270,10 @@ fingerprint to Chrome's network stack than Node's TLS.**
 | **pixabay** | `pixabay.com/images/search/` (HTML) + optional API | ✅ | Works fine via Schannel TLS; BYOK API key option added for higher reliability and image volume |
 | **bing-images** *(new)* | `bing.com/images/async` | ✅ | New source — ~25 cards per query, no token, mixed-license images. Best for "find the most relevant photo" |
 | **openverse** *(new)* | `api.openverse.org/v1/images/` | ✅ | New source — CC-licensed (Flickr + Wikimedia + museums), no token, ~240 results per query |
+| **wiktionary-html** *(new)* | `en.wiktionary.org/wiki/<word>` (HTML) | ✅ | Parsea etymology + synonyms + antonyms + related terms del HTML. Scoped a la sección English para evitar contaminación de otros idiomas. Fallback phrasal para verbos frasales. Retry en cold cache (body < 1000 chars). |
+| **thesaurus-com** *(new)* | `www.thesaurus.com/browse/<word>` (HTML) | ✅ | Antónimos para sustantivos técnicos/abstractos. Autocorrect guard: si el headword de la página difiere del token, se descarta el resultado. CORS fix: añadido `dictionary.com` a `host_permissions` (redirect). |
+| **wordhippo** *(new)* | `www.wordhippo.com/what-is/the-opposite-of/<word>.html` (HTML) | ✅ | Antónimos para MWEs, phrasals e idioms donde thesaurus.com no tiene cobertura. |
+| **the-idioms** *(new)* | `www.theidioms.com/<slug>/` (HTML) | ✅ | Etimología de idioms. Complementa Etymonline para expresiones fijas. |
 | ~~unsplash~~ scrape | `unsplash.com/s/photos/...` | ❌ | Discontinued (Anubis JS-challenge gate blocks all server-side / SW fetches) |
 | **unsplash (BYOK)** *(redesigned)* | `api.unsplash.com/search/photos` | ✅ | Now requires the user's free Demo key (50 req/h, no credit card). Without key: source is inactive |
 
@@ -273,6 +300,40 @@ Keys are stored encrypted at rest (AES-GCM via `secret-store.ts`) in
 `chrome.storage.sync` alongside the OpenAI / Anthropic / DeepL keys.
 The orchestrator passes them through the `EnrichmentContext` so each
 source picks them up at call time.
+
+## Performance
+
+### Streaming resolution
+
+La arquitectura de port (`kvl-resolve-word`) garantiza que el fold esencial del popover se pinte en < 1 s:
+
+- **Palabras bundled**: la fase `local` resuelve en < 1 ms. El skeleton desaparece antes de que el usuario note que existía.
+- **Palabras desconocidas**: el skeleton dura ~translation-latency (~200–500 ms), que es el tiempo de la primera llamada de red.
+- **Enriquecimiento**: llega en segundo plano sin bloquear la UI. El footer "buscando más…" indica que el proceso sigue.
+
+### Purpose-based enrichment
+
+El orquestador acepta un parámetro `purpose`:
+
+| Purpose | Comportamiento | Ganancia |
+|---|---|---|
+| `'popover'` | Excluye 6 fuentes de imagen (Bing, Openverse, Wikimedia, DDG, Pixabay, Unsplash) + cap de timeout a 2.5 s | ~37 % más rápido |
+| `'card'` | Todas las fuentes + timeout completo | Máxima cobertura |
+
+### Traductor en carrera
+
+`callChainRaced()` en `translate-providers.ts` lanza MyMemory y Lingva en paralelo y usa el primero que responde con éxito. Elimina la latencia de esperar al primero si falla.
+
+### Caché LRU en memoria
+
+300 entradas en memoria delante de IndexedDB. Re-hover de la misma palabra = ~0 ms, sin acceso a disco. La caché se invalida cuando el usuario limpia desde la UI (`clearMemEnrichmentCache()`).
+
+### Cobertura medida (corpus 20 palabras × 11 campos)
+
+| Tier | Fair scoring |
+|---|---|
+| Standard (20 fuentes) | **98.6 %** |
+| VIP (Standard + 13 fuentes) | **100 %** |
 
 ## AI provider audit (Gemini, OpenAI, Anthropic)
 
@@ -366,10 +427,10 @@ note field to one of:
 | `phonetic` | local OR enriched (Cambridge → Oxford → FreeDict → IPA pack) |
 | `translation`, `bilingual`, `monolingual` | local + enriched chain (Reverso / WordReference / SpanishDict / Cambridge / Linguee for translation; Longman / Cambridge / Oxford / Collins / M-W / FreeDict for monolingual) |
 | `examples` | local OR enriched (Reverso / Linguee / WordRef / Cambridge / Tatoeba / Ozdic) |
-| `synonyms` | bundled Fernald thesaurus + Datamuse + Cambridge thesaurus |
-| `antonyms` | bundled Fernald thesaurus + Datamuse |
-| `collocations` | bundled Academic Collocation List + Datamuse + Cambridge / Oxford Learner's / **Ozdic (OCD)** / Longman |
-| `etymology` | Etymonline + AI (gated by `preferAiEtymology`) |
+| `synonyms` | bundled Fernald thesaurus + Datamuse + Cambridge thesaurus + Wiktionary HTML |
+| `antonyms` | bundled Fernald thesaurus + Datamuse + **Wiktionary HTML** + **thesaurus.com** (sustantivos técnicos/abstractos) + **WordHippo** (MWEs/phrasals/idioms) |
+| `collocations` | bundled Academic Collocation List + Datamuse + Cambridge / Oxford Learner's / **Ozdic (OCD)** / Longman + **Wiktionary HTML** (related terms) |
+| `etymology` | **Wiktionary HTML** + Etymonline + **The Idioms** (idiom etymology) + AI (gated by `preferAiEtymology`) |
 | `mnemonic` | AI (gated by `preferAiMnemonic`) |
 | `image` | Bing → Openverse → Pixabay → Wikimedia → DDG → Unsplash (BYOK) → DALL-E 3 (opt-in fallback) |
 | `frame` | live video frame, falls back to `image` URL when frame is missing |

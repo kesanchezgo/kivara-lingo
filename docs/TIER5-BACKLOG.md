@@ -1,5 +1,91 @@
 # Tier 5 — Backlog y siguientes pasos
 
+## Completado en esta sesión (2026-05)
+
+Esta sección documenta todo lo implementado en la sesión más reciente para que futuras sesiones conozcan el estado actual sin tener que reconstruir el razonamiento.
+
+### Sistema de enriquecimiento multi-fuente (Standard + VIP)
+
+- **Standard tier ampliado a 20 fuentes (siempre activo, sin clave):**
+  - `wiktionary-html` (NUEVO): parsea etimología, sinónimos, antónimos y términos relacionados del HTML de Wiktionary. Scoped a la sección English para evitar contaminación de otros idiomas. Fallback phrasal para verbos frasales. Retry en cold cache (body < 1000 chars).
+  - `thesaurus-com` (NUEVO): antónimos para sustantivos técnicos/abstractos. Autocorrect guard: si el headword de la página difiere del token, se descarta. CORS fix: `dictionary.com` añadido a `host_permissions`.
+  - `wordhippo` (NUEVO): antónimos para MWEs, phrasals e idioms.
+  - `the-idioms` (NUEVO): etimología de idioms.
+- **VIP tier: 13 fuentes** (sin cambios en la lista, pero con guards añadidos).
+- **Cobertura medida:** VIP 100 % / Standard 98.6 % en corpus de 20 palabras × 11 campos.
+- **False-positive guards añadidos:**
+  - Cambridge: di-title headword check + IPA distance guard (IPA debe estar dentro de 3000 chars del headword).
+  - WordReference: filtro de celdas de cabecera ("Español" no se cuela como traducción).
+  - thesaurus.com: autocorrect guard (descarta si el headword de la página difiere del token).
+  - MyMemory: echo guard (descarta si la traducción es igual al texto fuente).
+
+### MWE (Multi-Word Expression)
+
+- **Índice MWE de Wiktionary** (`src/assets/mwes/en-mwe-index.json`): 13 501 frases de las categorías idioms + phrasal verbs + proverbs de Wiktionary. Solo keys (~40 KB gzip). Construido por `scripts/build-mwe-index.cjs`.
+- **Lematización de MWEs** (`src/content/nlp/mwe-lemma.ts`): resuelve formas inflexionadas a formas de citación. "big girls" → "big girl", "kicked the bucket" → "kick the bucket", "looking up" → "look up". Integrado en el tokenizador y en `lookup()`.
+- **Idioms NTC bundled** (`src/assets/dictionaries/en-idioms.json`): 14 318 idioms con definición + ejemplos del NTC's American Idioms Dictionary (zaghloul404/englishidioms, dominio público).
+- **Phrasal etymology fallback** (`src/background/enrichment/phrasal-etymology-fallback.ts`): tabla bundled de etimología para 50 cabezas de verbos frasales comunes. Determinista, sin red, elimina jitter.
+
+### Arquitectura de resolución en streaming (MAYOR)
+
+- **Nuevo archivo:** `src/background/resolve-word.ts` — resolvedor por fases que emite: `local → translation → enrichment → ai → done`.
+- **Port-based streaming:** el content script conecta al port `kvl-resolve-word` y recibe fases a medida que están listas.
+- **El fold esencial se pinta en < 1 s** (instantáneo para palabras bundled, ~translation-latency para desconocidas).
+- **Footer "buscando más…"** con puntos de pulso índigo mientras el enriquecimiento sigue en curso.
+- **Mensaje legacy `RESOLVE_WORD`** mantenido como fallback (reutiliza el mismo resolver).
+- **Fases en paralelo:** traducción + enriquecimiento + IA lanzadas con `Promise.allSettled`. Tiempo total = `max(t2, t3, t4)`, no la suma.
+
+### Optimizaciones de rendimiento
+
+- **Purpose-based enrichment:** `purpose: 'popover'` excluye 6 fuentes de imagen + cap de timeout a 2.5 s; `purpose: 'card'` ejecuta todas las fuentes con timeout completo. ~37 % más rápido en popover.
+- **Traductor en carrera:** MyMemory + Lingva lanzados en paralelo, gana el primero que responde. `callChainRaced()` en `translate-providers.ts`.
+- **LRU en memoria** (300 entradas) delante de IndexedDB `vip_cache`. Re-hover = ~0 ms. `clearMemEnrichmentCache()` llamado cuando el usuario limpia la caché.
+- **Clave de caché incluye tier + purpose** para evitar que una entrada Standard satisfaga una consulta VIP.
+
+### UX del popover
+
+- **Skeleton unificado** (`LoadingCard`) visible hasta que llega la fase `local` — igual para todas las palabras.
+- **Flag `resolving`** controla el skeleton; **flag `enriching`** controla el footer "buscando más…".
+- **Ancho:** 288 px → 340 px.
+- **Cuerpo scrollable** con max-height calculado desde el espacio disponible sobre el token (evita overflow por arriba).
+- **Scrollbar de cristal fino** (clase `kvl-popover-scroll` en el CSS baseline del shadow-host).
+- **`applyWaves` reemplazado** por manejadores de mensajes del port de streaming.
+
+### Gestión de caché (UI)
+
+- **Componente `CacheManager`** en VipSection: muestra estadísticas por bucket (enrichment, translation, AI, media) con número de filas y tamaño aproximado.
+- **Botón "Limpiar caché"** con diálogo de confirmación que explica qué se borra y qué no.
+- **Manejadores SW:** `GET_CACHE_STATS` / `CLEAR_CACHE`.
+- **Módulo `cache-admin.ts`** con `getCacheStats()` y `clearCaches()`.
+
+### Bug fixes
+
+- **Cambridge false positive:** IPA de "party animal" se colaba en "kick the bucket" — corregido con di-title headword guard + IPA distance guard.
+- **WordReference header:** "Español" se colaba como traducción — corregido con filtro de celdas de cabecera.
+- **thesaurus.com autocorrect:** "zxqwflumph" → "galumph" — corregido con hdr-headword guard.
+- **MyMemory echo:** devolvía el texto fuente como traducción — corregido con echo guard.
+- **Unicode escapes:** `s\u00E9timo` en lugar de `séptimo` — corregido con `decodeJsUnicode()` en `html-utils.ts`, aplicado a la extracción de comentarios de Reverso.
+- **CORS thesaurus.com:** redirect a `dictionary.com` bloqueado — corregido añadiendo `dictionary.com` a `host_permissions`.
+- **Traducción MWE "—":** los stubs mostraban el placeholder — corregido ejecutando el traductor remoto cuando la traducción local es `—`.
+- **Clave de caché VIP:** no incluía el tier, por lo que una entrada Standard satisfacía una consulta VIP — corregido.
+- **Descifrado de claves BYOK:** `vip-settings.ts` no descifraba las claves de Unsplash/Pixabay — corregido.
+
+### Otras mejoras
+
+- **`decodeJsUnicode()`** añadido a `html-utils.ts`, integrado en `stripHtml()`.
+- **VipSection UI:** 20 fuentes Standard listadas con descripciones, panel de gestión de caché.
+- **`wiktionary-html` scoped a la sección English** para evitar contaminación de entradas en otros idiomas.
+- **Retry en Wiktionary cold cache** (body vacío < 1000 chars dispara un reintento).
+
+### Estado del proyecto al cierre de sesión
+
+- **Tests:** 160/160 passing (`pnpm vitest run`).
+- **Build:** `pnpm build` produce `dist/` sin errores.
+- **Commits:** 37 commits adelante de `origin/main`.
+- **Cobertura:** Standard 98.6 % / VIP 100 % en corpus de 20 palabras × 11 campos.
+
+---
+
 Este documento resume **lo que quedó pendiente** después del último PR de Tier 5
 (URLs de galería + UI tweaks + export/import de cobertura). Cada item incluye
 contexto y un plan de implementación concreto para retomar en una próxima
