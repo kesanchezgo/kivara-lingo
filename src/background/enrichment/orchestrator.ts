@@ -447,12 +447,58 @@ function mergeFields(
   return { entry, vip };
 }
 
-/* ─── Cache (IndexedDB via Dexie) ─────────────────────────────────────── */
+/* ─── Cache (in-memory LRU + IndexedDB via Dexie) ─────────────────────── */
 
 interface CacheRow {
   key: string;
   payload: EnrichmentResult;
   storedAt: number;
+}
+
+/**
+ * In-memory LRU sitting in front of the IndexedDB cache. The service
+ * worker keeps recently-resolved entries hot so a re-hover on the same
+ * word (the common case while reading subtitles — the user re-checks a
+ * word seconds later) returns in ~0 ms with no IndexedDB round-trip and
+ * no `await` at all.
+ *
+ * Bounded so a long session can't grow it unboundedly; the SW also tears
+ * the whole Map down whenever it's evicted (~30 s-5 min idle), and the
+ * persistent IndexedDB layer survives that to repopulate it. TTL is
+ * enforced on read so a stale hot entry never outlives the configured
+ * cache window.
+ */
+const MEM_CACHE_MAX = 300;
+const memCache = new Map<string, CacheRow>();
+
+function memGet(key: string, ttlDays: number): EnrichmentResult | null {
+  const row = memCache.get(key);
+  if (!row) return null;
+  const ageMs = Date.now() - (row.storedAt ?? 0);
+  if (ageMs > ttlDays * 24 * 3600 * 1000) {
+    memCache.delete(key);
+    return null;
+  }
+  // LRU bump: re-insert so it moves to the end (most-recently-used).
+  memCache.delete(key);
+  memCache.set(key, row);
+  return row.payload;
+}
+
+function memSet(key: string, payload: EnrichmentResult): void {
+  if (memCache.has(key)) memCache.delete(key);
+  memCache.set(key, { key, payload, storedAt: Date.now() });
+  // Evict the least-recently-used (first inserted) when over capacity.
+  if (memCache.size > MEM_CACHE_MAX) {
+    const oldest = memCache.keys().next().value;
+    if (oldest !== undefined) memCache.delete(oldest);
+  }
+}
+
+/** Clear the in-memory layer — called when the user wipes the cache so a
+ *  freshly-emptied cache isn't shadowed by hot SW memory. */
+export function clearMemEnrichmentCache(): void {
+  memCache.clear();
 }
 
 function makeCacheKey(
@@ -472,6 +518,10 @@ function makeCacheKey(
 }
 
 async function readCache(key: string, ttlDays: number): Promise<EnrichmentResult | null> {
+  // 1. Hot in-memory layer first — instant, no await, no IndexedDB hop.
+  const hot = memGet(key, ttlDays);
+  if (hot) return hot;
+  // 2. Persistent IndexedDB layer.
   try {
     const db = getDB();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -479,6 +529,8 @@ async function readCache(key: string, ttlDays: number): Promise<EnrichmentResult
     if (!row) return null;
     const ageMs = Date.now() - (row.storedAt ?? 0);
     if (ageMs > ttlDays * 24 * 3600 * 1000) return null;
+    // Warm the in-memory layer so the next re-hover is instant.
+    memSet(key, row.payload);
     return row.payload;
   } catch {
     return null;
@@ -486,6 +538,8 @@ async function readCache(key: string, ttlDays: number): Promise<EnrichmentResult
 }
 
 async function writeCache(key: string, payload: EnrichmentResult): Promise<void> {
+  // Populate the hot layer synchronously so an immediate re-hover hits it.
+  memSet(key, payload);
   try {
     const db = getDB();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

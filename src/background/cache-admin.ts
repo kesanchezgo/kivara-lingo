@@ -17,6 +17,7 @@
  */
 
 import { getDB } from '../shared/db';
+import { clearMemEnrichmentCache } from './enrichment/orchestrator';
 
 export interface CacheBucketStats {
   /** Stable id used by the clear API. */
@@ -105,6 +106,15 @@ export async function clearCaches(
       await t.clear();
     } catch {
       // ignore — best effort
+    }
+  }
+  // Also drop the hot in-memory enrichment layer so a freshly-wiped cache
+  // isn't shadowed by entries still warm in the service worker's memory.
+  if (which === 'all' || which === 'enrichment') {
+    try {
+      clearMemEnrichmentCache();
+    } catch {
+      // ignore
     }
   }
   return removed;
