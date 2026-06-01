@@ -612,6 +612,7 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
       targetLang,
       sentence,
       vip: vipSettings,
+      purpose: 'popover',
     });
     // Merge any fields the local layer didn't populate. We trust
     // local for `translation` / `monolingual` only when those were

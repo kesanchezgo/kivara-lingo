@@ -187,7 +187,34 @@ interface RunOptions {
   signal?: AbortSignal;
   /** When `true`, skip cache lookup (force refresh). */
   bypassCache?: boolean;
+  /**
+   * What the enrichment is for:
+   *  - 'popover' (default): the on-hover card. Skips the image sources
+   *    (the slowest, ~2-4.5 s each, and least essential when hovering) and
+   *    uses a tighter per-source timeout so the card resolves fast. The
+   *    image is fetched lazily / at save-time instead.
+   *  - 'card': building an Anki note. Runs every enabled source including
+   *    images, with the full per-source timeout, because the user has
+   *    committed to the card and wants the richest possible result.
+   */
+  purpose?: 'popover' | 'card';
 }
+
+/**
+ * Image source keys — these are the slowest in the fan-out (Wikimedia
+ * Commons / DuckDuckGo / Bing / Openverse do 1-2 round trips each and
+ * routinely take 2-4.5 s). They're excluded from the popover path so the
+ * card resolves on the fastest text sources, and run only when building
+ * an Anki note (or a lazy image fetch).
+ */
+const IMAGE_SOURCE_KEYS = new Set<keyof VipSettings>([
+  'bingImages',
+  'openverse',
+  'wikimediaCommons',
+  'duckduckgoImages',
+  'unsplash',
+  'pixabay',
+]);
 
 /**
  * Run the enrichment chain for `token`. Always returns a result,
@@ -197,11 +224,18 @@ export async function runEnrichment(
   token: string,
   opts: RunOptions,
 ): Promise<EnrichmentResult> {
+  const purpose = opts.purpose ?? 'popover';
   const ctx: EnrichmentContext = {
     sourceLang: opts.sourceLang,
     targetLang: opts.targetLang,
     sentence: opts.sentence,
-    timeoutMs: opts.vip.perSourceTimeoutMs ?? 4000,
+    // The popover uses a tighter per-source timeout so one slow scrape
+    // can't hold the whole card hostage; the card flow keeps the full
+    // budget since the user has committed and wants the richest result.
+    timeoutMs:
+      purpose === 'popover'
+        ? Math.min(opts.vip.perSourceTimeoutMs ?? 4000, 2500)
+        : opts.vip.perSourceTimeoutMs ?? 4000,
     signal: opts.signal,
   };
   // Pass BYOK image-source credentials through the ctx — sources read
@@ -211,7 +245,11 @@ export async function runEnrichment(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (ctx as any).pixabayApiKey = opts.vip.pixabayApiKey;
 
-  const cacheKey = makeCacheKey(token, ctx, opts.vip.enabled);
+  // Images are excluded from the popover fan-out (they're the slowest
+  // sources and least essential while hovering); they run for the card.
+  const skipImages = purpose === 'popover';
+
+  const cacheKey = makeCacheKey(token, ctx, opts.vip.enabled, purpose);
   if (!opts.bypassCache) {
     const cached = await readCache(cacheKey, opts.vip.cacheTtlDays ?? 14);
     if (cached) return cached;
@@ -220,7 +258,7 @@ export async function runEnrichment(
   // Build the active source list.
   // Standard tier always runs (gated only by per-source toggles, not
   // the VIP master switch).
-  const active: EnrichmentSource[] = [...getStandardSources(opts.vip)];
+  let active: EnrichmentSource[] = [...getStandardSources(opts.vip)];
   // VIP tier runs only when the master switch is on.
   if (opts.vip.enabled) {
     for (const [flag, source] of Object.entries(VIP_SOURCES)) {
@@ -230,6 +268,9 @@ export async function runEnrichment(
       if (STANDARD_SOURCE_KEYS.has(k)) continue;
       if (opts.vip[k] === true) active.push(source);
     }
+  }
+  if (skipImages) {
+    active = active.filter((s) => !IMAGE_SOURCE_KEYS.has(s.id as keyof VipSettings));
   }
 
   // Fan out.
@@ -414,13 +455,20 @@ interface CacheRow {
   storedAt: number;
 }
 
-function makeCacheKey(token: string, ctx: EnrichmentContext, vipEnabled: boolean): string {
+function makeCacheKey(
+  token: string,
+  ctx: EnrichmentContext,
+  vipEnabled: boolean,
+  purpose: 'popover' | 'card',
+): string {
   // Tier is part of the key: a word looked up in Standard mode must NOT
   // satisfy a later VIP lookup (the VIP result is a superset). Without
   // this, flipping the VIP switch ON would keep serving the stale
   // Standard-only payload from cache until the TTL expired.
+  // Purpose is also part of the key: the popover payload omits images, so
+  // it must not satisfy a card lookup (which needs them) and vice-versa.
   const tier = vipEnabled ? 'vip' : 'std';
-  return `${tier}|${ctx.sourceLang}|${ctx.targetLang}|${token.trim().toLowerCase()}`;
+  return `${purpose}|${tier}|${ctx.sourceLang}|${ctx.targetLang}|${token.trim().toLowerCase()}`;
 }
 
 async function readCache(key: string, ttlDays: number): Promise<EnrichmentResult | null> {

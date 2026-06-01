@@ -279,6 +279,7 @@ export async function createCardFromRequest(
       targetLang,
       sentence: request.sentence,
       vip: vipSettings,
+      purpose: 'card',
     });
     const e = enriched.entry;
     if (e) {
