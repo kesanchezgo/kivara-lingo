@@ -133,10 +133,28 @@ export async function resolveWordStreaming(
     });
   }
 
-  /* ── Phase 2: remote translator (only when no real local translation) ─ */
-  let remoteServed = false;
+  /* ── Phases 2-4 run CONCURRENTLY ──────────────────────────────────
+   * Translation, multi-source enrichment and (optional) AI are mutually
+   * independent — none consumes another's output — so we launch them
+   * together and merge + emit each result the moment it lands, instead
+   * of summing their latencies. Total wall-clock becomes max(t2,t3,t4)
+   * rather than t2+t3+t4. Quality is unchanged: the same sources run
+   * with the same merge precedence; only the *ordering* of the awaits
+   * changes.
+   *
+   * Shared state: `local` is the running merged entry. JS is
+   * single-threaded, so each `.then` callback runs atomically between
+   * await points — there's no true data race. Each phase only writes
+   * its own disjoint fields (translation→translation/bilingual,
+   * enrichment→synonyms/antonyms/etc., AI→vip.mnemonic/etymology) and
+   * never downgrades a value another phase set.
+   */
   const needsRemoteTranslation = !hasRealTranslation(local) && !yomitanPackTitle;
-  if (needsRemoteTranslation) {
+  let remoteServed = false;
+
+  // Phase 2 — remote translator.
+  const translationTask = (async () => {
+    if (!needsRemoteTranslation) return;
     try {
       const remote = await translateText({ text: token, sourceLang });
       if (remote.ok && remote.translatedText) {
@@ -144,7 +162,7 @@ export async function resolveWordStreaming(
         if (local) {
           local = {
             ...local,
-            translation: remote.translatedText,
+            translation: hasRealTranslation(local) ? local.translation : remote.translatedText,
             bilingual:
               local.bilingual && local.bilingual !== '—'
                 ? local.bilingual
@@ -174,101 +192,112 @@ export async function resolveWordStreaming(
         message: err instanceof Error ? err.message : 'translate threw',
       });
     }
-  }
+  })();
 
-  /* ── Phase 3: multi-source enrichment (the slower extras) ─────────── */
-  try {
-    const vipSettings = await getVipSettings();
-    const targetLang = (await loadTranslateTargetLang()) || sourceLang;
-    const result = await runEnrichment(token, {
-      sourceLang,
-      targetLang,
-      sentence,
-      vip: vipSettings,
-      purpose: 'popover',
-    });
-    if (result.entry) {
-      const localTr = (local?.translation ?? '').trim();
-      const localTrReal = localTr !== '' && localTr !== '—';
-      const chainTr = (result.entry.translation ?? '').trim();
-      const chainTrReal = chainTr !== '' && chainTr !== '—';
-      const bestTranslation =
-        localTrReal && resolvedPackId && resolvedPackId !== BUNDLE_PACK_ID
-          ? local!.translation
-          : chainTrReal
-            ? result.entry.translation
+  // Phase 3 — multi-source enrichment (the slower extras).
+  const enrichmentTask = (async () => {
+    try {
+      const vipSettings = await getVipSettings();
+      const targetLang = (await loadTranslateTargetLang()) || sourceLang;
+      const result = await runEnrichment(token, {
+        sourceLang,
+        targetLang,
+        sentence,
+        vip: vipSettings,
+        purpose: 'popover',
+      });
+      if (result.entry) {
+        const localTr = (local?.translation ?? '').trim();
+        const localTrReal = localTr !== '' && localTr !== '—';
+        const chainTr = (result.entry.translation ?? '').trim();
+        const chainTrReal = chainTr !== '' && chainTr !== '—';
+        // Prefer, in order: Yomitan-pack translation → an already-resolved
+        // real local/remote translation → the enrichment chain's → the
+        // chain's as last resort. This never downgrades a translation the
+        // (possibly concurrent) translation phase already set.
+        const bestTranslation =
+          localTrReal && resolvedPackId && resolvedPackId !== BUNDLE_PACK_ID
+            ? local!.translation
             : localTrReal
               ? local!.translation
-              : result.entry.translation;
-      const merged: DictionaryEntry = {
-        ...(local ?? result.entry),
-        translation: bestTranslation,
-        bilingual:
-          (local?.bilingual && local.bilingual !== '—' ? local.bilingual : undefined) ??
-          (result.entry.bilingual && result.entry.bilingual !== '—'
-            ? result.entry.bilingual
-            : undefined) ??
-          local?.bilingual ??
-          result.entry.bilingual,
-        synonyms: result.entry.synonyms ?? local?.synonyms,
-        antonyms: result.entry.antonyms ?? local?.antonyms,
-        collocations: result.entry.collocations ?? local?.collocations,
-        audio: result.entry.audio ?? local?.audio,
-        vip: result.entry.vip,
-        phonetic: local?.phonetic ?? result.entry.phonetic,
-        monolingual:
-          (local?.monolingual && local.monolingual !== '—' ? local.monolingual : undefined) ??
-          result.entry.monolingual ??
-          local?.monolingual,
-        examples: (local?.examples?.length ?? 0) > 0 ? local!.examples : result.entry.examples,
-      };
-      local = merged;
-      emit({ phase: 'enrichment', entry: merged });
+              : chainTrReal
+                ? result.entry.translation
+                : result.entry.translation;
+        const merged: DictionaryEntry = {
+          ...(local ?? result.entry),
+          translation: bestTranslation,
+          bilingual:
+            (local?.bilingual && local.bilingual !== '—' ? local.bilingual : undefined) ??
+            (result.entry.bilingual && result.entry.bilingual !== '—'
+              ? result.entry.bilingual
+              : undefined) ??
+            local?.bilingual ??
+            result.entry.bilingual,
+          synonyms: result.entry.synonyms ?? local?.synonyms,
+          antonyms: result.entry.antonyms ?? local?.antonyms,
+          collocations: result.entry.collocations ?? local?.collocations,
+          audio: result.entry.audio ?? local?.audio,
+          // Merge vip blocks rather than overwrite, so a concurrent AI
+          // phase's mnemonic/etymology survives regardless of order.
+          vip: { ...(result.entry.vip ?? {}), ...(local?.vip ?? {}) },
+          phonetic: local?.phonetic ?? result.entry.phonetic,
+          monolingual:
+            (local?.monolingual && local.monolingual !== '—' ? local.monolingual : undefined) ??
+            result.entry.monolingual ??
+            local?.monolingual,
+          examples: (local?.examples?.length ?? 0) > 0 ? local!.examples : result.entry.examples,
+        };
+        local = merged;
+        emit({ phase: 'enrichment', entry: merged });
+      }
+    } catch (err) {
+      console.warn('[Kivara Lingo] enrichment chain threw', err);
+      emit({
+        phase: 'error',
+        scope: 'enrichment',
+        message: err instanceof Error ? err.message : 'enrichment threw',
+      });
     }
-  } catch (err) {
-    console.warn('[Kivara Lingo] enrichment chain threw', err);
-    emit({
-      phase: 'error',
-      scope: 'enrichment',
-      message: err instanceof Error ? err.message : 'enrichment threw',
-    });
-  }
+  })();
 
-  // Telemetry — exactly one bucket per resolve.
+  // Phase 4 — AI enrichment (optional).
+  const aiTask = (async () => {
+    if (!params.includeAi) return;
+    const settings = await getAiSettings();
+    if (settings.provider === 'disabled' || !settings.apiKey || !settings.enrichOnHover) return;
+    const nativeLang = await getResolvedNativeLang(settings);
+    try {
+      const ai = await enrichWithAi({ token, sentence, sourceLang, nativeLang });
+      if (ai.ok) {
+        if (local) {
+          const newVip = { ...(local.vip ?? {}) };
+          if (ai.data.mnemonic && !newVip.mnemonic) newVip.mnemonic = ai.data.mnemonic;
+          if (ai.data.etymology && !newVip.etymology) newVip.etymology = ai.data.etymology;
+          local = { ...local, vip: newVip };
+          emit({ phase: 'enrichment', entry: local });
+        }
+        emit({ phase: 'ai', data: ai.data });
+      } else {
+        emit({ phase: 'error', scope: 'ai', message: ai.error });
+      }
+    } catch (err) {
+      emit({
+        phase: 'error',
+        scope: 'ai',
+        message: err instanceof Error ? err.message : 'AI threw',
+      });
+    }
+  })();
+
+  // Wait for all three independent phases to settle.
+  await Promise.allSettled([translationTask, enrichmentTask, aiTask]);
+
+  // Telemetry — exactly one bucket per resolve, after we know the outcome.
   void (async () => {
     if (resolvedPackId) await recordLookupHit(resolvedPackId);
     else if (remoteServed) await recordLookupHit(REMOTE_PACK_ID);
     else await recordMiss(MISS_PACK_ID);
   })();
-
-  /* ── Phase 4: AI enrichment (optional) ────────────────────────────── */
-  if (params.includeAi) {
-    const settings = await getAiSettings();
-    if (settings.provider !== 'disabled' && settings.apiKey && settings.enrichOnHover) {
-      const nativeLang = await getResolvedNativeLang(settings);
-      try {
-        const ai = await enrichWithAi({ token, sentence, sourceLang, nativeLang });
-        if (ai.ok) {
-          if (local) {
-            const newVip = { ...(local.vip ?? {}) };
-            if (ai.data.mnemonic && !newVip.mnemonic) newVip.mnemonic = ai.data.mnemonic;
-            if (ai.data.etymology && !newVip.etymology) newVip.etymology = ai.data.etymology;
-            local = { ...local, vip: newVip };
-            emit({ phase: 'enrichment', entry: local });
-          }
-          emit({ phase: 'ai', data: ai.data });
-        } else {
-          emit({ phase: 'error', scope: 'ai', message: ai.error });
-        }
-      } catch (err) {
-        emit({
-          phase: 'error',
-          scope: 'ai',
-          message: err instanceof Error ? err.message : 'AI threw',
-        });
-      }
-    }
-  }
 
   emit({ phase: 'done' });
 }
