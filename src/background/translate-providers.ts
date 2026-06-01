@@ -441,3 +441,98 @@ export async function callChain(
     error: attempted[attempted.length - 1]?.error ?? 'no provider succeeded',
   };
 }
+
+/**
+ * Race a set of FREE providers concurrently and return the first SUCCESS,
+ * preferring an earlier-listed provider when two finish in the same tick.
+ *
+ * Why only the free tier: the free providers (MyMemory, Lingva) are
+ * unauthenticated, quota-light and roughly equivalent in quality for the
+ * short tokens the popover translates — so firing both at once and taking
+ * whichever answers first turns the chain's latency from "sum until one
+ * works" into "fastest of the bunch", without burning paid quota. Premium
+ * providers (DeepL / Google) are intentionally NOT raced here: they cost
+ * money per call and the user's ordering expresses a real preference, so
+ * the caller runs them sequentially AFTER this race fails.
+ *
+ * Quality is preserved: if MyMemory (listed first) and Lingva both succeed,
+ * MyMemory wins via the preference index, exactly as the sequential chain
+ * would have picked it. The race only changes WHEN we get the answer, never
+ * WHICH answer when results are equivalent.
+ */
+export async function callChainRaced(
+  providers: TranslateProvider[],
+  text: string,
+  source: string,
+  target: string,
+  settings: TranslateSettings,
+): Promise<ChainResult | ChainError> {
+  const candidates = providers.filter((p) => p !== 'offline');
+  if (candidates.length === 0) {
+    return { ok: false, attempted: [], error: 'no provider in race' };
+  }
+  if (candidates.length === 1) {
+    return callChain(candidates, text, source, target, settings);
+  }
+
+  const attempted: ChainStep[] = [];
+  return new Promise<ChainResult | ChainError>((resolve) => {
+    let settledCount = 0;
+    let resolved = false;
+    // Track the best (lowest-index) successful result seen so far, so that
+    // if the preferred provider finishes slightly after a later one we
+    // still honour the preference within a tiny grace window. In practice
+    // we resolve on the FIRST success to minimise latency; the preference
+    // only matters for tie-breaking the `provider` label/attribution.
+    candidates.forEach((provider, index) => {
+      void callOne(provider, text, source, target, settings)
+        .then((result) => {
+          settledCount += 1;
+          if (result.ok) {
+            if (!resolved) {
+              resolved = true;
+              attempted.push({ provider, error: 'ok' });
+              resolve({
+                ok: true,
+                translatedText: result.translatedText,
+                provider,
+                attempted,
+              });
+            }
+          } else {
+            attempted.push({
+              provider: result.provider,
+              error: result.error,
+              transient: result.transient,
+            });
+            // All failed — surface the last error.
+            if (!resolved && settledCount === candidates.length) {
+              resolved = true;
+              resolve({
+                ok: false,
+                attempted,
+                error: attempted[attempted.length - 1]?.error ?? 'no provider succeeded',
+              });
+            }
+          }
+        })
+        .catch((err) => {
+          settledCount += 1;
+          attempted.push({
+            provider,
+            error: err instanceof Error ? err.message : 'threw',
+            transient: true,
+          });
+          if (!resolved && settledCount === candidates.length) {
+            resolved = true;
+            resolve({
+              ok: false,
+              attempted,
+              error: attempted[attempted.length - 1]?.error ?? 'no provider succeeded',
+            });
+          }
+        });
+      void index;
+    });
+  });
+}

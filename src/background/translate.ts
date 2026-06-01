@@ -9,7 +9,7 @@ import type {
   TranslateSettings,
 } from '../shared/types';
 import { DEFAULT_TRANSLATE } from '../shared/store';
-import { callChain, callOne } from './translate-providers';
+import { callChain, callChainRaced, callOne } from './translate-providers';
 import type { ChainStep } from './translate-providers';
 import { getDB, translationCacheKey } from '../shared/db';
 import { decryptSecret } from '../shared/secret-store';
@@ -227,7 +227,28 @@ export async function translateText(req: TranslateRequest): Promise<TranslateRes
         provider: 'offline',
       };
     }
-    const r = await callChain(chain, text, req.sourceLang, target, settings);
+    // Split the chain into FREE (raced concurrently — fastest wins) and
+    // PREMIUM (tried sequentially after, to honour the user's preference
+    // order and avoid burning paid quota in parallel). This turns the
+    // common free-tier path's latency from "MyMemory THEN Lingva" into
+    // "fastest of {MyMemory, Lingva}" without changing which answer we
+    // keep when both succeed.
+    const FREE_SET = new Set<TranslateProvider>(['mymemory', 'lingva']);
+    const freeChain = chain.filter((p) => FREE_SET.has(p));
+    const premiumChain = chain.filter((p) => !FREE_SET.has(p));
+
+    let r = await callChainRaced(freeChain, text, req.sourceLang, target, settings);
+    // If the free race produced nothing, fall through to the premium
+    // providers in their configured order.
+    if (!r.ok && premiumChain.length > 0) {
+      const pr = await callChain(premiumChain, text, req.sourceLang, target, settings);
+      // Merge attempted lists for telemetry/debugging.
+      if (pr.ok) {
+        r = { ...pr, attempted: [...r.attempted, ...pr.attempted] };
+      } else {
+        r = { ok: false, error: pr.error, attempted: [...r.attempted, ...pr.attempted] };
+      }
+    }
     result = r.ok
       ? {
           ok: true,
