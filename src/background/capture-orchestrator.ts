@@ -27,9 +27,6 @@ interface ResolveContext {
   monolingual: string;
   phonetic: string;
   examples: string[];
-  sourceDefinitions: Array<{ source: string; text: string }>;
-  sourceTranslations: Array<{ source: string; text: string }>;
-  sourceExamples: Array<{ source: string; text: string; translation?: string }>;
   /** Native-language translation of the full sentence (dual subtitle). */
   sentenceTranslation: string;
   ai: AiEnrichment | null;
@@ -82,15 +79,6 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return (globalThis as any).btoa(binary);
 }
 
-function formatAttributedRows(rows: Array<{ source: string; text: string; translation?: string }>): string {
-  return rows
-    .map((row) => {
-      const body = row.translation ? `${row.text}<br><em>${row.translation}</em>` : row.text;
-      return row.source ? `${body}<br><small>${row.source}</small>` : body;
-    })
-    .join('<br><br>');
-}
-
 function resolveField(field: string, source: FieldSource, ctx: ResolveContext): string {
   switch (source) {
     case 'selection':
@@ -111,12 +99,6 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
       return ctx.monolingual;
     case 'examples':
       return ctx.examples.join('<br>');
-    case 'source-definitions':
-      return formatAttributedRows(ctx.sourceDefinitions);
-    case 'source-translations':
-      return formatAttributedRows(ctx.sourceTranslations);
-    case 'source-examples':
-      return formatAttributedRows(ctx.sourceExamples);
     case 'dictionary': {
       // Legacy / deprecated catch-all kept for backward compatibility with
       // mappings persisted before phonetic/bilingual/monolingual got their
@@ -140,8 +122,6 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
       return ctx.ai?.nuancedTranslation ?? '';
     case 'ai-register':
       return ctx.ai?.register ?? '';
-    case 'ai-appropriateness':
-      return ctx.ai?.appropriateness ?? '';
     case 'synonyms':
       return ctx.synonyms.join(', ');
     case 'antonyms':
@@ -274,9 +254,6 @@ export async function createCardFromRequest(
     monolingual: dictionaryHit?.monolingual ?? '',
     phonetic: dictionaryHit?.phonetic ?? '',
     examples: dictionaryHit?.examples ?? [],
-    sourceDefinitions: [],
-    sourceTranslations: [],
-    sourceExamples: [],
     sentenceTranslation: request.sentenceTranslation ?? '',
     ai: aiData,
     synonyms: [],
@@ -325,13 +302,12 @@ export async function createCardFromRequest(
       }
     }
     if (enriched.vip) {
-      ctx.sourceDefinitions = enriched.vip.definitions ?? [];
-      ctx.sourceTranslations = enriched.vip.translations ?? [];
-      ctx.sourceExamples = enriched.vip.examples ?? [];
-      if (!ctx.monolingual && ctx.sourceDefinitions.length > 0) ctx.monolingual = ctx.sourceDefinitions[0].text;
-      if (!ctx.translation && ctx.sourceTranslations.length > 0) ctx.translation = ctx.sourceTranslations[0].text;
-      if (!ctx.bilingual && ctx.sourceTranslations.length > 0) {
-        ctx.bilingual = ctx.sourceTranslations.slice(0, 4).map((t) => t.text).join(' · ');
+      const sourceDefinitions = enriched.vip.definitions ?? [];
+      const sourceTranslations = enriched.vip.translations ?? [];
+      if (!ctx.monolingual && sourceDefinitions.length > 0) ctx.monolingual = sourceDefinitions[0].text;
+      if (!ctx.translation && sourceTranslations.length > 0) ctx.translation = sourceTranslations[0].text;
+      if (!ctx.bilingual && sourceTranslations.length > 0) {
+        ctx.bilingual = sourceTranslations.slice(0, 4).map((t) => t.text).join(' · ');
       }
       if (enriched.vip.etymology) ctx.etymology = enriched.vip.etymology;
       if (enriched.vip.mnemonic) ctx.mnemonic = enriched.vip.mnemonic;

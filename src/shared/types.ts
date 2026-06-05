@@ -55,9 +55,6 @@ export type CueAlign = 'start' | 'center' | 'end' | 'left' | 'right';
  *  - `bilingual`      — gram-cat + short bilingual definition         → bilingual
  *  - `monolingual`    — definition in the source language             → monolingual
  *  - `examples`       — usage examples joined by <br>                 → (extra)
- *  - `source-definitions`  — source-attributed definitions joined by <br>   → (extra)
- *  - `source-translations` — source-attributed translations joined by <br>  → (extra)
- *  - `source-examples`     — source-attributed examples joined by <br>      → (extra)
  *  - `frame`          — JPG screenshot of the video at the cue        → picture
  *  - `sentence-audio` — captured tab audio for the full cue           → sentence audio
  *  - `word-audio`     — TTS audio of the word (or live capture slice) → word audio
@@ -78,9 +75,6 @@ export type FieldSource =
   | 'bilingual'
   | 'monolingual'
   | 'examples'
-  | 'source-definitions'
-  | 'source-translations'
-  | 'source-examples'
   | 'frame'
   | 'sentence-audio'
   | 'word-audio'
@@ -93,7 +87,6 @@ export type FieldSource =
   | 'ai-collocations'
   | 'ai-nuance'
   | 'ai-register'
-  | 'ai-appropriateness'
   /* Multi-source enrichment (Standard + VIP) — exposed as Anki
    * fields so the user can build a mazo with rich data without
    * any API key. Each one is automatically populated by the
