@@ -31,9 +31,9 @@ export function detectFieldSource(fieldName: string): FieldSource {
     return 'image';
   }
   if (/phon|ipa|pronun/.test(n)) return 'phonetic';
-  if (/vip.*(definition|definic|meaning)|(?:definition|definic|meaning).*vip/.test(n)) return 'vip-definitions';
-  if (/vip.*(translation|traducci)|(?:translation|traducci).*vip/.test(n)) return 'vip-translations';
-  if (/vip.*(example|ejemplo)|(?:example|ejemplo).*vip/.test(n)) return 'vip-examples';
+  if (/(vip|source|fuente|attributed|atribu).*(definition|definic|meaning)|(?:definition|definic|meaning).*(vip|source|fuente|attributed|atribu)/.test(n)) return 'source-definitions';
+  if (/(vip|source|fuente|attributed|atribu).*(translation|traducci)|(?:translation|traducci).*(vip|source|fuente|attributed|atribu)/.test(n)) return 'source-translations';
+  if (/(vip|source|fuente|attributed|atribu).*(example|ejemplo)|(?:example|ejemplo).*(vip|source|fuente|attributed|atribu)/.test(n)) return 'source-examples';
   if (/monoling|definition|definic|meaning|sentido/.test(n)) return 'monolingual';
   if (/biling/.test(n)) return 'bilingual';
   // Multi-source enrichment fields. Match before the generic "example"

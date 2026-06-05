@@ -55,9 +55,9 @@ export type CueAlign = 'start' | 'center' | 'end' | 'left' | 'right';
  *  - `bilingual`      — gram-cat + short bilingual definition         → bilingual
  *  - `monolingual`    — definition in the source language             → monolingual
  *  - `examples`       — usage examples joined by <br>                 → (extra)
- *  - `vip-definitions`  — attributed VIP definitions joined by <br>   → (extra)
- *  - `vip-translations` — attributed VIP translations joined by <br>  → (extra)
- *  - `vip-examples`     — attributed VIP examples joined by <br>      → (extra)
+ *  - `source-definitions`  — source-attributed definitions joined by <br>   → (extra)
+ *  - `source-translations` — source-attributed translations joined by <br>  → (extra)
+ *  - `source-examples`     — source-attributed examples joined by <br>      → (extra)
  *  - `frame`          — JPG screenshot of the video at the cue        → picture
  *  - `sentence-audio` — captured tab audio for the full cue           → sentence audio
  *  - `word-audio`     — TTS audio of the word (or live capture slice) → word audio
@@ -65,7 +65,9 @@ export type CueAlign = 'start' | 'center' | 'end' | 'left' | 'right';
  *                       the legacy mapping; falls back to bilingual.
  *  - `tabCapture`     — DEPRECATED alias for `sentence-audio`.
  *  - `tts`            — DEPRECATED alias for `word-audio`.
- *  - `ai-*`           — premium AI enrichment fields.
+ *  - `ai-*`           — premium AI enrichment fields. AI mnemonic /
+ *                       etymology feed the base `mnemonic` / `etymology`
+ *                       sources instead of having duplicate fields.
  *  - `manual`         — user fills in the value themselves.
  */
 export type FieldSource =
@@ -76,9 +78,9 @@ export type FieldSource =
   | 'bilingual'
   | 'monolingual'
   | 'examples'
-  | 'vip-definitions'
-  | 'vip-translations'
-  | 'vip-examples'
+  | 'source-definitions'
+  | 'source-translations'
+  | 'source-examples'
   | 'frame'
   | 'sentence-audio'
   | 'word-audio'
@@ -91,6 +93,7 @@ export type FieldSource =
   | 'ai-collocations'
   | 'ai-nuance'
   | 'ai-register'
+  | 'ai-appropriateness'
   /* Multi-source enrichment (Standard + VIP) — exposed as Anki
    * fields so the user can build a mazo with rich data without
    * any API key. Each one is automatically populated by the
@@ -817,9 +820,12 @@ export interface DictionaryEntry {
 }
 
 /**
- * VIP enrichment payload — populated by the network-fetched chain that
- * runs in addition to the local dictionary lookup. Every field is optional;
- * sources fail independently so a Cambridge timeout doesn't break the rest.
+ * Source-attributed enrichment payload — populated by the network-fetched
+ * chain that runs in addition to the local dictionary lookup. Despite the
+ * historical `VipEnrichment` name, this can contain Standard and VIP sources:
+ * Standard sources run even when the VIP master switch is off, while VIP
+ * sources are appended when enabled. Every field is optional; sources fail
+ * independently so a Cambridge timeout doesn't break the rest.
  */
 export interface VipEnrichment {
   /** Per-source short definitions in the source language. */
@@ -884,7 +890,7 @@ export interface CaptureContext {
   videoLink?: string;
   /** Word-level pronunciation audio URL selected by the enrichment chain. */
   wordAudioUrl?: string;
-  /** Full VIP payload with source attribution for rich card fields. */
+  /** Full source-attributed payload for rich card fields. */
   vip?: VipEnrichment;
 }
 

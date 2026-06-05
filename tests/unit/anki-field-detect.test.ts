@@ -58,13 +58,19 @@ describe('detectFieldSource', () => {
     expect(detectFieldSource('Meaning')).toBe('monolingual');
   });
 
-  it('maps source-attributed VIP fields', () => {
-    expect(detectFieldSource('VIP Definitions')).toBe('vip-definitions');
-    expect(detectFieldSource('Definiciones VIP')).toBe('vip-definitions');
-    expect(detectFieldSource('VIP Translations')).toBe('vip-translations');
-    expect(detectFieldSource('Traducciones VIP')).toBe('vip-translations');
-    expect(detectFieldSource('VIP Examples')).toBe('vip-examples');
-    expect(detectFieldSource('Ejemplos VIP')).toBe('vip-examples');
+  it('maps source-attributed enrichment fields', () => {
+    expect(detectFieldSource('VIP Definitions')).toBe('source-definitions');
+    expect(detectFieldSource('Definiciones VIP')).toBe('source-definitions');
+    expect(detectFieldSource('Definitions with source')).toBe('source-definitions');
+    expect(detectFieldSource('Definiciones con fuente')).toBe('source-definitions');
+    expect(detectFieldSource('VIP Translations')).toBe('source-translations');
+    expect(detectFieldSource('Traducciones VIP')).toBe('source-translations');
+    expect(detectFieldSource('Translations with source')).toBe('source-translations');
+    expect(detectFieldSource('Traducciones con fuente')).toBe('source-translations');
+    expect(detectFieldSource('VIP Examples')).toBe('source-examples');
+    expect(detectFieldSource('Ejemplos VIP')).toBe('source-examples');
+    expect(detectFieldSource('Examples with source')).toBe('source-examples');
+    expect(detectFieldSource('Ejemplos con fuente')).toBe('source-examples');
   });
 
   it('returns "manual" for unknown fields', () => {

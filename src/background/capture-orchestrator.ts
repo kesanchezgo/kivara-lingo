@@ -27,9 +27,9 @@ interface ResolveContext {
   monolingual: string;
   phonetic: string;
   examples: string[];
-  vipDefinitions: Array<{ source: string; text: string }>;
-  vipTranslations: Array<{ source: string; text: string }>;
-  vipExamples: Array<{ source: string; text: string; translation?: string }>;
+  sourceDefinitions: Array<{ source: string; text: string }>;
+  sourceTranslations: Array<{ source: string; text: string }>;
+  sourceExamples: Array<{ source: string; text: string; translation?: string }>;
   /** Native-language translation of the full sentence (dual subtitle). */
   sentenceTranslation: string;
   ai: AiEnrichment | null;
@@ -111,12 +111,12 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
       return ctx.monolingual;
     case 'examples':
       return ctx.examples.join('<br>');
-    case 'vip-definitions':
-      return formatAttributedRows(ctx.vipDefinitions);
-    case 'vip-translations':
-      return formatAttributedRows(ctx.vipTranslations);
-    case 'vip-examples':
-      return formatAttributedRows(ctx.vipExamples);
+    case 'source-definitions':
+      return formatAttributedRows(ctx.sourceDefinitions);
+    case 'source-translations':
+      return formatAttributedRows(ctx.sourceTranslations);
+    case 'source-examples':
+      return formatAttributedRows(ctx.sourceExamples);
     case 'dictionary': {
       // Legacy / deprecated catch-all kept for backward compatibility with
       // mappings persisted before phonetic/bilingual/monolingual got their
@@ -140,6 +140,8 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
       return ctx.ai?.nuancedTranslation ?? '';
     case 'ai-register':
       return ctx.ai?.register ?? '';
+    case 'ai-appropriateness':
+      return ctx.ai?.appropriateness ?? '';
     case 'synonyms':
       return ctx.synonyms.join(', ');
     case 'antonyms':
@@ -272,9 +274,9 @@ export async function createCardFromRequest(
     monolingual: dictionaryHit?.monolingual ?? '',
     phonetic: dictionaryHit?.phonetic ?? '',
     examples: dictionaryHit?.examples ?? [],
-    vipDefinitions: [],
-    vipTranslations: [],
-    vipExamples: [],
+    sourceDefinitions: [],
+    sourceTranslations: [],
+    sourceExamples: [],
     sentenceTranslation: request.sentenceTranslation ?? '',
     ai: aiData,
     synonyms: [],
@@ -323,13 +325,13 @@ export async function createCardFromRequest(
       }
     }
     if (enriched.vip) {
-      ctx.vipDefinitions = enriched.vip.definitions ?? [];
-      ctx.vipTranslations = enriched.vip.translations ?? [];
-      ctx.vipExamples = enriched.vip.examples ?? [];
-      if (!ctx.monolingual && ctx.vipDefinitions.length > 0) ctx.monolingual = ctx.vipDefinitions[0].text;
-      if (!ctx.translation && ctx.vipTranslations.length > 0) ctx.translation = ctx.vipTranslations[0].text;
-      if (!ctx.bilingual && ctx.vipTranslations.length > 0) {
-        ctx.bilingual = ctx.vipTranslations.slice(0, 4).map((t) => t.text).join(' · ');
+      ctx.sourceDefinitions = enriched.vip.definitions ?? [];
+      ctx.sourceTranslations = enriched.vip.translations ?? [];
+      ctx.sourceExamples = enriched.vip.examples ?? [];
+      if (!ctx.monolingual && ctx.sourceDefinitions.length > 0) ctx.monolingual = ctx.sourceDefinitions[0].text;
+      if (!ctx.translation && ctx.sourceTranslations.length > 0) ctx.translation = ctx.sourceTranslations[0].text;
+      if (!ctx.bilingual && ctx.sourceTranslations.length > 0) {
+        ctx.bilingual = ctx.sourceTranslations.slice(0, 4).map((t) => t.text).join(' · ');
       }
       if (enriched.vip.etymology) ctx.etymology = enriched.vip.etymology;
       if (enriched.vip.mnemonic) ctx.mnemonic = enriched.vip.mnemonic;
