@@ -46,6 +46,9 @@ const SOURCE_META: Record<FieldSource, { label: string; color: string; descripti
   bilingual:        { label: 'Bilingüe',       color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: 'Gram-cat + definición bilingüe' },
   monolingual:      { label: 'Monolingüe',     color: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300',     description: 'Definición en idioma fuente' },
   examples:         { label: 'Ejemplos',       color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300',     description: 'Ejemplos del diccionario' },
+  'vip-definitions':  { label: 'VIP · Definiciones',  color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'Todas las definiciones VIP con fuente' },
+  'vip-translations': { label: 'VIP · Traducciones',  color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'Traducciones VIP con fuente' },
+  'vip-examples':     { label: 'VIP · Ejemplos',      color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'Ejemplos VIP con traducción y fuente' },
   frame:            { label: 'Picture',        color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300',             description: 'Screenshot del frame del cue' },
   'sentence-audio': { label: 'Sentence audio', color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',             description: 'Audio capturado de la pestaña (cue)' },
   'word-audio':     { label: 'Word audio',     color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300',             description: 'TTS solo de la palabra' },
@@ -86,6 +89,10 @@ const SOURCE_GROUPS: { label: string; options: FieldSource[] }[] = [
   {
     label: 'Multi-fuente',
     options: ['synonyms', 'antonyms', 'collocations', 'etymology', 'image', 'video-link'],
+  },
+  {
+    label: 'VIP con fuente',
+    options: ['vip-definitions', 'vip-translations', 'vip-examples'],
   },
   {
     label: 'IA',

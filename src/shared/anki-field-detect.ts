@@ -31,7 +31,10 @@ export function detectFieldSource(fieldName: string): FieldSource {
     return 'image';
   }
   if (/phon|ipa|pronun/.test(n)) return 'phonetic';
-  if (/monoling|definition|definición|meaning|sentido/.test(n)) return 'monolingual';
+  if (/vip.*(definition|definic|meaning)|(?:definition|definic|meaning).*vip/.test(n)) return 'vip-definitions';
+  if (/vip.*(translation|traducci)|(?:translation|traducci).*vip/.test(n)) return 'vip-translations';
+  if (/vip.*(example|ejemplo)|(?:example|ejemplo).*vip/.test(n)) return 'vip-examples';
+  if (/monoling|definition|definic|meaning|sentido/.test(n)) return 'monolingual';
   if (/biling/.test(n)) return 'bilingual';
   // Multi-source enrichment fields. Match before the generic "example"
   // / "translation" rules so a field literally called "Synonyms" or
@@ -43,7 +46,7 @@ export function detectFieldSource(fieldName: string): FieldSource {
   if (/mnemonic|nemot|mnemot|memo/.test(n)) return 'mnemonic';
   if (/youglish|video|youtube/.test(n)) return 'video-link';
   if (/example|ejemplo/.test(n)) return 'examples';
-  if (/translation|traduccion|traducción|native|spanish|español/.test(n)) return 'translation';
+  if (/translation|traducci|native|spanish|español/.test(n)) return 'translation';
   if (/sentence|frase|context|cue|reverso|extra/.test(n)) return 'cue';
   if (/word|palabra|term|anverso|texto|front/.test(n)) return 'selection';
   return 'manual';

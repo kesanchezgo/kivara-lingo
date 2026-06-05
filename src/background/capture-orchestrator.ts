@@ -27,6 +27,9 @@ interface ResolveContext {
   monolingual: string;
   phonetic: string;
   examples: string[];
+  vipDefinitions: Array<{ source: string; text: string }>;
+  vipTranslations: Array<{ source: string; text: string }>;
+  vipExamples: Array<{ source: string; text: string; translation?: string }>;
   /** Native-language translation of the full sentence (dual subtitle). */
   sentenceTranslation: string;
   ai: AiEnrichment | null;
@@ -79,6 +82,15 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return (globalThis as any).btoa(binary);
 }
 
+function formatAttributedRows(rows: Array<{ source: string; text: string; translation?: string }>): string {
+  return rows
+    .map((row) => {
+      const body = row.translation ? `${row.text}<br><em>${row.translation}</em>` : row.text;
+      return row.source ? `${body}<br><small>${row.source}</small>` : body;
+    })
+    .join('<br><br>');
+}
+
 function resolveField(field: string, source: FieldSource, ctx: ResolveContext): string {
   switch (source) {
     case 'selection':
@@ -99,6 +111,12 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
       return ctx.monolingual;
     case 'examples':
       return ctx.examples.join('<br>');
+    case 'vip-definitions':
+      return formatAttributedRows(ctx.vipDefinitions);
+    case 'vip-translations':
+      return formatAttributedRows(ctx.vipTranslations);
+    case 'vip-examples':
+      return formatAttributedRows(ctx.vipExamples);
     case 'dictionary': {
       // Legacy / deprecated catch-all kept for backward compatibility with
       // mappings persisted before phonetic/bilingual/monolingual got their
@@ -254,6 +272,9 @@ export async function createCardFromRequest(
     monolingual: dictionaryHit?.monolingual ?? '',
     phonetic: dictionaryHit?.phonetic ?? '',
     examples: dictionaryHit?.examples ?? [],
+    vipDefinitions: [],
+    vipTranslations: [],
+    vipExamples: [],
     sentenceTranslation: request.sentenceTranslation ?? '',
     ai: aiData,
     synonyms: [],
@@ -302,6 +323,14 @@ export async function createCardFromRequest(
       }
     }
     if (enriched.vip) {
+      ctx.vipDefinitions = enriched.vip.definitions ?? [];
+      ctx.vipTranslations = enriched.vip.translations ?? [];
+      ctx.vipExamples = enriched.vip.examples ?? [];
+      if (!ctx.monolingual && ctx.vipDefinitions.length > 0) ctx.monolingual = ctx.vipDefinitions[0].text;
+      if (!ctx.translation && ctx.vipTranslations.length > 0) ctx.translation = ctx.vipTranslations[0].text;
+      if (!ctx.bilingual && ctx.vipTranslations.length > 0) {
+        ctx.bilingual = ctx.vipTranslations.slice(0, 4).map((t) => t.text).join(' · ');
+      }
       if (enriched.vip.etymology) ctx.etymology = enriched.vip.etymology;
       if (enriched.vip.mnemonic) ctx.mnemonic = enriched.vip.mnemonic;
       if (enriched.vip.imageUrl) ctx.imageUrl = enriched.vip.imageUrl;

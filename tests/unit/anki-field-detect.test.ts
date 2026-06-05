@@ -58,6 +58,15 @@ describe('detectFieldSource', () => {
     expect(detectFieldSource('Meaning')).toBe('monolingual');
   });
 
+  it('maps source-attributed VIP fields', () => {
+    expect(detectFieldSource('VIP Definitions')).toBe('vip-definitions');
+    expect(detectFieldSource('Definiciones VIP')).toBe('vip-definitions');
+    expect(detectFieldSource('VIP Translations')).toBe('vip-translations');
+    expect(detectFieldSource('Traducciones VIP')).toBe('vip-translations');
+    expect(detectFieldSource('VIP Examples')).toBe('vip-examples');
+    expect(detectFieldSource('Ejemplos VIP')).toBe('vip-examples');
+  });
+
   it('returns "manual" for unknown fields', () => {
     expect(detectFieldSource('Notes')).toBe('manual');
     expect(detectFieldSource('Tags')).toBe('manual');

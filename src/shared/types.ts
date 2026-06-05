@@ -55,6 +55,9 @@ export type CueAlign = 'start' | 'center' | 'end' | 'left' | 'right';
  *  - `bilingual`      — gram-cat + short bilingual definition         → bilingual
  *  - `monolingual`    — definition in the source language             → monolingual
  *  - `examples`       — usage examples joined by <br>                 → (extra)
+ *  - `vip-definitions`  — attributed VIP definitions joined by <br>   → (extra)
+ *  - `vip-translations` — attributed VIP translations joined by <br>  → (extra)
+ *  - `vip-examples`     — attributed VIP examples joined by <br>      → (extra)
  *  - `frame`          — JPG screenshot of the video at the cue        → picture
  *  - `sentence-audio` — captured tab audio for the full cue           → sentence audio
  *  - `word-audio`     — TTS audio of the word (or live capture slice) → word audio
@@ -73,6 +76,9 @@ export type FieldSource =
   | 'bilingual'
   | 'monolingual'
   | 'examples'
+  | 'vip-definitions'
+  | 'vip-translations'
+  | 'vip-examples'
   | 'frame'
   | 'sentence-audio'
   | 'word-audio'
@@ -852,6 +858,34 @@ export interface CaptureContext {
   audioDataUrl?: string;
   /** dictionary-resolved metadata */
   meta?: DictionaryEntry;
+  /** Word-level translation selected by the dictionary / enrichment chain. */
+  translation?: string;
+  /** Bilingual definition or translation bundle. */
+  bilingual?: string;
+  /** Source-language definition selected by the dictionary / enrichment chain. */
+  monolingual?: string;
+  /** IPA pronunciation selected by the dictionary / enrichment chain. */
+  phonetic?: string;
+  /** Usage examples selected by the dictionary / enrichment chain. */
+  examples?: string[];
+  /** Multi-source synonyms in the source language. */
+  synonyms?: string[];
+  /** Multi-source antonyms in the source language. */
+  antonyms?: string[];
+  /** Multi-source collocations / common word combinations. */
+  collocations?: string[];
+  /** Etymology / word-origin paragraph. */
+  etymology?: string;
+  /** Mnemonic text generated or collected for the word. */
+  mnemonic?: string;
+  /** Hero image URL selected by the enrichment chain. */
+  imageUrl?: string;
+  /** First YouGlish-style video URL selected by the enrichment chain. */
+  videoLink?: string;
+  /** Word-level pronunciation audio URL selected by the enrichment chain. */
+  wordAudioUrl?: string;
+  /** Full VIP payload with source attribution for rich card fields. */
+  vip?: VipEnrichment;
 }
 
 export interface CreateCardRequest {
