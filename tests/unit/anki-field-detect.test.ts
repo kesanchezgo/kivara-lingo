@@ -58,6 +58,13 @@ describe('detectFieldSource', () => {
     expect(detectFieldSource('Meaning')).toBe('monolingual');
   });
 
+  it('maps explicitly named AI rich-card fields', () => {
+    expect(detectFieldSource('AI Definition')).toBe('ai-definition');
+    expect(detectFieldSource('IA Sinónimos')).toBe('ai-synonyms');
+    expect(detectFieldSource('AI Collocations')).toBe('ai-collocations');
+    expect(detectFieldSource('IA Matiz')).toBe('ai-nuance');
+    expect(detectFieldSource('AI Register')).toBe('ai-register');
+  });
 
   it('returns "manual" for unknown fields', () => {
     expect(detectFieldSource('Notes')).toBe('manual');

@@ -31,6 +31,20 @@ export function detectFieldSource(fieldName: string): FieldSource {
     return 'image';
   }
   if (/phon|ipa|pronun/.test(n)) return 'phonetic';
+
+  // AI fields are explicit opt-in rich-card extras. Match them before the
+  // generic dictionary buckets below so "AI Definition" does not collapse
+  // into the regular `monolingual` field, and "AI Synonyms" does not
+  // collapse into the merged multi-source `synonyms` field.
+  const aiNamed = /\b(ai|ia|llm|gpt)\b/.test(n);
+  if (aiNamed) {
+    if (/definition|definic|meaning/.test(n)) return 'ai-definition';
+    if (/synonym|sinónimo|sinonimo/.test(n)) return 'ai-synonyms';
+    if (/colloc|colocac|combinaciones|combos|chunk/.test(n)) return 'ai-collocations';
+    if (/nuance|matiz|nuanced/.test(n)) return 'ai-nuance';
+    if (/register|registro|formal|slang/.test(n)) return 'ai-register';
+  }
+
   if (/monoling|definition|definic|meaning|sentido/.test(n)) return 'monolingual';
   if (/biling/.test(n)) return 'bilingual';
   // Multi-source enrichment fields. Match before the generic "example"

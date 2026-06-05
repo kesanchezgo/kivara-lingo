@@ -250,7 +250,11 @@ export async function createCardFromRequest(
     request,
     mapping,
     translation: dictionaryHit?.translation ?? '',
-    bilingual: dictionaryHit?.bilingual ?? dictionaryHit?.translation ?? '',
+    // Keep bilingual as its own bucket. `resolveField('bilingual')` already
+    // falls back to `translation`, so pre-filling this with the short
+    // translation would block richer Reverso / WordReference / SpanishDict
+    // data from replacing it below.
+    bilingual: dictionaryHit?.bilingual ?? '',
     monolingual: dictionaryHit?.monolingual ?? '',
     phonetic: dictionaryHit?.phonetic ?? '',
     examples: dictionaryHit?.examples ?? [],
@@ -290,8 +294,21 @@ export async function createCardFromRequest(
       if (!ctx.bilingual && e.bilingual) ctx.bilingual = e.bilingual;
       if (!ctx.monolingual && e.monolingual) ctx.monolingual = e.monolingual;
       if (!ctx.phonetic && e.phonetic) ctx.phonetic = e.phonetic;
-      // Examples: prefer locally curated; otherwise use VIP-merged.
-      if (ctx.examples.length === 0 && e.examples) ctx.examples = e.examples;
+      // Examples: keep local curated examples, but append enriched examples
+      // from Standard/VIP sources so the single `examples` Anki field
+      // represents the same rich card the popover shows. Dedupe by text to
+      // avoid saving the same sentence twice when bundled/Yomitan overlap.
+      if (e.examples && e.examples.length > 0) {
+        const seen = new Set<string>();
+        ctx.examples = [...ctx.examples, ...e.examples]
+          .filter((ex) => {
+            const key = ex.trim().toLowerCase();
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          })
+          .slice(0, 8);
+      }
       if (e.synonyms) ctx.synonyms = e.synonyms;
       if (e.antonyms) ctx.antonyms = e.antonyms;
       if (e.collocations) ctx.collocations = e.collocations;

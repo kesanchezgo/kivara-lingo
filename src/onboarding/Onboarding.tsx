@@ -58,6 +58,18 @@ const SOURCE_BADGE: Partial<Record<FieldSource, { label: string; color: string }
   frame:            { label: 'Picture',        color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-300' },
   'sentence-audio': { label: 'Sentence audio', color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300' },
   'word-audio':     { label: 'Word audio',     color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300' },
+  synonyms:         { label: 'Sinónimos',      color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' },
+  antonyms:         { label: 'Antónimos',      color: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300' },
+  collocations:     { label: 'Combinaciones',  color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300' },
+  etymology:        { label: 'Etimología',     color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300' },
+  mnemonic:         { label: 'Mnemotécnico',   color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300' },
+  image:            { label: 'Imagen',         color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-300' },
+  'video-link':     { label: 'Video link',     color: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300' },
+  'ai-definition':  { label: 'IA def.',        color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-300' },
+  'ai-synonyms':    { label: 'IA sin.',        color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-300' },
+  'ai-collocations':{ label: 'IA coloc.',      color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-300' },
+  'ai-nuance':      { label: 'IA matiz',       color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-300' },
+  'ai-register':    { label: 'IA registro',    color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-300' },
   manual:           { label: 'Manual',         color: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400' },
 };
 
@@ -850,6 +862,18 @@ function MappingStep({
                       <option value="frame">Picture (frame)</option>
                       <option value="sentence-audio">Sentence audio</option>
                       <option value="word-audio">Word audio</option>
+                      <option value="synonyms">Sinónimos</option>
+                      <option value="antonyms">Antónimos</option>
+                      <option value="collocations">Combinaciones</option>
+                      <option value="etymology">Etimología</option>
+                      <option value="mnemonic">Mnemotécnico</option>
+                      <option value="image">Imagen enriquecida</option>
+                      <option value="video-link">Video link</option>
+                      <option value="ai-definition">IA · Definición</option>
+                      <option value="ai-synonyms">IA · Sinónimos</option>
+                      <option value="ai-collocations">IA · Colocaciones</option>
+                      <option value="ai-nuance">IA · Matiz</option>
+                      <option value="ai-register">IA · Registro</option>
                     </select>
                   </div>
                 );
