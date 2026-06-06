@@ -21,6 +21,14 @@ import type {
 } from '../shared/types';
 
 const OFFSCREEN_URL = 'src/offscreen/index.html';
+const AUDIO_CAPTURE_SESSION_KEY = 'kivara-lingo-audio-capture-session';
+
+interface AudioCaptureSession {
+  active: boolean;
+  tabId: number;
+  mimeType?: string;
+  startedAt: number;
+}
 
 let activeTabId: number | null = null;
 let activeMimeType: string | undefined;
@@ -73,8 +81,69 @@ async function ensureOffscreen(): Promise<void> {
   });
 }
 
+async function loadStoredSession(): Promise<AudioCaptureSession | null> {
+  try {
+    const stored = await chrome.storage.session.get(AUDIO_CAPTURE_SESSION_KEY);
+    const session = stored[AUDIO_CAPTURE_SESSION_KEY] as AudioCaptureSession | undefined;
+    return session?.active && typeof session.tabId === 'number' ? session : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveStoredSession(session: AudioCaptureSession): Promise<void> {
+  try {
+    await chrome.storage.session.set({ [AUDIO_CAPTURE_SESSION_KEY]: session });
+  } catch (err) {
+    console.warn('[Kivara Lingo] failed to persist audio capture session', err);
+  }
+}
+
+async function clearStoredSession(): Promise<void> {
+  try {
+    await chrome.storage.session.remove(AUDIO_CAPTURE_SESSION_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+async function getOffscreenRecorderStatus(): Promise<{
+  ok?: boolean;
+  active?: boolean;
+  mimeType?: string;
+  error?: string;
+} | null> {
+  if (!(await hasOffscreenDocument())) return null;
+  try {
+    return await sendToOffscreen<{
+      ok?: boolean;
+      active?: boolean;
+      mimeType?: string;
+      error?: string;
+    }>({ type: 'OFFSCREEN_STATUS' });
+  } catch {
+    return null;
+  }
+}
+
+async function hydrateCaptureSession(): Promise<boolean> {
+  if (activeTabId != null) return true;
+  const session = await loadStoredSession();
+  if (!session) return false;
+  const offscreen = await getOffscreenRecorderStatus();
+  if (!offscreen?.active) {
+    await clearStoredSession();
+    return false;
+  }
+  activeTabId = session.tabId;
+  activeMimeType = offscreen.mimeType || session.mimeType;
+  lastError = undefined;
+  return true;
+}
+
 async function closeOffscreenIfIdle(): Promise<void> {
   if (activeTabId != null) return; // capture still active
+  if (await loadStoredSession()) return; // capture survived a SW restart
   if (oneShotRefs > 0) return; // another one-shot in flight
   if (!(await hasOffscreenDocument())) return;
   try {
@@ -146,17 +215,28 @@ export async function startAudioCapture(
     });
     if (!result?.ok) {
       lastError = result?.error || 'offscreen reported failure';
+      activeTabId = null;
+      activeMimeType = undefined;
+      await clearStoredSession();
+      void closeOffscreenIfIdle();
       return { ok: false, error: lastError };
     }
     activeTabId = tabId;
     activeMimeType = result.mimeType;
     lastError = undefined;
+    await saveStoredSession({
+      active: true,
+      tabId,
+      mimeType: activeMimeType,
+      startedAt: Date.now(),
+    });
     return { ok: true, mimeType: activeMimeType };
   } catch (err) {
     const reason = err instanceof Error ? err.message : 'unknown';
     lastError = reason;
     activeTabId = null;
     activeMimeType = undefined;
+    await clearStoredSession();
     // Best effort: shut the offscreen doc back down if we failed to start.
     void closeOffscreenIfIdle();
     return { ok: false, error: reason };
@@ -173,6 +253,7 @@ export async function stopAudioCapture(): Promise<void> {
   } finally {
     activeTabId = null;
     activeMimeType = undefined;
+    await clearStoredSession();
     await closeOffscreenIfIdle();
   }
 }
@@ -201,7 +282,7 @@ export async function extractAudioClip(
   endMs: number,
   options: ExtractAudioClipOptions = {},
 ): Promise<AudioClipResponse> {
-  if (activeTabId == null) {
+  if (!(await hydrateCaptureSession())) {
     return { ok: false, error: 'Audio capture is not active for this tab.' };
   }
   try {
@@ -250,7 +331,7 @@ export async function transcribeAudioClip(
   endMs: number,
   options: TranscribeClipOptions = {},
 ): Promise<TranscribeClipResult> {
-  if (activeTabId == null) {
+  if (!(await hydrateCaptureSession())) {
     return {
       clip: { ok: false, error: 'Audio capture is not active for this tab.' },
       transcription: { ok: false, error: 'Audio capture is not active for this tab.' },
@@ -297,7 +378,8 @@ export async function speakViaOffscreen(text: string, lang: string): Promise<Tts
   });
 }
 
-export function getAudioCaptureStatus(): AudioCaptureStatus {
+export async function getAudioCaptureStatus(): Promise<AudioCaptureStatus> {
+  await hydrateCaptureSession();
   return {
     active: activeTabId != null,
     tabId: activeTabId,

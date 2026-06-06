@@ -57,7 +57,7 @@ const OFFSCREEN_KEEPALIVE_ALARM = 'kivara-lingo-offscreen-keepalive';
  * the document alive.
  */
 async function ensureOffscreenKeepalive(): Promise<void> {
-  const status = getAudioCaptureStatus();
+  const status = await getAudioCaptureStatus();
   if (status.active) {
     await chrome.alarms.create(OFFSCREEN_KEEPALIVE_ALARM, { periodInMinutes: 0.33 }); // ~20s
   } else {
@@ -373,7 +373,7 @@ onMessage('STOP_AUDIO_CAPTURE', async () => {
 });
 
 onMessage('AUDIO_CAPTURE_STATUS', async () => {
-  const status: AudioCaptureStatus = getAudioCaptureStatus();
+  const status: AudioCaptureStatus = await getAudioCaptureStatus();
   return asJson(status);
 });
 
@@ -619,12 +619,22 @@ chrome.runtime.onStartup.addListener(async () => {
   await chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 });
 });
 
+chrome.tabs.onRemoved.addListener((tabId) => {
+  void (async () => {
+    const status = await getAudioCaptureStatus();
+    if (status.active && status.tabId === tabId) {
+      await stopAudioCapture();
+      await chrome.alarms.clear(OFFSCREEN_KEEPALIVE_ALARM);
+    }
+  })();
+});
+
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === OFFSCREEN_KEEPALIVE_ALARM) {
     // Ping the offscreen document to reset Chrome's 30 s inactivity timer.
     // If the document is gone (user killed it, unexpected GC), restart capture.
     try {
-      const status = getAudioCaptureStatus();
+      const status = await getAudioCaptureStatus();
       if (!status.active) {
         await chrome.alarms.clear(OFFSCREEN_KEEPALIVE_ALARM);
         return;

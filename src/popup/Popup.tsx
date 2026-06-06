@@ -4,7 +4,7 @@ import {
   Power, ExternalLink, Mic, MicOff, Settings, RefreshCw,
 } from 'lucide-react';
 import { useKivaraStore } from '../shared/store';
-import type { AnkiPingErrorCode, AnkiPingResponse } from '../shared/types';
+import type { AnkiPingErrorCode, AnkiPingResponse, AudioCaptureStatus } from '../shared/types';
 
 type PingStatus = 'idle' | 'pinging' | 'ok' | 'error';
 
@@ -45,6 +45,27 @@ export function Popup() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function syncAudioStatus() {
+      try {
+        const status = (await sendMessage(
+          'AUDIO_CAPTURE_STATUS',
+          {},
+          'background',
+        )) as AudioCaptureStatus;
+        if (!cancelled) setAudioCaptureActive(!!status.active);
+      } catch (err) {
+        console.warn('[Kivara Lingo] AUDIO_CAPTURE_STATUS failed', err);
+      }
+    }
+    void syncAudioStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [setAudioCaptureActive]);
+
 
   const runPing = useCallback(async () => {
     setPing({ status: 'pinging' });
@@ -111,7 +132,6 @@ export function Popup() {
 
   async function toggleAudioCapture() {
     const next = !audioCaptureActive;
-    setAudioCaptureActive(next);
     try {
       if (next) {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -120,12 +140,13 @@ export function Popup() {
           { tabId: tab?.id },
           'background',
         )) as { ok: boolean; error?: string };
+        setAudioCaptureActive(result.ok);
         if (!result.ok) {
-          setAudioCaptureActive(false);
           setPing((p) => ({ ...p, error: result.error || 'No se pudo iniciar la captura.' }));
         }
       } else {
         await sendMessage('STOP_AUDIO_CAPTURE', {}, 'background');
+        setAudioCaptureActive(false);
       }
     } catch (err) {
       setAudioCaptureActive(false);
