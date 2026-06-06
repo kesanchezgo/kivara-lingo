@@ -321,6 +321,73 @@ interface MergedFields {
   vip: VipEnrichment;
 }
 
+const TRANSLATION_SOURCE_PRIORITY = [
+  'cambridge',
+  'spanishDict',
+  'wordReference',
+  'linguee',
+  'reverso',
+];
+
+function sourcePriority(source: string, priority: string[]): number {
+  const idx = priority.indexOf(source);
+  return idx === -1 ? priority.length + 1 : idx;
+}
+
+function cleanLexicalTranslation(raw: string, token: string): string[] {
+  const tokenNorm = token.trim().toLowerCase();
+  const original = raw
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\[[^\]]+\]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!original || original === '—') return [];
+  if (/[.!?¿¡]/.test(original)) return [];
+  if (/^(otra palabra|another word)\b/i.test(original)) return [];
+
+  return original
+    .split(/\s*,\s*|\s*;\s*/)
+    .map((part) => part
+      .replace(/\s*⇒\s*.*$/g, '')
+      .replace(/\b(vtr|vi|v prnl|prnl|loc|loc nom [fm]|grupo nom|nom [fm]|adj|adv|prep|interj)\b.*$/gi, '')
+      .replace(/\b(masculine|feminine|singular|plural)\b.*$/gi, '')
+      .replace(/\s*\+\s*$/g, '')
+      .replace(/\s+/g, ' ')
+      .trim())
+    .filter((part) => {
+      if (!part || part === '—') return false;
+      if (part.toLowerCase() === tokenNorm) return false;
+      if (part.length > 64) return false;
+      if (/^(el|la|los|las|un|una|unos|unas|qué|que)\s+/i.test(part)) return false;
+      if (/^(me|te|se|nos|le|les|lo|la)\s+/i.test(part)) return false;
+      if (/(^|\s)(tengo|tienes|tiene|tenemos|tengan|tengas|quieres|quiero|quiere|quería|querias|sabías|sabia|sabía|sé|sabemos|llegará|puedo|puede|podemos|vamos|iremos|necesitas|necesita|avísame|avisame|dijiste|dije|fue|era|soy|eres|es|son|estoy|estás|esta|está|estan|están|conozco)(\s|$)/i.test(part)) return false;
+      const words = part.split(/\s+/).filter(Boolean);
+      if (words.length > 5) return false;
+      return true;
+    });
+}
+
+function pickLexicalTranslations(
+  token: string,
+  translations: Array<{ source: string; text: string }>,
+): string[] {
+  const seen = new Set<string>();
+  const ranked = [...translations].sort(
+    (a, b) => sourcePriority(a.source, TRANSLATION_SOURCE_PRIORITY) - sourcePriority(b.source, TRANSLATION_SOURCE_PRIORITY),
+  );
+  const out: string[] = [];
+  for (const item of ranked) {
+    for (const candidate of cleanLexicalTranslation(item.text, token)) {
+      const key = candidate.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(candidate);
+      if (out.length >= 8) return out;
+    }
+  }
+  return out;
+}
+
 function mergeFields(
   token: string,
   partials: Array<{ source: EnrichmentSource; partial: SourcePartial }>,
@@ -341,16 +408,14 @@ function mergeFields(
   const audio: NonNullable<DictionaryEntry['audio']> = [];
   const videoLinks: Array<{ url: string; source: string }> = [];
 
-  // We render entry.phonetic / entry.translation from the FIRST source
-  // that has them, ranked by preference. The order of `partials` is
-  // preserved (Standard before VIP), but within VIP we want Cambridge
-  // / Oxford to win over Datamuse-derived noise.
+  // We render entry.phonetic from the FIRST source that has it, ranked
+  // by preference. Translations are selected after all partials are collected
+  // so we can discard example sentences / grammar labels and prefer premium
+  // learner dictionaries (Cambridge / SpanishDict / WordReference) without
+  // letting noisy snippets like "Nos regaló..." leak into the main card.
   const phoneticPriority = [
     'cambridge', 'oxfordLearners', 'longman', 'collins', 'merriamWebster',
     'freeDictionary',
-  ];
-  const translationPriority = [
-    'reverso', 'wordReference', 'spanishDict', 'cambridge', 'linguee',
   ];
 
   // Accumulate everything first, then pick winners.
@@ -390,17 +455,11 @@ function mergeFields(
     }
   }
 
-  // Pick translation similarly.
-  for (const id of translationPriority) {
-    const hit = partials.find((p) => p.source.id === id && p.partial.translations?.length);
-    if (hit?.partial.translations?.length) {
-      entry.translation = hit.partial.translations[0];
-      // Fallback bilingual: first 3 translations from the source.
-      if (hit.partial.translations.length > 1) {
-        entry.bilingual = hit.partial.translations.slice(0, 4).join(' · ');
-      }
-      break;
-    }
+  // Pick clean lexical translations from all source-attributed candidates.
+  const lexicalTranslations = pickLexicalTranslations(token, allTrans);
+  if (lexicalTranslations.length) {
+    entry.translation = lexicalTranslations[0];
+    entry.bilingual = lexicalTranslations.slice(0, 4).join(' · ');
   }
 
   // Synonyms / antonyms / collocations / audio go on entry directly so
