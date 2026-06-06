@@ -21,15 +21,8 @@ export function detectFieldSource(fieldName: string): FieldSource {
     if (/word|palabra|term/.test(n)) return 'word-audio';
     return 'sentence-audio'; // default: cue/sentence audio
   }
-  if (/picture|image|imagen|frame|screenshot/.test(n)) {
-    // "Picture" / "Image" with no "frame" / "screenshot" suffix is the
-    // generic illustrative image slot — fed by the VIP image chain
-    // (Unsplash / Pixabay / Wikimedia / DuckDuckGo). When the user
-    // names the field "Frame" or "Screenshot" we keep the legacy
-    // behaviour and fill it with the live video frame.
-    if (/frame|screenshot|captura/.test(n)) return 'frame';
-    return 'image';
-  }
+  if (/picture|frame|screenshot|captura/.test(n)) return 'frame';
+  if (/image|imagen|illustration|ilustración|ilustracion/.test(n)) return 'image';
   if (/phon|ipa|pronun/.test(n)) return 'phonetic';
 
   // AI fields are explicit opt-in rich-card extras. Match them before the

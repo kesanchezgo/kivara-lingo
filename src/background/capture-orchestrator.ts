@@ -10,7 +10,7 @@ import type {
 } from '../shared/types';
 import { DEFAULT_CAPTURE } from '../shared/store';
 import { ankiConnect, dataUrlToBase64, type AnkiMedia } from './anki-connect';
-import { translateToken } from './translate';
+import { translateText, translateToken } from './translate';
 import { extractAudioClip, getAudioCaptureStatus } from './audio-capture-manager';
 import { getDB, type PendingNoteRow } from '../shared/db';
 import { enrichWithAi, getAiSettings, getResolvedNativeLang } from './ai-enrich';
@@ -89,12 +89,14 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
       return ctx.phonetic;
     case 'translation':
     case 'translate':
-      // If the field name hints at "sentence translation" (not word
-      // translation), prefer the full-sentence bilingual subtitle.
-      // Otherwise return the word-level translation from the dictionary.
-      return ctx.translation || ctx.bilingual || ctx.sentenceTranslation || '';
+      // Word/phrase-level translation shown near the headword.
+      return ctx.translation || ctx.bilingual || '';
     case 'bilingual':
-      return ctx.bilingual || ctx.translation;
+      // In the default KivaraLingo model this field is the native-language
+      // translation of the full subtitle sentence. Fall back to bilingual /
+      // word translation only when no dual-subtitle or MT sentence translation
+      // is available.
+      return ctx.sentenceTranslation || ctx.bilingual || ctx.translation;
     case 'monolingual':
       return ctx.monolingual;
     case 'examples':
@@ -108,9 +110,9 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
       if (/phon|ipa|pronun/.test(f)) return ctx.phonetic;
       if (/mono|definition|definición/.test(f)) return ctx.monolingual;
       if (/example|ejemplo|sample/.test(f)) return ctx.examples.join('<br>');
-      if (/bilingual|biling/.test(f)) return ctx.bilingual || ctx.translation;
+      if (/bilingual|biling/.test(f)) return ctx.sentenceTranslation || ctx.bilingual || ctx.translation;
       if (/translation|traduccion|traducción/.test(f)) return ctx.translation;
-      return ctx.bilingual || ctx.translation;
+      return ctx.sentenceTranslation || ctx.bilingual || ctx.translation;
     }
     case 'ai-definition':
       return ctx.ai?.contextualDefinition ?? '';
@@ -141,13 +143,15 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
       return '';
     case 'video-link':
       return ctx.videoLink ? `<a href="${ctx.videoLink}">YouGlish</a>` : '';
-    case 'tts':
     case 'word-audio':
-      // The wrapper below tries to fill this field with an audio file. If
-      // generation fails we leave the raw text (the word itself for word
-      // audio, the sentence for the legacy `tts` source) so Anki's built-in
-      // `{{tts <lang>:Field}}` template can still synthesise on review.
-      return source === 'word-audio' ? ctx.request.token : ctx.request.sentence;
+      // Audio-only field. The card already renders the headword elsewhere;
+      // returning the token here makes Anki display "know ▶" instead of just
+      // the pronunciation button.
+      return '';
+    case 'tts':
+      // Legacy text-to-speech alias keeps the old text fallback behavior for
+      // mappings created before dedicated `sentence-audio` / `word-audio`.
+      return ctx.request.sentence;
     case 'manual':
     case 'frame':
     case 'tabCapture':
@@ -171,7 +175,7 @@ async function resolveAudio(
   }
 
   // Otherwise, ask the offscreen recorder for a slice covering the cue range.
-  const status = getAudioCaptureStatus();
+  const status = await getAudioCaptureStatus();
   if (!status.active) return null;
   if (request.cueStart == null || request.cueEnd == null) return null;
 
@@ -270,6 +274,29 @@ export async function createCardFromRequest(
     wordAudioUrl: '',
   };
 
+  let targetLang = 'es';
+  try {
+    targetLang = await loadTranslateTargetLang();
+  } catch {
+    // keep default target
+  }
+
+  if (!ctx.sentenceTranslation && request.sentence?.trim()) {
+    try {
+      const translatedSentence = await translateText({
+        text: request.sentence,
+        sourceLang: request.language ?? 'en',
+        targetLang,
+      });
+      if (translatedSentence.ok && translatedSentence.translatedText) {
+        ctx.sentenceTranslation = translatedSentence.translatedText;
+      }
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : 'sentence-translation';
+      warnings.push(`Traducción de frase no disponible: ${reason}`);
+    }
+  }
+
   // Multi-source enrichment chain — same one the popover uses on hover.
   // Save-time we always run it (regardless of `enrichOnSave`) because
   // the user has already committed to a card; the extra 2-3 s spent
@@ -277,7 +304,6 @@ export async function createCardFromRequest(
   // collocations / synonyms / native audio / image we get back.
   try {
     const vipSettings = await getVipSettings();
-    const targetLang = await loadTranslateTargetLang();
     const enriched = await runEnrichment(request.token, {
       sourceLang: request.language ?? 'en',
       targetLang,
@@ -506,8 +532,11 @@ export async function createCardFromRequest(
         const reason = err instanceof Error ? err.message : 'audio';
         warnings.push(`No se pudo guardar el audio: ${reason}`);
       }
-    } else if (getAudioCaptureStatus().active === false) {
-      warnings.push('La captura de audio no está activa — no se adjuntó audio.');
+    } else {
+      const status = await getAudioCaptureStatus();
+      if (!status.active) {
+        warnings.push('La captura de audio no está activa — no se adjuntó audio.');
+      }
     }
     // If we couldn't grab tab audio, fall through and let TTS synthesise the
     // sentence — Anki will still play it on review.
