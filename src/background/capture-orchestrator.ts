@@ -65,6 +65,24 @@ function extForMime(mime: string): string {
   return 'webm';
 }
 
+function usable(value?: string | null): string {
+  const text = value?.trim() ?? '';
+  if (!text || /^[-–—]+$/.test(text)) return '';
+  return text;
+}
+
+function withSound(existing: string | undefined, filename: string): string {
+  const sound = `[sound:${filename}]`;
+  const current = existing?.trim() ?? '';
+  if (!current) return sound;
+  if (current.includes(sound)) return current;
+  return `${current}<br>${sound}`;
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /** Encode an ArrayBuffer to base64 (no `data:` prefix). */
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
@@ -86,19 +104,22 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
     case 'cue':
       return ctx.request.sentence;
     case 'phonetic':
-      return ctx.phonetic;
+      return usable(ctx.phonetic);
     case 'translation':
     case 'translate':
-      // Word/phrase-level translation shown near the headword.
-      return ctx.translation || ctx.bilingual || '';
+      // In the default KivaraLingo model, `translation` is rendered below
+      // the full subtitle sentence, so it must be the native-language
+      // translation of that sentence. It intentionally does NOT fall back to
+      // the word translation, otherwise the card shows values like
+      // "cualquier cosa" under "Does anybody want anything else?".
+      return usable(ctx.sentenceTranslation);
     case 'bilingual':
-      // In the default KivaraLingo model this field is the native-language
-      // translation of the full subtitle sentence. Fall back to bilingual /
-      // word translation only when no dual-subtitle or MT sentence translation
-      // is available.
-      return ctx.sentenceTranslation || ctx.bilingual || ctx.translation;
+      // Word/phrase-level bilingual definition shown near the top of the
+      // card. This falls back to the short translation only when the richer
+      // bilingual bucket is absent.
+      return usable(ctx.bilingual) || usable(ctx.translation);
     case 'monolingual':
-      return ctx.monolingual;
+      return usable(ctx.monolingual);
     case 'examples':
       return ctx.examples.join('<br>');
     case 'dictionary': {
@@ -107,12 +128,12 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
       // own explicit FieldSource. We sniff the destination field's name to
       // pick the most reasonable bucket.
       const f = field.toLowerCase();
-      if (/phon|ipa|pronun/.test(f)) return ctx.phonetic;
-      if (/mono|definition|definición/.test(f)) return ctx.monolingual;
+      if (/phon|ipa|pronun/.test(f)) return usable(ctx.phonetic);
+      if (/mono|definition|definición/.test(f)) return usable(ctx.monolingual);
       if (/example|ejemplo|sample/.test(f)) return ctx.examples.join('<br>');
-      if (/bilingual|biling/.test(f)) return ctx.sentenceTranslation || ctx.bilingual || ctx.translation;
-      if (/translation|traduccion|traducción/.test(f)) return ctx.translation;
-      return ctx.sentenceTranslation || ctx.bilingual || ctx.translation;
+      if (/bilingual|biling/.test(f)) return usable(ctx.bilingual) || usable(ctx.translation);
+      if (/translation|traduccion|traducción/.test(f)) return usable(ctx.sentenceTranslation);
+      return usable(ctx.bilingual) || usable(ctx.translation) || usable(ctx.sentenceTranslation);
     }
     case 'ai-definition':
       return ctx.ai?.contextualDefinition ?? '';
@@ -131,9 +152,9 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
     case 'collocations':
       return ctx.collocations.join(', ');
     case 'etymology':
-      return ctx.etymology;
+      return usable(ctx.etymology);
     case 'mnemonic':
-      return ctx.mnemonic;
+      return usable(ctx.mnemonic);
     case 'image':
       // The wrapper below downloads the URL and attaches it as an
       // AnkiConnect `pictures[]` entry. We leave the field text empty
@@ -142,7 +163,7 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
       // stays empty — a legible failure mode.)
       return '';
     case 'video-link':
-      return ctx.videoLink ? `<a href="${ctx.videoLink}">YouGlish</a>` : '';
+      return usable(ctx.videoLink) ? `<a href="${ctx.videoLink}">YouGlish</a>` : '';
     case 'word-audio':
       // Audio-only field. The card already renders the headword elsewhere;
       // returning the token here makes Anki display "know ▶" instead of just
@@ -156,7 +177,8 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
     case 'frame':
     case 'tabCapture':
     case 'sentence-audio':
-      // Media fields — the value is appended by AnkiConnect via `picture`/`audio` arrays.
+      // Media fields start empty; the orchestrator stores media and writes
+      // explicit [sound:...] markup after the field map is resolved.
       return '';
     default:
       return '';
@@ -185,15 +207,27 @@ async function resolveAudio(
   // currentTime captured at the moment the user hit save. The relationship is:
   //   wallClock(videoTime) = Date.now() - (videoTimeAtSave - videoTime) * 1
   // because video plays at 1× real-time (assuming no seek between cue and save).
-  const now = Date.now();
-  const videoNow = request.videoTimeAtSave ?? request.cueEnd ?? now;
+  const requestedAt = Date.now();
+  const videoNowAtRequest = request.videoTimeAtSave ?? request.cueEnd;
   const preRoll = Math.max(0, capture.preRoll ?? DEFAULT_CAPTURE.preRoll);
   const postRoll = Math.max(0, capture.postRoll ?? DEFAULT_CAPTURE.postRoll);
-  // How far back in wall-clock time was the cue start / end relative to "now"?
-  const cueStartAgo = videoNow - request.cueStart; // ms before videoTimeAtSave
-  const cueEndAgo = videoNow - request.cueEnd;     // ms before videoTimeAtSave (≥ 0)
-  const start = now - cueStartAgo - preRoll;
-  const end = now - cueEndAgo + postRoll;
+
+  // If the user saves while the subtitle is still being spoken, the rolling
+  // recorder does not yet contain the end of the cue. Wait just long enough
+  // for the cue end + post-roll to enter the buffer. If the video is paused
+  // by the popover, this best-effort wait will still fall through to TTS.
+  const cueEndInFuture = request.cueEnd - videoNowAtRequest;
+  if (cueEndInFuture > 0) {
+    await wait(Math.min(cueEndInFuture + postRoll + 150, 8_000));
+  }
+
+  // Compute the cue's wall-clock range from the relation captured at save
+  // time. Use the original `requestedAt` rather than Date.now() after the
+  // wait, otherwise active-cue saves drift the slice forward.
+  const cueStartAgo = videoNowAtRequest - request.cueStart;
+  const cueEndAgo = videoNowAtRequest - request.cueEnd;
+  const start = requestedAt - cueStartAgo - preRoll;
+  const end = requestedAt - cueEndAgo + postRoll;
 
   // VAD-on-extract trims the WebM/Opus chunk down to actual speech and
   // re-encodes as 16 kHz mono WAV — Anki plays it, file size is small and
@@ -253,16 +287,16 @@ export async function createCardFromRequest(
   const ctx: ResolveContext = {
     request,
     mapping,
-    translation: dictionaryHit?.translation ?? '',
+    translation: usable(dictionaryHit?.translation),
     // Keep bilingual as its own bucket. `resolveField('bilingual')` already
     // falls back to `translation`, so pre-filling this with the short
     // translation would block richer Reverso / WordReference / SpanishDict
     // data from replacing it below.
-    bilingual: dictionaryHit?.bilingual ?? '',
-    monolingual: dictionaryHit?.monolingual ?? '',
-    phonetic: dictionaryHit?.phonetic ?? '',
+    bilingual: usable(dictionaryHit?.bilingual),
+    monolingual: usable(dictionaryHit?.monolingual),
+    phonetic: usable(dictionaryHit?.phonetic),
     examples: dictionaryHit?.examples ?? [],
-    sentenceTranslation: request.sentenceTranslation ?? '',
+    sentenceTranslation: usable(request.sentenceTranslation),
     ai: aiData,
     synonyms: [],
     antonyms: [],
@@ -281,7 +315,7 @@ export async function createCardFromRequest(
     // keep default target
   }
 
-  if (!ctx.sentenceTranslation && request.sentence?.trim()) {
+  if (!usable(ctx.sentenceTranslation) && request.sentence?.trim()) {
     try {
       const translatedSentence = await translateText({
         text: request.sentence,
@@ -314,12 +348,12 @@ export async function createCardFromRequest(
     const e = enriched.entry;
     if (e) {
       // Patch ctx fields the local dictionary couldn't fill.
-      if (!ctx.translation && e.translation && e.translation !== '—') {
-        ctx.translation = e.translation;
+      if (!ctx.translation && usable(e.translation)) {
+        ctx.translation = usable(e.translation);
       }
-      if (!ctx.bilingual && e.bilingual) ctx.bilingual = e.bilingual;
-      if (!ctx.monolingual && e.monolingual) ctx.monolingual = e.monolingual;
-      if (!ctx.phonetic && e.phonetic) ctx.phonetic = e.phonetic;
+      if (!ctx.bilingual && usable(e.bilingual)) ctx.bilingual = usable(e.bilingual);
+      if (!ctx.monolingual && usable(e.monolingual)) ctx.monolingual = usable(e.monolingual);
+      if (!ctx.phonetic && usable(e.phonetic)) ctx.phonetic = usable(e.phonetic);
       // Examples: keep local curated examples, but append enriched examples
       // from Standard/VIP sources so the single `examples` Anki field
       // represents the same rich card the popover shows. Dedupe by text to
@@ -347,10 +381,14 @@ export async function createCardFromRequest(
     if (enriched.vip) {
       const sourceDefinitions = enriched.vip.definitions ?? [];
       const sourceTranslations = enriched.vip.translations ?? [];
-      if (!ctx.monolingual && sourceDefinitions.length > 0) ctx.monolingual = sourceDefinitions[0].text;
-      if (!ctx.translation && sourceTranslations.length > 0) ctx.translation = sourceTranslations[0].text;
+      if (!ctx.monolingual && sourceDefinitions.length > 0) ctx.monolingual = usable(sourceDefinitions[0].text);
+      if (!ctx.translation && sourceTranslations.length > 0) ctx.translation = usable(sourceTranslations[0].text);
       if (!ctx.bilingual && sourceTranslations.length > 0) {
-        ctx.bilingual = sourceTranslations.slice(0, 4).map((t) => t.text).join(' · ');
+        ctx.bilingual = sourceTranslations
+          .map((t) => usable(t.text))
+          .filter(Boolean)
+          .slice(0, 4)
+          .join(' · ');
       }
       if (enriched.vip.etymology) ctx.etymology = enriched.vip.etymology;
       if (enriched.vip.mnemonic) ctx.mnemonic = enriched.vip.mnemonic;
@@ -501,7 +539,10 @@ export async function createCardFromRequest(
   //   tabCapture/tts (legacy aliases — same behaviour, kept for backward
   //                   compatibility with saved mappings).
   // We attach sentence audio first (it's the higher-quality source) and TTS
-  // as a fallback / separate field when present.
+  // as a fallback / separate field when present. Audio fields are written
+  // explicitly as [sound:...] after storeMediaFile for maximum template
+  // compatibility; the AnkiConnect `audio[]` array is intentionally left
+  // empty for these new sources.
   const audios: AnkiMedia[] = [];
   const sentenceAudioField =
     fieldMapping.find(([, s]) => s === 'sentence-audio')?.[0] ??
@@ -522,11 +563,7 @@ export async function createCardFromRequest(
           mapping.ankiUrl,
           mapping.apiKey,
         );
-        audios.push({
-          filename,
-          data: dataUrlToBase64(resolved.dataUrl),
-          fields: [sentenceAudioField],
-        });
+        fields[sentenceAudioField] = withSound(fields[sentenceAudioField], filename);
         sentenceAudioAttached = true;
       } catch (err) {
         const reason = err instanceof Error ? err.message : 'audio';
@@ -547,7 +584,7 @@ export async function createCardFromRequest(
           const filename = safeFilename(`${request.token}_sentence`, extForMime(tts.mime));
           const data = dataUrlToBase64(tts.dataUrl);
           await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
-          audios.push({ filename, data, fields: [sentenceAudioField] });
+          fields[sentenceAudioField] = withSound(fields[sentenceAudioField], filename);
           sentenceAudioAttached = true;
         }
       } catch {
@@ -572,7 +609,7 @@ export async function createCardFromRequest(
           const data = arrayBufferToBase64(buf);
           const filename = safeFilename(headword, extForMime(mime));
           await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
-          audios.push({ filename, data, fields: [wordAudioField] });
+          fields[wordAudioField] = withSound(fields[wordAudioField], filename);
           attached = true;
         }
       } catch (err) {
@@ -589,7 +626,7 @@ export async function createCardFromRequest(
           const filename = safeFilename(headword, extForMime(tts.mime));
           const data = dataUrlToBase64(tts.dataUrl);
           await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
-          audios.push({ filename, data, fields: [wordAudioField] });
+          fields[wordAudioField] = withSound(fields[wordAudioField], filename);
         }
       } catch (err) {
         const reason = err instanceof Error ? err.message : 'word-audio';
@@ -611,7 +648,7 @@ export async function createCardFromRequest(
           const filename = safeFilename(request.token, extForMime(tts.mime));
           const data = dataUrlToBase64(tts.dataUrl);
           await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
-          audios.push({ filename, data, fields: [legacyTtsField] });
+          fields[legacyTtsField] = withSound(fields[legacyTtsField], filename);
         }
       } catch (err) {
         const reason = err instanceof Error ? err.message : 'tts';
