@@ -43,6 +43,29 @@ interface AppProps {
   videoOverlayRoot?: HTMLElement | null;
 }
 
+interface SubtitleAudioAnchor {
+  videoTimeAtSave?: number;
+  videoPausedAtSave?: boolean;
+}
+
+async function waitForVideoTime(
+  video: HTMLVideoElement,
+  targetSeconds: number,
+  timeoutMs: number,
+): Promise<void> {
+  const start = performance.now();
+  await new Promise<void>((resolve) => {
+    const tick = () => {
+      if (video.currentTime >= targetSeconds || performance.now() - start >= timeoutMs) {
+        resolve();
+        return;
+      }
+      window.setTimeout(tick, 60);
+    };
+    tick();
+  });
+}
+
 export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   const {
     enabled,
@@ -600,6 +623,70 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     return () => chrome.runtime.onMessage.removeListener(handler);
   }, [activeCue, setPanelOpen, videoElement]);
 
+  const ensureSubtitleAudioReady = useCallback(async (): Promise<SubtitleAudioAnchor> => {
+    if (!videoElement || !activeCue?.end) {
+      return {
+        videoTimeAtSave: videoElement ? videoElement.currentTime * 1000 : adapter?.getCurrentTime?.(),
+        videoPausedAtSave: videoElement?.paused,
+      };
+    }
+
+    const currentMs = videoElement.currentTime * 1000;
+    const remainingMs = activeCue.end - currentMs;
+    if (!videoElement.paused || remainingMs <= 120) {
+      return {
+        videoTimeAtSave: currentMs,
+        videoPausedAtSave: videoElement.paused,
+      };
+    }
+
+    const originalTime = videoElement.currentTime;
+    const originalKivaraPaused = kivaraPausedRef.current;
+    const targetSeconds = activeCue.end / 1000 + 0.25;
+    const timeoutMs = Math.min(Math.max(remainingMs + 750, 1_000), 10_000);
+    const toastId = toast.loading('Capturando audio del subtítulo…', {
+      description: 'Reproduciendo unos segundos para completar el audio y volver al punto exacto.',
+    });
+
+    try {
+      hoverRevRef.current += 1;
+      await videoElement.play();
+      await waitForVideoTime(videoElement, targetSeconds, timeoutMs);
+      const audioAnchor = videoElement.currentTime * 1000;
+      videoElement.pause();
+      try {
+        videoElement.currentTime = originalTime;
+      } catch (err) {
+        console.warn('[Kivara Lingo] could not restore video time after audio capture', err);
+      }
+      kivaraPausedRef.current = originalKivaraPaused;
+      toast.success('Audio del subtítulo capturado', { id: toastId, duration: 1200 });
+      return {
+        videoTimeAtSave: audioAnchor,
+        videoPausedAtSave: false,
+      };
+    } catch (err) {
+      try {
+        if (!videoElement.paused) videoElement.pause();
+        videoElement.currentTime = originalTime;
+      } catch {
+        // ignore restore failures
+      }
+      kivaraPausedRef.current = originalKivaraPaused;
+      const reason = err instanceof Error ? err.message : 'no se pudo reproducir temporalmente';
+      toast.warning('No se pudo completar el audio real', {
+        id: toastId,
+        description: 'Se usará TTS de la oración como respaldo.',
+        duration: 2200,
+      });
+      console.warn('[Kivara Lingo] subtitle audio completion failed', reason);
+      return {
+        videoTimeAtSave: originalTime * 1000,
+        videoPausedAtSave: true,
+      };
+    }
+  }, [activeCue?.end, adapter, videoElement]);
+
   const handleSaveCard = async (token: string | undefined, sentence: string) => {
     if (!enabled) return;
     const tokenValue = token?.trim() || sentence.trim();
@@ -610,14 +697,16 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       frameDataUrl = await captureFrame(videoElement);
     }
 
+    const audioAnchor = await ensureSubtitleAudioReady();
+
     const request: CreateCardRequest = {
       token: tokenValue,
       sentence,
       frame: frameDataUrl ?? undefined,
       cueStart: activeCue?.start,
       cueEnd: activeCue?.end,
-      videoTimeAtSave: videoElement ? videoElement.currentTime * 1000 : adapter?.getCurrentTime?.(),
-      videoPausedAtSave: videoElement?.paused,
+      videoTimeAtSave: audioAnchor.videoTimeAtSave,
+      videoPausedAtSave: audioAnchor.videoPausedAtSave,
       language: cueLanguageRef.current,
       platform: adapter?.platform,
     };
