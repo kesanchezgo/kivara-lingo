@@ -149,7 +149,10 @@ export async function resolveWordStreaming(
    * enrichment→synonyms/antonyms/etc., AI→vip.mnemonic/etymology) and
    * never downgrades a value another phase set.
    */
-  const needsRemoteTranslation = !hasRealTranslation(local) && !yomitanPackTitle;
+  // Yomitan packs are user-provided dictionaries and should keep their
+  // translation. Bundled translations are only the fast first paint; still
+  // ask the MT chain so weak lexical glosses can be improved a moment later.
+  const needsRemoteTranslation = !yomitanPackTitle;
   let remoteServed = false;
 
   // Phase 2 — remote translator.
@@ -162,11 +165,8 @@ export async function resolveWordStreaming(
         if (local) {
           local = {
             ...local,
-            translation: hasRealTranslation(local) ? local.translation : remote.translatedText,
-            bilingual:
-              local.bilingual && local.bilingual !== '—'
-                ? local.bilingual
-                : remote.translatedText,
+            translation: remote.translatedText || local.translation,
+            bilingual: remote.translatedText || local.bilingual || local.translation,
           };
         } else {
           local = {
@@ -218,20 +218,22 @@ export async function resolveWordStreaming(
         const bestTranslation =
           localTrReal && resolvedPackId && resolvedPackId !== BUNDLE_PACK_ID
             ? local!.translation
-            : localTrReal
-              ? local!.translation
-              : chainTrReal
-                ? result.entry.translation
+            : chainTrReal
+              ? result.entry.translation
+              : localTrReal
+                ? local!.translation
                 : result.entry.translation;
         const merged: DictionaryEntry = {
           ...(local ?? result.entry),
           translation: bestTranslation,
           bilingual:
-            (local?.bilingual && local.bilingual !== '—' ? local.bilingual : undefined) ??
+            (resolvedPackId && resolvedPackId !== BUNDLE_PACK_ID && local?.bilingual && local.bilingual !== '—'
+              ? local.bilingual
+              : undefined) ??
             (result.entry.bilingual && result.entry.bilingual !== '—'
               ? result.entry.bilingual
               : undefined) ??
-            local?.bilingual ??
+            (local?.bilingual && local.bilingual !== '—' ? local.bilingual : undefined) ??
             result.entry.bilingual,
           synonyms: result.entry.synonyms ?? local?.synonyms,
           antonyms: result.entry.antonyms ?? local?.antonyms,

@@ -217,6 +217,13 @@ async function resolveAudio(
   // for the cue end + post-roll to enter the buffer. If the video is paused
   // by the popover, this best-effort wait will still fall through to TTS.
   const cueEndInFuture = request.cueEnd - videoNowAtRequest;
+  if (request.videoPausedAtSave && cueEndInFuture > 100) {
+    // Hover/save often pauses the video before the subtitle finishes. In that
+    // state the missing tail cannot enter the recorder buffer, so asking for
+    // the full cue would produce silence/partial audio. Return null and let
+    // the caller attach sentence TTS instead of a broken live clip.
+    return null;
+  }
   if (cueEndInFuture > 0) {
     await wait(Math.min(cueEndInFuture + postRoll + 150, 8_000));
   }
@@ -238,7 +245,10 @@ async function resolveAudio(
     // syncs faster with AnkiWeb. The offscreen processor falls back to
     // WAV automatically if the MP3 encoder fails to load (e.g. CSP
     // blocking the dynamic import).
-    format: 'mp3',
+    // WAV is larger but stable. The MP3 encoder currently falls back because
+    // lamejs references an undefined MPEGMode in the MV3 bundle, so avoid the
+    // noisy failing path until the encoder is replaced/fixed.
+    format: 'wav',
     useVad,
     preRollMs: preRoll,
     postRollMs: postRoll,
@@ -296,7 +306,11 @@ export async function createCardFromRequest(
     monolingual: usable(dictionaryHit?.monolingual),
     phonetic: usable(dictionaryHit?.phonetic),
     examples: dictionaryHit?.examples ?? [],
-    sentenceTranslation: usable(request.sentenceTranslation),
+    // Do not trust dual-subtitle text as the learning-card translation: it
+    // often belongs to a neighbouring subtitle or is adapted/non-literal. We
+    // translate the exact captured source sentence below and only use the
+    // caller-provided value as a last-resort fallback if MT is unavailable.
+    sentenceTranslation: '',
     ai: aiData,
     synonyms: [],
     antonyms: [],
@@ -315,7 +329,7 @@ export async function createCardFromRequest(
     // keep default target
   }
 
-  if (!usable(ctx.sentenceTranslation) && request.sentence?.trim()) {
+  if (request.sentence?.trim()) {
     try {
       const translatedSentence = await translateText({
         text: request.sentence,
@@ -323,13 +337,14 @@ export async function createCardFromRequest(
         targetLang,
       });
       if (translatedSentence.ok && translatedSentence.translatedText) {
-        ctx.sentenceTranslation = translatedSentence.translatedText;
+        ctx.sentenceTranslation = usable(translatedSentence.translatedText);
       }
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'sentence-translation';
       warnings.push(`Traducción de frase no disponible: ${reason}`);
     }
   }
+  if (!ctx.sentenceTranslation) ctx.sentenceTranslation = usable(request.sentenceTranslation);
 
   // Multi-source enrichment chain — same one the popover uses on hover.
   // Save-time we always run it (regardless of `enrichOnSave`) because
@@ -347,11 +362,13 @@ export async function createCardFromRequest(
     });
     const e = enriched.entry;
     if (e) {
-      // Patch ctx fields the local dictionary couldn't fill.
-      if (!ctx.translation && usable(e.translation)) {
+      // Patch ctx fields with the richer Standard/VIP chain. The bundled
+      // dictionary paints fast but can be lexically weak, so enrichment / MT
+      // candidates are allowed to replace the bundled bilingual gloss.
+      if (usable(e.translation)) {
         ctx.translation = usable(e.translation);
       }
-      if (!ctx.bilingual && usable(e.bilingual)) ctx.bilingual = usable(e.bilingual);
+      if (usable(e.bilingual)) ctx.bilingual = usable(e.bilingual);
       if (!ctx.monolingual && usable(e.monolingual)) ctx.monolingual = usable(e.monolingual);
       if (!ctx.phonetic && usable(e.phonetic)) ctx.phonetic = usable(e.phonetic);
       // Examples: keep local curated examples, but append enriched examples
@@ -382,8 +399,10 @@ export async function createCardFromRequest(
       const sourceDefinitions = enriched.vip.definitions ?? [];
       const sourceTranslations = enriched.vip.translations ?? [];
       if (!ctx.monolingual && sourceDefinitions.length > 0) ctx.monolingual = usable(sourceDefinitions[0].text);
-      if (!ctx.translation && sourceTranslations.length > 0) ctx.translation = usable(sourceTranslations[0].text);
-      if (!ctx.bilingual && sourceTranslations.length > 0) {
+      if (sourceTranslations.length > 0 && usable(sourceTranslations[0].text)) {
+        ctx.translation = usable(sourceTranslations[0].text);
+      }
+      if (sourceTranslations.length > 0) {
         ctx.bilingual = sourceTranslations
           .map((t) => usable(t.text))
           .filter(Boolean)

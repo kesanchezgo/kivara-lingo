@@ -906,6 +906,8 @@ export interface CreateCardRequest {
    * for the rolling audio buffer slice.
    */
   videoTimeAtSave?: number;
+  /** Whether the media element was paused when the user triggered save. */
+  videoPausedAtSave?: boolean;
   language?: string;
   platform?: string;
 }

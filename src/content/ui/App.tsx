@@ -613,11 +613,11 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     const request: CreateCardRequest = {
       token: tokenValue,
       sentence,
-      sentenceTranslation: altCue?.text,
       frame: frameDataUrl ?? undefined,
       cueStart: activeCue?.start,
       cueEnd: activeCue?.end,
       videoTimeAtSave: videoElement ? videoElement.currentTime * 1000 : adapter?.getCurrentTime?.(),
+      videoPausedAtSave: videoElement?.paused,
       language: cueLanguageRef.current,
       platform: adapter?.platform,
     };

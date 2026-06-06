@@ -93,11 +93,15 @@ export async function translateToken(
   // Always try the local dictionary first — it has phonetics and definitions.
   const entry = lookupDictionary(token, lang);
 
-  // If the local entry is complete (has phonetic AND monolingual), return it.
-  if (entry && entry.phonetic && entry.monolingual) return entry;
+  // Even when the local entry is complete, still ask the configured MT
+  // chain for the short bilingual gloss. The bundled dictionary is fast and
+  // good for IPA/definitions, but some lexical translations are too literal
+  // or POS-skewed for learners (e.g. adjective "wonderful" → noun
+  // "maravilla"). Save/hover quality is better when the MT chain can
+  // replace the bundled Spanish gloss while we keep the local IPA/examples.
 
   // Fall back to the configured provider(s) for unknown tokens OR to
-  // supplement a local entry that is missing fields.
+  // supplement a local entry that is missing/weak translation fields.
   const settings = await loadSettings();
   if (settings.mode === 'single' && settings.provider === 'offline') return entry ?? null;
 
@@ -109,13 +113,13 @@ export async function translateToken(
 
   if (!remote.ok || !remote.translatedText) return entry ?? null;
 
-  // If we had a local entry, merge the remote translation into the missing
-  // fields so the card doesn't show empty placeholders.
+  // If we had a local entry, let the configured translator own the bilingual
+  // gloss while preserving local IPA, monolingual definitions and examples.
   if (entry) {
     return {
       ...entry,
-      translation: entry.translation || remote.translatedText,
-      bilingual: entry.bilingual || remote.translatedText,
+      translation: remote.translatedText || entry.translation,
+      bilingual: remote.translatedText || entry.bilingual || entry.translation,
       // phonetic and monolingual stay as-is if the local dict has them
     };
   }

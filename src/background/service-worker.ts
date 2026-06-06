@@ -78,7 +78,7 @@ async function installAnkiOriginRule(): Promise<void> {
   if (!chrome.declarativeNetRequest?.updateSessionRules) return;
   try {
     await chrome.declarativeNetRequest.updateSessionRules({
-      removeRuleIds: [ANKI_DNR_RULE_ID],
+      removeRuleIds: [ANKI_DNR_RULE_ID, ANKI_DNR_RULE_ID + 1],
       addRules: [
         {
           id: ANKI_DNR_RULE_ID,

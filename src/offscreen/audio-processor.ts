@@ -225,24 +225,21 @@ async function stopCapture(): Promise<void> {
   unloadWhisper();
 }
 
-/** Build a self-contained WebM blob covering [sliceStart, sliceEnd]. */
-function buildWebmBlob(sliceStart: number, sliceEnd: number): Blob | null {
+/** Build a self-contained WebM blob that is contiguous up to sliceEnd. */
+function buildWebmBlob(_sliceStart: number, sliceEnd: number): Blob | null {
   if (!chunks.length) return null;
 
-  // MediaRecorder writes a self-contained stream — the first chunk includes
-  // the container header. To produce a playable file we must always include
-  // the very first chunk, then append any chunks whose time range overlaps
-  // the requested window. This keeps the WebM/Opus framing intact.
-  const header = chunks[0].blob;
-  const overlapping = chunks
-    .filter(
-      (c) =>
-        c.recordedAt + c.durationMs >= sliceStart && c.recordedAt <= sliceEnd,
-    )
+  // MediaRecorder's first chunk carries the container header. Previous code
+  // concatenated only [header + overlapping chunks], skipping the middle of
+  // the rolling buffer. Decoding that blob made clip-local offsets invalid
+  // and caused sentence-audio extraction to trim the wrong region. Keep the
+  // stream contiguous from the first buffered chunk through sliceEnd; the
+  // caller then trims the requested [sliceStart, sliceEnd] window in PCM.
+  const parts = chunks
+    .filter((c) => c.recordedAt <= sliceEnd)
     .map((c) => c.blob);
 
-  const parts = overlapping.includes(header) ? overlapping : [header, ...overlapping];
-  return new Blob(parts, { type: recordedMime || 'audio/webm' });
+  return parts.length ? new Blob(parts, { type: recordedMime || 'audio/webm' }) : null;
 }
 
 interface ExtractOptions {
