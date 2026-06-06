@@ -1,0 +1,15 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "wonderful",
+  "url": "https://api.wiktapi.dev/v1/en/word/wonderful/pronunciations?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/wonderful/pronunciations?lang=en",
+  "ok": true,
+  "status": 200,
+  "statusText": "OK",
+  "ms": 138,
+  "contentType": "application/json;charset=UTF-8",
+  "bytes": 532,
+  "sha256": "bee12431f0b075bbf0603caf37a063cff2600770e657592c91dafaccd7af3f1f",
+  "bodySample": "{\"word\":\"wonderful\",\"edition\":\"en\",\"pronunciations\":[{\"pos\":\"adj\",\"lang_code\":\"en\",\"sounds\":[{\"ipa\":\"/ˈwʌn.də.fl̩/\",\"audio\":null,\"tags\":[\"Received-Pronunciation\"]},{\"ipa\":\"/ˈwʌn.dɚ.fl̩/\",\"audio\":null,\"tags\":[\"General-American\"]},{\"ipa\":null,\"audio\":\"en-us-wonderful.ogg\",\"tags\":[]}]},{\"pos\":\"adv\",\"lang_code\":\"en\",\"sounds\":[{\"ipa\":\"/ˈwʌn.də.fl̩/\",\"audio\":null,\"tags\":[\"Received-Pronunciation\"]},{\"ipa\":\"/ˈwʌn.dɚ.fl̩/\",\"audio\":null,\"tags\":[\"General-American\"]},{\"ipa\":null,\"audio\":\"en-us-wonderful.ogg\",\"tags\":[]}]}]}"
+}
