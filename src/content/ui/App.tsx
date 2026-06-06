@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Toaster, toast } from 'sonner';
-import { CheckCircle2 } from 'lucide-react';
 import { sendMessage } from 'webext-bridge/content-script';
 import { SidePanel } from './SidePanel';
 import { SubtitleOverlay } from './SubtitleOverlay';
@@ -644,9 +643,6 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     const originalKivaraPaused = kivaraPausedRef.current;
     const targetSeconds = activeCue.end / 1000 + 0.25;
     const timeoutMs = Math.min(Math.max(remainingMs + 750, 1_000), 10_000);
-    const toastId = toast.loading('Capturando audio del subtítulo…', {
-      description: 'Reproduciendo unos segundos para completar el audio y volver al punto exacto.',
-    });
 
     try {
       hoverRevRef.current += 1;
@@ -660,7 +656,6 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
         console.warn('[Kivara Lingo] could not restore video time after audio capture', err);
       }
       kivaraPausedRef.current = originalKivaraPaused;
-      toast.success('Audio del subtítulo capturado', { id: toastId, duration: 1200 });
       return {
         videoTimeAtSave: audioAnchor,
         videoPausedAtSave: false,
@@ -674,12 +669,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       }
       kivaraPausedRef.current = originalKivaraPaused;
       const reason = err instanceof Error ? err.message : 'no se pudo reproducir temporalmente';
-      toast.warning('No se pudo completar el audio real', {
-        id: toastId,
-        description: 'Se usará TTS de la oración como respaldo.',
-        duration: 2200,
-      });
-      console.warn('[Kivara Lingo] subtitle audio completion failed', reason);
+      console.warn('[Kivara Lingo] subtitle audio completion failed; using TTS fallback', reason);
       return {
         videoTimeAtSave: originalTime * 1000,
         videoPausedAtSave: true,
@@ -691,6 +681,10 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     if (!enabled) return;
     const tokenValue = token?.trim() || sentence.trim();
     if (!tokenValue) return;
+
+    const saveToastId = toast.loading('Guardando tarjeta…', {
+      description: 'Preparando frame, audio y campos de Anki.',
+    });
 
     let frameDataUrl: string | null = null;
     if (videoElement) {
@@ -722,39 +716,20 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
             fieldName: findFrameFieldName(ankiMapping.fieldSources) ?? null,
           };
         }
-        toast.custom(
-          (id) => (
-            <div className="flex items-center gap-2.5 bg-zinc-900/95 backdrop-blur-xl border border-zinc-700/60 rounded-lg shadow-2xl px-3 py-2.5 min-w-[280px]">
-              <div className="w-7 h-7 rounded-md bg-emerald-500/15 ring-1 ring-emerald-500/30 flex items-center justify-center shrink-0">
-                <CheckCircle2 size={14} className="text-emerald-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[12px] font-semibold text-white leading-tight">Tarjeta guardada</div>
-                <div className="text-[10px] text-zinc-400 leading-tight mt-0.5 truncate">
-                  <span className="font-mono text-indigo-300">{tokenValue}</span>
-                  <span className="text-zinc-500"> → </span>
-                  {ankiMapping.deckName}
-                </div>
-              </div>
-              <button
-                onClick={() => toast.dismiss(id)}
-                className="text-[10px] font-medium text-zinc-500 hover:text-zinc-300 px-1.5 py-0.5 rounded transition-colors shrink-0"
-              >
-                OK
-              </button>
-            </div>
-          ),
-          { duration: 3200 },
-        );
-        if (response.warnings?.length) {
-          toast.message(response.warnings.join(' · '));
-        }
+        const warningSuffix = response.warnings?.length
+          ? ` · ${response.warnings.join(' · ')}`
+          : '';
+        toast.success('Tarjeta guardada', {
+          id: saveToastId,
+          description: `${tokenValue} → ${ankiMapping.deckName}${warningSuffix}`,
+          duration: 3200,
+        });
       } else {
-        toast.error(response?.error ?? 'Error guardando en Anki');
+        toast.error(response?.error ?? 'Error guardando en Anki', { id: saveToastId });
       }
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'desconocido';
-      toast.error(`Error guardando en Anki: ${reason}`);
+      toast.error(`Error guardando en Anki: ${reason}`, { id: saveToastId });
     }
   };
 

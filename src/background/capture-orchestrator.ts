@@ -71,6 +71,23 @@ function usable(value?: string | null): string {
   return text;
 }
 
+function isLexicalGloss(value?: string | null): boolean {
+  const text = usable(value);
+  if (!text) return false;
+  if (/[.!?¿¡]/.test(text)) return false;
+  if (text.length > 64) return false;
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length > 5) return false;
+  // Reject translated examples or subtitle-like clauses. A bilingual gloss
+  // should be a compact lexical value such as "dar", "ofrecer" or
+  // "dar a". Sentences from Reverso/SpanishDict examples belong in examples,
+  // never in the card's main bilingual definition.
+  if (/\b(cuando|porque|aunque|mientras|entonces|taxista|casamos|regal[oó]|dije|guardara)\b/i.test(text)) {
+    return false;
+  }
+  return true;
+}
+
 function withSound(existing: string | undefined, filename: string): string {
   const sound = `[sound:${filename}]`;
   const current = existing?.trim() ?? '';
@@ -365,10 +382,10 @@ export async function createCardFromRequest(
       // Patch ctx fields with the richer Standard/VIP chain. The bundled
       // dictionary paints fast but can be lexically weak, so enrichment / MT
       // candidates are allowed to replace the bundled bilingual gloss.
-      if (usable(e.translation)) {
+      if (!ctx.translation && usable(e.translation)) {
         ctx.translation = usable(e.translation);
       }
-      if (usable(e.bilingual)) ctx.bilingual = usable(e.bilingual);
+      if (!ctx.bilingual && usable(e.bilingual)) ctx.bilingual = usable(e.bilingual);
       if (!ctx.monolingual && usable(e.monolingual)) ctx.monolingual = usable(e.monolingual);
       if (!ctx.phonetic && usable(e.phonetic)) ctx.phonetic = usable(e.phonetic);
       // Examples: keep local curated examples, but append enriched examples
@@ -399,15 +416,14 @@ export async function createCardFromRequest(
       const sourceDefinitions = enriched.vip.definitions ?? [];
       const sourceTranslations = enriched.vip.translations ?? [];
       if (!ctx.monolingual && sourceDefinitions.length > 0) ctx.monolingual = usable(sourceDefinitions[0].text);
-      if (sourceTranslations.length > 0 && usable(sourceTranslations[0].text)) {
-        ctx.translation = usable(sourceTranslations[0].text);
+      const lexicalTranslations = sourceTranslations
+        .map((t) => usable(t.text))
+        .filter((text) => isLexicalGloss(text));
+      if (!ctx.translation && lexicalTranslations.length > 0) {
+        ctx.translation = lexicalTranslations[0];
       }
-      if (sourceTranslations.length > 0) {
-        ctx.bilingual = sourceTranslations
-          .map((t) => usable(t.text))
-          .filter(Boolean)
-          .slice(0, 4)
-          .join(' · ');
+      if (!ctx.bilingual && lexicalTranslations.length > 0) {
+        ctx.bilingual = lexicalTranslations.slice(0, 4).join(' · ');
       }
       if (enriched.vip.etymology) ctx.etymology = enriched.vip.etymology;
       if (enriched.vip.mnemonic) ctx.mnemonic = enriched.vip.mnemonic;

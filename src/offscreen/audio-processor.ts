@@ -96,6 +96,13 @@ interface ChunkRecord {
   durationMs: number;
 }
 
+interface PcmChunkRecord {
+  samples: Float32Array;
+  recordedAt: number;
+  durationMs: number;
+  sampleRate: number;
+}
+
 const TIMESLICE_MS = 250;
 const TARGET_SAMPLE_RATE = 16_000;
 
@@ -103,7 +110,11 @@ let mediaRecorder: MediaRecorder | null = null;
 let stream: MediaStream | null = null;
 let audioCtx: AudioContext | null = null;
 let sourceNode: MediaStreamAudioSourceNode | null = null;
+let processorNode: ScriptProcessorNode | null = null;
+let silentGain: GainNode | null = null;
 let chunks: ChunkRecord[] = [];
+let pcmChunks: PcmChunkRecord[] = [];
+let recorderHeader: Blob | null = null;
 let bufferSizeMs = 30_000;
 let recordedMime = '';
 /** wall-clock ms when MediaRecorder was started — anchor for all timestamps */
@@ -155,6 +166,35 @@ async function startCapture(
     audioCtx = new AudioContext();
     sourceNode = audioCtx.createMediaStreamSource(stream);
     sourceNode.connect(audioCtx.destination);
+
+    // Keep a PCM ring buffer in parallel with MediaRecorder. This is more
+    // reliable for Anki sentence audio than reconstructing old WebM chunks:
+    // once MediaRecorder's initial header falls out of the rolling window,
+    // decodeAudioData can fail with EncodingError. PCM is already decoded and
+    // timestamped, so extraction is deterministic.
+    processorNode = audioCtx.createScriptProcessor(4096, 2, 1);
+    silentGain = audioCtx.createGain();
+    silentGain.gain.value = 0;
+    processorNode.onaudioprocess = (event) => {
+      const input = event.inputBuffer;
+      const length = input.length;
+      const channels = Math.max(1, input.numberOfChannels);
+      const mono = new Float32Array(length);
+      for (let ch = 0; ch < channels; ch += 1) {
+        const data = input.getChannelData(ch);
+        for (let i = 0; i < length; i += 1) mono[i] += data[i] / channels;
+      }
+      const durationMs = (length / input.sampleRate) * 1000;
+      pcmChunks.push({
+        samples: mono,
+        recordedAt: Date.now() - durationMs,
+        durationMs,
+        sampleRate: input.sampleRate,
+      });
+      pruneOld();
+    };
+    sourceNode.connect(processorNode);
+    processorNode.connect(silentGain).connect(audioCtx.destination);
   } catch (err) {
     console.warn('[Kivara Lingo] failed to wire audio passthrough', err);
   }
@@ -172,9 +212,12 @@ async function startCapture(
   recordedMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
   recordingStartedAt = Date.now();
   chunks = [];
+  pcmChunks = [];
+  recorderHeader = null;
 
   mediaRecorder.ondataavailable = (event: BlobEvent) => {
     if (!event.data || !event.data.size) return;
+    if (!recorderHeader) recorderHeader = event.data;
     chunks.push({
       blob: event.data,
       recordedAt: Date.now(),
@@ -189,11 +232,20 @@ async function startCapture(
 }
 
 function pruneOld() {
-  if (!chunks.length) return;
   const horizon = Date.now() - bufferSizeMs;
-  let firstKeep = 0;
-  while (firstKeep < chunks.length && chunks[firstKeep].recordedAt < horizon) firstKeep++;
-  if (firstKeep > 0) chunks.splice(0, firstKeep);
+  if (chunks.length) {
+    let firstKeep = 0;
+    while (firstKeep < chunks.length && chunks[firstKeep].recordedAt < horizon) firstKeep++;
+    if (firstKeep > 0) chunks.splice(0, firstKeep);
+  }
+  if (pcmChunks.length) {
+    let firstKeep = 0;
+    while (
+      firstKeep < pcmChunks.length &&
+      pcmChunks[firstKeep].recordedAt + pcmChunks[firstKeep].durationMs < horizon
+    ) firstKeep++;
+    if (firstKeep > 0) pcmChunks.splice(0, firstKeep);
+  }
 }
 
 async function stopCapture(): Promise<void> {
@@ -212,12 +264,26 @@ async function stopCapture(): Promise<void> {
   }
   sourceNode = null;
   try {
+    processorNode?.disconnect();
+  } catch {
+    // ignore
+  }
+  processorNode = null;
+  try {
+    silentGain?.disconnect();
+  } catch {
+    // ignore
+  }
+  silentGain = null;
+  try {
     await audioCtx?.close();
   } catch {
     // ignore
   }
   audioCtx = null;
   chunks = [];
+  pcmChunks = [];
+  recorderHeader = null;
   recordedMime = '';
   recordingStartedAt = 0;
   // Free the (potentially large) Whisper model when capture stops — we'll
@@ -238,8 +304,52 @@ function buildWebmBlob(_sliceStart: number, sliceEnd: number): Blob | null {
   const parts = chunks
     .filter((c) => c.recordedAt <= sliceEnd)
     .map((c) => c.blob);
+  if (recorderHeader && !parts.includes(recorderHeader)) parts.unshift(recorderHeader);
 
   return parts.length ? new Blob(parts, { type: recordedMime || 'audio/webm' }) : null;
+}
+
+function resampleLinear(input: Float32Array, fromRate: number, toRate: number): Float32Array {
+  if (fromRate === toRate) return input;
+  const outLength = Math.max(1, Math.round((input.length * toRate) / fromRate));
+  const output = new Float32Array(outLength);
+  const ratio = fromRate / toRate;
+  for (let i = 0; i < outLength; i += 1) {
+    const pos = i * ratio;
+    const left = Math.floor(pos);
+    const right = Math.min(input.length - 1, left + 1);
+    const frac = pos - left;
+    output[i] = input[left] * (1 - frac) + input[right] * frac;
+  }
+  return output;
+}
+
+function buildPcmClip(sliceStart: number, sliceEnd: number): { samples: Float32Array; sampleRate: number } | null {
+  if (!pcmChunks.length) return null;
+  const sampleRate = pcmChunks[0].sampleRate;
+  const segments: Float32Array[] = [];
+  let total = 0;
+  for (const chunk of pcmChunks) {
+    const chunkStart = chunk.recordedAt;
+    const chunkEnd = chunk.recordedAt + chunk.durationMs;
+    if (chunkEnd < sliceStart || chunkStart > sliceEnd) continue;
+    const startMs = Math.max(0, sliceStart - chunkStart);
+    const endMs = Math.min(chunk.durationMs, sliceEnd - chunkStart);
+    const startIdx = Math.max(0, Math.floor((startMs / 1000) * chunk.sampleRate));
+    const endIdx = Math.min(chunk.samples.length, Math.ceil((endMs / 1000) * chunk.sampleRate));
+    if (endIdx <= startIdx) continue;
+    const part = chunk.samples.slice(startIdx, endIdx);
+    segments.push(part);
+    total += part.length;
+  }
+  if (!total) return null;
+  const merged = new Float32Array(total);
+  let offset = 0;
+  for (const segment of segments) {
+    merged.set(segment, offset);
+    offset += segment.length;
+  }
+  return { samples: resampleLinear(merged, sampleRate, TARGET_SAMPLE_RATE), sampleRate: TARGET_SAMPLE_RATE };
 }
 
 interface ExtractOptions {
@@ -277,14 +387,54 @@ interface ExtractedClip {
 }
 
 async function extractClip(opts: ExtractOptions): Promise<ExtractedClip> {
-  if (!chunks.length) return { ok: false, error: 'No audio buffered yet' };
+  if (!chunks.length && !pcmChunks.length) return { ok: false, error: 'No audio buffered yet' };
 
-  const minStart = Math.min(...chunks.map((c) => c.recordedAt));
-  const maxEnd = Math.max(...chunks.map((c) => c.recordedAt + c.durationMs));
+  const starts = [
+    ...chunks.map((c) => c.recordedAt),
+    ...pcmChunks.map((c) => c.recordedAt),
+  ];
+  const ends = [
+    ...chunks.map((c) => c.recordedAt + c.durationMs),
+    ...pcmChunks.map((c) => c.recordedAt + c.durationMs),
+  ];
+  const minStart = Math.min(...starts);
+  const maxEnd = Math.max(...ends);
   const sliceStart = Math.max(opts.startMs, minStart);
   const sliceEnd = Math.min(opts.endMs, maxEnd);
   if (sliceEnd <= sliceStart) {
     return { ok: false, error: 'Requested clip is outside the rolling buffer window' };
+  }
+
+  const pcmClip = buildPcmClip(sliceStart, sliceEnd);
+  if (pcmClip && opts.format !== 'webm') {
+    let speechStartMs = 0;
+    let speechEndMs = Math.round((pcmClip.samples.length / TARGET_SAMPLE_RATE) * 1000);
+    let usedVad = false;
+    if (opts.useVad) {
+      const tightened = tightenToSpeech(
+        pcmClip.samples,
+        TARGET_SAMPLE_RATE,
+        speechStartMs,
+        speechEndMs,
+        { preRollMs: opts.preRollMs ?? 120, postRollMs: opts.postRollMs ?? 180 },
+      );
+      speechStartMs = tightened.startMs;
+      speechEndMs = tightened.endMs;
+      usedVad = tightened.usedVad;
+    }
+    const finalPcm = trimPcm(pcmClip.samples, TARGET_SAMPLE_RATE, speechStartMs, speechEndMs);
+    const outputBlob = encodeWavMono(finalPcm, TARGET_SAMPLE_RATE);
+    const dataUrl = await blobToDataUrl(outputBlob);
+    return {
+      ok: true,
+      dataUrl,
+      mimeType: 'audio/wav',
+      durationMs: Math.round((finalPcm.length / TARGET_SAMPLE_RATE) * 1000),
+      speechStartMs: usedVad ? speechStartMs : undefined,
+      speechEndMs: usedVad ? speechEndMs : undefined,
+      pcm: finalPcm,
+      pcmSampleRate: TARGET_SAMPLE_RATE,
+    };
   }
 
   const webmBlob = buildWebmBlob(sliceStart, sliceEnd);
@@ -381,16 +531,8 @@ async function extractClip(opts: ExtractOptions): Promise<ExtractedClip> {
     };
   } catch (err) {
     const reason = err instanceof Error ? err.message : 'wav decode/encode failed';
-    console.warn('[Kivara Lingo] WAV conversion failed; falling back to webm', err);
-    // Fall back to the original webm output rather than erroring out.
-    const dataUrl = await blobToDataUrl(webmBlob);
-    return {
-      ok: true,
-      dataUrl,
-      mimeType: recordedMime || 'audio/webm',
-      durationMs: sliceEnd - sliceStart,
-      error: reason,
-    };
+    console.warn('[Kivara Lingo] WAV conversion failed; using sentence TTS fallback', err);
+    return { ok: false, error: reason };
   }
 }
 
