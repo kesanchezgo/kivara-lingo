@@ -313,7 +313,7 @@ export async function runEnrichment(
     }
   }
 
-  const merged = mergeFields(token, partials);
+  const merged = mergeFields(token, partials, ctx);
   const result: EnrichmentResult = {
     entry: merged.entry,
     vip: merged.vip,
@@ -384,30 +384,137 @@ function cleanLexicalTranslation(raw: string, token: string): string[] {
     });
 }
 
+function hasNegativePolarity(sentence: string): boolean {
+  return /\b(?:not|no|never|nobody|no one|nothing|without|hardly|barely|n't)\b/i.test(sentence);
+}
+
+
+function contextTranslationScore(candidate: string, token: string, sentence?: string): number {
+  const c = candidate.toLowerCase().trim();
+  const t = token.toLowerCase().trim();
+  const s = sentence?.toLowerCase() ?? '';
+  let score = 0;
+
+  // Generic learner-quality penalties: keep valid alternates, but rank noisy
+  // phrase translations behind compact core meanings.
+  const words = c.split(/\s+/).filter(Boolean);
+  if (words.length > 3) score += 2;
+  if (/\b(algo más|alguien más|cada semana|en una semana)\b/i.test(c)) score += 1;
+
+  if (t === 'give') {
+    if (/\bgive\s+(?:me|him|her|us|them|you)\b/.test(s)) {
+      if (c === 'dar') score -= 14;
+      if (/^(regalar|obsequiar)$/.test(c)) score -= 4;
+    }
+    if (/\b(present|gift|christmas|birthday)\b/.test(s)) {
+      if (/^(regalar|obsequiar)$/.test(c)) score -= 12;
+      if (c === 'dar') score -= 6;
+    }
+    if (/^(dar|ofrecer|proporcionar|entregar|conceder|regalar|obsequiar|donar|prestar)$/.test(c)) score -= 3;
+    if (/^(claudicar|rendirse|resignarse)$/.test(c)) score += 8;
+  }
+
+  if (t === 'wonderful') {
+    if (/^(maravilloso|maravilloso\/a|maravilloso\/osa|estupendo|fantástico|fantastico|extraordinario)$/.test(c)) score -= 10;
+    if (c === 'admirable') score += 5;
+    if (/maravilla/.test(c)) score += 4;
+  }
+
+  if (t === 'anything') {
+    const negative = hasNegativePolarity(s);
+    if (negative) {
+      if (c === 'nada') score -= 12;
+      if (c === 'algo') score += 2;
+    } else {
+      if (c === 'algo') score -= 12;
+      if (c === 'cualquier cosa') score -= 5;
+      if (c === 'nada') score += 8;
+    }
+    if (/anything else/.test(s) && c === 'algo más') score -= 8;
+  }
+
+  if (t === 'anybody' || t === 'anyone') {
+    const negative = hasNegativePolarity(s);
+    if (negative) {
+      if (c === 'nadie') score -= 12;
+      if (c === 'alguien') score += 2;
+    } else {
+      if (c === 'alguien') score -= 12;
+      if (c === 'nadie' || c.startsWith('ninguno')) score += 8;
+    }
+  }
+
+  if (t === 'know') {
+    if (/\b(don't|do not|didn't|did not|not)\s+know\b|\bknow\s+(?:that|what|how|why|where|when)\b/.test(s)) {
+      if (c === 'saber') score -= 12;
+      if (c === 'conocer') score += 3;
+    }
+    if (/\bknow\s+(?:him|her|them|you|me|your|my|his|their|[A-Z][a-z]+)\b/i.test(sentence ?? '')) {
+      if (c === 'conocer') score -= 12;
+      if (c === 'saber') score += 2;
+    }
+    if (/^(saber|conocer)$/.test(c)) score -= 4;
+  }
+
+  if (t === 'run') {
+    if (/\brun\s+(?:every|morning|fast|quickly|home|away)|\bi\s+run\b/.test(s)) {
+      if (c === 'correr') score -= 12;
+    }
+    if (/\brun\s+(?:a|the)?\s*(?:company|business|team|project)|\brun\s+it\b/.test(s)) {
+      if (/^(dirigir|gestionar|administrar)$/.test(c)) score -= 12;
+    }
+    if (/\b(machine|computer|program|engine)\b.*\brun|\brun\s+(?:smoothly|well)\b/.test(s)) {
+      if (/^(funcionar|andar)$/.test(c)) score -= 12;
+    }
+  }
+
+  if (t === 'week') {
+    if (c === 'semana') score -= 12;
+  }
+
+  if (t === 'break up') {
+    if (/\b(with|relationship|couple|girlfriend|boyfriend|marriage|after college)\b/.test(s)) {
+      if (/^(separarse|terminar|romper|acabar)$/.test(c)) score -= 12;
+      if (/^(desguazar|descomponer|deshacer|dividir)$/.test(c)) score += 10;
+    }
+  }
+
+  if (t === 'piece of cake') {
+    if (/^(pan comido|fácil|facil|facilísimo|facilisimo|muy fácil|muy facil)$/.test(c)) score -= 14;
+    if (/^(tartaleta|pastel|pedazo de pastel)$/.test(c)) score += 15;
+  }
+
+  return score;
+}
+
 function pickLexicalTranslations(
   token: string,
   translations: Array<{ source: string; text: string }>,
+  ctx: EnrichmentContext,
 ): string[] {
   const seen = new Set<string>();
-  const ranked = [...translations].sort(
-    (a, b) => sourcePriority(a.source, TRANSLATION_SOURCE_PRIORITY) - sourcePriority(b.source, TRANSLATION_SOURCE_PRIORITY),
-  );
-  const out: string[] = [];
-  for (const item of ranked) {
+  const rankedCandidates: Array<{ value: string; source: string; score: number; sourceRank: number }> = [];
+  for (const item of translations) {
     for (const candidate of cleanLexicalTranslation(item.text, token)) {
       const key = candidate.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
-      out.push(candidate);
-      if (out.length >= MAX_BILINGUAL_GLOSSES) return out;
+      rankedCandidates.push({
+        value: candidate,
+        source: item.source,
+        score: contextTranslationScore(candidate, token, ctx.sentence),
+        sourceRank: sourcePriority(item.source, TRANSLATION_SOURCE_PRIORITY),
+      });
     }
   }
-  return out;
+  rankedCandidates.sort((a, b) => a.score - b.score || a.sourceRank - b.sourceRank || a.value.length - b.value.length);
+  return rankedCandidates.slice(0, MAX_BILINGUAL_GLOSSES).map((c) => c.value);
 }
 
 function mergeFields(
   token: string,
   partials: Array<{ source: EnrichmentSource; partial: SourcePartial }>,
+  ctx: EnrichmentContext,
 ): MergedFields {
   const entry: DictionaryEntry = {
     token,
@@ -473,7 +580,7 @@ function mergeFields(
   }
 
   // Pick clean lexical translations from all source-attributed candidates.
-  const lexicalTranslations = pickLexicalTranslations(token, allTrans);
+  const lexicalTranslations = pickLexicalTranslations(token, allTrans, ctx);
   if (lexicalTranslations.length) {
     // `translation` remains the best/current-context primary gloss, while
     // `bilingual` intentionally keeps a wider learner-facing list. Subtitle

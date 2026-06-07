@@ -177,3 +177,30 @@ wonderful -> maravilloso · extraordinario · estupendo
 ```
 
 Contextual ranking may reorder candidates, but it must not throw away valid high-quality alternate senses unless they are noisy examples, source-language echoes or wrong-direction rows.
+
+## Contextual ranking policy
+
+Contextual ranking should reorder clean candidates, not delete valid meanings. The first item is optimized for the subtitle sentence, and the remaining items preserve alternate learner meanings.
+
+Implemented context rules cover:
+
+```text
+give me / give him       -> dar first
+give + present/gift      -> regalar/obsequiar first
+wonderful                -> maravilloso/estupendo/fantástico before noun-like alternatives
+anything positive        -> algo first
+anything negative        -> nada first
+anything else            -> algo más high, after/core with algo kept
+anybody positive         -> alguien first
+anybody negative         -> nadie first
+don't know / know that   -> saber first
+know + person            -> conocer first
+run every morning        -> correr first
+run a company/project    -> dirigir/gestionar first
+machine/program runs     -> funcionar/andar first
+week                     -> semana first
+break up + relationship  -> separarse/terminar/acabar before physical split senses
+piece of cake idiom      -> pan comido/fácil first
+```
+
+The policy is deliberately conservative: it only changes ordering. It does not discard clean alternate senses from the `bilingual` field.
