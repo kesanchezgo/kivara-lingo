@@ -157,6 +157,7 @@ export const DEFAULT_VIP: VipSettings = {
   ozdic: true,
   pons: true,
   babla: true,
+  dictCc: true,
   reverso: true,
   linguee: true,
   wordReference: true,

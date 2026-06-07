@@ -533,6 +533,8 @@ export interface VipSettings {
   pons: boolean;
   /** bab.la English-Spanish scrape — VIP bilingual, examples, idioms/phrasals. */
   babla: boolean;
+  /** dict.cc English-Spanish scrape — VIP secondary bilingual/phrases. */
+  dictCc: boolean;
   reverso: boolean;
   linguee: boolean;
   wordReference: boolean;

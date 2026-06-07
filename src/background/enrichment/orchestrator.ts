@@ -53,6 +53,7 @@ import { merriamWebsterSource } from './sources/merriam-webster';
 import { ozdicSource } from './sources/ozdic';
 import { ponsSource } from './sources/pons';
 import { bablaSource } from './sources/babla';
+import { dictCcSource } from './sources/dictcc';
 import { reversoSource } from './sources/reverso-context';
 import { lingueeSource } from './sources/linguee';
 import { wordReferenceSource } from './sources/wordreference';
@@ -164,6 +165,7 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   ozdic: ozdicSource,
   pons: ponsSource,
   babla: bablaSource,
+  dictCc: dictCcSource,
   reverso: reversoSource,
   linguee: lingueeSource,
   wordReference: wordReferenceSource,
@@ -337,6 +339,7 @@ const TRANSLATION_SOURCE_PRIORITY = [
   'cambridge',
   'spanishDict',
   'wordReference',
+  'dictCc',
   'linguee',
   'reverso',
 ];
