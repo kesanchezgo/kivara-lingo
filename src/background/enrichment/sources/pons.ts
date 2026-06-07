@@ -63,7 +63,7 @@ function cleanGlossCandidate(text: string): string[] {
     if (/[.!?¿¡]/.test(t)) continue;
     if (t.length > 64) continue;
     if (/^(el|la|los|las|un|una|unos|unas|al|del|me|te|se|nos|le|les|lo|ya|no|si|como|cuando|que|qué)\b/i.test(t)) continue;
-    if (/^(ser|hacerle|regalarle|podría|podria|hágame|hagame|comuníqueme|comuniqueme|avísame|avisame)\b/i.test(t)) continue;
+    if (/^(ser|hacerle|regalarle|podría|podria)\b/i.test(t)) continue;
     if (/\balguien\b/i.test(t)) continue;
     if (/\b(dio|di|dieron|dame|dale|dales|quieres|quiero|quiere|tengo|tiene|tenía|había|lograste|siento|está|estuvo|han sido|dijo|pasar)\b/i.test(t)) continue;
     const words = t.split(/\s+/).filter(Boolean);
@@ -126,6 +126,7 @@ export const ponsSource: EnrichmentSource = {
     });
     if (!html) return {};
 
+    const allowTranslations = !/\s/.test(token.trim());
     const translations: string[] = [];
     const examples: Array<{ text: string; translation?: string }> = [];
     const collocations: string[] = [];
@@ -148,7 +149,7 @@ export const ponsSource: EnrichmentSource = {
 
       // Main bilingual gloss: only compact source rows that refer to the
       // headword or a short headword phrase, never sentence examples.
-      if (sourceContainsToken(source, token) && !isSourceSentence(source)) {
+      if (allowTranslations && sourceContainsToken(source, token) && !isSourceSentence(source)) {
         for (const gloss of cleanGlossCandidate(target)) uniquePush(translations, gloss, 10);
       }
     }

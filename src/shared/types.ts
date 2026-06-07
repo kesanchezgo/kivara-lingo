@@ -531,6 +531,8 @@ export interface VipSettings {
   /* ── Bilingual / contextual translations ──────────────────────────── */
   /** PONS English-Spanish dictionary scrape — VIP bilingual/sense groups. */
   pons: boolean;
+  /** bab.la English-Spanish scrape — VIP bilingual, examples, idioms/phrasals. */
+  babla: boolean;
   reverso: boolean;
   linguee: boolean;
   wordReference: boolean;

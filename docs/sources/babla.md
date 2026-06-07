@@ -6,7 +6,7 @@ Tier target: VIP candidate.
 
 Raw audit: passed after protocol testing.
 Parser snapshot: generated for `give`, `wonderful`, `anything`, `anybody`, `week`, `know`, `run`, `break up`, and `piece of cake` under `docs/reports/parser-snapshots/2026-06-07/babla/`.
-Integration: not integrated yet.
+Integration: integrated as VIP source `babla` on 2026-06-07. It runs only when VIP is enabled and the source toggle is on.
 
 ## URL pattern
 
@@ -71,3 +71,33 @@ bab.la mixes compact translations, corpus examples, idioms and phrasals. It must
 VIP `bilingual`: high priority after PONS/Cambridge depending parser quality.
 VIP `examples`: high priority.
 VIP `idioms/phrasals`: high priority for MWE cards.
+
+
+## Integrated parser behavior
+
+The runtime parser uses the validated crawler-compatible header from raw audit. Browser-like Node headers returned 403, but the static dictionary HTML is stable with the documented crawler-compatible request.
+
+It extracts:
+
+- `babQuickResult` top translations as conservative compact glosses.
+- `dict-entry` rows as compact dictionary translations, only for single-word tokens.
+- `dict-example` rows as aligned examples only.
+- English bab.la audio URLs from `babTTS(...)` calls.
+
+Safety rules:
+
+- Multi-word translations are not emitted yet because snapshots showed ambiguous or reverse-direction rows for `break up` and `piece of cake`.
+- Example/corpus lines never enter `bilingual`.
+- `volume_up`, source-link UI text and long phrases are stripped.
+- bab.la currently contributes high-confidence single-word bilingual glosses and word audio, with richer idiom/phrasal parsing deferred until a context-aware MWE parser is added.
+
+Validated spot outputs:
+
+```text
+give -> dar
+wonderful -> maravilloso
+anything -> algo
+know -> saber
+break up -> no bilingual emitted, audio only
+piece of cake -> no bilingual emitted, audio only
+```

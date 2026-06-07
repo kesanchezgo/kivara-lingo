@@ -156,6 +156,7 @@ export const DEFAULT_VIP: VipSettings = {
   oxfordCollocations: true,
   ozdic: true,
   pons: true,
+  babla: true,
   reverso: true,
   linguee: true,
   wordReference: true,
