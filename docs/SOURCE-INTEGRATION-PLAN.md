@@ -204,3 +204,31 @@ piece of cake idiom      -> pan comido/fácil first
 ```
 
 The policy is deliberately conservative: it only changes ordering. It does not discard clean alternate senses from the `bilingual` field.
+
+## Safe gloss grouping policy
+
+Grouping is intentionally conservative and local. Kivara must not ship a large per-word grouping bundle and must not invent semantic groups.
+
+Runtime grouping currently does only safe surface-level work:
+
+```text
+maravilloso
+maravilloso/a
+maravilloso, -a
+```
+
+becomes one displayed gloss, while genuinely different meanings remain separate:
+
+```text
+dar · regalar · ofrecer · conceder
+```
+
+Rules:
+
+1. Group explicit morphology variants only, such as `/a`, `/o`, `/as`, `/os`, `/osa`.
+2. Group accent-only duplicates, such as `fantastico` and `fantástico`.
+3. Do not group semantic neighbors unless a future parser provides a real source sense group.
+4. Fallback is always the flat cleaned list.
+5. No network call, no AI call, no generated bundle.
+
+Future sense grouping should use source-provided structure from PONS, bab.la, Cambridge, SpanishDict or WordReference. If a source does not expose a trustworthy sense group, the card remains a clean flat list.

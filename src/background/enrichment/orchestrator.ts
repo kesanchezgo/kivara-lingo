@@ -351,6 +351,74 @@ function sourcePriority(source: string, priority: string[]): number {
   return idx === -1 ? priority.length + 1 : idx;
 }
 
+const COLLOCATION_SOURCE_PRIORITY = [
+  'ozdic',
+  'pons',
+  'babla',
+  'longman',
+  'oxfordLearners',
+  'cambridge',
+  'dictCc',
+  'wiktionaryHtml',
+  'wiktionaryApi',
+  'wiktApi',
+  'datamuse',
+];
+
+const BAD_COLLOCATION_TAILS = new Set([
+  'a', 'an', 'the', 'and', 'or', 'to', 'of', 'for', 'with', 'by', 'as', 'if',
+  'than', 'that', 'this', 'these', 'those', 'not', 'will', 'would', 'can',
+  'could', 'may', 'might', 'must', 'should', 'do', 'does', 'did', 'be', 'is',
+  'are', 'was', 'were', 'had', 'has', 'have', 'you', 'we', 'they', 'he', 'she',
+  'it', 'who', 'what', 'when', 'where', 'why', 'how', 'even', 'never', 'per', 'one', 'first',
+  'each', 'every', 'long', 'short', 'say', 'know', 'last', 'next', 'second', 'business', 'more', 'most', 'his', 'limit', 'effect',
+]);
+
+function normalizeCollocation(raw: string, token: string): string | null {
+  const text = raw.replace(/\s+/g, ' ').trim();
+  if (!text || text === '—') return null;
+  if (text.length > 80) return null;
+  const low = text.toLowerCase();
+  const tok = token.toLowerCase().trim();
+  if (low === tok) return null;
+  if (!low.includes(tok)) return null;
+  if (/^[a-z]+$/.test(text) && !text.includes(' ')) return null;
+  if (/^[a-z]+-[a-z]+$/i.test(text)) return null;
+  if (/\b(?:limit|effect|his|more|most)\b/i.test(text) && text.split(/\s+/).length <= 4) return null;
+
+  const escapedToken = tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (!new RegExp(`(?:^|\\b)${escapedToken}(?:\\b|$)`).test(low)) return null;
+  const words = low.split(/\s+/).filter(Boolean);
+  const allowedPreModifiers = new Set(['last', 'next', 'this', 'every', 'each', 'per', 'previous', 'following']);
+  if (!tok.includes(' ') && words.at(-1) === tok && !allowedPreModifiers.has(words[0])) return null;
+  if (words.length === 2 && words[0] === tok && BAD_COLLOCATION_TAILS.has(words[1])) return null;
+  if (words.length === 2 && words[1] === tok && BAD_COLLOCATION_TAILS.has(words[0])) return null;
+  if (/\b(?:not|will|would|can|could|may|might|must|should|they|you|we|he|she|it)\b/.test(low) && words.length <= 3) return null;
+  return text;
+}
+
+function pickCollocations(
+  token: string,
+  candidates: Array<{ source: string; text: string }>,
+): string[] {
+  const seen = new Set<string>();
+  return [...candidates]
+    .map((c) => ({ ...c, normalized: normalizeCollocation(c.text, token) }))
+    .filter((c): c is { source: string; text: string; normalized: string } => !!c.normalized)
+    .sort((a, b) =>
+      sourcePriority(a.source, COLLOCATION_SOURCE_PRIORITY) - sourcePriority(b.source, COLLOCATION_SOURCE_PRIORITY) ||
+      a.normalized.length - b.normalized.length,
+    )
+    .map((c) => c.normalized)
+    .filter((value) => {
+      const key = value.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 12);
+}
+
 function cleanLexicalTranslation(raw: string, token: string): string[] {
   const tokenNorm = token.trim().toLowerCase();
   const original = raw
@@ -373,11 +441,18 @@ function cleanLexicalTranslation(raw: string, token: string): string[] {
       .trim())
     .filter((part) => {
       if (!part || part === '—') return false;
-      if (part.toLowerCase() === tokenNorm) return false;
+      const lower = part.toLowerCase();
+      if (lower === tokenNorm) return false;
       if (part.length > 64) return false;
       if (/^(el|la|los|las|un|una|unos|unas|qué|que)\s+/i.test(part)) return false;
       if (/^(me|te|se|nos|le|les|lo|la)\s+/i.test(part)) return false;
-      if (/(^|\s)(tengo|tienes|tiene|tenemos|tengan|tengas|quieres|quiero|quiere|quería|querias|sabías|sabia|sabía|sé|sabemos|llegará|puedo|puede|podemos|vamos|iremos|necesitas|necesita|avísame|avisame|dijiste|dije|fue|era|soy|eres|es|son|estoy|estás|esta|está|estan|están|conozco)(\s|$)/i.test(part)) return false;
+      if (/(^|\s)(tengo|tienes|tiene|tenemos|tengan|tengas|quieres|quiero|quiere|quería|querias|sabías|sabia|sabía|sé|sabemos|llegará|puedo|puede|podemos|vamos|iremos|necesitas|necesita|avísame|avisame|hágame|hagame|comuníqueme|comuniqueme|dijiste|dije|fue|era|soy|eres|es|son|estoy|estás|esta|está|estan|están|conozco|corro)(\s|$)/i.test(part)) return false;
+      if (/^(\-|–|—)?[a-záéíóúñ]$/i.test(part)) return false;
+      if (tokenNorm === 'know' && /^(tener|hágame saber|hagame saber|comuníqueme|comuniqueme|saberse)$/.test(lower)) return false;
+      if ((tokenNorm === 'anybody' || tokenNorm === 'anyone') && /^(igual|indeterminado|cualquiera menos|cualquier persona importante|cualquier persona joven)/.test(lower)) return false;
+      if (tokenNorm === 'run' && /^(decir|corro)$/.test(lower)) return false;
+      if (tokenNorm === 'week' && /\b(dólares|dolares|semanales)\b/.test(lower)) return false;
+      if (tokenNorm === 'piece of cake' && /\b(trozo|porción|porcion|pastel|torta)\b/.test(lower)) return false;
       const words = part.split(/\s+/).filter(Boolean);
       if (words.length > 5) return false;
       return true;
@@ -487,6 +562,56 @@ function contextTranslationScore(candidate: string, token: string, sentence?: st
   return score;
 }
 
+
+function stripDiacritics(text: string): string {
+  return text.normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function glossVariantKey(value: string): string {
+  let key = value.toLowerCase().trim();
+  key = key
+    .replace(/\s*\([^)]*\)\s*/g, ' ')
+    .replace(/\s*,\s*-?[ao]s?$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Only collapse explicit gender markers, never infer semantic groups.
+  // Examples: maravilloso/a -> maravilloso, ninguno/a -> ninguno,
+  // maravilloso/osa -> maravilloso. This prevents a new bundle/dictionary of
+  // meanings and keeps the algorithm safe for unknown words.
+  key = key.replace(/\/(?:a|o|as|os)$/i, '');
+  key = key.replace(/\/osa$/i, 'oso');
+  key = key.replace(/\/esa$/i, 'és');
+
+  return stripDiacritics(key)
+    .replace(/[^a-z0-9áéíóúñü\s]/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function chooseGroupDisplay(values: string[]): string {
+  // Prefer the first ranked value, unless a later value carries an explicit
+  // gender marker for the same surface form. Do not merge unrelated meanings.
+  const explicit = values.find((v) => /\/(?:a|o|as|os|osa|esa)/i.test(v));
+  return explicit ?? values[0];
+}
+
+function groupEquivalentGlossVariants(values: string[]): string[] {
+  const groups = new Map<string, string[]>();
+  const order: string[] = [];
+  for (const value of values) {
+    const key = glossVariantKey(value);
+    if (!key) continue;
+    if (!groups.has(key)) {
+      groups.set(key, []);
+      order.push(key);
+    }
+    const group = groups.get(key)!;
+    if (!group.some((v) => v.toLowerCase() === value.toLowerCase())) group.push(value);
+  }
+  return order.map((key) => chooseGroupDisplay(groups.get(key)!));
+}
+
 function pickLexicalTranslations(
   token: string,
   translations: Array<{ source: string; text: string }>,
@@ -508,7 +633,8 @@ function pickLexicalTranslations(
     }
   }
   rankedCandidates.sort((a, b) => a.score - b.score || a.sourceRank - b.sourceRank || a.value.length - b.value.length);
-  return rankedCandidates.slice(0, MAX_BILINGUAL_GLOSSES).map((c) => c.value);
+  const grouped = groupEquivalentGlossVariants(rankedCandidates.map((c) => c.value));
+  return grouped.slice(0, MAX_BILINGUAL_GLOSSES);
 }
 
 function mergeFields(
@@ -528,7 +654,7 @@ function mergeFields(
   const allExamples: Array<{ source: string; text: string; translation?: string }> = [];
   const synonyms = new Set<string>();
   const antonyms = new Set<string>();
-  const collocations = new Set<string>();
+  const collocationCandidates: Array<{ source: string; text: string }> = [];
   const audio: NonNullable<DictionaryEntry['audio']> = [];
   const videoLinks: Array<{ url: string; source: string }> = [];
 
@@ -546,7 +672,9 @@ function mergeFields(
   for (const { source, partial } of partials) {
     if (partial.synonyms) for (const s of partial.synonyms) synonyms.add(s);
     if (partial.antonyms) for (const a of partial.antonyms) antonyms.add(a);
-    if (partial.collocations) for (const c of partial.collocations) collocations.add(c);
+    if (partial.collocations) {
+      for (const c of partial.collocations) collocationCandidates.push({ source: source.id, text: c });
+    }
     if (partial.audio) {
       for (const a of partial.audio) {
         if (!audio.some((x) => x.url === a.url)) {
@@ -594,7 +722,8 @@ function mergeFields(
   // the popover and the Anki mapper don't have to dig into vip.*
   if (synonyms.size) entry.synonyms = Array.from(synonyms).slice(0, 12);
   if (antonyms.size) entry.antonyms = Array.from(antonyms).slice(0, 8);
-  if (collocations.size) entry.collocations = Array.from(collocations).slice(0, 12);
+  const rankedCollocations = pickCollocations(token, collocationCandidates);
+  if (rankedCollocations.length) entry.collocations = rankedCollocations;
   // Multi-word fallback: for idioms / phrasals / MWEs, when no
   // collocations were found, promote multi-word synonyms (which are
   // themselves fixed phrases like "easy as pie", "child's play") into
@@ -616,7 +745,7 @@ function mergeFields(
 
   // Pick a primary monolingual definition and primary examples for the
   // popover top fold, prefer Longman / Cambridge over the rest.
-  const monoPriority = ['longman', 'cambridge', 'oxfordLearners', 'collins', 'merriamWebster', 'britannicaDictionary', 'wiktApi', 'freeDictionary'];
+  const monoPriority = ['longman', 'cambridge', 'oxfordLearners', 'collins', 'merriamWebster', 'britannicaDictionary', 'wiktApi', 'wiktionaryApi', 'wiktionary', 'freeDictionary', 'bundled'];
   for (const id of monoPriority) {
     const hit = partials.find((p) => p.source.id === id && (p.partial.definitions?.length ?? 0) > 0);
     if (hit?.partial.definitions?.length) {
