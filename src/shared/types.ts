@@ -463,6 +463,12 @@ export interface VipSettings {
    */
   wiktionaryApi: boolean;
   /**
+   * WiktApi (wiktapi.dev) — structured JSON backed by Wiktionary/Kaikki.
+   * Adds Spanish translations, examples, forms, pronunciations and
+   * etymology for single-word entries without scraping HTML. Default true.
+   */
+  wiktApi: boolean;
+  /**
    * Moby Thesaurus (moby-thesaurus.org). Public-domain synonym list
    * by Grady Ward (1996). Up to 100+ synonyms for common words.
    * No antonyms (unidirectional). Default true.

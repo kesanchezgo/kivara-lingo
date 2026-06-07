@@ -37,6 +37,7 @@ import { datamuseSource } from './sources/datamuse';
 import { wiktionarySource } from './sources/wiktionary';
 import { wiktionaryHtmlSource } from './sources/wiktionary-html';
 import { wiktionaryApiSource } from './sources/wiktionary-api';
+import { wiktApiSource } from './sources/wiktapi';
 import { wordHippoSource } from './sources/wordhippo';
 import { theIdiomsSource } from './sources/the-idioms';
 import { mobyThesaurusSource } from './sources/moby-thesaurus';
@@ -94,6 +95,7 @@ const STANDARD_SOURCE_KEYS = new Set<keyof VipSettings>([
   'wiktionary',
   'wiktionaryHtml',
   'wiktionaryApi',
+  'wiktApi',
   'mobyThesaurus',
   'thesaurusCom',
   'wordHippo',
@@ -140,6 +142,7 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   wiktionary: wiktionarySource,
   wiktionaryHtml: wiktionaryHtmlSource,
   wiktionaryApi: wiktionaryApiSource,
+  wiktApi: wiktApiSource,
   mobyThesaurus: mobyThesaurusSource,
   thesaurusCom: thesaurusComSource,
   wordHippo: wordHippoSource,

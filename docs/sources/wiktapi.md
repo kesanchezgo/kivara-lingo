@@ -6,7 +6,7 @@ Tier target: Standard candidate.
 
 Raw audit: passed from Node using documented API endpoints.
 Parser snapshot: generated for `give`, `wonderful`, `anything`, `anybody`, `week`, `know`, and `run`; MWE endpoints returned 404 for `break up` and `piece of cake`, which means MWE handling should remain with idiom/phrasal sources rather than WiktApi single-word endpoints.
-Integration: not integrated yet.
+Integration: integrated as Standard source `wiktApi` on 2026-06-07. It runs in the Standard fan-out and is individually togglable in the VIP/Standard settings UI.
 
 ## URL patterns
 
@@ -57,4 +57,4 @@ Wiktionary-derived data is broad. It can contain archaic, rare, regional or over
 
 ## Priority recommendation
 
-Standard structured replacement/supplement for current Wiktionary REST/API/HTML sources. It should not block first paint; run in Standard online fan-out.
+Standard structured supplement for current Wiktionary REST/API/HTML sources. It does not block first paint; it runs in Standard online fan-out. It is especially valuable for Spanish lexical translations, IPA/audio and structured sense examples for single-word entries. Existing MWE/idiom sources remain responsible for multi-word expressions because WiktApi single-word endpoints returned 404 for `break up` and `piece of cake`.
