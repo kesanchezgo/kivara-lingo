@@ -1,0 +1,648 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "know",
+  "url": "https://api.wiktapi.dev/v1/en/word/know?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/know?lang=en",
+  "ok": true,
+  "status": 200,
+  "contentType": "application/json;charset=UTF-8",
+  "bytes": 106705,
+  "ms": 1229,
+  "snapshot": {
+    "jsonSize": 104532,
+    "sha256": "537732e448332e600312b0d2d754c807f8184e95f6b244fc82da39fb36495db4",
+    "topLevelKeys": [
+      "word",
+      "edition",
+      "entries"
+    ],
+    "entryCount": 4,
+    "entries": [
+      {
+        "keys": [
+          "senses",
+          "sounds",
+          "translations",
+          "forms"
+        ],
+        "senses": [
+          {
+            "glosses": [
+              "Knowledge; the state of knowing."
+            ],
+            "raw_glosses": [
+              "(rare) Knowledge; the state of knowing."
+            ],
+            "examples": [
+              {
+                "text": "That on the view and know of theſe Contents, […] He ſhould the bearers put to […] death, […]",
+                "ref": "c. 1599–1602 (date written), William Shakespeare, “The Tragedie of Hamlet, Prince of Denmarke”, in Mr. William Shakespeares Comedies, Histories, & Tragedies […] (First Folio), London: […] Isaac Iaggard, and Ed[ward] Blount, published 1623, →OCLC, [Act V, scene ii], page 259, column 2:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    21,
+                    25
+                  ]
+                ]
+              }
+            ],
+            "tags": [
+              "rare",
+              "uncountable"
+            ]
+          },
+          {
+            "glosses": [
+              "Knowledge; the state of knowing. (Now confined to the fixed phrase in the know.)"
+            ],
+            "tags": [
+              "uncountable"
+            ]
+          }
+        ],
+        "sounds": [
+          {
+            "tags": [
+              "Received-Pronunciation"
+            ],
+            "ipa": "/nəʊ/"
+          },
+          {
+            "audio": "En-uk-to know.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/e/ee/En-uk-to_know.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/ee/En-uk-to_know.ogg/En-uk-to_know.ogg.mp3"
+          },
+          {
+            "tags": [
+              "Northumbria"
+            ],
+            "ipa": "/naː/"
+          },
+          {
+            "tags": [
+              "General-American"
+            ],
+            "enpr": "nō"
+          },
+          {
+            "ipa": "/noʊ/",
+            "tags": [
+              "General-American"
+            ]
+          },
+          {
+            "audio": "en-us-know.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/a/ad/En-us-know.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/a/ad/En-us-know.ogg/En-us-know.ogg.mp3"
+          }
+        ],
+        "forms": [
+          {
+            "form": "knaa",
+            "tags": [
+              "alternative",
+              "Northumbria"
+            ]
+          },
+          {
+            "form": "knowe",
+            "tags": [
+              "alternative",
+              "obsolete"
+            ]
+          }
+        ],
+        "translations": []
+      },
+      {
+        "keys": [
+          "senses",
+          "sounds",
+          "translations",
+          "forms"
+        ],
+        "senses": [
+          {
+            "glosses": [
+              "Alternative form of knowe (“hill, knoll”)."
+            ],
+            "examples": [
+              {
+                "text": "Owing to increasing numbers and consequent want of room for nestage, the old birds drove away the younger ones, who took refuge in their present abode at Fox's Know, where they have been located about six years.",
+                "ref": "1868, History of the Berwickshire Naturalists' Club, volumes 4-5, page 223:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    160,
+                    164
+                  ]
+                ]
+              }
+            ],
+            "tags": [
+              "alt-of",
+              "alternative"
+            ]
+          }
+        ],
+        "sounds": [
+          {
+            "tags": [
+              "Received-Pronunciation"
+            ],
+            "ipa": "/nəʊ/"
+          },
+          {
+            "audio": "En-uk-to know.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/e/ee/En-uk-to_know.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/ee/En-uk-to_know.ogg/En-uk-to_know.ogg.mp3"
+          },
+          {
+            "tags": [
+              "Northumbria"
+            ],
+            "ipa": "/naː/"
+          },
+          {
+            "tags": [
+              "General-American"
+            ],
+            "enpr": "nō"
+          },
+          {
+            "ipa": "/noʊ/",
+            "tags": [
+              "General-American"
+            ]
+          },
+          {
+            "audio": "en-us-know.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/a/ad/En-us-know.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/a/ad/En-us-know.ogg/En-us-know.ogg.mp3"
+          }
+        ],
+        "forms": [
+          {
+            "form": "knows",
+            "tags": [
+              "plural"
+            ]
+          }
+        ],
+        "translations": []
+      },
+      {
+        "keys": [
+          "senses",
+          "sounds",
+          "translations",
+          "forms"
+        ],
+        "senses": [
+          {
+            "glosses": [
+              "Used at the end of a sentence to draw attention to information one thinks the listener should keep in mind."
+            ],
+            "raw_glosses": [
+              "(Singlish) Used at the end of a sentence to draw attention to information one thinks the listener should keep in mind."
+            ],
+            "examples": [
+              {
+                "text": "Make sure you water the plants, know…",
+                "bold_text_offsets": [
+                  [
+                    32,
+                    36
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "I was a naval diver know!",
+                "bold_text_offsets": [
+                  [
+                    20,
+                    24
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "Are you sure they’re gonna give you someting more kilat? I think ah, they put you here to hentak kaki, know!",
+                "ref": "2011, James Khoo, directed by James Khoo, Hentak Kaki (short film), spoken by SSG (NS) Rajendran (P. Muruganandan / Richard Muru):",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    103,
+                    107
+                  ]
+                ]
+              }
+            ],
+            "tags": [
+              "Singlish"
+            ]
+          }
+        ],
+        "sounds": [
+          {
+            "tags": [
+              "Singapore"
+            ],
+            "ipa": "/noʊ/"
+          },
+          {
+            "tags": [
+              "Singapore"
+            ],
+            "note": "sincere",
+            "ipa": "[noː˨˦]"
+          },
+          {
+            "tags": [
+              "Singapore",
+              "emphatic"
+            ],
+            "ipa": "[ˈno(˧˨)]"
+          },
+          {
+            "tags": [
+              "Received-Pronunciation"
+            ],
+            "ipa": "/nəʊ/"
+          },
+          {
+            "audio": "En-uk-to know.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/e/ee/En-uk-to_know.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/ee/En-uk-to_know.ogg/En-uk-to_know.ogg.mp3"
+          },
+          {
+            "tags": [
+              "Northumbria"
+            ],
+            "ipa": "/naː/"
+          }
+        ],
+        "forms": [],
+        "translations": []
+      },
+      {
+        "keys": [
+          "senses",
+          "sounds",
+          "translations",
+          "forms"
+        ],
+        "senses": [
+          {
+            "glosses": [
+              "To perceive the truth or factuality of; to be certain of; to be certain that."
+            ],
+            "raw_glosses": [
+              "(transitive) To perceive the truth or factuality of; to be certain of; to be certain that."
+            ],
+            "examples": [
+              {
+                "text": "Question things. I have the most fun when I'm writing questioning things that people do not question- the assumptions that everybody knows are true.",
+                "ref": "1985 April 17, Frank Herbert, 15:46 from the start, in Frank Herbert speaking at UCLA 4/17/1985, UCLACommStudies, archived from the original on 10 Feb 2017:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    133,
+                    138
+                  ]
+                ]
+              },
+              {
+                "text": "'[…] I know whether a boy is telling me the truth or not.'\n'Thank you, sir.'\nDid he hell. They never bloody did.",
+                "ref": "1991 September, Stephen Fry, chapter 1, in The Liar, London: Heinemann, →ISBN, section II, page 24:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    7,
+                    11
+                  ]
+                ]
+              },
+              {
+                "text": "I know that I’m right and you’re wrong.",
+                "bold_text_offsets": [
+                  [
+                    2,
+                    6
+                  ]
+                ],
+                "type": "example"
+              }
+            ],
+            "tags": [
+              "transitive"
+            ]
+          },
+          {
+            "glosses": [
+              "To be or become aware or cognizant."
+            ],
+            "raw_glosses": [
+              "(intransitive) To be or become aware or cognizant."
+            ],
+            "examples": [
+              {
+                "text": "Did you know Michelle and Jack were getting divorced? ― Yes, I knew.",
+                "bold_text_offsets": [
+                  [
+                    63,
+                    67
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "Malware's sometimes been known to sit dormant for a long time.",
+                "bold_text_offsets": [
+                  [
+                    25,
+                    30
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "‘A Gentleman!’ quoth the Squire, ‘who the Devil can he be? Do, Doctor, go down and ſee who ’tis. Mr. Blifil can hardly be come to town yet.—Go down, do, and know what his Buſineſs is.[’]",
+                "ref": "1749, Henry Fielding, “A whimsical Adventure which befel the Squire, with the distressed Situation of Sophia”, in The History of Tom Jones, a Foundling, volume VI, London: A[ndrew] Millar, […], →OCLC, book XVI, page 7:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    157,
+                    161
+                  ]
+                ]
+              }
+            ],
+            "tags": [
+              "intransitive"
+            ]
+          },
+          {
+            "glosses": [
+              "To be aware of; to be cognizant of."
+            ],
+            "raw_glosses": [
+              "(transitive) To be aware of; to be cognizant of."
+            ],
+            "examples": [
+              {
+                "text": "Did you know Michelle and Jack were getting divorced? ― Yes, I knew.",
+                "bold_text_offsets": [
+                  [
+                    8,
+                    12
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "She knows where I live.",
+                "bold_text_offsets": [
+                  [
+                    4,
+                    9
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "I knew he was upset, but I didn't understand why.",
+                "bold_text_offsets": [
+                  [
+                    2,
+                    6
+                  ]
+                ],
+                "type": "example"
+              }
+            ],
+            "tags": [
+              "transitive"
+            ]
+          },
+          {
+            "glosses": [
+              "To be acquainted (with another person)."
+            ],
+            "raw_glosses": [
+              "(intransitive, obsolete) To be acquainted (with another person)."
+            ],
+            "examples": [
+              {
+                "text": "You, and I haue knowne ſir.",
+                "ref": "c. 1606–1607 (date written), William Shakespeare, “The Tragedie of Anthonie and Cleopatra”, in Mr. William Shakespeares Comedies, Histories, & Tragedies […] (First Folio), London: […] Isaac Iaggard, and Ed[ward] Blount, published 1623, →OCLC, [Act II, scene vi], page 350, column 1:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    16,
+                    22
+                  ]
+                ]
+              }
+            ],
+            "tags": [
+              "intransitive",
+              "obsolete"
+            ]
+          }
+        ],
+        "sounds": [
+          {
+            "tags": [
+              "Received-Pronunciation"
+            ],
+            "ipa": "/nəʊ/"
+          },
+          {
+            "audio": "En-uk-to know.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/e/ee/En-uk-to_know.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/ee/En-uk-to_know.ogg/En-uk-to_know.ogg.mp3"
+          },
+          {
+            "tags": [
+              "Northumbria"
+            ],
+            "ipa": "/naː/"
+          },
+          {
+            "tags": [
+              "General-American"
+            ],
+            "enpr": "nō"
+          },
+          {
+            "ipa": "/noʊ/",
+            "tags": [
+              "General-American"
+            ]
+          },
+          {
+            "audio": "en-us-know.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/a/ad/En-us-know.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/a/ad/En-us-know.ogg/En-us-know.ogg.mp3"
+          }
+        ],
+        "forms": [
+          {
+            "form": "knows",
+            "tags": [
+              "present",
+              "singular",
+              "third-person"
+            ]
+          },
+          {
+            "form": "knowing",
+            "tags": [
+              "participle",
+              "present"
+            ]
+          },
+          {
+            "form": "knew",
+            "tags": [
+              "past"
+            ]
+          },
+          {
+            "form": "knowed",
+            "tags": [
+              "nonstandard",
+              "past"
+            ]
+          },
+          {
+            "form": "known",
+            "tags": [
+              "participle",
+              "past"
+            ]
+          },
+          {
+            "form": "knew",
+            "tags": [
+              "colloquial",
+              "nonstandard",
+              "participle",
+              "past"
+            ]
+          },
+          {
+            "form": "no-table-tags",
+            "source": "conjugation",
+            "tags": [
+              "table-tags"
+            ]
+          },
+          {
+            "form": "glossary",
+            "source": "conjugation",
+            "tags": [
+              "inflection-template"
+            ]
+          }
+        ],
+        "translations": [
+          {
+            "lang": "Abkhaz",
+            "code": "ab",
+            "lang_code": "ab",
+            "sense": "be justifiably certain or sure about (something true)",
+            "roman": "adərra",
+            "word": "адырра"
+          },
+          {
+            "lang": "Afar",
+            "code": "aa",
+            "lang_code": "aa",
+            "sense": "be justifiably certain or sure about (something true)",
+            "word": "eexege"
+          },
+          {
+            "lang": "Afrikaans",
+            "code": "af",
+            "lang_code": "af",
+            "sense": "be justifiably certain or sure about (something true)",
+            "word": "weet"
+          },
+          {
+            "lang": "Akan",
+            "code": "ak",
+            "lang_code": "ak",
+            "sense": "be justifiably certain or sure about (something true)",
+            "word": "nim"
+          },
+          {
+            "lang": "Albanian",
+            "code": "sq",
+            "lang_code": "sq",
+            "sense": "be justifiably certain or sure about (something true)",
+            "word": "di"
+          },
+          {
+            "lang": "Albanian",
+            "code": "sq",
+            "lang_code": "sq",
+            "sense": "be justifiably certain or sure about (something true)",
+            "word": "njoh"
+          },
+          {
+            "lang": "Southern Altai",
+            "code": "alt",
+            "lang_code": "alt",
+            "sense": "be justifiably certain or sure about (something true)",
+            "roman": "biler",
+            "word": "билер"
+          },
+          {
+            "lang": "American Sign Language",
+            "code": "ase",
+            "lang_code": "ase",
+            "sense": "be justifiably certain or sure about (something true)",
+            "word": "BentB@Sfhead"
+          },
+          {
+            "lang": "Amharic",
+            "code": "am",
+            "lang_code": "am",
+            "sense": "be justifiably certain or sure about (something true)",
+            "roman": "mawäḳ",
+            "word": "ማወቅ"
+          },
+          {
+            "lang": "Amharic",
+            "code": "am",
+            "lang_code": "am",
+            "sense": "be justifiably certain or sure about (something true)",
+            "roman": "mawoḳ",
+            "word": "ማዎቅ"
+          },
+          {
+            "lang": "Amharic",
+            "code": "am",
+            "lang_code": "am",
+            "sense": "be justifiably certain or sure about (something true)",
+            "roman": "mawäḳ",
+            "word": "ማወቅ"
+          },
+          {
+            "lang": "Arabic",
+            "code": "ar",
+            "lang_code": "ar",
+            "sense": "be justifiably certain or sure about (something true)",
+            "roman": "ʕalima",
+            "word": "عَلِمَ"
+          }
+        ]
+      }
+    ],
+    "endpointKind": "full-entry"
+  }
+}

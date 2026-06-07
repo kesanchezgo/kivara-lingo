@@ -1,0 +1,644 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "anything",
+  "url": "https://api.wiktapi.dev/v1/en/word/anything?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/anything?lang=en",
+  "ok": true,
+  "status": 200,
+  "contentType": "application/json;charset=UTF-8",
+  "bytes": 22791,
+  "ms": 147,
+  "snapshot": {
+    "jsonSize": 22187,
+    "sha256": "ee6eccd7f8991f7294bd3a136ebaf3702d21edd48fb681f74671e067fba3137d",
+    "topLevelKeys": [
+      "word",
+      "edition",
+      "entries"
+    ],
+    "entryCount": 4,
+    "entries": [
+      {
+        "keys": [
+          "senses",
+          "sounds",
+          "translations",
+          "forms"
+        ],
+        "senses": [
+          {
+            "glosses": [
+              "In any way, any extent or any degree."
+            ],
+            "examples": [
+              {
+                "text": "That isn't anything like a car.",
+                "bold_text_offsets": [
+                  [
+                    11,
+                    19
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "She's not anything like as strong as me.",
+                "bold_text_offsets": [
+                  [
+                    10,
+                    18
+                  ]
+                ],
+                "type": "example"
+              }
+            ],
+            "tags": [
+              "not-comparable"
+            ]
+          }
+        ],
+        "sounds": [
+          {
+            "tags": [
+              "Received-Pronunciation"
+            ],
+            "ipa": "/ˈɛn.ɪ.θɪŋ/"
+          },
+          {
+            "tags": [
+              "Received-Pronunciation"
+            ],
+            "ipa": "/ˈɛn.i.θɪŋ/"
+          },
+          {
+            "tags": [
+              "General-American"
+            ],
+            "ipa": "/ˈɛn.i.θɪŋ/"
+          },
+          {
+            "audio": "en-us-anything.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/En-us-anything.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e9/En-us-anything.ogg/En-us-anything.ogg.mp3"
+          },
+          {
+            "tags": [
+              "Ireland"
+            ],
+            "ipa": "/ˈæn.i.θɪŋ/"
+          },
+          {
+            "tags": [
+              "General-Australian"
+            ],
+            "ipa": "/ˈɛn.i.θɪŋ/"
+          }
+        ],
+        "forms": [
+          {
+            "form": "any thing",
+            "tags": [
+              "alternative",
+              "obsolete"
+            ]
+          }
+        ],
+        "translations": []
+      },
+      {
+        "keys": [
+          "senses",
+          "sounds",
+          "translations",
+          "forms"
+        ],
+        "senses": [
+          {
+            "glosses": [
+              "Someone or something of importance."
+            ],
+            "examples": [
+              {
+                "text": "How long does it take to turn you actors into good anythings?",
+                "ref": "1986, David Henry Hwang, M. Butterfly:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    51,
+                    60
+                  ]
+                ]
+              },
+              {
+                "text": "So we tried not to talk about first or second anythings until our meeting with the rabbi.",
+                "ref": "2007 May 6, Cindy Chupack, “An Ancient Coda to My 21st-Century Divorce”, in New York Times:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    46,
+                    55
+                  ]
+                ]
+              }
+            ]
+          }
+        ],
+        "sounds": [
+          {
+            "tags": [
+              "Received-Pronunciation"
+            ],
+            "ipa": "/ˈɛn.ɪ.θɪŋ/"
+          },
+          {
+            "tags": [
+              "Received-Pronunciation"
+            ],
+            "ipa": "/ˈɛn.i.θɪŋ/"
+          },
+          {
+            "tags": [
+              "General-American"
+            ],
+            "ipa": "/ˈɛn.i.θɪŋ/"
+          },
+          {
+            "audio": "en-us-anything.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/En-us-anything.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e9/En-us-anything.ogg/En-us-anything.ogg.mp3"
+          },
+          {
+            "tags": [
+              "Ireland"
+            ],
+            "ipa": "/ˈæn.i.θɪŋ/"
+          },
+          {
+            "tags": [
+              "General-Australian"
+            ],
+            "ipa": "/ˈɛn.i.θɪŋ/"
+          }
+        ],
+        "forms": [
+          {
+            "form": "anythings",
+            "tags": [
+              "plural"
+            ]
+          },
+          {
+            "form": "any thing",
+            "tags": [
+              "alternative",
+              "obsolete"
+            ]
+          }
+        ],
+        "translations": [
+          {
+            "lang": "American Sign Language",
+            "code": "ase",
+            "lang_code": "ase",
+            "sense": "someone or something",
+            "note": "A@Wrist-PalmUp-A@CenterTrunkhigh-PalmUp 5@SideTrunkhigh-PalmUp-5@SideTrunkhigh-PalmUp"
+          },
+          {
+            "lang": "Guerrero Amuzgo",
+            "code": "amu",
+            "lang_code": "amu",
+            "sense": "someone or something",
+            "word": "makjo"
+          },
+          {
+            "lang": "Finnish",
+            "code": "fi",
+            "lang_code": "fi",
+            "sense": "someone or something",
+            "word": "mikä tahansa"
+          },
+          {
+            "lang": "Greek",
+            "code": "el",
+            "lang_code": "el",
+            "sense": "someone or something",
+            "roman": "otidípote",
+            "word": "οτιδήποτε"
+          },
+          {
+            "lang": "Japanese",
+            "code": "ja",
+            "lang_code": "ja",
+            "sense": "someone or something",
+            "roman": "nandemo",
+            "word": "何でも"
+          },
+          {
+            "lang": "Latin",
+            "code": "la",
+            "lang_code": "la",
+            "sense": "someone or something",
+            "word": "quisquam"
+          },
+          {
+            "lang": "Maltese",
+            "code": "mt",
+            "lang_code": "mt",
+            "sense": "someone or something",
+            "word": "kwalunkwe ħaġa"
+          },
+          {
+            "lang": "Portuguese",
+            "code": "pt",
+            "lang_code": "pt",
+            "sense": "someone or something",
+            "tags": [
+              "feminine"
+            ],
+            "word": "qualquer coisa"
+          },
+          {
+            "lang": "Romanian",
+            "code": "ro",
+            "lang_code": "ro",
+            "sense": "someone or something",
+            "word": "cineva"
+          },
+          {
+            "lang": "Romanian",
+            "code": "ro",
+            "lang_code": "ro",
+            "sense": "someone or something",
+            "word": "ceva"
+          },
+          {
+            "lang": "Scottish Gaelic",
+            "code": "gd",
+            "lang_code": "gd",
+            "sense": "someone or something",
+            "tags": [
+              "masculine"
+            ],
+            "word": "dad"
+          },
+          {
+            "lang": "Scottish Gaelic",
+            "code": "gd",
+            "lang_code": "gd",
+            "sense": "someone or something",
+            "tags": [
+              "feminine"
+            ],
+            "word": "càil"
+          }
+        ]
+      },
+      {
+        "keys": [
+          "senses",
+          "sounds",
+          "translations",
+          "forms"
+        ],
+        "senses": [
+          {
+            "glosses": [
+              "Any object, act, state, event, or fact whatsoever; a thing of any kind; something or other."
+            ],
+            "examples": [
+              {
+                "text": "I would not do it for anything.",
+                "bold_text_offsets": [
+                  [
+                    22,
+                    30
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "Thus, when he drew up instructions in lawyer language […] his clerks […] understood him very well. If he had written a love letter, or a farce, or a ballade, or a story, no one, either clerks, or friends, or compositors, would have understood anything but a word here and a word there.",
+                "ref": "1892, Walter Besant, “Prologue: Who is Edmund Gray?”, in The Ivory Gate […], New York, N.Y.: Harper & Brothers, […], →OCLC:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    243,
+                    251
+                  ]
+                ]
+              },
+              {
+                "text": "In America alone, people spent $170 billion on “direct marketing”—junk mail of both the physical and electronic varieties—last year. Yet of those who received unsolicited adverts through the post, only 3% bought anything as a result. If the bumf arrived electronically, the take-up rate was 0.1%. And for online adverts the “conversion” into sales was a minuscule 0.01%.",
+                "ref": "2013 May 25, “No hiding place”, in The Economist, volume 407, number 8837, page 74:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    212,
+                    220
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "glosses": [
+              "Expressing an indefinite comparison."
+            ],
+            "raw_glosses": [
+              "(with “as” or “like”) Expressing an indefinite comparison."
+            ],
+            "examples": [
+              {
+                "text": "Perhaps it was this atmosphere of misplacedness and loneliness as much as anything which led her to speak to him one evening in early summer when the office had closed.",
+                "ref": "1916, Edward S. Moffat, Go Forth and Find, pages 81–82:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    74,
+                    82
+                  ]
+                ]
+              }
+            ]
+          }
+        ],
+        "sounds": [
+          {
+            "tags": [
+              "Received-Pronunciation"
+            ],
+            "ipa": "/ˈɛn.ɪ.θɪŋ/"
+          },
+          {
+            "tags": [
+              "Received-Pronunciation"
+            ],
+            "ipa": "/ˈɛn.i.θɪŋ/"
+          },
+          {
+            "tags": [
+              "General-American"
+            ],
+            "ipa": "/ˈɛn.i.θɪŋ/"
+          },
+          {
+            "audio": "en-us-anything.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/En-us-anything.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e9/En-us-anything.ogg/En-us-anything.ogg.mp3"
+          },
+          {
+            "tags": [
+              "Ireland"
+            ],
+            "ipa": "/ˈæn.i.θɪŋ/"
+          },
+          {
+            "tags": [
+              "General-Australian"
+            ],
+            "ipa": "/ˈɛn.i.θɪŋ/"
+          }
+        ],
+        "forms": [
+          {
+            "form": "any thing",
+            "tags": [
+              "alternative",
+              "obsolete"
+            ]
+          }
+        ],
+        "translations": [
+          {
+            "lang": "Afrikaans",
+            "code": "af",
+            "lang_code": "af",
+            "sense": "any thing of any kind",
+            "word": "enigiets"
+          },
+          {
+            "lang": "American Sign Language",
+            "code": "ase",
+            "lang_code": "ase",
+            "sense": "any thing of any kind",
+            "note": "A@Wrist-PalmUp-A@CenterTrunkhigh-PalmUp 5@SideTrunkhigh-PalmUp-5@SideTrunkhigh-PalmUp"
+          },
+          {
+            "lang": "Arabic",
+            "code": "ar",
+            "lang_code": "ar",
+            "sense": "any thing of any kind",
+            "roman": "ʔayyu šayʔin",
+            "word": "أَيُّ شَيْءٍ"
+          },
+          {
+            "lang": "Arabic",
+            "code": "ary",
+            "lang_code": "ary",
+            "tags": [
+              "Moroccan-Arabic"
+            ],
+            "sense": "any thing of any kind",
+            "roman": "ʔayy ḥāja",
+            "word": "أي حاجة"
+          },
+          {
+            "lang": "Belarusian",
+            "code": "be",
+            "lang_code": "be",
+            "sense": "any thing of any kind",
+            "roman": "što-njébudzʹ",
+            "word": "што-не́будзь"
+          },
+          {
+            "lang": "Belarusian",
+            "code": "be",
+            "lang_code": "be",
+            "sense": "any thing of any kind",
+            "tags": [
+              "with-negation"
+            ],
+            "roman": "ništó",
+            "word": "нішто́"
+          },
+          {
+            "lang": "Bulgarian",
+            "code": "bg",
+            "lang_code": "bg",
+            "sense": "any thing of any kind",
+            "roman": "nešto",
+            "word": "нещо"
+          },
+          {
+            "lang": "Bulgarian",
+            "code": "bg",
+            "lang_code": "bg",
+            "sense": "any thing of any kind",
+            "roman": "kakvoto i da e",
+            "word": "каквото и да е"
+          },
+          {
+            "lang": "Catalan",
+            "code": "ca",
+            "lang_code": "ca",
+            "sense": "any thing of any kind",
+            "word": "qualsevol cosa"
+          },
+          {
+            "lang": "Catalan",
+            "code": "ca",
+            "lang_code": "ca",
+            "sense": "any thing of any kind",
+            "word": "alguna cosa"
+          },
+          {
+            "lang": "Catalan",
+            "code": "ca",
+            "lang_code": "ca",
+            "sense": "any thing of any kind",
+            "word": "quelcom"
+          },
+          {
+            "lang": "Catalan",
+            "code": "ca",
+            "lang_code": "ca",
+            "sense": "any thing of any kind",
+            "word": "tot"
+          }
+        ]
+      },
+      {
+        "keys": [
+          "senses",
+          "sounds",
+          "translations",
+          "forms"
+        ],
+        "senses": [
+          {
+            "glosses": [
+              "Used as a placeholder verb for any verb out of a set of related verbs."
+            ],
+            "raw_glosses": [
+              "(ambitransitive, colloquial) Used as a placeholder verb for any verb out of a set of related verbs."
+            ],
+            "examples": [
+              {
+                "text": "He wasn't cooking, he wasn't sweeping, he wasn't anythinging!",
+                "bold_text_offsets": [
+                  [
+                    49,
+                    60
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "–I don't want to accompany him! –You never want to anything him!",
+                "bold_text_offsets": [
+                  [
+                    51,
+                    59
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "\" No, no,\" said he, quickly, \" I repudiate half compliments of all kinds. I will neither be half-uncled, half-respected, nor, in short, half-anythinged, by you. ' Out upon such half-faced fellowship !' I will either be something, or altogether nothing.\"",
+                "ref": "1849, Fanny Hervey Stirling, “Uncle George Declares Himself” (chapter IX), in Fanny Hervey; or, The Mother's Choice, volume I, London: Chapman & Hall, page 112:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    141,
+                    151
+                  ]
+                ]
+              }
+            ],
+            "tags": [
+              "ambitransitive",
+              "colloquial"
+            ]
+          }
+        ],
+        "sounds": [
+          {
+            "tags": [
+              "Received-Pronunciation"
+            ],
+            "ipa": "/ˈɛn.ɪ.θɪŋ/"
+          },
+          {
+            "tags": [
+              "Received-Pronunciation"
+            ],
+            "ipa": "/ˈɛn.i.θɪŋ/"
+          },
+          {
+            "tags": [
+              "General-American"
+            ],
+            "ipa": "/ˈɛn.i.θɪŋ/"
+          },
+          {
+            "audio": "en-us-anything.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/En-us-anything.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e9/En-us-anything.ogg/En-us-anything.ogg.mp3"
+          },
+          {
+            "tags": [
+              "Ireland"
+            ],
+            "ipa": "/ˈæn.i.θɪŋ/"
+          },
+          {
+            "tags": [
+              "General-Australian"
+            ],
+            "ipa": "/ˈɛn.i.θɪŋ/"
+          }
+        ],
+        "forms": [
+          {
+            "form": "anythings",
+            "tags": [
+              "present",
+              "singular",
+              "third-person"
+            ]
+          },
+          {
+            "form": "anythinging",
+            "tags": [
+              "participle",
+              "present"
+            ]
+          },
+          {
+            "form": "anythinged",
+            "tags": [
+              "participle",
+              "past"
+            ]
+          },
+          {
+            "form": "anythinged",
+            "tags": [
+              "past"
+            ]
+          },
+          {
+            "form": "any thing",
+            "tags": [
+              "alternative",
+              "obsolete"
+            ]
+          }
+        ],
+        "translations": []
+      }
+    ],
+    "endpointKind": "full-entry"
+  }
+}

@@ -1,0 +1,469 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "give",
+  "url": "https://api.wiktapi.dev/v1/en/word/give?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/give?lang=en",
+  "ok": true,
+  "status": 200,
+  "contentType": "application/json;charset=UTF-8",
+  "bytes": 79837,
+  "ms": 585,
+  "snapshot": {
+    "jsonSize": 78527,
+    "sha256": "6b2b26bc7a0e87ab86ebf85ca0b9e97f9d41e87fbdcffa88f1a829828c4bf3f4",
+    "topLevelKeys": [
+      "word",
+      "edition",
+      "entries"
+    ],
+    "entryCount": 3,
+    "entries": [
+      {
+        "keys": [
+          "senses",
+          "sounds",
+          "translations",
+          "forms"
+        ],
+        "senses": [
+          {
+            "glosses": [
+              "The amount of bending that something undergoes when a force is applied to it; a tendency to yield under pressure; resilience."
+            ],
+            "examples": [
+              {
+                "text": "This chair doesn't have much give.",
+                "bold_text_offsets": [
+                  [
+                    29,
+                    33
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "There is no give in his dogmatic religious beliefs.",
+                "bold_text_offsets": [
+                  [
+                    12,
+                    16
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "The striker's job was onerous, too, because there was so little \"give\" in the metal, and the perpetual jarring was indeed trying to the muscles.",
+                "ref": "1945 January and February, A Former Pupil, “Some Memories of Crewe Works—III”, in Railway Magazine, page 13:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    65,
+                    69
+                  ]
+                ]
+              }
+            ],
+            "tags": [
+              "uncountable"
+            ]
+          }
+        ],
+        "sounds": [
+          {
+            "enpr": "gĭv"
+          },
+          {
+            "ipa": "/ɡɪv/"
+          },
+          {
+            "audio": "en-us-give.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/6/69/En-us-give.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/6/69/En-us-give.ogg/En-us-give.ogg.mp3"
+          },
+          {
+            "audio": "En-uk-to give.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/f/fa/En-uk-to_give.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/f/fa/En-uk-to_give.ogg/En-uk-to_give.ogg.mp3"
+          },
+          {
+            "rhymes": "-ɪv"
+          }
+        ],
+        "forms": [],
+        "translations": [
+          {
+            "lang": "Finnish",
+            "code": "fi",
+            "lang_code": "fi",
+            "sense": "give (noun)",
+            "word": "joustavuus"
+          },
+          {
+            "lang": "German",
+            "code": "de",
+            "lang_code": "de",
+            "sense": "give (noun)",
+            "tags": [
+              "feminine"
+            ],
+            "word": "Dehnbarkeit"
+          }
+        ]
+      },
+      {
+        "keys": [
+          "senses",
+          "sounds",
+          "translations",
+          "forms"
+        ],
+        "senses": [
+          {
+            "glosses": [
+              "Alternative form of gyve."
+            ],
+            "tags": [
+              "alt-of",
+              "alternative"
+            ]
+          }
+        ],
+        "sounds": [],
+        "forms": [
+          {
+            "form": "gives",
+            "tags": [
+              "plural"
+            ]
+          }
+        ],
+        "translations": []
+      },
+      {
+        "keys": [
+          "senses",
+          "sounds",
+          "translations",
+          "forms"
+        ],
+        "senses": [
+          {
+            "glosses": [
+              "To move, shift, provide something abstract or concrete to someone or something or somewhere.",
+              "To transfer one's possession or holding of (something) to (someone)."
+            ],
+            "raw_glosses": [
+              "(ditransitive) To move, shift, provide something abstract or concrete to someone or something or somewhere.",
+              "To transfer one's possession or holding of (something) to (someone)."
+            ],
+            "examples": [
+              {
+                "text": "I gave him my coat.",
+                "bold_text_offsets": [
+                  [
+                    2,
+                    6
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "I gave my coat to the beggar.",
+                "bold_text_offsets": [
+                  [
+                    2,
+                    6
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "When they asked, I gave my coat.",
+                "bold_text_offsets": [
+                  [
+                    19,
+                    23
+                  ]
+                ],
+                "type": "example"
+              }
+            ],
+            "tags": [
+              "ditransitive"
+            ]
+          },
+          {
+            "glosses": [
+              "To move, shift, provide something abstract or concrete to someone or something or somewhere.",
+              "To make a present or gift of."
+            ],
+            "raw_glosses": [
+              "(ditransitive) To move, shift, provide something abstract or concrete to someone or something or somewhere.",
+              "To make a present or gift of."
+            ],
+            "examples": [
+              {
+                "text": "I'm going to give my wife a necklace for her birthday.",
+                "bold_text_offsets": [
+                  [
+                    13,
+                    17
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "She gave a pair of shoes to her husband for their anniversary.",
+                "bold_text_offsets": [
+                  [
+                    4,
+                    8
+                  ]
+                ],
+                "type": "example"
+              }
+            ],
+            "tags": [
+              "ditransitive"
+            ]
+          },
+          {
+            "glosses": [
+              "To move, shift, provide something abstract or concrete to someone or something or somewhere.",
+              "To pledge."
+            ],
+            "raw_glosses": [
+              "(ditransitive) To move, shift, provide something abstract or concrete to someone or something or somewhere.",
+              "To pledge."
+            ],
+            "examples": [
+              {
+                "text": "I gave him my word that I'd protect his children.",
+                "bold_text_offsets": [
+                  [
+                    2,
+                    6
+                  ]
+                ],
+                "type": "example"
+              }
+            ],
+            "tags": [
+              "ditransitive"
+            ]
+          },
+          {
+            "glosses": [
+              "To move, shift, provide something abstract or concrete to someone or something or somewhere.",
+              "To provide (something) to (someone), to allow or afford."
+            ],
+            "raw_glosses": [
+              "(ditransitive) To move, shift, provide something abstract or concrete to someone or something or somewhere.",
+              "To provide (something) to (someone), to allow or afford."
+            ],
+            "examples": [
+              {
+                "text": "I gave them permission to miss tomorrow's class.",
+                "bold_text_offsets": [
+                  [
+                    2,
+                    6
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "Please give me some more time.",
+                "bold_text_offsets": [
+                  [
+                    7,
+                    11
+                  ]
+                ],
+                "type": "example"
+              }
+            ],
+            "tags": [
+              "ditransitive"
+            ]
+          }
+        ],
+        "sounds": [
+          {
+            "enpr": "gĭv"
+          },
+          {
+            "ipa": "/ɡɪv/"
+          },
+          {
+            "audio": "en-us-give.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/6/69/En-us-give.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/6/69/En-us-give.ogg/En-us-give.ogg.mp3"
+          },
+          {
+            "audio": "En-uk-to give.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/f/fa/En-uk-to_give.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/f/fa/En-uk-to_give.ogg/En-uk-to_give.ogg.mp3"
+          },
+          {
+            "rhymes": "-ɪv"
+          }
+        ],
+        "forms": [
+          {
+            "form": "gives",
+            "tags": [
+              "present",
+              "singular",
+              "third-person"
+            ]
+          },
+          {
+            "form": "giving",
+            "tags": [
+              "participle",
+              "present"
+            ]
+          },
+          {
+            "form": "gave",
+            "tags": [
+              "past"
+            ]
+          },
+          {
+            "form": "given",
+            "tags": [
+              "participle",
+              "past"
+            ]
+          },
+          {
+            "form": "no-table-tags",
+            "source": "conjugation",
+            "tags": [
+              "table-tags"
+            ]
+          },
+          {
+            "form": "glossary",
+            "source": "conjugation",
+            "tags": [
+              "inflection-template"
+            ]
+          },
+          {
+            "form": "give",
+            "tags": [
+              "infinitive"
+            ],
+            "source": "conjugation"
+          },
+          {
+            "form": "give",
+            "tags": [
+              "first-person",
+              "present",
+              "singular"
+            ],
+            "source": "conjugation"
+          }
+        ],
+        "translations": [
+          {
+            "lang": "Abaga",
+            "code": "abg",
+            "lang_code": "abg",
+            "sense": "transfer the possession of something to someone else",
+            "word": "besi amo"
+          },
+          {
+            "lang": "Abkhaz",
+            "code": "ab",
+            "lang_code": "ab",
+            "sense": "transfer the possession of something to someone else",
+            "roman": "atara",
+            "word": "аҭара"
+          },
+          {
+            "lang": "Afrikaans",
+            "code": "af",
+            "lang_code": "af",
+            "sense": "transfer the possession of something to someone else",
+            "word": "gee"
+          },
+          {
+            "lang": "Ainu",
+            "code": "ain",
+            "lang_code": "ain",
+            "sense": "transfer the possession of something to someone else",
+            "word": "kore"
+          },
+          {
+            "lang": "Aklanon",
+            "code": "akl",
+            "lang_code": "akl",
+            "sense": "transfer the possession of something to someone else",
+            "word": "bugay"
+          },
+          {
+            "lang": "Albanian",
+            "code": "sq",
+            "lang_code": "sq",
+            "sense": "transfer the possession of something to someone else",
+            "word": "jep"
+          },
+          {
+            "lang": "Southern Altai",
+            "code": "alt",
+            "lang_code": "alt",
+            "sense": "transfer the possession of something to someone else",
+            "roman": "berer",
+            "word": "берер"
+          },
+          {
+            "lang": "Amharic",
+            "code": "am",
+            "lang_code": "am",
+            "sense": "transfer the possession of something to someone else",
+            "roman": "mäsṭät",
+            "word": "መስጠት"
+          },
+          {
+            "lang": "Ao",
+            "code": "njo",
+            "lang_code": "njo",
+            "sense": "transfer the possession of something to someone else",
+            "word": "agütsü (Chungli)"
+          },
+          {
+            "lang": "Arabic",
+            "code": "ar",
+            "lang_code": "ar",
+            "sense": "transfer the possession of something to someone else",
+            "roman": "ʔaʕṭā",
+            "word": "أَعْطَى"
+          },
+          {
+            "lang": "Arabic",
+            "code": "ar",
+            "lang_code": "ar",
+            "sense": "transfer the possession of something to someone else",
+            "roman": "wahaba",
+            "word": "وَهَبَ"
+          },
+          {
+            "lang": "Arabic",
+            "code": "ar",
+            "lang_code": "ar",
+            "sense": "transfer the possession of something to someone else",
+            "roman": "manaḥa",
+            "word": "مَنَحَ"
+          }
+        ]
+      }
+    ],
+    "endpointKind": "full-entry"
+  }
+}

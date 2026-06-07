@@ -1,0 +1,25 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "piece of cake",
+  "url": "https://api.wiktapi.dev/v1/en/word/piece%20of%20cake/translations?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/piece%20of%20cake/translations?lang=en",
+  "ok": false,
+  "status": 404,
+  "contentType": "application/json",
+  "bytes": 181,
+  "ms": 470,
+  "snapshot": {
+    "jsonSize": 181,
+    "sha256": "75c996fe394bd55a80cd49768ada7d73d433ea2ccc5b8116f81d3e9c247c275f",
+    "topLevelKeys": [
+      "error",
+      "url",
+      "status",
+      "message"
+    ],
+    "entryCount": 0,
+    "entries": [],
+    "endpointKind": "translations"
+  }
+}

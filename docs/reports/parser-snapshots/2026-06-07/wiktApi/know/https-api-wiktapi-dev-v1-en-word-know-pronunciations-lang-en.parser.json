@@ -1,0 +1,24 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "know",
+  "url": "https://api.wiktapi.dev/v1/en/word/know/pronunciations?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/know/pronunciations?lang=en",
+  "ok": true,
+  "status": 200,
+  "contentType": "application/json;charset=UTF-8",
+  "bytes": 2391,
+  "ms": 1728,
+  "snapshot": {
+    "jsonSize": 2360,
+    "sha256": "aef3cfd4f699ad956158280d3a6670d2aac237b1f9a987e3b6cc76af07038159",
+    "topLevelKeys": [
+      "word",
+      "edition",
+      "pronunciations"
+    ],
+    "entryCount": 0,
+    "entries": [],
+    "endpointKind": "pronunciations"
+  }
+}

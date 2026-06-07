@@ -1,0 +1,384 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "wonderful",
+  "url": "https://api.wiktapi.dev/v1/en/word/wonderful?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/wonderful?lang=en",
+  "ok": true,
+  "status": 200,
+  "contentType": "application/json;charset=UTF-8",
+  "bytes": 28659,
+  "ms": 148,
+  "snapshot": {
+    "jsonSize": 28173,
+    "sha256": "80e7bd6f49e523eeb13b1133f98ea9c851a9932ac0f2477e53df397552800444",
+    "topLevelKeys": [
+      "word",
+      "edition",
+      "entries"
+    ],
+    "entryCount": 2,
+    "entries": [
+      {
+        "keys": [
+          "senses",
+          "sounds",
+          "translations",
+          "forms"
+        ],
+        "senses": [
+          {
+            "glosses": [
+              "Tending to excite wonder; surprising, extraordinary."
+            ],
+            "examples": [
+              {
+                "text": "His delusion was not wonderful, but most natural.",
+                "bold_text_offsets": [
+                  [
+                    21,
+                    30
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "It is not wonderful that Mrs Smith declined to visit the beer garden, in view of her militant temperance. [=It is no wonder that she declined.]",
+                "bold_text_offsets": [
+                  [
+                    10,
+                    19
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "'Ha!' cried Dangerfield, with a sort of gasp, and a violent smirk, the joyousness of which was, however, counteracted by a lurid scowl and a wonderful livid glare in his wild eyes; […]",
+                "ref": "1863, Sheridan Le Fanu, The House by the Churchyard:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    141,
+                    150
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "glosses": [
+              "Surprisingly excellent; very good or admirable, extremely impressive."
+            ],
+            "examples": [
+              {
+                "text": "They served a wonderful six-course meal.",
+                "bold_text_offsets": [
+                  [
+                    14,
+                    23
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "What appears to be wonderful may turn out to be anything but.",
+                "bold_text_offsets": [
+                  [
+                    19,
+                    28
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "Though they obviously realized that these episodes were part of something wonderful and important and lasting, the writers and producers couldn’t have imagined that 20 years later “Treehouse Of Horror” wouldn’t just survive; it’d thrive as one of the most talked-about and watched episodes of every season of The Simpsons.",
+                "ref": "2012 April 29, Nathan Rabin, “TV: Review: THE SIMPSONS (CLASSIC): “Treehouse of Horror III” (season 4, episode 5; originally aired 10/29/1992)”, in (Please provide the book title or journal name):",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    74,
+                    83
+                  ]
+                ]
+              }
+            ]
+          }
+        ],
+        "sounds": [
+          {
+            "tags": [
+              "Received-Pronunciation"
+            ],
+            "ipa": "/ˈwʌn.də.fl̩/"
+          },
+          {
+            "tags": [
+              "General-American"
+            ],
+            "ipa": "/ˈwʌn.dɚ.fl̩/"
+          },
+          {
+            "audio": "en-us-wonderful.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/e/e2/En-us-wonderful.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e2/En-us-wonderful.ogg/En-us-wonderful.ogg.mp3"
+          }
+        ],
+        "forms": [
+          {
+            "form": "wonderfuller",
+            "tags": [
+              "comparative"
+            ]
+          },
+          {
+            "form": "wonderfuler",
+            "tags": [
+              "comparative"
+            ]
+          },
+          {
+            "form": "more wonderful",
+            "tags": [
+              "comparative"
+            ]
+          },
+          {
+            "form": "wonderfullest",
+            "tags": [
+              "superlative"
+            ]
+          },
+          {
+            "form": "wonderfulest",
+            "tags": [
+              "superlative"
+            ]
+          },
+          {
+            "form": "most wonderful",
+            "tags": [
+              "superlative"
+            ]
+          },
+          {
+            "form": "wonderfool",
+            "tags": [
+              "alternative"
+            ]
+          },
+          {
+            "form": "woonderful",
+            "tags": [
+              "alternative"
+            ]
+          }
+        ],
+        "translations": [
+          {
+            "lang": "Arabic",
+            "code": "ar",
+            "lang_code": "ar",
+            "sense": "excellent, extremely impressive",
+            "roman": "ʕajīb",
+            "word": "عَجِيب"
+          },
+          {
+            "lang": "Arabic",
+            "code": "acw",
+            "lang_code": "acw",
+            "tags": [
+              "Hijazi-Arabic",
+              "masculine"
+            ],
+            "sense": "excellent, extremely impressive",
+            "roman": "rahīb",
+            "word": "رهيب"
+          },
+          {
+            "lang": "Armenian",
+            "code": "hy",
+            "lang_code": "hy",
+            "sense": "excellent, extremely impressive",
+            "roman": "hrašali",
+            "word": "հրաշալի"
+          },
+          {
+            "lang": "Armenian",
+            "code": "hy",
+            "lang_code": "hy",
+            "sense": "excellent, extremely impressive",
+            "roman": "hianali",
+            "word": "հիանալի"
+          },
+          {
+            "lang": "Armenian",
+            "code": "hy",
+            "lang_code": "hy",
+            "sense": "excellent, extremely impressive",
+            "roman": "zarmanali",
+            "word": "զարմանալի"
+          },
+          {
+            "lang": "Belarusian",
+            "code": "be",
+            "lang_code": "be",
+            "sense": "excellent, extremely impressive",
+            "roman": "cudówny",
+            "word": "цудо́ўны"
+          },
+          {
+            "lang": "Bulgarian",
+            "code": "bg",
+            "lang_code": "bg",
+            "sense": "excellent, extremely impressive",
+            "roman": "čudésen",
+            "word": "чуде́сен"
+          },
+          {
+            "lang": "Bulgarian",
+            "code": "bg",
+            "lang_code": "bg",
+            "sense": "excellent, extremely impressive",
+            "roman": "udivítelen",
+            "word": "удиви́телен"
+          },
+          {
+            "lang": "Catalan",
+            "code": "ca",
+            "lang_code": "ca",
+            "sense": "excellent, extremely impressive",
+            "word": "meravellós"
+          },
+          {
+            "lang": "Chinese Mandarin",
+            "code": "cmn",
+            "lang_code": "cmn",
+            "sense": "excellent, extremely impressive",
+            "roman": "bàng",
+            "word": "棒"
+          },
+          {
+            "lang": "Chinese Mandarin",
+            "code": "cmn",
+            "lang_code": "cmn",
+            "sense": "excellent, extremely impressive",
+            "roman": "qímiào",
+            "word": "奇妙"
+          },
+          {
+            "lang": "Czech",
+            "code": "cs",
+            "lang_code": "cs",
+            "sense": "excellent, extremely impressive",
+            "word": "skvělý"
+          }
+        ]
+      },
+      {
+        "keys": [
+          "senses",
+          "sounds",
+          "translations",
+          "forms"
+        ],
+        "senses": [
+          {
+            "glosses": [
+              "Exceedingly, to a great extent."
+            ],
+            "raw_glosses": [
+              "(dialect) Exceedingly, to a great extent."
+            ],
+            "examples": [
+              {
+                "text": "[…] wherein they were no sooner entered, but they saw that it was wonderful dark, and it seemed unto them that it should be a very large hall, and there they heard very fearful howlings, as though there had been a legion of hell-hounds […]",
+                "ref": "1808, Richard Johnson, The famous Historie of the Seaven Champions of Christendome, page 267:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    66,
+                    75
+                  ]
+                ]
+              },
+              {
+                "text": "It was wonderful stormy weather that night, and it so befell that there was sailing by the Jutland coast a little north of the east mouth of the Limfirth a man of Iceland bound south […]",
+                "ref": "1926, Eric Rücker Eddison, Styrbiorn the Strong, page 196:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    7,
+                    16
+                  ]
+                ]
+              }
+            ],
+            "tags": [
+              "dialectal",
+              "not-comparable"
+            ]
+          }
+        ],
+        "sounds": [
+          {
+            "tags": [
+              "Received-Pronunciation"
+            ],
+            "ipa": "/ˈwʌn.də.fl̩/"
+          },
+          {
+            "tags": [
+              "General-American"
+            ],
+            "ipa": "/ˈwʌn.dɚ.fl̩/"
+          },
+          {
+            "audio": "en-us-wonderful.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/e/e2/En-us-wonderful.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e2/En-us-wonderful.ogg/En-us-wonderful.ogg.mp3"
+          }
+        ],
+        "forms": [
+          {
+            "form": "wonderfool",
+            "tags": [
+              "alternative"
+            ]
+          },
+          {
+            "form": "woonderful",
+            "tags": [
+              "alternative"
+            ]
+          },
+          {
+            "form": "wonderfull",
+            "tags": [
+              "alternative"
+            ]
+          },
+          {
+            "form": "wondreful",
+            "tags": [
+              "alternative"
+            ]
+          },
+          {
+            "form": "wondrefull",
+            "tags": [
+              "alternative"
+            ]
+          },
+          {
+            "form": "1drfl",
+            "tags": [
+              "alternative"
+            ]
+          }
+        ],
+        "translations": []
+      }
+    ],
+    "endpointKind": "full-entry"
+  }
+}

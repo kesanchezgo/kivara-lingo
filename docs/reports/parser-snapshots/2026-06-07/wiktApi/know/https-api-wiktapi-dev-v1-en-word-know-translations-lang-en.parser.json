@@ -1,0 +1,24 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "know",
+  "url": "https://api.wiktapi.dev/v1/en/word/know/translations?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/know/translations?lang=en",
+  "ok": true,
+  "status": 200,
+  "contentType": "application/json;charset=UTF-8",
+  "bytes": 82996,
+  "ms": 1552,
+  "snapshot": {
+    "jsonSize": 81045,
+    "sha256": "65843528dcc406ad4eb2e7f878b03a83ee71dfa211ee2e4e557bce8b1d919552",
+    "topLevelKeys": [
+      "word",
+      "edition",
+      "translations"
+    ],
+    "entryCount": 0,
+    "entries": [],
+    "endpointKind": "translations"
+  }
+}

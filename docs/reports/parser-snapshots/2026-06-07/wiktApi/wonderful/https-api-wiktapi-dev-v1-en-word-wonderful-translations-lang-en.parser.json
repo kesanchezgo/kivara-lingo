@@ -1,0 +1,24 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "wonderful",
+  "url": "https://api.wiktapi.dev/v1/en/word/wonderful/translations?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/wonderful/translations?lang=en",
+  "ok": true,
+  "status": 200,
+  "contentType": "application/json;charset=UTF-8",
+  "bytes": 12336,
+  "ms": 149,
+  "snapshot": {
+    "jsonSize": 11893,
+    "sha256": "e83e22bc72710c39ba99e4df3f18711c8b1e6aeaf280c596cef332d82d3d6551",
+    "topLevelKeys": [
+      "word",
+      "edition",
+      "translations"
+    ],
+    "entryCount": 0,
+    "entries": [],
+    "endpointKind": "translations"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "week",
+  "url": "https://api.wiktapi.dev/v1/en/word/week/pronunciations?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/week/pronunciations?lang=en",
+  "ok": true,
+  "status": 200,
+  "contentType": "application/json;charset=UTF-8",
+  "bytes": 941,
+  "ms": 1368,
+  "snapshot": {
+    "jsonSize": 939,
+    "sha256": "5ac45472a1aeb708e6c7caca65afe2d619263359368449d5a1189bc1bc9a81a2",
+    "topLevelKeys": [
+      "word",
+      "edition",
+      "pronunciations"
+    ],
+    "entryCount": 0,
+    "entries": [],
+    "endpointKind": "pronunciations"
+  }
+}

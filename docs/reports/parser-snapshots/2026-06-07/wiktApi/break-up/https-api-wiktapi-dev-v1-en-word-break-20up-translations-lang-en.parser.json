@@ -1,0 +1,25 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "break up",
+  "url": "https://api.wiktapi.dev/v1/en/word/break%20up/translations?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/break%20up/translations?lang=en",
+  "ok": false,
+  "status": 404,
+  "contentType": "application/json",
+  "bytes": 167,
+  "ms": 1233,
+  "snapshot": {
+    "jsonSize": 167,
+    "sha256": "5fa81a4cc24ea7eb45533b462980113c241749ee820bbb6f64f8812d02f0ca96",
+    "topLevelKeys": [
+      "error",
+      "url",
+      "status",
+      "message"
+    ],
+    "entryCount": 0,
+    "entries": [],
+    "endpointKind": "translations"
+  }
+}

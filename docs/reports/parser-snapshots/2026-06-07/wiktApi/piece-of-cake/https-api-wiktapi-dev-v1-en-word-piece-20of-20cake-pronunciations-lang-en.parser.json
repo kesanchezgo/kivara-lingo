@@ -1,0 +1,25 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "piece of cake",
+  "url": "https://api.wiktapi.dev/v1/en/word/piece%20of%20cake/pronunciations?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/piece%20of%20cake/pronunciations?lang=en",
+  "ok": false,
+  "status": 404,
+  "contentType": "application/json",
+  "bytes": 183,
+  "ms": 1246,
+  "snapshot": {
+    "jsonSize": 183,
+    "sha256": "d59d4860178bdc6339a00772202851902dc33133fb64ca039da7f10bf915b545",
+    "topLevelKeys": [
+      "error",
+      "url",
+      "status",
+      "message"
+    ],
+    "entryCount": 0,
+    "entries": [],
+    "endpointKind": "pronunciations"
+  }
+}

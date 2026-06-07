@@ -1,0 +1,25 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "piece of cake",
+  "url": "https://api.wiktapi.dev/v1/en/word/piece%20of%20cake?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/piece%20of%20cake?lang=en",
+  "ok": false,
+  "status": 404,
+  "contentType": "application/json",
+  "bytes": 168,
+  "ms": 1206,
+  "snapshot": {
+    "jsonSize": 168,
+    "sha256": "858bbf1c1c945db137148f4fb82b32ff991d83e0ce5d0a85dd71ea4b9ceacd73",
+    "topLevelKeys": [
+      "error",
+      "url",
+      "status",
+      "message"
+    ],
+    "entryCount": 0,
+    "entries": [],
+    "endpointKind": "full-entry"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "anybody",
+  "url": "https://api.wiktapi.dev/v1/en/word/anybody/translations?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/anybody/translations?lang=en",
+  "ok": true,
+  "status": 200,
+  "contentType": "application/json;charset=UTF-8",
+  "bytes": 2479,
+  "ms": 1068,
+  "snapshot": {
+    "jsonSize": 2384,
+    "sha256": "b619aa846967e2e85ce8f4b809111b2a3cdf0fd8e67f89e3dcbc86cad89c91bd",
+    "topLevelKeys": [
+      "word",
+      "edition",
+      "translations"
+    ],
+    "entryCount": 0,
+    "entries": [],
+    "endpointKind": "translations"
+  }
+}

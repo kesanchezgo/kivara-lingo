@@ -1,0 +1,315 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "week",
+  "url": "https://api.wiktapi.dev/v1/en/word/week?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/week?lang=en",
+  "ok": true,
+  "status": 200,
+  "contentType": "application/json;charset=UTF-8",
+  "bytes": 48965,
+  "ms": 9803,
+  "snapshot": {
+    "jsonSize": 47490,
+    "sha256": "e186039df3b2f32b43d912db91301c7afc48aced48bfc0984204d0faf06ec6ae",
+    "topLevelKeys": [
+      "word",
+      "edition",
+      "entries"
+    ],
+    "entryCount": 2,
+    "entries": [
+      {
+        "keys": [
+          "senses",
+          "sounds",
+          "translations",
+          "forms"
+        ],
+        "senses": [
+          {
+            "glosses": [
+              "The squeal of a pig."
+            ],
+            "examples": [
+              {
+                "text": "And ho, ho, ho, went Mister Pig, and week, week, week, went she; […]",
+                "ref": "1837, William Evans Burton, Burton's Comic Songster, page 229:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    37,
+                    54
+                  ]
+                ]
+              },
+              {
+                "text": "[…] his head came a-top of one of a litter of young pigs that happened at that moment to be foraging about: week! week! week! week! week! cried little piggy.",
+                "ref": "1848, The Garland, Or, Token of Friendship, page 231:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    108,
+                    137
+                  ]
+                ]
+              }
+            ]
+          }
+        ],
+        "sounds": [
+          {
+            "enpr": "wēk"
+          },
+          {
+            "ipa": "/wiːk/"
+          },
+          {
+            "audio": "En-uk-a week.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/4/43/En-uk-a_week.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/43/En-uk-a_week.ogg/En-uk-a_week.ogg.mp3"
+          },
+          {
+            "tags": [
+              "General-American"
+            ],
+            "ipa": "/wik/"
+          },
+          {
+            "audio": "LL-Q1860 (eng)-Naomi Persephone Amethyst (NaomiAmethyst)-week.wav",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/4b/LL-Q1860_%28eng%29-Naomi_Persephone_Amethyst_%28NaomiAmethyst%29-week.wav/LL-Q1860_%28eng%29-Naomi_Persephone_Amethyst_%28NaomiAmethyst%29-week.wav.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/4b/LL-Q1860_%28eng%29-Naomi_Persephone_Amethyst_%28NaomiAmethyst%29-week.wav/LL-Q1860_%28eng%29-Naomi_Persephone_Amethyst_%28NaomiAmethyst%29-week.wav.mp3"
+          },
+          {
+            "audio": "en-us-week.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/c/cf/En-us-week.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/c/cf/En-us-week.ogg/En-us-week.ogg.mp3"
+          }
+        ],
+        "forms": [],
+        "translations": []
+      },
+      {
+        "keys": [
+          "senses",
+          "sounds",
+          "translations",
+          "forms"
+        ],
+        "senses": [
+          {
+            "glosses": [
+              "Any period of seven consecutive days."
+            ],
+            "examples": [
+              {
+                "text": "Holonyms: megasecond < fortnight < month < year < gigasecond < century < kiloannum, kiloyear, millennium < terasecond < mega-annum, megayear < petasecond < giga-annum, gigayear < exasecond < zettasecond < yottasecond < ronnasecond < quettasecond"
+              },
+              {
+                "text": "Meronyms: quectosecond < rontosecond < yoctosecond < zeptosecond < attosecond < femtosecond < picosecond < nanosecond < microsecond < millisecond < centisecond < decisecond < second < decasecond < minute < hectosecond < kilosecond < hour < day, weekday < weekend"
+              },
+              {
+                "text": "Investors face a quandary. Cash offers a return of virtually zero in many developed countries; government-bond yields may have risen in recent weeks but they are still unattractive. Equities have suffered two big bear markets since 2000 and are wobbling again. It is hardly surprising that pension funds, insurers and endowments are searching for new sources of return.",
+                "ref": "2013 July 6, “The rise of smart beta”, in The Economist, volume 408, number 8843, page 68:",
+                "type": "quotation",
+                "bold_text_offsets": [
+                  [
+                    143,
+                    148
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "glosses": [
+              "A period of seven days beginning with Sunday or Monday."
+            ]
+          },
+          {
+            "glosses": [
+              "A period of five days beginning with Monday."
+            ]
+          },
+          {
+            "glosses": [
+              "A subdivision of the month into longer periods of work days punctuated by shorter weekend periods of days for markets, rest, or religious observation such as a sabbath."
+            ],
+            "examples": [
+              {
+                "text": "A 4-day week consists of Monday, Tuesday, Wednesday, and Thursday.",
+                "bold_text_offsets": [
+                  [
+                    8,
+                    12
+                  ]
+                ],
+                "type": "example"
+              }
+            ]
+          }
+        ],
+        "sounds": [
+          {
+            "enpr": "wēk"
+          },
+          {
+            "ipa": "/wiːk/"
+          },
+          {
+            "audio": "En-uk-a week.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/4/43/En-uk-a_week.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/43/En-uk-a_week.ogg/En-uk-a_week.ogg.mp3"
+          },
+          {
+            "tags": [
+              "General-American"
+            ],
+            "ipa": "/wik/"
+          },
+          {
+            "audio": "LL-Q1860 (eng)-Naomi Persephone Amethyst (NaomiAmethyst)-week.wav",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/4b/LL-Q1860_%28eng%29-Naomi_Persephone_Amethyst_%28NaomiAmethyst%29-week.wav/LL-Q1860_%28eng%29-Naomi_Persephone_Amethyst_%28NaomiAmethyst%29-week.wav.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/4b/LL-Q1860_%28eng%29-Naomi_Persephone_Amethyst_%28NaomiAmethyst%29-week.wav/LL-Q1860_%28eng%29-Naomi_Persephone_Amethyst_%28NaomiAmethyst%29-week.wav.mp3"
+          },
+          {
+            "audio": "en-us-week.ogg",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/c/cf/En-us-week.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/c/cf/En-us-week.ogg/En-us-week.ogg.mp3"
+          }
+        ],
+        "forms": [
+          {
+            "form": "weeks",
+            "tags": [
+              "plural"
+            ]
+          },
+          {
+            "form": "weeke",
+            "tags": [
+              "alternative",
+              "obsolete"
+            ]
+          }
+        ],
+        "translations": [
+          {
+            "lang": "Abkhaz",
+            "code": "ab",
+            "lang_code": "ab",
+            "sense": "period of seven days",
+            "roman": "amčəbž",
+            "word": "амчыбжь"
+          },
+          {
+            "lang": "Adyghe",
+            "code": "ady",
+            "lang_code": "ady",
+            "sense": "period of seven days",
+            "roman": "tḥamafɛ",
+            "word": "тхьамафэ"
+          },
+          {
+            "lang": "Afar",
+            "code": "aa",
+            "lang_code": "aa",
+            "sense": "period of seven days",
+            "word": "ayam"
+          },
+          {
+            "lang": "Afrikaans",
+            "code": "af",
+            "lang_code": "af",
+            "sense": "period of seven days",
+            "word": "week"
+          },
+          {
+            "lang": "Albanian",
+            "code": "sq",
+            "lang_code": "sq",
+            "sense": "period of seven days",
+            "tags": [
+              "feminine"
+            ],
+            "word": "javë"
+          },
+          {
+            "lang": "American Sign Language",
+            "code": "ase",
+            "lang_code": "ase",
+            "sense": "period of seven days",
+            "note": "1@BasePalm-PalmDown-OpenB@CenterChesthigh-PalmUp 1@Finger-PalmDown-OpenB@CenterChesthigh-PalmUp"
+          },
+          {
+            "lang": "Amharic",
+            "code": "am",
+            "lang_code": "am",
+            "sense": "period of seven days",
+            "roman": "samnət",
+            "word": "ሳምንት"
+          },
+          {
+            "lang": "Arabic",
+            "code": "ar",
+            "lang_code": "ar",
+            "sense": "period of seven days",
+            "roman": "ʔusbūʕ",
+            "tags": [
+              "masculine"
+            ],
+            "word": "أُسْبُوع"
+          },
+          {
+            "lang": "Arabic",
+            "code": "ar",
+            "lang_code": "ar",
+            "sense": "period of seven days",
+            "roman": "jumʕa",
+            "tags": [
+              "feminine"
+            ],
+            "word": "جُمْعَة"
+          },
+          {
+            "lang": "Arabic",
+            "code": "ar",
+            "lang_code": "ar",
+            "tags": [
+              "Egyptian-Arabic",
+              "masculine"
+            ],
+            "sense": "period of seven days",
+            "roman": "ʔesbūʕ",
+            "word": "اسبوع"
+          },
+          {
+            "lang": "Arabic",
+            "code": "ar",
+            "lang_code": "ar",
+            "tags": [
+              "Gulf-Arabic",
+              "masculine"
+            ],
+            "sense": "period of seven days",
+            "roman": "ʔisbūʕ",
+            "word": "إسبوع"
+          },
+          {
+            "lang": "Arabic",
+            "code": "ar",
+            "lang_code": "ar",
+            "tags": [
+              "Hijazi-Arabic",
+              "masculine"
+            ],
+            "sense": "period of seven days",
+            "roman": "ʔusbūʕ",
+            "word": "أُسبوع"
+          }
+        ]
+      }
+    ],
+    "endpointKind": "full-entry"
+  }
+}

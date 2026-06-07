@@ -1,0 +1,24 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "run",
+  "url": "https://api.wiktapi.dev/v1/en/word/run/pronunciations?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/run/pronunciations?lang=en",
+  "ok": true,
+  "status": 200,
+  "contentType": "application/json;charset=UTF-8",
+  "bytes": 1447,
+  "ms": 1457,
+  "snapshot": {
+    "jsonSize": 1431,
+    "sha256": "4674752be976396940b30f3454dd2ff000994b34f6c7ccf3ad5ba2eb84a11c97",
+    "topLevelKeys": [
+      "word",
+      "edition",
+      "pronunciations"
+    ],
+    "entryCount": 0,
+    "entries": [],
+    "endpointKind": "pronunciations"
+  }
+}

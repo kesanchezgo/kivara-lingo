@@ -1,0 +1,25 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "break up",
+  "url": "https://api.wiktapi.dev/v1/en/word/break%20up/pronunciations?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/break%20up/pronunciations?lang=en",
+  "ok": false,
+  "status": 404,
+  "contentType": "application/json",
+  "bytes": 169,
+  "ms": 1086,
+  "snapshot": {
+    "jsonSize": 169,
+    "sha256": "0b35559a8c69074b3955d3a15117f4419444193f3c9cfdd4bf7057f54edde6d9",
+    "topLevelKeys": [
+      "error",
+      "url",
+      "status",
+      "message"
+    ],
+    "entryCount": 0,
+    "entries": [],
+    "endpointKind": "pronunciations"
+  }
+}

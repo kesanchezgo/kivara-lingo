@@ -1,0 +1,25 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "break up",
+  "url": "https://api.wiktapi.dev/v1/en/word/break%20up?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/break%20up?lang=en",
+  "ok": false,
+  "status": 404,
+  "contentType": "application/json",
+  "bytes": 154,
+  "ms": 1129,
+  "snapshot": {
+    "jsonSize": 154,
+    "sha256": "4e08129ba081c2fc909607ccaf2eee28df369d8337cc2c71ce2a96db8aeadbb9",
+    "topLevelKeys": [
+      "error",
+      "url",
+      "status",
+      "message"
+    ],
+    "entryCount": 0,
+    "entries": [],
+    "endpointKind": "full-entry"
+  }
+}

@@ -1,0 +1,255 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "anybody",
+  "url": "https://api.wiktapi.dev/v1/en/word/anybody?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/anybody?lang=en",
+  "ok": true,
+  "status": 200,
+  "contentType": "application/json;charset=UTF-8",
+  "bytes": 4680,
+  "ms": 1058,
+  "snapshot": {
+    "jsonSize": 4570,
+    "sha256": "4bdd6ec68539e0a449ba4583a6c0736c82ecb27f4f43a1fa34592890c56dc30b",
+    "topLevelKeys": [
+      "word",
+      "edition",
+      "entries"
+    ],
+    "entryCount": 1,
+    "entries": [
+      {
+        "keys": [
+          "senses",
+          "sounds",
+          "translations",
+          "forms"
+        ],
+        "senses": [
+          {
+            "glosses": [
+              "Any one out of an indefinite number of persons; anyone; any person."
+            ],
+            "examples": [
+              {
+                "text": "Anybody will do.",
+                "bold_text_offsets": [
+                  [
+                    0,
+                    7
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "Is there anybody inside?",
+                "bold_text_offsets": [
+                  [
+                    9,
+                    16
+                  ]
+                ],
+                "type": "example"
+              }
+            ]
+          },
+          {
+            "glosses": [
+              "A person of some consideration or standing."
+            ],
+            "raw_glosses": [
+              "(informal) A person of some consideration or standing."
+            ],
+            "examples": [
+              {
+                "text": "Everybody who wants to be anybody will come to Jake's party.",
+                "bold_text_offsets": [
+                  [
+                    26,
+                    33
+                  ]
+                ],
+                "type": "example"
+              },
+              {
+                "text": "Here one isn't anybody, if one doesn't dance like Travolta.",
+                "bold_text_offsets": [
+                  [
+                    15,
+                    22
+                  ]
+                ],
+                "type": "example"
+              }
+            ],
+            "tags": [
+              "informal"
+            ]
+          }
+        ],
+        "sounds": [
+          {
+            "tags": [
+              "UK"
+            ],
+            "ipa": "/ˈɛn.i.bɒd.i/"
+          },
+          {
+            "tags": [
+              "UK"
+            ],
+            "ipa": "/ˈɛn.i.bə.di/"
+          },
+          {
+            "audio": "LL-Q1860 (eng)-Back ache-anybody.wav",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/2/26/LL-Q1860_%28eng%29-Back_ache-anybody.wav/LL-Q1860_%28eng%29-Back_ache-anybody.wav.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/2/26/LL-Q1860_%28eng%29-Back_ache-anybody.wav/LL-Q1860_%28eng%29-Back_ache-anybody.wav.mp3"
+          },
+          {
+            "audio": "LL-Q1860 (eng)-Vealhurl-anybody.wav",
+            "ogg_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/2/2e/LL-Q1860_%28eng%29-Vealhurl-anybody.wav/LL-Q1860_%28eng%29-Vealhurl-anybody.wav.ogg",
+            "mp3_url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/2/2e/LL-Q1860_%28eng%29-Vealhurl-anybody.wav/LL-Q1860_%28eng%29-Vealhurl-anybody.wav.mp3"
+          },
+          {
+            "note": "stressed form, US",
+            "ipa": "/ˈɛn.i.bʌ.di/"
+          },
+          {
+            "note": "stressed form, US",
+            "ipa": "/ˈɛn.i.bɑd.i/"
+          }
+        ],
+        "forms": [
+          {
+            "form": "any body",
+            "tags": [
+              "alternative",
+              "obsolete"
+            ]
+          }
+        ],
+        "translations": [
+          {
+            "lang": "Bulgarian",
+            "code": "bg",
+            "lang_code": "bg",
+            "sense": "(colloquial) a person of consideration or standing",
+            "roman": "važna klečka",
+            "word": "важна клечка"
+          },
+          {
+            "lang": "Finnish",
+            "code": "fi",
+            "lang_code": "fi",
+            "sense": "(colloquial) a person of consideration or standing",
+            "tags": [
+              "positive"
+            ],
+            "word": "joku"
+          },
+          {
+            "lang": "Finnish",
+            "code": "fi",
+            "lang_code": "fi",
+            "sense": "(colloquial) a person of consideration or standing",
+            "tags": [
+              "negative"
+            ],
+            "word": "kukaan"
+          },
+          {
+            "lang": "German",
+            "code": "de",
+            "lang_code": "de",
+            "sense": "(colloquial) a person of consideration or standing",
+            "word": "jemand"
+          },
+          {
+            "lang": "German",
+            "code": "de",
+            "lang_code": "de",
+            "sense": "(colloquial) a person of consideration or standing",
+            "tags": [
+              "colloquial"
+            ],
+            "word": "wer"
+          },
+          {
+            "lang": "Italian",
+            "code": "it",
+            "lang_code": "it",
+            "sense": "(colloquial) a person of consideration or standing",
+            "word": "qualcuno"
+          },
+          {
+            "lang": "Central Kurdish",
+            "code": "ckb",
+            "lang_code": "ckb",
+            "sense": "(colloquial) a person of consideration or standing",
+            "roman": "kes",
+            "word": "کەس"
+          },
+          {
+            "lang": "Portuguese",
+            "code": "pt",
+            "lang_code": "pt",
+            "sense": "(colloquial) a person of consideration or standing",
+            "word": "alguém"
+          },
+          {
+            "lang": "Russian",
+            "code": "ru",
+            "lang_code": "ru",
+            "sense": "(colloquial) a person of consideration or standing",
+            "english": "big fir-cone",
+            "translation": "big fir-cone",
+            "roman": "bolʹšája šíška",
+            "tags": [
+              "feminine"
+            ],
+            "word": "больша́я ши́шка"
+          },
+          {
+            "lang": "Russian",
+            "code": "ru",
+            "lang_code": "ru",
+            "sense": "(colloquial) a person of consideration or standing",
+            "english": "important bird",
+            "translation": "important bird",
+            "roman": "vážnaja ptíca",
+            "tags": [
+              "feminine"
+            ],
+            "word": "ва́жная пти́ца"
+          },
+          {
+            "lang": "Russian",
+            "code": "ru",
+            "lang_code": "ru",
+            "sense": "(colloquial) a person of consideration or standing",
+            "roman": "vážnaja persóna",
+            "tags": [
+              "feminine"
+            ],
+            "word": "ва́жная персо́на"
+          },
+          {
+            "lang": "Russian",
+            "code": "ru",
+            "lang_code": "ru",
+            "sense": "(colloquial) a person of consideration or standing",
+            "english": "important person",
+            "translation": "important person",
+            "roman": "vážnoje licó",
+            "tags": [
+              "feminine"
+            ],
+            "word": "ва́жное лицо́"
+          }
+        ]
+      }
+    ],
+    "endpointKind": "full-entry"
+  }
+}

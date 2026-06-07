@@ -1,0 +1,24 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "give",
+  "url": "https://api.wiktapi.dev/v1/en/word/give/translations?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/give/translations?lang=en",
+  "ok": true,
+  "status": 200,
+  "contentType": "application/json;charset=UTF-8",
+  "bytes": 51328,
+  "ms": 148,
+  "snapshot": {
+    "jsonSize": 50185,
+    "sha256": "9f6d61f6bcb053e484f97ffb78ec11d467739261b67558577e06b3a4a3b05f79",
+    "topLevelKeys": [
+      "word",
+      "edition",
+      "translations"
+    ],
+    "entryCount": 0,
+    "entries": [],
+    "endpointKind": "translations"
+  }
+}

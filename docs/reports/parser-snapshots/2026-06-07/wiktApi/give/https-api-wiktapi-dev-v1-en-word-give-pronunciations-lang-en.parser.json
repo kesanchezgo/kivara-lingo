@@ -1,0 +1,24 @@
+{
+  "sourceId": "wiktApi",
+  "tier": "candidate-standard",
+  "token": "give",
+  "url": "https://api.wiktapi.dev/v1/en/word/give/pronunciations?lang=en",
+  "finalUrl": "https://api.wiktapi.dev/v1/en/word/give/pronunciations?lang=en",
+  "ok": true,
+  "status": 200,
+  "contentType": "application/json;charset=UTF-8",
+  "bytes": 603,
+  "ms": 143,
+  "snapshot": {
+    "jsonSize": 599,
+    "sha256": "ea9dc7a85ab28d968dbe7aafaae3c5cac914b65c9147ac1f0f65eb95e0a7ef40",
+    "topLevelKeys": [
+      "word",
+      "edition",
+      "pronunciations"
+    ],
+    "entryCount": 0,
+    "entries": [],
+    "endpointKind": "pronunciations"
+  }
+}
