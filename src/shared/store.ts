@@ -141,6 +141,7 @@ export const DEFAULT_VIP: VipSettings = {
   wiktionaryHtml: true,
   wiktionaryApi: true,
   wiktApi: true,
+  britannicaDictionary: true,
   mobyThesaurus: true,
   thesaurusCom: true,
   wordHippo: true,

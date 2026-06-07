@@ -38,6 +38,7 @@ import { wiktionarySource } from './sources/wiktionary';
 import { wiktionaryHtmlSource } from './sources/wiktionary-html';
 import { wiktionaryApiSource } from './sources/wiktionary-api';
 import { wiktApiSource } from './sources/wiktapi';
+import { britannicaDictionarySource } from './sources/britannica-dictionary';
 import { wordHippoSource } from './sources/wordhippo';
 import { theIdiomsSource } from './sources/the-idioms';
 import { mobyThesaurusSource } from './sources/moby-thesaurus';
@@ -96,6 +97,7 @@ const STANDARD_SOURCE_KEYS = new Set<keyof VipSettings>([
   'wiktionaryHtml',
   'wiktionaryApi',
   'wiktApi',
+  'britannicaDictionary',
   'mobyThesaurus',
   'thesaurusCom',
   'wordHippo',
@@ -143,6 +145,7 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   wiktionaryHtml: wiktionaryHtmlSource,
   wiktionaryApi: wiktionaryApiSource,
   wiktApi: wiktApiSource,
+  britannicaDictionary: britannicaDictionarySource,
   mobyThesaurus: mobyThesaurusSource,
   thesaurusCom: thesaurusComSource,
   wordHippo: wordHippoSource,
@@ -491,7 +494,7 @@ function mergeFields(
 
   // Pick a primary monolingual definition and primary examples for the
   // popover top fold, prefer Longman / Cambridge over the rest.
-  const monoPriority = ['longman', 'cambridge', 'oxfordLearners', 'collins', 'merriamWebster', 'freeDictionary'];
+  const monoPriority = ['longman', 'cambridge', 'oxfordLearners', 'collins', 'merriamWebster', 'britannicaDictionary', 'wiktApi', 'freeDictionary'];
   for (const id of monoPriority) {
     const hit = partials.find((p) => p.source.id === id && (p.partial.definitions?.length ?? 0) > 0);
     if (hit?.partial.definitions?.length) {

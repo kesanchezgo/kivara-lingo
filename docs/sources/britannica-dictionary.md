@@ -6,7 +6,7 @@ Tier target: Standard candidate.
 
 Raw audit: passed from Node with browser-like headers.
 Parser snapshot: generated for `give`, `wonderful`, `anything`, `anybody`, `week`, `know`, `run`, `break up`, and `piece of cake` under `docs/reports/parser-snapshots/2026-06-07/britannicaDictionary/`.
-Integration: not integrated yet.
+Integration: integrated as Standard source `britannicaDictionary` on 2026-06-07. It runs in the Standard fan-out and is individually togglable in the VIP/Standard settings UI.
 
 ## URL pattern
 
@@ -54,3 +54,23 @@ The page has many related entries and idiom/phrasal sections. Parser must avoid 
 
 Standard `monolingual`: should outrank FreeDictionary when parser finds a clear learner definition.
 Standard `examples`: good secondary source.
+
+
+## Integrated parser behavior
+
+The runtime source extracts:
+
+- `def_text` spans as learner definitions.
+- `vi_content` divs as examples.
+- `pron_w` spans as IPA.
+- `play_pron` audio metadata as Merriam-Webster media MP3 URLs.
+
+Context ranking is intentionally light and source-local. It fixes observed snapshot problems such as:
+
+- `give` preferring gift/transfer definitions over noun flexibility.
+- `week` preferring seven-day definitions.
+- `know` preferring understand/aware/certain definitions.
+- `run` preferring move/operate/manage definitions over unrelated adjective/noun senses.
+- `anything` preferring thing-of-any-kind definitions.
+
+Britannica does not feed `bilingual`; it improves Standard `monolingual`, examples, IPA and word audio.

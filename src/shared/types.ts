@@ -469,6 +469,12 @@ export interface VipSettings {
    */
   wiktApi: boolean;
   /**
+   * Britannica Dictionary — free learner dictionary with simple English
+   * definitions and many examples. Improves Standard monolingual quality
+   * when Free Dictionary / Wiktionary pick the wrong sense. Default true.
+   */
+  britannicaDictionary: boolean;
+  /**
    * Moby Thesaurus (moby-thesaurus.org). Public-domain synonym list
    * by Grady Ward (1996). Up to 100+ synonyms for common words.
    * No antonyms (unidirectional). Default true.
