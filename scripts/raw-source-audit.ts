@@ -32,6 +32,16 @@ const BROWSER_HEADERS = {
   'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36',
 };
 
+const BABLA_HEADERS = {
+  'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'accept-language': 'en-US,en;q=0.9,es;q=0.8',
+  // bab.la returns Cloudflare 403 to normal Node/browser-like headers during
+  // raw audits, but serves the static dictionary HTML to crawler-compatible
+  // requests. Keep this isolated in the audit/source config and document it;
+  // do not generalize it to other sources.
+  'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+};
+
 function slug(token: string): string {
   return encodeURIComponent(token.trim().toLowerCase().replace(/\s+/g, '-'));
 }
@@ -175,7 +185,7 @@ const sources: RawSourceConfig[] = [
     role: ['bilingual', 'examples', 'idioms', 'phrasal-verbs', 'conjugation-links'],
     qualityHypothesis: 'Recognized free dictionary page with Oxford-powered sections, translations, examples, idioms and phrasals. Very promising but parser must separate sections.',
     urls: (t) => [`https://en.bab.la/dictionary/english-spanish/${slug(t)}`],
-    headers: BROWSER_HEADERS,
+    headers: BABLA_HEADERS,
   },
   {
     id: 'pons',

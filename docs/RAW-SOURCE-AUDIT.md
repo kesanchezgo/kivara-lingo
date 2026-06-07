@@ -191,22 +191,43 @@ priority: should improve Standard monolingual quality, especially when FreeDicti
 
 ### bab.la
 
-Status: promising but not ready from Node raw audit.
+Status: strong VIP candidate, parser still required before integration.
 
-Observed in browser: page is very rich and contains translations, Oxford-powered sections, example sentences, idioms and phrasal verbs.
-
-Observed from Node fetch:
+Initial Node/browser-like headers returned:
 
 ```text
-403, ~5.9 KB body
+403, ~5.9 KB Cloudflare body
+```
+
+After protocol testing, bab.la returned full static dictionary HTML with crawler-compatible headers:
+
+```text
+give       -> 200, ~1.15 MB HTML
+wonderful  -> 200, ~814 KB HTML
+anything   -> 200, ~706 KB HTML
+```
+
+The raw page contains:
+
+```text
+top translation
+POS sections
+large bilingual translation lists
+Oxford-powered detailed dictionary sections
+examples with aligned translations
+idioms
+phrasal verbs
+conjugation links
+regional/register labels
 ```
 
 Recommendation:
 
 ```text
-candidate-vip but not integrable yet
-must solve access protocol first: headers, cookies, browser/service-worker behavior, or alternative endpoint
-no integration until raw fetch is reliable from extension runtime
+candidate-vip
+fields: bilingual, examples, idioms, phrasal verbs, sense groups
+parser requirement: must separate compact lexical glosses from corpus examples and long Oxford sections
+runtime requirement: verify the same request behavior from MV3 service worker before enabling by default
 ```
 
 ## GitHub / community evidence
@@ -238,11 +259,11 @@ A new source may be integrated only after:
 2. **PONS** for VIP bilingual/sense-group/examples.
 3. **Britannica Dictionary** for Standard learner monolingual/examples.
 4. **dict.cc** for VIP/secondary bilingual and phrase rows.
-5. **bab.la** only after solving 403/access in extension runtime.
+5. **bab.la** for VIP bilingual/idioms/phrasals after parser snapshots and MV3 runtime verification.
 
 ## Open work
 
 - Add extension-runtime audit command to compare Node vs MV3 service worker behavior.
 - Add per-source docs for current sources, not just candidates.
-- Add parser snapshots for PONS, dict.cc, Britannica and WiktApi before integrating them.
+- Add parser snapshots for PONS, bab.la, dict.cc, Britannica and WiktApi before integrating them.
 - Keep all existing sources. New sources must supplement coverage, not replace the current Standard/VIP fan-out.
