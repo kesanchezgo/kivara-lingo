@@ -6,7 +6,7 @@ Tier target: VIP candidate.
 
 Raw audit: passed from Node with browser-like headers.
 Parser snapshot: generated for `give`, `wonderful`, `anything`, `anybody`, `week`, `know`, `run`, `break up`, and `piece of cake` under `docs/reports/parser-snapshots/2026-06-07/pons/`.
-Integration: not integrated yet.
+Integration: integrated as VIP source `pons` on 2026-06-07. It runs only when VIP is enabled and the source toggle is on.
 
 ## URL pattern
 
@@ -60,3 +60,33 @@ Do not dump all Spanish links into `bilingual`. The raw page contains examples a
 ## Priority recommendation
 
 For VIP `bilingual`, PONS should rank very high, likely before or alongside Cambridge/bab.la, but only after parser snapshots validate extraction.
+
+
+## Integrated parser behavior
+
+The runtime parser uses `add-to-vocabulary-trainer` button metadata because it carries source text, target text and sense headers in stable data attributes.
+
+It separates:
+
+- compact lexical translations into `translations`,
+- sentence-like aligned pairs into `examples`,
+- short source phrase rows into `collocations`.
+
+Safety rules:
+
+- target sentences and conjugated phrases are rejected from `translations`,
+- examples never enter `bilingual`,
+- source rows for Spanish-to-English sections are ignored unless the English token appears in the source side,
+- MWE coverage is partial; `piece of cake` snapshot showed mostly reverse-direction rows, so dedicated idiom sources still own that case.
+
+Validated spot outputs:
+
+```text
+give -> dar, regalar, obsequiar, donar, prestar, entregar
+wonderful -> maravilloso, maravilloso, -a, extraordinario
+anything -> algo, nada, casi nada, cualquier cosa
+know -> saber, conocer, ...
+break up -> desguazar, dividir, descomponer, disolver, deshacer
+```
+
+PONS ranks first among VIP lexical candidates, but field-level ranking still dedupes and can be improved later with context/polarity scoring.

@@ -81,6 +81,7 @@ const VIP_DICT_SOURCES: SourceMeta[] = [
 ];
 
 const VIP_BILINGUAL_SOURCES: SourceMeta[] = [
+  { key: 'pons', label: 'PONS', hint: 'Diccionario EN-ES reconocido con grupos de sentido, glosas, ejemplos alineados y frases de uso. Sin token.' },
   { key: 'reverso', label: 'Reverso Context', hint: 'Frases EN-ES de subtítulos / libros / prensa.' },
   { key: 'linguee', label: 'Linguee', hint: 'Traducciones y ejemplos curados de la web.' },
   { key: 'wordReference', label: 'WordReference', hint: 'Equivalencias EN-ES naturales.' },

@@ -51,6 +51,7 @@ import { longmanSource } from './sources/longman';
 import { collinsSource } from './sources/collins';
 import { merriamWebsterSource } from './sources/merriam-webster';
 import { ozdicSource } from './sources/ozdic';
+import { ponsSource } from './sources/pons';
 import { reversoSource } from './sources/reverso-context';
 import { lingueeSource } from './sources/linguee';
 import { wordReferenceSource } from './sources/wordreference';
@@ -160,6 +161,7 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   merriamWebster: merriamWebsterSource,
   oxfordCollocations: null, // pack-based, handled separately
   ozdic: ozdicSource,
+  pons: ponsSource,
   reverso: reversoSource,
   linguee: lingueeSource,
   wordReference: wordReferenceSource,
@@ -328,6 +330,7 @@ interface MergedFields {
 }
 
 const TRANSLATION_SOURCE_PRIORITY = [
+  'pons',
   'cambridge',
   'spanishDict',
   'wordReference',

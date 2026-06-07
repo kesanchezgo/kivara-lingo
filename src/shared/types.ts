@@ -529,6 +529,8 @@ export interface VipSettings {
   ozdic: boolean;
 
   /* ── Bilingual / contextual translations ──────────────────────────── */
+  /** PONS English-Spanish dictionary scrape — VIP bilingual/sense groups. */
+  pons: boolean;
   reverso: boolean;
   linguee: boolean;
   wordReference: boolean;

@@ -155,6 +155,7 @@ export const DEFAULT_VIP: VipSettings = {
   merriamWebster: true,
   oxfordCollocations: true,
   ozdic: true,
+  pons: true,
   reverso: true,
   linguee: true,
   wordReference: true,
