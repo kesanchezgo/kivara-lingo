@@ -157,3 +157,23 @@ quality assessment
 ```
 
 Only after that test should new sources be enabled by default.
+
+## Bilingual field policy
+
+The `bilingual` field should not collapse to a single meaning. For learners, the best card shows the context-ranked primary gloss first and then preserves the main alternate meanings.
+
+Runtime policy:
+
+```text
+translation = one best primary gloss for the current context
+bilingual   = up to 8 clean glosses, primary first, alternates after
+```
+
+This avoids overfitting a word to one subtitle line while still keeping the card concise. Example:
+
+```text
+know -> saber · conocer · estar al corriente · saber de
+wonderful -> maravilloso · extraordinario · estupendo
+```
+
+Contextual ranking may reorder candidates, but it must not throw away valid high-quality alternate senses unless they are noisy examples, source-language echoes or wrong-direction rows.

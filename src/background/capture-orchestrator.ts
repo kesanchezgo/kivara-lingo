@@ -423,7 +423,11 @@ export async function createCardFromRequest(
         ctx.translation = lexicalTranslations[0];
       }
       if (!ctx.bilingual && lexicalTranslations.length > 0) {
-        ctx.bilingual = lexicalTranslations.slice(0, 4).join(' · ');
+        // Keep multiple clean meanings in the Anki `bilingual` field. The
+        // first item is ranked for the subtitle context, but alternate
+        // meanings are valuable for learners and prevent overfitting the card
+        // to one sentence.
+        ctx.bilingual = lexicalTranslations.slice(0, 8).join(' · ');
       }
       if (enriched.vip.etymology) ctx.etymology = enriched.vip.etymology;
       if (enriched.vip.mnemonic) ctx.mnemonic = enriched.vip.mnemonic;

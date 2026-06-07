@@ -333,6 +333,8 @@ interface MergedFields {
   vip: VipEnrichment;
 }
 
+const MAX_BILINGUAL_GLOSSES = 8;
+
 const TRANSLATION_SOURCE_PRIORITY = [
   'pons',
   'babla',
@@ -397,7 +399,7 @@ function pickLexicalTranslations(
       if (seen.has(key)) continue;
       seen.add(key);
       out.push(candidate);
-      if (out.length >= 8) return out;
+      if (out.length >= MAX_BILINGUAL_GLOSSES) return out;
     }
   }
   return out;
@@ -473,8 +475,12 @@ function mergeFields(
   // Pick clean lexical translations from all source-attributed candidates.
   const lexicalTranslations = pickLexicalTranslations(token, allTrans);
   if (lexicalTranslations.length) {
+    // `translation` remains the best/current-context primary gloss, while
+    // `bilingual` intentionally keeps a wider learner-facing list. Subtitle
+    // context can disambiguate the first item, but learners benefit from
+    // seeing the main alternate senses too.
     entry.translation = lexicalTranslations[0];
-    entry.bilingual = lexicalTranslations.slice(0, 4).join(' · ');
+    entry.bilingual = lexicalTranslations.slice(0, MAX_BILINGUAL_GLOSSES).join(' · ');
   }
 
   // Synonyms / antonyms / collocations / audio go on entry directly so
