@@ -46,6 +46,7 @@ export function detectFieldSource(fieldName: string): FieldSource {
   if (/synonym|sinónimo|sinonimo/.test(n)) return 'synonyms';
   if (/antonym|antónimo|antonimo|opposite/.test(n)) return 'antonyms';
   if (/colloc|colocac|combinaciones|combos|chunk/.test(n)) return 'collocations';
+  if (/frequency|frecuencia|freq|word rank|rango/.test(n)) return 'frequency';
   if (/etymolog|etimolog|origin/.test(n)) return 'etymology';
   if (/mnemonic|nemot|mnemot|memo/.test(n)) return 'mnemonic';
   if (/youglish|video|youtube/.test(n)) return 'video-link';

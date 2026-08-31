@@ -110,34 +110,51 @@ export const ozdicSource: EnrichmentSource = {
     // The `cat` field includes the actual headword in upper-case
     // (e.g. "VERB + EXCUSE", "EXCUSE + VERB"), so we match against
     // the headword to decide the phrase order.
+    //
+    // SENSE-AWARE: every collocation block carries a `gloss` naming its
+    // sense ("(noun.) of success/failure", "(noun.) on foot"). The block
+    // is published as a relationGroup with that gloss as its definition,
+    // so the merger's contextual selector picks the collocations of the
+    // RIGHT sense instead of dumping every sense's phrases (verified live
+    // 2026-08-30: `run` exposes six noun-sense blocks; the old flat dump
+    // mixed nautical/cricket/theatre phrases into every lookup).
     const HW = headword.toUpperCase();
     const verbBefore = new RegExp(`VERB\\s*\\+\\s*${HW}`);
     const verbAfter = new RegExp(`${HW}\\s*\\+\\s*VERB`);
+    const relationGroups: SenseRelationGroup[] = [];
     for (const block of data.collocations ?? []) {
+      const groupCollocations = new Set<string>();
+      const groupExample = block.groups?.[0]?.clusters?.[0]?.example?.trim();
       for (const group of block.groups ?? []) {
         const cat = (group.cat || '').toUpperCase();
         for (const cluster of group.clusters ?? []) {
           for (const w of cluster.words ?? []) {
-            const word = (w || '').trim();
-            if (!word) continue;
-            let phrase: string;
-            if (/^ADJ/.test(cat)) {
-              phrase = `${word} ${headword}`;
-            } else if (verbBefore.test(cat) || /^VERB$/.test(cat)) {
-              phrase = `${word} ${headword}`;
-            } else if (verbAfter.test(cat)) {
-              phrase = `${headword} ${word}`;
-            } else if (/^PREP/.test(cat)) {
-              phrase = `${headword} ${word}`;
-            } else if (/^QUANT/.test(cat)) {
-              phrase = `${word} of ${headword}`;
-            } else if (/^PHR|^PHRASES?$/.test(cat)) {
-              phrase = word; // phrases are full chunks already
-            } else {
-              phrase = `${word} ${headword}`;
+            const raw = (w || '').trim();
+            if (!raw) continue;
+            // ozdic packs cluster variants in ONE comma-separated string
+            // ("long,winning", "go for,have"). Split them so every
+            // published collocation is a single clean phrase instead of
+            // "long,winning run" (verified live 2026-08-30).
+            for (const word of raw.split(',').map((part) => part.trim()).filter(Boolean)) {
+              let phrase: string;
+              if (/^ADJ/.test(cat)) {
+                phrase = `${word} ${headword}`;
+              } else if (verbBefore.test(cat) || /^VERB$/.test(cat)) {
+                phrase = `${word} ${headword}`;
+              } else if (verbAfter.test(cat)) {
+                phrase = `${headword} ${word}`;
+              } else if (/^PREP/.test(cat)) {
+                phrase = `${headword} ${word}`;
+              } else if (/^QUANT/.test(cat)) {
+                phrase = `${word} of ${headword}`;
+              } else if (/^PHR|^PHRASES?$/.test(cat)) {
+                phrase = word; // phrases are full chunks already
+              } else {
+                phrase = `${word} ${headword}`;
+              }
+              if (phrase && phrase.length < 60) groupCollocations.add(phrase);
+              if (groupCollocations.size >= 12) break;
             }
-            if (phrase && phrase.length < 60) collocations.add(phrase);
-            if (collocations.size >= 24) break;
           }
           // Cluster-level example sentence (sometimes the only clean
           // example the entry provides).
@@ -146,12 +163,25 @@ export const ozdicSource: EnrichmentSource = {
           }
         }
       }
+      if (groupCollocations.size) {
+        relationGroups.push({
+          guide: (block.gloss || '').replace(/^\s*\((noun|verb|adj|adv)\.\)\s*/i, '').trim() || undefined,
+          ...(groupExample ? { example: groupExample } : {}),
+          definition: block.gloss?.trim() || `collocations of ${headword}`,
+          collocations: Array.from(groupCollocations).slice(0, 12),
+        });
+        for (const phrase of groupCollocations) collocations.add(phrase);
+        if (collocations.size >= 24) break;
+      }
     }
 
     const partial: SourcePartial = {};
     if (definitions.length) partial.definitions = definitions.slice(0, 4);
     if (examples.length) partial.examples = examples.slice(0, 6);
     if (collocations.size) partial.collocations = Array.from(collocations).slice(0, 20);
+    // Sense-bound collocation groups ride the same contextual gate as
+    // synonym/antonym groups in the merger.
+    if (relationGroups.length) partial.relationGroups = relationGroups;
     return partial;
   },
 };

@@ -49,6 +49,7 @@ node_modules/.vite/
 
 # Test coverage & output
 coverage/
+.audit/
 
 # Throwaway test/debug scripts at root
 test.js
@@ -73,3 +74,13 @@ mock/
 # Avoid mixing package managers — the project is on pnpm (pnpm-lock.yaml).
 package-lock.json
 yarn.lock
+
+# Postman tool artifacts (empty scaffolding, not project files)
+postman/
+.postman/
+
+# Regenerable runtime audit JSONs (evidence snapshots; fixtures/ ARE tracked for tests)
+docs/reports/runtime/*.json
+
+# Private agent workspace prompt (not project code)
+AGENTS.md

@@ -29,20 +29,21 @@ interface SourceMeta {
   hint: string;
 }
 
-/* ── Standard tier: free APIs, no token, run regardless of VIP master switch ── */
+/* ── Standard tier: public/free sources, run regardless of VIP master switch ── */
 
 const STD_DICT_SOURCES: SourceMeta[] = [
   { key: 'bundled', label: 'Bundled (offline)', hint: 'Diccionario curado + extensiones + CEFR + thesaurus + collocations académicas. ~10 893 entradas, ~250 KB. Funciona offline.' },
+  { key: 'wordnet', label: 'WordNet (OEWN 2025, offline)', hint: 'Open English WordNet local (CC BY 4.0): grupos de sinónimos/antónimos por acepción, definiciones y ejemplos con selección de sentido. Sin red; carga sólo el fragmento de la inicial consultada.' },
   { key: 'yomitanPacks', label: 'Yomitan packs', hint: 'Packs Wiktionary instalados (kty-en-es: 67k entradas, kty-en-en: 500k, kty-en-ipa: 200k). Cubren phrasals, idioms, MWE y slang.' },
   { key: 'wiktionary', label: 'Wiktionary REST', hint: 'API oficial Wikimedia (en.wiktionary.org/api/rest_v1). Cubre phrasal verbs, idioms y MWE multi-palabra que otros diccionarios no indexan. Sin token.' },
   { key: 'wiktionaryHtml', label: 'Wiktionary HTML', hint: 'Parser de la página HTML completa de Wiktionary: etimología + sinónimos + antónimos + términos relacionados que el endpoint JSON no expone. Crucial para frases multi-palabra (kick the bucket, piece of cake, turn off). Sin token.' },
   { key: 'wiktionaryApi', label: 'WiktionaryAPI', hint: 'freedictionaryapi.com — mirror Wiktionary con datos completos para frases multi-palabra (kick the bucket → 18+ sinónimos, big deal → 2 senses). Sin token.' },
   { key: 'wiktApi', label: 'WiktApi / Kaikki', hint: 'wiktapi.dev — JSON estructurado de Wiktionary/Kaikki: traducciones ES, sentidos, ejemplos, formas, IPA y audio para palabras simples. Sin token.' },
-  { key: 'britannicaDictionary', label: 'Britannica Dictionary', hint: 'Diccionario learner gratuito: definiciones simples y muchos ejemplos. Mejora Standard cuando FreeDictionary elige un sentido incorrecto. Sin token.' },
-  { key: 'mobyThesaurus', label: 'Moby Thesaurus', hint: 'Tesauro público de Grady Ward (1996). 30k entradas con hasta 100+ sinónimos por palabra común. Sin token, sin antónimos.' },
+
+  { key: 'mobyThesaurus', label: 'Moby Thesaurus', hint: 'Señal débil del tesauro público de Grady Ward. Nunca publica una relación por sí solo.' },
   { key: 'thesaurusCom', label: 'Thesaurus.com', hint: 'Antónimos profesionales para sustantivos abstractos / técnicos (algorithm → deviation, idleness; apple → 66 antónimos; house → 157). Solo palabra simple. Sin token.' },
   { key: 'wordHippo', label: 'WordHippo', hint: 'Antónimos de phrasals, idioms, MWE y sustantivos concretos (kick the bucket → bring back to life, big deal → small potatoes, apple → country) que ningún otro tesauro free cubre. Sin token.' },
-  { key: 'theIdioms', label: 'TheIdioms', hint: 'theidioms.com — origen e historia de idioms en inglés. Mejor fuente gratuita para etimología de frases (kick the bucket, piece of cake, big deal). Solo aplica a frases multi-palabra.' },
+  { key: 'theIdioms', label: 'TheIdioms', hint: 'Señal secundaria para detectar idioms. Sus etimologías y definiciones no se publican como autoridad.' },
   { key: 'freeDictionary', label: 'Free Dictionary API', hint: 'IPA + audio MP3 de Wikimedia + sinónimos. Gratis sin token (api.dictionaryapi.dev).' },
   { key: 'datamuse', label: 'Datamuse', hint: 'Collocations corpus-based + relaciones. Gratis sin token (api.datamuse.com).' },
 ];
@@ -57,10 +58,10 @@ const STD_AUDIO_SOURCES: SourceMeta[] = [
 ];
 
 const STD_IMAGE_SOURCES: SourceMeta[] = [
-  { key: 'bingImages', label: 'Bing Images', hint: 'Búsqueda web sin token. ~25 fotos por consulta, licencia mixta — ideal cuando importa la pertinencia más que la licencia.' },
+  { key: 'bingImages', label: 'Bing Images', hint: 'Señal visual de último recurso. Sus resultados no se publican directamente sin respaldo de una fuente abierta.' },
   { key: 'openverse', label: 'Openverse', hint: 'Imágenes CC-BY / CC0 (Flickr + Wikimedia + museos) vía API pública sin token.' },
   { key: 'wikimediaCommons', label: 'Wikimedia Commons', hint: 'Imágenes CC con metadata, ideal para términos nicho.' },
-  { key: 'duckduckgoImages', label: 'DuckDuckGo Images', hint: 'Búsqueda última-milla cuando todo lo anterior falla.' },
+  { key: 'duckduckgoImages', label: 'DuckDuckGo Images', hint: 'Señal visual de último recurso; no puede ganar directamente el ranking.' },
 ];
 
 const STD_ETY_VIDEO: SourceMeta[] = [
@@ -71,13 +72,14 @@ const STD_ETY_VIDEO: SourceMeta[] = [
 /* ── VIP tier: scrapes of commercial dictionaries + BYOK image APIs ── */
 
 const VIP_DICT_SOURCES: SourceMeta[] = [
-  { key: 'cambridge', label: 'Cambridge', hint: 'Definiciones, collocations, IPA y audio UK/US.' },
+  { key: 'britannicaDictionary', label: 'Britannica Dictionary', hint: 'Diccionario learner editorial. Disponibilidad intermitente protegida por circuit breaker.' },
+  { key: 'cambridge', label: 'Cambridge', hint: 'Definiciones, thesaurus por sentido, collocations, IPA y audio UK/US.' },
   { key: 'oxfordLearners', label: 'Oxford Learner\u2019s', hint: 'Definiciones learner-grade y ejemplos curados.' },
-  { key: 'longman', label: 'Longman LDOCE', hint: 'Definiciones simples (Defining Vocabulary 2 000).' },
-  { key: 'collins', label: 'Collins COBUILD', hint: 'Estilo "If something is X…" + ejemplos del corpus.' },
+  { key: 'longman', label: 'Longman LDOCE', hint: 'Definiciones simples, thesaurus, colocaciones editoriales y bandas S1–S3/W1–W3.' },
+  { key: 'collins', label: 'Dictionary.com', hint: 'Sustituto de Collins: definiciones editoriales, IPA, audio, ejemplos y excelente cobertura de phrasal verbs.' },
   { key: 'merriamWebster', label: 'Merriam-Webster', hint: 'American English authority, etimología detallada.' },
+  { key: 'merriamWebsterThesaurus', label: 'M-W Thesaurus', hint: 'Segunda autoridad editorial de thesaurus: grupos de sinónimos Y antónimos por acepción con glosa y ejemplo propio. Corrobora a Cambridge.' },
   { key: 'ozdic', label: 'Oxford Collocations', hint: 'Mirror de OCD (ozdic.com): 250 000 collocations curadas Oxford con patrones gramaticales (ADJ, VERB, PREP).' },
-  { key: 'oxfordCollocations', label: 'Oxford Coll. pack', hint: 'Reservado para un pack importable offline (placeholder).' },
 ];
 
 const VIP_BILINGUAL_SOURCES: SourceMeta[] = [
@@ -85,14 +87,15 @@ const VIP_BILINGUAL_SOURCES: SourceMeta[] = [
   { key: 'babla', label: 'bab.la', hint: 'Diccionario EN-ES con glosas, ejemplos, idioms y phrasals. Usa HTML estático validado por auditoría. Sin token.' },
   { key: 'dictCc', label: 'dict.cc', hint: 'Diccionario EN-ES secundario con glosas compactas y frases. Sin token; menor prioridad que PONS/bab.la.' },
   { key: 'reverso', label: 'Reverso Context', hint: 'Frases EN-ES de subtítulos / libros / prensa.' },
-  { key: 'linguee', label: 'Linguee', hint: 'Traducciones y ejemplos curados de la web.' },
+  { key: 'linguee', label: 'Linguee', hint: 'Traducciones y ejemplos curados de la web; protegido con límites y cooldown persistente.' },
+  { key: 'promtContext', label: 'PROMT.One Contexts', hint: 'Fallback tipo Linguee con hasta 20 pares bilingües por consulta; límites y cooldown propios para evitar bloqueos.' },
   { key: 'wordReference', label: 'WordReference', hint: 'Equivalencias EN-ES naturales.' },
   { key: 'spanishDict', label: 'SpanishDict', hint: 'Conjugación + ejemplos paralelos.' },
 ];
 
 const VIP_AUDIO_SOURCES: SourceMeta[] = [
-  { key: 'cambridgeAudio', label: 'Cambridge audio', hint: 'MP3 oficial UK + US (extraído por la fuente Cambridge).' },
-  { key: 'oxfordAudio', label: 'Oxford audio', hint: 'MP3 oficial UK + US (extraído por la fuente Oxford).' },
+  { key: 'cambridgeAudio', label: 'Cambridge audio', hint: 'MP3 oficial UK + US, extraído por la fuente Cambridge.' },
+  { key: 'oxfordAudio', label: 'Oxford audio', hint: 'MP3 oficial UK + US, extraído por la fuente Oxford.' },
   { key: 'forvo', label: 'Forvo', hint: 'Pronunciación humana de hablantes nativos.' },
 ];
 
@@ -117,7 +120,7 @@ export function VipSection() {
       <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2.5 py-2 space-y-1.5">
         <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
           <span>Datos locales (siempre activos)</span>
-          <InfoHint message="Bundled con la extensión. Suman ~250 KB y se cargan a memoria al instante. No requieren internet." />
+          <InfoHint text="Bundled con la extensión. Suman ~250 KB y se cargan a memoria al instante. No requieren internet." />
         </div>
         <ul className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-snug space-y-0.5 ml-1">
           <li>• Dict. curado (4 151 entradas) + extensiones</li>
@@ -134,7 +137,7 @@ export function VipSection() {
           Estándar (gratis, sin tokens, siempre activo)
         </div>
         <div className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 leading-snug">
-          20 fuentes públicas que no requieren clave ni scraping de diccionarios comerciales.
+          20 fuentes de red gratuitas, más los datos locales y los packs instalados.
           Funcionan independiente del switch VIP. Cada una se puede silenciar abajo.
         </div>
       </div>
@@ -153,7 +156,7 @@ export function VipSection() {
               Activar VIP (scrapes de diccionarios comerciales)
             </span>
             <span className="text-[10px] text-amber-800/70 dark:text-amber-400/70 leading-snug mt-0.5">
-              Cambridge · Oxford · Longman · Collins · Merriam-Webster · Reverso · Linguee · WordReference · SpanishDict · Forvo · Ozdic
+              Cambridge · Oxford · Longman · Dictionary.com · Merriam-Webster · Ozdic · PONS · bab.la · dict.cc · Reverso · Linguee · PROMT Contexts · WordReference · SpanishDict · Forvo
               + claves opcionales Unsplash/Pixabay. Cada palabra tarda 1-3&nbsp;s la primera vez; las siguientes son instantáneas (caché).
             </span>
           </span>
@@ -175,7 +178,7 @@ export function VipSection() {
       {vip.enabled && (
         <>
           <SubGroup title="VIP · diccionarios comerciales" hint="Scrapes de los grandes learner's dictionaries." sources={VIP_DICT_SOURCES} vip={vip} setKey={setKey} />
-          <SubGroup title="VIP · bilingüe (premium)" hint="Reverso/Linguee/WordRef/SpanishDict — pares EN-ES de mejor calidad." sources={VIP_BILINGUAL_SOURCES} vip={vip} setKey={setKey} />
+          <SubGroup title="VIP · bilingüe (premium)" hint="Reverso/Linguee/PROMT/WordRef/SpanishDict — equivalencias y pares EN-ES." sources={VIP_BILINGUAL_SOURCES} vip={vip} setKey={setKey} />
           <SubGroup title="VIP · audio (premium)" hint="MP3 oficiales de Cambridge/Oxford + Forvo (hablantes nativos)." sources={VIP_AUDIO_SOURCES} vip={vip} setKey={setKey} />
           <SubGroup title="VIP · imágenes (BYOK opcional)" hint="Unsplash y Pixabay con clave gratis. Sin VIP, las imágenes Standard cubren bien." sources={VIP_IMAGE_SOURCES} vip={vip} setKey={setKey} />
 
@@ -187,7 +190,7 @@ export function VipSection() {
           <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2.5 py-2 space-y-2">
             <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
               <span>Claves API opcionales (gratis sin tarjeta)</span>
-              <InfoHint message="Ambas plataformas regalan tier gratuito generoso (Unsplash 50/h, Pixabay 100/min). Sin clave: Unsplash queda inactivo, Pixabay usa scraping." />
+              <InfoHint text="Ambas plataformas regalan tier gratuito generoso (Unsplash 50/h, Pixabay 100/min). Sin clave: Unsplash queda inactivo, Pixabay usa scraping." />
             </div>
             <label className="flex flex-col gap-1 text-[11px] text-zinc-700 dark:text-zinc-300">
               <span className="flex items-center justify-between gap-1">
@@ -226,7 +229,7 @@ export function VipSection() {
             <label className="flex items-center justify-between gap-2 text-[11px] text-zinc-700 dark:text-zinc-300">
               <span className="flex items-center gap-1">
                 Timeout por fuente
-                <InfoHint message="Si una fuente tarda más de este tiempo, se cancela y el resto continúa." />
+                <InfoHint text="Si una fuente tarda más de este tiempo, se cancela y el resto continúa." />
               </span>
               <span className="flex items-center gap-1.5">
                 <input
@@ -245,7 +248,7 @@ export function VipSection() {
             <label className="flex items-center justify-between gap-2 text-[11px] text-zinc-700 dark:text-zinc-300">
               <span className="flex items-center gap-1">
                 Caché
-                <InfoHint message="Tiempo que se conserva el resultado en IndexedDB antes de re-consultar." />
+                <InfoHint text="Tiempo que se conserva el resultado en IndexedDB antes de re-consultar." />
               </span>
               <span className="flex items-center gap-1.5">
                 <input
@@ -289,7 +292,7 @@ function SubGroup({
         <span className="text-[9px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
           {title}
         </span>
-        <InfoHint message={hint} />
+        <InfoHint text={hint} />
       </div>
       <div className="space-y-1">
         {sources.map((s) => (
@@ -379,7 +382,7 @@ function CacheManager() {
     <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2.5 py-2 space-y-2">
       <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
         <span>Caché almacenada</span>
-        <InfoHint message="Resultados guardados localmente (IndexedDB) para que re-consultar la misma palabra/subtítulo sea instantáneo. No incluye tus diccionarios instalados ni tus tarjetas guardadas." />
+        <InfoHint text="Resultados guardados localmente (IndexedDB) para que re-consultar la misma palabra/subtítulo sea instantáneo. No incluye tus diccionarios instalados ni tus tarjetas guardadas." />
       </div>
 
       {buckets === null ? (

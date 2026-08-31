@@ -8,6 +8,8 @@
     "dev": "vite",
     "test": "vitest run",
     "test:watch": "vitest",
+    "quality:audit": "tsx scripts/evaluate-enrichment-quality.ts",
+    "audit:mv3": "node scripts/mv3-enrichment-audit.mjs",
     "dict:build": "tsx scripts/expand-dictionary.ts",
     "dict:build:dry": "tsx scripts/expand-dictionary.ts --dry"
   },

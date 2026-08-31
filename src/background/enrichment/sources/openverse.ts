@@ -31,6 +31,11 @@ interface OpenverseResult {
   url?: string;
   thumbnail?: string;
   title?: string;
+  foreign_landing_url?: string;
+  detail_url?: string;
+  width?: number;
+  height?: number;
+  tags?: Array<string | { name?: string }>;
   license?: string;
 }
 
@@ -43,15 +48,39 @@ export const openverseSource: EnrichmentSource = {
   id: 'openverse',
   label: 'Openverse',
   async enrich(token, ctx): Promise<SourcePartial> {
-    const q = encodeURIComponent(token.trim());
+    const t = token.trim();
+    if (!t) return {};
+
+    const q = encodeURIComponent(t);
     const url = `https://api.openverse.org/v1/images/?q=${q}&page_size=5&mature=false`;
     const data = await fetchJson<OpenverseResponse>(url, {
       timeoutMs: ctx.timeoutMs,
       signal: ctx.signal,
     });
-    const first = data?.results?.[0];
-    const imageUrl = first?.url || first?.thumbnail;
-    if (!imageUrl) return {};
-    return { imageUrl };
+    const seenUrls = new Set<string>();
+    const imageCandidates = (data?.results ?? []).flatMap((result) => {
+      const candidateUrl = result.url || result.thumbnail;
+      if (!candidateUrl || seenUrls.has(candidateUrl)) return [];
+      seenUrls.add(candidateUrl);
+
+      const tags = (result.tags ?? [])
+        .map((tag) => (typeof tag === 'string' ? tag : tag.name) ?? '')
+        .map((tag) => tag.trim())
+        .filter(Boolean);
+
+      return [{
+        url: candidateUrl,
+        ...(result.title?.trim() ? { title: result.title.trim() } : {}),
+        ...(result.foreign_landing_url || result.detail_url
+          ? { sourcePageUrl: result.foreign_landing_url || result.detail_url }
+          : {}),
+        ...(typeof result.width === 'number' ? { width: result.width } : {}),
+        ...(typeof result.height === 'number' ? { height: result.height } : {}),
+        ...(tags.length ? { tags: [...new Set(tags)] } : {}),
+      }];
+    }).slice(0, 5);
+
+    if (!imageCandidates.length) return {};
+    return { imageUrl: imageCandidates[0].url, imageCandidates };
   },
 };

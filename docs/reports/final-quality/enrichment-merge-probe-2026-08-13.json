@@ -1,0 +1,3586 @@
+{
+  "generatedAt": "2026-08-13T00:06:15.985Z",
+  "note": "Bundled is seeded with only its primary translation; all other fields are merged from live online sources.",
+  "rows": [
+    {
+      "token": "give",
+      "tier": "standard",
+      "ms": 3977,
+      "successfulSources": [
+        "freeDictionary",
+        "datamuse",
+        "wiktionary",
+        "wiktionaryHtml",
+        "wiktionaryApi",
+        "wiktApi",
+        "mobyThesaurus",
+        "thesaurusCom",
+        "wordHippo",
+        "bundled",
+        "tatoeba",
+        "linguaLibre",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "wikimediaCommons",
+        "duckduckgoImages",
+        "youglish",
+        "etymonline"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": true,
+        "examples": true,
+        "synonyms": true,
+        "antonyms": true,
+        "collocations": false,
+        "audio": true,
+        "image": true,
+        "etymology": true,
+        "video": true
+      },
+      "content": {
+        "translation": "dar",
+        "bilingual": "dar · donar · entregar",
+        "monolingual": "To present someone to an audience.",
+        "phonetic": "/ɡɪv/",
+        "examples": [
+          "Give up. — Ríndete.",
+          "Give tea. — Dé té.",
+          "I give it a 95% chance of success.",
+          "I'd give it a 95% chance of success."
+        ],
+        "synonyms": [
+          "allow",
+          "yield",
+          "grant",
+          "accord",
+          "present",
+          "apply",
+          "bend",
+          "cede",
+          "flex",
+          "move",
+          "award",
+          "commit"
+        ],
+        "antonyms": [
+          "deny",
+          "hold",
+          "refuse",
+          "receive",
+          "take",
+          "resist",
+          "keep",
+          "reject"
+        ],
+        "audio": [
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/a/ac/LL-Q1860_%28eng%29-Wodencafe-give.wav?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "source": "linguaLibre"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/f/f5/LL-Q1860_%28eng%29-Grendelkhan-give.wav?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "source": "linguaLibre"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/give-1-uk.mp3",
+            "accent": "UK",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/give-1-us.mp3",
+            "accent": "US",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/6/69/En-us-give.ogg/En-us-give.ogg.mp3",
+            "source": "wiktApi"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/f/fa/En-uk-to_give.ogg/En-uk-to_give.ogg.mp3",
+            "source": "wiktApi"
+          },
+          {
+            "url": "https://translate.google.com/translate_tts?ie=UTF-8&q=give&tl=en&client=tw-ob",
+            "accent": "TTS",
+            "source": "googleTtsFallback"
+          }
+        ],
+        "imageUrl": "https://www.wcicfm.org/wp-content/uploads/give-yellow-flowers-istock-992112226.jpg",
+        "etymology": "From Middle English given , yeven , yiven , ȝiven , from merger of Old English ġefan , ġeofan , ġiefan , ġifan , ġiofan , ġyfan ( “ to give ” ) and Old Norse gefa ( “ to give ” ) , from Proto-Germanic * gebaną ( “ to give ” ) , from Proto-Indo-European * gʰebʰ- ( “ to give; to take ” ) . Displaced yive , from Middle English yiven , of the same origin, fro…",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/give/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "wiktApi",
+            "text": "To present someone to an audience."
+          },
+          {
+            "source": "wiktApi",
+            "text": "To provide or administer (a medication)"
+          },
+          {
+            "source": "wiktApi",
+            "text": "To move, shift, provide something abstract or concrete to someone or something or somewhere."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "(intransitive) To lead (onto or into)."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "(transitive, dated) To provide a view of."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "(transitive) To provide, as, a service or a broadcast."
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "wiktApi",
+            "text": "dar"
+          },
+          {
+            "source": "wiktApi",
+            "text": "entregar"
+          },
+          {
+            "source": "wiktApi",
+            "text": "donar"
+          },
+          {
+            "source": "wiktApi",
+            "text": "ceder"
+          },
+          {
+            "source": "wiktApi",
+            "text": "hundirse"
+          },
+          {
+            "source": "wiktApi",
+            "text": "dar de sí"
+          },
+          {
+            "source": "bundled",
+            "text": "dar"
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "tatoeba",
+            "text": "Give up.",
+            "translation": "Ríndete."
+          },
+          {
+            "source": "tatoeba",
+            "text": "Give tea.",
+            "translation": "Dé té."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "I give it a 95% chance of success."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "I'd give it a 95% chance of success."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "I give it ten minutes before he gives up."
+          },
+          {
+            "source": "wiktionary",
+            "text": "I'm going to give my wife a necklace for her birthday."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "They're giving my favorite show!"
+          },
+          {
+            "source": "wiktionary",
+            "text": "I gave my coat to the beggar."
+          }
+        ]
+      },
+      "bilingual": "dar · donar · entregar"
+    },
+    {
+      "token": "give",
+      "tier": "vip",
+      "ms": 3656,
+      "successfulSources": [
+        "freeDictionary",
+        "datamuse",
+        "wiktionary",
+        "wiktionaryHtml",
+        "wiktionaryApi",
+        "wiktApi",
+        "mobyThesaurus",
+        "thesaurusCom",
+        "wordHippo",
+        "bundled",
+        "tatoeba",
+        "linguaLibre",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "wikimediaCommons",
+        "duckduckgoImages",
+        "youglish",
+        "etymonline",
+        "cambridge",
+        "oxfordLearners",
+        "longman",
+        "dictionaryCom",
+        "ozdic",
+        "pons",
+        "babla",
+        "dictCc",
+        "promtContext",
+        "spanishDict"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": true,
+        "examples": true,
+        "synonyms": true,
+        "antonyms": true,
+        "collocations": true,
+        "audio": true,
+        "image": true,
+        "etymology": true,
+        "video": true
+      },
+      "content": {
+        "translation": "dar",
+        "bilingual": "dar · regalar · obsequiar · donar · entregar · prestar · conceder",
+        "monolingual": "to put something in someone’s hand",
+        "phonetic": "/ɡɪv/",
+        "examples": [
+          "give me strength! — ¡Señor, dame fuerzas or paciencia!",
+          "Give me something to eat. — Dame algo de comer.",
+          "to give it all one's got — dar lo mejor de sí",
+          "I want to give Mom a plant. — Quiero regalar una planta a mamá."
+        ],
+        "synonyms": [
+          "allow",
+          "yield",
+          "grant",
+          "accord",
+          "present",
+          "apply",
+          "bend",
+          "cede",
+          "flex",
+          "move",
+          "award",
+          "commit"
+        ],
+        "antonyms": [
+          "deny",
+          "hold",
+          "refuse",
+          "receive",
+          "take",
+          "resist",
+          "keep",
+          "reject"
+        ],
+        "collocations": [
+          "give life",
+          "give attention",
+          "to give someone a present",
+          "to give in",
+          "to give out",
+          "to give birth",
+          "to give advice",
+          "to give classes",
+          "to give consent",
+          "to give evidence",
+          "to give off sth."
+        ],
+        "audio": [
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/a/ac/LL-Q1860_%28eng%29-Wodencafe-give.wav?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "source": "linguaLibre"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/f/f5/LL-Q1860_%28eng%29-Grendelkhan-give.wav?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "source": "linguaLibre"
+          },
+          {
+            "url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/g/giv/give_/give__gb_3.mp3",
+            "accent": "UK",
+            "source": "oxfordLearners"
+          },
+          {
+            "url": "https://www.oxfordlearnersdictionaries.com/media/english/us_pron/g/giv/give_/give__us_1.mp3",
+            "accent": "US",
+            "source": "oxfordLearners"
+          },
+          {
+            "url": "https://www.ldoceonline.com/media/english/breProns/give_v0205.mp3?version=1.2.89",
+            "accent": "UK",
+            "source": "longman"
+          },
+          {
+            "url": "https://www.ldoceonline.com/media/english/ameProns/give1.mp3?version=1.2.89",
+            "accent": "US",
+            "source": "longman"
+          },
+          {
+            "url": "https://audio.dictionary.com/tts/g/give/give-ZrTmc1.mp3",
+            "accent": "US",
+            "source": "dictionaryCom"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/give-1-uk.mp3",
+            "accent": "UK",
+            "source": "freeDictionary"
+          }
+        ],
+        "imageUrl": "https://www.wcicfm.org/wp-content/uploads/give-yellow-flowers-istock-992112226.jpg",
+        "etymology": "From Middle English given , yeven , yiven , ȝiven , from merger of Old English ġefan , ġeofan , ġiefan , ġifan , ġiofan , ġyfan ( “ to give ” ) and Old Norse gefa ( “ to give ” ) , from Proto-Germanic * gebaną ( “ to give ” ) , from Proto-Indo-European * gʰebʰ- ( “ to give; to take ” ) . Displaced yive , from Middle English yiven , of the same origin, fro…",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/give/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "longman",
+            "text": "to put something in someone’s hand"
+          },
+          {
+            "source": "longman",
+            "text": "to allow or make it possible for someone to do something"
+          },
+          {
+            "source": "longman",
+            "text": "to let someone have something as a present, or to provide something for someone"
+          },
+          {
+            "source": "longman",
+            "text": "to tell someone information or details about something, or to tell someone what they should do"
+          },
+          {
+            "source": "cambridge",
+            "text": "to pay someone a particular amount"
+          },
+          {
+            "source": "cambridge",
+            "text": "to put a lot of effort into doing something"
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "wiktApi",
+            "text": "dar"
+          },
+          {
+            "source": "wiktApi",
+            "text": "entregar"
+          },
+          {
+            "source": "wiktApi",
+            "text": "donar"
+          },
+          {
+            "source": "wiktApi",
+            "text": "ceder"
+          },
+          {
+            "source": "wiktApi",
+            "text": "hundirse"
+          },
+          {
+            "source": "wiktApi",
+            "text": "dar de sí"
+          },
+          {
+            "source": "bundled",
+            "text": "dar"
+          },
+          {
+            "source": "cambridge",
+            "text": "dar"
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "pons",
+            "text": "give me strength!",
+            "translation": "¡Señor, dame fuerzas or paciencia!"
+          },
+          {
+            "source": "promtContext",
+            "text": "Give me something to eat.",
+            "translation": "Dame algo de comer."
+          },
+          {
+            "source": "pons",
+            "text": "to give it all one's got",
+            "translation": "dar lo mejor de sí"
+          },
+          {
+            "source": "promtContext",
+            "text": "I want to give Mom a plant.",
+            "translation": "Quiero regalar una planta a mamá."
+          },
+          {
+            "source": "dictionaryCom",
+            "text": "Give me a chance."
+          },
+          {
+            "source": "tatoeba",
+            "text": "Give up.",
+            "translation": "Ríndete."
+          },
+          {
+            "source": "tatoeba",
+            "text": "Give tea.",
+            "translation": "Dé té."
+          },
+          {
+            "source": "dictionaryCom",
+            "text": "to give a birthday present to someone."
+          }
+        ]
+      },
+      "bilingual": "dar · regalar · obsequiar · donar · entregar · prestar · conceder"
+    },
+    {
+      "token": "wonderful",
+      "tier": "standard",
+      "ms": 1586,
+      "successfulSources": [
+        "freeDictionary",
+        "datamuse",
+        "wiktionary",
+        "wiktionaryApi",
+        "wiktApi",
+        "mobyThesaurus",
+        "thesaurusCom",
+        "wordHippo",
+        "bundled",
+        "tatoeba",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "duckduckgoImages",
+        "youglish",
+        "etymonline"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": true,
+        "examples": true,
+        "synonyms": true,
+        "antonyms": true,
+        "collocations": false,
+        "audio": true,
+        "image": true,
+        "etymology": true,
+        "video": true
+      },
+      "content": {
+        "translation": "maravilloso",
+        "bilingual": "maravilloso · estupendo",
+        "monolingual": "(dialect) Exceedingly, to a great extent.",
+        "phonetic": "/ˈwʌn.də.fl/",
+        "examples": [
+          "Wonderful. — Estupendo.",
+          "Ah, wonderful. — ¡Ah!, ¡Fantástico!",
+          "They served a wonderful six-course meal.",
+          "His delusion was not wonderful, but most natural."
+        ],
+        "synonyms": [
+          "amazing",
+          "fantastic",
+          "astonishing",
+          "cool",
+          "marvelous",
+          "awesome",
+          "fabulous",
+          "incredible",
+          "wondrous",
+          "extraordinary",
+          "astounding",
+          "bewildering"
+        ],
+        "antonyms": [
+          "common",
+          "familiar",
+          "horrible",
+          "terrible",
+          "bad",
+          "dark",
+          "dull",
+          "expected"
+        ],
+        "audio": [
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/wonderful-us.mp3",
+            "accent": "US",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e2/En-us-wonderful.ogg/En-us-wonderful.ogg.mp3",
+            "source": "wiktApi"
+          },
+          {
+            "url": "https://translate.google.com/translate_tts?ie=UTF-8&q=wonderful&tl=en&client=tw-ob",
+            "accent": "TTS",
+            "source": "googleTtsFallback"
+          }
+        ],
+        "imageUrl": "https://a-static.besthdwallpaper.com/the-enchanting-natural-beauty-of-the-wonderful-landscape-of-the-wallpaper-2732x2048-103681_172.jpg",
+        "etymology": "late Old English wunderfoll , \"extraordinary, marvelous; unnatural, magical\" see wonder (n.) + -ful . By c. 1200 as \"of exceptional quality, so far above the common as to seem marvelous;\" mid-14c. as \"of the nature to excite astonishment,\" also \"great in degree.\" Related: Wonderfully; wonderfulness . In colloquial language wonderfully sometimes weakens to…",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/wonderful/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "wiktionaryApi",
+            "text": "(dialect) Exceedingly, to a great extent."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "Exceedingly, to a great extent."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "Tending to excite wonder; surprising, extraordinary."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "Surprisingly excellent; very good or admirable, extremely impressive."
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "wiktApi",
+            "text": "maravilloso"
+          },
+          {
+            "source": "wiktApi",
+            "text": "estupendo"
+          },
+          {
+            "source": "bundled",
+            "text": "maravilloso"
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "tatoeba",
+            "text": "Wonderful.",
+            "translation": "Estupendo."
+          },
+          {
+            "source": "tatoeba",
+            "text": "Ah, wonderful.",
+            "translation": "¡Ah!, ¡Fantástico!"
+          },
+          {
+            "source": "freeDictionary",
+            "text": "They served a wonderful six-course meal."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "His delusion was not wonderful, but most natural."
+          },
+          {
+            "source": "wiktionary",
+            "text": "What appears to be wonderful may turn out to be anything but."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "It is not wonderful that Mrs Smith declined to visit the beer garden, in view of her militant temperance. [=It is no wonder that she declined.]"
+          },
+          {
+            "source": "wiktionary",
+            "text": "(Can we find and add a quotation of Margaret Oliphant to this entry?)"
+          }
+        ]
+      },
+      "bilingual": "maravilloso · estupendo"
+    },
+    {
+      "token": "wonderful",
+      "tier": "vip",
+      "ms": 1525,
+      "successfulSources": [
+        "freeDictionary",
+        "datamuse",
+        "wiktionary",
+        "wiktionaryApi",
+        "wiktApi",
+        "mobyThesaurus",
+        "thesaurusCom",
+        "wordHippo",
+        "bundled",
+        "tatoeba",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "duckduckgoImages",
+        "youglish",
+        "etymonline",
+        "cambridge",
+        "oxfordLearners",
+        "longman",
+        "dictionaryCom",
+        "ozdic",
+        "pons",
+        "babla",
+        "dictCc",
+        "promtContext",
+        "spanishDict"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": true,
+        "examples": true,
+        "synonyms": true,
+        "antonyms": true,
+        "collocations": true,
+        "audio": true,
+        "image": true,
+        "etymology": true,
+        "video": true
+      },
+      "content": {
+        "translation": "maravilloso",
+        "bilingual": "maravilloso · maravilloso/osa · extraordinario · estupendo",
+        "monolingual": "making you feel very happy",
+        "phonetic": "/ˈwʌn.də.f ə l/",
+        "examples": [
+          "we had a wonderful time — lo pasamos maravillosamente or fenomenal or de maravilla",
+          "I hope you had a wonderful day — espero que hayas tenido un día maravilloso",
+          "Wonderful. — Estupendo.",
+          "I wish you a wonderful day — te deseo un día maravilloso"
+        ],
+        "synonyms": [
+          "amazing",
+          "fantastic",
+          "astonishing",
+          "cool",
+          "marvelous",
+          "awesome",
+          "fabulous",
+          "incredible",
+          "wondrous",
+          "extraordinary",
+          "astounding",
+          "bewildering"
+        ],
+        "antonyms": [
+          "common",
+          "familiar",
+          "horrible",
+          "terrible",
+          "bad",
+          "dark",
+          "dull",
+          "expected"
+        ],
+        "collocations": [
+          "it is wonderful to do something",
+          "to make a wonderful combination"
+        ],
+        "audio": [
+          {
+            "url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/w/won/wonde/wonderful__gb_1.mp3",
+            "accent": "UK",
+            "source": "oxfordLearners"
+          },
+          {
+            "url": "https://www.oxfordlearnersdictionaries.com/media/english/us_pron/w/won/wonde/wonderful__us_2.mp3",
+            "accent": "US",
+            "source": "oxfordLearners"
+          },
+          {
+            "url": "https://www.ldoceonline.com/media/english/breProns/wonderful0205.mp3?version=1.2.89",
+            "accent": "UK",
+            "source": "longman"
+          },
+          {
+            "url": "https://www.ldoceonline.com/media/english/ameProns/wonderful.mp3?version=1.2.89",
+            "accent": "US",
+            "source": "longman"
+          },
+          {
+            "url": "https://audio.dictionary.com/tts/w/wonderful/wonderful-i5Y7ne.mp3",
+            "accent": "US",
+            "source": "dictionaryCom"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/wonderful-us.mp3",
+            "accent": "US",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e2/En-us-wonderful.ogg/En-us-wonderful.ogg.mp3",
+            "source": "wiktApi"
+          },
+          {
+            "url": "https://prod-media.bab.la/sounds/en/9/f/6/9f608aaed334be3b7c0cc481b86458ad.mp3",
+            "source": "babla"
+          }
+        ],
+        "imageUrl": "https://a-static.besthdwallpaper.com/the-enchanting-natural-beauty-of-the-wonderful-landscape-of-the-wallpaper-2732x2048-103681_172.jpg",
+        "etymology": "late Old English wunderfoll , \"extraordinary, marvelous; unnatural, magical\" see wonder (n.) + -ful . By c. 1200 as \"of exceptional quality, so far above the common as to seem marvelous;\" mid-14c. as \"of the nature to excite astonishment,\" also \"great in degree.\" Related: Wonderfully; wonderfulness . In colloquial language wonderfully sometimes weakens to…",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/wonderful/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "longman",
+            "text": "making you feel very happy"
+          },
+          {
+            "source": "longman",
+            "text": "making you admire someone or something very much"
+          },
+          {
+            "source": "cambridge",
+            "text": "very good"
+          },
+          {
+            "source": "cambridge",
+            "text": "extremely good"
+          },
+          {
+            "source": "oxfordLearners",
+            "text": "very good, pleasant or a lot of fun"
+          },
+          {
+            "source": "oxfordLearners",
+            "text": "making you feel great surprise and pleasure"
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "wiktApi",
+            "text": "maravilloso"
+          },
+          {
+            "source": "wiktApi",
+            "text": "estupendo"
+          },
+          {
+            "source": "bundled",
+            "text": "maravilloso"
+          },
+          {
+            "source": "cambridge",
+            "text": "maravilloso"
+          },
+          {
+            "source": "cambridge",
+            "text": "Es un cocinero maravilloso."
+          },
+          {
+            "source": "cambridge",
+            "text": "— ¿Sabías que Daryl se va a casar? — No, no lo sabía. ¡Qué maravilla!"
+          },
+          {
+            "source": "cambridge",
+            "text": "maravilloso/osa [ masculine-feminine , singular ]"
+          },
+          {
+            "source": "cambridge",
+            "text": "maravilloso/osa"
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "pons",
+            "text": "we had a wonderful time",
+            "translation": "lo pasamos maravillosamente or fenomenal or de maravilla"
+          },
+          {
+            "source": "spanishDict",
+            "text": "I hope you had a wonderful day",
+            "translation": "espero que hayas tenido un día maravilloso"
+          },
+          {
+            "source": "tatoeba",
+            "text": "Wonderful.",
+            "translation": "Estupendo."
+          },
+          {
+            "source": "spanishDict",
+            "text": "I wish you a wonderful day",
+            "translation": "te deseo un día maravilloso"
+          },
+          {
+            "source": "promtContext",
+            "text": "She is a wonderful wife.",
+            "translation": "Ella es una esposa maravillosa ."
+          },
+          {
+            "source": "promtContext",
+            "text": "She is a wonderful woman.",
+            "translation": "Ella es una mujer maravillosa ."
+          },
+          {
+            "source": "pons",
+            "text": "I feel wonderful",
+            "translation": "me siento maravillosamente bien or de maravilla"
+          },
+          {
+            "source": "tatoeba",
+            "text": "Ah, wonderful.",
+            "translation": "¡Ah!, ¡Fantástico!"
+          }
+        ]
+      },
+      "bilingual": "maravilloso · maravilloso/osa · extraordinario · estupendo"
+    },
+    {
+      "token": "anything",
+      "tier": "standard",
+      "ms": 1632,
+      "successfulSources": [
+        "freeDictionary",
+        "datamuse",
+        "wiktionary",
+        "wiktionaryApi",
+        "wiktApi",
+        "mobyThesaurus",
+        "thesaurusCom",
+        "wordHippo",
+        "bundled",
+        "tatoeba",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "duckduckgoImages",
+        "youglish",
+        "etymonline"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": true,
+        "examples": true,
+        "synonyms": true,
+        "antonyms": true,
+        "collocations": false,
+        "audio": true,
+        "image": true,
+        "etymology": true,
+        "video": true
+      },
+      "content": {
+        "translation": "algo",
+        "bilingual": "algo · cualquier cosa",
+        "monolingual": "(ambitransitive, colloquial) Used as a placeholder verb for any verb out of a set of related verbs.",
+        "phonetic": "/ˈɛ.nə.θɪŋ/",
+        "examples": [
+          "Anything else? — ¿Algo más?",
+          "Ask her anything. — Pregúntale a ella cualquier cosa.",
+          "–I don't want to accompany him! –You never want to anything him!",
+          "I would not do it for anything."
+        ],
+        "synonyms": [
+          "aught",
+          "all",
+          "whatever",
+          "everything",
+          "any one thing",
+          "anything at all",
+          "any",
+          "some",
+          "either",
+          "somewhat",
+          "something"
+        ],
+        "antonyms": [
+          "none",
+          "hardly",
+          "nothing",
+          "not anything",
+          "in no way",
+          "not at all",
+          "not a thing",
+          "by no means"
+        ],
+        "audio": [
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/anything-us.mp3",
+            "accent": "US",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e9/En-us-anything.ogg/En-us-anything.ogg.mp3",
+            "source": "wiktApi"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/0/02/LL-Q1860_%28eng%29-Vealhurl-anything.wav/LL-Q1860_%28eng%29-Vealhurl-anything.wav.mp3",
+            "source": "wiktApi"
+          },
+          {
+            "url": "https://translate.google.com/translate_tts?ie=UTF-8&q=anything&tl=en&client=tw-ob",
+            "accent": "TTS",
+            "source": "googleTtsFallback"
+          }
+        ],
+        "imageUrl": "https://cdn.textstudio.com/output/sample/normal/7/4/0/5/anything-logo-73-5047.png",
+        "etymology": "\"a thing,\" indefinitely, late Old English aniþing , from any + thing . But Old English ænig þinga apparently also meant \"somehow, anyhow\" (glossing Latin quoquo modo ).",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/anything/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "wiktionaryApi",
+            "text": "(ambitransitive, colloquial) Used as a placeholder verb for any verb out of a set of related verbs."
+          },
+          {
+            "source": "wiktionary",
+            "text": "Expressing an indefinite comparison."
+          },
+          {
+            "source": "wiktionary",
+            "text": "Used as a placeholder verb for any verb out of a set of related verbs."
+          },
+          {
+            "source": "wiktionary",
+            "text": "Any object , act , state , event , or fact whatsoever ; a thing of any kind; something or other."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "Someone or something of importance."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "In any way, any extent or any degree."
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "wiktApi",
+            "text": "cualquier cosa"
+          },
+          {
+            "source": "bundled",
+            "text": "algo"
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "tatoeba",
+            "text": "Anything else?",
+            "translation": "¿Algo más?"
+          },
+          {
+            "source": "tatoeba",
+            "text": "Ask her anything.",
+            "translation": "Pregúntale a ella cualquier cosa."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "–I don't want to accompany him! –You never want to anything him!"
+          },
+          {
+            "source": "freeDictionary",
+            "text": "I would not do it for anything."
+          },
+          {
+            "source": "wiktionary",
+            "text": "That isn't anything like a car."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "She's not anything like as strong as me."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "He wasn't cooking, he wasn't sweeping, he wasn't anythinging!"
+          }
+        ]
+      },
+      "bilingual": "algo · cualquier cosa"
+    },
+    {
+      "token": "anything",
+      "tier": "vip",
+      "ms": 1657,
+      "successfulSources": [
+        "freeDictionary",
+        "datamuse",
+        "wiktionary",
+        "wiktionaryApi",
+        "wiktApi",
+        "mobyThesaurus",
+        "thesaurusCom",
+        "wordHippo",
+        "bundled",
+        "tatoeba",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "duckduckgoImages",
+        "youglish",
+        "etymonline",
+        "cambridge",
+        "oxfordLearners",
+        "longman",
+        "dictionaryCom",
+        "ozdic",
+        "pons",
+        "babla",
+        "promtContext",
+        "spanishDict"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": true,
+        "examples": true,
+        "synonyms": true,
+        "antonyms": true,
+        "collocations": true,
+        "audio": true,
+        "image": true,
+        "etymology": true,
+        "video": true
+      },
+      "content": {
+        "translation": "algo",
+        "bilingual": "algo · algo más · cualquier cosa · nada",
+        "monolingual": "used in questions to mean ‘something’",
+        "phonetic": "/ˈen.i.θɪŋ/",
+        "examples": [
+          "Anything else? — ¿Algo más?",
+          "Do you need anything else? — ¿Necesitas algo más?",
+          "would you like anything else — ¿quieres algo más?",
+          "do you want anything from the shop? — ¿quieres algo de la tienda?"
+        ],
+        "synonyms": [
+          "aught",
+          "all",
+          "whatever",
+          "everything",
+          "any one thing",
+          "anything at all",
+          "any",
+          "some",
+          "either",
+          "somewhat",
+          "something"
+        ],
+        "antonyms": [
+          "none",
+          "hardly",
+          "nothing",
+          "not anything",
+          "in no way",
+          "not at all",
+          "not a thing",
+          "by no means"
+        ],
+        "collocations": [
+          "anything for a change",
+          "anything and everything",
+          "don't attempt anything too demanding"
+        ],
+        "audio": [
+          {
+            "url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/a/any/anyth/anything__gb_1.mp3",
+            "accent": "UK",
+            "source": "oxfordLearners"
+          },
+          {
+            "url": "https://www.oxfordlearnersdictionaries.com/media/english/us_pron/a/any/anyth/anything__us_1.mp3",
+            "accent": "US",
+            "source": "oxfordLearners"
+          },
+          {
+            "url": "https://www.ldoceonline.com/media/english/breProns/anything0205.mp3?version=1.2.89",
+            "accent": "UK",
+            "source": "longman"
+          },
+          {
+            "url": "https://www.ldoceonline.com/media/english/ameProns/anything.mp3?version=1.2.89",
+            "accent": "US",
+            "source": "longman"
+          },
+          {
+            "url": "https://audio.dictionary.com/tts/a/anything/anything-QdvAjh.mp3",
+            "accent": "US",
+            "source": "dictionaryCom"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/anything-us.mp3",
+            "accent": "US",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e9/En-us-anything.ogg/En-us-anything.ogg.mp3",
+            "source": "wiktApi"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/0/02/LL-Q1860_%28eng%29-Vealhurl-anything.wav/LL-Q1860_%28eng%29-Vealhurl-anything.wav.mp3",
+            "source": "wiktApi"
+          }
+        ],
+        "imageUrl": "https://cdn.textstudio.com/output/sample/normal/7/4/0/5/anything-logo-73-5047.png",
+        "etymology": "\"a thing,\" indefinitely, late Old English aniþing , from any + thing . But Old English ænig þinga apparently also meant \"somehow, anyhow\" (glossing Latin quoquo modo ).",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/anything/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "longman",
+            "text": "used in questions to mean ‘something’"
+          },
+          {
+            "source": "longman",
+            "text": "used in negative sentences to mean no thing, event etc"
+          },
+          {
+            "source": "longman",
+            "text": "any thing, event , situation etc, when it is not important to say exactly which"
+          },
+          {
+            "source": "cambridge",
+            "text": "whichever thing or every thing"
+          },
+          {
+            "source": "cambridge",
+            "text": "any event , act , object , or situation"
+          },
+          {
+            "source": "cambridge",
+            "text": "means “something” in questions and negatives"
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "wiktApi",
+            "text": "cualquier cosa"
+          },
+          {
+            "source": "bundled",
+            "text": "algo"
+          },
+          {
+            "source": "cambridge",
+            "text": "algo , nada"
+          },
+          {
+            "source": "cambridge",
+            "text": "algo"
+          },
+          {
+            "source": "cambridge",
+            "text": "nada"
+          },
+          {
+            "source": "cambridge",
+            "text": "¿Puedo ayudar en algo?"
+          },
+          {
+            "source": "cambridge",
+            "text": "¿Querías decir algo más o eso es todo?"
+          },
+          {
+            "source": "cambridge",
+            "text": "¿Tienes algo más barato?"
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "tatoeba",
+            "text": "Anything else?",
+            "translation": "¿Algo más?"
+          },
+          {
+            "source": "spanishDict",
+            "text": "Do you need anything else?",
+            "translation": "¿Necesitas algo más?"
+          },
+          {
+            "source": "spanishDict",
+            "text": "would you like anything else",
+            "translation": "¿quieres algo más?"
+          },
+          {
+            "source": "pons",
+            "text": "do you want anything from the shop?",
+            "translation": "¿quieres algo de la tienda?"
+          },
+          {
+            "source": "tatoeba",
+            "text": "Ask her anything.",
+            "translation": "Pregúntale a ella cualquier cosa."
+          },
+          {
+            "source": "pons",
+            "text": "anything here you fancy?",
+            "translation": "¿hay aquí algo que te guste?"
+          },
+          {
+            "source": "promtContext",
+            "text": "I can't see anything .",
+            "translation": "No veo nada ."
+          },
+          {
+            "source": "promtContext",
+            "text": "I didn't hear anything .",
+            "translation": "No he oído nada ."
+          }
+        ]
+      },
+      "bilingual": "algo · algo más · cualquier cosa · nada"
+    },
+    {
+      "token": "anybody",
+      "tier": "standard",
+      "ms": 1860,
+      "successfulSources": [
+        "freeDictionary",
+        "datamuse",
+        "wiktionary",
+        "wiktionaryApi",
+        "wiktApi",
+        "mobyThesaurus",
+        "thesaurusCom",
+        "wordHippo",
+        "bundled",
+        "tatoeba",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "duckduckgoImages",
+        "youglish",
+        "etymonline"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": true,
+        "examples": true,
+        "synonyms": true,
+        "antonyms": true,
+        "collocations": false,
+        "audio": true,
+        "image": true,
+        "etymology": true,
+        "video": true
+      },
+      "content": {
+        "translation": "alguien",
+        "bilingual": "alguien",
+        "monolingual": "(informal) A person of some consideration or standing.",
+        "phonetic": "/ˈɛn.i.bɒd.i/",
+        "examples": [
+          "Has anybody come? — ¿Ha venido alguien?",
+          "Is anybody there? — ¿Hay alguien allí?",
+          "Anybody will do.",
+          "Is there anybody inside?"
+        ],
+        "synonyms": [
+          "anyone",
+          "one",
+          "all",
+          "public",
+          "masses",
+          "everyone",
+          "everybody",
+          "any of",
+          "a person",
+          "any person",
+          "anyone at all",
+          "each and every one"
+        ],
+        "antonyms": [
+          "nobody",
+          "no one",
+          "not a soul",
+          "not one person",
+          "not a single person"
+        ],
+        "audio": [
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/anybody-uk.mp3",
+            "accent": "UK",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/anybody-us.mp3",
+            "accent": "US",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/2/26/LL-Q1860_%28eng%29-Back_ache-anybody.wav/LL-Q1860_%28eng%29-Back_ache-anybody.wav.mp3",
+            "source": "wiktApi"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/2/2e/LL-Q1860_%28eng%29-Vealhurl-anybody.wav/LL-Q1860_%28eng%29-Vealhurl-anybody.wav.mp3",
+            "source": "wiktApi"
+          },
+          {
+            "url": "https://translate.google.com/translate_tts?ie=UTF-8&q=anybody&tl=en&client=tw-ob",
+            "accent": "TTS",
+            "source": "googleTtsFallback"
+          }
+        ],
+        "imageUrl": "https://assets.ltkcontent.com/images/890649/Anyone-versus-Anybody_27c5571306.jpg",
+        "etymology": "c. 1300, ani-bodi , \"any person,\" from any + body . One-word form attested by 1826. Phrase anybody's game (or race , etc.) is from 1840.",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/anybody/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "wiktionaryApi",
+            "text": "(informal) A person of some consideration or standing."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "A person of some consideration or standing."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "Any one out of an indefinite number of persons; anyone; any person."
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "wiktApi",
+            "text": "alguien"
+          },
+          {
+            "source": "bundled",
+            "text": "alguien"
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "tatoeba",
+            "text": "Has anybody come?",
+            "translation": "¿Ha venido alguien?"
+          },
+          {
+            "source": "tatoeba",
+            "text": "Is anybody there?",
+            "translation": "¿Hay alguien allí?"
+          },
+          {
+            "source": "freeDictionary",
+            "text": "Anybody will do."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "Is there anybody inside?"
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "Here one isn't anybody, if one doesn't dance like Travolta."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "Everybody who wants to be anybody will come to Jake's party."
+          }
+        ]
+      },
+      "bilingual": "alguien"
+    },
+    {
+      "token": "anybody",
+      "tier": "vip",
+      "ms": 1982,
+      "successfulSources": [
+        "freeDictionary",
+        "datamuse",
+        "wiktionary",
+        "wiktionaryApi",
+        "wiktApi",
+        "mobyThesaurus",
+        "thesaurusCom",
+        "wordHippo",
+        "bundled",
+        "tatoeba",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "duckduckgoImages",
+        "youglish",
+        "etymonline",
+        "cambridge",
+        "oxfordLearners",
+        "longman",
+        "dictionaryCom",
+        "ozdic",
+        "pons",
+        "babla",
+        "dictCc",
+        "promtContext",
+        "spanishDict"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": true,
+        "examples": true,
+        "synonyms": true,
+        "antonyms": true,
+        "collocations": true,
+        "audio": true,
+        "image": true,
+        "etymology": true,
+        "video": true
+      },
+      "content": {
+        "translation": "alguien",
+        "bilingual": "alguien · cualquiera · nadie",
+        "monolingual": "→ anyone",
+        "phonetic": "/ˈen.iˌbɒd.i/",
+        "examples": [
+          "There isn't anybody else. — No hay nadie más.",
+          "does this key belong to anybody? — ¿esta llave es de alguien?",
+          "Has anybody come? — ¿Ha venido alguien?",
+          "Is anybody there? — ¿Hay alguien allí?"
+        ],
+        "synonyms": [
+          "anyone",
+          "one",
+          "all",
+          "public",
+          "masses",
+          "everyone",
+          "everybody",
+          "any of",
+          "a person",
+          "any person",
+          "anyone at all",
+          "each and every one"
+        ],
+        "antonyms": [
+          "nobody",
+          "no one",
+          "not a soul",
+          "not one person",
+          "not a single person"
+        ],
+        "collocations": [
+          "anybody but him",
+          "hardly anybody disagrees",
+          "the same as anybody else",
+          "anybody married to a British citizen"
+        ],
+        "audio": [
+          {
+            "url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/a/any/anybo/anybody__gb_1.mp3",
+            "accent": "UK",
+            "source": "oxfordLearners"
+          },
+          {
+            "url": "https://www.oxfordlearnersdictionaries.com/media/english/us_pron/a/any/anybo/anybody__us_4_rr.mp3",
+            "accent": "US",
+            "source": "oxfordLearners"
+          },
+          {
+            "url": "https://www.ldoceonline.com/media/english/breProns/anybody0205.mp3?version=1.2.89",
+            "accent": "UK",
+            "source": "longman"
+          },
+          {
+            "url": "https://www.ldoceonline.com/media/english/ameProns/anybody.mp3?version=1.2.89",
+            "accent": "US",
+            "source": "longman"
+          },
+          {
+            "url": "https://audio.dictionary.com/tts/a/anybody/anybody-PiHSPv.mp3",
+            "accent": "US",
+            "source": "dictionaryCom"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/anybody-uk.mp3",
+            "accent": "UK",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/anybody-us.mp3",
+            "accent": "US",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/2/26/LL-Q1860_%28eng%29-Back_ache-anybody.wav/LL-Q1860_%28eng%29-Back_ache-anybody.wav.mp3",
+            "source": "wiktApi"
+          }
+        ],
+        "imageUrl": "https://assets.ltkcontent.com/images/890649/Anyone-versus-Anybody_27c5571306.jpg",
+        "etymology": "c. 1300, ani-bodi , \"any person,\" from any + body . One-word form attested by 1826. Phrase anybody's game (or race , etc.) is from 1840.",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/anybody/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "cambridge",
+            "text": "→ anyone"
+          },
+          {
+            "source": "oxfordLearners",
+            "text": "an important person"
+          },
+          {
+            "source": "oxfordLearners",
+            "text": "any person at all; it does not matter who"
+          },
+          {
+            "source": "oxfordLearners",
+            "text": "used instead of somebody in negative sentences and in questions after if / whether , and after verbs such as prevent , forbid , avoid , etc."
+          },
+          {
+            "source": "dictionaryCom",
+            "text": "any person."
+          },
+          {
+            "source": "dictionaryCom",
+            "text": "any person; anyone"
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "wiktApi",
+            "text": "alguien"
+          },
+          {
+            "source": "bundled",
+            "text": "alguien"
+          },
+          {
+            "source": "cambridge",
+            "text": "otra palabra para \"anyone\":, alguien , nadie"
+          },
+          {
+            "source": "cambridge",
+            "text": "alguien"
+          },
+          {
+            "source": "cambridge",
+            "text": "nadie"
+          },
+          {
+            "source": "cambridge",
+            "text": "ninguno/a"
+          },
+          {
+            "source": "cambridge",
+            "text": "¿Alguien quiere uno?"
+          },
+          {
+            "source": "pons",
+            "text": "nadie"
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "promtContext",
+            "text": "There isn't anybody else.",
+            "translation": "No hay nadie más."
+          },
+          {
+            "source": "pons",
+            "text": "does this key belong to anybody?",
+            "translation": "¿esta llave es de alguien?"
+          },
+          {
+            "source": "tatoeba",
+            "text": "Has anybody come?",
+            "translation": "¿Ha venido alguien?"
+          },
+          {
+            "source": "tatoeba",
+            "text": "Is anybody there?",
+            "translation": "¿Hay alguien allí?"
+          },
+          {
+            "source": "pons",
+            "text": "anybody at home?",
+            "translation": "¿hay alguien en casa?"
+          },
+          {
+            "source": "promtContext",
+            "text": "Is there anybody in there?",
+            "translation": "¿Hay alguien ahí dentro?"
+          },
+          {
+            "source": "spanishDict",
+            "text": "Do you know anybody there?",
+            "translation": "¿Conoces a alguien allí?"
+          },
+          {
+            "source": "spanishDict",
+            "text": "Why would anybody read this?",
+            "translation": "¿Por qué alguien leería esto?"
+          }
+        ]
+      },
+      "bilingual": "alguien · cualquiera · nadie"
+    },
+    {
+      "token": "week",
+      "tier": "standard",
+      "ms": 2005,
+      "successfulSources": [
+        "freeDictionary",
+        "datamuse",
+        "wiktionaryApi",
+        "wiktApi",
+        "mobyThesaurus",
+        "thesaurusCom",
+        "bundled",
+        "tatoeba",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "duckduckgoImages",
+        "youglish",
+        "etymonline"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": true,
+        "examples": true,
+        "synonyms": true,
+        "antonyms": true,
+        "collocations": false,
+        "audio": true,
+        "image": true,
+        "etymology": true,
+        "video": true
+      },
+      "content": {
+        "translation": "semana",
+        "bilingual": "semana",
+        "monolingual": "A date seven days after (sometimes before) the specified day.",
+        "phonetic": "/wiːk/",
+        "examples": [
+          "It was last week. — Pasó la última semana.",
+          "It happened last week. — Pasó la última semana.",
+          "I'll see you Thursday week.",
+          "I'll see you Thursday week. [a week on Thursday, i.e. Thursday after next]"
+        ],
+        "synonyms": [
+          "hebdomad",
+          "day",
+          "hour",
+          "sennight",
+          "age",
+          "era",
+          "date",
+          "life",
+          "pace",
+          "month",
+          "future",
+          "moment"
+        ],
+        "antonyms": [
+          "past",
+          "future",
+          "ending"
+        ],
+        "audio": [
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/week-uk.mp3",
+            "accent": "UK",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/week-us.mp3",
+            "accent": "US",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/43/En-uk-a_week.ogg/En-uk-a_week.ogg.mp3",
+            "source": "wiktApi"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/4b/LL-Q1860_%28eng%29-Naomi_Persephone_Amethyst_%28NaomiAmethyst%29-week.wav/LL-Q1860_%28eng%29-Naomi_Persephone_Amethyst_%28NaomiAmethyst%29-week.wav.mp3",
+            "source": "wiktApi"
+          },
+          {
+            "url": "https://translate.google.com/translate_tts?ie=UTF-8&q=week&tl=en&client=tw-ob",
+            "accent": "TTS",
+            "source": "googleTtsFallback"
+          }
+        ],
+        "imageUrl": "https://cdn.mmatown.com/blog-posts/2026/08/dwcs-2026-week-1-results-four-ufc-contracts-as-anthony-wint-scores-34-second-ko-RAtcfHuc.jpg",
+        "etymology": "Middle English weke , from Old English wucu , wice , etc., \"calendrical period of seven named or numbered days recurring in like succession,\" from Proto-Germanic *wikō(n)- (source also of Old Norse vika , Old Frisian wike , Middle Dutch weke , Old High German wecha , German woche ), probably originally with a sense of \"a turning\" or \"succession.\" Compare …",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/week/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "wiktApi",
+            "text": "A date seven days after (sometimes before) the specified day."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "The squeal of a pig."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "(following a named day) A date seven days after (sometimes before) the specified day."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "Any period of seven consecutive days."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "A period of five days beginning with Monday."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "Seven days after (sometimes before) a specified date."
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "wiktApi",
+            "text": "semana"
+          },
+          {
+            "source": "bundled",
+            "text": "semana"
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "tatoeba",
+            "text": "It was last week.",
+            "translation": "Pasó la última semana."
+          },
+          {
+            "source": "tatoeba",
+            "text": "It happened last week.",
+            "translation": "Pasó la última semana."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "I'll see you Thursday week."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "I'll see you Thursday week. [a week on Thursday, i.e. Thursday after next]"
+          },
+          {
+            "source": "freeDictionary",
+            "text": "A 4-day week consists of Monday, Tuesday, Wednesday, and Thursday."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "The wedding is tomorrow week. [a week tomorrow, i.e. in eight days' time]"
+          }
+        ]
+      },
+      "bilingual": "semana"
+    },
+    {
+      "token": "week",
+      "tier": "vip",
+      "ms": 1993,
+      "successfulSources": [
+        "freeDictionary",
+        "datamuse",
+        "wiktionaryApi",
+        "wiktApi",
+        "mobyThesaurus",
+        "thesaurusCom",
+        "bundled",
+        "tatoeba",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "duckduckgoImages",
+        "youglish",
+        "etymonline",
+        "cambridge",
+        "oxfordLearners",
+        "longman",
+        "dictionaryCom",
+        "ozdic",
+        "pons",
+        "babla",
+        "dictCc",
+        "promtContext",
+        "spanishDict"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": true,
+        "examples": true,
+        "synonyms": true,
+        "antonyms": true,
+        "collocations": true,
+        "audio": true,
+        "image": true,
+        "etymology": true,
+        "video": true
+      },
+      "content": {
+        "translation": "semana",
+        "bilingual": "semana",
+        "monolingual": "any period of seven days and nights",
+        "phonetic": "/wiːk/",
+        "examples": [
+          "Were you here last week ? — ¿Estuviste aquí la semana pasada?",
+          "It was last week. — Pasó la última semana.",
+          "It happened last week. — Pasó la última semana.",
+          "A week has seven days. — Una semana tiene siete días."
+        ],
+        "synonyms": [
+          "hebdomad",
+          "day",
+          "hour",
+          "sennight",
+          "age",
+          "era",
+          "date",
+          "life",
+          "pace",
+          "month",
+          "future",
+          "moment"
+        ],
+        "antonyms": [
+          "past",
+          "future",
+          "ending"
+        ],
+        "collocations": [
+          "previous week",
+          "following week",
+          "the week beginning June 2"
+        ],
+        "audio": [
+          {
+            "url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/w/wee/week_/week__gb_1.mp3",
+            "accent": "UK",
+            "source": "oxfordLearners"
+          },
+          {
+            "url": "https://www.oxfordlearnersdictionaries.com/media/english/us_pron/w/wee/week_/week__us_1.mp3",
+            "accent": "US",
+            "source": "oxfordLearners"
+          },
+          {
+            "url": "https://www.ldoceonline.com/media/english/breProns/week0205.mp3?version=1.2.89",
+            "accent": "UK",
+            "source": "longman"
+          },
+          {
+            "url": "https://www.ldoceonline.com/media/english/ameProns/weak.mp3?version=1.2.89",
+            "accent": "US",
+            "source": "longman"
+          },
+          {
+            "url": "https://audio.dictionary.com/tts/w/week/week-MtR1dC.mp3",
+            "accent": "US",
+            "source": "dictionaryCom"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/week-uk.mp3",
+            "accent": "UK",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/week-us.mp3",
+            "accent": "US",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/43/En-uk-a_week.ogg/En-uk-a_week.ogg.mp3",
+            "source": "wiktApi"
+          }
+        ],
+        "imageUrl": "https://www.malwarebytes.com/wp-content/uploads/sites/2/2023/11/Week_in_Security.jpg",
+        "etymology": "Middle English weke , from Old English wucu , wice , etc., \"calendrical period of seven named or numbered days recurring in like succession,\" from Proto-Germanic *wikō(n)- (source also of Old Norse vika , Old Frisian wike , Middle Dutch weke , Old High German wecha , German woche ), probably originally with a sense of \"a turning\" or \"succession.\" Compare …",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/week/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "longman",
+            "text": "any period of seven days and nights"
+          },
+          {
+            "source": "longman",
+            "text": "the part of the week when you go to work, usually from Monday to Friday"
+          },
+          {
+            "source": "longman",
+            "text": "a period of seven days and nights, usually measured in Britain from Monday to Sunday and in the US from Sunday to Saturday"
+          },
+          {
+            "source": "cambridge",
+            "text": "one week after the day mentioned"
+          },
+          {
+            "source": "cambridge",
+            "text": "the five days from Monday to Friday , the usual working period for many people"
+          },
+          {
+            "source": "cambridge",
+            "text": "a period of seven days , especially either from Monday to Sunday or from Sunday to Saturday"
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "wiktApi",
+            "text": "semana"
+          },
+          {
+            "source": "bundled",
+            "text": "semana"
+          },
+          {
+            "source": "cambridge",
+            "text": "semana"
+          },
+          {
+            "source": "cambridge",
+            "text": "la semana pasada, esta semana, la próxima semana"
+          },
+          {
+            "source": "cambridge",
+            "text": "Vamos al cine más o menos una vez por semana."
+          },
+          {
+            "source": "cambridge",
+            "text": "¿Irás a la clase de la semana que viene?"
+          },
+          {
+            "source": "cambridge",
+            "text": "La tramitación de los formularios suele tardar unas cuatro semanas."
+          },
+          {
+            "source": "cambridge",
+            "text": "No hagas ningún esfuerzo durante una o dos semanas."
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "promtContext",
+            "text": "Were you here last week ?",
+            "translation": "¿Estuviste aquí la semana pasada?"
+          },
+          {
+            "source": "tatoeba",
+            "text": "It was last week.",
+            "translation": "Pasó la última semana."
+          },
+          {
+            "source": "tatoeba",
+            "text": "It happened last week.",
+            "translation": "Pasó la última semana."
+          },
+          {
+            "source": "promtContext",
+            "text": "A week has seven days.",
+            "translation": "Una semana tiene siete días."
+          },
+          {
+            "source": "pons",
+            "text": "you get paid by the week",
+            "translation": "te pagan semanalmente"
+          },
+          {
+            "source": "pons",
+            "text": "she arrived a week (ago) yesterday",
+            "translation": "ayer hizo una semana que llegó"
+          },
+          {
+            "source": "longman",
+            "text": "See you next week."
+          },
+          {
+            "source": "dictionaryCom",
+            "text": "National Book Week."
+          }
+        ]
+      },
+      "bilingual": "semana"
+    },
+    {
+      "token": "know",
+      "tier": "standard",
+      "ms": 2394,
+      "successfulSources": [
+        "freeDictionary",
+        "datamuse",
+        "wiktionary",
+        "wiktionaryHtml",
+        "wiktionaryApi",
+        "wiktApi",
+        "mobyThesaurus",
+        "thesaurusCom",
+        "wordHippo",
+        "bundled",
+        "tatoeba",
+        "linguaLibre",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "wikimediaCommons",
+        "duckduckgoImages",
+        "youglish",
+        "etymonline"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": true,
+        "examples": true,
+        "synonyms": true,
+        "antonyms": true,
+        "collocations": true,
+        "audio": true,
+        "image": true,
+        "etymology": true,
+        "video": true
+      },
+      "content": {
+        "translation": "saber",
+        "bilingual": "saber · conocer",
+        "monolingual": "To have knowledge; to have information, be informed.",
+        "phonetic": "/nəʊ/",
+        "examples": [
+          "I wouldn't know one from the other.",
+          "You know! — ¡Lo sabías!",
+          "I know that I’m right and you’re wrong.",
+          "I know your mother, but I’ve never met your father."
+        ],
+        "synonyms": [
+          "recognize",
+          "apprehend",
+          "experience",
+          "appreciate",
+          "coitize",
+          "sleep with",
+          "go to bed with",
+          "see",
+          "have",
+          "learn",
+          "notice",
+          "realize"
+        ],
+        "antonyms": [
+          "ignore",
+          "forget",
+          "confuse",
+          "misunderstand",
+          "miss",
+          "neglect",
+          "overlook",
+          "mix up"
+        ],
+        "collocations": [
+          "as we know it",
+          "be a poet and not know it"
+        ],
+        "audio": [
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/f/ff/LL-Q1860_%28eng%29-She_animates-know.wav?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "source": "linguaLibre"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/6/6e/LL-Q1860_%28eng%29-Wodencafe-know.wav?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "source": "linguaLibre"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/know-uk.mp3",
+            "accent": "UK",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/know-us.mp3",
+            "accent": "US",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/ee/En-uk-to_know.ogg/En-uk-to_know.ogg.mp3",
+            "source": "wiktApi"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/a/ad/En-us-know.ogg/En-us-know.ogg.mp3",
+            "source": "wiktApi"
+          },
+          {
+            "url": "https://translate.google.com/translate_tts?ie=UTF-8&q=know&tl=en&client=tw-ob",
+            "accent": "TTS",
+            "source": "googleTtsFallback"
+          }
+        ],
+        "imageUrl": "https://png.pngtree.com/png-clipart/20220912/original/pngtree-did-you-know-vector-png-image_8585561.png",
+        "etymology": "From Middle English knowen , from Old English cnāwan ( “ to know, perceive, recognise ” ) , from Proto-West Germanic * knāan , from Proto-Germanic * knēaną ( “ to know ” ) , from Proto-Indo-European * ǵneh₃- ( “ to know ” ) .",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/know/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "wiktApi",
+            "text": "To have knowledge; to have information, be informed."
+          },
+          {
+            "source": "wiktApi",
+            "text": "Used at the end of a sentence to draw attention to information one thinks the listener should keep in mind."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "(transitive) To experience."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "(transitive) To be aware of; to be cognizant of."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "(intransitive) To be or become aware or cognizant."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "(intransitive, obsolete) To be acquainted (with another person)."
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "wiktApi",
+            "text": "saber"
+          },
+          {
+            "source": "wiktApi",
+            "text": "conocer"
+          },
+          {
+            "source": "wiktApi",
+            "text": "saber quién es"
+          },
+          {
+            "source": "wiktApi",
+            "text": "saber qué es"
+          },
+          {
+            "source": "wiktApi",
+            "text": "saber lo que es"
+          },
+          {
+            "source": "wiktApi",
+            "text": "entender de"
+          },
+          {
+            "source": "bundled",
+            "text": "saber"
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "freeDictionary",
+            "text": "I wouldn't know one from the other."
+          },
+          {
+            "source": "tatoeba",
+            "text": "You know!",
+            "translation": "¡Lo sabías!"
+          },
+          {
+            "source": "wiktionary",
+            "text": "I know that I’m right and you’re wrong."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "I know your mother, but I’ve never met your father."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "Did you know Michelle and Jack were getting divorced? ― Yes, I knew."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "She knows where I live."
+          },
+          {
+            "source": "tatoeba",
+            "text": "Who knows.",
+            "translation": "¡Quién sabe!"
+          },
+          {
+            "source": "wiktApi",
+            "text": "I knew he was upset, but I didn't understand why."
+          }
+        ]
+      },
+      "bilingual": "saber · conocer"
+    },
+    {
+      "token": "know",
+      "tier": "vip",
+      "ms": 1661,
+      "successfulSources": [
+        "freeDictionary",
+        "datamuse",
+        "wiktionary",
+        "wiktionaryHtml",
+        "wiktionaryApi",
+        "wiktApi",
+        "mobyThesaurus",
+        "thesaurusCom",
+        "wordHippo",
+        "bundled",
+        "tatoeba",
+        "linguaLibre",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "wikimediaCommons",
+        "duckduckgoImages",
+        "youglish",
+        "etymonline",
+        "cambridge",
+        "oxfordLearners",
+        "longman",
+        "dictionaryCom",
+        "ozdic",
+        "pons",
+        "babla",
+        "dictCc",
+        "promtContext",
+        "spanishDict"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": true,
+        "examples": true,
+        "synonyms": true,
+        "antonyms": true,
+        "collocations": true,
+        "audio": true,
+        "image": true,
+        "etymology": true,
+        "video": true
+      },
+      "content": {
+        "translation": "saber",
+        "bilingual": "saber · conocer",
+        "monolingual": "to be sure about something",
+        "phonetic": "/nəʊ/",
+        "examples": [
+          "I don't know what to say — no sé qué decir",
+          "I don't know his name/how old he is — no sé cómo se llama/cuántos años tiene",
+          "I didn't know (that) you had a brother! — no sabía que tenías un hermano",
+          "Not that I know of. — No que yo sepa ."
+        ],
+        "synonyms": [
+          "recognize",
+          "apprehend",
+          "experience",
+          "appreciate",
+          "coitize",
+          "sleep with",
+          "go to bed with",
+          "see",
+          "have",
+          "learn",
+          "notice",
+          "realize"
+        ],
+        "antonyms": [
+          "ignore",
+          "forget",
+          "confuse",
+          "misunderstand",
+          "miss",
+          "neglect",
+          "overlook",
+          "mix up"
+        ],
+        "collocations": [
+          "know a lot",
+          "if you know what I mean",
+          "to get to know someone",
+          "to let someone know someone",
+          "to get to know about someone",
+          "to know someone about someone",
+          "to let sb. know sth.",
+          "to know sth. full well",
+          "to know sth. intuitively",
+          "as we know it",
+          "be a poet and not know it"
+        ],
+        "audio": [
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/f/ff/LL-Q1860_%28eng%29-She_animates-know.wav?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "source": "linguaLibre"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/6/6e/LL-Q1860_%28eng%29-Wodencafe-know.wav?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "source": "linguaLibre"
+          },
+          {
+            "url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/k/kno/know_/know__gb_2.mp3",
+            "accent": "UK",
+            "source": "oxfordLearners"
+          },
+          {
+            "url": "https://www.oxfordlearnersdictionaries.com/media/english/us_pron/k/kno/know_/know__us_1.mp3",
+            "accent": "US",
+            "source": "oxfordLearners"
+          },
+          {
+            "url": "https://www.ldoceonline.com/media/english/breProns/know_n0205.mp3?version=1.2.89",
+            "accent": "UK",
+            "source": "longman"
+          },
+          {
+            "url": "https://www.ldoceonline.com/media/english/ameProns/know1.mp3?version=1.2.89",
+            "accent": "US",
+            "source": "longman"
+          },
+          {
+            "url": "https://audio.dictionary.com/tts/k/know/know-vRc2Nl.mp3",
+            "accent": "US",
+            "source": "dictionaryCom"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/know-uk.mp3",
+            "accent": "UK",
+            "source": "freeDictionary"
+          }
+        ],
+        "imageUrl": "https://png.pngtree.com/png-clipart/20220912/original/pngtree-did-you-know-vector-png-image_8585561.png",
+        "etymology": "From Middle English knowen , from Old English cnāwan ( “ to know, perceive, recognise ” ) , from Proto-West Germanic * knāan , from Proto-Germanic * knēaną ( “ to know ” ) , from Proto-Indo-European * ǵneh₃- ( “ to know ” ) .",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/know/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "longman",
+            "text": "to be sure about something"
+          },
+          {
+            "source": "longman",
+            "text": "to have information about something"
+          },
+          {
+            "source": "longman",
+            "text": "to be familiar with a person, place etc"
+          },
+          {
+            "source": "longman",
+            "text": "to realize , find out about, or understand something"
+          },
+          {
+            "source": "cambridge",
+            "text": "to be certain"
+          },
+          {
+            "source": "cambridge",
+            "text": "to have information in your mind"
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "wiktApi",
+            "text": "saber"
+          },
+          {
+            "source": "wiktApi",
+            "text": "conocer"
+          },
+          {
+            "source": "wiktApi",
+            "text": "saber quién es"
+          },
+          {
+            "source": "wiktApi",
+            "text": "saber qué es"
+          },
+          {
+            "source": "wiktApi",
+            "text": "saber lo que es"
+          },
+          {
+            "source": "wiktApi",
+            "text": "entender de"
+          },
+          {
+            "source": "bundled",
+            "text": "saber"
+          },
+          {
+            "source": "cambridge",
+            "text": "saber"
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "spanishDict",
+            "text": "I don't know what to say",
+            "translation": "no sé qué decir"
+          },
+          {
+            "source": "pons",
+            "text": "I don't know his name/how old he is",
+            "translation": "no sé cómo se llama/cuántos años tiene"
+          },
+          {
+            "source": "pons",
+            "text": "I didn't know (that) you had a brother!",
+            "translation": "no sabía que tenías un hermano"
+          },
+          {
+            "source": "promtContext",
+            "text": "Not that I know of.",
+            "translation": "No que yo sepa ."
+          },
+          {
+            "source": "promtContext",
+            "text": "I know none of them.",
+            "translation": "No conozco a ninguno de ellos."
+          },
+          {
+            "source": "spanishDict",
+            "text": "I will let you know",
+            "translation": "te lo haré saber"
+          },
+          {
+            "source": "cambridge",
+            "text": "I don't know anything about this. No sé nada de esto."
+          },
+          {
+            "source": "cambridge",
+            "text": "\"Where did he go?\" \"I don't know.\" — ¿Adónde ha ido? — No lo sé."
+          }
+        ]
+      },
+      "bilingual": "saber · conocer"
+    },
+    {
+      "token": "run",
+      "tier": "standard",
+      "ms": 1956,
+      "successfulSources": [
+        "freeDictionary",
+        "datamuse",
+        "wiktionary",
+        "wiktionaryHtml",
+        "wiktionaryApi",
+        "wiktApi",
+        "mobyThesaurus",
+        "thesaurusCom",
+        "wordHippo",
+        "bundled",
+        "tatoeba",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "duckduckgoImages",
+        "youglish",
+        "etymonline"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": true,
+        "examples": true,
+        "synonyms": true,
+        "antonyms": true,
+        "collocations": true,
+        "audio": true,
+        "image": true,
+        "etymology": true,
+        "video": true
+      },
+      "content": {
+        "translation": "correr",
+        "bilingual": "correr",
+        "monolingual": "To cause to move quickly or lightly.",
+        "phonetic": "/ɹʊn/",
+        "examples": [
+          "Run away. — Huid.",
+          "Run faster. — Corre más rápido.",
+          "I just got back from my morning run.",
+          "Every day I run my dog across the field and back."
+        ],
+        "synonyms": [
+          "start",
+          "tread",
+          "ladder",
+          "execute",
+          "race",
+          "rush",
+          "dart",
+          "dash",
+          "drop",
+          "fall",
+          "break",
+          "spurt"
+        ],
+        "antonyms": [
+          "walk",
+          "dawdle",
+          "rise",
+          "riser",
+          "stay",
+          "dally",
+          "remain",
+          "walking"
+        ],
+        "collocations": [
+          "hit-and-run"
+        ],
+        "audio": [
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/run-au.mp3",
+            "accent": "AU",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/run-us.mp3",
+            "accent": "US",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/a/a9/En-us-run.ogg/En-us-run.ogg.mp3",
+            "source": "wiktApi"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/b/bf/En-run.ogg/En-run.ogg.mp3",
+            "source": "wiktApi"
+          },
+          {
+            "url": "https://translate.google.com/translate_tts?ie=UTF-8&q=run&tl=en&client=tw-ob",
+            "accent": "TTS",
+            "source": "googleTtsFallback"
+          }
+        ],
+        "imageUrl": "https://img.freepik.com/premium-photo/full-shot-people-running-outside_23-2149037675.jpg?w=2000",
+        "etymology": "From Middle English runnen , rennen ( “ to run ” ) , alteration (due to the past participle runne , runnen , yronne ) of Middle English rinnen ( “ to run ” ) , from Old English rinnan , iernan ( “ to run ” ) and Old Norse rinna ( “ to run ” ) , both from Proto-Germanic * rinnaną ( “ to run ” ) , from Proto-Indo-European * h₃reyH- ( “ to boil, churn ” ) .",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/run/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "wiktApi",
+            "text": "To cause to move quickly or lightly."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "To move swiftly."
+          },
+          {
+            "source": "wiktionary",
+            "text": "To go at a fast pace; to move quickly ."
+          },
+          {
+            "source": "wiktionary",
+            "text": "To cover (a course or a distance) by running."
+          },
+          {
+            "source": "wiktionary",
+            "text": "To complete a running course or event in (a given time)."
+          },
+          {
+            "source": "wiktionary",
+            "text": "To move forward quickly upon two feet by alternately making a short jump off either foot."
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "wiktApi",
+            "text": "correr"
+          },
+          {
+            "source": "wiktApi",
+            "text": "apeonar"
+          },
+          {
+            "source": "wiktApi",
+            "text": "dirigir"
+          },
+          {
+            "source": "wiktApi",
+            "text": "gestionar"
+          },
+          {
+            "source": "wiktApi",
+            "text": "regir"
+          },
+          {
+            "source": "wiktApi",
+            "text": "andar"
+          },
+          {
+            "source": "bundled",
+            "text": "correr"
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "tatoeba",
+            "text": "Run away.",
+            "translation": "Huid."
+          },
+          {
+            "source": "tatoeba",
+            "text": "Run faster.",
+            "translation": "Corre más rápido."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "I just got back from my morning run."
+          },
+          {
+            "source": "wiktApi",
+            "text": "Every day I run my dog across the field and back."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "I need to make a run to the store."
+          },
+          {
+            "source": "wiktApi",
+            "text": "Sorry, I've got to run; my house is on fire!"
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "I have decided to run for governor of California."
+          },
+          {
+            "source": "wiktionary",
+            "text": "I can run a mile, but I can't run the cross-country course."
+          }
+        ]
+      },
+      "bilingual": "correr"
+    },
+    {
+      "token": "run",
+      "tier": "vip",
+      "ms": 2008,
+      "successfulSources": [
+        "freeDictionary",
+        "datamuse",
+        "wiktionary",
+        "wiktionaryHtml",
+        "wiktionaryApi",
+        "wiktApi",
+        "mobyThesaurus",
+        "thesaurusCom",
+        "wordHippo",
+        "bundled",
+        "tatoeba",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "duckduckgoImages",
+        "youglish",
+        "etymonline",
+        "cambridge",
+        "oxfordLearners",
+        "longman",
+        "dictionaryCom",
+        "ozdic",
+        "pons",
+        "babla",
+        "dictCc",
+        "promtContext",
+        "spanishDict"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": true,
+        "examples": true,
+        "synonyms": true,
+        "antonyms": true,
+        "collocations": true,
+        "audio": true,
+        "image": true,
+        "etymology": true,
+        "video": true
+      },
+      "content": {
+        "translation": "correr",
+        "bilingual": "correr · dirigir",
+        "monolingual": "to move very quickly, by moving your legs more quickly than when you walk",
+        "phonetic": "/rʌn/",
+        "examples": [
+          "I'm able to run . — Puedo correr .",
+          "I hardly ever run into him. — Yo rara vez me encuentro con él.",
+          "I had to run for the train — tuve que correr para no perder el tren",
+          "I'll have to run home and change — tendré que ir corriendo or rápido a casa a cambiarme"
+        ],
+        "synonyms": [
+          "start",
+          "tread",
+          "ladder",
+          "execute",
+          "race",
+          "rush",
+          "dart",
+          "dash",
+          "drop",
+          "fall",
+          "break",
+          "spurt"
+        ],
+        "antonyms": [
+          "walk",
+          "dawdle",
+          "rise",
+          "riser",
+          "stay",
+          "dally",
+          "remain",
+          "walking"
+        ],
+        "collocations": [
+          "make a run for it",
+          "to run aground",
+          "to run for cover",
+          "to run before the wind",
+          "to run across the street",
+          "the wagons run on tracks",
+          "the trains run every half hour",
+          "to run low",
+          "to run out",
+          "to run away",
+          "to run over",
+          "to run around"
+        ],
+        "audio": [
+          {
+            "url": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/r/run/run__/run__gb_1.mp3",
+            "accent": "UK",
+            "source": "oxfordLearners"
+          },
+          {
+            "url": "https://www.oxfordlearnersdictionaries.com/media/english/us_pron/r/run/run__/run__us_1.mp3",
+            "accent": "US",
+            "source": "oxfordLearners"
+          },
+          {
+            "url": "https://www.ldoceonline.com/media/english/breProns/run_n0205.mp3?version=1.2.89",
+            "accent": "UK",
+            "source": "longman"
+          },
+          {
+            "url": "https://www.ldoceonline.com/media/english/ameProns/run1.mp3?version=1.2.89",
+            "accent": "US",
+            "source": "longman"
+          },
+          {
+            "url": "https://audio.dictionary.com/tts/r/run/run-YVJOsl.mp3",
+            "accent": "US",
+            "source": "dictionaryCom"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/run-au.mp3",
+            "accent": "AU",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/run-us.mp3",
+            "accent": "US",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/a/a9/En-us-run.ogg/En-us-run.ogg.mp3",
+            "source": "wiktApi"
+          }
+        ],
+        "imageUrl": "https://img.freepik.com/premium-photo/full-shot-people-running-outside_23-2149037675.jpg?w=2000",
+        "etymology": "From Middle English runnen , rennen ( “ to run ” ) , alteration (due to the past participle runne , runnen , yronne ) of Middle English rinnen ( “ to run ” ) , from Old English rinnan , iernan ( “ to run ” ) and Old Norse rinna ( “ to run ” ) , both from Proto-Germanic * rinnaną ( “ to run ” ) , from Proto-Indo-European * h₃reyH- ( “ to boil, churn ” ) .",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/run/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "longman",
+            "text": "to move very quickly, by moving your legs more quickly than when you walk"
+          },
+          {
+            "source": "cambridge",
+            "text": "to go quickly or in a hurry"
+          },
+          {
+            "source": "cambridge",
+            "text": "(of people and some animals ) to move along, faster than walking , by taking quick steps in which each foot is lifted before the next foot touches the ground"
+          },
+          {
+            "source": "oxfordLearners",
+            "text": "to travel a particular distance by running"
+          },
+          {
+            "source": "oxfordLearners",
+            "text": "to move using your legs, going faster than when you walk"
+          },
+          {
+            "source": "dictionaryCom",
+            "text": "to move with haste; act quickly."
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "wiktApi",
+            "text": "correr"
+          },
+          {
+            "source": "wiktApi",
+            "text": "apeonar"
+          },
+          {
+            "source": "wiktApi",
+            "text": "dirigir"
+          },
+          {
+            "source": "wiktApi",
+            "text": "gestionar"
+          },
+          {
+            "source": "wiktApi",
+            "text": "regir"
+          },
+          {
+            "source": "wiktApi",
+            "text": "andar"
+          },
+          {
+            "source": "bundled",
+            "text": "correr"
+          },
+          {
+            "source": "cambridge",
+            "text": "correr"
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "promtContext",
+            "text": "I'm able to run .",
+            "translation": "Puedo correr ."
+          },
+          {
+            "source": "promtContext",
+            "text": "I hardly ever run into him.",
+            "translation": "Yo rara vez me encuentro con él."
+          },
+          {
+            "source": "pons",
+            "text": "I had to run for the train",
+            "translation": "tuve que correr para no perder el tren"
+          },
+          {
+            "source": "pons",
+            "text": "I'll have to run home and change",
+            "translation": "tendré que ir corriendo or rápido a casa a cambiarme"
+          },
+          {
+            "source": "tatoeba",
+            "text": "Run away.",
+            "translation": "Huid."
+          },
+          {
+            "source": "tatoeba",
+            "text": "Run faster.",
+            "translation": "Corre más rápido."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "I just got back from my morning run."
+          },
+          {
+            "source": "wiktApi",
+            "text": "Every day I run my dog across the field and back."
+          }
+        ]
+      },
+      "bilingual": "correr · dirigir"
+    },
+    {
+      "token": "break up",
+      "tier": "standard",
+      "ms": 1997,
+      "successfulSources": [
+        "freeDictionary",
+        "wiktionary",
+        "wiktionaryApi",
+        "mobyThesaurus",
+        "wordHippo",
+        "theIdioms",
+        "bundled",
+        "tatoeba",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "duckduckgoImages",
+        "youglish"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": false,
+        "examples": true,
+        "synonyms": false,
+        "antonyms": true,
+        "collocations": false,
+        "audio": true,
+        "image": true,
+        "etymology": false,
+        "video": true
+      },
+      "content": {
+        "translation": "separarse",
+        "bilingual": "separarse",
+        "monolingual": "(intransitive, idiomatic) To end a (usually romantic or sexual) relationship.",
+        "examples": [
+          "We should break up. — Deberíamos terminar.",
+          "We didn't break up. — No hemos roto.",
+          "Break up the cheese and put it in the salad.",
+          "You're breaking up. Can you repeat that?"
+        ],
+        "antonyms": [
+          "unite",
+          "hitch",
+          "marry",
+          "hook up",
+          "get hitched",
+          "get together",
+          "come together",
+          "start a relationship"
+        ],
+        "audio": [
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/break%20up-au.mp3",
+            "accent": "AU",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://translate.google.com/translate_tts?ie=UTF-8&q=break%20up&tl=en&client=tw-ob",
+            "accent": "TTS",
+            "source": "googleTtsFallback"
+          }
+        ],
+        "imageUrl": "https://www.simplypsychology.org/wp-content/uploads/relationship-break-up-1024x723.jpeg",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/break%20up/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "wiktionaryApi",
+            "text": "(intransitive, idiomatic) To end a (usually romantic or sexual) relationship."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "(reciprocal, intransitive) To end a (usually romantic or sexual) relationship with each other."
+          },
+          {
+            "source": "wiktionary",
+            "text": "To end a (usually romantic or sexual) relationship ."
+          },
+          {
+            "source": "wiktionary",
+            "text": "To end a (usually romantic or sexual) relationship with each other."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "To end a relationship."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "To end a relationship with each other."
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "bundled",
+            "text": "separarse"
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "tatoeba",
+            "text": "We should break up.",
+            "translation": "Deberíamos terminar."
+          },
+          {
+            "source": "tatoeba",
+            "text": "We didn't break up.",
+            "translation": "No hemos roto."
+          },
+          {
+            "source": "wiktionary",
+            "text": "Break up the cheese and put it in the salad."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "You're breaking up. Can you repeat that?"
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "You're breaking up. Can you repeat that? Well, it got cut off."
+          },
+          {
+            "source": "freeDictionary",
+            "text": "The meeting finally broke up after a three-hour discussion."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "Jane and Stephen broke up."
+          },
+          {
+            "source": "wiktionary",
+            "text": "It broke up when it hit the ground."
+          }
+        ]
+      },
+      "bilingual": "separarse"
+    },
+    {
+      "token": "break up",
+      "tier": "vip",
+      "ms": 2009,
+      "successfulSources": [
+        "freeDictionary",
+        "wiktionary",
+        "wiktionaryApi",
+        "mobyThesaurus",
+        "wordHippo",
+        "theIdioms",
+        "bundled",
+        "tatoeba",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "duckduckgoImages",
+        "youglish",
+        "cambridge",
+        "oxfordLearners",
+        "longman",
+        "dictionaryCom",
+        "pons",
+        "dictCc",
+        "promtContext"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": false,
+        "examples": true,
+        "synonyms": false,
+        "antonyms": true,
+        "collocations": true,
+        "audio": true,
+        "image": true,
+        "etymology": false,
+        "video": true
+      },
+      "content": {
+        "translation": "separarse",
+        "bilingual": "separarse · romper · terminar · acabar",
+        "monolingual": "the coming to an end of a business or personal relationship , caused by the separation of those involved",
+        "examples": [
+          "We should break up. — Deberíamos terminar.",
+          "Tom tried to break up the fight. — Tom trató de disolver la pelea.",
+          "Tom doesn't want to break up with Mary. — Tom no quiere romper con Mary.",
+          "We didn't break up. — No hemos roto."
+        ],
+        "antonyms": [
+          "unite",
+          "hitch",
+          "marry",
+          "hook up",
+          "get hitched",
+          "get together",
+          "come together",
+          "start a relationship"
+        ],
+        "collocations": [
+          "to break up with someone"
+        ],
+        "audio": [
+          {
+            "url": "https://api.dictionaryapi.dev/media/pronunciations/en/break%20up-au.mp3",
+            "accent": "AU",
+            "source": "freeDictionary"
+          },
+          {
+            "url": "https://translate.google.com/translate_tts?ie=UTF-8&q=break%20up&tl=en&client=tw-ob",
+            "accent": "TTS",
+            "source": "googleTtsFallback"
+          }
+        ],
+        "imageUrl": "https://www.simplypsychology.org/wp-content/uploads/relationship-break-up-1024x723.jpeg",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/break%20up/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "cambridge",
+            "text": "the coming to an end of a business or personal relationship , caused by the separation of those involved"
+          },
+          {
+            "source": "cambridge",
+            "text": "If a marriage breaks up or two people in a romantic relationship break up, their marriage or their relationship ends ."
+          },
+          {
+            "source": "oxfordLearners",
+            "text": "to come to an end"
+          },
+          {
+            "source": "dictionaryCom",
+            "text": "to put an end to (a relationship) or (of a relationship) to come to an end"
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "(intransitive, idiomatic) To end a (usually romantic or sexual) relationship."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "(reciprocal, intransitive) To end a (usually romantic or sexual) relationship with each other."
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "bundled",
+            "text": "separarse"
+          },
+          {
+            "source": "cambridge",
+            "text": "romper"
+          },
+          {
+            "source": "cambridge",
+            "text": "Jenny and George han roto."
+          },
+          {
+            "source": "cambridge",
+            "text": "Acaba de romper con su novio."
+          },
+          {
+            "source": "cambridge",
+            "text": "terminar"
+          },
+          {
+            "source": "cambridge",
+            "text": "Terminamos en junio para las vacaciones."
+          },
+          {
+            "source": "cambridge",
+            "text": "desintegración"
+          },
+          {
+            "source": "dictCc",
+            "text": "acabar"
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "tatoeba",
+            "text": "We should break up.",
+            "translation": "Deberíamos terminar."
+          },
+          {
+            "source": "promtContext",
+            "text": "Tom tried to break up the fight.",
+            "translation": "Tom trató de disolver la pelea."
+          },
+          {
+            "source": "promtContext",
+            "text": "Tom doesn't want to break up with Mary.",
+            "translation": "Tom no quiere romper con Mary."
+          },
+          {
+            "source": "tatoeba",
+            "text": "We didn't break up.",
+            "translation": "No hemos roto."
+          },
+          {
+            "source": "pons",
+            "text": "we break up on the 21 st",
+            "translation": "las clases terminan el 21"
+          },
+          {
+            "source": "pons",
+            "text": "it helps break up the long mornings",
+            "translation": "ayuda a que las mañanas no parezcan tan largas"
+          },
+          {
+            "source": "longman",
+            "text": "Use a fork to break up the soil."
+          },
+          {
+            "source": "longman",
+            "text": "You need a few trees and bushes to break up the lawn."
+          }
+        ]
+      },
+      "bilingual": "separarse · romper · terminar · acabar"
+    },
+    {
+      "token": "piece of cake",
+      "tier": "standard",
+      "ms": 1991,
+      "successfulSources": [
+        "wiktionary",
+        "wiktionaryApi",
+        "mobyThesaurus",
+        "wordHippo",
+        "theIdioms",
+        "bundled",
+        "tatoeba",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "duckduckgoImages",
+        "youglish"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": false,
+        "examples": true,
+        "synonyms": true,
+        "antonyms": true,
+        "collocations": true,
+        "audio": true,
+        "image": true,
+        "etymology": false,
+        "video": true
+      },
+      "content": {
+        "translation": "pan comido",
+        "bilingual": "pan comido",
+        "monolingual": "(idiomatic) A job, task or other activity that is pleasant or, by extension, easy or simple.",
+        "examples": [
+          "Piece of cake! — ¡Es pan comido!",
+          "It was a piece of cake. — Era un juego de niños.",
+          "Sure, no problem. It'll be a piece of cake."
+        ],
+        "synonyms": [
+          "cinch",
+          "breeze",
+          "doss",
+          "waltz",
+          "gimme",
+          "layup",
+          "doddle",
+          "cakewalk",
+          "walkover",
+          "bagatelle",
+          "duck soup",
+          "child's play"
+        ],
+        "antonyms": [
+          "trial",
+          "ordeal",
+          "struggle",
+          "uphill battle",
+          "difficult task",
+          "uphill struggle",
+          "difficult assignment",
+          "challenging assignment"
+        ],
+        "collocations": [
+          "duck soup",
+          "child's play"
+        ],
+        "audio": [
+          {
+            "url": "https://translate.google.com/translate_tts?ie=UTF-8&q=piece%20of%20cake&tl=en&client=tw-ob",
+            "accent": "TTS",
+            "source": "googleTtsFallback"
+          }
+        ],
+        "imageUrl": "https://cdn.pixabay.com/photo/2025/02/07/14/22/chocolate-cake-9390172_1280.jpg",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/piece%20of%20cake/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "wiktionaryApi",
+            "text": "(idiomatic) A job, task or other activity that is pleasant or, by extension, easy or simple."
+          },
+          {
+            "source": "wiktionary",
+            "text": "Used other than figuratively or idiomatically : see piece , ‎ cake ."
+          },
+          {
+            "source": "wiktionary",
+            "text": "A job , task or other activity that is pleasant or, by extension, easy or simple ."
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "bundled",
+            "text": "pan comido"
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "tatoeba",
+            "text": "Piece of cake!",
+            "translation": "¡Es pan comido!"
+          },
+          {
+            "source": "tatoeba",
+            "text": "It was a piece of cake.",
+            "translation": "Era un juego de niños."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "Sure, no problem. It'll be a piece of cake."
+          }
+        ]
+      },
+      "bilingual": "pan comido"
+    },
+    {
+      "token": "piece of cake",
+      "tier": "vip",
+      "ms": 1999,
+      "successfulSources": [
+        "wiktionary",
+        "wiktionaryApi",
+        "mobyThesaurus",
+        "wordHippo",
+        "theIdioms",
+        "bundled",
+        "tatoeba",
+        "googleTtsFallback",
+        "bingImages",
+        "openverse",
+        "duckduckgoImages",
+        "youglish",
+        "cambridge",
+        "dictionaryCom",
+        "pons",
+        "promtContext"
+      ],
+      "failedSources": [],
+      "fields": {
+        "bilingual": true,
+        "monolingual": true,
+        "phonetic": false,
+        "examples": true,
+        "synonyms": true,
+        "antonyms": true,
+        "collocations": true,
+        "audio": true,
+        "image": true,
+        "etymology": false,
+        "video": true
+      },
+      "content": {
+        "translation": "pan comido",
+        "bilingual": "pan comido",
+        "monolingual": "something that is very easy to do",
+        "examples": [
+          "Piece of cake! — ¡Es pan comido!",
+          "It was a piece of cake. — Era un juego de niños.",
+          "It hasn't been a piece of cake either. — No fue tampoco coser y cantar.",
+          "The exam was a piece of cake . El examen fue pan comido."
+        ],
+        "synonyms": [
+          "cinch",
+          "breeze",
+          "doss",
+          "waltz",
+          "gimme",
+          "layup",
+          "doddle",
+          "cakewalk",
+          "walkover",
+          "bagatelle",
+          "duck soup",
+          "child's play"
+        ],
+        "antonyms": [
+          "trial",
+          "ordeal",
+          "struggle",
+          "uphill battle",
+          "difficult task",
+          "uphill struggle",
+          "difficult assignment",
+          "challenging assignment"
+        ],
+        "collocations": [
+          "to be a piece of cake"
+        ],
+        "audio": [
+          {
+            "url": "https://translate.google.com/translate_tts?ie=UTF-8&q=piece%20of%20cake&tl=en&client=tw-ob",
+            "accent": "TTS",
+            "source": "googleTtsFallback"
+          }
+        ],
+        "imageUrl": "https://cdn.pixabay.com/photo/2025/02/07/14/22/chocolate-cake-9390172_1280.jpg",
+        "videoLinks": [
+          {
+            "url": "https://youglish.com/pronounce/piece%20of%20cake/english",
+            "source": "youglish"
+          }
+        ],
+        "attributedDefinitions": [
+          {
+            "source": "cambridge",
+            "text": "something that is very easy to do"
+          },
+          {
+            "source": "dictionaryCom",
+            "text": "Something easily accomplished, as in I had no trouble finding your house—a piece of cake . This expression originated in the Royal Air Force in the late 1930s for an easy mission, and the precise reference is as mysterious as that of the simile easy as pie . Possibly it evokes the easy accomplishment of swallowing a slice of sweet dessert."
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "(idiomatic) A job, task or other activity that is pleasant or, by extension, easy or simple."
+          },
+          {
+            "source": "wiktionary",
+            "text": "Used other than figuratively or idiomatically : see piece , ‎ cake ."
+          },
+          {
+            "source": "wiktionary",
+            "text": "A job , task or other activity that is pleasant or, by extension, easy or simple ."
+          }
+        ],
+        "attributedTranslations": [
+          {
+            "source": "bundled",
+            "text": "pan comido"
+          },
+          {
+            "source": "cambridge",
+            "text": "ser pan comido"
+          },
+          {
+            "source": "cambridge",
+            "text": "El examen fue pan comido."
+          }
+        ],
+        "attributedExamples": [
+          {
+            "source": "tatoeba",
+            "text": "Piece of cake!",
+            "translation": "¡Es pan comido!"
+          },
+          {
+            "source": "tatoeba",
+            "text": "It was a piece of cake.",
+            "translation": "Era un juego de niños."
+          },
+          {
+            "source": "promtContext",
+            "text": "It hasn't been a piece of cake either.",
+            "translation": "No fue tampoco coser y cantar."
+          },
+          {
+            "source": "cambridge",
+            "text": "The exam was a piece of cake . El examen fue pan comido."
+          },
+          {
+            "source": "dictionaryCom",
+            "text": "This last show, all I wanted was a giant piece of cake ."
+          },
+          {
+            "source": "dictionaryCom",
+            "text": "“One day when I’m 40, I’ll be able to say, ‘That was a piece of cake .’"
+          },
+          {
+            "source": "wiktionaryApi",
+            "text": "Sure, no problem. It'll be a piece of cake."
+          },
+          {
+            "source": "promtContext",
+            "text": "Tom cut his sister a piece of cake .",
+            "translation": "Tom le cortó un pedazo de torta a su hermana."
+          }
+        ]
+      },
+      "bilingual": "pan comido"
+    }
+  ]
+}

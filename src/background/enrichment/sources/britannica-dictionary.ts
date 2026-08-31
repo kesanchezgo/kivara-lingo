@@ -14,6 +14,36 @@ import type { EnrichmentContext, EnrichmentSource, SourcePartial } from '../type
 
 const BASE = 'https://www.britannica.com';
 const AUDIO_BASE = 'https://media.merriam-webster.com/audio/prons/en/us/mp3';
+const CIRCUIT_STORAGE_KEY = 'enrichment:britannica:circuit:v1';
+const CHALLENGE_COOLDOWN_MS = 10 * 60 * 1000;
+const RATE_LIMIT_COOLDOWN_MS = 60 * 60 * 1000;
+
+interface CircuitState {
+  blockedUntil: number;
+  reason: 'cloudflare-challenge' | 'rate-limit';
+}
+
+async function readCircuit(): Promise<CircuitState | null> {
+  try {
+    const stored = await chrome.storage.local.get(CIRCUIT_STORAGE_KEY);
+    const value = stored[CIRCUIT_STORAGE_KEY] as Partial<CircuitState> | undefined;
+    if (!Number.isFinite(value?.blockedUntil) || value!.blockedUntil! <= Date.now()) return null;
+    if (value?.reason !== 'cloudflare-challenge' && value?.reason !== 'rate-limit') return null;
+    return { blockedUntil: value.blockedUntil!, reason: value.reason };
+  } catch {
+    return null;
+  }
+}
+
+async function openCircuit(reason: CircuitState['reason'], durationMs: number): Promise<void> {
+  try {
+    await chrome.storage.local.set({
+      [CIRCUIT_STORAGE_KEY]: { blockedUntil: Date.now() + durationMs, reason } satisfies CircuitState,
+    });
+  } catch {
+    // Failure to persist only removes the optimisation; other sources still run.
+  }
+}
 
 function norm(text?: string): string {
   return text?.replace(/\s+/g, ' ').trim() ?? '';
@@ -100,16 +130,43 @@ export const britannicaDictionarySource: EnrichmentSource = {
     const lang = (ctx.sourceLang || 'en').slice(0, 2);
     if (lang !== 'en') return {};
 
+    const circuit = await readCircuit();
+    if (circuit) {
+      console.info('[kivara:enrichment:britannica] request skipped', {
+        reason: circuit.reason,
+        retryAfterMs: circuit.blockedUntil - Date.now(),
+      });
+      return {};
+    }
+
     const query = encodeURIComponent(token.trim().toLowerCase());
+    let status = 0;
+    let challenged = false;
     const html = await fetchHtml(`${BASE}/dictionary/${query}`, {
       timeoutMs: ctx.timeoutMs,
       signal: ctx.signal,
+      credentials: 'include',
       headers: {
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36',
       },
+      onResponse: (response) => {
+        status = response.status;
+        challenged = response.headers.get('cf-mitigated') === 'challenge';
+      },
     });
+    if (status === 429) {
+      await openCircuit('rate-limit', RATE_LIMIT_COOLDOWN_MS);
+      console.warn('[kivara:enrichment:britannica] HTTP 429; circuit opened', {
+        cooldownMs: RATE_LIMIT_COOLDOWN_MS,
+      });
+    } else if (status === 403 && challenged) {
+      await openCircuit('cloudflare-challenge', CHALLENGE_COOLDOWN_MS);
+      console.warn('[kivara:enrichment:britannica] Cloudflare challenge; circuit opened', {
+        cooldownMs: CHALLENGE_COOLDOWN_MS,
+      });
+    }
     if (!html) return {};
 
     const partial: SourcePartial = {};

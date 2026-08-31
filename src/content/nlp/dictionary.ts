@@ -161,6 +161,17 @@ for (const [key, value] of Object.entries(
     };
   }
 }
+// Corpus adverb bigrams ("clearly give", "freely give") are frequency
+// artifacts, not learner collocations — the ACL carries them for frequent
+// verbs. Editorial sources never emit an -ly adverb as a headword
+// collocation, so filter them at the overlay boundary (same rule as the
+// orchestrator's normalizeCollocation).
+function isLearnerCollocation(phrase: string): boolean {
+  const words = phrase.trim().toLowerCase().split(/\s+/);
+  if (words.length !== 2) return true;
+  return !/^[a-z]+ly$/.test(words[0]) && !/^[a-z]+ly$/.test(words[1]);
+}
+
 // Overlay the Academic Collocation List (Ackermann & Chen 2013) so every
 // entry the bundled dictionary already covers also gets up to ~12
 // curated academic collocations. The popover renders these under
@@ -175,7 +186,8 @@ for (const [key, value] of Object.entries(
       ...existing,
       collocations: [
         ...(existing.collocations ?? []),
-        ...value.filter((v) => !existing.collocations?.includes(v)),
+        ...value.filter((v) =>
+          !existing.collocations?.includes(v) && isLearnerCollocation(v)),
       ].slice(0, 12),
     };
   } else {
@@ -186,7 +198,7 @@ for (const [key, value] of Object.entries(
       token: key,
       type: 'word',
       translation: '\u2014',
-      collocations: value.slice(0, 12),
+      collocations: value.filter(isLearnerCollocation).slice(0, 12),
     };
   }
 }

@@ -882,6 +882,7 @@ export function SubtitleOverlay({
                             onMouseEnter={() => handleTokenEnter(id, tok.key)}
                             onMouseLeave={handleTokenLeave}
                             token={tok.text}
+                            lookupToken={tok.key}
                             sentence={targetSentence}
                             sourceLang={cueLanguage}
                             includeAi={includeAi}

@@ -25,6 +25,15 @@ interface PixabayApiResponse {
   }>;
 }
 
+interface PixabayBootstrapResponse {
+  page?: {
+    results?: Array<{
+      mediaType?: string;
+      sources?: Record<string, string>;
+    }>;
+  };
+}
+
 interface PixabayContext extends EnrichmentContext {
   pixabayApiKey?: string;
 }
@@ -52,17 +61,37 @@ export const pixabaySource: EnrichmentSource = {
       // fall through to scrape if API call failed.
     }
 
-    // ─ Path B: HTML scrape (no key) ────────────────────────────────
-    const url = `https://pixabay.com/images/search/${q}/`;
+    // ─ Path B: public bootstrap scrape (no key) ────────────────────
+    // Pixabay's search page exposes the same public results as JSON when the
+    // frontend asks for its bootstrap payload. This is still first-party,
+    // keyless scraping of the regular search page.
+    const url = `https://pixabay.com/images/search/${q}/?pagi=1`;
+    const bootstrap = await fetchJson<PixabayBootstrapResponse>(url, {
+      timeoutMs: ctx.timeoutMs,
+      signal: ctx.signal,
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json',
+        'x-bootstrap-cache-miss': '1',
+        'x-fetch-bootstrap': '1',
+      },
+    });
+    for (const result of bootstrap?.page?.results ?? []) {
+      if (result.mediaType && !['photo', 'illustration', 'vector'].includes(result.mediaType)) continue;
+      const sources = Object.values(result.sources ?? {}).filter((value) => /^https:\/\//.test(value));
+      const imageUrl = sources.at(-1);
+      if (imageUrl) return { imageUrl };
+    }
+
+    // ─ Path C: legacy HTML scrape fallback ─────────────────────────
     const html = await fetchHtml(url, {
       timeoutMs: ctx.timeoutMs,
       signal: ctx.signal,
+      credentials: 'include',
     });
     if (!html) return {};
-    // Pixabay CDN: cdn.pixabay.com/photo/YYYY/MM/.../<slug>-<id>_640.jpg
     const re = /https:\/\/cdn\.pixabay\.com\/photo\/[^"'\s)]+_(?:640|960|1280)\.(?:jpg|png|webp)/g;
     const m = re.exec(html);
-    if (!m) return {};
-    return { imageUrl: m[0] };
+    return m ? { imageUrl: m[0] } : {};
   },
 };

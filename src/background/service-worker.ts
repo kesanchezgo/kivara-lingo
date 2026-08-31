@@ -533,6 +533,7 @@ chrome.runtime.onConnect.addListener((port) => {
         sentence: msg.sentence ?? '',
         sourceLang: msg.sourceLang || 'en',
         includeAi: !!msg.includeAi,
+        purpose: msg.purpose ?? 'popover',
       },
       (out: ResolveWordStreamMsg) => {
         if (cancelled) return;

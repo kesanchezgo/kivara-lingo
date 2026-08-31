@@ -4,6 +4,8 @@ import { datamuseSource } from '../src/background/enrichment/sources/datamuse';
 import { wiktionarySource } from '../src/background/enrichment/sources/wiktionary';
 import { wiktionaryHtmlSource } from '../src/background/enrichment/sources/wiktionary-html';
 import { wiktionaryApiSource } from '../src/background/enrichment/sources/wiktionary-api';
+import { wiktApiSource } from '../src/background/enrichment/sources/wiktapi';
+import { britannicaDictionarySource } from '../src/background/enrichment/sources/britannica-dictionary';
 import { mobyThesaurusSource } from '../src/background/enrichment/sources/moby-thesaurus';
 import { thesaurusComSource } from '../src/background/enrichment/sources/thesaurus-com';
 import { wordHippoSource } from '../src/background/enrichment/sources/wordhippo';
@@ -20,25 +22,58 @@ import { duckduckgoImagesSource } from '../src/background/enrichment/sources/duc
 import { cambridgeSource } from '../src/background/enrichment/sources/cambridge';
 import { oxfordLearnersSource } from '../src/background/enrichment/sources/oxford-learners';
 import { longmanSource } from '../src/background/enrichment/sources/longman';
-import { collinsSource } from '../src/background/enrichment/sources/collins';
+import { dictionaryComSource } from '../src/background/enrichment/sources/dictionary-com';
 import { merriamWebsterSource } from '../src/background/enrichment/sources/merriam-webster';
 import { ozdicSource } from '../src/background/enrichment/sources/ozdic';
+import { ponsSource } from '../src/background/enrichment/sources/pons';
+import { bablaSource } from '../src/background/enrichment/sources/babla';
+import { dictCcSource } from '../src/background/enrichment/sources/dictcc';
 import { reversoSource } from '../src/background/enrichment/sources/reverso-context';
 import { lingueeSource } from '../src/background/enrichment/sources/linguee';
+import { promtContextSource } from '../src/background/enrichment/sources/promt-context';
 import { wordReferenceSource } from '../src/background/enrichment/sources/wordreference';
 import { spanishDictSource } from '../src/background/enrichment/sources/spanishdict';
 import { forvoSource } from '../src/background/enrichment/sources/forvo';
+import { unsplashSource } from '../src/background/enrichment/sources/unsplash';
+import { pixabaySource } from '../src/background/enrichment/sources/pixabay';
 import { mkdirSync, writeFileSync } from 'node:fs';
+
+// Direct Node audits do not have extension APIs. Keep a dedicated in-memory
+// store for this run so provider rate limits and cookie-dependent code follow
+// their production branches without reading or clearing the user's real
+// extension state.
+const probeStorage: Record<string, unknown> = {};
+const chromeProbe = {
+  runtime: { getURL: (path: string) => `chrome-extension://quality-probe/${path}` },
+  cookies: {
+    getAll: async () => [],
+    getAllCookieStores: async () => [{ id: '0', tabIds: [] }],
+    set: async () => undefined,
+  },
+  declarativeNetRequest: { updateSessionRules: async () => undefined },
+  storage: {
+    local: {
+      get: async (key: string) => ({ [key]: probeStorage[key] }),
+      set: async (values: Record<string, unknown>) => { Object.assign(probeStorage, values); },
+      remove: async (key: string) => { delete probeStorage[key]; },
+    },
+  },
+};
+if (!('chrome' in globalThis)) {
+  (globalThis as typeof globalThis & { chrome: typeof chromeProbe }).chrome = chromeProbe;
+}
 
 const standard: EnrichmentSource[] = [
   freeDictionarySource, datamuseSource, wiktionarySource, wiktionaryHtmlSource, wiktionaryApiSource,
+  wiktApiSource, britannicaDictionarySource,
   mobyThesaurusSource, thesaurusComSource, wordHippoSource, theIdiomsSource, etymonlineSource,
   tatoebaSource, linguaLibreSource, googleTtsSource, youglishSource, bingImagesSource, openverseSource,
   wikimediaCommonsSource, duckduckgoImagesSource,
 ];
 const vip: EnrichmentSource[] = [
-  cambridgeSource, oxfordLearnersSource, longmanSource, collinsSource, merriamWebsterSource,
-  ozdicSource, reversoSource, lingueeSource, wordReferenceSource, spanishDictSource, forvoSource,
+  cambridgeSource, oxfordLearnersSource, longmanSource, dictionaryComSource, merriamWebsterSource,
+  ozdicSource, ponsSource, bablaSource, dictCcSource, reversoSource, lingueeSource,
+  promtContextSource, wordReferenceSource, spanishDictSource, forvoSource, unsplashSource, pixabaySource,
 ];
 const words = [
   { token: 'give', kind: 'verb-polysemy', sentence: "It's my father. He wants to give me a Mercedes convertible." },
@@ -62,18 +97,41 @@ function shape(partial: Record<string, unknown> | undefined) {
   return out;
 }
 
+function nonEmptyFields(partial: Record<string, unknown> | undefined): string[] {
+  return Object.entries(partial ?? {})
+    .filter(([, value]) => Array.isArray(value) ? value.length > 0 : value !== undefined && value !== null && value !== '')
+    .map(([field]) => field);
+}
+
 async function runOne(source: EnrichmentSource, token: string, sentence: string) {
   const ctx: EnrichmentContext = { sourceLang: 'en', targetLang: 'es', sentence, timeoutMs: 8000 };
   const started = Date.now();
   try {
     const partial = await source.enrich(token, ctx);
-    return { ok: true, ms: Date.now() - started, partial, shape: shape(partial as Record<string, unknown>) };
+    const record = partial as Record<string, unknown>;
+    return {
+      ok: true,
+      hasData: nonEmptyFields(record).length > 0,
+      fields: nonEmptyFields(record),
+      ms: Date.now() - started,
+      partial,
+      shape: shape(record),
+    };
   } catch (err) {
     return { ok: false, ms: Date.now() - started, error: err instanceof Error ? `${err.name}: ${err.message}` : String(err) };
   }
 }
 
-const report: any = { generatedAt: new Date().toISOString(), words, tiers: { standard: [], vip: [] }, results: [] };
+const report: any = {
+  generatedAt: new Date().toISOString(),
+  words,
+  tiers: { standard: [], vip: [] },
+  exclusions: [
+    'bundled (requires Vite JSON transforms)',
+    'yomitanPacks (requires installed IndexedDB dictionaries)',
+  ],
+  results: [],
+};
 for (const source of standard) report.tiers.standard.push({ id: source.id, label: source.label });
 for (const source of vip) report.tiers.vip.push({ id: source.id, label: source.label });
 for (const item of words) {
@@ -86,8 +144,38 @@ for (const item of words) {
     })),
   );
   report.results.push({ ...item, sources: settled });
-  console.log(`AUDITED ${item.token}: ${settled.filter((r: any) => r.ok && Object.keys(r.partial ?? {}).length).length}/${settled.length} sources with data`);
+  console.log(`AUDITED ${item.token}: ${settled.filter((r: any) => r.hasData).length}/${settled.length} sources with data`);
 }
+
+const fieldNames = [
+  'definitions', 'translations', 'examples', 'synonyms', 'antonyms',
+  'collocations', 'phonetic', 'audio', 'imageUrl', 'etymology',
+  'videoLinks', 'frequencyRank',
+];
+
+report.coverage = Object.fromEntries(['standard', 'vip'].map((tier) => {
+  const sourceIds = new Set((report.tiers[tier] as Array<{ id: string }>).map((source) => source.id));
+  const attempts = report.results.flatMap((result: any) => result.sources.filter((source: any) => source.tier === tier));
+  const bySource = Object.fromEntries([...sourceIds].map((id) => {
+    const rows = attempts.filter((row: any) => row.source === id);
+    const latencies = rows.map((row: any) => row.ms).sort((a: number, b: number) => a - b);
+    const fieldCounts = Object.fromEntries(fieldNames.map((field) => [
+      field,
+      rows.filter((row: any) => row.fields?.includes(field)).length,
+    ]));
+    return [id, {
+      responsesWithData: rows.filter((row: any) => row.hasData).length,
+      attempts: rows.length,
+      medianMs: latencies.length ? latencies[Math.floor(latencies.length / 2)] : null,
+      fields: fieldCounts,
+    }];
+  }));
+  const mergedFields = Object.fromEntries(fieldNames.map((field) => [
+    field,
+    report.results.filter((result: any) => result.sources.some((source: any) => source.tier === tier && source.fields?.includes(field))).length,
+  ]));
+  return [tier, { tokens: words.length, mergedFieldCoverage: mergedFields, bySource }];
+}));
 mkdirSync('docs/reports', { recursive: true });
 const file = `docs/reports/enrichment-source-audit-${new Date().toISOString().slice(0, 10)}.json`;
 writeFileSync(file, JSON.stringify(report, null, 2));

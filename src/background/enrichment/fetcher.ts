@@ -15,13 +15,29 @@
  * semantics.
  */
 
-const DEFAULT_UA =
+export const DEFAULT_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+
+/**
+ * Temporary MV3-runtime diagnostics. Keep this observational only: it must not
+ * change request headers, credentials, retries, parsing, or source selection.
+ * Remove after all providers have been verified in Chrome's service worker.
+ */
+const ENRICHMENT_FETCH_DIAGNOSTICS = true;
+
+function logFetchDiagnostic(event: string, details: Record<string, unknown>): void {
+  if (!ENRICHMENT_FETCH_DIAGNOSTICS) return;
+  console.info(`[kivara:enrichment:fetch] ${event}`, details);
+}
 
 interface FetchOptions {
   timeoutMs: number;
   signal?: AbortSignal;
   headers?: Record<string, string>;
+  /** Opt in per source when the public site relies on a browser session cookie. */
+  credentials?: RequestCredentials;
+  /** Observe the status before non-2xx responses are reduced to `null`. */
+  onResponse?: (response: Response) => void;
 }
 
 /** Race a fetch against a timeout. Throws AbortError on cancellation. */
@@ -37,23 +53,41 @@ export async function fetchWithTimeout(
     if (opts.signal.aborted) ctrl.abort();
     else opts.signal.addEventListener('abort', () => ctrl.abort(), { once: true });
   }
+  const startedAt = performance.now();
   try {
     const res = await fetch(url, {
       method: 'GET',
-      credentials: 'omit',
+      credentials: opts.credentials ?? 'omit',
       cache: 'no-store',
       redirect: 'follow',
       headers: {
-        'User-Agent': DEFAULT_UA,
+        'User-Agent': DEFAULT_USER_AGENT,
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.9,*/*;q=0.5',
         'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
         ...(opts.headers ?? {}),
       },
       signal: ctrl.signal,
     });
+    logFetchDiagnostic('response', {
+      url,
+      finalUrl: res.url,
+      status: res.status,
+      ok: res.ok,
+      redirected: res.redirected,
+      contentType: res.headers.get('content-type'),
+      contentLength: res.headers.get('content-length'),
+      elapsedMs: Math.round(performance.now() - startedAt),
+    });
+    opts.onResponse?.(res);
     if (!res.ok) return null;
     return res;
-  } catch {
+  } catch (error) {
+    logFetchDiagnostic('error', {
+      url,
+      elapsedMs: Math.round(performance.now() - startedAt),
+      aborted: ctrl.signal.aborted,
+      error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+    });
     return null;
   } finally {
     clearTimeout(t);
@@ -67,8 +101,20 @@ export async function fetchHtml(
   const res = await fetchWithTimeout(url, opts);
   if (!res) return null;
   try {
-    return await res.text();
-  } catch {
+    const body = await res.text();
+    logFetchDiagnostic('html-body', {
+      url,
+      finalUrl: res.url,
+      bytes: new TextEncoder().encode(body).byteLength,
+      characters: body.length,
+    });
+    return body;
+  } catch (error) {
+    logFetchDiagnostic('html-read-error', {
+      url,
+      finalUrl: res.url,
+      error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+    });
     return null;
   }
 }

@@ -13,6 +13,14 @@ const chromeMock = {
     onInstalled: { addListener: vi.fn() },
     getURL: (path: string) => `chrome-extension://test/${path}`,
   },
+  cookies: {
+    getAll: vi.fn().mockResolvedValue([]),
+    getAllCookieStores: vi.fn().mockResolvedValue([{ id: '0', tabIds: [] }]),
+    set: vi.fn().mockResolvedValue(undefined),
+  },
+  declarativeNetRequest: {
+    updateSessionRules: vi.fn().mockResolvedValue(undefined),
+  },
   storage: {
     sync: {
       get: vi.fn().mockResolvedValue({}),

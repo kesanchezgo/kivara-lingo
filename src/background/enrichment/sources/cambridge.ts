@@ -28,12 +28,21 @@ import {
   extractAnchorsByClass,
   stripHtml,
 } from '../html-utils';
-import type { EnrichmentContext, EnrichmentSource, SourcePartial } from '../types';
+import type {
+  EnrichmentContext,
+  EnrichmentSource,
+  SenseRelationGroup,
+  SourcePartial,
+} from '../types';
 
 const BASE = 'https://dictionary.cambridge.org';
 
+function slugFor(token: string): string {
+  return encodeURIComponent(token.trim().toLowerCase().replace(/\s+/g, '-'));
+}
+
 function urlFor(token: string, sourceLang: string, targetLang: string): string {
-  const slug = encodeURIComponent(token.trim().toLowerCase().replace(/\s+/g, '-'));
+  const slug = slugFor(token);
   // Bilingual EN→ES has the most useful data when both langs are EN/ES.
   const src = sourceLang.slice(0, 2);
   const tgt = targetLang.slice(0, 2);
@@ -43,15 +52,89 @@ function urlFor(token: string, sourceLang: string, targetLang: string): string {
   return `${BASE}/dictionary/english/${slug}`;
 }
 
+function cleanRelationText(value: string): string {
+  return stripHtml(value)
+    .replace(/^[\s,;:]+|[\s,;:]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function uniqueTerms(values: string[], headword: string, limit: number): string[] {
+  const seen = new Set<string>();
+  const normalizedHeadword = headword.toLocaleLowerCase();
+  const terms: string[] = [];
+
+  for (const value of values) {
+    const term = cleanRelationText(value);
+    const normalized = term.toLocaleLowerCase();
+    if (!term || term.length > 60 || normalized === normalizedHeadword || seen.has(normalized)) continue;
+    seen.add(normalized);
+    terms.push(term);
+    if (terms.length === limit) break;
+  }
+
+  return terms;
+}
+
+/** Parse Cambridge Thesaurus relations without flattening distinct senses. */
+export function parseCambridgeThesaurus(html: string, token: string): SenseRelationGroup[] {
+  const wanted = cleanRelationText(token).toLocaleLowerCase();
+  const titleBlock = extractByClass(html, 'di-title', 'div')[0] ?? '';
+  const pageHeadword = [
+    ...extractByClass(titleBlock, 'ttn', 'b'),
+    ...extractByClass(titleBlock, 'dhw', 'span'),
+  ].map(cleanRelationText).find(Boolean);
+
+  // Thesaurus fallback pages may contain nearby entries. Unlike dictionary
+  // lookups, relations are accepted only for an exact headword match.
+  if (!wanted || !pageHeadword || pageHeadword.toLocaleLowerCase() !== wanted) return [];
+
+  const groups: SenseRelationGroup[] = [];
+  const seenGroups = new Set<string>();
+  for (const senseHtml of extractByClass(html, 'dsense', 'div')) {
+    const synonyms = uniqueTerms(extractByClass(senseHtml, 'synonym', 'span'), pageHeadword, 6);
+    const antonyms = uniqueTerms(extractByClass(senseHtml, 'opposite', 'span'), pageHeadword, 4);
+    if (!synonyms.length && !antonyms.length) continue;
+
+    const guide = extractByClass(senseHtml, 'dsense_gw')
+      .map(cleanRelationText)
+      .find(Boolean);
+    const example = extractByClass(senseHtml, 'deg')
+      .map(cleanRelationText)
+      .find((value) => value.length <= 220);
+
+    const key = `${guide ?? ''}\u0000${example ?? ''}\u0000${synonyms.join('\u0000')}\u0000${antonyms.join('\u0000')}`.toLowerCase();
+    if (seenGroups.has(key)) continue;
+    seenGroups.add(key);
+    groups.push({
+      ...(guide ? { guide } : {}),
+      ...(example ? { example } : {}),
+      ...(synonyms.length ? { synonyms } : {}),
+      ...(antonyms.length ? { antonyms } : {}),
+    });
+    if (groups.length === 16) break;
+  }
+
+  return groups;
+}
+
 export const cambridgeSource: EnrichmentSource = {
   id: 'cambridge',
   label: 'Cambridge',
   async enrich(token, ctx): Promise<SourcePartial> {
-    const url = urlFor(token, ctx.sourceLang || 'en', ctx.targetLang || 'es');
-    const html = await fetchHtml(url, {
+    const sourceLang = ctx.sourceLang || 'en';
+    const requestOptions = {
       timeoutMs: ctx.timeoutMs,
       signal: ctx.signal,
-    });
+    };
+    const dictionaryRequest = fetchHtml(
+      urlFor(token, sourceLang, ctx.targetLang || 'es'),
+      requestOptions,
+    );
+    const thesaurusRequest = sourceLang.slice(0, 2) === 'en'
+      ? fetchHtml(`${BASE}/thesaurus/${slugFor(token)}`, requestOptions).catch(() => null)
+      : Promise.resolve(null);
+    const html = await dictionaryRequest;
     if (!html) return {};
 
     // Guard against Cambridge's "no exact match" landing page, which
@@ -129,6 +212,12 @@ export const cambridgeSource: EnrichmentSource = {
       .filter((s) => s && s.split(/\s+/).length >= 2 && s.length < 60);
     if (collocations.length) {
       partial.collocations = Array.from(new Set(collocations)).slice(0, 10);
+    }
+
+    const thesaurusHtml = await thesaurusRequest;
+    if (thesaurusHtml) {
+      const relationGroups = parseCambridgeThesaurus(thesaurusHtml, token);
+      if (relationGroups.length) partial.relationGroups = relationGroups;
     }
 
     return partial;

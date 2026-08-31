@@ -149,7 +149,11 @@ function cleanTranslation(raw?: string): string {
   if (/\([^)]*(?:archaic|obsolete|desus\.|rare)[^)]*\)/i.test(text)) return '';
   text = text.replace(/\s+/g, ' ').trim();
   if (!text || /[.!?¿¡]/.test(text)) return '';
-  if (/^(diñar|cognocer)$/i.test(text)) return '';
+  // Wiktionary translation tables sometimes file foreign-language glosses
+  // under the Spanish column (verified live 2026-08-30: "apple" lists
+  // Italian `mela` and Occitan/Catalan `poma` with `code: "es"`). The
+  // parser can only trust its own blocklist, not the source's lang tag.
+  if (/^(diñar|cognocer|mela|poma|mazana)$/i.test(text)) return '';
   if (text.length > 64) return '';
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length > 5) return '';
@@ -218,7 +222,7 @@ export const wiktApiSource: EnrichmentSource = {
     const examples: Array<{ pos?: string; text: string; score: number }> = [];
     const translations: Array<{ pos?: string; value: string; score: number }> = [];
 
-    if (entryData.status === 'fulfilled') {
+    if (entryData.status === 'fulfilled' && entryData.value) {
       for (const entry of entryData.value.entries ?? []) {
         collectSounds(entry.sounds, partial);
         if (!partial.etymology && entry.etymology_text) {
@@ -242,7 +246,7 @@ export const wiktApiSource: EnrichmentSource = {
       }
     }
 
-    if (translationData.status === 'fulfilled') {
+    if (translationData.status === 'fulfilled' && translationData.value) {
       for (const group of translationData.value.translations ?? []) {
         for (const tr of group.translations ?? []) {
           if (tr.code !== 'es' && tr.lang_code !== 'es' && tr.lang !== 'Spanish') continue;
@@ -257,7 +261,7 @@ export const wiktApiSource: EnrichmentSource = {
       }
     }
 
-    if (pronunciationData.status === 'fulfilled') {
+    if (pronunciationData.status === 'fulfilled' && pronunciationData.value) {
       collectSounds(pronunciationData.value.pronunciations, partial);
       for (const entry of pronunciationData.value.entries ?? []) collectSounds(entry.sounds, partial);
     }

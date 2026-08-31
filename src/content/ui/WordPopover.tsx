@@ -17,6 +17,9 @@ interface WordPopoverProps {
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   token: string;
+  /** Canonical dictionary/provider lookup key. This differs from `token`
+   * for inflected forms such as `ran → run` or `looking up → look up`. */
+  lookupToken?: string;
   /** The full subtitle/sentence around the token — used by AI enrichment. */
   sentence?: string;
   /** BCP-47 language tag of the source caption, defaults to "en". */
@@ -273,6 +276,7 @@ export function WordPopover({
   onMouseEnter,
   onMouseLeave,
   token,
+  lookupToken,
   sentence = '',
   sourceLang = 'en',
   includeAi = false,
@@ -286,7 +290,13 @@ export function WordPopover({
   onRejoinParent,
   onSave,
 }: WordPopoverProps) {
-  const resolved = useResolveWord(token, sentence, sourceLang, includeAi);
+  // Keep the subtitle's surface form for the header and sentence highlight,
+  // but resolve dictionaries/providers through the canonical key emitted by
+  // the tokenizer. Without this, an MWE recognised as `looking up → look up`
+  // was sent to every provider as `looking up`, losing its bundled entry and
+  // most remote coverage.
+  const canonicalToken = lookupToken ?? token;
+  const resolved = useResolveWord(canonicalToken, sentence, sourceLang, includeAi);
 
   // Refs for layout-effect clamping. The popover is absolutely positioned
   // and centered on its anchor (the token) via `left-1/2 -translate-x-1/2`,
@@ -334,16 +344,17 @@ export function WordPopover({
     const avail = Math.max(120, Math.floor(spaceAbove - chrome));
     // Never grow taller than a comfortable reading height.
     setBodyMaxHeight(Math.min(avail, 460));
-  }, [visible, token]);
+  }, [visible, token, canonicalToken]);
 
   if (!visible) return null;
 
-  const meta: DictionaryEntry =
-    resolved.entry ?? {
-      token,
-      type: token.includes(' ') ? 'phrase' : 'word',
-      translation: resolved.remoteLoading ? '' : '—',
-    };
+  const meta: DictionaryEntry = resolved.entry
+    ? { ...resolved.entry, token }
+    : {
+        token,
+        type: token.includes(' ') ? 'phrase' : 'word',
+        translation: resolved.remoteLoading ? '' : '—',
+      };
   const isMWE = kind === 'mwe';
   const isPhrasal = isMWE && mweKind === 'phrasal';
   const isUnknown = kind === 'unknown';
@@ -375,8 +386,9 @@ export function WordPopover({
 
   // External-dictionary actions for the Definir / Buscar buttons. These used
   // to be inert placeholders; now they open useful references in a new tab.
-  const headword = (meta.token || token).trim();
-  const cleanHeadword = headword.replace(/["'‘’“”…]/g, '');
+  const headword = token.trim();
+  const lookupHeadword = (resolved.entry?.token || canonicalToken).trim();
+  const cleanHeadword = lookupHeadword.replace(/["'‘’“”…]/g, '');
   const defineUrl =
     sourceLang && sourceLang.startsWith('en')
       ? `https://dictionary.cambridge.org/dictionary/english-spanish/${encodeURIComponent(cleanHeadword)}`
@@ -525,7 +537,7 @@ export function WordPopover({
               <Volume2 size={11} />
             </button>
             <div className="flex items-baseline gap-1.5 min-w-0 flex-wrap">
-              <span className="text-white font-semibold text-sm leading-tight normal-case">{meta.token || token}</span>
+              <span className="text-white font-semibold text-sm leading-tight normal-case">{headword}</span>
               {isPhrasal && (
                 <span className="text-[9px] font-bold uppercase tracking-wider text-sky-300 bg-sky-500/10 ring-1 ring-sky-500/25 px-1 py-px rounded shrink-0">
                   Phrasal
@@ -668,6 +680,23 @@ export function WordPopover({
                   className="text-[10.5px] text-indigo-300/90 bg-indigo-500/10 ring-1 ring-indigo-500/20 px-1.5 py-0.5 rounded normal-case"
                 >
                   {s}
+                </span>
+              ))}
+            </div>
+          )}
+          {meta.vip?.frequencyEvidence && meta.vip.frequencyEvidence.length > 0 && (
+            <div className="mt-1 flex flex-wrap items-baseline gap-1">
+              <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-semibold mr-1">
+                Frecuencia
+              </span>
+              {meta.vip.frequencyEvidence.slice(0, 3).map((evidence) => (
+                <span
+                  key={`${evidence.source}:${evidence.scale}:${evidence.value}`}
+                  title={`${formatSource(evidence.source)} · ${evidence.corpus ?? evidence.scale}`}
+                  className="text-[10.5px] text-sky-300/90 bg-sky-500/10 ring-1 ring-sky-500/20 px-1.5 py-0.5 rounded normal-case"
+                >
+                  {evidence.scale === 'longman-spoken' ? 'Hablado' :
+                    evidence.scale === 'longman-written' ? 'Escrito' : evidence.scale}: {evidence.value}
                 </span>
               ))}
             </div>
@@ -873,7 +902,7 @@ export function WordPopover({
             <button
               tabIndex={-1}
               onMouseDown={blockFocusSteal}
-              onClick={(e) => { releaseFocus(e); onSave(e, meta.token || token); }}
+              onClick={(e) => { releaseFocus(e); onSave(e, canonicalToken); }}
               className="flex-1 flex items-center justify-center gap-1 px-2 py-2 text-[11px] font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors normal-case"
             >
               <Plus size={12} /> Guardar

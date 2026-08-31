@@ -1,0 +1,15 @@
+{
+  "name": "Open English WordNet",
+  "version": "2025",
+  "source": "https://en-word.net/",
+  "originalArtifact": "https://en-word.net/static/english-wordnet-2025-json.zip",
+  "originalFormat": "Official JSON ZIP",
+  "generatedAt": "2026-08-13T08:48:55.627Z",
+  "transformation": "Indexed by normalized lemma and reduced to synset ID, POS, definition, examples, synonyms and antonyms.",
+  "lemmaCount": 128009,
+  "senseCount": 185129,
+  "licenses": [
+    "CC BY 4.0",
+    "Princeton WordNet License"
+  ]
+}

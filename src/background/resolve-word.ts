@@ -47,6 +47,11 @@ export interface ResolveWordParams {
   sentence: string;
   sourceLang: string;
   includeAi: boolean;
+  /** Enrichment profile: 'popover' (default) skips image sources,
+   * 'card' runs the full save-time fan-out. Propagated from the port
+   * request so the popover's lazy image fetch and the audit corpus can
+   * exercise the card path. */
+  purpose?: 'popover' | 'card';
 }
 
 type Emit = (msg: ResolveWordStreamMsg) => void;
@@ -204,35 +209,51 @@ export async function resolveWordStreaming(
         targetLang,
         sentence,
         vip: vipSettings,
-        purpose: 'popover',
+        purpose: params.purpose ?? 'popover',
       });
       if (result.entry) {
         const localTr = (local?.translation ?? '').trim();
         const localTrReal = localTr !== '' && localTr !== '—';
         const chainTr = (result.entry.translation ?? '').trim();
         const chainTrReal = chainTr !== '' && chainTr !== '—';
-        // Prefer, in order: Yomitan-pack translation → an already-resolved
-        // real local/remote translation → the enrichment chain's → the
-        // chain's as last resort. This never downgrades a translation the
-        // (possibly concurrent) translation phase already set.
+        // Translation precedence, contextual first:
+        //   1. a Yomitan pack the user installed (their chosen authority);
+        //   2. the enrichment chain's context-ranked gloss — the chain's pool
+        //      includes the bundled gloss with a trust bonus, so without a
+        //      contextual signal the bundle still wins INSIDE the ranking;
+        //      preferring the chain fixes "She runs the company" publishing
+        //      the bundle's sense-default `correr` instead of `dirigir`;
+        //   3. any real translation already resolved (local/remote) as a
+        //      fallback when the chain stayed silent;
+        //   4. the chain's value as last resort.
+        // This never downgrades a translation the (possibly concurrent)
+        // translation phase already set — the chain only wins when it
+        // produced a ranked gloss at all.
+        const chainRanked = chainTrReal;
         const bestTranslation =
           localTrReal && resolvedPackId && resolvedPackId !== BUNDLE_PACK_ID
             ? local!.translation
-            : localTrReal
-              ? local!.translation
-              : chainTrReal
-                ? result.entry.translation
+            : chainRanked
+              ? result.entry.translation
+              : localTrReal
+                ? local!.translation
                 : result.entry.translation;
+        const chainBilingual = (result.entry.bilingual ?? '').trim();
+        const chainBilingualReal = chainBilingual !== '' && chainBilingual !== '—';
+        // Same contextual contract as translation: the chain's bilingual list
+        // is context-ranked (its pool includes the bundled gloss), so it wins
+        // over the bundle's sense-default list unless a Yomitan pack authored
+        // the local one.
+        const bestBilingual =
+          localTrReal && resolvedPackId && resolvedPackId !== BUNDLE_PACK_ID
+            ? (local!.bilingual ?? result.entry.bilingual)
+            : chainBilingualReal
+              ? result.entry.bilingual
+              : (local?.bilingual ?? result.entry.bilingual);
         const merged: DictionaryEntry = {
           ...(local ?? result.entry),
           translation: bestTranslation,
-          bilingual:
-            (local?.bilingual && local.bilingual !== '—' ? local.bilingual : undefined) ??
-            (result.entry.bilingual && result.entry.bilingual !== '—'
-              ? result.entry.bilingual
-              : undefined) ??
-            local?.bilingual ??
-            result.entry.bilingual,
+          bilingual: bestBilingual,
           synonyms: result.entry.synonyms ?? local?.synonyms,
           antonyms: result.entry.antonyms ?? local?.antonyms,
           collocations: result.entry.collocations ?? local?.collocations,
@@ -241,11 +262,17 @@ export async function resolveWordStreaming(
           // phase's mnemonic/etymology survives regardless of order.
           vip: { ...(result.entry.vip ?? {}), ...(local?.vip ?? {}) },
           phonetic: local?.phonetic ?? result.entry.phonetic,
-          monolingual:
-            (local?.monolingual && local.monolingual !== '—' ? local.monolingual : undefined) ??
-            result.entry.monolingual ??
-            local?.monolingual,
-          examples: (local?.examples?.length ?? 0) > 0 ? local!.examples : result.entry.examples,
+          // Contextual sense selection: when the enrichment chain ranked a
+          // definition that matches the sentence better than the offline
+          // bundle's default sense, that definition wins. The bundle gloss
+          // for "run" is always the motion sense — for "She runs the
+          // company" the WordNet manage/operate sense must surface.
+          monolingual: result.entry.monolingual ?? local?.monolingual,
+          // Same contract as translation: the chain's examples are ranked
+          // against the sentence (pickExamples), so when it produced any,
+          // they replace the bundle's sense-default example list — otherwise
+          // "She runs the company" keeps showing "She ran home."
+          examples: result.entry.examples?.length ? result.entry.examples : (local?.examples ?? []),
         };
         local = merged;
         emit({ phase: 'enrichment', entry: merged });

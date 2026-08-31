@@ -9,8 +9,8 @@ needing any API key from the user.
 | Tier | Always on? | # fuentes | Sources |
 |---|---|:---:|---|
 | **Local** | ✅ | — | Bundled `en.json` + `en-extensions` + `en-idioms` (14 318 NTC idioms) + Oxford 3000/5000 CEFR + Oxford Phrasal Academic Lexicon + Academic Collocation List + Fernald Thesaurus 1896 + MWE index (13 501 frases) + Yomitan packs (`kty-en-es`, `kty-en-en`, `kty-en-ipa`, `kty-es-en`, `kty-es-es`) |
-| **Standard** | ✅ | **20** | free-dictionary · datamuse · wiktionary-rest · **wiktionary-html** (etymology + synonyms + antonyms + related terms, scoped to English section, phrasal fallback) · wiktionary-api (freedictionaryapi.com) · moby-thesaurus · **thesaurus-com** (antonyms para sustantivos técnicos/abstractos, con autocorrect guard) · **wordhippo** (antonyms para MWEs/phrasals/idioms) · **the-idioms** (etimología de idioms) · etymonline · tatoeba · lingua-libre · google-tts · bing-images · openverse · wikimedia-commons · duckduckgo-images · youglish · mymemory · lingva |
-| **VIP** | toggle in Settings | **13** | cambridge · oxford-learners · longman · collins · merriam-webster · **ozdic** (Oxford Collocations) · reverso · linguee · wordreference · spanishdict · forvo · **unsplash (BYOK)** · **pixabay (BYOK opt.)** |
+| **Standard** | ✅ | **20 de red** | free-dictionary · datamuse · wiktionary-rest · **wiktionary-html** (etymology + synonyms + antonyms + related terms, scoped to English section, phrasal fallback) · wiktionary-api (freedictionaryapi.com) · **wiktapi** · **britannica-dictionary** · moby-thesaurus · **thesaurus-com** · **wordhippo** · **the-idioms** · etymonline · tatoeba · lingua-libre · google-tts · bing-images · openverse · wikimedia-commons · duckduckgo-images · youglish. Los bundles y packs Yomitan se suman localmente. |
+| **VIP** | toggle in Settings | **17** | cambridge · oxford-learners · longman · **dictionary-com** · merriam-webster · **ozdic** (Oxford Collocations) · **pons** · **bab.la** · **dict.cc** · reverso · linguee · **promt-context** · wordreference · spanishdict · forvo · **unsplash (BYOK)** · **pixabay (BYOK opt.)** |
 | **AI** | toggle + API key | — | OpenAI / Anthropic / Gemini — genera definición contextual, sinónimos, colocaciones, registro, **mnemónico**, **etimología**, y **imagen DALL-E 3** (solo OpenAI, opt-in via `enableDalleFallback`, ~$0.04/tarjeta) |
 
 Every source is independent: a Cambridge timeout never blocks Reverso.
@@ -41,7 +41,7 @@ resolve-word.ts (src/background/resolve-word.ts)
         │    → emite { phase: 'translation' }  │ paralelo
         │                                       │
         ├── fase: enrichment  (~300–2000 ms)   │
-        │    fan-out a 20–33 fuentes            │
+        │    fan-out a 20–36 fuentes de red     │
         │    purpose: 'popover' → excluye 6     │
         │    fuentes de imagen + cap 2.5 s      │
         │    purpose: 'card' → todas + timeout  │
@@ -70,8 +70,8 @@ resolve-word.ts (src/background/resolve-word.ts)
 |---|---|---|
 | **Bundled overlays** | Settings → "Enriquecimiento (Standard + VIP)" → top info panel (read-only) | Always active. Shipped with the extension as ~250 KB of JSON. |
 | **Yomitan packs** | Settings → "Diccionarios offline" | Each pack has `Instalar` / `Eliminar` / on/off toggle. |
-| **Standard tier** (Free Dictionary + Datamuse) | Settings → "Enriquecimiento" → "Estándar (gratis, siempre activo)" | Both default-on. Each source individually disable-able from a checkbox. Runs **regardless** of VIP master switch. |
-| **VIP tier** (20 free + 2 BYOK sources) | Settings → "Enriquecimiento" → master toggle → groups | Master switch off by default. Once on, every source defaults on with individual checkboxes grouped by category. |
+| **Standard tier** (20 fuentes de red + datos locales) | Settings → "Enriquecimiento" → "Estándar (gratis, siempre activo)" | All default-on. Each source individually disable-able from a checkbox. Runs **regardless** of VIP master switch. |
+| **VIP tier** (14 diccionarios/contexto/audio + 2 BYOK) | Settings → "Enriquecimiento" → master toggle → groups | Master switch off by default. Once on, every source defaults on with individual checkboxes grouped by category. |
 | **BYOK API keys** (Unsplash, Pixabay) | Settings → "Enriquecimiento" → "Claves API opcionales" | Optional inputs. Without keys: Unsplash is inactive (Anubis gate), Pixabay falls back to scraping. With keys: official APIs (more reliable). |
 | **AI provider + flags** | Settings → "IA premium" | Provider + API key, `enrichOnHover`, `enrichOnSave`, `preferAiMnemonic`, `preferAiEtymology`, `enableDalleFallback` (only visible when provider = `openai`). |
 
@@ -165,7 +165,7 @@ Los resultados se cachean en dos capas:
 1. **LRU en memoria** (300 entradas): re-hover = ~0 ms. Se limpia con `clearMemEnrichmentCache()` cuando el usuario borra la caché desde la UI.
 2. **IndexedDB** tabla `vip_cache`: TTL configurable en Settings (default 14 días).
 
-**Clave de caché:** `<tier>|<purpose>|<sourceLang>|<targetLang>|<lower-token>`. Incluye `tier` y `purpose` para evitar que una entrada Standard satisfaga una consulta VIP, o que una entrada `popover` (sin imágenes) satisfaga una consulta `card`.
+**Clave de caché:** `<tier>|<purpose>|<firma-de-fuentes>|<sourceLang>|<targetLang>|<lower-token>`. La firma incluye los toggles de fuentes activos, los toggles de audio, timeout y la presencia de claves BYOK. Así, cambiar una fuente no reutiliza una tarjeta calculada con la configuración anterior; `tier` y `purpose` siguen separando Standard/VIP y popover/card.
 
 **Gestión desde la UI:** Settings → Enriquecimiento → panel `CacheManager` muestra estadísticas por bucket (enrichment, translation, AI, media) con número de filas y tamaño aproximado. El botón "Limpiar caché" pide confirmación y explica qué se borra. Los mensajes SW `GET_CACHE_STATS` / `CLEAR_CACHE` son manejados por `src/background/cache-admin.ts`.
 
@@ -222,21 +222,25 @@ Tested against both flows using **all** Standard resources (bundled JSONs, Yomit
 19. duckduckgo-images
 20. youglish
 
-**VIP tier (13 fuentes — commercial-dict scrapes + BYOK):**
+**VIP tier (17 fuentes — commercial-dict scrapes, translation memory + BYOK):**
 
 1. Cambridge English-Spanish
 2. Oxford Learner's
 3. Longman LDOCE
-4. Collins COBUILD
+4. Dictionary.com
 5. Merriam-Webster
-6. Reverso Context
-7. Linguee
-8. WordReference
-9. SpanishDict
-10. Forvo
-11. Ozdic (Oxford Collocations Dictionary mirror)
-12. Unsplash (BYOK, free Demo key)
-13. Pixabay (BYOK optional, scrape fallback)
+6. Ozdic (Oxford Collocations Dictionary mirror)
+7. PONS
+8. bab.la
+9. dict.cc
+10. Reverso Context
+11. Linguee
+12. PROMT.One Contexts
+13. WordReference
+14. SpanishDict
+15. Forvo
+16. Unsplash (BYOK, free Demo key)
+17. Pixabay (BYOK optional, scrape fallback)
 
 ## Source audit (2026-05-23 — third pass, definitive)
 
@@ -252,9 +256,11 @@ fingerprint to Chrome's network stack than Node's TLS.**
 | cambridge | `dictionary.cambridge.org` (HTML) | ✅ | 4 audio + 18 defs + 62 trans for "excuse" |
 | oxford-learners | `oxfordlearnersdictionaries.com` (HTML) | ✅ | 16 examples + 5 collocations |
 | longman | `ldoceonline.com` (HTML) | ✅ | 18 collocation flags + 33 examples |
-| collins | `collinsdictionary.com` (HTML) | ✅ | 37 defs + 32 examples + 74 audio (Cloudflare passes Schannel) |
+| collins | `collinsdictionary.com` (HTML) | ❌ | Retirado 2026-08-12: Cloudflare Challenge (`403`, `cf-mitigated: challenge`) también dentro del service worker MV3. |
+| **dictionary-com** | `dictionary.com/browse/<word>` (HTML) | ✅ | Reemplazo editorial: definiciones, IPA, audio y ejemplos; cubre phrasal verbs e inflexiones. |
 | merriam-webster | `merriam-webster.com` (HTML) | ✅ | 26 def fragments + 1 etymology |
-| linguee | `linguee.com` (HTML) | ✅ | 41 dictLink translations |
+| linguee | `linguee.com` (HTML) | ⚠️ | Conservado con 6 consultas/hora y cooldown persistente de 6 h tras HTTP 429. |
+| **promt-context** | `online-translator.com/contexts/...` (HTML) | ✅ | Fallback contextual tipo Linguee: 20 pares bilingües por página, con límite local y cooldown propio. |
 | wordreference | `wordreference.com` (HTML) | ✅ | 38 ToWrd + 18 example pairs |
 | wikimedia-commons | `commons.wikimedia.org/w/api.php` | ✅ | 4 image hits per query |
 | lingua-libre | Commons file search | ✅ | 4 native-speaker .wav per word |
@@ -425,8 +431,8 @@ note field to one of:
 |---|---|
 | `selection`, `cue` | request itself (token + sentence) |
 | `phonetic` | local OR enriched (Cambridge → Oxford → FreeDict → IPA pack) |
-| `translation`, `bilingual`, `monolingual` | local + enriched chain (Reverso / WordReference / SpanishDict / Cambridge / Linguee for translation; Longman / Cambridge / Oxford / Collins / M-W / FreeDict for monolingual) |
-| `examples` | local OR enriched (Reverso / Linguee / WordRef / Cambridge / Tatoeba / Ozdic) |
+| `translation`, `bilingual`, `monolingual` | local + enriched chain (Reverso / WordReference / SpanishDict / Cambridge / Linguee / PROMT Contexts for translation; Longman / Cambridge / Oxford / Dictionary.com / M-W / FreeDict for monolingual) |
+| `examples` | local OR enriched (PROMT Contexts / Linguee / Reverso / Tatoeba / Cambridge / Oxford / Longman / Dictionary.com / WordRef) |
 | `synonyms` | bundled Fernald thesaurus + Datamuse + Cambridge thesaurus + Wiktionary HTML |
 | `antonyms` | bundled Fernald thesaurus + Datamuse + **Wiktionary HTML** + **thesaurus.com** (sustantivos técnicos/abstractos) + **WordHippo** (MWEs/phrasals/idioms) |
 | `collocations` | bundled Academic Collocation List + Datamuse + Cambridge / Oxford Learner's / **Ozdic (OCD)** / Longman + **Wiktionary HTML** (related terms) |
@@ -438,3 +444,32 @@ note field to one of:
 | `word-audio` | Forvo → Cambridge → Oxford → Lingua Libre → Wikimedia → Google TTS |
 | `video-link` | YouGlish |
 | `ai-*` | OpenAI / Anthropic / Gemini |
+
+## Quality evaluation
+
+Coverage only confirms that a field is present; it does not establish that the
+content is pedagogically useful. The merge therefore applies these additional
+guarantees:
+
+- the curated bundled gloss anchors lexical ranking, so enabling VIP cannot
+  replace a correct primary translation with an uncorroborated remote variant;
+- strong sentence evidence can still override that anchor for contextual senses
+  such as negative-polarity pronouns;
+- remote alternatives need corroboration, explicit contextual evidence, or the
+  local anchor to enter the learner-facing bilingual list;
+- examples are ranked by token/inflection presence, sentence overlap, bilingual
+  alignment, source quality, length, deduplication, and provider diversity;
+- no provider may occupy more than two slots in the ranked example set.
+
+Run `pnpm quality:audit` to evaluate a saved hover report entirely offline. The
+auditor reports expected-gloss rank, suspicious variants, and cases where VIP
+made a correct Standard primary translation worse. An optional report path can
+be passed after `--`, for example:
+
+```text
+pnpm quality:audit -- docs/reports/final-quality/<report>.json
+```
+
+The historical 2026-08-12 report is intentionally the default baseline. It
+fails while its known VIP regressions remain in that captured JSON; this makes
+it useful as evidence of the issue rather than silently rewriting old results.

@@ -59,13 +59,15 @@ export const linguaLibreSource: EnrichmentSource = {
     // Lingua Libre files follow `LL-Q<langQid>-<speaker>-<word>.wav` /
     // `.ogg`. We search Commons for files whose name contains the word
     // and the language QID.
-    const search = `LL-${qid}-`;
+    const search = `LL-${qid}`;
     const queryUrl =
       `https://commons.wikimedia.org/w/api.php` +
       `?action=query&list=search&format=json&origin=*` +
       `&srnamespace=6` +
-      `&srsearch=${encodeURIComponent(`${search} ${t}`)}` +
-      `&srlimit=4`;
+      `&srsearch=${encodeURIComponent(`${search} intitle:"-${t}"`)}` +
+      // Commons often ranks phrasal recordings before the exact headword. Ask
+      // for enough candidates that the exact filename filter below can work.
+      `&srlimit=20`;
 
     const search1 = await fetchJson<CommonsSearchResult>(queryUrl, {
       timeoutMs: ctx.timeoutMs,

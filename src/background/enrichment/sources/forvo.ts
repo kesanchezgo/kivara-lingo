@@ -64,6 +64,7 @@ export const forvoSource: EnrichmentSource = {
     const html = await fetchHtml(url, {
       timeoutMs: ctx.timeoutMs,
       signal: ctx.signal,
+      credentials: 'include',
     });
     if (!html) return {};
 

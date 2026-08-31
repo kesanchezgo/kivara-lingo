@@ -51,6 +51,7 @@ export const reversoSource: EnrichmentSource = {
     const html = await fetchHtml(url, {
       timeoutMs: ctx.timeoutMs,
       signal: ctx.signal,
+      credentials: 'include',
       headers: {
         Referer: 'https://context.reverso.net/',
       },

@@ -57,7 +57,8 @@ const SOURCE_META: Record<FieldSource, { label: string; color: string; descripti
   // Multi-source enrichment chain (Standard + VIP).
   synonyms:         { label: 'Sinónimos',           color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: 'Sinónimos del corpus + WordNet + scrape' },
   antonyms:         { label: 'Antónimos',           color: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',             description: 'Antónimos del corpus + WordNet' },
-  collocations:     { label: 'Combinaciones',       color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',     description: 'Collocations Datamuse + Cambridge + Oxford' },
+  collocations:     { label: 'Combinaciones',       color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',     description: 'Colocaciones editoriales o corroboradas' },
+  frequency:        { label: 'Frecuencia',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: 'Bandas de frecuencia preservando su escala original' },
   etymology:        { label: 'Etimología',          color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: 'Etimología (Etymonline + M-W)' },
   mnemonic:         { label: 'Mnemotécnico',        color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',     description: 'Mnemotécnico generado por IA' },
   image:             { label: 'Imagen',             color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300',             description: 'Imagen Unsplash / Pixabay / Wikimedia / DDG' },
@@ -85,7 +86,7 @@ const SOURCE_GROUPS: { label: string; options: FieldSource[] }[] = [
   },
   {
     label: 'Multi-fuente',
-    options: ['synonyms', 'antonyms', 'collocations', 'etymology', 'image', 'video-link'],
+    options: ['synonyms', 'antonyms', 'collocations', 'frequency', 'etymology', 'image', 'video-link'],
   },
   {
     label: 'IA',

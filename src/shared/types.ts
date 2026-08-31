@@ -94,6 +94,7 @@ export type FieldSource =
   | 'synonyms'
   | 'antonyms'
   | 'collocations'
+  | 'frequency'
   | 'etymology'
   | 'mnemonic'
   | 'image'
@@ -468,16 +469,10 @@ export interface VipSettings {
    * etymology for single-word entries without scraping HTML. Default true.
    */
   wiktApi: boolean;
+
   /**
-   * Britannica Dictionary — free learner dictionary with simple English
-   * definitions and many examples. Improves Standard monolingual quality
-   * when Free Dictionary / Wiktionary pick the wrong sense. Default true.
-   */
-  britannicaDictionary: boolean;
-  /**
-   * Moby Thesaurus (moby-thesaurus.org). Public-domain synonym list
-   * by Grady Ward (1996). Up to 100+ synonyms for common words.
-   * No antonyms (unidirectional). Default true.
+   * Moby Thesaurus (moby-thesaurus.org). Public-domain association list
+   * by Grady Ward (1996). Corroboration-only; never visible by itself.
    */
   mobyThesaurus: boolean;
   /**
@@ -499,10 +494,8 @@ export interface VipSettings {
    */
   wordHippo: boolean;
   /**
-   * theidioms.com — origin / meaning of English idioms. Best free
-   * source for idiom etymology (kick the bucket, piece of cake, big
-   * deal). Skips silently for single-word lookups (404 there).
-   * Default true.
+   * theidioms.com — secondary idiom signal. Its historical claims and
+   * definitions are not accepted as standalone card content.
    */
   theIdioms: boolean;
   /**
@@ -512,6 +505,13 @@ export interface VipSettings {
    */
   bundled: boolean;
   /**
+   * Locally bundled Open English WordNet 2025 (CC BY 4.0 + WordNet
+   * License). Sense-bound relation groups, definitions and examples for
+   * the Standard tier — no network, per-letter lazy shard loading.
+   * Default true.
+   */
+  wordnet: boolean;
+  /**
    * Yomitan packs installed by the user (kty-en-es / kty-en-en /
    * kty-en-ipa / etc.). Queries the IndexedDB-backed `dict_terms`
    * table. Most powerful Standard source for phrasal verbs, idioms,
@@ -520,11 +520,16 @@ export interface VipSettings {
   yomitanPacks: boolean;
 
   /* ── Diccionarios premium (definitions, IPA, examples, collocations) ─ */
+  /** Britannica learner dictionary scrape; protected by a circuit breaker. */
+  britannicaDictionary: boolean;
   cambridge: boolean;
   oxfordLearners: boolean;
   longman: boolean;
+  /** Legacy preference key now controlling the Dictionary.com replacement. */
   collins: boolean;
   merriamWebster: boolean;
+  /** Merriam-Webster Thesaurus — sense-scoped synonym/antonym groups. */
+  merriamWebsterThesaurus: boolean;
   oxfordCollocations: boolean;
   ozdic: boolean;
 
@@ -537,6 +542,8 @@ export interface VipSettings {
   dictCc: boolean;
   reverso: boolean;
   linguee: boolean;
+  /** PROMT.One aligned bilingual contexts used as a Linguee fallback. */
+  promtContext: boolean;
   wordReference: boolean;
   spanishDict: boolean;
   tatoeba: boolean;
@@ -732,6 +739,10 @@ export interface ResolveWordStreamRequest {
   sentence: string;
   sourceLang: string;
   includeAi?: boolean;
+  /** Which enrichment profile to run. Defaults to 'popover' (no image
+   * sources); 'card' runs the full save-time fan-out including images.
+   * Used by the popover's lazy image fetch and the MV3 audit corpus. */
+  purpose?: 'popover' | 'card';
 }
 
 export interface OnboardingState {
@@ -851,8 +862,47 @@ export interface VipEnrichment {
   mnemonic?: string;
   /** Hero image URL for the card front. */
   imageUrl?: string;
+  /** Source-attributed frequency evidence with its original scale preserved. */
+  frequencyEvidence?: Array<{
+    source: string;
+    scale: string;
+    value: number | string;
+    corpus?: string;
+  }>;
   /** YouGlish-style links to real-world video pronunciations. */
   videoLinks?: Array<{ url: string; source: string }>;
+  /**
+   * Internal field-level provenance: which candidate won each published
+   * field, with what score, the runner-ups it beat, and the ranking's
+   * reason codes. Populated by the orchestrator's merge step for the
+   * fields that go through contextual ranking (definition, translation,
+   * synonyms, antonyms, collocations, examples, phonetic, etymology,
+   * image). Not rendered by the popover — it exists so audits and tests
+   * can assert WHY a field holds its value without re-deriving it.
+   */
+  provenance?: FieldProvenance[];
+}
+
+/** Why a ranked candidate won or lost a field, as machine-readable
+ * codes emitted by the ranking functions. `ok-*` codes are negative
+ * bonuses (lower score = better); `penalty-*` codes are positive
+ * penalties that pushed a candidate down or disqualified it. */
+export interface FieldProvenance {
+  /** The published field this record explains. */
+  field: 'definition' | 'translation' | 'bilingual' | 'synonyms' | 'antonyms' | 'collocations' | 'examples' | 'phonetic' | 'etymology' | 'image';
+  /** Winning value (or first item for list fields). */
+  winner: string;
+  /** Source that authored the winner. */
+  source: string | null;
+  /** Final ranking score of the winner (lower = better; scale is
+   * field-specific, so scores are comparable only within a field). */
+  score?: number;
+  /** Next-best candidates in rank order, most beaten first. */
+  runnerUps?: Array<{ source: string; text: string; score?: number }>;
+  /** Ranking signals that applied to the winner (bonus/penalty codes). */
+  reasons?: string[];
+  /** How many raw candidates entered the ranking before any cut. */
+  candidates?: number;
 }
 
 export interface CueSnapshot {
@@ -891,6 +941,8 @@ export interface CaptureContext {
   antonyms?: string[];
   /** Multi-source collocations / common word combinations. */
   collocations?: string[];
+  /** Human-readable frequency bands with their original scale preserved. */
+  frequency?: string;
   /** Etymology / word-origin paragraph. */
   etymology?: string;
   /** Mnemonic text generated or collected for the word. */

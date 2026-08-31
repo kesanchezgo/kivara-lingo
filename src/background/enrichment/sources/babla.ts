@@ -149,7 +149,9 @@ export const bablaSource: EnrichmentSource = {
     if (translations.length) partial.translations = translations.slice(0, 6);
     if (examples.length) partial.examples = examples.slice(0, 6);
     if (collocations.length) partial.collocations = collocations.slice(0, 10);
-    if (audio.length) partial.audio = audio.slice(0, 2);
+    if (audio.length && (translations.length || examples.length || collocations.length)) {
+      partial.audio = audio.slice(0, 2);
+    }
     return partial;
   },
 };

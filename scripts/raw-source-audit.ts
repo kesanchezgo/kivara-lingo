@@ -76,11 +76,11 @@ const sources: RawSourceConfig[] = [
     headers: BROWSER_HEADERS,
   },
   {
-    id: 'collins',
+    id: 'dictionaryCom',
     tier: 'vip',
-    role: ['monolingual', 'examples', 'phonetic', 'audio', 'bilingual'],
-    qualityHypothesis: 'Recognized dictionary, but scraper must verify whether EN-ES or English-only page is returned for each token.',
-    urls: (t) => [`https://www.collinsdictionary.com/dictionary/english-spanish/${slug(t)}`],
+    role: ['monolingual', 'examples', 'phonetic', 'audio'],
+    qualityHypothesis: 'Editorial dictionary replacement for Collins with static definitions, IPA, audio and strong phrasal-verb coverage.',
+    urls: (t) => [`https://www.dictionary.com/browse/${slug(t)}`],
     headers: BROWSER_HEADERS,
   },
   {
@@ -113,6 +113,14 @@ const sources: RawSourceConfig[] = [
     role: ['bilingual', 'examples'],
     qualityHypothesis: 'Translation memory and dictionary. Must separate dictionary table from corpus examples.',
     urls: (t) => [`https://www.linguee.com/english-spanish/search?source=auto&query=${q(t)}`],
+    headers: BROWSER_HEADERS,
+  },
+  {
+    id: 'promtContext',
+    tier: 'vip',
+    role: ['bilingual', 'examples'],
+    qualityHypothesis: 'Linguee-style contextual fallback with aligned source and target sentences in static HTML.',
+    urls: (t) => [`https://www.online-translator.com/contexts/english-spanish/${q(t)}`],
     headers: BROWSER_HEADERS,
   },
   {

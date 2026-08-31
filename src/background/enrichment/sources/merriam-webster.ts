@@ -26,11 +26,12 @@ export const merriamWebsterSource: EnrichmentSource = {
   id: 'merriamWebster',
   label: 'M-W',
   async enrich(token, ctx): Promise<SourcePartial> {
-    const slug = encodeURIComponent(token.trim().toLowerCase().replace(/\s+/g, '%20'));
+    const slug = encodeURIComponent(token.trim().toLowerCase().replace(/\s+/g, ' '));
     const url = `${BASE}/dictionary/${slug}`;
     const html = await fetchHtml(url, {
       timeoutMs: ctx.timeoutMs,
       signal: ctx.signal,
+      credentials: 'include',
     });
     if (!html) return {};
 

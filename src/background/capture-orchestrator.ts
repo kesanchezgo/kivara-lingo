@@ -34,6 +34,7 @@ interface ResolveContext {
   synonyms: string[];
   antonyms: string[];
   collocations: string[];
+  frequency: string;
   etymology: string;
   mnemonic: string;
   imageUrl: string;
@@ -168,6 +169,8 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
       return ctx.antonyms.join(', ');
     case 'collocations':
       return ctx.collocations.join(', ');
+    case 'frequency':
+      return usable(ctx.frequency);
     case 'etymology':
       return usable(ctx.etymology);
     case 'mnemonic':
@@ -332,6 +335,7 @@ export async function createCardFromRequest(
     synonyms: [],
     antonyms: [],
     collocations: [],
+    frequency: '',
     etymology: '',
     mnemonic: '',
     imageUrl: '',
@@ -428,6 +432,17 @@ export async function createCardFromRequest(
         // meanings are valuable for learners and prevent overfitting the card
         // to one sentence.
         ctx.bilingual = lexicalTranslations.slice(0, 8).join(' · ');
+      }
+      if (enriched.vip.frequencyEvidence?.length) {
+        ctx.frequency = enriched.vip.frequencyEvidence
+          .slice(0, 4)
+          .map((evidence) => {
+            const scale = evidence.scale === 'longman-spoken' ? 'Hablado' :
+              evidence.scale === 'longman-written' ? 'Escrito' :
+              evidence.scale === 'books-band' ? 'Libros' : evidence.scale;
+            return `${scale} ${evidence.value}`;
+          })
+          .join(' · ');
       }
       if (enriched.vip.etymology) ctx.etymology = enriched.vip.etymology;
       if (enriched.vip.mnemonic) ctx.mnemonic = enriched.vip.mnemonic;

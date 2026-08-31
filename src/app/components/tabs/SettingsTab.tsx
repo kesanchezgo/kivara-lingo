@@ -372,7 +372,7 @@ export function SettingsTab() {
           open={isOpen('vip')}
           onToggle={() => toggle('vip')}
           noPadding
-          description="Datos locales bundleados, dos APIs gratuitas (Free Dictionary, Datamuse) y, opcionalmente, hasta 18 fuentes VIP scrape: Cambridge, Oxford, Longman, Collins, Merriam-Webster, Ozdic, Reverso, Linguee, WordReference, SpanishDict, Tatoeba, Forvo, Lingua Libre, Etymonline, Unsplash, Pixabay, Wikimedia, DuckDuckGo, YouGlish, Google TTS."
+          description="Datos locales bundleados, APIs gratuitas y fuentes VIP opcionales: Cambridge, Oxford, Longman, Dictionary.com, Merriam-Webster, Ozdic, Reverso, Linguee, PROMT.One Contexts, WordReference, SpanishDict, Tatoeba, Forvo, Lingua Libre, Etymonline, imágenes y Google TTS."
         >
           <VipSection />
         </Accordion>

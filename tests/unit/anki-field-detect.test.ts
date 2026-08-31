@@ -56,6 +56,12 @@ describe('detectFieldSource', () => {
     expect(detectFieldSource('Meaning')).toBe('monolingual');
   });
 
+  it('maps frequency fields to typed enrichment evidence', () => {
+    expect(detectFieldSource('Frequency')).toBe('frequency');
+    expect(detectFieldSource('Frecuencia')).toBe('frequency');
+    expect(detectFieldSource('Word rank')).toBe('frequency');
+  });
+
   it('maps explicitly named AI rich-card fields', () => {
     expect(detectFieldSource('AI Definition')).toBe('ai-definition');
     expect(detectFieldSource('IA Sinónimos')).toBe('ai-synonyms');

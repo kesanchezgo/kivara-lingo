@@ -10,7 +10,9 @@
     "translation": "buscar (información)",
     "bilingual": "(phrasal) buscar (información en un libro, diccionario, internet)",
     "monolingual": "To search for information about something in a reference source.",
-    "examples": ["I'll look up his number in the directory."]
+    "examples": [
+      "I'll look up his number in the directory."
+    ]
   },
   "look after": {
     "token": "look after",
@@ -19,7 +21,9 @@
     "translation": "cuidar de",
     "bilingual": "(phrasal) cuidar, ocuparse de",
     "monolingual": "To take care of someone or something.",
-    "examples": ["Can you look after the kids tonight?"]
+    "examples": [
+      "Can you look after the kids tonight?"
+    ]
   },
   "look for": {
     "token": "look for",
@@ -28,7 +32,9 @@
     "translation": "buscar",
     "bilingual": "(phrasal) buscar",
     "monolingual": "To try to find something or someone.",
-    "examples": ["I'm looking for my keys."]
+    "examples": [
+      "I'm looking for my keys."
+    ]
   },
   "look forward to": {
     "token": "look forward to",
@@ -37,7 +43,9 @@
     "translation": "esperar con ansias",
     "bilingual": "(phrasal) esperar con ilusión",
     "monolingual": "To anticipate something with pleasure.",
-    "examples": ["I look forward to meeting you."]
+    "examples": [
+      "I look forward to meeting you."
+    ]
   },
   "look out": {
     "token": "look out",
@@ -46,7 +54,9 @@
     "translation": "tener cuidado",
     "bilingual": "(phrasal) ¡cuidado!, estar atento",
     "monolingual": "To be careful, especially of imminent danger.",
-    "examples": ["Look out — there's a car coming!"]
+    "examples": [
+      "Look out — there's a car coming!"
+    ]
   },
   "look into": {
     "token": "look into",
@@ -55,7 +65,9 @@
     "translation": "investigar",
     "bilingual": "(phrasal) investigar, indagar",
     "monolingual": "To investigate something.",
-    "examples": ["The police are looking into the matter."]
+    "examples": [
+      "The police are looking into the matter."
+    ]
   },
   "look over": {
     "token": "look over",
@@ -64,7 +76,9 @@
     "translation": "revisar",
     "bilingual": "(phrasal) revisar, repasar",
     "monolingual": "To examine something quickly.",
-    "examples": ["Could you look over my essay before I submit it?"]
+    "examples": [
+      "Could you look over my essay before I submit it?"
+    ]
   },
   "look up to": {
     "token": "look up to",
@@ -73,7 +87,9 @@
     "translation": "admirar",
     "bilingual": "(phrasal) admirar, respetar",
     "monolingual": "To respect and admire someone.",
-    "examples": ["He really looks up to his older brother."]
+    "examples": [
+      "He really looks up to his older brother."
+    ]
   },
   "look down on": {
     "token": "look down on",
@@ -82,7 +98,9 @@
     "translation": "despreciar",
     "bilingual": "(phrasal) despreciar, mirar por encima del hombro",
     "monolingual": "To regard someone as inferior.",
-    "examples": ["She looks down on her colleagues."]
+    "examples": [
+      "She looks down on her colleagues."
+    ]
   },
   "look back": {
     "token": "look back",
@@ -91,7 +109,9 @@
     "translation": "mirar atrás",
     "bilingual": "(phrasal) recordar, mirar al pasado",
     "monolingual": "To think about the past.",
-    "examples": ["When I look back on those years, I smile."]
+    "examples": [
+      "When I look back on those years, I smile."
+    ]
   },
   "give up": {
     "token": "give up",
@@ -100,7 +120,9 @@
     "translation": "rendirse",
     "bilingual": "(phrasal) rendirse, abandonar",
     "monolingual": "To stop trying or to surrender.",
-    "examples": ["Don't give up — you're almost there."]
+    "examples": [
+      "Don't give up — you're almost there."
+    ]
   },
   "give in": {
     "token": "give in",
@@ -109,7 +131,9 @@
     "translation": "ceder",
     "bilingual": "(phrasal) ceder, claudicar",
     "monolingual": "To yield under pressure.",
-    "examples": ["She finally gave in and agreed to come."]
+    "examples": [
+      "She finally gave in and agreed to come."
+    ]
   },
   "give away": {
     "token": "give away",
@@ -118,7 +142,9 @@
     "translation": "regalar",
     "bilingual": "(phrasal) regalar, revelar (un secreto)",
     "monolingual": "To donate or to reveal a secret.",
-    "examples": ["He gave away all his books."]
+    "examples": [
+      "He gave away all his books."
+    ]
   },
   "give back": {
     "token": "give back",
@@ -127,7 +153,9 @@
     "translation": "devolver",
     "bilingual": "(phrasal) devolver",
     "monolingual": "To return something.",
-    "examples": ["Please give me back my pen."]
+    "examples": [
+      "Please give me back my pen."
+    ]
   },
   "give out": {
     "token": "give out",
@@ -136,7 +164,10 @@
     "translation": "repartir / agotarse",
     "bilingual": "(phrasal) distribuir; o fallar/agotarse",
     "monolingual": "To distribute; or to stop functioning.",
-    "examples": ["My phone battery gave out.", "They were giving out free samples."]
+    "examples": [
+      "My phone battery gave out.",
+      "They were giving out free samples."
+    ]
   },
   "give off": {
     "token": "give off",
@@ -145,7 +176,9 @@
     "translation": "emitir, despedir",
     "bilingual": "(phrasal) emitir (olor, calor, luz)",
     "monolingual": "To emit a smell, heat, or light.",
-    "examples": ["The flowers gave off a sweet smell."]
+    "examples": [
+      "The flowers gave off a sweet smell."
+    ]
   },
   "get up": {
     "token": "get up",
@@ -154,7 +187,9 @@
     "translation": "levantarse",
     "bilingual": "(phrasal) levantarse (de la cama)",
     "monolingual": "To rise from bed or from sitting.",
-    "examples": ["I get up at seven every morning."]
+    "examples": [
+      "I get up at seven every morning."
+    ]
   },
   "get along": {
     "token": "get along",
@@ -163,7 +198,9 @@
     "translation": "llevarse bien",
     "bilingual": "(phrasal) llevarse bien con alguien",
     "monolingual": "To have a friendly relationship.",
-    "examples": ["I get along well with my sister."]
+    "examples": [
+      "I get along well with my sister."
+    ]
   },
   "get away": {
     "token": "get away",
@@ -172,7 +209,9 @@
     "translation": "escapar",
     "bilingual": "(phrasal) escapar, alejarse",
     "monolingual": "To escape or take a short break from work.",
-    "examples": ["The thief got away."]
+    "examples": [
+      "The thief got away."
+    ]
   },
   "get away with": {
     "token": "get away with",
@@ -181,7 +220,9 @@
     "translation": "salirse con la suya",
     "bilingual": "(phrasal) salirse con la suya, escapar de las consecuencias",
     "monolingual": "To avoid punishment for doing something wrong.",
-    "examples": ["He cheated on the test and got away with it."]
+    "examples": [
+      "He cheated on the test and got away with it."
+    ]
   },
   "get back": {
     "token": "get back",
@@ -190,7 +231,9 @@
     "translation": "volver / recuperar",
     "bilingual": "(phrasal) volver, regresar; o recuperar algo",
     "monolingual": "To return; or to receive something back.",
-    "examples": ["When did you get back from Paris?"]
+    "examples": [
+      "When did you get back from Paris?"
+    ]
   },
   "get by": {
     "token": "get by",
@@ -199,7 +242,9 @@
     "translation": "arreglárselas",
     "bilingual": "(phrasal) sobrevivir, apañárselas",
     "monolingual": "To manage with limited resources.",
-    "examples": ["We can get by on very little money."]
+    "examples": [
+      "We can get by on very little money."
+    ]
   },
   "get down": {
     "token": "get down",
@@ -208,7 +253,9 @@
     "translation": "bajarse / deprimir",
     "bilingual": "(phrasal) bajarse; deprimir (a alguien)",
     "monolingual": "To descend; or to make someone depressed.",
-    "examples": ["Don't let it get you down."]
+    "examples": [
+      "Don't let it get you down."
+    ]
   },
   "get in": {
     "token": "get in",
@@ -217,7 +264,9 @@
     "translation": "entrar",
     "bilingual": "(phrasal) entrar, llegar",
     "monolingual": "To enter a vehicle or arrive.",
-    "examples": ["What time did you get in last night?"]
+    "examples": [
+      "What time did you get in last night?"
+    ]
   },
   "get into": {
     "token": "get into",
@@ -226,7 +275,9 @@
     "translation": "meterse en / aficionarse a",
     "bilingual": "(phrasal) meterse en (problemas); empezar a interesarse",
     "monolingual": "To enter; or to become interested in.",
-    "examples": ["I've recently got into jazz."]
+    "examples": [
+      "I've recently got into jazz."
+    ]
   },
   "get off": {
     "token": "get off",
@@ -235,7 +286,9 @@
     "translation": "bajarse de",
     "bilingual": "(phrasal) bajarse (de un vehículo); salir del trabajo",
     "monolingual": "To leave a vehicle; or to finish work.",
-    "examples": ["Get off at the next stop."]
+    "examples": [
+      "Get off at the next stop."
+    ]
   },
   "get on": {
     "token": "get on",
@@ -244,7 +297,9 @@
     "translation": "subirse a",
     "bilingual": "(phrasal) subirse (a un vehículo); progresar",
     "monolingual": "To board a vehicle; or to make progress.",
-    "examples": ["How are you getting on at school?"]
+    "examples": [
+      "How are you getting on at school?"
+    ]
   },
   "get on with": {
     "token": "get on with",
@@ -253,7 +308,9 @@
     "translation": "llevarse bien con / continuar",
     "bilingual": "(phrasal) llevarse bien con; continuar con (algo)",
     "monolingual": "To have a good relationship with; or to continue doing.",
-    "examples": ["Let me get on with my work."]
+    "examples": [
+      "Let me get on with my work."
+    ]
   },
   "get out": {
     "token": "get out",
@@ -262,7 +319,9 @@
     "translation": "salir",
     "bilingual": "(phrasal) salir, irse",
     "monolingual": "To leave a place.",
-    "examples": ["Get out of here!"]
+    "examples": [
+      "Get out of here!"
+    ]
   },
   "get over": {
     "token": "get over",
@@ -271,7 +330,9 @@
     "translation": "superar",
     "bilingual": "(phrasal) superar (un problema, una enfermedad)",
     "monolingual": "To recover from something.",
-    "examples": ["It took her months to get over the breakup."]
+    "examples": [
+      "It took her months to get over the breakup."
+    ]
   },
   "get through": {
     "token": "get through",
@@ -280,7 +341,9 @@
     "translation": "superar / conectar",
     "bilingual": "(phrasal) superar; conseguir hablar (por teléfono)",
     "monolingual": "To survive a difficulty; or to reach by phone.",
-    "examples": ["I couldn't get through to her."]
+    "examples": [
+      "I couldn't get through to her."
+    ]
   },
   "get together": {
     "token": "get together",
@@ -289,7 +352,9 @@
     "translation": "reunirse",
     "bilingual": "(phrasal) reunirse, juntarse",
     "monolingual": "To meet socially.",
-    "examples": ["Let's get together this weekend."]
+    "examples": [
+      "Let's get together this weekend."
+    ]
   },
   "put on": {
     "token": "put on",
@@ -298,7 +363,9 @@
     "translation": "ponerse (ropa)",
     "bilingual": "(phrasal) ponerse (ropa); engordar (peso)",
     "monolingual": "To dress in something; or to gain weight.",
-    "examples": ["Put on your coat — it's cold."]
+    "examples": [
+      "Put on your coat — it's cold."
+    ]
   },
   "put off": {
     "token": "put off",
@@ -307,7 +374,9 @@
     "translation": "posponer",
     "bilingual": "(phrasal) posponer, aplazar; desanimar",
     "monolingual": "To postpone; or to discourage.",
-    "examples": ["Don't put off until tomorrow what you can do today."]
+    "examples": [
+      "Don't put off until tomorrow what you can do today."
+    ]
   },
   "put up with": {
     "token": "put up with",
@@ -316,7 +385,9 @@
     "translation": "aguantar, soportar",
     "bilingual": "(phrasal) aguantar, tolerar",
     "monolingual": "To tolerate something unpleasant.",
-    "examples": ["I won't put up with this behaviour any longer."]
+    "examples": [
+      "I won't put up with this behaviour any longer."
+    ]
   },
   "put away": {
     "token": "put away",
@@ -325,7 +396,9 @@
     "translation": "guardar",
     "bilingual": "(phrasal) guardar, poner en su sitio",
     "monolingual": "To place in a usual storage location.",
-    "examples": ["Put your toys away, please."]
+    "examples": [
+      "Put your toys away, please."
+    ]
   },
   "put down": {
     "token": "put down",
@@ -334,7 +407,9 @@
     "translation": "dejar / criticar",
     "bilingual": "(phrasal) bajar, dejar; o menospreciar",
     "monolingual": "To place down; or to criticise harshly.",
-    "examples": ["He's always putting his sister down."]
+    "examples": [
+      "He's always putting his sister down."
+    ]
   },
   "put out": {
     "token": "put out",
@@ -343,7 +418,9 @@
     "translation": "apagar",
     "bilingual": "(phrasal) apagar (fuego, luz); molestar",
     "monolingual": "To extinguish; or to inconvenience.",
-    "examples": ["Please put out the fire before you leave."]
+    "examples": [
+      "Please put out the fire before you leave."
+    ]
   },
   "put together": {
     "token": "put together",
@@ -352,7 +429,9 @@
     "translation": "montar, armar",
     "bilingual": "(phrasal) montar, armar, organizar",
     "monolingual": "To assemble or organise.",
-    "examples": ["I put together a small team."]
+    "examples": [
+      "I put together a small team."
+    ]
   },
   "take off": {
     "token": "take off",
@@ -361,7 +440,10 @@
     "translation": "despegar / quitarse",
     "bilingual": "(phrasal) despegar (avión); quitarse (ropa)",
     "monolingual": "To leave the ground (aircraft); or to remove clothing.",
-    "examples": ["The plane took off on time.", "Take off your shoes."]
+    "examples": [
+      "The plane took off on time.",
+      "Take off your shoes."
+    ]
   },
   "take on": {
     "token": "take on",
@@ -370,7 +452,9 @@
     "translation": "asumir / contratar",
     "bilingual": "(phrasal) asumir (responsabilidad); contratar",
     "monolingual": "To accept responsibility; or to hire.",
-    "examples": ["She took on too many projects."]
+    "examples": [
+      "She took on too many projects."
+    ]
   },
   "take over": {
     "token": "take over",
@@ -379,7 +463,9 @@
     "translation": "hacerse cargo",
     "bilingual": "(phrasal) tomar el control, hacerse cargo",
     "monolingual": "To assume control of something.",
-    "examples": ["A new manager took over the team."]
+    "examples": [
+      "A new manager took over the team."
+    ]
   },
   "take up": {
     "token": "take up",
@@ -388,7 +474,9 @@
     "translation": "empezar (una afición)",
     "bilingual": "(phrasal) empezar (una afición, un deporte)",
     "monolingual": "To start doing something regularly.",
-    "examples": ["I've taken up yoga."]
+    "examples": [
+      "I've taken up yoga."
+    ]
   },
   "take in": {
     "token": "take in",
@@ -397,7 +485,9 @@
     "translation": "entender / acoger",
     "bilingual": "(phrasal) comprender; acoger en casa",
     "monolingual": "To absorb information; or to give shelter.",
-    "examples": ["It's a lot of information to take in."]
+    "examples": [
+      "It's a lot of information to take in."
+    ]
   },
   "take out": {
     "token": "take out",
@@ -406,7 +496,9 @@
     "translation": "sacar / invitar a salir",
     "bilingual": "(phrasal) sacar; invitar a salir",
     "monolingual": "To remove; or to invite someone out.",
-    "examples": ["He took her out for dinner."]
+    "examples": [
+      "He took her out for dinner."
+    ]
   },
   "take back": {
     "token": "take back",
@@ -415,7 +507,9 @@
     "translation": "retractarse / devolver",
     "bilingual": "(phrasal) retractarse (de lo dicho); devolver",
     "monolingual": "To retract a statement; or to return.",
-    "examples": ["I take back what I said."]
+    "examples": [
+      "I take back what I said."
+    ]
   },
   "take care of": {
     "token": "take care of",
@@ -424,7 +518,9 @@
     "translation": "ocuparse de",
     "bilingual": "(phrasal) cuidar de, ocuparse de",
     "monolingual": "To be responsible for.",
-    "examples": ["I'll take care of the bill."]
+    "examples": [
+      "I'll take care of the bill."
+    ]
   },
   "turn on": {
     "token": "turn on",
@@ -433,7 +529,9 @@
     "translation": "encender",
     "bilingual": "(phrasal) encender (un aparato)",
     "monolingual": "To switch on a device.",
-    "examples": ["Turn on the lights, please."]
+    "examples": [
+      "Turn on the lights, please."
+    ]
   },
   "turn off": {
     "token": "turn off",
@@ -442,7 +540,9 @@
     "translation": "apagar",
     "bilingual": "(phrasal) apagar (un aparato)",
     "monolingual": "To switch off a device.",
-    "examples": ["Don't forget to turn off the TV."]
+    "examples": [
+      "Don't forget to turn off the TV."
+    ]
   },
   "turn up": {
     "token": "turn up",
@@ -451,7 +551,10 @@
     "translation": "aparecer / subir volumen",
     "bilingual": "(phrasal) aparecer; subir (volumen)",
     "monolingual": "To arrive or appear; or to increase volume.",
-    "examples": ["She didn't turn up at the party.", "Turn up the radio."]
+    "examples": [
+      "She didn't turn up at the party.",
+      "Turn up the radio."
+    ]
   },
   "turn down": {
     "token": "turn down",
@@ -460,7 +563,9 @@
     "translation": "rechazar / bajar volumen",
     "bilingual": "(phrasal) rechazar; bajar (volumen)",
     "monolingual": "To reject; or to decrease volume.",
-    "examples": ["He turned down the job offer."]
+    "examples": [
+      "He turned down the job offer."
+    ]
   },
   "turn into": {
     "token": "turn into",
@@ -469,7 +574,9 @@
     "translation": "convertirse en",
     "bilingual": "(phrasal) convertirse en, transformarse",
     "monolingual": "To become something different.",
-    "examples": ["The caterpillar turned into a butterfly."]
+    "examples": [
+      "The caterpillar turned into a butterfly."
+    ]
   },
   "turn out": {
     "token": "turn out",
@@ -478,7 +585,9 @@
     "translation": "resultar",
     "bilingual": "(phrasal) resultar, acabar",
     "monolingual": "To eventually be or happen.",
-    "examples": ["It turned out to be a great evening."]
+    "examples": [
+      "It turned out to be a great evening."
+    ]
   },
   "turn over": {
     "token": "turn over",
@@ -487,7 +596,9 @@
     "translation": "voltear / entregar",
     "bilingual": "(phrasal) dar la vuelta; entregar (algo a alguien)",
     "monolingual": "To flip; or to hand over to authorities.",
-    "examples": ["Turn over the page."]
+    "examples": [
+      "Turn over the page."
+    ]
   },
   "turn around": {
     "token": "turn around",
@@ -496,7 +607,9 @@
     "translation": "darse la vuelta",
     "bilingual": "(phrasal) darse la vuelta",
     "monolingual": "To reverse direction or rotate to face the opposite way.",
-    "examples": ["Turn around so I can see your face."]
+    "examples": [
+      "Turn around so I can see your face."
+    ]
   },
   "come back": {
     "token": "come back",
@@ -505,7 +618,9 @@
     "translation": "volver",
     "bilingual": "(phrasal) volver, regresar",
     "monolingual": "To return.",
-    "examples": ["Come back soon!"]
+    "examples": [
+      "Come back soon!"
+    ]
   },
   "come up": {
     "token": "come up",
@@ -514,7 +629,9 @@
     "translation": "surgir / acercarse",
     "bilingual": "(phrasal) surgir (un tema, problema); acercarse",
     "monolingual": "To arise; or to approach.",
-    "examples": ["Something has come up at work."]
+    "examples": [
+      "Something has come up at work."
+    ]
   },
   "come up with": {
     "token": "come up with",
@@ -523,7 +640,9 @@
     "translation": "ocurrírsele a uno",
     "bilingual": "(phrasal) ocurrírsele (una idea), inventar",
     "monolingual": "To produce or invent (an idea, plan).",
-    "examples": ["She came up with a brilliant idea."]
+    "examples": [
+      "She came up with a brilliant idea."
+    ]
   },
   "come across": {
     "token": "come across",
@@ -532,7 +651,9 @@
     "translation": "encontrarse con / parecer",
     "bilingual": "(phrasal) encontrarse con; dar (cierta) impresión",
     "monolingual": "To find by chance; or to give a certain impression.",
-    "examples": ["I came across this book in the library."]
+    "examples": [
+      "I came across this book in the library."
+    ]
   },
   "come along": {
     "token": "come along",
@@ -541,7 +662,9 @@
     "translation": "venir / progresar",
     "bilingual": "(phrasal) acompañar; progresar",
     "monolingual": "To accompany; or to develop or progress.",
-    "examples": ["How is your project coming along?"]
+    "examples": [
+      "How is your project coming along?"
+    ]
   },
   "come around": {
     "token": "come around",
@@ -550,7 +673,9 @@
     "translation": "pasarse / cambiar de idea",
     "bilingual": "(phrasal) pasar (por casa); cambiar de opinión",
     "monolingual": "To visit; or to change one's mind.",
-    "examples": ["He'll come around eventually."]
+    "examples": [
+      "He'll come around eventually."
+    ]
   },
   "come down": {
     "token": "come down",
@@ -559,7 +684,9 @@
     "translation": "bajar",
     "bilingual": "(phrasal) bajar (precio, temperatura)",
     "monolingual": "To decrease.",
-    "examples": ["Prices are coming down."]
+    "examples": [
+      "Prices are coming down."
+    ]
   },
   "come in": {
     "token": "come in",
@@ -568,7 +695,9 @@
     "translation": "entrar",
     "bilingual": "(phrasal) entrar",
     "monolingual": "To enter a place.",
-    "examples": ["Please come in."]
+    "examples": [
+      "Please come in."
+    ]
   },
   "come off": {
     "token": "come off",
@@ -577,7 +706,9 @@
     "translation": "salir bien / desprenderse",
     "bilingual": "(phrasal) tener éxito; soltarse, desprenderse",
     "monolingual": "To succeed; or to detach.",
-    "examples": ["The button came off."]
+    "examples": [
+      "The button came off."
+    ]
   },
   "come on": {
     "token": "come on",
@@ -586,7 +717,9 @@
     "translation": "vamos / encenderse",
     "bilingual": "(phrasal) ¡venga!; encenderse (un aparato)",
     "monolingual": "An exhortation; or to start operating.",
-    "examples": ["Oh come on, you can do better!"]
+    "examples": [
+      "Oh come on, you can do better!"
+    ]
   },
   "come out": {
     "token": "come out",
@@ -595,7 +728,9 @@
     "translation": "salir / revelarse",
     "bilingual": "(phrasal) salir (libro, película); revelarse (verdad)",
     "monolingual": "To be published; or to be revealed.",
-    "examples": ["His new album comes out next month."]
+    "examples": [
+      "His new album comes out next month."
+    ]
   },
   "come over": {
     "token": "come over",
@@ -604,7 +739,9 @@
     "translation": "venir / visitar",
     "bilingual": "(phrasal) pasarse, venir de visita",
     "monolingual": "To visit someone at their home.",
-    "examples": ["Come over for dinner tonight."]
+    "examples": [
+      "Come over for dinner tonight."
+    ]
   },
   "come up against": {
     "token": "come up against",
@@ -613,7 +750,9 @@
     "translation": "enfrentarse a",
     "bilingual": "(phrasal) enfrentarse a (un obstáculo)",
     "monolingual": "To face a problem or opposition.",
-    "examples": ["We came up against strong resistance."]
+    "examples": [
+      "We came up against strong resistance."
+    ]
   },
   "go on": {
     "token": "go on",
@@ -622,7 +761,9 @@
     "translation": "continuar / pasar",
     "bilingual": "(phrasal) continuar; suceder, pasar",
     "monolingual": "To continue; or to happen.",
-    "examples": ["What's going on?"]
+    "examples": [
+      "What's going on?"
+    ]
   },
   "go off": {
     "token": "go off",
@@ -631,7 +772,9 @@
     "translation": "explotar / sonar",
     "bilingual": "(phrasal) explotar; sonar (alarma); estropearse (comida)",
     "monolingual": "To explode; to ring (alarm); or to spoil (food).",
-    "examples": ["The alarm went off at 6am."]
+    "examples": [
+      "The alarm went off at 6am."
+    ]
   },
   "go out": {
     "token": "go out",
@@ -640,7 +783,9 @@
     "translation": "salir",
     "bilingual": "(phrasal) salir (de casa, con alguien)",
     "monolingual": "To leave home for social activity; or to date someone.",
-    "examples": ["Let's go out tonight."]
+    "examples": [
+      "Let's go out tonight."
+    ]
   },
   "go through": {
     "token": "go through",
@@ -649,7 +794,9 @@
     "translation": "pasar por / revisar",
     "bilingual": "(phrasal) pasar por (una experiencia); revisar",
     "monolingual": "To experience; or to examine carefully.",
-    "examples": ["She's going through a tough time."]
+    "examples": [
+      "She's going through a tough time."
+    ]
   },
   "go over": {
     "token": "go over",
@@ -658,7 +805,9 @@
     "translation": "repasar",
     "bilingual": "(phrasal) repasar, revisar",
     "monolingual": "To review or examine carefully.",
-    "examples": ["Let's go over the plan again."]
+    "examples": [
+      "Let's go over the plan again."
+    ]
   },
   "go away": {
     "token": "go away",
@@ -667,7 +816,9 @@
     "translation": "irse, marcharse",
     "bilingual": "(phrasal) irse, marcharse",
     "monolingual": "To leave a place.",
-    "examples": ["Go away and leave me alone."]
+    "examples": [
+      "Go away and leave me alone."
+    ]
   },
   "go back": {
     "token": "go back",
@@ -676,7 +827,9 @@
     "translation": "volver",
     "bilingual": "(phrasal) volver, regresar",
     "monolingual": "To return to a place.",
-    "examples": ["I'd like to go back to Italy."]
+    "examples": [
+      "I'd like to go back to Italy."
+    ]
   },
   "go ahead": {
     "token": "go ahead",
@@ -685,7 +838,9 @@
     "translation": "adelante / proceder",
     "bilingual": "(phrasal) adelante, proceder",
     "monolingual": "To proceed with something.",
-    "examples": ["Go ahead, ask me anything."]
+    "examples": [
+      "Go ahead, ask me anything."
+    ]
   },
   "go along with": {
     "token": "go along with",
@@ -694,7 +849,9 @@
     "translation": "estar de acuerdo con",
     "bilingual": "(phrasal) aceptar, estar de acuerdo con",
     "monolingual": "To agree to a plan or idea.",
-    "examples": ["I'll go along with whatever you decide."]
+    "examples": [
+      "I'll go along with whatever you decide."
+    ]
   },
   "make up": {
     "token": "make up",
@@ -703,7 +860,9 @@
     "translation": "inventar / reconciliarse",
     "bilingual": "(phrasal) inventar; reconciliarse",
     "monolingual": "To invent (a story); or to reconcile after a fight.",
-    "examples": ["He made up an excuse."]
+    "examples": [
+      "He made up an excuse."
+    ]
   },
   "make out": {
     "token": "make out",
@@ -712,7 +871,9 @@
     "translation": "distinguir / besarse",
     "bilingual": "(phrasal) distinguir, descifrar; besarse",
     "monolingual": "To perceive clearly; or to kiss passionately.",
-    "examples": ["I can't make out his handwriting."]
+    "examples": [
+      "I can't make out his handwriting."
+    ]
   },
   "make for": {
     "token": "make for",
@@ -721,7 +882,9 @@
     "translation": "dirigirse a",
     "bilingual": "(phrasal) dirigirse a; contribuir a",
     "monolingual": "To head toward; or to contribute to.",
-    "examples": ["The thief made for the door."]
+    "examples": [
+      "The thief made for the door."
+    ]
   },
   "make up for": {
     "token": "make up for",
@@ -730,7 +893,9 @@
     "translation": "compensar",
     "bilingual": "(phrasal) compensar, recuperar",
     "monolingual": "To compensate for something.",
-    "examples": ["He bought flowers to make up for being late."]
+    "examples": [
+      "He bought flowers to make up for being late."
+    ]
   },
   "break up": {
     "token": "break up",
@@ -739,7 +904,9 @@
     "translation": "romper (relación)",
     "bilingual": "(phrasal) romper (una relación); separarse",
     "monolingual": "To end a romantic relationship.",
-    "examples": ["They broke up last summer."]
+    "examples": [
+      "They broke up last summer."
+    ]
   },
   "break down": {
     "token": "break down",
@@ -748,7 +915,9 @@
     "translation": "averiarse / desglosar",
     "bilingual": "(phrasal) averiarse (un coche); desglosar",
     "monolingual": "To stop functioning; or to analyse in detail.",
-    "examples": ["My car broke down on the highway."]
+    "examples": [
+      "My car broke down on the highway."
+    ]
   },
   "break in": {
     "token": "break in",
@@ -757,7 +926,9 @@
     "translation": "entrar a robar",
     "bilingual": "(phrasal) entrar a robar, allanar",
     "monolingual": "To enter a building illegally.",
-    "examples": ["Someone broke in last night."]
+    "examples": [
+      "Someone broke in last night."
+    ]
   },
   "break out": {
     "token": "break out",
@@ -766,7 +937,9 @@
     "translation": "estallar / fugarse",
     "bilingual": "(phrasal) estallar (guerra); fugarse",
     "monolingual": "To start suddenly (war, fire); or to escape from prison.",
-    "examples": ["A fire broke out in the kitchen."]
+    "examples": [
+      "A fire broke out in the kitchen."
+    ]
   },
   "break off": {
     "token": "break off",
@@ -775,7 +948,9 @@
     "translation": "interrumpir",
     "bilingual": "(phrasal) interrumpir, romper (compromiso)",
     "monolingual": "To interrupt; or to end an engagement.",
-    "examples": ["She broke off mid-sentence."]
+    "examples": [
+      "She broke off mid-sentence."
+    ]
   },
   "find out": {
     "token": "find out",
@@ -784,7 +959,9 @@
     "translation": "descubrir, averiguar",
     "bilingual": "(phrasal) averiguar, descubrir",
     "monolingual": "To discover information.",
-    "examples": ["I need to find out his number."]
+    "examples": [
+      "I need to find out his number."
+    ]
   },
   "figure out": {
     "token": "figure out",
@@ -793,7 +970,9 @@
     "translation": "deducir, entender",
     "bilingual": "(phrasal) deducir, entender, resolver",
     "monolingual": "To understand or solve something through reasoning.",
-    "examples": ["I can't figure out how to use this app."]
+    "examples": [
+      "I can't figure out how to use this app."
+    ]
   },
   "work out": {
     "token": "work out",
@@ -802,7 +981,9 @@
     "translation": "entrenar / resolver",
     "bilingual": "(phrasal) hacer ejercicio; resolver, calcular",
     "monolingual": "To exercise physically; or to solve a problem.",
-    "examples": ["I work out three times a week."]
+    "examples": [
+      "I work out three times a week."
+    ]
   },
   "hang on": {
     "token": "hang on",
@@ -811,7 +992,9 @@
     "translation": "esperar / aferrarse",
     "bilingual": "(phrasal) espera un momento; aguantar",
     "monolingual": "To wait briefly; or to hold firmly.",
-    "examples": ["Hang on a second."]
+    "examples": [
+      "Hang on a second."
+    ]
   },
   "hang out": {
     "token": "hang out",
@@ -820,7 +1003,9 @@
     "translation": "pasar el rato",
     "bilingual": "(phrasal) pasar el rato (con amigos)",
     "monolingual": "To spend time relaxing socially.",
-    "examples": ["We hang out at the park."]
+    "examples": [
+      "We hang out at the park."
+    ]
   },
   "hang up": {
     "token": "hang up",
@@ -829,7 +1014,9 @@
     "translation": "colgar (teléfono)",
     "bilingual": "(phrasal) colgar el teléfono",
     "monolingual": "To end a phone call.",
-    "examples": ["She hung up on me."]
+    "examples": [
+      "She hung up on me."
+    ]
   },
   "set up": {
     "token": "set up",
@@ -838,7 +1025,9 @@
     "translation": "montar / establecer",
     "bilingual": "(phrasal) montar, instalar, organizar",
     "monolingual": "To establish or arrange.",
-    "examples": ["They set up a new company."]
+    "examples": [
+      "They set up a new company."
+    ]
   },
   "set off": {
     "token": "set off",
@@ -847,7 +1036,9 @@
     "translation": "partir / hacer estallar",
     "bilingual": "(phrasal) salir, partir; activar (alarma, fuegos artificiales)",
     "monolingual": "To depart; or to trigger something.",
-    "examples": ["We set off at dawn."]
+    "examples": [
+      "We set off at dawn."
+    ]
   },
   "set out": {
     "token": "set out",
@@ -856,7 +1047,9 @@
     "translation": "emprender / disponer",
     "bilingual": "(phrasal) emprender (viaje); disponer, presentar",
     "monolingual": "To begin a journey; or to present in order.",
-    "examples": ["She set out to climb Everest."]
+    "examples": [
+      "She set out to climb Everest."
+    ]
   },
   "set aside": {
     "token": "set aside",
@@ -865,7 +1058,9 @@
     "translation": "apartar, reservar",
     "bilingual": "(phrasal) apartar, reservar (tiempo, dinero)",
     "monolingual": "To reserve for a specific purpose.",
-    "examples": ["I set aside an hour for reading every day."]
+    "examples": [
+      "I set aside an hour for reading every day."
+    ]
   },
   "run into": {
     "token": "run into",
@@ -874,7 +1069,9 @@
     "translation": "encontrarse con",
     "bilingual": "(phrasal) encontrarse con (por casualidad)",
     "monolingual": "To meet by chance.",
-    "examples": ["I ran into an old friend today."]
+    "examples": [
+      "I ran into an old friend today."
+    ]
   },
   "run out": {
     "token": "run out",
@@ -883,7 +1080,9 @@
     "translation": "agotarse, acabarse",
     "bilingual": "(phrasal) acabarse, quedarse sin",
     "monolingual": "To exhaust the supply of something.",
-    "examples": ["We've run out of milk."]
+    "examples": [
+      "We've run out of milk."
+    ]
   },
   "run over": {
     "token": "run over",
@@ -892,7 +1091,9 @@
     "translation": "atropellar",
     "bilingual": "(phrasal) atropellar; repasar (rápido)",
     "monolingual": "To hit with a vehicle; or to review quickly.",
-    "examples": ["A car ran over the cat."]
+    "examples": [
+      "A car ran over the cat."
+    ]
   },
   "run away": {
     "token": "run away",
@@ -901,7 +1102,9 @@
     "translation": "huir, escaparse",
     "bilingual": "(phrasal) huir, escaparse",
     "monolingual": "To flee from something.",
-    "examples": ["The boy ran away from home."]
+    "examples": [
+      "The boy ran away from home."
+    ]
   },
   "bring up": {
     "token": "bring up",
@@ -910,7 +1113,9 @@
     "translation": "criar / mencionar",
     "bilingual": "(phrasal) criar (hijos); mencionar (tema)",
     "monolingual": "To raise children; or to mention a topic.",
-    "examples": ["She was brought up by her grandmother."]
+    "examples": [
+      "She was brought up by her grandmother."
+    ]
   },
   "bring back": {
     "token": "bring back",
@@ -919,7 +1124,9 @@
     "translation": "traer de vuelta / recordar",
     "bilingual": "(phrasal) devolver; evocar recuerdos",
     "monolingual": "To return something; or to evoke memories.",
-    "examples": ["This song brings back memories."]
+    "examples": [
+      "This song brings back memories."
+    ]
   },
   "bring about": {
     "token": "bring about",
@@ -928,7 +1135,9 @@
     "translation": "provocar, ocasionar",
     "bilingual": "(phrasal) provocar, ocasionar",
     "monolingual": "To cause something to happen.",
-    "examples": ["The new law brought about huge changes."]
+    "examples": [
+      "The new law brought about huge changes."
+    ]
   },
   "carry on": {
     "token": "carry on",
@@ -937,7 +1146,9 @@
     "translation": "continuar, seguir",
     "bilingual": "(phrasal) continuar, seguir adelante",
     "monolingual": "To continue an activity.",
-    "examples": ["Carry on with what you were doing."]
+    "examples": [
+      "Carry on with what you were doing."
+    ]
   },
   "carry out": {
     "token": "carry out",
@@ -946,7 +1157,9 @@
     "translation": "llevar a cabo",
     "bilingual": "(phrasal) llevar a cabo, ejecutar",
     "monolingual": "To perform or execute a task.",
-    "examples": ["They carried out the experiment carefully."]
+    "examples": [
+      "They carried out the experiment carefully."
+    ]
   },
   "fill out": {
     "token": "fill out",
@@ -955,7 +1168,9 @@
     "translation": "rellenar (formulario)",
     "bilingual": "(phrasal) rellenar (formulario)",
     "monolingual": "To complete a form by adding information.",
-    "examples": ["Please fill out this form."]
+    "examples": [
+      "Please fill out this form."
+    ]
   },
   "fill in": {
     "token": "fill in",
@@ -964,7 +1179,9 @@
     "translation": "rellenar / sustituir",
     "bilingual": "(phrasal) rellenar (huecos); sustituir (a alguien)",
     "monolingual": "To complete missing parts; or to substitute for someone.",
-    "examples": ["She filled in for me at the meeting."]
+    "examples": [
+      "She filled in for me at the meeting."
+    ]
   },
   "fill up": {
     "token": "fill up",
@@ -973,7 +1190,9 @@
     "translation": "llenar (hasta arriba)",
     "bilingual": "(phrasal) llenar completamente",
     "monolingual": "To fill something completely.",
-    "examples": ["Fill up the tank, please."]
+    "examples": [
+      "Fill up the tank, please."
+    ]
   },
   "check in": {
     "token": "check in",
@@ -982,7 +1201,9 @@
     "translation": "registrarse",
     "bilingual": "(phrasal) registrarse (hotel, vuelo)",
     "monolingual": "To register on arrival.",
-    "examples": ["We checked in at 3pm."]
+    "examples": [
+      "We checked in at 3pm."
+    ]
   },
   "check out": {
     "token": "check out",
@@ -991,7 +1212,9 @@
     "translation": "salir / echar un vistazo",
     "bilingual": "(phrasal) dejar el hotel; echar un vistazo",
     "monolingual": "To leave a hotel; or to examine something.",
-    "examples": ["Check out this new song!"]
+    "examples": [
+      "Check out this new song!"
+    ]
   },
   "drop off": {
     "token": "drop off",
@@ -1000,7 +1223,9 @@
     "translation": "dejar / quedarse dormido",
     "bilingual": "(phrasal) dejar (a alguien en un sitio); quedarse dormido",
     "monolingual": "To deliver someone/something; or to fall asleep.",
-    "examples": ["Drop me off at the station."]
+    "examples": [
+      "Drop me off at the station."
+    ]
   },
   "drop out": {
     "token": "drop out",
@@ -1009,7 +1234,9 @@
     "translation": "abandonar (estudios)",
     "bilingual": "(phrasal) abandonar (estudios, curso)",
     "monolingual": "To leave a course or activity before completion.",
-    "examples": ["He dropped out of college."]
+    "examples": [
+      "He dropped out of college."
+    ]
   },
   "drop by": {
     "token": "drop by",
@@ -1018,7 +1245,9 @@
     "translation": "pasarse, visitar",
     "bilingual": "(phrasal) pasarse a ver, hacer una visita corta",
     "monolingual": "To visit briefly without prior arrangement.",
-    "examples": ["Drop by anytime."]
+    "examples": [
+      "Drop by anytime."
+    ]
   },
   "show up": {
     "token": "show up",
@@ -1027,7 +1256,9 @@
     "translation": "aparecer",
     "bilingual": "(phrasal) aparecer, presentarse",
     "monolingual": "To arrive somewhere.",
-    "examples": ["He didn't show up to the meeting."]
+    "examples": [
+      "He didn't show up to the meeting."
+    ]
   },
   "show off": {
     "token": "show off",
@@ -1036,7 +1267,9 @@
     "translation": "presumir, fardar",
     "bilingual": "(phrasal) presumir, alardear",
     "monolingual": "To boast about something.",
-    "examples": ["Stop showing off your new car."]
+    "examples": [
+      "Stop showing off your new car."
+    ]
   },
   "stand up": {
     "token": "stand up",
@@ -1045,7 +1278,9 @@
     "translation": "ponerse de pie / dejar plantado",
     "bilingual": "(phrasal) ponerse de pie; dar plantón",
     "monolingual": "To rise to a standing position; or to fail to keep an appointment.",
-    "examples": ["He stood me up last Friday."]
+    "examples": [
+      "He stood me up last Friday."
+    ]
   },
   "stand out": {
     "token": "stand out",
@@ -1054,7 +1289,9 @@
     "translation": "destacar",
     "bilingual": "(phrasal) destacar, sobresalir",
     "monolingual": "To be noticeably distinct.",
-    "examples": ["Her work really stands out."]
+    "examples": [
+      "Her work really stands out."
+    ]
   },
   "stand for": {
     "token": "stand for",
@@ -1063,7 +1300,9 @@
     "translation": "significar / representar",
     "bilingual": "(phrasal) significar, representar; tolerar",
     "monolingual": "To represent; or to tolerate.",
-    "examples": ["NASA stands for National Aeronautics and Space Administration."]
+    "examples": [
+      "NASA stands for National Aeronautics and Space Administration."
+    ]
   },
   "sit down": {
     "token": "sit down",
@@ -1072,7 +1311,9 @@
     "translation": "sentarse",
     "bilingual": "(phrasal) sentarse",
     "monolingual": "To take a seat.",
-    "examples": ["Please sit down."]
+    "examples": [
+      "Please sit down."
+    ]
   },
   "wake up": {
     "token": "wake up",
@@ -1081,7 +1322,9 @@
     "translation": "despertarse",
     "bilingual": "(phrasal) despertarse, despertar (a alguien)",
     "monolingual": "To stop sleeping.",
-    "examples": ["Wake up — it's almost noon!"]
+    "examples": [
+      "Wake up — it's almost noon!"
+    ]
   },
   "fall asleep": {
     "token": "fall asleep",
@@ -1090,7 +1333,9 @@
     "translation": "quedarse dormido",
     "bilingual": "(phrasal) quedarse dormido",
     "monolingual": "To start sleeping.",
-    "examples": ["I fell asleep on the couch."]
+    "examples": [
+      "I fell asleep on the couch."
+    ]
   },
   "fall apart": {
     "token": "fall apart",
@@ -1099,7 +1344,9 @@
     "translation": "deshacerse / desmoronarse",
     "bilingual": "(phrasal) deshacerse; venirse abajo (emocionalmente)",
     "monolingual": "To disintegrate physically or emotionally.",
-    "examples": ["My old bag is falling apart."]
+    "examples": [
+      "My old bag is falling apart."
+    ]
   },
   "calm down": {
     "token": "calm down",
@@ -1108,7 +1355,9 @@
     "translation": "calmarse",
     "bilingual": "(phrasal) calmarse, tranquilizarse",
     "monolingual": "To become less excited or upset.",
-    "examples": ["Calm down, everything will be fine."]
+    "examples": [
+      "Calm down, everything will be fine."
+    ]
   },
   "cheer up": {
     "token": "cheer up",
@@ -1117,7 +1366,9 @@
     "translation": "animar(se)",
     "bilingual": "(phrasal) animar(se), levantar el ánimo",
     "monolingual": "To become or make someone more cheerful.",
-    "examples": ["Cheer up! It's not that bad."]
+    "examples": [
+      "Cheer up! It's not that bad."
+    ]
   },
   "shut up": {
     "token": "shut up",
@@ -1126,7 +1377,9 @@
     "translation": "callarse",
     "bilingual": "(phrasal, coloq.) callarse",
     "monolingual": "Informal: to stop talking.",
-    "examples": ["Shut up and listen!"]
+    "examples": [
+      "Shut up and listen!"
+    ]
   },
   "back up": {
     "token": "back up",
@@ -1135,7 +1388,9 @@
     "translation": "apoyar / respaldar",
     "bilingual": "(phrasal) apoyar; respaldar (archivos)",
     "monolingual": "To support; or to save a copy of data.",
-    "examples": ["I'll back you up on this."]
+    "examples": [
+      "I'll back you up on this."
+    ]
   },
   "back off": {
     "token": "back off",
@@ -1144,7 +1399,9 @@
     "translation": "retroceder, echarse atrás",
     "bilingual": "(phrasal) retroceder, dejar en paz",
     "monolingual": "To withdraw or stop pressuring.",
-    "examples": ["Back off — I need some space."]
+    "examples": [
+      "Back off — I need some space."
+    ]
   },
   "blow up": {
     "token": "blow up",
@@ -1153,7 +1410,9 @@
     "translation": "explotar / inflar",
     "bilingual": "(phrasal) explotar; inflar (globo); estallar (de ira)",
     "monolingual": "To explode; to inflate; or to lose one's temper.",
-    "examples": ["The bomb blew up."]
+    "examples": [
+      "The bomb blew up."
+    ]
   },
   "burn out": {
     "token": "burn out",
@@ -1162,7 +1421,9 @@
     "translation": "quemarse / agotarse",
     "bilingual": "(phrasal) fundirse (bombilla); agotarse (persona)",
     "monolingual": "To fail by overheating; or to suffer exhaustion.",
-    "examples": ["She burned out after two years in that job."]
+    "examples": [
+      "She burned out after two years in that job."
+    ]
   },
   "catch up": {
     "token": "catch up",
@@ -1171,7 +1432,9 @@
     "translation": "ponerse al día",
     "bilingual": "(phrasal) alcanzar, ponerse al día",
     "monolingual": "To reach the same level or progress.",
-    "examples": ["Let's catch up over coffee."]
+    "examples": [
+      "Let's catch up over coffee."
+    ]
   },
   "clean up": {
     "token": "clean up",
@@ -1180,7 +1443,9 @@
     "translation": "limpiar, ordenar",
     "bilingual": "(phrasal) limpiar a fondo, ordenar",
     "monolingual": "To tidy or clean thoroughly.",
-    "examples": ["Clean up your room!"]
+    "examples": [
+      "Clean up your room!"
+    ]
   },
   "count on": {
     "token": "count on",
@@ -1189,7 +1454,9 @@
     "translation": "contar con",
     "bilingual": "(phrasal) contar con (alguien)",
     "monolingual": "To rely on someone or something.",
-    "examples": ["You can count on me."]
+    "examples": [
+      "You can count on me."
+    ]
   },
   "cut down": {
     "token": "cut down",
@@ -1198,7 +1465,9 @@
     "translation": "reducir / talar",
     "bilingual": "(phrasal) reducir (cantidad); talar (árbol)",
     "monolingual": "To reduce consumption; or to fell a tree.",
-    "examples": ["I need to cut down on coffee."]
+    "examples": [
+      "I need to cut down on coffee."
+    ]
   },
   "cut off": {
     "token": "cut off",
@@ -1207,7 +1476,9 @@
     "translation": "cortar / aislar",
     "bilingual": "(phrasal) cortar (suministro); aislar; interrumpir",
     "monolingual": "To disconnect; or to isolate.",
-    "examples": ["We were cut off mid-conversation."]
+    "examples": [
+      "We were cut off mid-conversation."
+    ]
   },
   "deal with": {
     "token": "deal with",
@@ -1216,7 +1487,9 @@
     "translation": "ocuparse de / lidiar con",
     "bilingual": "(phrasal) ocuparse de, lidiar con, manejar",
     "monolingual": "To handle or manage a situation.",
-    "examples": ["I'll deal with it tomorrow."]
+    "examples": [
+      "I'll deal with it tomorrow."
+    ]
   },
   "dress up": {
     "token": "dress up",
@@ -1225,7 +1498,9 @@
     "translation": "vestirse elegante / disfrazarse",
     "bilingual": "(phrasal) arreglarse, vestirse elegante; disfrazarse",
     "monolingual": "To wear formal clothes; or to wear a costume.",
-    "examples": ["We dressed up for the wedding."]
+    "examples": [
+      "We dressed up for the wedding."
+    ]
   },
   "end up": {
     "token": "end up",
@@ -1234,7 +1509,9 @@
     "translation": "terminar (de cierta manera)",
     "bilingual": "(phrasal) acabar, terminar (de cierta manera)",
     "monolingual": "To finish in a particular way or place.",
-    "examples": ["We ended up missing the train."]
+    "examples": [
+      "We ended up missing the train."
+    ]
   },
   "fall behind": {
     "token": "fall behind",
@@ -1243,7 +1520,9 @@
     "translation": "quedarse atrás, retrasarse",
     "bilingual": "(phrasal) quedarse atrás, retrasarse",
     "monolingual": "To lag in progress.",
-    "examples": ["He's fallen behind in his studies."]
+    "examples": [
+      "He's fallen behind in his studies."
+    ]
   },
   "fall for": {
     "token": "fall for",
@@ -1252,7 +1531,9 @@
     "translation": "enamorarse / tragarse (engaño)",
     "bilingual": "(phrasal) enamorarse de; tragarse (un engaño)",
     "monolingual": "To fall in love with; or to be deceived by.",
-    "examples": ["I fell for her at first sight."]
+    "examples": [
+      "I fell for her at first sight."
+    ]
   },
   "freak out": {
     "token": "freak out",
@@ -1261,7 +1542,9 @@
     "translation": "asustarse / volverse loco",
     "bilingual": "(phrasal, coloq.) asustarse mucho, ponerse histérico",
     "monolingual": "Informal: to become extremely upset or frightened.",
-    "examples": ["Don't freak out — it's just a spider."]
+    "examples": [
+      "Don't freak out — it's just a spider."
+    ]
   },
   "get rid of": {
     "token": "get rid of",
@@ -1270,7 +1553,9 @@
     "translation": "deshacerse de",
     "bilingual": "(phrasal) deshacerse de, librarse de",
     "monolingual": "To dispose of or eliminate.",
-    "examples": ["I need to get rid of these old clothes."]
+    "examples": [
+      "I need to get rid of these old clothes."
+    ]
   },
   "hand in": {
     "token": "hand in",
@@ -1279,7 +1564,9 @@
     "translation": "entregar (tarea)",
     "bilingual": "(phrasal) entregar (tarea, dimisión)",
     "monolingual": "To submit something to an authority.",
-    "examples": ["Please hand in your homework."]
+    "examples": [
+      "Please hand in your homework."
+    ]
   },
   "hand out": {
     "token": "hand out",
@@ -1288,7 +1575,9 @@
     "translation": "repartir",
     "bilingual": "(phrasal) repartir, distribuir",
     "monolingual": "To distribute to a group.",
-    "examples": ["The teacher handed out the worksheets."]
+    "examples": [
+      "The teacher handed out the worksheets."
+    ]
   },
   "hold on": {
     "token": "hold on",
@@ -1297,7 +1586,9 @@
     "translation": "espera / aguantar",
     "bilingual": "(phrasal) espera un momento; aguantar",
     "monolingual": "To wait briefly; or to endure.",
-    "examples": ["Hold on a minute."]
+    "examples": [
+      "Hold on a minute."
+    ]
   },
   "hold up": {
     "token": "hold up",
@@ -1306,7 +1597,9 @@
     "translation": "retrasar / atracar",
     "bilingual": "(phrasal) retrasar; atracar",
     "monolingual": "To delay; or to rob with a weapon.",
-    "examples": ["Traffic held us up for an hour."]
+    "examples": [
+      "Traffic held us up for an hour."
+    ]
   },
   "keep up": {
     "token": "keep up",
@@ -1315,7 +1608,9 @@
     "translation": "seguir el ritmo",
     "bilingual": "(phrasal) seguir el ritmo, mantener el nivel",
     "monolingual": "To maintain the same pace or level.",
-    "examples": ["I can't keep up with the news lately."]
+    "examples": [
+      "I can't keep up with the news lately."
+    ]
   },
   "keep on": {
     "token": "keep on",
@@ -1324,7 +1619,9 @@
     "translation": "continuar haciendo",
     "bilingual": "(phrasal) seguir haciendo algo",
     "monolingual": "To continue doing something persistently.",
-    "examples": ["Keep on trying."]
+    "examples": [
+      "Keep on trying."
+    ]
   },
   "let down": {
     "token": "let down",
@@ -1333,7 +1630,9 @@
     "translation": "decepcionar, fallar",
     "bilingual": "(phrasal) decepcionar, defraudar",
     "monolingual": "To disappoint someone.",
-    "examples": ["I don't want to let you down."]
+    "examples": [
+      "I don't want to let you down."
+    ]
   },
   "log in": {
     "token": "log in",
@@ -1342,7 +1641,9 @@
     "translation": "iniciar sesión",
     "bilingual": "(phrasal) iniciar sesión",
     "monolingual": "To sign into a computer system.",
-    "examples": ["You need to log in first."]
+    "examples": [
+      "You need to log in first."
+    ]
   },
   "log out": {
     "token": "log out",
@@ -1351,7 +1652,9 @@
     "translation": "cerrar sesión",
     "bilingual": "(phrasal) cerrar sesión",
     "monolingual": "To sign out of a computer system.",
-    "examples": ["Don't forget to log out."]
+    "examples": [
+      "Don't forget to log out."
+    ]
   },
   "mess up": {
     "token": "mess up",
@@ -1360,7 +1663,9 @@
     "translation": "fastidiar, arruinar",
     "bilingual": "(phrasal, coloq.) fastidiar, estropear, arruinar",
     "monolingual": "Informal: to spoil or ruin something.",
-    "examples": ["I really messed up the interview."]
+    "examples": [
+      "I really messed up the interview."
+    ]
   },
   "move on": {
     "token": "move on",
@@ -1369,7 +1674,9 @@
     "translation": "seguir adelante",
     "bilingual": "(phrasal) seguir adelante, pasar página",
     "monolingual": "To progress past a situation.",
-    "examples": ["It's time to move on with your life."]
+    "examples": [
+      "It's time to move on with your life."
+    ]
   },
   "move in": {
     "token": "move in",
@@ -1378,7 +1685,9 @@
     "translation": "mudarse a",
     "bilingual": "(phrasal) mudarse a (casa nueva)",
     "monolingual": "To start living in a new place.",
-    "examples": ["They moved in last week."]
+    "examples": [
+      "They moved in last week."
+    ]
   },
   "move out": {
     "token": "move out",
@@ -1387,7 +1696,9 @@
     "translation": "mudarse de",
     "bilingual": "(phrasal) mudarse de, irse de (casa)",
     "monolingual": "To stop living in a place.",
-    "examples": ["I'm moving out next month."]
+    "examples": [
+      "I'm moving out next month."
+    ]
   },
   "pass away": {
     "token": "pass away",
@@ -1396,7 +1707,9 @@
     "translation": "fallecer",
     "bilingual": "(phrasal, eufem.) fallecer, morir",
     "monolingual": "Euphemism: to die.",
-    "examples": ["My grandmother passed away last year."]
+    "examples": [
+      "My grandmother passed away last year."
+    ]
   },
   "pass out": {
     "token": "pass out",
@@ -1405,7 +1718,9 @@
     "translation": "desmayarse",
     "bilingual": "(phrasal) desmayarse",
     "monolingual": "To lose consciousness.",
-    "examples": ["She passed out from the heat."]
+    "examples": [
+      "She passed out from the heat."
+    ]
   },
   "pay back": {
     "token": "pay back",
@@ -1414,7 +1729,9 @@
     "translation": "devolver dinero / vengarse",
     "bilingual": "(phrasal) devolver (dinero); vengarse",
     "monolingual": "To repay a debt; or to take revenge.",
-    "examples": ["I'll pay you back tomorrow."]
+    "examples": [
+      "I'll pay you back tomorrow."
+    ]
   },
   "pay off": {
     "token": "pay off",
@@ -1423,7 +1740,9 @@
     "translation": "saldar / dar frutos",
     "bilingual": "(phrasal) saldar (deuda); dar frutos (esfuerzo)",
     "monolingual": "To clear a debt; or to yield positive results.",
-    "examples": ["Hard work pays off."]
+    "examples": [
+      "Hard work pays off."
+    ]
   },
   "pick up": {
     "token": "pick up",
@@ -1432,7 +1751,9 @@
     "translation": "recoger / aprender",
     "bilingual": "(phrasal) recoger; aprender (idioma); ligar",
     "monolingual": "To collect; to learn casually; or to flirt with.",
-    "examples": ["I'll pick you up at eight."]
+    "examples": [
+      "I'll pick you up at eight."
+    ]
   },
   "point out": {
     "token": "point out",
@@ -1441,7 +1762,9 @@
     "translation": "señalar, indicar",
     "bilingual": "(phrasal) señalar, indicar",
     "monolingual": "To bring something to someone's attention.",
-    "examples": ["She pointed out the mistake."]
+    "examples": [
+      "She pointed out the mistake."
+    ]
   },
   "ring up": {
     "token": "ring up",
@@ -1450,7 +1773,9 @@
     "translation": "llamar por teléfono",
     "bilingual": "(phrasal, brit.) llamar por teléfono",
     "monolingual": "British: to call on the phone.",
-    "examples": ["I'll ring you up tomorrow."]
+    "examples": [
+      "I'll ring you up tomorrow."
+    ]
   },
   "rule out": {
     "token": "rule out",
@@ -1459,7 +1784,9 @@
     "translation": "descartar",
     "bilingual": "(phrasal) descartar (posibilidad)",
     "monolingual": "To eliminate a possibility.",
-    "examples": ["We can't rule out the possibility of rain."]
+    "examples": [
+      "We can't rule out the possibility of rain."
+    ]
   },
   "save up": {
     "token": "save up",
@@ -1468,7 +1795,9 @@
     "translation": "ahorrar (para)",
     "bilingual": "(phrasal) ahorrar (con un objetivo)",
     "monolingual": "To accumulate money for something.",
-    "examples": ["She's saving up for a new car."]
+    "examples": [
+      "She's saving up for a new car."
+    ]
   },
   "settle down": {
     "token": "settle down",
@@ -1477,7 +1806,9 @@
     "translation": "asentarse / calmarse",
     "bilingual": "(phrasal) asentarse, sentar cabeza; calmarse",
     "monolingual": "To establish a stable life; or to become calm.",
-    "examples": ["They want to settle down and have kids."]
+    "examples": [
+      "They want to settle down and have kids."
+    ]
   },
   "sort out": {
     "token": "sort out",
@@ -1486,7 +1817,9 @@
     "translation": "solucionar, arreglar",
     "bilingual": "(phrasal) solucionar, arreglar, ordenar",
     "monolingual": "To resolve or organise.",
-    "examples": ["We'll sort it out tomorrow."]
+    "examples": [
+      "We'll sort it out tomorrow."
+    ]
   },
   "stick to": {
     "token": "stick to",
@@ -1495,7 +1828,9 @@
     "translation": "ceñirse a",
     "bilingual": "(phrasal) ceñirse a, atenerse a",
     "monolingual": "To adhere to a plan or rule.",
-    "examples": ["Stick to the plan."]
+    "examples": [
+      "Stick to the plan."
+    ]
   },
   "stick with": {
     "token": "stick with",
@@ -1504,7 +1839,9 @@
     "translation": "quedarse con / seguir",
     "bilingual": "(phrasal) quedarse con, no abandonar",
     "monolingual": "To continue with a choice or person.",
-    "examples": ["I'll stick with my original answer."]
+    "examples": [
+      "I'll stick with my original answer."
+    ]
   },
   "split up": {
     "token": "split up",
@@ -1513,7 +1850,9 @@
     "translation": "separarse",
     "bilingual": "(phrasal) separarse (pareja, grupo)",
     "monolingual": "To end a relationship or divide a group.",
-    "examples": ["They split up after ten years."]
+    "examples": [
+      "They split up after ten years."
+    ]
   },
   "speed up": {
     "token": "speed up",
@@ -1522,7 +1861,9 @@
     "translation": "acelerar",
     "bilingual": "(phrasal) acelerar, ir más rápido",
     "monolingual": "To increase speed.",
-    "examples": ["Can you speed up a little?"]
+    "examples": [
+      "Can you speed up a little?"
+    ]
   },
   "slow down": {
     "token": "slow down",
@@ -1531,7 +1872,9 @@
     "translation": "ir más despacio",
     "bilingual": "(phrasal) ir más despacio, reducir velocidad",
     "monolingual": "To decrease speed.",
-    "examples": ["Slow down, you're driving too fast."]
+    "examples": [
+      "Slow down, you're driving too fast."
+    ]
   },
   "talk over": {
     "token": "talk over",
@@ -1540,7 +1883,9 @@
     "translation": "discutir, hablar de",
     "bilingual": "(phrasal) discutir, hablar de algo",
     "monolingual": "To discuss in detail.",
-    "examples": ["Let's talk it over tomorrow."]
+    "examples": [
+      "Let's talk it over tomorrow."
+    ]
   },
   "tell off": {
     "token": "tell off",
@@ -1549,7 +1894,9 @@
     "translation": "regañar, reprender",
     "bilingual": "(phrasal) regañar, reprender",
     "monolingual": "To scold or reprimand.",
-    "examples": ["The teacher told me off for being late."]
+    "examples": [
+      "The teacher told me off for being late."
+    ]
   },
   "think over": {
     "token": "think over",
@@ -1558,7 +1905,9 @@
     "translation": "reflexionar sobre",
     "bilingual": "(phrasal) reflexionar, meditar sobre",
     "monolingual": "To consider carefully.",
-    "examples": ["Take a few days to think it over."]
+    "examples": [
+      "Take a few days to think it over."
+    ]
   },
   "throw away": {
     "token": "throw away",
@@ -1567,7 +1916,9 @@
     "translation": "tirar (a la basura)",
     "bilingual": "(phrasal) tirar a la basura, desechar",
     "monolingual": "To dispose of by discarding.",
-    "examples": ["Don't throw away those old letters."]
+    "examples": [
+      "Don't throw away those old letters."
+    ]
   },
   "throw up": {
     "token": "throw up",
@@ -1576,7 +1927,9 @@
     "translation": "vomitar",
     "bilingual": "(phrasal, coloq.) vomitar",
     "monolingual": "Informal: to vomit.",
-    "examples": ["He threw up after eating bad fish."]
+    "examples": [
+      "He threw up after eating bad fish."
+    ]
   },
   "try on": {
     "token": "try on",
@@ -1585,7 +1938,9 @@
     "translation": "probarse (ropa)",
     "bilingual": "(phrasal) probarse (ropa, zapatos)",
     "monolingual": "To wear clothes to test fit.",
-    "examples": ["Can I try on this jacket?"]
+    "examples": [
+      "Can I try on this jacket?"
+    ]
   },
   "try out": {
     "token": "try out",
@@ -1594,7 +1949,9 @@
     "translation": "probar",
     "bilingual": "(phrasal) probar, hacer una prueba",
     "monolingual": "To test something to see if it works.",
-    "examples": ["I want to try out this recipe."]
+    "examples": [
+      "I want to try out this recipe."
+    ]
   },
   "use up": {
     "token": "use up",
@@ -1603,7 +1960,9 @@
     "translation": "agotar, consumir",
     "bilingual": "(phrasal) agotar, gastar del todo",
     "monolingual": "To consume completely.",
-    "examples": ["We've used up all the flour."]
+    "examples": [
+      "We've used up all the flour."
+    ]
   },
   "wait on": {
     "token": "wait on",
@@ -1612,7 +1971,9 @@
     "translation": "atender, servir",
     "bilingual": "(phrasal) atender (mesa, cliente)",
     "monolingual": "To serve someone (e.g. at a table).",
-    "examples": ["She waited on us all evening."]
+    "examples": [
+      "She waited on us all evening."
+    ]
   },
   "warm up": {
     "token": "warm up",
@@ -1621,7 +1982,9 @@
     "translation": "calentar / calentarse",
     "bilingual": "(phrasal) calentar (comida); calentar (ejercicio)",
     "monolingual": "To heat slightly; or to prepare with light exercise.",
-    "examples": ["Warm up the leftovers."]
+    "examples": [
+      "Warm up the leftovers."
+    ]
   },
   "wash up": {
     "token": "wash up",
@@ -1630,7 +1993,9 @@
     "translation": "fregar / lavarse",
     "bilingual": "(phrasal) fregar los platos; lavarse (manos/cara)",
     "monolingual": "To clean dishes; or to wash one's face and hands.",
-    "examples": ["Could you wash up after dinner?"]
+    "examples": [
+      "Could you wash up after dinner?"
+    ]
   },
   "watch out": {
     "token": "watch out",
@@ -1639,7 +2004,9 @@
     "translation": "tener cuidado",
     "bilingual": "(phrasal) ¡cuidado!",
     "monolingual": "Be careful, especially of imminent danger.",
-    "examples": ["Watch out for the ice on the road."]
+    "examples": [
+      "Watch out for the ice on the road."
+    ]
   },
   "work on": {
     "token": "work on",
@@ -1648,7 +2015,9 @@
     "translation": "trabajar en",
     "bilingual": "(phrasal) trabajar en, dedicarse a",
     "monolingual": "To devote effort to something.",
-    "examples": ["I'm working on a new song."]
+    "examples": [
+      "I'm working on a new song."
+    ]
   },
   "wear out": {
     "token": "wear out",
@@ -1657,7 +2026,9 @@
     "translation": "gastarse / agotar",
     "bilingual": "(phrasal) gastarse (ropa); agotar (a alguien)",
     "monolingual": "To become unusable through use; or to exhaust someone.",
-    "examples": ["These shoes are wearing out."]
+    "examples": [
+      "These shoes are wearing out."
+    ]
   },
   "write down": {
     "token": "write down",
@@ -1666,7 +2037,9 @@
     "translation": "apuntar, anotar",
     "bilingual": "(phrasal) apuntar, anotar",
     "monolingual": "To record in writing.",
-    "examples": ["Let me write down your address."]
+    "examples": [
+      "Let me write down your address."
+    ]
   },
   "zoom in": {
     "token": "zoom in",
@@ -1675,7 +2048,9 @@
     "translation": "ampliar (zoom)",
     "bilingual": "(phrasal) acercar la imagen, hacer zoom",
     "monolingual": "To magnify the image.",
-    "examples": ["Zoom in on the bottom-left corner."]
+    "examples": [
+      "Zoom in on the bottom-left corner."
+    ]
   },
   "kick off": {
     "token": "kick off",
@@ -1684,7 +2059,9 @@
     "translation": "empezar, dar comienzo",
     "bilingual": "(phrasal) empezar (un evento, un partido)",
     "monolingual": "To begin, especially a planned event.",
-    "examples": ["The festival kicks off this Friday."]
+    "examples": [
+      "The festival kicks off this Friday."
+    ]
   },
   "pull off": {
     "token": "pull off",
@@ -1693,7 +2070,9 @@
     "translation": "conseguir, lograr",
     "bilingual": "(phrasal) lograr, conseguir (algo difícil)",
     "monolingual": "To succeed at something difficult.",
-    "examples": ["I can't believe she pulled it off."]
+    "examples": [
+      "I can't believe she pulled it off."
+    ]
   },
   "pull over": {
     "token": "pull over",
@@ -1702,9 +2081,10 @@
     "translation": "parar (un coche al lado)",
     "bilingual": "(phrasal) parar el coche (al lado de la carretera)",
     "monolingual": "To stop a vehicle by the side of the road.",
-    "examples": ["The police asked us to pull over."]
+    "examples": [
+      "The police asked us to pull over."
+    ]
   },
-
   "piece of cake": {
     "token": "piece of cake",
     "type": "phrase",
@@ -1712,7 +2092,9 @@
     "translation": "pan comido",
     "bilingual": "(idiom) muy fácil, pan comido",
     "monolingual": "Something very easy to do.",
-    "examples": ["The exam was a piece of cake."]
+    "examples": [
+      "The exam was a piece of cake."
+    ]
   },
   "break a leg": {
     "token": "break a leg",
@@ -1721,7 +2103,9 @@
     "translation": "mucha suerte",
     "bilingual": "(idiom) ¡mucha suerte! (especialmente teatro)",
     "monolingual": "An idiom used to wish someone good luck, especially before a performance.",
-    "examples": ["Break a leg out there tonight!"]
+    "examples": [
+      "Break a leg out there tonight!"
+    ]
   },
   "under the weather": {
     "token": "under the weather",
@@ -1730,7 +2114,9 @@
     "translation": "indispuesto, mal",
     "bilingual": "(idiom) sentirse mal, indispuesto",
     "monolingual": "Slightly ill or feeling unwell.",
-    "examples": ["I'm feeling a bit under the weather today."]
+    "examples": [
+      "I'm feeling a bit under the weather today."
+    ]
   },
   "once in a blue moon": {
     "token": "once in a blue moon",
@@ -1739,7 +2125,9 @@
     "translation": "muy de vez en cuando",
     "bilingual": "(idiom) muy de vez en cuando, casi nunca",
     "monolingual": "Very rarely.",
-    "examples": ["I only see him once in a blue moon."]
+    "examples": [
+      "I only see him once in a blue moon."
+    ]
   },
   "hit the books": {
     "token": "hit the books",
@@ -1748,7 +2136,9 @@
     "translation": "ponerse a estudiar",
     "bilingual": "(idiom) ponerse a estudiar a tope",
     "monolingual": "To study intensively.",
-    "examples": ["I need to hit the books — exams start Monday."]
+    "examples": [
+      "I need to hit the books — exams start Monday."
+    ]
   },
   "hit the sack": {
     "token": "hit the sack",
@@ -1757,7 +2147,9 @@
     "translation": "irse a dormir",
     "bilingual": "(idiom) irse a la cama",
     "monolingual": "To go to bed.",
-    "examples": ["I'm exhausted — time to hit the sack."]
+    "examples": [
+      "I'm exhausted — time to hit the sack."
+    ]
   },
   "spill the beans": {
     "token": "spill the beans",
@@ -1766,7 +2158,9 @@
     "translation": "revelar un secreto",
     "bilingual": "(idiom) revelar un secreto, irse de la lengua",
     "monolingual": "To reveal a secret.",
-    "examples": ["Come on, spill the beans!"]
+    "examples": [
+      "Come on, spill the beans!"
+    ]
   },
   "let the cat out of the bag": {
     "token": "let the cat out of the bag",
@@ -1775,7 +2169,9 @@
     "translation": "revelar un secreto",
     "bilingual": "(idiom) revelar un secreto (a veces sin querer)",
     "monolingual": "To reveal a secret, often accidentally.",
-    "examples": ["She let the cat out of the bag about the surprise party."]
+    "examples": [
+      "She let the cat out of the bag about the surprise party."
+    ]
   },
   "cost an arm and a leg": {
     "token": "cost an arm and a leg",
@@ -1784,7 +2180,9 @@
     "translation": "costar un ojo de la cara",
     "bilingual": "(idiom) costar carísimo",
     "monolingual": "To be very expensive.",
-    "examples": ["This watch cost an arm and a leg."]
+    "examples": [
+      "This watch cost an arm and a leg."
+    ]
   },
   "the best of both worlds": {
     "token": "the best of both worlds",
@@ -1793,7 +2191,9 @@
     "translation": "lo mejor de los dos mundos",
     "bilingual": "(idiom) lo mejor de ambas opciones",
     "monolingual": "An advantageous situation combining the benefits of two different things.",
-    "examples": ["Working from home is the best of both worlds."]
+    "examples": [
+      "Working from home is the best of both worlds."
+    ]
   },
   "speak of the devil": {
     "token": "speak of the devil",
@@ -1802,7 +2202,9 @@
     "translation": "hablando del rey de Roma",
     "bilingual": "(idiom) hablando del rey de Roma...",
     "monolingual": "Said when someone you were just talking about appears.",
-    "examples": ["Speak of the devil — here she comes!"]
+    "examples": [
+      "Speak of the devil — here she comes!"
+    ]
   },
   "on the same page": {
     "token": "on the same page",
@@ -1811,7 +2213,9 @@
     "translation": "en la misma sintonía",
     "bilingual": "(idiom) estar de acuerdo, en sintonía",
     "monolingual": "Sharing the same understanding or opinion.",
-    "examples": ["Let's make sure we're all on the same page."]
+    "examples": [
+      "Let's make sure we're all on the same page."
+    ]
   },
   "out of the blue": {
     "token": "out of the blue",
@@ -1820,7 +2224,9 @@
     "translation": "de la nada, de repente",
     "bilingual": "(idiom) de repente, sin previo aviso",
     "monolingual": "Unexpectedly, without warning.",
-    "examples": ["She called me out of the blue."]
+    "examples": [
+      "She called me out of the blue."
+    ]
   },
   "in the long run": {
     "token": "in the long run",
@@ -1829,7 +2235,9 @@
     "translation": "a la larga",
     "bilingual": "(idiom) a largo plazo, a la larga",
     "monolingual": "Over an extended period.",
-    "examples": ["This decision will pay off in the long run."]
+    "examples": [
+      "This decision will pay off in the long run."
+    ]
   },
   "at the end of the day": {
     "token": "at the end of the day",
@@ -1838,7 +2246,9 @@
     "translation": "al fin y al cabo",
     "bilingual": "(idiom) al fin y al cabo",
     "monolingual": "When all is considered.",
-    "examples": ["At the end of the day, family is what matters."]
+    "examples": [
+      "At the end of the day, family is what matters."
+    ]
   },
   "by and large": {
     "token": "by and large",
@@ -1847,7 +2257,9 @@
     "translation": "en general",
     "bilingual": "(idiom) en general, en líneas generales",
     "monolingual": "On the whole.",
-    "examples": ["By and large, the project was a success."]
+    "examples": [
+      "By and large, the project was a success."
+    ]
   },
   "no big deal": {
     "token": "no big deal",
@@ -1856,7 +2268,9 @@
     "translation": "no es para tanto",
     "bilingual": "(idiom) no es nada importante",
     "monolingual": "Something not significant or worrying.",
-    "examples": ["Forget it — no big deal."]
+    "examples": [
+      "Forget it — no big deal."
+    ]
   },
   "no worries": {
     "token": "no worries",
@@ -1865,7 +2279,9 @@
     "translation": "no te preocupes",
     "bilingual": "(idiom, coloq.) tranquilo, no hay problema",
     "monolingual": "Informal: don't worry; you're welcome.",
-    "examples": ["No worries, I'll handle it."]
+    "examples": [
+      "No worries, I'll handle it."
+    ]
   },
   "a piece of work": {
     "token": "a piece of work",
@@ -1874,7 +2290,9 @@
     "translation": "menudo elemento",
     "bilingual": "(idiom, peyor.) menudo elemento, tipo difícil",
     "monolingual": "A difficult or strange person.",
-    "examples": ["That guy is a real piece of work."]
+    "examples": [
+      "That guy is a real piece of work."
+    ]
   },
   "rain check": {
     "token": "rain check",
@@ -1883,7 +2301,9 @@
     "translation": "lo dejamos para otro día",
     "bilingual": "(idiom) postergar una invitación",
     "monolingual": "A promise to do something at a later date.",
-    "examples": ["Can I take a rain check on lunch?"]
+    "examples": [
+      "Can I take a rain check on lunch?"
+    ]
   },
   "for good": {
     "token": "for good",
@@ -1892,7 +2312,9 @@
     "translation": "para siempre",
     "bilingual": "(idiom) para siempre, definitivamente",
     "monolingual": "Permanently, forever.",
-    "examples": ["He left the country for good."]
+    "examples": [
+      "He left the country for good."
+    ]
   },
   "in a nutshell": {
     "token": "in a nutshell",
@@ -1901,7 +2323,9 @@
     "translation": "en resumen, en pocas palabras",
     "bilingual": "(idiom) en pocas palabras, resumiendo",
     "monolingual": "Briefly, in summary.",
-    "examples": ["In a nutshell, we need more time."]
+    "examples": [
+      "In a nutshell, we need more time."
+    ]
   },
   "hit the road": {
     "token": "hit the road",
@@ -1910,7 +2334,9 @@
     "translation": "ponerse en marcha",
     "bilingual": "(idiom) salir de viaje, ponerse en camino",
     "monolingual": "To leave or begin a journey.",
-    "examples": ["It's late — let's hit the road."]
+    "examples": [
+      "It's late — let's hit the road."
+    ]
   },
   "call it a day": {
     "token": "call it a day",
@@ -1919,7 +2345,9 @@
     "translation": "dar por terminado el día",
     "bilingual": "(idiom) dejarlo por hoy",
     "monolingual": "To stop working for the day.",
-    "examples": ["I'm tired — let's call it a day."]
+    "examples": [
+      "I'm tired — let's call it a day."
+    ]
   },
   "long story short": {
     "token": "long story short",
@@ -1928,7 +2356,9 @@
     "translation": "resumiendo",
     "bilingual": "(idiom) en resumen, para no alargarlo",
     "monolingual": "Used to give a brief version of a longer story.",
-    "examples": ["Long story short, we missed the train."]
+    "examples": [
+      "Long story short, we missed the train."
+    ]
   },
   "you bet": {
     "token": "you bet",
@@ -1937,7 +2367,9 @@
     "translation": "¡por supuesto!",
     "bilingual": "(idiom, coloq.) por supuesto, claro que sí",
     "monolingual": "Of course; certainly.",
-    "examples": ["\"Are you coming?\" \"You bet!\""]
+    "examples": [
+      "\"Are you coming?\" \"You bet!\""
+    ]
   },
   "no kidding": {
     "token": "no kidding",
@@ -1946,7 +2378,9 @@
     "translation": "¿en serio?",
     "bilingual": "(idiom, coloq.) ¡no me digas!, ¿en serio?",
     "monolingual": "Expression of surprise or affirmation.",
-    "examples": ["He passed the exam? No kidding!"]
+    "examples": [
+      "He passed the exam? No kidding!"
+    ]
   },
   "back in the day": {
     "token": "back in the day",
@@ -1955,7 +2389,9 @@
     "translation": "en aquellos tiempos",
     "bilingual": "(idiom) en aquella época, antes",
     "monolingual": "In the past, especially during a remembered time.",
-    "examples": ["Back in the day, we used to walk to school."]
+    "examples": [
+      "Back in the day, we used to walk to school."
+    ]
   },
   "the bottom line": {
     "token": "the bottom line",
@@ -1964,7 +2400,9 @@
     "translation": "lo importante, el resultado final",
     "bilingual": "(idiom) lo esencial, en definitiva",
     "monolingual": "The most important point or final result.",
-    "examples": ["The bottom line is, we can't afford it."]
+    "examples": [
+      "The bottom line is, we can't afford it."
+    ]
   },
   "make sense": {
     "token": "make sense",
@@ -1973,7 +2411,9 @@
     "translation": "tener sentido",
     "bilingual": "(idiom) tener sentido, ser lógico",
     "monolingual": "To be reasonable or understandable.",
-    "examples": ["That doesn't make sense to me."]
+    "examples": [
+      "That doesn't make sense to me."
+    ]
   },
   "make a difference": {
     "token": "make a difference",
@@ -1982,7 +2422,9 @@
     "translation": "marcar la diferencia",
     "bilingual": "(idiom) marcar la diferencia",
     "monolingual": "To have a noticeable effect.",
-    "examples": ["Small actions can make a big difference."]
+    "examples": [
+      "Small actions can make a big difference."
+    ]
   },
   "keep in touch": {
     "token": "keep in touch",
@@ -1991,7 +2433,9 @@
     "translation": "mantenerse en contacto",
     "bilingual": "(idiom) mantenerse en contacto",
     "monolingual": "To continue communicating with someone.",
-    "examples": ["Let's keep in touch."]
+    "examples": [
+      "Let's keep in touch."
+    ]
   },
   "in time": {
     "token": "in time",
@@ -2000,7 +2444,9 @@
     "translation": "a tiempo / con el tiempo",
     "bilingual": "(idiom) a tiempo; con el tiempo",
     "monolingual": "Not late; or eventually.",
-    "examples": ["We arrived just in time."]
+    "examples": [
+      "We arrived just in time."
+    ]
   },
   "on time": {
     "token": "on time",
@@ -2009,7 +2455,9 @@
     "translation": "puntualmente",
     "bilingual": "(idiom) puntualmente, a la hora",
     "monolingual": "At the scheduled or agreed time.",
-    "examples": ["The train arrived on time."]
+    "examples": [
+      "The train arrived on time."
+    ]
   },
   "right away": {
     "token": "right away",
@@ -2018,7 +2466,9 @@
     "translation": "inmediatamente",
     "bilingual": "(idiom) inmediatamente, enseguida",
     "monolingual": "Immediately.",
-    "examples": ["I'll do it right away."]
+    "examples": [
+      "I'll do it right away."
+    ]
   },
   "all of a sudden": {
     "token": "all of a sudden",
@@ -2027,7 +2477,9 @@
     "translation": "de repente",
     "bilingual": "(idiom) de repente, de pronto",
     "monolingual": "Suddenly and unexpectedly.",
-    "examples": ["All of a sudden, it started raining."]
+    "examples": [
+      "All of a sudden, it started raining."
+    ]
   },
   "as a matter of fact": {
     "token": "as a matter of fact",
@@ -2036,7 +2488,9 @@
     "translation": "de hecho",
     "bilingual": "(idiom) de hecho, en realidad",
     "monolingual": "In fact, used to introduce a correction or addition.",
-    "examples": ["As a matter of fact, I do know him."]
+    "examples": [
+      "As a matter of fact, I do know him."
+    ]
   },
   "first of all": {
     "token": "first of all",
@@ -2045,9 +2499,65 @@
     "translation": "en primer lugar",
     "bilingual": "(idiom) en primer lugar, para empezar",
     "monolingual": "Used to introduce the first point.",
-    "examples": ["First of all, let me thank you for coming."]
+    "examples": [
+      "First of all, let me thank you for coming."
+    ]
   },
-
+  "run": {
+    "token": "run",
+    "type": "word",
+    "level": "A1",
+    "translation": "correr",
+    "bilingual": "(verbo) correr",
+    "monolingual": "To move quickly on foot, with both feet leaving the ground between steps.",
+    "examples": [
+      "She ran home."
+    ]
+  },
+  "forget": {
+    "token": "forget",
+    "type": "word",
+    "level": "A2",
+    "translation": "olvidar",
+    "bilingual": "(verbo) olvidar, olvidarse de",
+    "monolingual": "To fail to remember something or to fail to do something intended.",
+    "examples": [
+      "Do not forget your keys."
+    ]
+  },
+  "each": {
+    "token": "each",
+    "type": "word",
+    "level": "A1",
+    "translation": "cada",
+    "bilingual": "(det.) cada; (pron.) cada uno",
+    "monolingual": "Every one of two or more people or things, considered separately.",
+    "examples": [
+      "Each student has a book."
+    ]
+  },
+  "tensor": {
+    "token": "tensor",
+    "type": "word",
+    "level": "C1",
+    "translation": "tensor",
+    "bilingual": "(sust., matemáticas/informática) tensor",
+    "monolingual": "A mathematical object represented by a multidimensional array of components.",
+    "examples": [
+      "The model uses a tensor."
+    ]
+  },
+  "lit": {
+    "token": "lit",
+    "type": "word",
+    "level": "B2",
+    "translation": "genial",
+    "bilingual": "(adj., slang) genial, increíble, emocionante",
+    "monolingual": "Slang: excellent, exciting, or highly enjoyable.",
+    "examples": [
+      "The show was lit."
+    ]
+  },
   "gonna": {
     "token": "gonna",
     "type": "word",
@@ -2055,7 +2565,9 @@
     "translation": "ir a (informal de \"going to\")",
     "bilingual": "(coloq., contracción de \"going to\") voy/vas/va a...",
     "monolingual": "Informal contraction of \"going to\" (future intent).",
-    "examples": ["I'm gonna call you tomorrow."]
+    "examples": [
+      "I'm gonna call you tomorrow."
+    ]
   },
   "wanna": {
     "token": "wanna",
@@ -2064,7 +2576,9 @@
     "translation": "querer (informal de \"want to\")",
     "bilingual": "(coloq., contracción de \"want to\") quiero/quieres...",
     "monolingual": "Informal contraction of \"want to\".",
-    "examples": ["Do you wanna come with us?"]
+    "examples": [
+      "Do you wanna come with us?"
+    ]
   },
   "gotta": {
     "token": "gotta",
@@ -2073,7 +2587,9 @@
     "translation": "tener que (informal de \"got to\")",
     "bilingual": "(coloq., contracción de \"got to\") tengo/tienes que...",
     "monolingual": "Informal contraction of \"have got to\" / \"got to\".",
-    "examples": ["I gotta go now."]
+    "examples": [
+      "I gotta go now."
+    ]
   },
   "kinda": {
     "token": "kinda",
@@ -2082,7 +2598,9 @@
     "translation": "más o menos (informal de \"kind of\")",
     "bilingual": "(coloq., contracción de \"kind of\") un poco, más o menos",
     "monolingual": "Informal contraction of \"kind of\".",
-    "examples": ["I'm kinda tired."]
+    "examples": [
+      "I'm kinda tired."
+    ]
   },
   "sorta": {
     "token": "sorta",
@@ -2091,7 +2609,9 @@
     "translation": "más o menos (informal de \"sort of\")",
     "bilingual": "(coloq., contracción de \"sort of\") más o menos",
     "monolingual": "Informal contraction of \"sort of\".",
-    "examples": ["He's sorta my boyfriend, I guess."]
+    "examples": [
+      "He's sorta my boyfriend, I guess."
+    ]
   },
   "lemme": {
     "token": "lemme",
@@ -2100,7 +2620,9 @@
     "translation": "déjame (informal de \"let me\")",
     "bilingual": "(coloq., contracción de \"let me\") déjame",
     "monolingual": "Informal contraction of \"let me\".",
-    "examples": ["Lemme see that."]
+    "examples": [
+      "Lemme see that."
+    ]
   },
   "gimme": {
     "token": "gimme",
@@ -2109,7 +2631,9 @@
     "translation": "dame (informal de \"give me\")",
     "bilingual": "(coloq., contracción de \"give me\") dame",
     "monolingual": "Informal contraction of \"give me\".",
-    "examples": ["Gimme a minute."]
+    "examples": [
+      "Gimme a minute."
+    ]
   },
   "dunno": {
     "token": "dunno",
@@ -2118,7 +2642,9 @@
     "translation": "no sé (informal de \"don't know\")",
     "bilingual": "(coloq., contracción de \"don't know\") no sé",
     "monolingual": "Informal contraction of \"don't know\".",
-    "examples": ["I dunno where he is."]
+    "examples": [
+      "I dunno where he is."
+    ]
   },
   "ain't": {
     "token": "ain't",
@@ -2127,7 +2653,9 @@
     "translation": "no es / no soy / no estás... (informal)",
     "bilingual": "(coloq., no estándar) negación de am/is/are/has/have",
     "monolingual": "Informal negation of am/is/are/has/have (non-standard but very common in songs, slang).",
-    "examples": ["That ain't right."]
+    "examples": [
+      "That ain't right."
+    ]
   },
   "y'all": {
     "token": "y'all",
@@ -2136,9 +2664,10 @@
     "translation": "vosotros/ustedes (sureño EE.UU.)",
     "bilingual": "(coloq., sur de EE.UU.) vosotros, ustedes",
     "monolingual": "Southern US informal contraction of \"you all\".",
-    "examples": ["Y'all coming to the party?"]
+    "examples": [
+      "Y'all coming to the party?"
+    ]
   },
-
   "achieve": {
     "token": "achieve",
     "type": "word",
@@ -2147,7 +2676,9 @@
     "phonetic": "/əˈtʃiːv/",
     "bilingual": "(verbo) lograr, conseguir, alcanzar",
     "monolingual": "To successfully reach a desired objective.",
-    "examples": ["She achieved her goals through hard work."]
+    "examples": [
+      "She achieved her goals through hard work."
+    ]
   },
   "acknowledge": {
     "token": "acknowledge",
@@ -2157,7 +2688,9 @@
     "phonetic": "/əkˈnɒlɪdʒ/",
     "bilingual": "(verbo) reconocer, admitir",
     "monolingual": "To accept or admit the existence of something.",
-    "examples": ["He acknowledged his mistake."]
+    "examples": [
+      "He acknowledged his mistake."
+    ]
   },
   "acquire": {
     "token": "acquire",
@@ -2167,7 +2700,9 @@
     "phonetic": "/əˈkwaɪə(r)/",
     "bilingual": "(verbo) adquirir, obtener",
     "monolingual": "To come to own or possess.",
-    "examples": ["She acquired a taste for olives."]
+    "examples": [
+      "She acquired a taste for olives."
+    ]
   },
   "adapt": {
     "token": "adapt",
@@ -2177,7 +2712,9 @@
     "phonetic": "/əˈdæpt/",
     "bilingual": "(verbo) adaptar, adaptarse",
     "monolingual": "To adjust to new conditions.",
-    "examples": ["Children adapt quickly to new schools."]
+    "examples": [
+      "Children adapt quickly to new schools."
+    ]
   },
   "afford": {
     "token": "afford",
@@ -2187,7 +2724,9 @@
     "phonetic": "/əˈfɔːd/",
     "bilingual": "(verbo) permitirse, poder pagar",
     "monolingual": "To have enough money or time for something.",
-    "examples": ["I can't afford a new car."]
+    "examples": [
+      "I can't afford a new car."
+    ]
   },
   "appreciate": {
     "token": "appreciate",
@@ -2197,7 +2736,9 @@
     "phonetic": "/əˈpriːʃieɪt/",
     "bilingual": "(verbo) apreciar, agradecer, valorar",
     "monolingual": "To recognize the value of; or to be grateful for.",
-    "examples": ["I really appreciate your help."]
+    "examples": [
+      "I really appreciate your help."
+    ]
   },
   "argue": {
     "token": "argue",
@@ -2207,7 +2748,9 @@
     "phonetic": "/ˈɑːɡjuː/",
     "bilingual": "(verbo) discutir, argumentar",
     "monolingual": "To exchange diverging or opposite views.",
-    "examples": ["They argue about politics constantly."]
+    "examples": [
+      "They argue about politics constantly."
+    ]
   },
   "arrange": {
     "token": "arrange",
@@ -2217,7 +2760,9 @@
     "phonetic": "/əˈreɪndʒ/",
     "bilingual": "(verbo) organizar, planear, arreglar",
     "monolingual": "To put things in order or to plan.",
-    "examples": ["I arranged a meeting for Friday."]
+    "examples": [
+      "I arranged a meeting for Friday."
+    ]
   },
   "assume": {
     "token": "assume",
@@ -2227,7 +2772,9 @@
     "phonetic": "/əˈsjuːm/",
     "bilingual": "(verbo) asumir, dar por sentado",
     "monolingual": "To accept as true without proof.",
-    "examples": ["I assumed you were busy."]
+    "examples": [
+      "I assumed you were busy."
+    ]
   },
   "attempt": {
     "token": "attempt",
@@ -2237,7 +2784,9 @@
     "phonetic": "/əˈtempt/",
     "bilingual": "(verbo/sust.) intentar; intento",
     "monolingual": "To try to do something; or an act of trying.",
-    "examples": ["She made an attempt to climb the mountain."]
+    "examples": [
+      "She made an attempt to climb the mountain."
+    ]
   },
   "approach": {
     "token": "approach",
@@ -2247,7 +2796,9 @@
     "phonetic": "/əˈprəʊtʃ/",
     "bilingual": "(verbo/sust.) acercarse; enfoque, planteamiento",
     "monolingual": "To come closer; or a method of dealing with something.",
-    "examples": ["We need a new approach to this problem."]
+    "examples": [
+      "We need a new approach to this problem."
+    ]
   },
   "aware": {
     "token": "aware",
@@ -2257,7 +2808,9 @@
     "phonetic": "/əˈweə(r)/",
     "bilingual": "(adj.) consciente, al tanto",
     "monolingual": "Having knowledge or perception of a situation.",
-    "examples": ["Are you aware of the risks?"]
+    "examples": [
+      "Are you aware of the risks?"
+    ]
   },
   "behave": {
     "token": "behave",
@@ -2267,7 +2820,9 @@
     "phonetic": "/bɪˈheɪv/",
     "bilingual": "(verbo) comportarse",
     "monolingual": "To act in a particular way.",
-    "examples": ["The children behaved well at the party."]
+    "examples": [
+      "The children behaved well at the party."
+    ]
   },
   "blame": {
     "token": "blame",
@@ -2277,7 +2832,9 @@
     "phonetic": "/bleɪm/",
     "bilingual": "(verbo/sust.) culpar; culpa",
     "monolingual": "To assign responsibility for a fault.",
-    "examples": ["Don't blame me — it wasn't my fault."]
+    "examples": [
+      "Don't blame me — it wasn't my fault."
+    ]
   },
   "bother": {
     "token": "bother",
@@ -2287,7 +2844,9 @@
     "phonetic": "/ˈbɒðə(r)/",
     "bilingual": "(verbo) molestar, fastidiar",
     "monolingual": "To cause annoyance or inconvenience.",
-    "examples": ["Sorry to bother you."]
+    "examples": [
+      "Sorry to bother you."
+    ]
   },
   "burst": {
     "token": "burst",
@@ -2297,7 +2856,9 @@
     "phonetic": "/bɜːst/",
     "bilingual": "(verbo) estallar, reventar",
     "monolingual": "To break open suddenly and violently.",
-    "examples": ["The balloon burst with a loud bang."]
+    "examples": [
+      "The balloon burst with a loud bang."
+    ]
   },
   "claim": {
     "token": "claim",
@@ -2307,7 +2868,9 @@
     "phonetic": "/kleɪm/",
     "bilingual": "(verbo/sust.) afirmar; reclamar; reclamación",
     "monolingual": "To state as true; or to demand as one's right.",
-    "examples": ["He claims to know the truth."]
+    "examples": [
+      "He claims to know the truth."
+    ]
   },
   "complain": {
     "token": "complain",
@@ -2317,7 +2880,9 @@
     "phonetic": "/kəmˈpleɪn/",
     "bilingual": "(verbo) quejarse, protestar",
     "monolingual": "To express dissatisfaction.",
-    "examples": ["She complained about the noise."]
+    "examples": [
+      "She complained about the noise."
+    ]
   },
   "conclude": {
     "token": "conclude",
@@ -2327,7 +2892,9 @@
     "phonetic": "/kənˈkluːd/",
     "bilingual": "(verbo) concluir, terminar; deducir",
     "monolingual": "To bring to an end; or to deduce.",
-    "examples": ["The meeting concluded at noon."]
+    "examples": [
+      "The meeting concluded at noon."
+    ]
   },
   "confess": {
     "token": "confess",
@@ -2337,7 +2904,9 @@
     "phonetic": "/kənˈfes/",
     "bilingual": "(verbo) confesar, admitir",
     "monolingual": "To admit something, especially a fault.",
-    "examples": ["He confessed to the crime."]
+    "examples": [
+      "He confessed to the crime."
+    ]
   },
   "consider": {
     "token": "consider",
@@ -2347,7 +2916,9 @@
     "phonetic": "/kənˈsɪdə(r)/",
     "bilingual": "(verbo) considerar, pensar en",
     "monolingual": "To think about something carefully.",
-    "examples": ["I'll consider your offer."]
+    "examples": [
+      "I'll consider your offer."
+    ]
   },
   "convince": {
     "token": "convince",
@@ -2357,7 +2928,9 @@
     "phonetic": "/kənˈvɪns/",
     "bilingual": "(verbo) convencer",
     "monolingual": "To cause someone to believe firmly in something.",
-    "examples": ["She convinced me to stay."]
+    "examples": [
+      "She convinced me to stay."
+    ]
   },
   "decline": {
     "token": "decline",
@@ -2367,7 +2940,9 @@
     "phonetic": "/dɪˈklaɪn/",
     "bilingual": "(verbo) rechazar; disminuir, declinar",
     "monolingual": "To politely refuse; or to become smaller.",
-    "examples": ["She declined the invitation."]
+    "examples": [
+      "She declined the invitation."
+    ]
   },
   "demand": {
     "token": "demand",
@@ -2377,7 +2952,9 @@
     "phonetic": "/dɪˈmɑːnd/",
     "bilingual": "(verbo/sust.) exigir; demanda, exigencia",
     "monolingual": "To ask forcefully; or a strong request.",
-    "examples": ["He demanded an explanation."]
+    "examples": [
+      "He demanded an explanation."
+    ]
   },
   "deny": {
     "token": "deny",
@@ -2387,7 +2964,9 @@
     "phonetic": "/dɪˈnaɪ/",
     "bilingual": "(verbo) negar, rechazar",
     "monolingual": "To refuse to admit the truth of.",
-    "examples": ["He denied any involvement."]
+    "examples": [
+      "He denied any involvement."
+    ]
   },
   "deserve": {
     "token": "deserve",
@@ -2397,7 +2976,9 @@
     "phonetic": "/dɪˈzɜːv/",
     "bilingual": "(verbo) merecer",
     "monolingual": "To be worthy of.",
-    "examples": ["You deserve a break."]
+    "examples": [
+      "You deserve a break."
+    ]
   },
   "encourage": {
     "token": "encourage",
@@ -2407,7 +2988,9 @@
     "phonetic": "/ɪnˈkʌrɪdʒ/",
     "bilingual": "(verbo) animar, alentar, fomentar",
     "monolingual": "To give support, confidence, or hope.",
-    "examples": ["My parents always encouraged me."]
+    "examples": [
+      "My parents always encouraged me."
+    ]
   },
   "establish": {
     "token": "establish",
@@ -2417,7 +3000,9 @@
     "phonetic": "/ɪˈstæblɪʃ/",
     "bilingual": "(verbo) establecer, fundar",
     "monolingual": "To set up on a firm or permanent basis.",
-    "examples": ["The company was established in 1990."]
+    "examples": [
+      "The company was established in 1990."
+    ]
   },
   "examine": {
     "token": "examine",
@@ -2427,7 +3012,9 @@
     "phonetic": "/ɪɡˈzæmɪn/",
     "bilingual": "(verbo) examinar, inspeccionar",
     "monolingual": "To inspect closely.",
-    "examples": ["The doctor examined her carefully."]
+    "examples": [
+      "The doctor examined her carefully."
+    ]
   },
   "expand": {
     "token": "expand",
@@ -2437,7 +3024,9 @@
     "phonetic": "/ɪkˈspænd/",
     "bilingual": "(verbo) expandir, ampliar",
     "monolingual": "To become larger or more extensive.",
-    "examples": ["The company is expanding into Asia."]
+    "examples": [
+      "The company is expanding into Asia."
+    ]
   },
   "expect": {
     "token": "expect",
@@ -2447,7 +3036,9 @@
     "phonetic": "/ɪkˈspekt/",
     "bilingual": "(verbo) esperar, suponer",
     "monolingual": "To regard as likely to happen.",
-    "examples": ["I expect to arrive at six."]
+    "examples": [
+      "I expect to arrive at six."
+    ]
   },
   "explore": {
     "token": "explore",
@@ -2457,7 +3048,9 @@
     "phonetic": "/ɪkˈsplɔː(r)/",
     "bilingual": "(verbo) explorar, investigar",
     "monolingual": "To travel through to learn about; or to investigate.",
-    "examples": ["We explored the old castle."]
+    "examples": [
+      "We explored the old castle."
+    ]
   },
   "fail": {
     "token": "fail",
@@ -2467,7 +3060,9 @@
     "phonetic": "/feɪl/",
     "bilingual": "(verbo) fallar, suspender, fracasar",
     "monolingual": "To not succeed.",
-    "examples": ["He failed the exam."]
+    "examples": [
+      "He failed the exam."
+    ]
   },
   "handle": {
     "token": "handle",
@@ -2477,7 +3072,9 @@
     "phonetic": "/ˈhændl/",
     "bilingual": "(verbo/sust.) manejar, gestionar; asa, mango",
     "monolingual": "To deal with a situation; or a part of an object designed to be held.",
-    "examples": ["She handled the crisis professionally."]
+    "examples": [
+      "She handled the crisis professionally."
+    ]
   },
   "ignore": {
     "token": "ignore",
@@ -2487,7 +3084,9 @@
     "phonetic": "/ɪɡˈnɔː(r)/",
     "bilingual": "(verbo) ignorar, no hacer caso",
     "monolingual": "To refuse to take notice of.",
-    "examples": ["Just ignore him."]
+    "examples": [
+      "Just ignore him."
+    ]
   },
   "improve": {
     "token": "improve",
@@ -2497,7 +3096,9 @@
     "phonetic": "/ɪmˈpruːv/",
     "bilingual": "(verbo) mejorar",
     "monolingual": "To make or become better.",
-    "examples": ["She wants to improve her English."]
+    "examples": [
+      "She wants to improve her English."
+    ]
   },
   "indicate": {
     "token": "indicate",
@@ -2507,7 +3108,9 @@
     "phonetic": "/ˈɪndɪkeɪt/",
     "bilingual": "(verbo) indicar, señalar",
     "monolingual": "To point out or show.",
-    "examples": ["The arrow indicates the exit."]
+    "examples": [
+      "The arrow indicates the exit."
+    ]
   },
   "involve": {
     "token": "involve",
@@ -2517,7 +3120,9 @@
     "phonetic": "/ɪnˈvɒlv/",
     "bilingual": "(verbo) involucrar, implicar; incluir",
     "monolingual": "To include as a necessary part.",
-    "examples": ["The job involves a lot of travel."]
+    "examples": [
+      "The job involves a lot of travel."
+    ]
   },
   "manage": {
     "token": "manage",
@@ -2527,7 +3132,9 @@
     "phonetic": "/ˈmænɪdʒ/",
     "bilingual": "(verbo) gestionar; conseguir, arreglárselas",
     "monolingual": "To be in charge of; or to succeed in doing.",
-    "examples": ["She manages a small team."]
+    "examples": [
+      "She manages a small team."
+    ]
   },
   "matter": {
     "token": "matter",
@@ -2537,7 +3144,9 @@
     "phonetic": "/ˈmætə(r)/",
     "bilingual": "(verbo/sust.) importar; asunto, materia",
     "monolingual": "To be important; or a subject under consideration.",
-    "examples": ["It doesn't matter."]
+    "examples": [
+      "It doesn't matter."
+    ]
   },
   "mention": {
     "token": "mention",
@@ -2547,7 +3156,9 @@
     "phonetic": "/ˈmenʃn/",
     "bilingual": "(verbo) mencionar",
     "monolingual": "To refer to something briefly.",
-    "examples": ["She mentioned your name."]
+    "examples": [
+      "She mentioned your name."
+    ]
   },
   "notice": {
     "token": "notice",
@@ -2557,7 +3168,9 @@
     "phonetic": "/ˈnəʊtɪs/",
     "bilingual": "(verbo/sust.) darse cuenta; aviso, cartel",
     "monolingual": "To become aware of; or a written announcement.",
-    "examples": ["Did you notice the change?"]
+    "examples": [
+      "Did you notice the change?"
+    ]
   },
   "obtain": {
     "token": "obtain",
@@ -2567,7 +3180,9 @@
     "phonetic": "/əbˈteɪn/",
     "bilingual": "(verbo) obtener, conseguir",
     "monolingual": "To come into possession of.",
-    "examples": ["She obtained a degree in physics."]
+    "examples": [
+      "She obtained a degree in physics."
+    ]
   },
   "occur": {
     "token": "occur",
@@ -2577,7 +3192,9 @@
     "phonetic": "/əˈkɜː(r)/",
     "bilingual": "(verbo) ocurrir, suceder; ocurrírsele a uno",
     "monolingual": "To happen; or to come into the mind.",
-    "examples": ["It occurred to me yesterday."]
+    "examples": [
+      "It occurred to me yesterday."
+    ]
   },
   "overcome": {
     "token": "overcome",
@@ -2587,7 +3204,9 @@
     "phonetic": "/ˌəʊvəˈkʌm/",
     "bilingual": "(verbo) superar, vencer (una dificultad)",
     "monolingual": "To succeed in dealing with a problem.",
-    "examples": ["She overcame many obstacles."]
+    "examples": [
+      "She overcame many obstacles."
+    ]
   },
   "persuade": {
     "token": "persuade",
@@ -2597,7 +3216,9 @@
     "phonetic": "/pəˈsweɪd/",
     "bilingual": "(verbo) persuadir, convencer",
     "monolingual": "To induce someone to do something by reasoning.",
-    "examples": ["He persuaded me to stay."]
+    "examples": [
+      "He persuaded me to stay."
+    ]
   },
   "pretend": {
     "token": "pretend",
@@ -2607,7 +3228,9 @@
     "phonetic": "/prɪˈtend/",
     "bilingual": "(verbo) fingir, pretender (aparentar)",
     "monolingual": "To behave as if something is true when it is not.",
-    "examples": ["Stop pretending you don't know."]
+    "examples": [
+      "Stop pretending you don't know."
+    ]
   },
   "prevent": {
     "token": "prevent",
@@ -2617,7 +3240,9 @@
     "phonetic": "/prɪˈvent/",
     "bilingual": "(verbo) prevenir, evitar, impedir",
     "monolingual": "To stop something from happening.",
-    "examples": ["Exercise can prevent many diseases."]
+    "examples": [
+      "Exercise can prevent many diseases."
+    ]
   },
   "promote": {
     "token": "promote",
@@ -2627,7 +3252,9 @@
     "phonetic": "/prəˈməʊt/",
     "bilingual": "(verbo) promover, fomentar; ascender (en un trabajo)",
     "monolingual": "To support actively; or to raise to a higher rank.",
-    "examples": ["She was promoted to manager."]
+    "examples": [
+      "She was promoted to manager."
+    ]
   },
   "provide": {
     "token": "provide",
@@ -2637,7 +3264,9 @@
     "phonetic": "/prəˈvaɪd/",
     "bilingual": "(verbo) proporcionar, suministrar",
     "monolingual": "To make available for use.",
-    "examples": ["The hotel provides breakfast."]
+    "examples": [
+      "The hotel provides breakfast."
+    ]
   },
   "recognize": {
     "token": "recognize",
@@ -2647,7 +3276,9 @@
     "phonetic": "/ˈrekəɡnaɪz/",
     "bilingual": "(verbo) reconocer (a alguien); admitir",
     "monolingual": "To identify someone as previously known.",
-    "examples": ["I didn't recognize you with that haircut!"]
+    "examples": [
+      "I didn't recognize you with that haircut!"
+    ]
   },
   "refuse": {
     "token": "refuse",
@@ -2657,7 +3288,9 @@
     "phonetic": "/rɪˈfjuːz/",
     "bilingual": "(verbo) negarse, rechazar",
     "monolingual": "To indicate unwillingness to do.",
-    "examples": ["He refused to apologise."]
+    "examples": [
+      "He refused to apologise."
+    ]
   },
   "regret": {
     "token": "regret",
@@ -2667,7 +3300,9 @@
     "phonetic": "/rɪˈɡret/",
     "bilingual": "(verbo/sust.) arrepentirse; arrepentimiento",
     "monolingual": "To feel sorry about something.",
-    "examples": ["I regret not calling her."]
+    "examples": [
+      "I regret not calling her."
+    ]
   },
   "release": {
     "token": "release",
@@ -2677,7 +3312,9 @@
     "phonetic": "/rɪˈliːs/",
     "bilingual": "(verbo) liberar; lanzar (un producto)",
     "monolingual": "To set free; or to make publicly available.",
-    "examples": ["The album was released yesterday."]
+    "examples": [
+      "The album was released yesterday."
+    ]
   },
   "remain": {
     "token": "remain",
@@ -2687,7 +3324,9 @@
     "phonetic": "/rɪˈmeɪn/",
     "bilingual": "(verbo) permanecer, quedarse; sobrar",
     "monolingual": "To continue to exist or be present.",
-    "examples": ["Few people remained at the end."]
+    "examples": [
+      "Few people remained at the end."
+    ]
   },
   "remind": {
     "token": "remind",
@@ -2697,7 +3336,9 @@
     "phonetic": "/rɪˈmaɪnd/",
     "bilingual": "(verbo) recordar (a alguien), hacer acordar",
     "monolingual": "To cause someone to remember.",
-    "examples": ["Remind me to call mum."]
+    "examples": [
+      "Remind me to call mum."
+    ]
   },
   "replace": {
     "token": "replace",
@@ -2707,7 +3348,9 @@
     "phonetic": "/rɪˈpleɪs/",
     "bilingual": "(verbo) reemplazar, sustituir",
     "monolingual": "To take the place of.",
-    "examples": ["I need to replace the battery."]
+    "examples": [
+      "I need to replace the battery."
+    ]
   },
   "represent": {
     "token": "represent",
@@ -2717,7 +3360,9 @@
     "phonetic": "/ˌreprɪˈzent/",
     "bilingual": "(verbo) representar; simbolizar",
     "monolingual": "To act or speak for; or to symbolize.",
-    "examples": ["The stars represent the states."]
+    "examples": [
+      "The stars represent the states."
+    ]
   },
   "require": {
     "token": "require",
@@ -2727,7 +3372,9 @@
     "phonetic": "/rɪˈkwaɪə(r)/",
     "bilingual": "(verbo) requerir, exigir, necesitar",
     "monolingual": "To need for a purpose; or to demand.",
-    "examples": ["The job requires patience."]
+    "examples": [
+      "The job requires patience."
+    ]
   },
   "respond": {
     "token": "respond",
@@ -2737,7 +3384,9 @@
     "phonetic": "/rɪˈspɒnd/",
     "bilingual": "(verbo) responder, reaccionar",
     "monolingual": "To react to something.",
-    "examples": ["She didn't respond to my email."]
+    "examples": [
+      "She didn't respond to my email."
+    ]
   },
   "reveal": {
     "token": "reveal",
@@ -2747,7 +3396,9 @@
     "phonetic": "/rɪˈviːl/",
     "bilingual": "(verbo) revelar, descubrir",
     "monolingual": "To make known something previously secret.",
-    "examples": ["He revealed the truth."]
+    "examples": [
+      "He revealed the truth."
+    ]
   },
   "satisfy": {
     "token": "satisfy",
@@ -2757,7 +3408,9 @@
     "phonetic": "/ˈsætɪsfaɪ/",
     "bilingual": "(verbo) satisfacer, complacer",
     "monolingual": "To meet expectations or desires.",
-    "examples": ["Nothing satisfies him."]
+    "examples": [
+      "Nothing satisfies him."
+    ]
   },
   "settle": {
     "token": "settle",
@@ -2767,7 +3420,9 @@
     "phonetic": "/ˈsetl/",
     "bilingual": "(verbo) establecerse; resolver (asunto); pagar (cuenta)",
     "monolingual": "To establish a home; or to resolve a dispute.",
-    "examples": ["They settled in Spain."]
+    "examples": [
+      "They settled in Spain."
+    ]
   },
   "struggle": {
     "token": "struggle",
@@ -2777,7 +3432,9 @@
     "phonetic": "/ˈstrʌɡl/",
     "bilingual": "(verbo/sust.) luchar (con dificultad); lucha",
     "monolingual": "To make a great effort under difficulty.",
-    "examples": ["She struggled to understand."]
+    "examples": [
+      "She struggled to understand."
+    ]
   },
   "succeed": {
     "token": "succeed",
@@ -2787,7 +3444,9 @@
     "phonetic": "/səkˈsiːd/",
     "bilingual": "(verbo) tener éxito, conseguir; suceder a alguien",
     "monolingual": "To achieve the desired result; or to follow in order.",
-    "examples": ["She succeeded in convincing him."]
+    "examples": [
+      "She succeeded in convincing him."
+    ]
   },
   "suggest": {
     "token": "suggest",
@@ -2797,7 +3456,9 @@
     "phonetic": "/səˈdʒest/",
     "bilingual": "(verbo) sugerir, proponer",
     "monolingual": "To put forward an idea or plan.",
-    "examples": ["I suggest we leave now."]
+    "examples": [
+      "I suggest we leave now."
+    ]
   },
   "suppose": {
     "token": "suppose",
@@ -2807,7 +3468,9 @@
     "phonetic": "/səˈpəʊz/",
     "bilingual": "(verbo) suponer, imaginar",
     "monolingual": "To assume something as the case.",
-    "examples": ["I suppose you're right."]
+    "examples": [
+      "I suppose you're right."
+    ]
   },
   "tend": {
     "token": "tend",
@@ -2817,7 +3480,9 @@
     "phonetic": "/tend/",
     "bilingual": "(verbo) tender a, soler",
     "monolingual": "To regularly behave in a particular way.",
-    "examples": ["I tend to wake up early."]
+    "examples": [
+      "I tend to wake up early."
+    ]
   },
   "tolerate": {
     "token": "tolerate",
@@ -2827,7 +3492,9 @@
     "phonetic": "/ˈtɒləreɪt/",
     "bilingual": "(verbo) tolerar, aguantar",
     "monolingual": "To accept without protest.",
-    "examples": ["I can't tolerate rudeness."]
+    "examples": [
+      "I can't tolerate rudeness."
+    ]
   },
   "transform": {
     "token": "transform",
@@ -2837,7 +3504,9 @@
     "phonetic": "/trænsˈfɔːm/",
     "bilingual": "(verbo) transformar, convertir",
     "monolingual": "To change in form or character.",
-    "examples": ["The internet has transformed our lives."]
+    "examples": [
+      "The internet has transformed our lives."
+    ]
   },
   "warn": {
     "token": "warn",
@@ -2847,7 +3516,9 @@
     "phonetic": "/wɔːn/",
     "bilingual": "(verbo) advertir, avisar (de un peligro)",
     "monolingual": "To inform of danger or a problem.",
-    "examples": ["I warned you about him."]
+    "examples": [
+      "I warned you about him."
+    ]
   },
   "withdraw": {
     "token": "withdraw",
@@ -2857,7 +3528,9 @@
     "phonetic": "/wɪðˈdrɔː/",
     "bilingual": "(verbo) retirar (dinero); retirarse",
     "monolingual": "To remove or take away; or to leave.",
-    "examples": ["I need to withdraw some cash."]
+    "examples": [
+      "I need to withdraw some cash."
+    ]
   },
   "ambiguous": {
     "token": "ambiguous",
@@ -2867,7 +3540,9 @@
     "phonetic": "/æmˈbɪɡjuəs/",
     "bilingual": "(adj.) ambiguo, poco claro",
     "monolingual": "Open to more than one interpretation.",
-    "examples": ["His answer was deliberately ambiguous."]
+    "examples": [
+      "His answer was deliberately ambiguous."
+    ]
   },
   "anxious": {
     "token": "anxious",
@@ -2877,7 +3552,9 @@
     "phonetic": "/ˈæŋkʃəs/",
     "bilingual": "(adj.) ansioso, preocupado, nervioso",
     "monolingual": "Feeling worried or nervous.",
-    "examples": ["She was anxious about the interview."]
+    "examples": [
+      "She was anxious about the interview."
+    ]
   },
   "awkward": {
     "token": "awkward",
@@ -2887,7 +3564,9 @@
     "phonetic": "/ˈɔːkwəd/",
     "bilingual": "(adj.) incómodo (situación); torpe (físicamente)",
     "monolingual": "Causing or feeling unease; or clumsy.",
-    "examples": ["There was an awkward silence."]
+    "examples": [
+      "There was an awkward silence."
+    ]
   },
   "brilliant": {
     "token": "brilliant",
@@ -2897,7 +3576,9 @@
     "phonetic": "/ˈbrɪliənt/",
     "bilingual": "(adj.) brillante (inteligente); estupendo",
     "monolingual": "Exceptionally clever or talented; or wonderful.",
-    "examples": ["What a brilliant idea!"]
+    "examples": [
+      "What a brilliant idea!"
+    ]
   },
   "challenging": {
     "token": "challenging",
@@ -2907,7 +3588,9 @@
     "phonetic": "/ˈtʃælɪndʒɪŋ/",
     "bilingual": "(adj.) desafiante, exigente",
     "monolingual": "Testing one's abilities; demanding.",
-    "examples": ["It was a challenging project."]
+    "examples": [
+      "It was a challenging project."
+    ]
   },
   "confident": {
     "token": "confident",
@@ -2917,7 +3600,9 @@
     "phonetic": "/ˈkɒnfɪdənt/",
     "bilingual": "(adj.) seguro, confiado",
     "monolingual": "Feeling sure of oneself or of an outcome.",
-    "examples": ["She's confident she'll win."]
+    "examples": [
+      "She's confident she'll win."
+    ]
   },
   "crucial": {
     "token": "crucial",
@@ -2927,7 +3612,9 @@
     "phonetic": "/ˈkruːʃl/",
     "bilingual": "(adj.) crucial, decisivo",
     "monolingual": "Of extreme importance.",
-    "examples": ["This step is crucial."]
+    "examples": [
+      "This step is crucial."
+    ]
   },
   "decent": {
     "token": "decent",
@@ -2937,7 +3624,9 @@
     "phonetic": "/ˈdiːsnt/",
     "bilingual": "(adj.) decente, aceptable",
     "monolingual": "Conforming to accepted standards; or reasonably good.",
-    "examples": ["He's a decent guy."]
+    "examples": [
+      "He's a decent guy."
+    ]
   },
   "deliberate": {
     "token": "deliberate",
@@ -2947,7 +3636,9 @@
     "phonetic": "/dɪˈlɪbərət/",
     "bilingual": "(adj.) deliberado, intencional",
     "monolingual": "Done consciously and intentionally.",
-    "examples": ["It was a deliberate attempt to mislead us."]
+    "examples": [
+      "It was a deliberate attempt to mislead us."
+    ]
   },
   "diverse": {
     "token": "diverse",
@@ -2957,7 +3648,9 @@
     "phonetic": "/daɪˈvɜːs/",
     "bilingual": "(adj.) diverso, variado",
     "monolingual": "Showing variety; very different.",
-    "examples": ["The city has a diverse population."]
+    "examples": [
+      "The city has a diverse population."
+    ]
   },
   "efficient": {
     "token": "efficient",
@@ -2967,7 +3660,9 @@
     "phonetic": "/ɪˈfɪʃnt/",
     "bilingual": "(adj.) eficiente, eficaz",
     "monolingual": "Working productively with minimum wasted effort.",
-    "examples": ["She's a very efficient worker."]
+    "examples": [
+      "She's a very efficient worker."
+    ]
   },
   "eager": {
     "token": "eager",
@@ -2977,7 +3672,9 @@
     "phonetic": "/ˈiːɡə(r)/",
     "bilingual": "(adj.) entusiasmado, ansioso (positivo)",
     "monolingual": "Wanting to do or have something very much.",
-    "examples": ["The students were eager to learn."]
+    "examples": [
+      "The students were eager to learn."
+    ]
   },
   "eventually": {
     "token": "eventually",
@@ -2987,7 +3684,9 @@
     "phonetic": "/ɪˈventʃuəli/",
     "bilingual": "(adv.) al final, con el tiempo",
     "monolingual": "After much delay or difficulty; in the end.",
-    "examples": ["He eventually agreed."]
+    "examples": [
+      "He eventually agreed."
+    ]
   },
   "fascinating": {
     "token": "fascinating",
@@ -2997,7 +3696,9 @@
     "phonetic": "/ˈfæsɪneɪtɪŋ/",
     "bilingual": "(adj.) fascinante",
     "monolingual": "Extremely interesting.",
-    "examples": ["It was a fascinating book."]
+    "examples": [
+      "It was a fascinating book."
+    ]
   },
   "feasible": {
     "token": "feasible",
@@ -3007,7 +3708,9 @@
     "phonetic": "/ˈfiːzəbl/",
     "bilingual": "(adj.) factible, viable",
     "monolingual": "Possible to do easily or conveniently.",
-    "examples": ["Is your plan feasible?"]
+    "examples": [
+      "Is your plan feasible?"
+    ]
   },
   "fragile": {
     "token": "fragile",
@@ -3017,7 +3720,9 @@
     "phonetic": "/ˈfrædʒaɪl/",
     "bilingual": "(adj.) frágil",
     "monolingual": "Easily broken or damaged.",
-    "examples": ["Handle with care — it's fragile."]
+    "examples": [
+      "Handle with care — it's fragile."
+    ]
   },
   "genuine": {
     "token": "genuine",
@@ -3027,7 +3732,9 @@
     "phonetic": "/ˈdʒenjuɪn/",
     "bilingual": "(adj.) genuino, auténtico, sincero",
     "monolingual": "Truly what something is said to be; sincere.",
-    "examples": ["She has a genuine interest in art."]
+    "examples": [
+      "She has a genuine interest in art."
+    ]
   },
   "harsh": {
     "token": "harsh",
@@ -3037,7 +3744,9 @@
     "phonetic": "/hɑːʃ/",
     "bilingual": "(adj.) duro, severo, áspero",
     "monolingual": "Unpleasantly rough; cruel or severe.",
-    "examples": ["That's a harsh punishment."]
+    "examples": [
+      "That's a harsh punishment."
+    ]
   },
   "hilarious": {
     "token": "hilarious",
@@ -3047,7 +3756,9 @@
     "phonetic": "/hɪˈleəriəs/",
     "bilingual": "(adj.) graciosísimo, divertidísimo",
     "monolingual": "Extremely funny.",
-    "examples": ["The movie was hilarious."]
+    "examples": [
+      "The movie was hilarious."
+    ]
   },
   "humble": {
     "token": "humble",
@@ -3057,7 +3768,9 @@
     "phonetic": "/ˈhʌmbl/",
     "bilingual": "(adj.) humilde, modesto",
     "monolingual": "Having a modest opinion of one's own importance.",
-    "examples": ["She's humble despite her success."]
+    "examples": [
+      "She's humble despite her success."
+    ]
   },
   "inevitable": {
     "token": "inevitable",
@@ -3067,7 +3780,9 @@
     "phonetic": "/ɪnˈevɪtəbl/",
     "bilingual": "(adj.) inevitable",
     "monolingual": "Certain to happen; unavoidable.",
-    "examples": ["Change is inevitable."]
+    "examples": [
+      "Change is inevitable."
+    ]
   },
   "intriguing": {
     "token": "intriguing",
@@ -3077,7 +3792,9 @@
     "phonetic": "/ɪnˈtriːɡɪŋ/",
     "bilingual": "(adj.) intrigante, fascinante",
     "monolingual": "Arousing one's curiosity.",
-    "examples": ["What an intriguing question."]
+    "examples": [
+      "What an intriguing question."
+    ]
   },
   "modest": {
     "token": "modest",
@@ -3087,7 +3804,9 @@
     "phonetic": "/ˈmɒdɪst/",
     "bilingual": "(adj.) modesto",
     "monolingual": "Unassuming in estimation of one's abilities.",
-    "examples": ["He's quite modest about his achievements."]
+    "examples": [
+      "He's quite modest about his achievements."
+    ]
   },
   "obvious": {
     "token": "obvious",
@@ -3097,7 +3816,9 @@
     "phonetic": "/ˈɒbviəs/",
     "bilingual": "(adj.) obvio, evidente",
     "monolingual": "Easily perceived or understood.",
-    "examples": ["It's obvious he's lying."]
+    "examples": [
+      "It's obvious he's lying."
+    ]
   },
   "outstanding": {
     "token": "outstanding",
@@ -3107,7 +3828,9 @@
     "phonetic": "/aʊtˈstændɪŋ/",
     "bilingual": "(adj.) destacado, excelente; pendiente (deuda)",
     "monolingual": "Exceptionally good; or not yet paid.",
-    "examples": ["She gave an outstanding performance."]
+    "examples": [
+      "She gave an outstanding performance."
+    ]
   },
   "overwhelming": {
     "token": "overwhelming",
@@ -3117,7 +3840,9 @@
     "phonetic": "/ˌəʊvəˈwelmɪŋ/",
     "bilingual": "(adj.) abrumador",
     "monolingual": "Very great or intense; overpowering.",
-    "examples": ["The response was overwhelming."]
+    "examples": [
+      "The response was overwhelming."
+    ]
   },
   "powerful": {
     "token": "powerful",
@@ -3127,7 +3852,9 @@
     "phonetic": "/ˈpaʊəfl/",
     "bilingual": "(adj.) poderoso, potente",
     "monolingual": "Having great power, influence, or strength.",
-    "examples": ["It's a very powerful engine."]
+    "examples": [
+      "It's a very powerful engine."
+    ]
   },
   "precise": {
     "token": "precise",
@@ -3137,7 +3864,9 @@
     "phonetic": "/prɪˈsaɪs/",
     "bilingual": "(adj.) preciso, exacto",
     "monolingual": "Exact and accurate.",
-    "examples": ["Give me a precise figure."]
+    "examples": [
+      "Give me a precise figure."
+    ]
   },
   "previous": {
     "token": "previous",
@@ -3147,7 +3876,9 @@
     "phonetic": "/ˈpriːviəs/",
     "bilingual": "(adj.) anterior, previo",
     "monolingual": "Existing or occurring before.",
-    "examples": ["My previous job was in marketing."]
+    "examples": [
+      "My previous job was in marketing."
+    ]
   },
   "reluctant": {
     "token": "reluctant",
@@ -3157,7 +3888,9 @@
     "phonetic": "/rɪˈlʌktənt/",
     "bilingual": "(adj.) reacio, reticente, poco dispuesto",
     "monolingual": "Unwilling and hesitant.",
-    "examples": ["He was reluctant to leave."]
+    "examples": [
+      "He was reluctant to leave."
+    ]
   },
   "remarkable": {
     "token": "remarkable",
@@ -3167,7 +3900,9 @@
     "phonetic": "/rɪˈmɑːkəbl/",
     "bilingual": "(adj.) notable, extraordinario",
     "monolingual": "Worthy of attention; striking.",
-    "examples": ["She made a remarkable recovery."]
+    "examples": [
+      "She made a remarkable recovery."
+    ]
   },
   "reliable": {
     "token": "reliable",
@@ -3177,7 +3912,9 @@
     "phonetic": "/rɪˈlaɪəbl/",
     "bilingual": "(adj.) fiable, confiable",
     "monolingual": "Consistently good in quality or performance.",
-    "examples": ["He's a reliable employee."]
+    "examples": [
+      "He's a reliable employee."
+    ]
   },
   "sensible": {
     "token": "sensible",
@@ -3187,7 +3924,9 @@
     "phonetic": "/ˈsensəbl/",
     "bilingual": "(adj.) sensato, razonable (false friend: ≠ sensible en español)",
     "monolingual": "Practical and chosen with reason; not foolish. (False friend: not the same as Spanish 'sensible' = sensitive.)",
-    "examples": ["That's a sensible decision."]
+    "examples": [
+      "That's a sensible decision."
+    ]
   },
   "subtle": {
     "token": "subtle",
@@ -3197,7 +3936,9 @@
     "phonetic": "/ˈsʌtl/",
     "bilingual": "(adj.) sutil, delicado",
     "monolingual": "So delicate or precise as to be difficult to perceive.",
-    "examples": ["There's a subtle difference."]
+    "examples": [
+      "There's a subtle difference."
+    ]
   },
   "thorough": {
     "token": "thorough",
@@ -3207,7 +3948,9 @@
     "phonetic": "/ˈθʌrə/",
     "bilingual": "(adj.) exhaustivo, minucioso",
     "monolingual": "Complete with regard to every detail.",
-    "examples": ["We did a thorough cleaning."]
+    "examples": [
+      "We did a thorough cleaning."
+    ]
   },
   "tremendous": {
     "token": "tremendous",
@@ -3217,7 +3960,9 @@
     "phonetic": "/trəˈmendəs/",
     "bilingual": "(adj.) tremendo, enorme, fantástico",
     "monolingual": "Very great in amount, scale, or intensity.",
-    "examples": ["She did a tremendous job."]
+    "examples": [
+      "She did a tremendous job."
+    ]
   },
   "weird": {
     "token": "weird",
@@ -3227,7 +3972,9 @@
     "phonetic": "/wɪəd/",
     "bilingual": "(adj.) raro, extraño",
     "monolingual": "Suggesting something supernatural; or odd, unusual.",
-    "examples": ["That's a weird coincidence."]
+    "examples": [
+      "That's a weird coincidence."
+    ]
   },
   "consequence": {
     "token": "consequence",
@@ -3237,7 +3984,9 @@
     "phonetic": "/ˈkɒnsɪkwəns/",
     "bilingual": "(sust.) consecuencia",
     "monolingual": "A result or effect of an action.",
-    "examples": ["Every action has consequences."]
+    "examples": [
+      "Every action has consequences."
+    ]
   },
   "concern": {
     "token": "concern",
@@ -3247,7 +3996,9 @@
     "phonetic": "/kənˈsɜːn/",
     "bilingual": "(sust./verbo) preocupación; preocupar, concernir",
     "monolingual": "Worry; or to relate to.",
-    "examples": ["His safety is my main concern."]
+    "examples": [
+      "His safety is my main concern."
+    ]
   },
   "attitude": {
     "token": "attitude",
@@ -3257,7 +4008,9 @@
     "phonetic": "/ˈætɪtjuːd/",
     "bilingual": "(sust.) actitud",
     "monolingual": "A settled way of thinking or feeling.",
-    "examples": ["I love your positive attitude."]
+    "examples": [
+      "I love your positive attitude."
+    ]
   },
   "issue": {
     "token": "issue",
@@ -3267,7 +4020,9 @@
     "phonetic": "/ˈɪʃuː/",
     "bilingual": "(sust./verbo) tema, asunto; emitir",
     "monolingual": "An important topic or problem; or to officially distribute.",
-    "examples": ["We have an issue to discuss."]
+    "examples": [
+      "We have an issue to discuss."
+    ]
   },
   "outcome": {
     "token": "outcome",
@@ -3277,7 +4032,9 @@
     "phonetic": "/ˈaʊtkʌm/",
     "bilingual": "(sust.) resultado, desenlace",
     "monolingual": "The way something turns out.",
-    "examples": ["We're hoping for a positive outcome."]
+    "examples": [
+      "We're hoping for a positive outcome."
+    ]
   },
   "perspective": {
     "token": "perspective",
@@ -3287,7 +4044,9 @@
     "phonetic": "/pəˈspektɪv/",
     "bilingual": "(sust.) perspectiva, punto de vista",
     "monolingual": "A particular point of view.",
-    "examples": ["From my perspective, it's a great deal."]
+    "examples": [
+      "From my perspective, it's a great deal."
+    ]
   },
   "trend": {
     "token": "trend",
@@ -3297,7 +4056,9 @@
     "phonetic": "/trend/",
     "bilingual": "(sust.) tendencia, moda",
     "monolingual": "A general direction in which something is developing.",
-    "examples": ["What are the latest fashion trends?"]
+    "examples": [
+      "What are the latest fashion trends?"
+    ]
   },
   "achievement": {
     "token": "achievement",
@@ -3307,7 +4068,9 @@
     "phonetic": "/əˈtʃiːvmənt/",
     "bilingual": "(sust.) logro, conquista",
     "monolingual": "A thing done successfully with effort.",
-    "examples": ["Graduating was a great achievement."]
+    "examples": [
+      "Graduating was a great achievement."
+    ]
   },
   "advantage": {
     "token": "advantage",
@@ -3317,7 +4080,9 @@
     "phonetic": "/ədˈvɑːntɪdʒ/",
     "bilingual": "(sust.) ventaja",
     "monolingual": "A condition that puts one in a favourable position.",
-    "examples": ["His size is a real advantage."]
+    "examples": [
+      "His size is a real advantage."
+    ]
   },
   "disadvantage": {
     "token": "disadvantage",
@@ -3327,6 +4092,19 @@
     "phonetic": "/ˌdɪsədˈvɑːntɪdʒ/",
     "bilingual": "(sust.) desventaja",
     "monolingual": "An unfavourable circumstance.",
-    "examples": ["The main disadvantage is the cost."]
+    "examples": [
+      "The main disadvantage is the cost."
+    ]
+  },
+  "apple": {
+    "token": "apple",
+    "type": "word",
+    "level": "A2",
+    "translation": "manzana",
+    "bilingual": "(sust.) manzana",
+    "monolingual": "A round fruit with red, green, or yellow skin and firm white flesh.",
+    "examples": [
+      "She ate a ripe apple."
+    ]
   }
 }

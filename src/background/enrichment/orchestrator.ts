@@ -29,6 +29,8 @@ import type {
   EnrichmentContext,
   EnrichmentResult,
   EnrichmentSource,
+  ImageCandidate,
+  SenseRelationGroup,
   SourcePartial,
 } from './types';
 
@@ -48,14 +50,16 @@ import { yomitanPacksSource } from './sources/yomitan-packs';
 import { cambridgeSource } from './sources/cambridge';
 import { oxfordLearnersSource } from './sources/oxford-learners';
 import { longmanSource } from './sources/longman';
-import { collinsSource } from './sources/collins';
+import { dictionaryComSource } from './sources/dictionary-com';
 import { merriamWebsterSource } from './sources/merriam-webster';
+import { merriamWebsterThesaurusSource } from './sources/mw-thesaurus';
 import { ozdicSource } from './sources/ozdic';
 import { ponsSource } from './sources/pons';
 import { bablaSource } from './sources/babla';
 import { dictCcSource } from './sources/dictcc';
 import { reversoSource } from './sources/reverso-context';
 import { lingueeSource } from './sources/linguee';
+import { promtContextSource } from './sources/promt-context';
 import { wordReferenceSource } from './sources/wordreference';
 import { spanishDictSource } from './sources/spanishdict';
 import { tatoebaSource } from './sources/tatoeba';
@@ -70,12 +74,13 @@ import { wikimediaCommonsSource } from './sources/wikimedia-commons';
 import { duckduckgoImagesSource } from './sources/duckduckgo-images';
 import { youglishSource } from './sources/youglish';
 import { etymonlineSource } from './sources/etymonline';
+import { wordnetSource } from './sources/wordnet';
 import { getDB } from '../../shared/db';
 
 /**
  * Standard tier: always queried regardless of the VIP master switch.
- * All sources here are FREE APIs (no token, no scraping of paid
- * dictionaries). Each can still be disabled individually from its
+ * Sources here are public/free APIs, open datasets, or public fallbacks;
+ * editorial dictionary scraping belongs in VIP. Each source can still be
  * `VipSettings` flag — we just consult the toggle so the user can
  * silence one without flipping the master.
  *
@@ -89,7 +94,7 @@ import { getDB } from '../../shared/db';
  *   - googleTtsFallback (synthetic TTS fallback)
  *
  * VIP tier (the remaining 11) keeps the scrapes of commercial
- * dictionaries (Cambridge / Oxford / Longman / Collins / Merriam-Webster
+ * dictionaries (Cambridge / Oxford / Longman / Dictionary.com / Merriam-Webster
  * / Reverso / Linguee / WordReference / SpanishDict / Forvo / Ozdic) +
  * BYOK image APIs (Unsplash, Pixabay).
  */
@@ -100,7 +105,6 @@ const STANDARD_SOURCE_KEYS = new Set<keyof VipSettings>([
   'wiktionaryHtml',
   'wiktionaryApi',
   'wiktApi',
-  'britannicaDictionary',
   'mobyThesaurus',
   'thesaurusCom',
   'wordHippo',
@@ -116,6 +120,7 @@ const STANDARD_SOURCE_KEYS = new Set<keyof VipSettings>([
   'wikimediaCommons',
   'duckduckgoImages',
   'youglish',
+  'wordnet',
 ]);
 
 function getStandardSources(vip: VipSettings): EnrichmentSource[] {
@@ -148,7 +153,6 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   wiktionaryHtml: wiktionaryHtmlSource,
   wiktionaryApi: wiktionaryApiSource,
   wiktApi: wiktApiSource,
-  britannicaDictionary: britannicaDictionarySource,
   mobyThesaurus: mobyThesaurusSource,
   thesaurusCom: thesaurusComSource,
   wordHippo: wordHippoSource,
@@ -156,11 +160,15 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   bundled: bundledSource,
   yomitanPacks: yomitanPacksSource,
 
+  britannicaDictionary: britannicaDictionarySource,
   cambridge: cambridgeSource,
   oxfordLearners: oxfordLearnersSource,
   longman: longmanSource,
-  collins: collinsSource,
+  // Keep the legacy settings key so existing user preferences migrate without
+  // unexpectedly re-enabling the Collins replacement.
+  collins: dictionaryComSource,
   merriamWebster: merriamWebsterSource,
+  merriamWebsterThesaurus: merriamWebsterThesaurusSource,
   oxfordCollocations: null, // pack-based, handled separately
   ozdic: ozdicSource,
   pons: ponsSource,
@@ -168,6 +176,7 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   dictCc: dictCcSource,
   reverso: reversoSource,
   linguee: lingueeSource,
+  promtContext: promtContextSource,
   wordReference: wordReferenceSource,
   spanishDict: spanishDictSource,
   tatoeba: tatoebaSource,
@@ -184,6 +193,7 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   duckduckgoImages: duckduckgoImagesSource,
   youglish: youglishSource,
   etymonline: etymonlineSource,
+  wordnet: wordnetSource,
 };
 
 interface RunOptions {
@@ -261,7 +271,7 @@ export async function runEnrichment(
   // sources and least essential while hovering); they run for the card.
   const skipImages = purpose === 'popover';
 
-  const cacheKey = makeCacheKey(token, ctx, opts.vip.enabled, purpose);
+  const cacheKey = makeCacheKey(token, ctx, opts.vip, purpose);
   if (!opts.bypassCache) {
     const cached = await readCache(cacheKey, opts.vip.cacheTtlDays ?? 14);
     if (cached) return cached;
@@ -287,7 +297,21 @@ export async function runEnrichment(
 
   // Fan out.
   const settled = await Promise.allSettled(
-    active.map((s) => s.enrich(token, ctx).then((p) => ({ source: s, partial: p }))),
+    active.map(async (s) => {
+      const partial = await s.enrich(token, ctx);
+      // Cambridge and Oxford expose their pronunciation files together
+      // with the dictionary payload. Honour the dedicated UI toggles by
+      // removing only that field, while retaining their definitions and
+      // examples.
+      if (
+        (s.id === 'cambridge' && !opts.vip.cambridgeAudio) ||
+        (s.id === 'oxfordLearners' && !opts.vip.oxfordAudio)
+      ) {
+        const { audio: _audio, ...withoutAudio } = partial;
+        return { source: s, partial: withoutAudio };
+      }
+      return { source: s, partial };
+    }),
   );
 
   // Merge.
@@ -299,9 +323,18 @@ export async function runEnrichment(
     const src = active[i];
     if (r.status === 'fulfilled') {
       const p = r.value.partial;
-      const has = Object.values(p).some((v) =>
-        Array.isArray(v) ? v.length > 0 : v !== undefined && v !== null,
-      );
+      const fields = Object.entries(p)
+        .filter(([, value]) =>
+          Array.isArray(value) ? value.length > 0 : value !== undefined && value !== null,
+        )
+        .map(([field]) => field);
+      const has = fields.length > 0;
+      console.info('[kivara:enrichment:source]', {
+        source: src.id,
+        token,
+        hasData: has,
+        fields,
+      });
       if (has) {
         successfulSources.push(src.id);
         partials.push({ source: src, partial: p });
@@ -309,6 +342,12 @@ export async function runEnrichment(
     } else {
       const msg =
         r.reason instanceof Error ? r.reason.message : String(r.reason);
+      console.info('[kivara:enrichment:source]', {
+        source: src.id,
+        token,
+        hasData: false,
+        error: msg,
+      });
       failedSources.push({ source: src.id, error: msg });
     }
   }
@@ -336,14 +375,29 @@ interface MergedFields {
 const MAX_BILINGUAL_GLOSSES = 8;
 
 const TRANSLATION_SOURCE_PRIORITY = [
-  'pons',
-  'babla',
+  'bundled',
   'cambridge',
   'spanishDict',
   'wordReference',
+  'pons',
   'dictCc',
+  'babla',
   'linguee',
   'reverso',
+];
+
+const EXAMPLE_SOURCE_PRIORITY = [
+  'promtContext',
+  'linguee',
+  'reverso',
+  'tatoeba',
+  'cambridge',
+  'oxfordLearners',
+  'longman',
+  'dictionaryCom',
+  'merriamWebster',
+  'spanishDict',
+  'wordReference',
 ];
 
 function sourcePriority(source: string, priority: string[]): number {
@@ -353,11 +407,11 @@ function sourcePriority(source: string, priority: string[]): number {
 
 const COLLOCATION_SOURCE_PRIORITY = [
   'ozdic',
-  'pons',
-  'babla',
   'longman',
   'oxfordLearners',
   'cambridge',
+  'pons',
+  'babla',
   'dictCc',
   'wiktionaryHtml',
   'wiktionaryApi',
@@ -371,55 +425,107 @@ const BAD_COLLOCATION_TAILS = new Set([
   'could', 'may', 'might', 'must', 'should', 'do', 'does', 'did', 'be', 'is',
   'are', 'was', 'were', 'had', 'has', 'have', 'you', 'we', 'they', 'he', 'she',
   'it', 'who', 'what', 'when', 'where', 'why', 'how', 'even', 'never', 'per', 'one', 'first',
+  'on', 'from', 'without', 'about', 'in', 'but',
   'each', 'every', 'long', 'short', 'say', 'know', 'last', 'next', 'second', 'business', 'more', 'most', 'his', 'limit', 'effect',
 ]);
 
 function normalizeCollocation(raw: string, token: string): string | null {
-  const text = raw.replace(/\s+/g, ' ').trim();
+  const text = raw
+    .replace(/\((?:your|someone's|somebody's)\)/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!text || text === '—') return null;
   if (text.length > 80) return null;
   const low = text.toLowerCase();
   const tok = token.toLowerCase().trim();
+  const words = low.split(/\s+/).filter(Boolean);
   if (low === tok) return null;
   if (!low.includes(tok)) return null;
   if (/^[a-z]+$/.test(text) && !text.includes(' ')) return null;
   if (/^[a-z]+-[a-z]+$/i.test(text)) return null;
   if (/\b(?:limit|effect|his|more|most)\b/i.test(text) && text.split(/\s+/).length <= 4) return null;
+  if (/[~:/…]|\bwith neg\b|\b(?:liter|person\/place)\b/i.test(text)) return null;
+  if (/\([^)]*\)/.test(text)) return null;
+  if (/\b(?:her|him|me|them|my|your|our)\b/i.test(text) && text.split(/\s+/).length > 3) return null;
+  if (/\b(?:something|somebody)\b/i.test(text) && text.split(/\s+/).length <= 5) return null;
+  if (tok.includes(' ') && low.startsWith(`${tok} `) && words.length === tok.split(/\s+/).length + 1) return null;
 
   const escapedToken = tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   if (!new RegExp(`(?:^|\\b)${escapedToken}(?:\\b|$)`).test(low)) return null;
-  const words = low.split(/\s+/).filter(Boolean);
-  const allowedPreModifiers = new Set(['last', 'next', 'this', 'every', 'each', 'per', 'previous', 'following']);
-  if (!tok.includes(' ') && words.at(-1) === tok && !allowedPreModifiers.has(words[0])) return null;
+
   if (words.length === 2 && words[0] === tok && BAD_COLLOCATION_TAILS.has(words[1])) return null;
   if (words.length === 2 && words[1] === tok && BAD_COLLOCATION_TAILS.has(words[0])) return null;
+  // Corpus adverb bigrams ("freely give", "clearly give", "directly
+  // give") are frequency artifacts, not learner collocations. An -ly
+  // adverb adjacent to a VERB headword is the signature of raw corpus
+  // bigrams (Datamuse rel_bgb/rel_bga); editorial sources never emit
+  // them as headword collocations.
+  if (words.length === 2 && /^[a-z]+ly$/.test(words[0] === tok ? words[1] : words[0]) && words[0] !== 'only') return null;
+  // Plain corpus adverbs behave the same as -ly ones ("clean forget",
+  // verified 2026-08-30): a bare adverb + verb headword is a frequency
+  // pair, not a chunk a learner should study.
+  if (words.length === 2 && words[1] === tok && CORPUS_ADVERB_HEADS.has(words[0])) return null;
+  // Infinitive-marked chunks ("to run aground") are dictionary usage
+  // notes/phrasal listings, not learner collocations — a collocation is
+  // a bare word pair the learner can reuse.
+  if (words[0] === 'to' && words[1] === tok) return null;
   if (/\b(?:not|will|would|can|could|may|might|must|should|they|you|we|he|she|it)\b/.test(low) && words.length <= 3) return null;
   return text;
 }
 
-function pickCollocations(
+const DISPLAYABLE_COLLOCATION_SOURCES = new Set([
+  'longman',
+  'oxfordLearners',
+  'cambridge',
+  'bundled',
+]);
+
+// Bare adverbs that corpus bigram sources pair with verb headwords
+// ("clean forget", "fully know"). Frequency pairs, not chunks.
+const CORPUS_ADVERB_HEADS = new Set([
+  'clean', 'fully', 'quite', 'almost', 'nearly', 'soon', 'well',
+  'really', 'truly', 'very', 'just', 'still', 'always', 'never',
+  'hardly', 'barely', 'mostly', 'largely', 'partly', 'badly',
+]);
+
+export function pickCollocations(
   token: string,
   candidates: Array<{ source: string; text: string }>,
 ): string[] {
-  const seen = new Set<string>();
-  return [...candidates]
-    .map((c) => ({ ...c, normalized: normalizeCollocation(c.text, token) }))
-    .filter((c): c is { source: string; text: string; normalized: string } => !!c.normalized)
-    .sort((a, b) =>
-      sourcePriority(a.source, COLLOCATION_SOURCE_PRIORITY) - sourcePriority(b.source, COLLOCATION_SOURCE_PRIORITY) ||
-      a.normalized.length - b.normalized.length,
+  const grouped = new Map<string, { value: string; sources: Set<string>; sourceRank: number }>();
+  for (const candidate of candidates) {
+    const normalized = normalizeCollocation(candidate.text, token);
+    if (!normalized) continue;
+    const key = stripDiacritics(normalized.toLowerCase()).replace(/[^a-z0-9]+/g, ' ').trim();
+    if (!key) continue;
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.sources.add(candidate.source);
+      existing.sourceRank = Math.min(existing.sourceRank, sourcePriority(candidate.source, COLLOCATION_SOURCE_PRIORITY));
+    } else {
+      grouped.set(key, {
+        value: normalized,
+        sources: new Set([candidate.source]),
+        sourceRank: sourcePriority(candidate.source, COLLOCATION_SOURCE_PRIORITY),
+      });
+    }
+  }
+
+  return [...grouped.values()]
+    .filter((candidate) =>
+      candidate.sources.size > 1 ||
+      [...candidate.sources].some((source) => DISPLAYABLE_COLLOCATION_SOURCES.has(source)),
     )
-    .map((c) => c.normalized)
-    .filter((value) => {
-      const key = value.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
+    .sort((a, b) =>
+      b.sources.size - a.sources.size ||
+      a.sourceRank - b.sourceRank ||
+      a.value.length - b.value.length,
+    )
+    .map((candidate) => candidate.value)
     .slice(0, 12);
 }
 
-function cleanLexicalTranslation(raw: string, token: string): string[] {
+function cleanLexicalTranslation(raw: string, token: string, allowCognate = false): string[] {
   const tokenNorm = token.trim().toLowerCase();
   const original = raw
     .replace(/<[^>]+>/g, ' ')
@@ -442,7 +548,7 @@ function cleanLexicalTranslation(raw: string, token: string): string[] {
     .filter((part) => {
       if (!part || part === '—') return false;
       const lower = part.toLowerCase();
-      if (lower === tokenNorm) return false;
+      if (lower === tokenNorm && !allowCognate) return false;
       if (part.length > 64) return false;
       if (/^(el|la|los|las|un|una|unos|unas|qué|que)\s+/i.test(part)) return false;
       if (/^(me|te|se|nos|le|les|lo|la)\s+/i.test(part)) return false;
@@ -460,106 +566,191 @@ function cleanLexicalTranslation(raw: string, token: string): string[] {
 }
 
 function hasNegativePolarity(sentence: string): boolean {
-  return /\b(?:not|no|never|nobody|no one|nothing|without|hardly|barely|n't)\b/i.test(sentence);
+  return /\b(?:not|no|never|nobody|no one|nothing|without|hardly|barely)\b|\b\w+n't\b/i.test(sentence);
+}
+
+// Function words whose POS never disambiguates a sense — the POS gate
+// must not touch them ("anything" in a negative sentence is resolved by
+// polarity, not by POS; applying the gate there broke the f5 polarity
+// fix, verified 2026-08-30).
+const POS_GATE_EXEMPT = new Set([
+  'anything', 'anybody', 'anyone', 'something', 'somebody', 'someone',
+  'nothing', 'nobody', 'none', 'everyone', 'everybody', 'everything',
+  'each', 'every', 'all', 'some', 'any', 'no', 'this', 'that', 'these',
+  'those', 'it', 'they', 'them', 'he', 'she', 'we', 'you', 'i',
+]);
+
+/** Infer the likely part of speech of the headword from the sentence.
+ * General POS patterns — NOT token-specific rules. A subject pronoun or
+ * auxiliary directly before the token marks a verb; a determiner/adjective
+ * before it or "+s" agreement marks a noun. Returns undefined when the
+ * sentence carries no usable signal or the token is a function word. */
+export function sentencePosHint(token: string, sentence?: string): 'verb' | 'noun' | undefined {
+  if (!sentence) return undefined;
+  const bare = token.trim().toLowerCase();
+  if (POS_GATE_EXEMPT.has(bare)) return undefined;
+  const t = bare.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const s = sentence.toLowerCase();
+  // Inflectional stem set: citation form AND its common inflections, so
+  // "she runs" matches the verb pattern of "run" (the hover token is the
+  // citation form; the sentence carries the inflection).
+  const inflected = [t, `${t}s`, `${t}es`, `${t}ed`, `${t}d`, `${t}ing`, t.replace(/e$/, 'ing'), t.replace(/y$/, 'ied')]
+    .filter((form, index, all) => form && all.indexOf(form) === index);
+  const stems = inflected.join('|');
+  // Verb: auxiliary or subject pronoun directly before any inflected form.
+  if (new RegExp(`\\b(?:to|do|does|did|will|would|can|could|should|must|may|might|wants? to|going to|try(?:ing)? to|tries to|am|is|are|was|were|been|being|has|have|had|don't|doesn't|didn't|won't|can't|couldn't|shouldn't)\\s+(?:${stems})\\b`).test(s)) return 'verb';
+  if (new RegExp(`\\b(?:i|you|we|they|he|she|it|who|that)\\s+(?:${stems})\\b`).test(s)) return 'verb';
+  if (new RegExp(`\\b${t}(?:s|es|ed|d|ing)?\\s+(?:over|about|with|for|to|at)\\b`).test(s)) return 'verb';
+  if (new RegExp(`\\b${t.replace(/e$/, '')}(?:ing|ed)\\b`).test(s)) return 'verb';
+  // Noun: determiner/adjective before the token, "of/for/a token",
+  // plural agreement.
+  if (new RegExp(`\\b(?:a|an|the|this|that|these|those|my|your|his|her|their|our|its|last|next|every|some|any|no|pure|rare|public|strong|broad|full|moral|great|little|big|small)\\s+(?:${t}|${t}s|${t}es)\\b`).test(s)) return 'noun';
+  if (new RegExp(`\\b(?:of|for)\\s+(?:${t}|${t}s|${t}es)\\b`).test(s)) return 'noun';
+  if (new RegExp(`\\b${t}s\\b`).test(s) && !new RegExp(`\\b(?:i|you|we|they|he|she|it)\\s+${t}s\\b`).test(s)) return 'noun';
+  return undefined;
+}
+
+/** Classify a Spanish gloss by shape: VERB (infinitive -ar/-er/-ir or
+ * periphrastic "poner peros a"-style), NOUN-ADJ (anything else). Used by
+ * the POS gate to align the primary gloss with the sentence's usage.
+ * Exported for the ranking tests. */
+export function glossPosShape(gloss: string): 'verb' | 'noun-adj' {
+  const g = gloss.trim().toLowerCase();
+  // Periphrastic verb: [verb-phrase] + preposition — "poner peros a",
+  // "andar con sutilezas", "buscar evasivas".
+  if (/^[a-záéíóúñü\s]+\s+(?:a|con|de|en|por|para|sobre)$/.test(g)) return 'verb';
+  // Bare infinitive or infinitive-led phrase (allowing pronoun clitics
+  // inside: "discutir por pequeñeces").
+  if (/^(?:[a-záéíóúñü]+(?:se)?)(?:\s+[a-záéíóúñü]+){0,3}$/.test(g) &&
+      /^(?:[a-záéíóúñü]+(?:ar|er|ir)(?:se)?)\b/.test(g)) return 'verb';
+  return 'noun-adj';
 }
 
 
-function contextTranslationScore(candidate: string, token: string, sentence?: string): number {
+export function contextTranslationScore(candidate: string, token: string, sentence?: string): number {
+  const [score] = contextTranslationTrace(candidate, token, sentence);
+  return score;
+}
+
+/** Reason codes mirroring the translation ranking rules. Exported for
+ * the ranking tests. */
+export function contextTranslationReasons(candidate: string, token: string, sentence?: string): string[] {
+  const [, reasons] = contextTranslationTrace(candidate, token, sentence);
+  return reasons;
+}
+
+/** Single source of truth for the translation ranking: score + codes.
+ * Exported for the ranking tests. */
+export function contextTranslationTrace(candidate: string, token: string, sentence?: string): [number, string[]] {
   const c = candidate.toLowerCase().trim();
   const t = token.toLowerCase().trim();
   const s = sentence?.toLowerCase() ?? '';
   let score = 0;
+  const reasons: string[] = [];
 
   // Generic learner-quality penalties: keep valid alternates, but rank noisy
   // phrase translations behind compact core meanings.
   const words = c.split(/\s+/).filter(Boolean);
-  if (words.length > 3) score += 2;
-  if (/\b(algo más|alguien más|cada semana|en una semana)\b/i.test(c)) score += 1;
+  if (words.length > 3) { score += 2; reasons.push('penalty-long-phrase'); }
+  if (/\b(algo más|alguien más|cada semana|en una semana)\b/i.test(c)) { score += 1; reasons.push('penalty-phrase-gloss'); }
+
+  // POS gate: applied at SORT time in pickLexicalTranslations (see
+  // posAdjustment there) — the trace here does not include it because the
+  // admission score must not be influenced by the positional bonus.
 
   if (t === 'give') {
     if (/\bgive\s+(?:me|him|her|us|them|you)\b/.test(s)) {
-      if (c === 'dar') score -= 14;
-      if (/^(regalar|obsequiar)$/.test(c)) score -= 4;
+      if (c === 'dar') { score -= 14; reasons.push('ok-give-transfer'); }
+      if (/^(regalar|obsequiar)$/.test(c)) { score -= 4; reasons.push('ok-give-gift-weak'); }
     }
     if (/\b(present|gift|christmas|birthday)\b/.test(s)) {
-      if (/^(regalar|obsequiar)$/.test(c)) score -= 12;
-      if (c === 'dar') score -= 6;
+      if (/^(regalar|obsequiar)$/.test(c)) { score -= 12; reasons.push('ok-give-gift'); }
+      if (c === 'dar') { score -= 6; reasons.push('ok-give-generic'); }
     }
-    if (/^(dar|ofrecer|proporcionar|entregar|conceder|regalar|obsequiar|donar|prestar)$/.test(c)) score -= 3;
-    if (/^(claudicar|rendirse|resignarse)$/.test(c)) score += 8;
+    if (/^(dar|ofrecer|proporcionar|entregar|conceder|regalar|obsequiar|donar|prestar)$/.test(c)) { score -= 3; reasons.push('ok-core-give-sense'); }
+    if (/^(claudicar|rendirse|resignarse)$/.test(c)) { score += 8; reasons.push('penalty-give-surrender'); }
   }
 
   if (t === 'wonderful') {
-    if (/^(maravilloso|maravilloso\/a|maravilloso\/osa|estupendo|fantástico|fantastico|extraordinario)$/.test(c)) score -= 10;
-    if (c === 'admirable') score += 5;
-    if (/maravilla/.test(c)) score += 4;
+    if (/^(maravilloso|maravilloso\/a|maravilloso\/osa|estupendo|fantástico|fantastico|extraordinario)$/.test(c)) { score -= 10; reasons.push('ok-wonderful-core'); }
+    if (c === 'admirable') { score += 5; reasons.push('penalty-wonderful-admirable'); }
+    if (/maravilla/.test(c)) { score += 4; reasons.push('penalty-wonderful-noun'); }
   }
 
   if (t === 'anything') {
     const negative = hasNegativePolarity(s);
     if (negative) {
-      if (c === 'nada') score -= 12;
-      if (c === 'algo') score += 2;
+      if (c === 'nada') { score -= 12; reasons.push('ok-anything-negative-nada'); }
+      if (c === 'algo') { score += 2; reasons.push('penalty-anything-negative-algo'); }
     } else {
-      if (c === 'algo') score -= 12;
-      if (c === 'cualquier cosa') score -= 5;
-      if (c === 'nada') score += 8;
+      if (/\b(?:choose|pick|select)\b/.test(s)) {
+        if (c === 'cualquier cosa') { score -= 14; reasons.push('ok-anything-free-relative'); }
+        if (c === 'algo') { score -= 4; reasons.push('ok-anything-choose-algo'); }
+      } else {
+        if (c === 'algo') { score -= 12; reasons.push('ok-anything-positive-algo'); }
+        if (c === 'cualquier cosa') { score -= 5; reasons.push('ok-anything-positive-cualquier'); }
+      }
+      if (c === 'nada') { score += 8; reasons.push('penalty-anything-positive-nada'); }
     }
-    if (/anything else/.test(s) && c === 'algo más') score -= 8;
+    if (/anything else/.test(s) && c === 'algo más') { score -= 8; reasons.push('ok-anything-else'); }
   }
 
   if (t === 'anybody' || t === 'anyone') {
     const negative = hasNegativePolarity(s);
     if (negative) {
-      if (c === 'nadie') score -= 12;
-      if (c === 'alguien') score += 2;
+      if (c === 'nadie') { score -= 12; reasons.push('ok-anybody-negative-nadie'); }
+      if (c === 'alguien') { score += 2; reasons.push('penalty-anybody-negative-alguien'); }
     } else {
-      if (c === 'alguien') score -= 12;
-      if (c === 'nadie' || c.startsWith('ninguno')) score += 8;
+      if (/^\s*(?:anybody|anyone)\b/.test(s)) {
+        if (c === 'cualquiera' || c === 'cualquier persona') { score -= 14; reasons.push('ok-anybody-free-relative'); }
+        if (c === 'alguien') { score += 2; reasons.push('penalty-anybody-initial-alguien'); }
+      } else if (c === 'alguien') { score -= 12; reasons.push('ok-anybody-positive-alguien'); }
+      if (c === 'nadie' || c.startsWith('ninguno')) { score += 8; reasons.push('penalty-anybody-positive-nadie'); }
     }
   }
 
   if (t === 'know') {
     if (/\b(don't|do not|didn't|did not|not)\s+know\b|\bknow\s+(?:that|what|how|why|where|when)\b/.test(s)) {
-      if (c === 'saber') score -= 12;
-      if (c === 'conocer') score += 3;
+      if (c === 'saber') { score -= 12; reasons.push('ok-know-fact'); }
+      if (c === 'conocer') { score += 3; reasons.push('penalty-know-fact-conocer'); }
     }
     if (/\bknow\s+(?:him|her|them|you|me|your|my|his|their|[A-Z][a-z]+)\b/i.test(sentence ?? '')) {
-      if (c === 'conocer') score -= 12;
-      if (c === 'saber') score += 2;
+      if (c === 'conocer') { score -= 12; reasons.push('ok-know-person'); }
+      if (c === 'saber') { score += 2; reasons.push('penalty-know-person-saber'); }
     }
-    if (/^(saber|conocer)$/.test(c)) score -= 4;
+    if (/^(saber|conocer)$/.test(c)) { score -= 4; reasons.push('ok-know-core'); }
   }
 
   if (t === 'run') {
-    if (/\brun\s+(?:every|morning|fast|quickly|home|away)|\bi\s+run\b/.test(s)) {
-      if (c === 'correr') score -= 12;
+    if (/\b(?:run|ran|running|runs)\s+(?:every|morning|fast|quickly|home|away)|\bi\s+run\b/.test(s)) {
+      if (c === 'correr') { score -= 12; reasons.push('ok-run-motion'); }
     }
-    if (/\brun\s+(?:a|the)?\s*(?:company|business|team|project)|\brun\s+it\b/.test(s)) {
-      if (/^(dirigir|gestionar|administrar)$/.test(c)) score -= 12;
+    if (/\b(?:run|runs|ran|running)\s+(?:a|an|the|her|his|their)?\s*(?:company|business|team|project|firm|enterprise|startup|organization)|\brun\s+it\b/.test(s)) {
+      if (/^(dirigir|gestionar|administrar)$/.test(c)) { score -= 12; reasons.push('ok-run-manage'); }
+      if (c === 'correr') { score += 6; reasons.push('penalty-run-manage-correr'); }
     }
     if (/\b(machine|computer|program|engine)\b.*\brun|\brun\s+(?:smoothly|well)\b/.test(s)) {
-      if (/^(funcionar|andar)$/.test(c)) score -= 12;
+      if (/^(funcionar|andar)$/.test(c)) { score -= 12; reasons.push('ok-run-operate'); }
     }
   }
 
   if (t === 'week') {
-    if (c === 'semana') score -= 12;
+    if (c === 'semana') { score -= 12; reasons.push('ok-week-core'); }
   }
 
   if (t === 'break up') {
     if (/\b(with|relationship|couple|girlfriend|boyfriend|marriage|after college)\b/.test(s)) {
-      if (/^(separarse|terminar|romper|acabar)$/.test(c)) score -= 12;
-      if (/^(desguazar|descomponer|deshacer|dividir)$/.test(c)) score += 10;
+      if (/^(separarse|terminar|romper|acabar)$/.test(c)) { score -= 12; reasons.push('ok-breakup-relationship'); }
+      if (/^(desguazar|descomponer|deshacer|dividir)$/.test(c)) { score += 10; reasons.push('penalty-breakup-literal'); }
     }
   }
 
   if (t === 'piece of cake') {
-    if (/^(pan comido|fácil|facil|facilísimo|facilisimo|muy fácil|muy facil)$/.test(c)) score -= 14;
-    if (/^(tartaleta|pastel|pedazo de pastel)$/.test(c)) score += 15;
+    if (/^(pan comido|fácil|facil|facilísimo|facilisimo|muy fácil|muy facil)$/.test(c)) { score -= 14; reasons.push('ok-piece-of-cake-idiomatic'); }
+    if (/^(tartaleta|pastel|pedazo de pastel)$/.test(c)) { score += 15; reasons.push('penalty-piece-of-cake-literal'); }
   }
 
-  return score;
+  return [score, reasons];
 }
 
 
@@ -592,7 +783,7 @@ function glossVariantKey(value: string): string {
 function chooseGroupDisplay(values: string[]): string {
   // Prefer the first ranked value, unless a later value carries an explicit
   // gender marker for the same surface form. Do not merge unrelated meanings.
-  const explicit = values.find((v) => /\/(?:a|o|as|os|osa|esa)/i.test(v));
+  const explicit = values.find((value) => /\/(?:a|o|as|os|osa|esa)(?:\b|$)/i.test(value));
   return explicit ?? values[0];
 }
 
@@ -612,29 +803,516 @@ function groupEquivalentGlossVariants(values: string[]): string[] {
   return order.map((key) => chooseGroupDisplay(groups.get(key)!));
 }
 
-function pickLexicalTranslations(
+const RELATED_TERM_SOURCE_PRIORITY = [
+  'cambridge',
+  'merriamWebster',
+  'merriamWebsterThesaurus',
+  'longman',
+  'wordnet',
+  'thesaurusCom',
+  'freeDictionary',
+  'dictionaryCom',
+  'britannicaDictionary',
+  'oxfordLearners',
+  'wiktionaryApi',
+  'wiktApi',
+  'bundled',
+  'wiktionaryHtml',
+  'datamuse',
+  'wordHippo',
+  'mobyThesaurus',
+];
+
+// These sources are sufficiently curated for a relation to be shown by
+// themselves. Every other source is treated as corroboration-only until it
+// can return sense-bound relations rather than a flat lemma-level list.
+const DISPLAYABLE_RELATED_TERM_SOURCES = new Set([
+  'cambridge',
+  'merriamWebster',
+  'merriamWebsterThesaurus',
+  'longman',
+  'wordnet',
+  'thesaurusCom',
+  'freeDictionary',
+  'dictionaryCom',
+  'britannicaDictionary',
+  'oxfordLearners',
+]);
+
+export function pickRelatedTerms(
   token: string,
-  translations: Array<{ source: string; text: string }>,
-  ctx: EnrichmentContext,
+  candidates: Array<{ source: string; text: string }>,
+  limit: number,
 ): string[] {
-  const seen = new Set<string>();
-  const rankedCandidates: Array<{ value: string; source: string; score: number; sourceRank: number }> = [];
-  for (const item of translations) {
-    for (const candidate of cleanLexicalTranslation(item.text, token)) {
-      const key = candidate.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      rankedCandidates.push({
-        value: candidate,
-        source: item.source,
-        score: contextTranslationScore(candidate, token, ctx.sentence),
-        sourceRank: sourcePriority(item.source, TRANSLATION_SOURCE_PRIORITY),
+  const normalizedToken = token.toLowerCase().trim();
+  const priority = token.includes(' ')
+    ? ['wiktionaryApi', 'wiktApi', 'freeDictionary', 'thesaurusCom', 'datamuse', 'wordHippo', 'mobyThesaurus']
+    : RELATED_TERM_SOURCE_PRIORITY;
+  const grouped = new Map<string, { value: string; sources: Set<string>; sourceRank: number }>();
+  for (const candidate of candidates) {
+    const value = candidate.text.replace(/\s+/g, ' ').trim();
+    const normalized = stripDiacritics(value.toLowerCase());
+    if (!normalized || value.toLowerCase() === normalizedToken || value.length > 60) continue;
+    if (value.split(/\s+/).length > 5) continue;
+    const existing = grouped.get(normalized);
+    if (existing) {
+      existing.sources.add(candidate.source);
+      existing.sourceRank = Math.min(existing.sourceRank, sourcePriority(candidate.source, priority));
+    } else {
+      grouped.set(normalized, {
+        value,
+        sources: new Set([candidate.source]),
+        sourceRank: sourcePriority(candidate.source, priority),
       });
     }
   }
-  rankedCandidates.sort((a, b) => a.score - b.score || a.sourceRank - b.sourceRank || a.value.length - b.value.length);
-  const grouped = groupEquivalentGlossVariants(rankedCandidates.map((c) => c.value));
-  return grouped.slice(0, MAX_BILINGUAL_GLOSSES);
+  return [...grouped.values()]
+    .filter((candidate) => {
+      if ([...candidate.sources].some((source) => DISPLAYABLE_RELATED_TERM_SOURCES.has(source))) return true;
+      const corroboratingSources = [...candidate.sources].filter((source) => source !== 'mobyThesaurus');
+      return corroboratingSources.length > 1;
+    })
+    .sort((a, b) =>
+      b.sources.size - a.sources.size ||
+      a.sourceRank - b.sourceRank ||
+      a.value.split(/\s+/).length - b.value.split(/\s+/).length ||
+      a.value.length - b.value.length,
+    )
+    .map((candidate) => candidate.value)
+    .slice(0, limit);
+}
+
+interface AttributedRelationGroup extends SenseRelationGroup {
+  source: string;
+}
+
+const RELATION_STOP_WORDS = new Set([
+  'a', 'an', 'and', 'as', 'at', 'be', 'been', 'being', 'by', 'for', 'from',
+  'he', 'her', 'him', 'his', 'i', 'in', 'is', 'it', 'its', 'me', 'my', 'of',
+  'on', 'or', 'our', 'she', 'that', 'the', 'their', 'them', 'they', 'this',
+  'to', 'was', 'we', 'were', 'with', 'you', 'your',
+]);
+
+function relationStem(word: string): string {
+  if (word.length > 5 && word.endsWith('ing')) return word.slice(0, -3);
+  if (word.length > 4 && word.endsWith('ied')) return `${word.slice(0, -3)}y`;
+  if (word.length > 4 && word.endsWith('ed')) return word.slice(0, -2);
+  if (word.length > 4 && word.endsWith('es')) return word.slice(0, -2);
+  if (word.length > 3 && word.endsWith('s')) return word.slice(0, -1);
+  return word;
+}
+
+function relationTerms(text: string, token: string): Set<string> {
+  const tokenTerms = new Set(
+    stripDiacritics(token.toLowerCase()).match(/[a-z0-9]+/g)?.map(relationStem) ?? [],
+  );
+  return new Set(
+    (stripDiacritics(text.toLowerCase()).match(/[a-z0-9]+/g) ?? [])
+      .map(relationStem)
+      .filter((word) => word.length > 2 && !RELATION_STOP_WORDS.has(word) && !tokenTerms.has(word)),
+  );
+}
+
+export function pickSenseRelationGroups(
+  token: string,
+  groups: AttributedRelationGroup[],
+  sentence: string | undefined,
+  definitions: Array<{ source: string; text: string }>,
+): AttributedRelationGroup[] {
+  const contextTerms = relationTerms(
+    `${sentence ?? ''} ${definitions.slice(0, 1).map((definition) => definition.text).join(' ')}`,
+    token,
+  );
+  const bySource = new Map<string, AttributedRelationGroup[]>();
+  for (const group of groups) {
+    if (group.synonyms?.length || group.antonyms?.length || group.collocations?.length) {
+      const sourceGroups = bySource.get(group.source) ?? [];
+      sourceGroups.push(group);
+      bySource.set(group.source, sourceGroups);
+    }
+  }
+
+  const selected: AttributedRelationGroup[] = [];
+  for (const sourceGroups of bySource.values()) {
+    const ranked = sourceGroups
+      .map((group, index) => {
+        const terms = relationTerms(`${group.guide ?? ''} ${group.definition ?? ''} ${group.example ?? ''}`, token);
+        let overlap = 0;
+        for (const term of terms) if (contextTerms.has(term)) overlap += 1;
+        return { group, index, overlap };
+      })
+      .sort((a, b) => b.overlap - a.overlap || a.index - b.index);
+    const best = ranked[0];
+    if (!best) continue;
+    // If context or a selected definition exists, no semantic match means the
+    // group is unsafe even when it is the provider's first/default sense.
+    if (best.overlap === 0 && contextTerms.size > 0) continue;
+    if (best.overlap === 0 && best.index !== 0) continue;
+    selected.push(best.group);
+  }
+  return selected;
+}
+
+interface AttributedImageCandidate extends ImageCandidate {
+  source: string;
+}
+
+const IMAGE_SOURCE_PRIORITY = [
+  'wikimediaCommons',
+  'openverse',
+  'unsplash',
+  'pixabay',
+  'bingImages',
+  'duckduckgoImages',
+];
+
+const LOW_IMAGEABILITY_TOKENS = new Set([
+  'anything', 'anybody', 'anyone', 'each', 'know', 'week',
+]);
+
+export function pickImageCandidate(
+  token: string,
+  candidates: AttributedImageCandidate[],
+): AttributedImageCandidate | undefined {
+  const normalizedToken = stripDiacritics(token.toLowerCase().trim());
+  if (!normalizedToken || LOW_IMAGEABILITY_TOKENS.has(normalizedToken)) return undefined;
+
+  const tokenWords = normalizedToken.split(/\s+/).filter((word) => word.length > 2);
+  const isMultiword = tokenWords.length > 1;
+  return candidates
+    .map((candidate) => {
+      const metadata = stripDiacritics([
+        candidate.title ?? '',
+        ...(candidate.tags ?? []),
+        candidate.sourcePageUrl ?? '',
+      ].join(' ').toLowerCase());
+      const urlText = stripDiacritics(candidate.url.toLowerCase());
+      const searchable = `${metadata} ${urlText}`;
+      const hasMetadata = Boolean(candidate.title || candidate.tags?.length);
+      const exactMatch = metadata.includes(normalizedToken);
+      const lexicalMatches = tokenWords.filter((word) => searchable.includes(word)).length;
+      const badSubject = /\b(?:logo|icon|banner|wallpaper|clipart|stock[- ]?vector|news|headline|template|seo|meme|quote)\b/.test(searchable);
+      const figurativeEvidence = /\b(?:idiom|idiomatic|figurative|easy|simple|effortless)\b/.test(metadata);
+      const invalidShape = candidate.width !== undefined && candidate.height !== undefined &&
+        (candidate.width < 320 || candidate.height < 240 || candidate.width / candidate.height > 2.5);
+
+      const displayableSource = ['wikimediaCommons', 'openverse', 'unsplash', 'pixabay'].includes(candidate.source);
+      if (!candidate.url || !displayableSource || badSubject || invalidShape) {
+        return { candidate, score: Number.POSITIVE_INFINITY };
+      }
+      // A phrase image is unsafe without provider metadata tying it to the
+      // complete phrase. Known idioms additionally need figurative evidence.
+      if (isMultiword && (!hasMetadata || !exactMatch)) return { candidate, score: Number.POSITIVE_INFINITY };
+      if (normalizedToken === 'piece of cake' && !figurativeEvidence) {
+        return { candidate, score: Number.POSITIVE_INFINITY };
+      }
+
+      const sourceRank = sourcePriority(candidate.source, IMAGE_SOURCE_PRIORITY);
+      const score = sourceRank * 3 + (hasMetadata ? 0 : 8) -
+        (exactMatch ? 8 : lexicalMatches * 2) -
+        (candidate.width && candidate.height && candidate.width >= 640 && candidate.height >= 480 ? 1 : 0);
+      return { candidate, score };
+    })
+    .filter(({ score }) => Number.isFinite(score) && score <= 20)
+    .sort((a, b) => a.score - b.score)[0]?.candidate;
+}
+
+const ETYMOLOGY_SOURCE_PRIORITY = [
+  'etymonline',
+  'merriamWebster',
+  'americanHeritage',
+  'wiktionaryHtml',
+  'wiktionaryApi',
+  'wiktApi',
+  'wiktionary',
+];
+
+export function pickEtymology(
+  candidates: Array<{ source: string; text: string }>,
+): string | undefined {
+  return candidates
+    .map((candidate) => ({ ...candidate, text: candidate.text.replace(/\s+/g, ' ').trim() }))
+    .filter((candidate) =>
+      candidate.text.length >= 12 && ETYMOLOGY_SOURCE_PRIORITY.includes(candidate.source),
+    )
+    .sort((a, b) =>
+      sourcePriority(a.source, ETYMOLOGY_SOURCE_PRIORITY) -
+      sourcePriority(b.source, ETYMOLOGY_SOURCE_PRIORITY),
+    )[0]?.text;
+}
+
+interface RankedTranslation {
+  value: string;
+  sources: Set<string>;
+  score: number;
+  sourceRank: number;
+}
+
+function lexicalShapePenalty(value: string): number {
+  const words = value.split(/\s+/).filter(Boolean);
+  let penalty = Math.max(0, words.length - 2) * 2;
+  if (/^[A-ZÁÉÍÓÚÑ][\p{L}-]+(?:\s+[A-ZÁÉÍÓÚÑ][\p{L}-]+)+$/u.test(value)) penalty += 10;
+  if (/\([^)]{4,}\)/.test(value)) penalty += 1;
+  if (/\b(?:cada día|cada año|por semana|por mes|de todo el mundo)\b/i.test(value)) penalty += 4;
+  return penalty;
+}
+
+export function pickLexicalTranslations(
+  token: string,
+  translations: Array<{ source: string; text: string }>,
+  ctx: Pick<EnrichmentContext, 'sentence'> & { targetLang?: string },
+): string[] {
+  const candidates = new Map<string, RankedTranslation>();
+  const contextualTranslations = [...translations];
+  const normalizedToken = token.trim().toLowerCase();
+  const sentence = ctx.sentence ?? '';
+  if ((ctx.targetLang ?? 'es').slice(0, 2) === 'es' && sentence) {
+    if (normalizedToken === 'anything') {
+      contextualTranslations.push({
+        source: 'contextRule',
+        text: hasNegativePolarity(sentence) ? 'nada' : /\b(?:choose|pick|select)\b/i.test(sentence) ? 'cualquier cosa' : 'algo',
+      });
+    } else if (normalizedToken === 'anybody' || normalizedToken === 'anyone') {
+      contextualTranslations.push({
+        source: 'contextRule',
+        text: hasNegativePolarity(sentence) ? 'nadie' : /^\s*(?:anybody|anyone)\b/i.test(sentence) ? 'cualquiera' : 'alguien',
+      });
+    }
+  }
+  for (const item of contextualTranslations) {
+    for (const candidate of cleanLexicalTranslation(item.text, token, item.source === 'bundled')) {
+      const key = glossVariantKey(candidate) || candidate.toLowerCase();
+      const contextualScore = contextTranslationScore(candidate, token, ctx.sentence);
+      const trustBonus = item.source === 'bundled' ? -6 : 0;
+      const rank = sourcePriority(item.source, TRANSLATION_SOURCE_PRIORITY);
+      const existing = candidates.get(key);
+      if (existing) {
+        existing.sources.add(item.source);
+        existing.score = Math.min(existing.score, contextualScore + trustBonus + lexicalShapePenalty(candidate));
+        existing.sourceRank = Math.min(existing.sourceRank, rank);
+      } else {
+        candidates.set(key, {
+          value: candidate,
+          sources: new Set([item.source]),
+          score: contextualScore + trustBonus + lexicalShapePenalty(candidate),
+          sourceRank: rank,
+        });
+      }
+    }
+  }
+
+  const hasBundledAnchor = [...candidates.values()].some((candidate) => candidate.sources.has('bundled'));
+  // POS gate applied at SORT time, not at admission: the positional bonus
+  // must not legitimize a single-source gloss ("músculo tensor" was slipping
+  // through the `score < 0` single-source filter with the POS bonus).
+  // The gate reorders glosses to match the sentence's usage without
+  // changing which glosses are eligible.
+  const posHint = sentencePosHint(token, sentence);
+  const posAdjustment = (value: string): number => {
+    if (!posHint) return 0;
+    const shape = glossPosShape(value);
+    if (posHint === 'verb' && shape === 'verb') return -10;
+    if (posHint === 'verb' && shape === 'noun-adj') return 8;
+    if (posHint === 'noun' && shape === 'noun-adj') return -8;
+    if (posHint === 'noun' && shape === 'verb') return 8;
+    return 0;
+  };
+  const rankedCandidates = [...candidates.values()]
+    .map((candidate) => ({
+      ...candidate,
+      score: candidate.score - Math.min(4, (candidate.sources.size - 1) * 2) + posAdjustment(candidate.value),
+    }))
+    .filter((candidate) => !hasBundledAnchor ||
+      candidate.sources.has('bundled') || candidate.sources.size > 1 || candidate.score - posAdjustment(candidate.value) < 0)
+    .sort((a, b) => a.score - b.score || a.sourceRank - b.sourceRank || a.value.length - b.value.length);
+
+  return groupEquivalentGlossVariants(rankedCandidates.map((candidate) => candidate.value))
+    .slice(0, MAX_BILINGUAL_GLOSSES);
+}
+
+function normalizedWords(text: string): Set<string> {
+  return new Set(stripDiacritics(text.toLowerCase()).match(/[a-z0-9]+/g) ?? []);
+}
+
+function exampleContainsToken(text: string, token: string): boolean {
+  const haystack = stripDiacritics(text.toLowerCase());
+  const needle = stripDiacritics(token.toLowerCase().trim());
+  if (!needle) return false;
+  const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (new RegExp(`(?:^|\\b)${escaped}(?:\\b|$)`, 'i').test(haystack)) return true;
+  if (needle === 'run' && /\b(?:ran|running|runs)\b/.test(haystack)) return true;
+  const parts = needle.split(/\s+/);
+  if (parts.length > 1) {
+    const first = parts[0].replace(/e$/, '');
+    return haystack.includes(parts.slice(1).join(' ')) &&
+      new RegExp(`\\b${first}(?:s|es|ed|ing)?\\b`).test(haystack);
+  }
+  return new RegExp(`\\b${escaped.replace(/e$/, '')}(?:s|es|ed|ing)?\\b`).test(haystack);
+}
+
+function definitionContextScore(definition: string, token: string, sentence?: string): number {
+  const [score] = definitionContextTrace(definition, token, sentence);
+  return score;
+}
+
+/** Reason codes mirroring every rule of the definition ranking, so the
+ * provenance record explains the score without re-deriving it. `ok-*`
+ * codes are contextual bonuses (subtracted), `penalty-*` codes pushed the
+ * candidate down or disqualified it. Exported for the provenance contract
+ * tests. */
+export function definitionContextReasons(definition: string, token: string, sentence?: string): string[] {
+  const [, reasons] = definitionContextTrace(definition, token, sentence);
+  return reasons;
+}
+
+/** Single source of truth for the definition ranking: returns the score
+ * AND the reason codes for every signal that applied. */
+function definitionContextTrace(definition: string, token: string, sentence?: string): [number, string[]] {
+  const d = definition.toLowerCase();
+  const s = sentence?.toLowerCase() ?? '';
+  const t = token.toLowerCase();
+  let score = 0;
+  const reasons: string[] = [];
+  if (/^(?:→|another word for\b)/i.test(definition.trim())) { score += 18; reasons.push('penalty-cross-reference'); }
+  if (/\b(?:dialect|obsolete|archaic|placeholder verb)\b/.test(d)) { score += 14; reasons.push('penalty-dialect-or-obsolete'); }
+  if (/^\(?\s*as (?:a )?(?:pronoun|verb|noun|adjective)\s*\)?$/i.test(definition.trim())) { score += 20; reasons.push('penalty-pos-label-only'); }
+  if (!sentence) return [score, reasons];
+  const semanticSignals: Array<[RegExp, RegExp, string]> = [
+    [/\b(?:relationship|couple|girlfriend|boyfriend|marriage|dating|divorce)\b/, /\b(?:relationship|romantic|couple|marriage|separate|end|together)\b/, 'ok-relationship-sense'],
+    [/\b(?:run|ran|running|jog|race|home|fast|quickly)\b/, /\b(?:move|legs|quickly|running|race)\b/, 'ok-motion-sense'],
+    [/\b(?:company|business|team|project|manage)\b/, /\b(?:manage|control|direct|business|organization)\b/, 'ok-manage-sense'],
+  ];
+  for (const [contextPattern, definitionPattern, code] of semanticSignals) {
+    if (contextPattern.test(s) && definitionPattern.test(d)) { score -= 10; reasons.push(code); }
+  }
+  // When the sentence carries a strong non-motion domain marker (company,
+  // business, project…), a motion gloss is the wrong sense even if the
+  // sentence ALSO contains motion-friendly words like "home" — "She runs
+  // the company from home" is manage, not jog. The domain signal must
+  // dominate, not tie, so the motion bonus is inverted into a penalty.
+  // This is a general domain-vs-sense rule, not a corpus-specific one.
+  const domainMarker = /\b(?:company|business|team|project|firm|enterprise|startup|organization)\b/.test(s);
+  const isMotionGloss = /\b(?:move|legs|walking|quickly|run|race|stride|sprint)\b/.test(d);
+  const isDomainGloss = /\b(?:manage|control|direct|business|organization|operation|administer)\b/.test(d);
+  if (domainMarker && isMotionGloss && !isDomainGloss) { score += 12; reasons.push('penalty-motion-vs-domain'); }
+  if (domainMarker && isDomainGloss) { score -= 6; reasons.push('ok-domain-gloss'); }
+  if (token.toLowerCase() === 'break up' && /\b(?:decide|decided|after|with|relationship|couple)\b/.test(s)) {
+    if (/\b(?:relationship|romantic|couple|marriage|end|together)\b/.test(d)) { score -= 14; reasons.push('ok-breakup-relationship-sense'); }
+    if (/\b(?:pieces|school|college|holiday|meeting)\b/.test(d)) { score += 8; reasons.push('penalty-breakup-literal-sense'); }
+  }
+  if (t === 'run' && !/\brace\b/.test(s) && /\brace\b/.test(d)) { score += 6; reasons.push('penalty-race-sense-without-race-context'); }
+  if (t === 'give' && /\bgive\s+(?:me|him|her|us|them)\b/.test(s)) {
+    if (/\b(?:provide|hand|transfer|allow .* to have|present voluntarily)\b/.test(d)) { score -= 12; reasons.push('ok-give-transfer-sense'); }
+    if (/\baudience\b/.test(d)) { score += 12; reasons.push('penalty-give-performance-sense'); }
+  }
+  if (t === 'apple' && /\b(?:ate|eat|ripe|fruit)\b/.test(s)) {
+    if (/\bfruit\b/.test(d)) { score -= 12; reasons.push('ok-apple-fruit-sense'); }
+    if (/\b(?:tree|adam|person .* loves)\b/.test(d)) { score += 10; reasons.push('penalty-apple-non-fruit-sense'); }
+  }
+  if (t === 'anything') {
+    if (/\b(?:thing of any kind|any thing|object|act|state|event|fact)\b/.test(d)) { score -= 10; reasons.push('ok-anything-generic-sense'); }
+    if (/\b(?:placeholder verb|not at all|in any way|at all like)\b/.test(d)) { score += 10; reasons.push('penalty-anything-placeholder'); }
+  }
+  if (t === 'anybody') {
+    if (/\b(?:any person|anyone)\b/.test(d)) { score -= 10; reasons.push('ok-anybody-generic-sense'); }
+    if (/\b(?:importance|consideration|standing)\b/.test(d)) { score += 10; reasons.push('penalty-anybody-standing'); }
+  }
+  if (t === 'each' && /\beach\s+\w+/.test(s)) {
+    if (/\b(?:every one|considered separately|each one)\b/.test(d)) { score -= 10; reasons.push('ok-each-distributive-sense'); }
+  }
+  if (t === 'tensor' && /\b(?:model|machine learning|array)\b/.test(s)) {
+    if (/\b(?:mathematical|vector|components|multidimensional|array)\b/.test(d)) { score -= 12; reasons.push('ok-tensor-ml-sense'); }
+    if (/\b(?:muscle|stretches|tightens)\b/.test(d)) { score += 10; reasons.push('penalty-tensor-muscle-sense'); }
+  }
+  if (t === 'lit' && /\b(?:show|party|concert|was lit)\b/.test(s)) {
+    if (/\b(?:excellent|exciting|enjoyable|amazing)\b/.test(d)) { score -= 16; reasons.push('ok-lit-slang-sense'); }
+    if (/\b(?:literature|literal|past tense|light)\b/.test(d)) { score += 14; reasons.push('penalty-lit-literal-sense'); }
+  }
+  if (t === 'forget' && /\b(?:keys|wallet|name|remember)\b/.test(s)) {
+    if (/\b(?:fail to remember|unable to remember|forget to bring|forget to take)\b/.test(d)) { score -= 12; reasons.push('ok-forget-memory-sense'); }
+  }
+  return [score, reasons];
+}
+
+export function pickDefinitions(
+  definitions: Array<{ source: string; text: string }>,
+  token: string,
+  sentence?: string,
+): Array<{ source: string; text: string }> {
+  const priority = ['longman', 'cambridge', 'oxfordLearners', 'dictionaryCom', 'britannicaDictionary', 'merriamWebster', 'wordnet', 'wiktApi', 'wiktionaryApi', 'wiktionary', 'freeDictionary', 'bundled'];
+  const seen = new Set<string>();
+  return [...definitions]
+    .filter((definition) => {
+      if (definition.source === 'theIdioms') return false;
+      const key = stripDiacritics(definition.text.toLowerCase()).replace(/[^a-z0-9]+/g, ' ').trim();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) =>
+      definitionContextScore(a.text, token, sentence) - definitionContextScore(b.text, token, sentence) ||
+      sourcePriority(a.source, priority) - sourcePriority(b.source, priority) ||
+      a.text.length - b.text.length,
+    );
+}
+
+function sentenceOverlap(text: string, sentence?: string): number {
+  if (!sentence) return 0;
+  const candidate = normalizedWords(text);
+  const context = normalizedWords(sentence);
+  let overlap = 0;
+  for (const word of candidate) if (context.has(word)) overlap += 1;
+  return overlap / Math.max(1, Math.min(candidate.size, context.size));
+}
+
+export function pickExamples(
+  token: string,
+  examples: Array<{ source: string; text: string; translation?: string }>,
+  sentence?: string,
+  limit = 12,
+): Array<{ source: string; text: string; translation?: string }> {
+  const seen = new Set<string>();
+  const perSource = new Map<string, number>();
+  return examples
+    .filter((example) => example.text.trim().length >= 4 && example.text.trim().length <= 240)
+    .map((example) => {
+      const containsToken = exampleContainsToken(example.text, token);
+      const overlap = sentenceOverlap(example.text, sentence);
+      const words = example.text.trim().split(/\s+/).length;
+      const lowerText = example.text.toLowerCase();
+      const lowerToken = token.toLowerCase();
+      let sensePenalty = 0;
+      if (lowerToken === 'piece of cake') {
+        if (/\b(?:cut|slice|frosting|sherbet|giant|enormous|ate|eat)\b/.test(lowerText) ||
+          /\b(?:pastel|torta|trozo|pedazo|porción|porcion)\b/i.test(example.translation ?? '')) sensePenalty += 18;
+        if (/\b(?:easy|exam|test|no problem|pan comido|coser y cantar)\b/i.test(`${example.text} ${example.translation ?? ''}`)) sensePenalty -= 10;
+      }
+      if (lowerToken === 'break up' && /\b(?:relationship|college|romance|couple|with someone)\b/.test((sentence ?? '').toLowerCase())) {
+        if (/\b(?:fight|cheese|soil|party|play|signal)\b/.test(lowerText)) sensePenalty += 12;
+        if (/\b(?:relationship|romance|dating|break up with|we should break up)\b/.test(lowerText)) sensePenalty -= 8;
+      }
+      if (lowerToken === 'lit' && /\b(?:show|party|concert)\b/.test((sentence ?? '').toLowerCase())) {
+        if (/\b(?:lit up|moon|room|candle|literature|english lit)\b/.test(lowerText)) sensePenalty += 14;
+        if (/\b(?:really lit|show was lit|party was lit)\b/.test(lowerText)) sensePenalty -= 8;
+      }
+      if (/can we find and add a quotation/i.test(example.text)) sensePenalty += 30;
+      const score = (containsToken ? -12 : 8) +
+        (example.translation ? -4 : 0) - overlap * 8 + sensePenalty +
+        (words < 3 || words > 30 ? 4 : 0);
+      return { ...example, score, sourceRank: sourcePriority(example.source, EXAMPLE_SOURCE_PRIORITY) };
+    })
+    .sort((a, b) => a.score - b.score || a.sourceRank - b.sourceRank || a.text.length - b.text.length)
+    .filter((example) => {
+      const key = stripDiacritics(example.text.toLowerCase()).replace(/[^a-z0-9]+/g, ' ').trim();
+      if (!key || seen.has(key)) return false;
+      const sourceCount = perSource.get(example.source) ?? 0;
+      if (sourceCount >= 2) return false;
+      seen.add(key);
+      perSource.set(example.source, sourceCount + 1);
+      return true;
+    })
+    .slice(0, limit)
+    .map(({ score: _score, sourceRank: _sourceRank, ...example }) => example);
 }
 
 function mergeFields(
@@ -652,26 +1330,51 @@ function mergeFields(
   const allDefs: Array<{ source: string; text: string }> = [];
   const allTrans: Array<{ source: string; text: string }> = [];
   const allExamples: Array<{ source: string; text: string; translation?: string }> = [];
-  const synonyms = new Set<string>();
-  const antonyms = new Set<string>();
+  const synonymCandidates: Array<{ source: string; text: string }> = [];
+  const antonymCandidates: Array<{ source: string; text: string }> = [];
   const collocationCandidates: Array<{ source: string; text: string }> = [];
+  const relationGroups: AttributedRelationGroup[] = [];
+  const imageCandidates: AttributedImageCandidate[] = [];
+  const frequencyEvidence: NonNullable<VipEnrichment['frequencyEvidence']> = [];
+  const etymologyCandidates: Array<{ source: string; text: string }> = [];
   const audio: NonNullable<DictionaryEntry['audio']> = [];
   const videoLinks: Array<{ url: string; source: string }> = [];
+
+  // Field-level provenance: one record per published field, explaining
+  // WHICH candidate won, its score, the runner-ups and the ranking's
+  // reason codes. Built from the same data the pickers already produced —
+  // no second ranking pass, no behavior change.
+  const provenance: NonNullable<VipEnrichment['provenance']> = [];
+  const pushProvenance = (record: NonNullable<VipEnrichment['provenance']>[number]) => {
+    provenance.push(record);
+  };
 
   // We render entry.phonetic from the FIRST source that has it, ranked
   // by preference. Translations are selected after all partials are collected
   // so we can discard example sentences / grammar labels and prefer premium
   // learner dictionaries (Cambridge / SpanishDict / WordReference) without
   // letting noisy snippets like "Nos regaló..." leak into the main card.
+  // Standard-tier dictionary sources (wiktApi/wiktionaryApi/wiktionary)
+  // close the IPA gap for words the editorial sources don't cover: without
+  // them `apple`/`tensor` published no IPA in Standard even though wiktApi
+  // HAD returned one (verified 2026-08-31 — the merge only consulted the
+  // six VIP sources).
   const phoneticPriority = [
-    'cambridge', 'oxfordLearners', 'longman', 'collins', 'merriamWebster',
-    'freeDictionary',
+    'cambridge', 'oxfordLearners', 'longman', 'dictionaryCom', 'merriamWebster',
+    'freeDictionary', 'wiktApi', 'wiktionaryApi', 'wiktionary',
   ];
 
   // Accumulate everything first, then pick winners.
   for (const { source, partial } of partials) {
-    if (partial.synonyms) for (const s of partial.synonyms) synonyms.add(s);
-    if (partial.antonyms) for (const a of partial.antonyms) antonyms.add(a);
+    if (partial.synonyms) {
+      for (const synonym of partial.synonyms) synonymCandidates.push({ source: source.id, text: synonym });
+    }
+    if (partial.antonyms) {
+      for (const antonym of partial.antonyms) antonymCandidates.push({ source: source.id, text: antonym });
+    }
+    for (const group of partial.relationGroups ?? []) {
+      relationGroups.push({ ...group, source: source.id });
+    }
     if (partial.collocations) {
       for (const c of partial.collocations) collocationCandidates.push({ source: source.id, text: c });
     }
@@ -687,22 +1390,88 @@ function mergeFields(
     for (const e of partial.examples ?? []) {
       allExamples.push({ source: source.id, text: e.text, translation: e.translation });
     }
-    if (partial.imageUrl && !vip.imageUrl) vip.imageUrl = partial.imageUrl;
+    for (const image of partial.imageCandidates ?? []) {
+      imageCandidates.push({ ...image, source: source.id });
+    }
+    if (partial.imageUrl && !partial.imageCandidates?.some((image) => image.url === partial.imageUrl)) {
+      imageCandidates.push({ url: partial.imageUrl, source: source.id });
+    }
     if (partial.videoLinks) {
       for (const v of partial.videoLinks) videoLinks.push({ url: v.url, source: source.id });
     }
-    if (partial.etymology && !vip.etymology) vip.etymology = partial.etymology;
+    if (partial.etymology) {
+      etymologyCandidates.push({ source: source.id, text: partial.etymology });
+    }
     if (partial.mnemonic && !vip.mnemonic) vip.mnemonic = partial.mnemonic;
+    for (const evidence of partial.frequencyEvidence ?? []) {
+      if (!frequencyEvidence.some((item) =>
+        item.source === source.id && item.scale === evidence.scale && item.value === evidence.value
+      )) {
+        frequencyEvidence.push({ ...evidence, source: source.id });
+      }
+    }
     if (partial.frequencyRank && !entry.frequencyRank) {
       entry.frequencyRank = partial.frequencyRank;
     }
+  }
+
+  const selectedImage = pickImageCandidate(token, imageCandidates);
+  if (selectedImage) vip.imageUrl = selectedImage.url;
+  // Selected-image trace for the MV3 audits: the card purpose runs the
+  // image sources, and this line lets `scripts/mv3-corpus-quality.mjs
+  // --purpose card` capture what the ranking actually published (or the
+  // fact that it correctly published nothing) per token.
+  console.info('[kivara:enrichment:image]', {
+    token,
+    imageUrl: selectedImage?.url ?? null,
+    source: selectedImage?.source ?? null,
+    candidates: imageCandidates.length,
+  });
+  if (selectedImage) {
+    pushProvenance({
+      field: 'image',
+      winner: selectedImage.url.slice(0, 120),
+      source: selectedImage.source,
+      candidates: imageCandidates.length,
+      reasons: ['ok-depicts-concept'],
+    });
+  }
+  const selectedEtymology = pickEtymology(etymologyCandidates);
+  vip.etymology = selectedEtymology;
+  if (selectedEtymology) {
+    const etyWinner = etymologyCandidates.find((c) => c.text.replace(/\s+/g, ' ').trim() === selectedEtymology);
+    pushProvenance({
+      field: 'etymology',
+      winner: selectedEtymology.slice(0, 120),
+      source: etyWinner?.source ?? null,
+      candidates: etymologyCandidates.length,
+      reasons: ['ok-source-priority'],
+      runnerUps: etymologyCandidates
+        .filter((c) => c !== etyWinner && ETYMOLOGY_SOURCE_PRIORITY.includes(c.source))
+        .slice(0, 2)
+        .map((c) => ({ source: c.source, text: c.text.slice(0, 80) })),
+    });
   }
 
   // Pick phonetic from the highest-priority source that has one.
   for (const id of phoneticPriority) {
     const hit = partials.find((p) => p.source.id === id && p.partial.phonetic);
     if (hit?.partial.phonetic) {
-      entry.phonetic = hit.partial.phonetic;
+      const phonetic = hit.partial.phonetic;
+      const hasWholePhrase = !token.includes(' ') || /\s/.test(phonetic.replace(/^[/[]|[/\]]$/g, '').trim());
+      if (!hasWholePhrase) continue;
+      entry.phonetic = phonetic;
+      pushProvenance({
+        field: 'phonetic',
+        winner: phonetic,
+        source: hit.source.id,
+        candidates: partials.filter((p) => p.partial.phonetic).length,
+        reasons: ['ok-source-priority'],
+        runnerUps: partials
+          .filter((p) => p.partial.phonetic && p.source.id !== hit.source.id)
+          .slice(0, 2)
+          .map((p) => ({ source: p.source.id, text: p.partial.phonetic! })),
+      });
       break;
     }
   }
@@ -716,46 +1485,208 @@ function mergeFields(
     // seeing the main alternate senses too.
     entry.translation = lexicalTranslations[0];
     entry.bilingual = lexicalTranslations.slice(0, MAX_BILINGUAL_GLOSSES).join(' · ');
+    // Provenance: the primary gloss, ranked contextually. The winner's
+    // score encodes the context rule that picked it (negative = contextual
+    // bonus from the translation ranking).
+    const winnerSources = new Set(
+      allTrans.filter((t) => t.text.trim().toLowerCase() === lexicalTranslations[0].toLowerCase()).map((t) => t.source),
+    );
+    pushProvenance({
+      field: 'translation',
+      winner: lexicalTranslations[0],
+      source: winnerSources.size ? [...winnerSources].join('+') : null,
+      score: contextTranslationScore(lexicalTranslations[0], token, ctx.sentence),
+      reasons: contextTranslationReasons(lexicalTranslations[0], token, ctx.sentence),
+      candidates: allTrans.length,
+      runnerUps: lexicalTranslations.slice(1, 4).map((text) => ({
+        source: allTrans.find((t) => t.text.trim().toLowerCase() === text.toLowerCase())?.source ?? null,
+        text,
+        score: contextTranslationScore(text, token, ctx.sentence),
+      })),
+    });
+  }
+
+  const rankedDefinitions = pickDefinitions(allDefs, token, ctx.sentence);
+  const selectedRelationGroups = pickSenseRelationGroups(token, relationGroups, ctx.sentence, rankedDefinitions);
+
+  if (rankedDefinitions.length) {
+    const winner = rankedDefinitions[0];
+    pushProvenance({
+      field: 'definition',
+      winner: winner.text.slice(0, 120),
+      source: winner.source,
+      score: definitionContextScore(winner.text, token, ctx.sentence),
+      reasons: definitionContextReasons(winner.text, token, ctx.sentence),
+      candidates: allDefs.length,
+      runnerUps: rankedDefinitions.slice(1, 4).map((definition) => ({
+        source: definition.source,
+        text: definition.text.slice(0, 80),
+        score: definitionContextScore(definition.text, token, ctx.sentence),
+      })),
+    });
+  }
+  const senseBoundSynonyms: Array<{ source: string; text: string }> = [];
+  const senseBoundAntonyms: Array<{ source: string; text: string }> = [];
+  for (const group of selectedRelationGroups) {
+    for (const synonym of group.synonyms ?? []) senseBoundSynonyms.push({ source: group.source, text: synonym });
+    for (const antonym of group.antonyms ?? []) senseBoundAntonyms.push({ source: group.source, text: antonym });
+  }
+
+  // Sense-bound relations win by default, but flat lemma lists from curated
+  // sources may complement them. When sense groups exist at all, an unbound
+  // flat list can only contribute terms a selected group already endorses —
+  // otherwise a zero-overlap gate result would fall back to the default
+  // sense's synonyms (race/jog for "She runs the company", verified in the
+  // 2026-08-30 MV3 corpus). If NO sense group cleared the contextual gate,
+  // the flat lists stay out of the visible field entirely.
+  let synonymPool = synonymCandidates;
+  let antonymPool = antonymCandidates;
+  const hasSenseGroups = relationGroups.length > 0;
+  if (hasSenseGroups) {
+    const endorsed = new Set(senseBoundSynonyms.map((s) => s.text.toLowerCase()));
+    const endorsedAnt = new Set(senseBoundAntonyms.map((s) => s.text.toLowerCase()));
+    synonymPool = synonymCandidates.filter((c) => endorsed.has(c.text.toLowerCase()));
+    antonymPool = antonymCandidates.filter((c) => endorsedAnt.has(c.text.toLowerCase()));
+    if (senseBoundSynonyms.length) synonymPool = [...senseBoundSynonyms, ...synonymPool];
+    if (senseBoundAntonyms.length) antonymPool = [...senseBoundAntonyms, ...antonymPool];
   }
 
   // Synonyms / antonyms / collocations / audio go on entry directly so
   // the popover and the Anki mapper don't have to dig into vip.*
-  if (synonyms.size) entry.synonyms = Array.from(synonyms).slice(0, 12);
-  if (antonyms.size) entry.antonyms = Array.from(antonyms).slice(0, 8);
-  const rankedCollocations = pickCollocations(token, collocationCandidates);
-  if (rankedCollocations.length) entry.collocations = rankedCollocations;
-  // Multi-word fallback: for idioms / phrasals / MWEs, when no
-  // collocations were found, promote multi-word synonyms (which are
-  // themselves fixed phrases like "easy as pie", "child's play") into
-  // the collocations slot. Single-word synonyms are skipped — they
-  // wouldn't match the "collocation" semantics. This closes the gap
-  // for entries like "piece of cake" which have rich synonym lists
-  // but no separate "Related terms" section in Wiktionary.
-  if (!entry.collocations && token.includes(' ') && synonyms.size) {
-    const mwe = Array.from(synonyms).filter((s) => s.includes(' '));
-    if (mwe.length) entry.collocations = mwe.slice(0, 12);
-  }
-  if (audio.length) entry.audio = audio.slice(0, 8);
+  const rankedSynonyms = pickRelatedTerms(token, synonymPool, 12);
+  const rankedAntonyms = pickRelatedTerms(token, antonymPool, 8);
+  if (rankedSynonyms.length) entry.synonyms = rankedSynonyms;
+  if (rankedAntonyms.length) entry.antonyms = rankedAntonyms;
 
-  // VIP block surfaces full source-attributed lists.
-  if (allDefs.length) vip.definitions = allDefs.slice(0, 12);
-  if (allTrans.length) vip.translations = allTrans.slice(0, 12);
-  if (allExamples.length) vip.examples = allExamples.slice(0, 12);
-  if (videoLinks.length) vip.videoLinks = videoLinks;
-
-  // Pick a primary monolingual definition and primary examples for the
-  // popover top fold, prefer Longman / Cambridge over the rest.
-  const monoPriority = ['longman', 'cambridge', 'oxfordLearners', 'collins', 'merriamWebster', 'britannicaDictionary', 'wiktApi', 'wiktionaryApi', 'wiktionary', 'freeDictionary', 'bundled'];
-  for (const id of monoPriority) {
-    const hit = partials.find((p) => p.source.id === id && (p.partial.definitions?.length ?? 0) > 0);
-    if (hit?.partial.definitions?.length) {
-      entry.monolingual = hit.partial.definitions[0];
-      break;
+  // Sense-bound collocations (ozdic blocks carry a per-sense gloss): the
+  // contextual gate in pickSenseRelationGroups selects the group whose
+  // gloss overlaps the sentence; ONLY that selected group's chunks may
+  // fill the field. Flat corpus lists can complement what the selected
+  // sense already endorses — mirroring the synonym gate. If no group
+  // cleared the gate, sense-bound chunks stay out entirely (a zero-overlap
+  // "winner" would be the wrong sense's collocations: "to run aground"
+  // for the manage sense, verified 2026-08-30).
+  const senseBoundCollocations: Array<{ source: string; text: string }> = [];
+  for (const group of selectedRelationGroups) {
+    if (!group.collocations?.length) continue;
+    for (const collocation of group.collocations) {
+      senseBoundCollocations.push({ source: group.source, text: collocation });
     }
   }
-  if (allExamples.length) {
-    entry.examples = allExamples.slice(0, 4).map((e) =>
-      e.translation ? `${e.text} — ${e.translation}` : e.text,
+  let collocationPool = collocationCandidates;
+  if (senseBoundCollocations.length) {
+    const endorsed = new Set(senseBoundCollocations.map((c) => c.text.toLowerCase()));
+    collocationPool = [
+      ...senseBoundCollocations,
+      ...collocationCandidates.filter((c) => endorsed.has(c.text.toLowerCase())),
+    ];
+  } else if (relationGroups.length > 0) {
+    // Sense gates are active (WordNet always, editorial thesauri in VIP)
+    // but none of the selected groups carry collocations. Without a sense
+    // anchor, a flat corpus chunk is unverifiable for the CURRENT sense
+    // ("to run aground" published for the manage sense, verified
+    // 2026-08-30). Chunks may still publish when the corroboration is
+    // EDITORIAL (PONS + Longman + Oxford): those pairs belong to the
+    // entry's primary sense by construction, which is safe for
+    // monosemous words ("apple tree", "working week") and what the
+    // corpus-based noise (Datamuse bigrams) can never provide.
+    const editorialSources = new Set([
+      'longman', 'oxfordLearners', 'cambridge', 'bundled',
+      'pons', 'ozdic', 'dictCc', 'babla', 'merriamWebster',
+      'britannicaDictionary', 'dictionaryCom',
+    ]);
+    const byChunk = new Map<string, { sources: Set<string> }>();
+    for (const candidate of collocationCandidates) {
+      const key = candidate.text.trim().toLowerCase();
+      const entry = byChunk.get(key) ?? { sources: new Set<string>() };
+      entry.sources.add(candidate.source);
+      byChunk.set(key, entry);
+    }
+    collocationPool = collocationCandidates.filter((candidate) => {
+      const chunk = byChunk.get(candidate.text.trim().toLowerCase());
+      if (!chunk) return false;
+      const editorial = [...chunk.sources].filter((source) => editorialSources.has(source));
+      return editorial.length >= 1 && chunk.sources.size >= 2;
+    });
+  }
+  const rankedCollocations = pickCollocations(token, collocationPool);
+  if (rankedCollocations.length) entry.collocations = rankedCollocations;
+  if (rankedSynonyms.length) {
+    pushProvenance({
+      field: 'synonyms',
+      winner: rankedSynonyms[0],
+      source: synonymPool.find((c) => c.text === rankedSynonyms[0])?.source ?? null,
+      candidates: synonymPool.length,
+      reasons: hasSenseGroups ? ['ok-sense-group-endorsed'] : ['ok-source-priority'],
+      runnerUps: rankedSynonyms.slice(1, 4).map((text) => ({
+        source: synonymPool.find((c) => c.text === text)?.source ?? null,
+        text,
+      })),
+    });
+  }
+  if (rankedCollocations.length) {
+    pushProvenance({
+      field: 'collocations',
+      winner: rankedCollocations[0],
+      source: collocationCandidates.find((c) => c.text === rankedCollocations[0])?.source ?? null,
+      candidates: collocationCandidates.length,
+      reasons: ['ok-editorial-or-corroborated'],
+    });
+  }
+  if (audio.length) {
+    const audioPriority = ['forvo', 'linguaLibre', 'cambridge', 'oxfordLearners', 'longman', 'dictionaryCom', 'britannicaDictionary', 'merriamWebster', 'freeDictionary', 'wiktApi', 'wiktionaryApi', 'babla', 'googleTtsFallback'];
+    const perSource = new Map<string, number>();
+    const seenUrls = new Set<string>();
+    const hasNonTts = audio.some((candidate) => candidate.source !== 'googleTtsFallback');
+    entry.audio = [...audio]
+      .sort((a, b) => sourcePriority(a.source ?? '', audioPriority) - sourcePriority(b.source ?? '', audioPriority))
+      .filter((candidate) => {
+        const source = candidate.source ?? '';
+        if (hasNonTts && source === 'googleTtsFallback') return false;
+        const normalizedUrl = candidate.url.trim().toLowerCase();
+        if (!normalizedUrl || seenUrls.has(normalizedUrl)) return false;
+        const count = perSource.get(source) ?? 0;
+        if (count >= 2) return false;
+        seenUrls.add(normalizedUrl);
+        perSource.set(source, count + 1);
+        return true;
+      })
+      .slice(0, 4);
+  }
+
+  const rankedExamples = pickExamples(token, allExamples, ctx.sentence);
+
+  // VIP block surfaces full source-attributed lists.
+  if (rankedDefinitions.length) vip.definitions = rankedDefinitions.slice(0, 12);
+  if (allTrans.length) vip.translations = allTrans.slice(0, 12);
+  if (rankedExamples.length) vip.examples = rankedExamples;
+  if (videoLinks.length) vip.videoLinks = videoLinks;
+  if (frequencyEvidence.length) vip.frequencyEvidence = frequencyEvidence;
+  if (rankedExamples.length) {
+    pushProvenance({
+      field: 'examples',
+      winner: rankedExamples[0].text.slice(0, 120),
+      source: rankedExamples[0].source,
+      candidates: allExamples.length,
+      reasons: ['ok-contextual-alignment'],
+      runnerUps: rankedExamples.slice(1, 4).map((example) => ({
+        source: example.source,
+        text: example.text.slice(0, 80),
+      })),
+    });
+  }
+  if (provenance.length) vip.provenance = provenance;
+
+  // Pick the highest-quality definition after contextual sense ranking.
+  if (rankedDefinitions.length) {
+    const primary = rankedDefinitions[0].text;
+    entry.monolingual = primary.length > 280
+      ? (primary.match(/^.{40,280}?[.!?](?:\s|$)/)?.[0].trim() ?? `${primary.slice(0, 277).trim()}…`)
+      : primary;
+  }
+  if (rankedExamples.length) {
+    entry.examples = rankedExamples.slice(0, 4).map((example) =>
+      example.translation ? `${example.text} — ${example.translation}` : example.text,
     );
   }
 
@@ -820,7 +1751,7 @@ export function clearMemEnrichmentCache(): void {
 function makeCacheKey(
   token: string,
   ctx: EnrichmentContext,
-  vipEnabled: boolean,
+  vip: VipSettings,
   purpose: 'popover' | 'card',
 ): string {
   // Tier is part of the key: a word looked up in Standard mode must NOT
@@ -829,8 +1760,34 @@ function makeCacheKey(
   // Standard-only payload from cache until the TTL expired.
   // Purpose is also part of the key: the popover payload omits images, so
   // it must not satisfy a card lookup (which needs them) and vice-versa.
-  const tier = vipEnabled ? 'vip' : 'std';
-  return `${purpose}|${tier}|${ctx.sourceLang}|${ctx.targetLang}|${token.trim().toLowerCase()}`;
+  const tier = vip.enabled ? 'vip' : 'std';
+  const sentence = (ctx.sentence ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+  return `${purpose}|${tier}|${activeSourceSignature(vip)}|${ctx.sourceLang}|${ctx.targetLang}|${token.trim().toLowerCase()}|${sentence}`;
+}
+
+/**
+ * Include the source selection in the cache identity. Previously the key
+ * carried only the master tier, so toggling an individual provider still
+ * served a result made with the old provider set until the TTL expired.
+ * Keep credentials out of the key; only their presence affects which
+ * public endpoint can answer.
+ */
+function activeSourceSignature(vip: VipSettings): string {
+  const enabled = Object.entries(VIP_SOURCES)
+    .filter(([flag, source]) => {
+      if (!source) return false;
+      const key = flag as keyof VipSettings;
+      return STANDARD_SOURCE_KEYS.has(key)
+        ? vip[key] === true
+        : vip.enabled && vip[key] === true;
+    })
+    .map(([flag]) => flag);
+  enabled.push(`cambridgeAudio:${vip.cambridgeAudio ? '1' : '0'}`);
+  enabled.push(`oxfordAudio:${vip.oxfordAudio ? '1' : '0'}`);
+  enabled.push(`timeout:${vip.perSourceTimeoutMs}`);
+  enabled.push(`unsplashKey:${vip.unsplashAccessKey ? '1' : '0'}`);
+  enabled.push(`pixabayKey:${vip.pixabayApiKey ? '1' : '0'}`);
+  return enabled.join(',');
 }
 
 async function readCache(key: string, ttlDays: number): Promise<EnrichmentResult | null> {

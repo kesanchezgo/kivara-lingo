@@ -1,0 +1,45 @@
+{
+  "capturedAt": "2026-08-29T23:59:38.830Z",
+  "runtime": "MV3 extension-origin fetch (extension host permissions)",
+  "serviceWorkerUrl": "chrome-extension://pkafehpbjfkkfnjaeombdemckeoohhpb/service-worker-loader.js",
+  "extensionId": "pkafehpbjfkkfnjaeombdemckeoohhpb",
+  "browserVersion": "148.0.7778.96",
+  "tokens": {
+    "run": {
+      "url": "https://www.merriam-webster.com/thesaurus/run",
+      "finalUrl": "https://www.merriam-webster.com/thesaurus/run",
+      "status": 200,
+      "bytes": 1126581,
+      "contentType": "text/html; charset=utf-8",
+      "cfMitigated": null,
+      "file": "run.html"
+    },
+    "support": {
+      "url": "https://www.merriam-webster.com/thesaurus/support",
+      "finalUrl": "https://www.merriam-webster.com/thesaurus/support",
+      "status": 200,
+      "bytes": 954923,
+      "contentType": "text/html; charset=utf-8",
+      "cfMitigated": null,
+      "file": "support.html"
+    },
+    "lit": {
+      "url": "https://www.merriam-webster.com/thesaurus/lit",
+      "finalUrl": "https://www.merriam-webster.com/thesaurus/lit",
+      "status": 200,
+      "bytes": 976862,
+      "contentType": "text/html; charset=utf-8",
+      "cfMitigated": null,
+      "file": "lit.html"
+    },
+    "piece-of-cake": {
+      "url": "https://www.merriam-webster.com/thesaurus/piece-of-cake",
+      "finalUrl": "https://www.merriam-webster.com/thesaurus/piece-of-cake",
+      "status": 200,
+      "bytes": 695400,
+      "contentType": "text/html; charset=utf-8",
+      "cfMitigated": null,
+      "file": "piece-of-cake.html"
+    }
+  }
+}

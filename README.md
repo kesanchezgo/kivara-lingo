@@ -1,6 +1,6 @@
 # Kivara Lingo
 
-> Aprende idiomas mientras ves tu serie favorita. Subtítulos personalizables, popover enriquecido con 33 fuentes, tarjetas Anki en un clic.
+> Aprende idiomas mientras ves tu serie favorita. Subtítulos personalizables, popover enriquecido con hasta 36 fuentes de red, tarjetas Anki en un clic.
 
 **Kivara Lingo** es una extensión Chrome real (Manifest V3) que se monta sobre reproductores de streaming (Netflix, HBO Max, Disney+, YouTube, Prime Video) y convierte sus subtítulos en una herramienta de aprendizaje de vocabulario integrada con Anki. Al pasar el ratón sobre una palabra o expresión multi-palabra obtienes fonética, traducción, sinónimos, antónimos, colocaciones, etimología e imágenes; con un clic generas una tarjeta Anki con audio del cue y fotograma del momento exacto.
 
@@ -13,7 +13,7 @@
 - **Subtítulos personalizables**: tamaño, color, peso, sombra, fondo, opacidad y posición (arriba / medio / abajo).
 - **Tokenización inteligente con MWE**: detecta expresiones multi-palabra (*these days*, *kick the bucket*, *look up*) usando un índice de 13 501 frases de Wiktionary + lematización de inflexiones (*kicked the bucket* → *kick the bucket*).
 - **Popover con resolución en streaming**: la información esencial aparece en < 1 s (datos locales + traducción); el resto llega en fases mientras ves la serie. Un footer "buscando más…" indica que el enriquecimiento sigue en curso.
-- **Enriquecimiento multi-fuente**: 20 fuentes Standard (siempre activas, sin clave) + 13 fuentes VIP (toggle) + capa de IA opcional.
+- **Enriquecimiento multi-fuente**: 20 fuentes Standard de red (siempre activas, sin clave) + 16 fuentes VIP (toggle) + capa de IA opcional.
 - **Tarjetas Anki en un clic**: vía AnkiConnect, con mapeo configurable de campos. Incluye audio de la pestaña (WAV 16 kHz mono) y screenshot del frame.
 - **Caché inteligente**: LRU en memoria (300 entradas) + IndexedDB con TTL configurable. Re-hover = ~0 ms.
 - **Modo Lectura**: oculta toda la UI de aprendizaje y deja solo subtítulos estilizados.
@@ -69,7 +69,7 @@ El build usa **Vite + `@crxjs/vite-plugin`** y produce la carpeta `dist/` lista 
 │  Service Worker (src/background/)                           │
 │  ├── resolve-word.ts      fases: local→translation→         │
 │  │                        enrichment→ai→done (streaming)    │
-│  ├── enrichment/          orquestador + 33 fuentes          │
+│  ├── enrichment/          orquestador + hasta 36 fuentes    │
 │  ├── translate-providers  MyMemory ∥ Lingva (raced)         │
 │  ├── anki-connect.ts      proxy CORS-free a AnkiConnect     │
 │  ├── ai-providers.ts      OpenAI / Anthropic / Gemini       │
@@ -93,7 +93,7 @@ El content script abre un puerto al service worker y recibe fases a medida que e
 |---|---|---|
 | `local` | datos bundled + Yomitan packs | < 1 ms |
 | `translation` | traducción (MyMemory ∥ Lingva) | ~200–500 ms |
-| `enrichment` | 20–33 fuentes en paralelo | ~300–2000 ms |
+| `enrichment` | 20–36 fuentes en paralelo | ~300–2000 ms |
 | `ai` | mnemónico, etimología, registro | ~1–3 s (si activo) |
 | `done` | señal de fin | — |
 
@@ -125,9 +125,9 @@ Free Dictionary API · Datamuse · Wiktionary REST · **Wiktionary HTML** (etimo
 
 **Cobertura medida:** 98.6 % en corpus de 20 palabras × 11 campos (fair scoring).
 
-### VIP (13 fuentes, toggle en Settings)
+### VIP (17 fuentes, toggle en Settings)
 
-Cambridge · Oxford Learner's · Longman · Collins · Merriam-Webster · Ozdic (Oxford Collocations) · Reverso · Linguee · WordReference · SpanishDict · Forvo · **Unsplash (BYOK)** · **Pixabay (BYOK opcional)**
+Cambridge · Oxford Learner's · Longman · Dictionary.com · Merriam-Webster · Ozdic (Oxford Collocations) · PONS · bab.la · dict.cc · Reverso · Linguee · PROMT.One Contexts · WordReference · SpanishDict · Forvo · **Unsplash (BYOK)** · **Pixabay (BYOK opcional)**
 
 **Cobertura medida:** 100 % en el mismo corpus.
 
@@ -149,7 +149,7 @@ OpenAI / Anthropic / Google Gemini — genera definición contextual, sinónimos
 
 Abre el panel → **Settings → Enriquecimiento (VIP)**:
 
-- Activa el master toggle para habilitar las 13 fuentes VIP.
+- Activa el master toggle para habilitar las 16 fuentes VIP.
 - Cada fuente tiene su propio checkbox.
 - **Unsplash**: requiere clave gratuita de [unsplash.com/developers](https://unsplash.com/developers) (50 req/h Demo).
 - **Pixabay**: clave opcional de [pixabay.com/api/docs](https://pixabay.com/api/docs) (100 req/min). Sin clave usa scraping.

@@ -15,6 +15,93 @@ import { fetchHtml } from '../fetcher';
 import { extractByClass, stripHtml } from '../html-utils';
 import type { EnrichmentSource, SourcePartial } from '../types';
 
+const RATE_LIMIT_STORAGE_KEY = 'enrichment:linguee:rate-limit:v1';
+const MAX_REQUESTS_PER_HOUR = 6;
+const MIN_REQUEST_INTERVAL_MS = 15_000;
+const RATE_WINDOW_MS = 60 * 60 * 1000;
+const COOLDOWN_AFTER_429_MS = 6 * RATE_WINDOW_MS;
+
+interface LingueeRateState {
+  requestTimestamps: number[];
+  lastRequestAt: number;
+  cooldownUntil: number;
+}
+
+let lingueeRequestInFlight = false;
+
+async function readRateState(): Promise<LingueeRateState | null> {
+  try {
+    const stored = await chrome.storage.local.get(RATE_LIMIT_STORAGE_KEY);
+    const value = stored[RATE_LIMIT_STORAGE_KEY] as Partial<LingueeRateState> | undefined;
+    return {
+      requestTimestamps: Array.isArray(value?.requestTimestamps)
+        ? value.requestTimestamps.filter((timestamp) => Number.isFinite(timestamp))
+        : [],
+      lastRequestAt: Number.isFinite(value?.lastRequestAt) ? value!.lastRequestAt! : 0,
+      cooldownUntil: Number.isFinite(value?.cooldownUntil) ? value!.cooldownUntil! : 0,
+    };
+  } catch (error) {
+    console.warn('[kivara:enrichment:linguee] could not read persistent rate limit', error);
+    return null;
+  }
+}
+
+async function writeRateState(state: LingueeRateState): Promise<boolean> {
+  try {
+    await chrome.storage.local.set({ [RATE_LIMIT_STORAGE_KEY]: state });
+    return true;
+  } catch (error) {
+    console.warn('[kivara:enrichment:linguee] could not persist rate limit', error);
+    return false;
+  }
+}
+
+async function acquireRequestPermit(): Promise<LingueeRateState | null> {
+  if (lingueeRequestInFlight) {
+    console.info('[kivara:enrichment:linguee] request skipped', { reason: 'concurrent-request' });
+    return null;
+  }
+  lingueeRequestInFlight = true;
+
+  const state = await readRateState();
+  if (!state) {
+    lingueeRequestInFlight = false;
+    return null;
+  }
+
+  const now = Date.now();
+  state.requestTimestamps = state.requestTimestamps.filter((timestamp) => now - timestamp < RATE_WINDOW_MS);
+  if (state.cooldownUntil > now) {
+    console.info('[kivara:enrichment:linguee] request skipped', {
+      reason: 'cooldown',
+      retryAfterMs: state.cooldownUntil - now,
+    });
+    lingueeRequestInFlight = false;
+    return null;
+  }
+  if (now - state.lastRequestAt < MIN_REQUEST_INTERVAL_MS) {
+    console.info('[kivara:enrichment:linguee] request skipped', {
+      reason: 'minimum-interval',
+      retryAfterMs: MIN_REQUEST_INTERVAL_MS - (now - state.lastRequestAt),
+    });
+    lingueeRequestInFlight = false;
+    return null;
+  }
+  if (state.requestTimestamps.length >= MAX_REQUESTS_PER_HOUR) {
+    console.info('[kivara:enrichment:linguee] request skipped', { reason: 'hourly-limit' });
+    lingueeRequestInFlight = false;
+    return null;
+  }
+
+  state.lastRequestAt = now;
+  state.requestTimestamps.push(now);
+  if (!await writeRateState(state)) {
+    lingueeRequestInFlight = false;
+    return null;
+  }
+  return state;
+}
+
 const LANG_PAIR: Record<string, string> = {
   'en-es': 'english-spanish',
   'es-en': 'spanish-english',
@@ -35,11 +122,31 @@ export const lingueeSource: EnrichmentSource = {
     const pair = `${(ctx.sourceLang || 'en').slice(0, 2)}-${(ctx.targetLang || 'es').slice(0, 2)}`;
     const slug = LANG_PAIR[pair];
     if (!slug) return {};
+    const permit = await acquireRequestPermit();
+    if (!permit) return {};
+
     const url = `https://www.linguee.com/${slug}/search?source=auto&query=${encodeURIComponent(token)}`;
-    const html = await fetchHtml(url, {
-      timeoutMs: ctx.timeoutMs,
-      signal: ctx.signal,
-    });
+    let status = 0;
+    let html: string | null = null;
+    try {
+      html = await fetchHtml(url, {
+        timeoutMs: ctx.timeoutMs,
+        signal: ctx.signal,
+        credentials: 'include',
+        onResponse: (response) => {
+          status = response.status;
+        },
+      });
+      if (status === 429) {
+        permit.cooldownUntil = Date.now() + COOLDOWN_AFTER_429_MS;
+        await writeRateState(permit);
+        console.warn('[kivara:enrichment:linguee] HTTP 429; provider cooldown activated', {
+          cooldownMs: COOLDOWN_AFTER_429_MS,
+        });
+      }
+    } finally {
+      lingueeRequestInFlight = false;
+    }
     if (!html) return {};
 
     const partial: SourcePartial = {};

@@ -42,6 +42,44 @@ export interface EnrichmentContext {
  * are intentionally narrow: we only carry the data this source can
  * realistically provide so the merger doesn't have to second-guess.
  */
+export interface ImageCandidate {
+  /** Direct URL of the candidate image. */
+  url: string;
+  /** Provider title or caption, when available. */
+  title?: string;
+  /** Provider tags or structured depiction labels. */
+  tags?: string[];
+  /** Original page containing licensing and attribution details. */
+  sourcePageUrl?: string;
+  width?: number;
+  height?: number;
+}
+
+export interface SenseRelationGroup {
+  /** Provider guideword or short sense label. */
+  guide?: string;
+  /** Definition or explanatory text anchoring this relation group. */
+  definition?: string;
+  /** Example sentence representative of this sense. */
+  example?: string;
+  /** Part of speech when the provider exposes it. */
+  partOfSpeech?: string;
+  synonyms?: string[];
+  antonyms?: string[];
+  /** Sense-bound collocations (ozdic publishes collocation blocks per
+   * sense with a gloss; they ride the same contextual gate as
+   * synonyms/antonyms so the card only shows the current sense's
+   * chunks). */
+  collocations?: string[];
+}
+
+export interface FrequencyEvidence {
+  /** Named scale; values from different scales must not be averaged. */
+  scale: 'rank' | 'longman-spoken' | 'longman-written' | 'zipf' | string;
+  value: number | string;
+  corpus?: string;
+}
+
 export interface SourcePartial {
   /** Definition strings produced by this source. */
   definitions?: string[];
@@ -53,22 +91,28 @@ export interface SourcePartial {
   synonyms?: string[];
   /** Lemma-level antonyms in the source language. */
   antonyms?: string[];
+  /** Sense-bound relations. Preferred over flat relation lists. */
+  relationGroups?: SenseRelationGroup[];
   /** Multi-word collocations (e.g. "make decision", "big deal"). */
   collocations?: string[];
   /** Phonetic transcription in IPA. */
   phonetic?: string;
   /** Audio URLs for the headword. */
   audio?: Array<{ url: string; accent?: string }>;
-  /** Image URL hero candidate. */
+  /** Legacy single hero candidate. Prefer `imageCandidates` in new sources. */
   imageUrl?: string;
+  /** Ranked image candidates with enough metadata for semantic filtering. */
+  imageCandidates?: ImageCandidate[];
   /** Etymology paragraph. */
   etymology?: string;
   /** Mnemonic (AI-only). */
   mnemonic?: string;
   /** YouGlish-style real-world video pronunciations. */
   videoLinks?: Array<{ url: string }>;
-  /** Frequency rank in BNC/COCA when the source ships it. */
+  /** Legacy exact corpus rank. Do not use for frequency bands or Zipf values. */
   frequencyRank?: number;
+  /** Typed evidence that preserves the source scale. */
+  frequencyEvidence?: FrequencyEvidence[];
 }
 
 /**
