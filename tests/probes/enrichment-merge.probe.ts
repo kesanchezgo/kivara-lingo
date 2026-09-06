@@ -21,6 +21,12 @@ const localTranslations: Record<string, string> = {
   run: 'correr',
   'break up': 'separarse',
   'piece of cake': 'pan comido',
+  bank: 'orilla',
+  lit: 'iluminado',
+  support: 'apoyo',
+  each: 'cada',
+  forget: 'olvidar',
+  tensor: 'tensor',
 };
 
 // The live probe needs the production orchestrator but not a browser's
@@ -50,6 +56,13 @@ const corpus = [
   ['run', 'I run every morning before work.'],
   ['break up', 'They decided to break up after college.'],
   ['piece of cake', 'The exam was a piece of cake.'],
+  // Polysemy stress cases from the audit brief — hunting acception leaks.
+  ['bank', 'We sat on the grassy bank of the river and watched the water.'],
+  ['lit', 'The room was lit by a single candle.'],
+  ['support', 'The government promised financial support for small businesses.'],
+  ['each', 'Each student received a certificate.'],
+  ['forget', 'Please do not forget the address.'],
+  ['tensor', 'The stress tensor describes forces inside the material.'],
 ] as const;
 
 const rows: Array<Record<string, unknown>> = [];

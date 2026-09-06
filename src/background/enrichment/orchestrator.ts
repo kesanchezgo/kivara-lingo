@@ -664,6 +664,11 @@ function normalizeCollocation(raw: string, token: string): string | null {
   if (/\b(?:her|him|me|them|my|your|our)\b/i.test(text) && text.split(/\s+/).length > 3) return null;
   if (/\b(?:something|somebody)\b/i.test(text) && text.split(/\s+/).length <= 5) return null;
   if (tok.includes(' ') && low.startsWith(`${tok} `) && words.length === tok.split(/\s+/).length + 1) return null;
+  // Periphrastic gloss, not a chunk: "a day of the week", "a member of the
+  // team" — a determiner-led phrase whose head is joined to the token by
+  // "of the"/"of a". These are dictionary paraphrases (live 2026-09-06 corpus:
+  // `week` → "a day of the week"), never reusable learner collocations.
+  if (/^(?:a|an|the|one|each|every|any|some)\b/.test(low) && /\bof (?:the|a|an)\b/.test(low)) return null;
 
   const escapedToken = tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   if (!new RegExp(`(?:^|\\b)${escapedToken}(?:\\b|$)`).test(low)) return null;
@@ -706,11 +711,31 @@ const CORPUS_ADVERB_HEADS = new Set([
 export function pickCollocations(
   token: string,
   candidates: Array<{ source: string; text: string }>,
+  /**
+   * Optional stemmed context terms (sentence + selected definition). When
+   * present, a chunk must share at least one non-headword term with the
+   * active sense's context, otherwise it is a different-acception chunk
+   * ("run a marathon" for the management sense of `run`). Skipped when no
+   * anchor is supplied so monosemous-word merges behave unchanged.
+   */
+  contextTerms?: Set<string>,
 ): string[] {
+  const hasContextAnchor = Boolean(contextTerms && contextTerms.size > 0);
   const grouped = new Map<string, { value: string; sources: Set<string>; sourceRank: number }>();
   for (const candidate of candidates) {
     const normalized = normalizeCollocation(candidate.text, token);
     if (!normalized) continue;
+    // Sense anchor: the chunk's terms minus the headword must touch the
+    // active sense's context. "run a company" -> {company} overlaps a
+    // management context; "run a marathon" -> {marathon} does not.
+    if (hasContextAnchor) {
+      const chunkTerms = relationTerms(normalized, token);
+      let overlaps = false;
+      for (const term of chunkTerms) {
+        if (contextTerms!.has(term)) { overlaps = true; break; }
+      }
+      if (!overlaps) continue;
+    }
     const key = stripDiacritics(normalized.toLowerCase()).replace(/[^a-z0-9]+/g, ' ').trim();
     if (!key) continue;
     const existing = grouped.get(key);
@@ -1151,12 +1176,79 @@ const DISPLAYABLE_RELATED_TERM_SOURCES = new Set([
   'oxfordLearners',
 ]);
 
+// Displayable-but-sense-blind thesauri. They are curated enough to publish a
+// relation on their own for FORM (no corroboration required), but they emit a
+// flat lemma-level list with no per-sense structure, so their relations are
+// still subject to the context anchor when the caller supplies one. This is
+// what stops the finance-sense `depository` reaching a river-edge `bank` card:
+// Thesaurus.com is trustworthy about "is this a real synonym of bank?" and
+// unreliable about "of WHICH bank?". The dictionaries above (glosses / synsets
+// per sense) already answer the second question, so they bypass the anchor.
+const SENSE_BLIND_RELATED_TERM_SOURCES = new Set([
+  'thesaurusCom',
+  'wordHippo',
+  'datamuse',
+  'mobyThesaurus',
+  'wiktionaryHtml',
+  // Free Dictionary exposes synonyms per sense in its API but the source
+  // module flattens EVERY sense's synonyms into one array (see
+  // sources/free-dictionary.ts), so downstream it is sense-blind for
+  // relations: "give" returns transfer + estimate + yield synonyms mixed.
+  // It rides the context anchor like the other flat thesauri. Verified live
+  // 2026-09-06 corpus.
+  'freeDictionary',
+]);
+
+// Light / relational verbs are the connective tissue of definitions
+// ("to HAVE knowledge", "to GET information"), not synonyms of the content
+// word they help define. A sense anchor built from the gloss will trivially
+// "match" them, so they slip past the overlap gate (live 2026-09-06 corpus:
+// `know` → syn ["have"]). Reject them as relations for any multi-letter
+// content headword unless the headword IS itself one of them.
+const LIGHT_VERB_NON_SYNONYMS = new Set([
+  'have', 'has', 'had', 'get', 'gets', 'got', 'make', 'makes', 'made',
+  'do', 'does', 'did', 'be', 'is', 'are', 'was', 'were', 'been',
+  'go', 'goes', 'went', 'take', 'takes', 'took', 'put', 'puts',
+]);
+
+// A "synonym" that is really a dictionary explanation, not a lexical
+// equivalent. Live 2026-09-06 corpus: `forget` VIP leaked "my mind goes
+// blank", "have no recollection of something", "don't remember/can't
+// remember", "take/keep your mind off something". Signatures of a gloss/
+// clause rather than a reusable synonym:
+//   - a generic placeholder object (something/somebody/someone/one's)
+//   - a possessive tied to a cognition noun (your mind, his memory)
+//   - a negation/contraction clause (don't, can't, no recollection)
+//   - a slash listing two wordings (take/keep, remember/recall)
+// A short genuine phrasal synonym ("blank out", "slip up") has none of these.
+function isExplanatoryPhrase(low: string): boolean {
+  if (!low.includes(' ') && !low.includes('/')) return false;
+  if (/\b(?:something|somebody|someone|oneself|one's|ones)\b/.test(low)) return true;
+  if (/\b(?:your|his|her|their|my|our)\s+(?:mind|memory|head|thoughts?|recollection)\b/.test(low)) return true;
+  if (/\b(?:no|not|n't|never)\b/.test(low) || /(?:do|does|did|can|could|will|would|is|are)n['’]t/.test(low)) return true;
+  if (/\brecollection\b/.test(low)) return true;
+  if (low.includes('/')) return true;
+  return false;
+}
+
 export function pickRelatedTerms(
   token: string,
   candidates: Array<{ source: string; text: string }>,
   limit: number,
+  /**
+   * Optional stemmed context terms (sentence + selected definition), built
+   * the same way as pickSenseRelationGroups. When present, a relation from a
+   * NON-curated corroboration-tier source (Datamuse/WordHippo/Thesaurus.com/
+   * Moby/Wiktionary) must share at least one term with the active sense's
+   * context, otherwise it is a different-acception leak (`depository` for the
+   * river-edge sense of `bank`). Curated editorial sources bypass the anchor
+   * — they are trusted on their own. Called WITHOUT context for monosemous
+   * words, in which case behaviour is unchanged.
+   */
+  contextTerms?: Set<string>,
 ): string[] {
   const normalizedToken = token.toLowerCase().trim();
+  const hasContextAnchor = Boolean(contextTerms && contextTerms.size > 0);
   const priority = token.includes(' ')
     ? ['wiktionaryApi', 'wiktApi', 'freeDictionary', 'thesaurusCom', 'datamuse', 'wordHippo', 'mobyThesaurus']
     : RELATED_TERM_SOURCE_PRIORITY;
@@ -1170,6 +1262,17 @@ export function pickRelatedTerms(
     // tree") and periphrastic paraphrases ("to each one", "any one thing")
     // even from displayable sources. Verified 2026-09-06 MV3 corpus.
     if (isTaxonomicOrPeriphrastic(value, token)) continue;
+    // Light/relational verb glosswords are not synonyms of a content word.
+    // Only rejected when the headword itself is NOT a light verb (so "have"
+    // as a synonym of "get" is still allowed).
+    if (
+      LIGHT_VERB_NON_SYNONYMS.has(normalized) &&
+      !LIGHT_VERB_NON_SYNONYMS.has(normalizedToken)
+    ) continue;
+    // Reject dictionary explanations / clauses masquerading as synonyms
+    // ("my mind goes blank", "don't remember/can't remember"). Verified
+    // 2026-09-06 live corpus on `forget`.
+    if (isExplanatoryPhrase(normalized)) continue;
     const existing = grouped.get(normalized);
     if (existing) {
       existing.sources.add(candidate.source);
@@ -1184,9 +1287,33 @@ export function pickRelatedTerms(
   }
   return [...grouped.values()]
     .filter((candidate) => {
-      if ([...candidate.sources].some((source) => DISPLAYABLE_RELATED_TERM_SOURCES.has(source))) return true;
-      const corroboratingSources = [...candidate.sources].filter((source) => source !== 'mobyThesaurus');
-      return corroboratingSources.length > 1;
+      const isCurated = [...candidate.sources].some((source) => DISPLAYABLE_RELATED_TERM_SOURCES.has(source));
+      if (!isCurated) {
+        const corroboratingSources = [...candidate.sources].filter((source) => source !== 'mobyThesaurus');
+        if (corroboratingSources.length <= 1) return false;
+      }
+      // A relation is sense-aware only if at least one endorsing source keeps
+      // per-sense structure (glosses / synsets). A flat thesaurus is curated
+      // for FORM but blind to WHICH sense, so its relations still ride the
+      // context anchor.
+      const senseAware = [...candidate.sources].some(
+        (source) => DISPLAYABLE_RELATED_TERM_SOURCES.has(source) && !SENSE_BLIND_RELATED_TERM_SOURCES.has(source),
+      );
+      // Sense anchor: a sense-aware source is trusted on its own, but a
+      // sense-blind / corroboration-tier relation must overlap the active
+      // sense's context when we have one. This is what keeps the finance-sense
+      // `depository` out of the river-edge `bank` card even when two flat
+      // thesauri agree on it. Without a context anchor (monosemous words /
+      // merge calls that pass none) the check is skipped — behaviour unchanged.
+      if (hasContextAnchor && !senseAware) {
+        const terms = relationTerms(candidate.value, token);
+        let overlaps = false;
+        for (const term of terms) {
+          if (contextTerms!.has(term)) { overlaps = true; break; }
+        }
+        if (!overlaps) return false;
+      }
+      return true;
     })
     .sort((a, b) =>
       b.sources.size - a.sources.size ||
@@ -1297,19 +1424,59 @@ const IMAGE_SOURCE_PRIORITY = [
   'duckduckgoImages',
 ];
 
-const LOW_IMAGEABILITY_TOKENS = new Set([
-  'anything', 'anybody', 'anyone', 'each', 'know', 'week',
+// Closed-class function words are unimageable as a CLASS, not as a
+// hand-maintained list. Indefinite pronouns, quantifiers, determiners,
+// conjunctions and light/relational verbs never have a stable visual
+// referent — a photo of "everyone" or "whatever" is always a stock cliche,
+// not a depiction. This replaces the old fixed LOW_IMAGEABILITY_TOKENS set
+// (anything/anybody/anyone/each/know/week) with the underlying category so a
+// never-listed member (everyone, whatever, some, none) is caught too.
+const LOW_IMAGEABILITY_WORDS = new Set([
+  // indefinite pronouns / quantifiers / determiners
+  'anything', 'anybody', 'anyone', 'everything', 'everybody', 'everyone',
+  'something', 'somebody', 'someone', 'nothing', 'nobody', 'none', 'no one',
+  'each', 'every', 'all', 'any', 'some', 'both', 'either', 'neither',
+  'much', 'many', 'few', 'several', 'whatever', 'whichever', 'whoever',
+  // light / relational / cognition verbs with no stable depiction
+  'know', 'think', 'want', 'need', 'seem', 'become', 'get', 'have', 'make',
+  'let', 'mean', 'consider', 'suppose', 'regard',
+  // relational nouns / time words that only yield calendar/stock clichés
+  'week', 'thing', 'way', 'kind', 'sort', 'type', 'amount', 'part',
 ]);
+
+function isLowImageabilityToken(normalizedToken: string): boolean {
+  if (LOW_IMAGEABILITY_WORDS.has(normalizedToken)) return true;
+  // "do/does/did" and other function-word variants are covered by the base
+  // form; single-token abstract quantifier compounds ("anyone", handled
+  // above). Nothing else is treated as low-imageability by default — a
+  // concrete noun that merely contains a stopword substring ("beeswax",
+  // "weekday") is NOT blocked, because we match whole words only.
+  return false;
+}
 
 export function pickImageCandidate(
   token: string,
   candidates: AttributedImageCandidate[],
+  /**
+   * Semantic hints derived by the merger from context/definition:
+   *  - `isIdiom`: the headword is being used idiomatically (multiword idiom,
+   *    or a phrasal listing flagged figurative by the definition). A literal
+   *    depiction of an idiom's component nouns is the WRONG image, so an
+   *    idiom-flagged phrase needs figurative evidence in the candidate's
+   *    metadata to publish. Generalizes the old hardcoded `piece of cake`
+   *    branch to every idiom.
+   */
+  opts?: { isIdiom?: boolean },
 ): AttributedImageCandidate | undefined {
   const normalizedToken = stripDiacritics(token.toLowerCase().trim());
-  if (!normalizedToken || LOW_IMAGEABILITY_TOKENS.has(normalizedToken)) return undefined;
+  if (!normalizedToken || isLowImageabilityToken(normalizedToken)) return undefined;
 
   const tokenWords = normalizedToken.split(/\s+/).filter((word) => word.length > 2);
   const isMultiword = tokenWords.length > 1;
+  // A multiword token is treated as an idiom either when the caller says so
+  // or by structural default (a phrase image is unsafe without figurative
+  // proof). Single words are only figurative when the caller flags them.
+  const treatAsIdiom = Boolean(opts?.isIdiom) || isMultiword;
   return candidates
     .map((candidate) => {
       const metadata = stripDiacritics([
@@ -1323,7 +1490,10 @@ export function pickImageCandidate(
       const exactMatch = metadata.includes(normalizedToken);
       const lexicalMatches = tokenWords.filter((word) => searchable.includes(word)).length;
       const badSubject = /\b(?:logo|icon|banner|wallpaper|clipart|stock[- ]?vector|news|headline|template|seo|meme|quote)\b/.test(searchable);
-      const figurativeEvidence = /\b(?:idiom|idiomatic|figurative|easy|simple|effortless)\b/.test(metadata);
+      // General figurative markers: metadata that names the phrase AS an
+      // idiom / explains its meaning is proof the image depicts the figurative
+      // sense, not the literal component nouns. Not tied to any single idiom.
+      const figurativeEvidence = /\b(?:idiom|idiomatic|idiomatically|figurative|figuratively|metaphor|metaphorical|meaning|means|denote[s]?|proverb|saying|expression)\b/.test(metadata);
       const invalidShape = candidate.width !== undefined && candidate.height !== undefined &&
         (candidate.width < 320 || candidate.height < 240 || candidate.width / candidate.height > 2.5);
 
@@ -1332,9 +1502,13 @@ export function pickImageCandidate(
         return { candidate, score: Number.POSITIVE_INFINITY };
       }
       // A phrase image is unsafe without provider metadata tying it to the
-      // complete phrase. Known idioms additionally need figurative evidence.
+      // complete phrase.
       if (isMultiword && (!hasMetadata || !exactMatch)) return { candidate, score: Number.POSITIVE_INFINITY };
-      if (normalizedToken === 'piece of cake' && !figurativeEvidence) {
+      // Idiom-flagged tokens (any idiom, not just "piece of cake") need
+      // figurative evidence: a literal depiction of the component nouns is
+      // the wrong sense. The evidence regex looks for idiom/figurative/
+      // meaning markers in the candidate metadata.
+      if (treatAsIdiom && !figurativeEvidence) {
         return { candidate, score: Number.POSITIVE_INFINITY };
       }
 
@@ -1783,7 +1957,15 @@ function mergeFields(
     }
   }
 
-  const selectedImage = pickImageCandidate(token, imageCandidates);
+  // Idiom signal for the image gate: a multiword token is handled
+  // structurally inside pickImageCandidate, but a single-word entry can still
+  // be idiomatic. If The Idioms returned a hit for this token, treat it as an
+  // idiom so a literal depiction of a component noun is rejected without
+  // figurative evidence — the general form of the old `piece of cake` branch.
+  const isIdiomToken = partials.some(
+    (p) => p.source.id === 'theIdioms' && (p.partial.definitions?.length || p.partial.examples?.length),
+  );
+  const selectedImage = pickImageCandidate(token, imageCandidates, { isIdiom: isIdiomToken });
   if (selectedImage) vip.imageUrl = selectedImage.url;
   // Selected-image trace for the MV3 audits: the card purpose runs the
   // image sources, and this line lets `scripts/mv3-corpus-quality.mjs
@@ -1877,6 +2059,19 @@ function mergeFields(
   const rankedDefinitions = pickDefinitions(allDefs, token, ctx.sentence, definitionPos);
   const selectedRelationGroups = pickSenseRelationGroups(token, relationGroups, ctx.sentence, rankedDefinitions);
 
+  // Sense anchor for the sense-blind flat fields (thesaurus synonyms/antonyms
+  // and flat editorial collocations). Built from the sentence plus the winning
+  // definition — the same signal pickSenseRelationGroups uses to select a
+  // group. When neither exists (no context, no definition) the anchor is empty
+  // and the flat pickers fall back to pure form/corroboration ranking, so
+  // monosemous words are unaffected. This is what keeps a different acception's
+  // synonyms/collocations (`depository` for river `bank`, `run a marathon` for
+  // the management sense) off the card without touching sense-aware sources.
+  const senseAnchorTerms = relationTerms(
+    `${ctx.sentence ?? ''} ${rankedDefinitions.slice(0, 1).map((definition) => definition.text).join(' ')}`,
+    token,
+  );
+
   if (rankedDefinitions.length) {
     const winner = rankedDefinitions[0];
     pushProvenance({
@@ -1921,8 +2116,8 @@ function mergeFields(
 
   // Synonyms / antonyms / collocations / audio go on entry directly so
   // the popover and the Anki mapper don't have to dig into vip.*
-  const rankedSynonyms = pickRelatedTerms(token, synonymPool, 12);
-  const rankedAntonyms = pickRelatedTerms(token, antonymPool, 8);
+  const rankedSynonyms = pickRelatedTerms(token, synonymPool, 12, senseAnchorTerms);
+  const rankedAntonyms = pickRelatedTerms(token, antonymPool, 8, senseAnchorTerms);
   if (rankedSynonyms.length) entry.synonyms = rankedSynonyms;
   if (rankedAntonyms.length) entry.antonyms = rankedAntonyms;
 
@@ -1991,7 +2186,7 @@ function mergeFields(
       return editorial.length >= 1 && chunk.sources.size >= 2;
     });
   }
-  const rankedCollocations = pickCollocations(token, collocationPool);
+  const rankedCollocations = pickCollocations(token, collocationPool, senseAnchorTerms);
   if (rankedCollocations.length) entry.collocations = rankedCollocations;
   if (rankedSynonyms.length) {
     pushProvenance({

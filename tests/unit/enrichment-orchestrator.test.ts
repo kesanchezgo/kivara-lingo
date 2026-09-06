@@ -255,6 +255,49 @@ describe('enrichment quality ranking', () => {
     expect(r).not.toContain('cake');
   });
 
+  it('drops explanatory phrases and clauses posing as synonyms', () => {
+    // Live 2026-09-06 corpus: `forget` VIP leaked glosses as synonyms —
+    // "my mind goes blank", "have no recollection of something",
+    // "don’t remember/can’t remember", "take/keep your mind off something".
+    // These are dictionary explanations, not lexical equivalents. A real
+    // short phrasal synonym ("blank out") survives.
+    const r = pickRelatedTerms('forget', [
+      { source: 'cambridge', text: 'blank out' },
+      { source: 'cambridge', text: 'slip your mind' },
+      { source: 'cambridge', text: 'my mind goes blank' },
+      { source: 'cambridge', text: 'have no recollection of something' },
+      { source: 'cambridge', text: 'don’t remember/can’t remember' },
+      { source: 'cambridge', text: 'take/keep your mind off something' },
+      { source: 'cambridge', text: 'put something behind you' },
+    ], 12);
+    expect(r).toContain('blank out');
+    expect(r).not.toContain('my mind goes blank');
+    expect(r).not.toContain('have no recollection of something');
+    expect(r).not.toContain('don’t remember/can’t remember');
+    expect(r).not.toContain('take/keep your mind off something');
+  });
+
+  it('anchors Free Dictionary synonyms too, since it flattens all senses', () => {
+    // Live 2026-09-06 corpus: `give` (transfer-possession sentence) leaked
+    // "guess"/"predict"/"estimate"/"yield"/"cede" from Free Dictionary, which
+    // merges the synonym lists of EVERY sense into one flat array. It is
+    // therefore sense-blind for relations and must ride the context anchor
+    // like the other flat thesauri. The transfer-sense synonyms survive.
+    const context = new Set(['provide', 'transfer', 'hand', 'donate', 'possession']);
+    const anchored = pickRelatedTerms('give', [
+      { source: 'freeDictionary', text: 'provide' },
+      { source: 'freeDictionary', text: 'donate' },
+      { source: 'freeDictionary', text: 'guess' },
+      { source: 'freeDictionary', text: 'estimate' },
+      { source: 'freeDictionary', text: 'cede' },
+    ], 12, context);
+    expect(anchored).toContain('provide');
+    expect(anchored).toContain('donate');
+    expect(anchored).not.toContain('guess');
+    expect(anchored).not.toContain('estimate');
+    expect(anchored).not.toContain('cede');
+  });
+
   it('keeps corroboration-only relations hidden unless independent sources agree', () => {
     expect(pickRelatedTerms('support', [
       { source: 'datamuse', text: 'backing' },
@@ -270,6 +313,53 @@ describe('enrichment quality ranking', () => {
       { source: 'datamuse', text: 'backing' },
       { source: 'mobyThesaurus', text: 'backing' },
     ], 5)).toEqual([]);
+  });
+
+  it('anchors flat synonyms to the active sense when context is supplied', () => {
+    // `bank` (river edge) in a sentence about the river. The flat pool has no
+    // relationGroups (pure Datamuse/WordHippo/Thesaurus.com), so the sense
+    // gate in mergeFields never fires. Without a context anchor the finance
+    // sense (`depository`, `savings bank`) bleeds through. Verified corpus.
+    const contextTerms = new Set(['river', 'water', 'edge', 'slope', 'shore']);
+    const anchored = pickRelatedTerms('bank', [
+      { source: 'thesaurusCom', text: 'shore' },
+      { source: 'wordHippo', text: 'shore' },
+      { source: 'thesaurusCom', text: 'depository' },
+      { source: 'wordHippo', text: 'depository' },
+      { source: 'thesaurusCom', text: 'savings bank' },
+      { source: 'wordHippo', text: 'savings bank' },
+    ], 8, contextTerms);
+    expect(anchored).toContain('shore');
+    expect(anchored).not.toContain('depository');
+    expect(anchored).not.toContain('savings bank');
+  });
+
+  it('leaves flat synonyms untouched when no context is supplied', () => {
+    // Backwards compatibility: the merge path calls without context for
+    // monosemous words. No anchor means no sense filtering — pure
+    // corroboration/priority behaviour, unchanged.
+    const unanchored = pickRelatedTerms('bank', [
+      { source: 'thesaurusCom', text: 'shore' },
+      { source: 'wordHippo', text: 'shore' },
+      { source: 'thesaurusCom', text: 'depository' },
+      { source: 'wordHippo', text: 'depository' },
+    ], 8);
+    expect(unanchored).toContain('shore');
+    expect(unanchored).toContain('depository');
+  });
+
+  it('keeps a curated editorial synonym even without context overlap', () => {
+    // A displayable/editorial source is trusted on its own; the context
+    // anchor only gates the noisy corroboration-tier sources. A precise
+    // Cambridge synonym must never be dropped just because it does not
+    // literally repeat a sentence word.
+    const contextTerms = new Set(['river', 'water', 'edge']);
+    const anchored = pickRelatedTerms('bank', [
+      { source: 'cambridge', text: 'embankment' },
+      { source: 'datamuse', text: 'depository' },
+    ], 8, contextTerms);
+    expect(anchored).toContain('embankment');
+    expect(anchored).not.toContain('depository');
   });
 
   it('selects one editorial relation group using definition and sentence context', () => {
@@ -326,6 +416,69 @@ describe('enrichment quality ranking', () => {
     expect(pickCollocations('give', [
       { source: 'oxfordLearners', text: 'give a speech' },
     ])).toEqual(['give a speech']);
+  });
+
+  it('anchors flat editorial collocations to the active sense when context is supplied', () => {
+    // `run` in a management sentence. Two editorial sources corroborate both
+    // "run a company" (correct sense) and "run a marathon" (motion sense).
+    // Without a context anchor both publish; the sentence disambiguates.
+    const contextTerms = new Set(['company', 'business', 'manage', 'organize', 'charge']);
+    const anchored = pickCollocations('run', [
+      { source: 'longman', text: 'run a company' },
+      { source: 'oxfordLearners', text: 'run a company' },
+      { source: 'longman', text: 'run a marathon' },
+      { source: 'oxfordLearners', text: 'run a marathon' },
+    ], contextTerms);
+    expect(anchored).toContain('run a company');
+    expect(anchored).not.toContain('run a marathon');
+  });
+
+  it('leaves editorial collocations untouched when no context is supplied', () => {
+    // Backwards compatibility: monosemous words merge without a context anchor.
+    const unanchored = pickCollocations('run', [
+      { source: 'longman', text: 'run a company' },
+      { source: 'oxfordLearners', text: 'run a company' },
+      { source: 'longman', text: 'run a marathon' },
+      { source: 'oxfordLearners', text: 'run a marathon' },
+    ]);
+    expect(unanchored).toContain('run a company');
+    expect(unanchored).toContain('run a marathon');
+  });
+
+  it('rejects a periphrastic gloss masquerading as a collocation', () => {
+    // Live 2026-09-06 corpus: `week` VIP published "a day of the week" as a
+    // collocation. It is a definitional paraphrase (article + of + the),
+    // not a reusable learner chunk. A chunk framed as "<det> ... of the
+    // <token>" is a gloss, not a collocation.
+    expect(pickCollocations('week', [
+      { source: 'longman', text: 'a day of the week' },
+      { source: 'oxfordLearners', text: 'a day of the week' },
+    ])).toEqual([]);
+    // A genuine week chunk still survives.
+    expect(pickCollocations('week', [
+      { source: 'longman', text: 'working week' },
+      { source: 'oxfordLearners', text: 'working week' },
+    ])).toEqual(['working week']);
+  });
+
+  it('rejects a light-verb glossword posing as a synonym', () => {
+    // Live 2026-09-06 corpus: `know` standard published syn ["have"], because
+    // the WordNet gloss is "to HAVE knowledge; to HAVE information" and the
+    // sense anchor is built from that gloss — so "have" trivially overlaps
+    // its own definition word. A light/relational verb (have/get/make/do/be)
+    // is a glossword, never a real synonym of a content word; it must be
+    // rejected even when the context anchor "matches".
+    const knowContext = new Set(['have', 'knowledge', 'information', 'informed']);
+    expect(pickRelatedTerms('know', [
+      { source: 'datamuse', text: 'have' },
+      { source: 'wordHippo', text: 'have' },
+    ], 8, knowContext)).not.toContain('have');
+
+    // A genuine content synonym still survives — a curated editorial source
+    // bypasses the anchor, and the light-verb reject only touches glosswords.
+    expect(pickRelatedTerms('know', [
+      { source: 'cambridge', text: 'understand' },
+    ], 8, knowContext)).toContain('understand');
   });
 
   it('rejects corpus adverb bigrams as headword collocations', () => {
@@ -410,6 +563,39 @@ describe('enrichment quality ranking', () => {
       { source: 'bingImages', url: 'https://example.test/apple-news.jpg', title: 'Apple news headline' },
       { source: 'openverse', url: 'https://example.test/fruit.jpg', title: 'Red apple fruit', width: 1200, height: 800 },
     ])?.url).toBe('https://example.test/fruit.jpg');
+  });
+
+  it('rejects images for low-imageability function words in general, not a fixed list', () => {
+    // Indefinite pronouns / quantifiers / determiners are unimageable as a
+    // CLASS — no hand-maintained blocklist. `everyone`/`whatever`/`some`
+    // were never in the old LOW_IMAGEABILITY_TOKENS set but must still fail.
+    for (const word of ['everyone', 'whatever', 'some', 'someone', 'none', 'nothing']) {
+      expect(pickImageCandidate(word, [
+        { source: 'openverse', url: `https://example.test/${word}.jpg`, title: `${word} concept`, width: 1200, height: 800 },
+      ])).toBeUndefined();
+    }
+  });
+
+  it('still images a concrete noun that merely contains a stopword substring', () => {
+    // Generalization must not over-block: `week` was hardcoded, but a real
+    // concrete depiction with strong lexical evidence should still win when
+    // the token is genuinely imageable. `bee` (short, concrete) must pass.
+    expect(pickImageCandidate('bee', [
+      { source: 'openverse', url: 'https://example.test/bee.jpg', title: 'A honey bee on a flower', tags: ['bee', 'insect'], width: 1200, height: 800 },
+    ])?.url).toBe('https://example.test/bee.jpg');
+  });
+
+  it('gates any idiom-flagged phrase on figurative evidence, not just one phrase', () => {
+    // The figurative gate must be general. A DIFFERENT idiom than the
+    // hardcoded "piece of cake": a literal depiction with no figurative
+    // metadata is rejected; the same phrase WITH figurative evidence passes.
+    expect(pickImageCandidate('spill the beans', [
+      { source: 'openverse', url: 'https://example.test/beans.jpg', title: 'Spilled beans on a table', width: 1200, height: 800 },
+    ], { isIdiom: true })).toBeUndefined();
+
+    expect(pickImageCandidate('spill the beans', [
+      { source: 'openverse', url: 'https://example.test/reveal.jpg', title: 'Spill the beans idiom meaning reveal a secret', width: 1200, height: 800 },
+    ], { isIdiom: true })?.url).toBe('https://example.test/reveal.jpg');
   });
 
   it('keeps idiomatic examples ahead of literal phrase matches', () => {
