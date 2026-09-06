@@ -6,7 +6,7 @@ import { SidePanel } from './SidePanel';
 import { SubtitleOverlay } from './SubtitleOverlay';
 import { applyCleanupCss } from './cleanup-css';
 import { useKivaraStore } from '../../shared/store';
-import { captureFrame } from '../capture/frame';
+import { captureFrame, captureBestFrame } from '../capture/frame';
 import type {
   CreateCardRequest,
   CreateCardResponse,
@@ -259,7 +259,8 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   const showDualSubtitlePref = useKivaraStore((s) => s.translate.showDualSubtitle);
   useEffect(() => {
     if (!showDualSubtitlePref) return;
-    if (!activeCue) return;
+    if (!activeCue || activeCue.start == null) return;
+    const activeStart = activeCue.start;
     const allCues = getActiveTrackCues();
     if (!allCues || allCues.length === 0) return;
     const nativeLang = (useKivaraStore.getState().translate.targetLanguage || 'es').slice(0, 2);
@@ -270,10 +271,10 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     if (getTrackByLanguage(nativeLang)) return;
     let cancelled = false;
     let activeIdx = allCues.findIndex(
-      (c) => Math.abs(c.start - activeCue.start) < 50,
+      (c) => Math.abs(c.start - activeStart) < 50,
     );
     if (activeIdx < 0) {
-      activeIdx = allCues.findIndex((c) => c.start >= activeCue.start);
+      activeIdx = allCues.findIndex((c) => c.start >= activeStart);
       if (activeIdx < 0) return;
     }
     const upcoming = allCues.slice(activeIdx + 1, activeIdx + 7);
@@ -688,7 +689,13 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
 
     let frameDataUrl: string | null = null;
     if (videoElement) {
-      frameDataUrl = await captureFrame(videoElement);
+      // Best-frame capture: samples the cue window on a paused video to dodge
+      // fades / transitions / spinners. Returns null when every candidate is a
+      // dud, letting the orchestrator fall back to a web image.
+      frameDataUrl = await captureBestFrame(videoElement, {
+        start: activeCue?.start,
+        end: activeCue?.end,
+      });
     }
 
     const audioAnchor = await ensureSubtitleAudioReady();

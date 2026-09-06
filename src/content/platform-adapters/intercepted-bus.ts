@@ -214,6 +214,22 @@ async function handleDashManifest(mpdUrl: string, body: string): Promise<void> {
  * have a replacement enabled, so playback never goes silent. We also
  * skip when the desired track is already the active one.
  */
+/**
+ * Minimal structural types for the non-standard HTML Audio Track API. TS's
+ * bundled `lib.dom.d.ts` no longer ships `AudioTrack`/`AudioTrackList` (the
+ * spec is deprecated and only Chromium implements it), so we describe just the
+ * members we touch instead of pulling a global lib we can't rely on.
+ */
+interface MediaAudioTrack {
+  readonly language: string;
+  readonly label: string;
+  enabled: boolean;
+}
+interface MediaAudioTrackList {
+  readonly length: number;
+  [index: number]: MediaAudioTrack;
+}
+
 function applyAudioTrackSelection(
   desiredLang: string,
   knownAudioLangs: Array<{ language: string; fullLanguage: string }>,
@@ -223,14 +239,14 @@ function applyAudioTrackSelection(
   // Some browsers don't expose audioTracks (Firefox needs a flag,
   // Safari hides it behind a vendor prefix). Bail silently — we only
   // help on Chromium where audioTracks is standard.
-  const tracks = (video as unknown as { audioTracks?: AudioTrackList }).audioTracks;
+  const tracks = (video as unknown as { audioTracks?: MediaAudioTrackList }).audioTracks;
   if (!tracks || typeof tracks.length !== 'number' || tracks.length === 0) {
     return;
   }
   // Find the matching track. The browser usually populates
   // `track.language` from the MPD AdaptationSet's `lang`, so we can
   // match by primary subtag.
-  let target: AudioTrack | null = null;
+  let target: MediaAudioTrack | null = null;
   for (let i = 0; i < tracks.length; i += 1) {
     const t = tracks[i];
     const primary = (t.language || '').toLowerCase().split(/[-_]/)[0];

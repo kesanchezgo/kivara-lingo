@@ -40,6 +40,7 @@ import {
 } from './audio-encoder';
 import { tightenToSpeech, type VadOptions } from './vad';
 import { speakViaSpeechSynthesis } from './tts-fallback';
+import { buildPcmClip as buildPcmClipPure, bufferBounds } from './pcm-timeline';
 import {
   setWhisperConfig,
   transcribePcm,
@@ -309,47 +310,17 @@ function buildWebmBlob(_sliceStart: number, sliceEnd: number): Blob | null {
   return parts.length ? new Blob(parts, { type: recordedMime || 'audio/webm' }) : null;
 }
 
-function resampleLinear(input: Float32Array, fromRate: number, toRate: number): Float32Array {
-  if (fromRate === toRate) return input;
-  const outLength = Math.max(1, Math.round((input.length * toRate) / fromRate));
-  const output = new Float32Array(outLength);
-  const ratio = fromRate / toRate;
-  for (let i = 0; i < outLength; i += 1) {
-    const pos = i * ratio;
-    const left = Math.floor(pos);
-    const right = Math.min(input.length - 1, left + 1);
-    const frac = pos - left;
-    output[i] = input[left] * (1 - frac) + input[right] * frac;
-  }
-  return output;
-}
-
-function buildPcmClip(sliceStart: number, sliceEnd: number): { samples: Float32Array; sampleRate: number } | null {
-  if (!pcmChunks.length) return null;
-  const sampleRate = pcmChunks[0].sampleRate;
-  const segments: Float32Array[] = [];
-  let total = 0;
-  for (const chunk of pcmChunks) {
-    const chunkStart = chunk.recordedAt;
-    const chunkEnd = chunk.recordedAt + chunk.durationMs;
-    if (chunkEnd < sliceStart || chunkStart > sliceEnd) continue;
-    const startMs = Math.max(0, sliceStart - chunkStart);
-    const endMs = Math.min(chunk.durationMs, sliceEnd - chunkStart);
-    const startIdx = Math.max(0, Math.floor((startMs / 1000) * chunk.sampleRate));
-    const endIdx = Math.min(chunk.samples.length, Math.ceil((endMs / 1000) * chunk.sampleRate));
-    if (endIdx <= startIdx) continue;
-    const part = chunk.samples.slice(startIdx, endIdx);
-    segments.push(part);
-    total += part.length;
-  }
-  if (!total) return null;
-  const merged = new Float32Array(total);
-  let offset = 0;
-  for (const segment of segments) {
-    merged.set(segment, offset);
-    offset += segment.length;
-  }
-  return { samples: resampleLinear(merged, sampleRate, TARGET_SAMPLE_RATE), sampleRate: TARGET_SAMPLE_RATE };
+/**
+ * Thin binding over the pure `buildPcmClip` in `pcm-timeline.ts`: feeds the
+ * module-scoped rolling buffer and target rate. All the load-bearing timeline
+ * math (gap-fill, per-chunk resample, window anchoring) lives in — and is
+ * unit-tested through — that pure module.
+ */
+function buildPcmClip(
+  sliceStart: number,
+  sliceEnd: number,
+): { samples: Float32Array; sampleRate: number } | null {
+  return buildPcmClipPure(pcmChunks, sliceStart, sliceEnd, TARGET_SAMPLE_RATE);
 }
 
 interface ExtractOptions {
@@ -389,18 +360,15 @@ interface ExtractedClip {
 async function extractClip(opts: ExtractOptions): Promise<ExtractedClip> {
   if (!chunks.length && !pcmChunks.length) return { ok: false, error: 'No audio buffered yet' };
 
-  const starts = [
-    ...chunks.map((c) => c.recordedAt),
-    ...pcmChunks.map((c) => c.recordedAt),
-  ];
-  const ends = [
-    ...chunks.map((c) => c.recordedAt + c.durationMs),
-    ...pcmChunks.map((c) => c.recordedAt + c.durationMs),
-  ];
-  const minStart = Math.min(...starts);
-  const maxEnd = Math.max(...ends);
-  const sliceStart = Math.max(opts.startMs, minStart);
-  const sliceEnd = Math.min(opts.endMs, maxEnd);
+  // Fold over both buffers (see `bufferBounds`): a full 30 s ring buffer holds
+  // hundreds of chunks, and `Math.min(...arr)` on a large array can blow the
+  // call stack.
+  const bounds = bufferBounds(chunks, pcmChunks);
+  if (!bounds) {
+    return { ok: false, error: 'No audio buffered yet' };
+  }
+  const sliceStart = Math.max(opts.startMs, bounds.minStart);
+  const sliceEnd = Math.min(opts.endMs, bounds.maxEnd);
   if (sliceEnd <= sliceStart) {
     return { ok: false, error: 'Requested clip is outside the rolling buffer window' };
   }

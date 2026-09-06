@@ -41,8 +41,11 @@ describe('datamuse frequency evidence', () => {
 
     const result = await datamuseSource.enrich('run', ctx);
 
+    // Source-partial shape: no `source` here. The orchestrator's `mergeFields`
+    // stamps `{ ...evidence, source: source.id }` when merging, so attaching it
+    // at the source layer would double-tag it.
     expect(result.frequencyEvidence).toEqual([
-      { source: 'datamuse', scale: 'books-band', value: '2' },
+      { scale: 'books-band', value: '2' },
     ]);
   });
 
@@ -55,7 +58,7 @@ describe('datamuse frequency evidence', () => {
     const result = await datamuseSource.enrich('know', ctx);
 
     expect(result.frequencyEvidence).toEqual([
-      { source: 'datamuse', scale: 'books-band', value: '1' },
+      { scale: 'books-band', value: '1' },
     ]);
   });
 
@@ -68,7 +71,7 @@ describe('datamuse frequency evidence', () => {
     const result = await datamuseSource.enrich('tensor', ctx);
 
     expect(result.frequencyEvidence).toEqual([
-      { source: 'datamuse', scale: 'books-band', value: '4' },
+      { scale: 'books-band', value: '4' },
     ]);
   });
 

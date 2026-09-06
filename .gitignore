@@ -51,6 +51,11 @@ node_modules/.vite/
 coverage/
 .audit/
 
+# Playwright E2E output (regenerable run artifacts, traces, screenshots)
+test-results/
+playwright-report/
+.playwright/
+
 # Throwaway test/debug scripts at root
 test.js
 test.cjs
@@ -84,3 +89,10 @@ docs/reports/runtime/*.json
 
 # Private agent workspace prompt (not project code)
 AGENTS.md
+CLAUDE.md
+
+# Exported browser cookies / session dumps — NEVER commit (live auth tokens).
+# These are local capture-debugging aids, not project data.
+cookies_*.txt
+*.cookies.txt
+*_cookies.txt

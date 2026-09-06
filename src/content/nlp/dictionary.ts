@@ -97,7 +97,13 @@ const enMerged: Record<string, DictionaryEntry> = {
       ],
     ),
   )),
-  ...(enDict as Record<string, DictionaryEntry>),
+  // `en.json` is a generated asset: a few thousand entries where sparse rows
+  // legitimately omit optional fields (and TS widens the JSON so its inferred
+  // shape doesn't structurally overlap `DictionaryEntry`, which requires
+  // `translation`). The missing fields are backfilled by the extension/CEFR/
+  // thesaurus overlays below and the online chain at runtime, so route the
+  // cast through `unknown` — the shape is intentional, not a mistake.
+  ...(enDict as unknown as Record<string, DictionaryEntry>),
 };
 
 for (const [key, value] of Object.entries(

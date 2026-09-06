@@ -8,6 +8,7 @@
     "dev": "vite",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "vite build && playwright test",
     "quality:audit": "tsx scripts/evaluate-enrichment-quality.ts",
     "audit:mv3": "node scripts/mv3-enrichment-audit.mjs",
     "dict:build": "tsx scripts/expand-dictionary.ts",

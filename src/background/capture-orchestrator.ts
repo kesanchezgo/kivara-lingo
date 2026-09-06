@@ -18,6 +18,7 @@ import { generateTtsAudio } from './tts';
 import { getMissingPhonetic } from './phonetic-augment';
 import { runEnrichment } from './enrichment/orchestrator';
 import { getVipSettings, loadTranslateTargetLang } from './vip-settings';
+import { computeCueWindow, shouldFallbackToTts, waitForCueTailMs } from './cue-window';
 
 interface ResolveContext {
   request: CreateCardRequest;
@@ -232,29 +233,30 @@ async function resolveAudio(
   const preRoll = Math.max(0, capture.preRoll ?? DEFAULT_CAPTURE.preRoll);
   const postRoll = Math.max(0, capture.postRoll ?? DEFAULT_CAPTURE.postRoll);
 
+  // Pure video-time -> wall-clock mapping (see `cue-window.ts`). Identical on
+  // every platform because each adapter feeds the same three numbers.
+  const { start, end, cueEndInFuture } = computeCueWindow({
+    cueStart: request.cueStart,
+    cueEnd: request.cueEnd,
+    videoTimeAtSave: videoNowAtRequest,
+    requestedAt,
+    preRollMs: preRoll,
+    postRollMs: postRoll,
+  });
+
   // If the user saves while the subtitle is still being spoken, the rolling
-  // recorder does not yet contain the end of the cue. Wait just long enough
-  // for the cue end + post-roll to enter the buffer. If the video is paused
-  // by the popover, this best-effort wait will still fall through to TTS.
-  const cueEndInFuture = request.cueEnd - videoNowAtRequest;
-  if (request.videoPausedAtSave && cueEndInFuture > 100) {
-    // Hover/save often pauses the video before the subtitle finishes. In that
-    // state the missing tail cannot enter the recorder buffer, so asking for
-    // the full cue would produce silence/partial audio. Return null and let
-    // the caller attach sentence TTS instead of a broken live clip.
+  // recorder does not yet contain the end of the cue. Hover/save often pauses
+  // the video before the subtitle finishes; in that state the missing tail
+  // cannot enter the buffer, so return null and let the caller attach sentence
+  // TTS instead of a broken live clip.
+  if (shouldFallbackToTts(cueEndInFuture, request.videoPausedAtSave ?? false)) {
     return null;
   }
-  if (cueEndInFuture > 0) {
-    await wait(Math.min(cueEndInFuture + postRoll + 150, 8_000));
+  // Otherwise wait just long enough for the cue end + post-roll to arrive.
+  const waitMs = waitForCueTailMs(cueEndInFuture, postRoll);
+  if (waitMs > 0) {
+    await wait(waitMs);
   }
-
-  // Compute the cue's wall-clock range from the relation captured at save
-  // time. Use the original `requestedAt` rather than Date.now() after the
-  // wait, otherwise active-cue saves drift the slice forward.
-  const cueStartAgo = videoNowAtRequest - request.cueStart;
-  const cueEndAgo = videoNowAtRequest - request.cueEnd;
-  const start = requestedAt - cueStartAgo - preRoll;
-  const end = requestedAt - cueEndAgo + postRoll;
 
   // VAD-on-extract trims the WebM/Opus chunk down to actual speech and
   // re-encodes as 16 kHz mono WAV — Anki plays it, file size is small and

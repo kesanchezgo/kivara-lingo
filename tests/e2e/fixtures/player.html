@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Kivara e2e player fixture</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #000;
+      }
+      #stage {
+        position: relative;
+        width: 640px;
+        height: 360px;
+        margin: 0 auto;
+      }
+      video {
+        width: 100%;
+        height: 100%;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <!--
+        A tiny synthetic video generated at runtime via canvas + captureStream,
+        so the fixture is fully offline (no media file needed) and produces a
+        non-black, high-variance frame the capture quality gate will accept.
+      -->
+      <video id="player" muted playsinline crossorigin="anonymous">
+        <track
+          id="cues"
+          kind="subtitles"
+          srclang="en"
+          label="English"
+          default
+          src="./cues.vtt"
+        />
+      </video>
+    </div>
+
+    <script>
+      const canvas = document.createElement('canvas');
+      canvas.width = 640;
+      canvas.height = 360;
+      const ctx = canvas.getContext('2d');
+
+      let t = 0;
+      function draw() {
+        // Moving gradient + shapes => high luminance variance, never a flat
+        // or black frame, so `scoreFrameQuality` marks it usable.
+        const g = ctx.createLinearGradient(0, 0, 640, 360);
+        g.addColorStop(0, `hsl(${(t * 2) % 360}, 80%, 50%)`);
+        g.addColorStop(1, `hsl(${(t * 2 + 120) % 360}, 80%, 40%)`);
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 640, 360);
+        ctx.fillStyle = '#fff';
+        ctx.font = '48px sans-serif';
+        ctx.fillText(`frame ${t}`, 40, 200);
+        ctx.beginPath();
+        ctx.arc(320 + Math.sin(t / 10) * 120, 180, 40, 0, Math.PI * 2);
+        ctx.fillStyle = '#111';
+        ctx.fill();
+        t += 1;
+        requestAnimationFrame(draw);
+      }
+      draw();
+
+      const stream = canvas.captureStream(30);
+      const video = document.getElementById('player');
+      video.srcObject = stream;
+      video.play().catch(() => {});
+      window.__kivaraFixtureReady = true;
+    </script>
+  </body>
+</html>

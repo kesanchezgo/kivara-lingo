@@ -39,7 +39,7 @@
  */
 
 import { fetchJson } from '../fetcher';
-import type { EnrichmentSource, SourcePartial } from '../types';
+import type { EnrichmentSource, SenseRelationGroup, SourcePartial } from '../types';
 
 interface OzdicCluster {
   words?: string[];

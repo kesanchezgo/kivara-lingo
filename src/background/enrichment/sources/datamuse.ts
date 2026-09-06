@@ -104,7 +104,10 @@ export const datamuseSource: EnrichmentSource = {
     if (synonyms.length) partial.synonyms = synonyms;
     if (antonyms.length) partial.antonyms = antonyms;
     if (frequencyBand) {
-      partial.frequencyEvidence = [{ source: 'datamuse', scale: 'books-band', value: String(frequencyBand) }];
+      // NOTE: `source` is attached by the orchestrator's mergeFields
+      // (`{ ...evidence, source: source.id }`), so the source-partial shape
+      // (`FrequencyEvidence`) must NOT carry it here.
+      partial.frequencyEvidence = [{ scale: 'books-band', value: String(frequencyBand) }];
     }
     return partial;
   },

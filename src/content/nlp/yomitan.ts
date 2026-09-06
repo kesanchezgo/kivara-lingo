@@ -647,10 +647,14 @@ export async function getYomitanHeadwords(lang = 'en'): Promise<string[]> {
   // and drop the prefix.
   const out = new Set<string>();
   for (const id of packIds) {
+    // Dexie types `uniqueKeys()` as the broad `IndexableTypeArray`, which
+    // doesn't structurally overlap our compound-key tuple, so route through
+    // `unknown`. The shape is guaranteed by the `[packId+expression]` compound
+    // index, and the loop below still guards each key defensively at runtime.
     const compoundKeys = (await db.dict_terms
       .where('[packId+expression]')
       .between([id, ''], [id, '\uffff'], true, true)
-      .uniqueKeys()) as Array<[string, string]>;
+      .uniqueKeys()) as unknown as Array<[string, string]>;
     for (const k of compoundKeys) {
       if (Array.isArray(k) && typeof k[1] === 'string' && k[1]) {
         out.add(k[1]);
