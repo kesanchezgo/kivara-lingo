@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  definitionContextReasons,
   glossPosShape,
+  pickDefinitions,
   pickLexicalTranslations,
   sentencePosHint,
 } from '../../src/background/enrichment/orchestrator';
@@ -28,11 +30,65 @@ describe('translation POS gate', () => {
       expect(sentencePosHint('tensor', 'The model uses a tensor.')).toBe('noun');
       expect(sentencePosHint('run', 'She goes for a run every morning.')).toBe('noun');
       expect(sentencePosHint('support', 'Public support is growing.')).toBe('noun');
+      // Quality-adjective premodifier the base determiner list misses.
+      expect(sentencePosHint('interest', 'The bank charges high interest on loans.')).toBe('noun');
+    });
+
+    it('detects adverb usage from -ly shape and position', () => {
+      expect(sentencePosHint('quickly', 'He quickly finished his homework.')).toBe('adverb');
+      expect(sentencePosHint('carefully', 'She read the letter carefully.')).toBe('adverb');
+    });
+
+    it('detects predicative adjective usage after a copula', () => {
+      expect(sentencePosHint('beautiful', 'The sunset was beautiful.')).toBe('adjective');
+      expect(sentencePosHint('happy', 'She felt happy about the news.')).toBe('adjective');
+      // A copula + inflected token is still a verb ("was walking"), not an
+      // adjective — the predicative rule matches the BARE token only, so an
+      // inflected form after the copula falls through to the verb rule.
+      expect(sentencePosHint('walk', 'She was walking home.')).toBe('verb');
     });
 
     it('returns undefined without a usable signal', () => {
       expect(sentencePosHint('ephemeral', '')).toBeUndefined();
       expect(sentencePosHint('serendipity', undefined)).toBeUndefined();
+    });
+  });
+
+  describe('definition POS gate', () => {
+    const posMap = () => new Map<string, 'noun' | 'verb' | 'adjective' | 'adverb'>([
+      ['be on the mind of', 'verb'],
+      ['a fixed charge for borrowing money', 'noun'],
+      ['moving quickly and lightly', 'adjective'],
+      ['with speed', 'adverb'],
+    ]);
+
+    it('demotes a verb gloss when the sentence uses the word as a noun', () => {
+      const ranked = pickDefinitions([
+        { source: 'wordnet', text: 'be on the mind of' },
+        { source: 'wordnet', text: 'a fixed charge for borrowing money' },
+      ], 'interest', 'The bank charges high interest on loans.', posMap());
+      expect(ranked[0].text).toBe('a fixed charge for borrowing money');
+    });
+
+    it('demotes an adjective gloss when the sentence uses the word as an adverb', () => {
+      const ranked = pickDefinitions([
+        { source: 'wordnet', text: 'moving quickly and lightly' },
+        { source: 'wordnet', text: 'with speed' },
+      ], 'quickly', 'He quickly finished his homework.', posMap());
+      expect(ranked[0].text).toBe('with speed');
+    });
+
+    it('emits the POS reason codes', () => {
+      const mismatch = definitionContextReasons('be on the mind of', 'interest', 'The bank charges high interest on loans.', posMap());
+      expect(mismatch).toContain('penalty-pos-mismatch');
+      const match = definitionContextReasons('a fixed charge for borrowing money', 'interest', 'The bank charges high interest on loans.', posMap());
+      expect(match).toContain('ok-pos-match');
+    });
+
+    it('stays neutral when no POS metadata is available (no token rule needed)', () => {
+      const reasons = definitionContextReasons('some gloss', 'interest', 'The bank charges high interest on loans.');
+      expect(reasons).not.toContain('penalty-pos-mismatch');
+      expect(reasons).not.toContain('ok-pos-match');
     });
   });
 

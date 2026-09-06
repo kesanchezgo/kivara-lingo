@@ -111,6 +111,19 @@ function relationGroupLimit(count: number): number {
   return Math.min(count, MAX_RELATIONS_PER_GROUP);
 }
 
+/** Map an Open English WordNet part-of-speech code to the coarse label
+ * the merger's POS gate speaks. WordNet's `s` (satellite adjective) is an
+ * adjective for our purposes; `r` is an adverb. */
+function posLabel(code: string): 'noun' | 'verb' | 'adjective' | 'adverb' | undefined {
+  switch (code) {
+    case 'n': return 'noun';
+    case 'v': return 'verb';
+    case 'a': case 's': return 'adjective';
+    case 'r': return 'adverb';
+    default: return undefined;
+  }
+}
+
 export const wordnetSource: EnrichmentSource = {
   id: 'wordnet',
   label: 'WordNet',
@@ -162,15 +175,17 @@ export const wordnetSource: EnrichmentSource = {
       .slice(0, MAX_SENSE_GROUPS)
       .map((sense) => ({
         definition: sense.d,
+        ...(posLabel(sense.p) ? { partOfSpeech: posLabel(sense.p) } : {}),
         ...(sense.e?.length ? { example: sense.e[0] } : {}),
         ...(sense.s?.length ? { synonyms: sense.s.slice(0, relationGroupLimit(sense.s.length)) } : {}),
         ...(sense.a?.length ? { antonyms: sense.a.slice(0, relationGroupLimit(sense.a.length)) } : {}),
       }));
 
-    const definitions = entry
-      .map((sense) => sense.d)
-      .filter((definition) => definition.trim().length > 2)
-      .slice(0, MAX_DEFINITIONS);
+    const definitionsPos = entry
+      .filter((sense) => sense.d.trim().length > 2)
+      .slice(0, MAX_DEFINITIONS)
+      .map((sense) => ({ text: sense.d, ...(posLabel(sense.p) ? { pos: posLabel(sense.p)! } : {}) }));
+    const definitions = definitionsPos.map((definition) => definition.text);
 
     const examples: Array<{ text: string }> = [];
     for (const sense of entry) {
@@ -185,6 +200,7 @@ export const wordnetSource: EnrichmentSource = {
 
     if (relationGroups.length) partial.relationGroups = relationGroups;
     if (definitions.length) partial.definitions = definitions;
+    if (definitionsPos.length) partial.definitionsPos = definitionsPos;
     if (examples.length) partial.examples = examples;
     return partial;
   },

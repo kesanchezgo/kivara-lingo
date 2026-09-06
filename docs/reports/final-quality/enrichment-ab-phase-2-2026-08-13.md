@@ -847,3 +847,91 @@ Los porcentajes bajos de sinónimos/antónimos/colocaciones son el
 CONTRATO, no un gap: el sistema prefiere campo vacío antes que datos de
 otra acepción (política del audit 2026-08-13). Todas las fuentes
 necesarias ya estaban integradas — no se añadió ninguna.
+
+## Fase 11: POS gate general en definición y relaciones (2026-09-06)
+
+Se corrió el corpus completo (15 tokens × 2 tiers) MÁS una tanda de
+tipos de palabra que el corpus fijo no cubría (adjetivo, adverbio,
+preposición, abstracto, conjunción, colocación fuerte: `happy`,
+`quickly`, `through`, `freedom`, `although`, `interest`, `beautiful`,
+`however`, `make a decision`) en Chromium MV3 real, `purpose card`, y se
+auditó el CONTENIDO campo por campo, no la cobertura.
+
+### Hallazgo
+
+Cero errores de red en 50 tarjetas. Traducción/IPA/audio/etimología/
+ejemplos/vídeo sólidos y sensibles al sentido. Los defectos restantes
+eran de UNA sola clase: definiciones y sinónimos de la acepción
+equivocada por POS discordante, y sólo en Standard. VIP acertaba los
+mismos casos (`interest`, `through`, `support`, `however`, `happy`)
+porque sus diccionarios pedagógicos separan acepciones por POS; Standard
+dependía de WordNet/Wiktionary/Free Dictionary y elegía el synset #1 sin
+anclar al POS de la oración.
+
+**Diagnóstico: no faltan fuentes. Faltaba usar el POS que las fuentes YA
+entregan.** El mismo patrón que los bugs de `MAX_SENSE_GROUPS` (fase 5)
+y `phoneticPriority` (fase 10): el dato llega, el merge lo ignora.
+
+### Causa raíz
+
+`definitionContextTrace` era una pila de reglas por-token (apple, tensor,
+lit…) sin ninguna regla general de alineación POS. WordNet emitía sus
+definiciones como strings planos, tirando el POS del synset (`p`:
+n/v/a/r/s) que SÍ conoce. Sin ese POS el merge no podía distinguir un
+gloss de adverbio de uno de adjetivo para `quickly`, ni el sustantivo
+financiero de `interest` del verbo "be on the mind of".
+
+### Fix (general, sin reglas por-token)
+
+1. **wordnet.ts** — cada sentido publica su POS: `partOfSpeech` en cada
+   `relationGroup` y una vista tipada `definitionsPos` paralela a
+   `definitions`. Mapa OEWN → coarse: `n`→noun, `v`→verb, `a`/`s`→
+   adjective, `r`→adverb.
+2. **types.ts** — `SourcePartial.definitionsPos?`.
+3. **orchestrator.ts**:
+   - `sentencePosHint` amplía su dominio de verb/noun a también
+     **adverb** (forma `-ly` + posición) y **adjective** (predicativo
+     tras cópula: "was beautiful", "felt happy"). El adjetivo predicativo
+     se comprueba ANTES que la regla de verbo para que "was beautiful"
+     no se lea como "was + [verbo]"; sólo casa el token DESNUDO, así
+     "was walking" sigue siendo verbo.
+   - Regla general de premodificador de calidad (`high interest`,
+     `heavy rain`) que la lista base de determinantes no cubría.
+   - `definitionContextTrace` recibe el mapa POS y aplica una
+     penalización general `penalty-pos-mismatch` (+14) / bonus
+     `ok-pos-match` (−6) cuando ambos POS existen. Sin metadata POS la
+     regla se mantiene neutra.
+   - `pickSenseRelationGroups` descarta grupos cuyo POS discrepa del de
+     la oración, pero SÓLO cuando existe un grupo con el POS correcto en
+     esa fuente (si la fuente tiene un único POS, no vacía el campo).
+
+### Verificación (MV3 real, perfil FRESCO)
+
+Hallazgo de proceso: el perfil persistente de auditoría cacheaba un
+service worker viejo y enmascaraba el fix. Con perfil nuevo:
+
+| Token | POS oración | Antes (Standard) | Después (Standard) |
+|---|---|---|---|
+| `quickly` | adverbio | def "moving quickly and lightly" (adj) | def "with speed" (adv) + sinónimos apace/rapidly/speedily |
+| `interest` | sustantivo | def "be on the mind of" (verbo) | def "a reason for wanting something done" (sust) |
+
+Sin regresiones: `run`→correr/dirigir, `lit`→genial, `tensor`→
+matemático, `break up`→relación, `piece of cake`→pan comido,
+`forget`→olvidar, `give`→dar intactos. Corpus fijo 15×2 con cobertura
+idéntica a la fase 10.
+
+### Límite conocido (queda como contrato, no gap)
+
+Los defectos MISMO-POS no los toca este gate y siguen siendo WSD de
+dominio pendiente (audit 2026-08-13 punto 2): `happy`→"good fortune"
+(adj vs adj), `beautiful`→"(of weather)" (adj vs adj), `support`→"adopt
+as a belief" (verbo vs verbo), `apple`→malus pumila (sust árbol vs sust
+fruta). El POS gate cierra la clase cross-POS; la clase same-POS necesita
+la fase de WSD por dominio, aún abierta.
+
+### Veredicto sobre fuentes
+
+**No se añadió ninguna fuente y no hace falta.** Todos los defectos
+auditados eran de merge, no de materia prima. Suite: 273 pruebas verdes
+(6 nuevas: hints adverb/adjetivo/premodificador, gate de definición por
+POS, códigos de razón, neutralidad sin metadata).

@@ -83,6 +83,11 @@ export interface FrequencyEvidence {
 export interface SourcePartial {
   /** Definition strings produced by this source. */
   definitions?: string[];
+  /** Definitions carrying a part-of-speech tag, when the source knows it
+   * (WordNet synsets). Lets the merger's POS gate reject a noun gloss for
+   * an adverb usage without token-specific rules. Same text as
+   * `definitions`; this is the tagged view, not an additional set. */
+  definitionsPos?: Array<{ text: string; pos?: 'noun' | 'verb' | 'adjective' | 'adverb' }>;
   /** Bilingual translations (target language). */
   translations?: string[];
   /** Source-language sentence-level examples. */

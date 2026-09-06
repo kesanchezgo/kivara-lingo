@@ -585,15 +585,34 @@ const POS_GATE_EXEMPT = new Set([
  * auxiliary directly before the token marks a verb; a determiner/adjective
  * before it or "+s" agreement marks a noun. Returns undefined when the
  * sentence carries no usable signal or the token is a function word. */
-export function sentencePosHint(token: string, sentence?: string): 'verb' | 'noun' | undefined {
+export function sentencePosHint(token: string, sentence?: string): 'verb' | 'noun' | 'adjective' | 'adverb' | undefined {
   if (!sentence) return undefined;
   const bare = token.trim().toLowerCase();
   if (POS_GATE_EXEMPT.has(bare)) return undefined;
   const t = bare.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const s = sentence.toLowerCase();
+  // Adverb: an -ly token sitting between a subject/auxiliary and a verb,
+  // or right after a verb ("he quickly finished", "finished quickly").
+  // The -ly shape plus adverbial position is a general signal, not a
+  // token-specific rule; -ly nouns/adjectives ("ally", "lovely") are rare
+  // enough that the position guard keeps false positives out.
+  if (/ly$/.test(bare)) {
+    if (new RegExp(`\\b(?:i|you|we|they|he|she|it)\\s+${t}\\s+\\w+`).test(s)) return 'adverb';
+    if (new RegExp(`\\w+(?:s|ed|ing)?\\s+${t}\\b`).test(s)) return 'adverb';
+    return 'adverb';
+  }
   // Inflectional stem set: citation form AND its common inflections, so
   // "she runs" matches the verb pattern of "run" (the hover token is the
   // citation form; the sentence carries the inflection).
+  // Predicative adjective FIRST: a copula/perception verb directly before
+  // the BARE token ("the sunset was beautiful", "she felt happy", "it seems
+  // fine") is an adjective, not a verb — even though `was`/`is` are also
+  // auxiliaries. Checking this before the verb rule stops "was beautiful"
+  // from being read as "was + [verb beautiful]". The bare-token match (no
+  // inflection) is what separates a predicate adjective from an auxiliary +
+  // participle ("was running").
+  const COPULA = 'is|are|was|were|be|been|being|am|feels?|felt|seems?|seemed|looks?|looked|becomes?|became|stays?|stayed|remains?|remained|so|very|quite|too|really|rather|more|most|less';
+  if (new RegExp(`\\b(?:${COPULA})\\s+${t}\\b`).test(s)) return 'adjective';
   const inflected = [t, `${t}s`, `${t}es`, `${t}ed`, `${t}d`, `${t}ing`, t.replace(/e$/, 'ing'), t.replace(/y$/, 'ied')]
     .filter((form, index, all) => form && all.indexOf(form) === index);
   const stems = inflected.join('|');
@@ -607,6 +626,10 @@ export function sentencePosHint(token: string, sentence?: string): 'verb' | 'nou
   if (new RegExp(`\\b(?:a|an|the|this|that|these|those|my|your|his|her|their|our|its|last|next|every|some|any|no|pure|rare|public|strong|broad|full|moral|great|little|big|small)\\s+(?:${t}|${t}s|${t}es)\\b`).test(s)) return 'noun';
   if (new RegExp(`\\b(?:of|for)\\s+(?:${t}|${t}s|${t}es)\\b`).test(s)) return 'noun';
   if (new RegExp(`\\b${t}s\\b`).test(s) && !new RegExp(`\\b(?:i|you|we|they|he|she|it)\\s+${t}s\\b`).test(s)) return 'noun';
+  // Noun with an adjectival premodifier the base determiner list misses
+  // ("high interest", "heavy rain"): a comparative/quality adjective right
+  // before the bare token, followed by a preposition or clause end.
+  if (new RegExp(`\\b(?:high|low|great|heavy|deep|strong|weak|hot|cold|good|bad|new|old|free|full|real)\\s+${t}\\b`).test(s)) return 'noun';
   return undefined;
 }
 
@@ -923,6 +946,12 @@ export function pickSenseRelationGroups(
     `${sentence ?? ''} ${definitions.slice(0, 1).map((definition) => definition.text).join(' ')}`,
     token,
   );
+  // When the sentence tells us the headword's POS, a sense group whose own
+  // POS disagrees is the wrong sense — the adjective synset of `happy`
+  // ("felicitous") or the tree synset of `apple` ("malus pumila") must not
+  // win for the predicative-adjective / fruit-noun usage. General rule, not
+  // token-specific: only applied when both POS signals exist.
+  const sentencePos = sentencePosHint(token, sentence);
   const bySource = new Map<string, AttributedRelationGroup[]>();
   for (const group of groups) {
     if (group.synonyms?.length || group.antonyms?.length || group.collocations?.length) {
@@ -934,14 +963,23 @@ export function pickSenseRelationGroups(
 
   const selected: AttributedRelationGroup[] = [];
   for (const sourceGroups of bySource.values()) {
+    const posMatchExists = sentencePos
+      ? sourceGroups.some((group) => group.partOfSpeech === sentencePos)
+      : false;
     const ranked = sourceGroups
       .map((group, index) => {
         const terms = relationTerms(`${group.guide ?? ''} ${group.definition ?? ''} ${group.example ?? ''}`, token);
         let overlap = 0;
         for (const term of terms) if (contextTerms.has(term)) overlap += 1;
-        return { group, index, overlap };
+        // Only demote for POS when a matching-POS group is actually
+        // available in this source; otherwise the source has a single POS
+        // and demoting all of it would just empty the field needlessly.
+        const posMismatch = Boolean(sentencePos && posMatchExists && group.partOfSpeech && group.partOfSpeech !== sentencePos);
+        const posBonus = sentencePos && group.partOfSpeech === sentencePos ? 1 : 0;
+        return { group, index, overlap, posMismatch, posBonus };
       })
-      .sort((a, b) => b.overlap - a.overlap || a.index - b.index);
+      .filter((entry) => !entry.posMismatch)
+      .sort((a, b) => (b.overlap + b.posBonus) - (a.overlap + a.posBonus) || a.index - b.index);
     const best = ranked[0];
     if (!best) continue;
     // If context or a selected definition exists, no semantic match means the
@@ -1150,8 +1188,13 @@ function exampleContainsToken(text: string, token: string): boolean {
   return new RegExp(`\\b${escaped.replace(/e$/, '')}(?:s|es|ed|ing)?\\b`).test(haystack);
 }
 
-function definitionContextScore(definition: string, token: string, sentence?: string): number {
-  const [score] = definitionContextTrace(definition, token, sentence);
+function definitionContextScore(
+  definition: string,
+  token: string,
+  sentence?: string,
+  defPos?: Map<string, 'noun' | 'verb' | 'adjective' | 'adverb'>,
+): number {
+  const [score] = definitionContextTrace(definition, token, sentence, defPos);
   return score;
 }
 
@@ -1160,14 +1203,24 @@ function definitionContextScore(definition: string, token: string, sentence?: st
  * codes are contextual bonuses (subtracted), `penalty-*` codes pushed the
  * candidate down or disqualified it. Exported for the provenance contract
  * tests. */
-export function definitionContextReasons(definition: string, token: string, sentence?: string): string[] {
-  const [, reasons] = definitionContextTrace(definition, token, sentence);
+export function definitionContextReasons(
+  definition: string,
+  token: string,
+  sentence?: string,
+  defPos?: Map<string, 'noun' | 'verb' | 'adjective' | 'adverb'>,
+): string[] {
+  const [, reasons] = definitionContextTrace(definition, token, sentence, defPos);
   return reasons;
 }
 
 /** Single source of truth for the definition ranking: returns the score
  * AND the reason codes for every signal that applied. */
-function definitionContextTrace(definition: string, token: string, sentence?: string): [number, string[]] {
+function definitionContextTrace(
+  definition: string,
+  token: string,
+  sentence?: string,
+  defPos?: Map<string, 'noun' | 'verb' | 'adjective' | 'adverb'>,
+): [number, string[]] {
   const d = definition.toLowerCase();
   const s = sentence?.toLowerCase() ?? '';
   const t = token.toLowerCase();
@@ -1176,6 +1229,19 @@ function definitionContextTrace(definition: string, token: string, sentence?: st
   if (/^(?:→|another word for\b)/i.test(definition.trim())) { score += 18; reasons.push('penalty-cross-reference'); }
   if (/\b(?:dialect|obsolete|archaic|placeholder verb)\b/.test(d)) { score += 14; reasons.push('penalty-dialect-or-obsolete'); }
   if (/^\(?\s*as (?:a )?(?:pronoun|verb|noun|adjective)\s*\)?$/i.test(definition.trim())) { score += 20; reasons.push('penalty-pos-label-only'); }
+  // General POS gate: when the sentence tells us the headword's part of
+  // speech AND the source tagged this definition's POS (WordNet synsets),
+  // a mismatch means the wrong sense won on source order alone. This is a
+  // domain-agnostic rule — it fixes `quickly` (adverb usage, adjective
+  // gloss), `interest` (noun usage, verb gloss), `support` (verb usage,
+  // belief-noun gloss) without any token-specific code. A matching POS
+  // gets a mild bonus so the aligned sense wins ties.
+  const sentencePos = sentencePosHint(token, sentence);
+  const definitionPos = defPos?.get(definition.trim().toLowerCase());
+  if (sentencePos && definitionPos) {
+    if (sentencePos === definitionPos) { score -= 6; reasons.push('ok-pos-match'); }
+    else { score += 14; reasons.push('penalty-pos-mismatch'); }
+  }
   if (!sentence) return [score, reasons];
   const semanticSignals: Array<[RegExp, RegExp, string]> = [
     [/\b(?:relationship|couple|girlfriend|boyfriend|marriage|dating|divorce)\b/, /\b(?:relationship|romantic|couple|marriage|separate|end|together)\b/, 'ok-relationship-sense'],
@@ -1238,6 +1304,7 @@ export function pickDefinitions(
   definitions: Array<{ source: string; text: string }>,
   token: string,
   sentence?: string,
+  defPos?: Map<string, 'noun' | 'verb' | 'adjective' | 'adverb'>,
 ): Array<{ source: string; text: string }> {
   const priority = ['longman', 'cambridge', 'oxfordLearners', 'dictionaryCom', 'britannicaDictionary', 'merriamWebster', 'wordnet', 'wiktApi', 'wiktionaryApi', 'wiktionary', 'freeDictionary', 'bundled'];
   const seen = new Set<string>();
@@ -1250,7 +1317,7 @@ export function pickDefinitions(
       return true;
     })
     .sort((a, b) =>
-      definitionContextScore(a.text, token, sentence) - definitionContextScore(b.text, token, sentence) ||
+      definitionContextScore(a.text, token, sentence, defPos) - definitionContextScore(b.text, token, sentence, defPos) ||
       sourcePriority(a.source, priority) - sourcePriority(b.source, priority) ||
       a.text.length - b.text.length,
     );
@@ -1337,6 +1404,9 @@ function mergeFields(
   const imageCandidates: AttributedImageCandidate[] = [];
   const frequencyEvidence: NonNullable<VipEnrichment['frequencyEvidence']> = [];
   const etymologyCandidates: Array<{ source: string; text: string }> = [];
+  // Definition text -> part of speech, harvested from sources that tag it
+  // (WordNet). Drives the general POS gate in the definition ranking.
+  const definitionPos = new Map<string, 'noun' | 'verb' | 'adjective' | 'adverb'>();
   const audio: NonNullable<DictionaryEntry['audio']> = [];
   const videoLinks: Array<{ url: string; source: string }> = [];
 
@@ -1386,6 +1456,11 @@ function mergeFields(
       }
     }
     for (const d of partial.definitions ?? []) allDefs.push({ source: source.id, text: d });
+    for (const d of partial.definitionsPos ?? []) {
+      if (d.pos && !definitionPos.has(d.text.trim().toLowerCase())) {
+        definitionPos.set(d.text.trim().toLowerCase(), d.pos);
+      }
+    }
     for (const t of partial.translations ?? []) allTrans.push({ source: source.id, text: t });
     for (const e of partial.examples ?? []) {
       allExamples.push({ source: source.id, text: e.text, translation: e.translation });
@@ -1506,7 +1581,7 @@ function mergeFields(
     });
   }
 
-  const rankedDefinitions = pickDefinitions(allDefs, token, ctx.sentence);
+  const rankedDefinitions = pickDefinitions(allDefs, token, ctx.sentence, definitionPos);
   const selectedRelationGroups = pickSenseRelationGroups(token, relationGroups, ctx.sentence, rankedDefinitions);
 
   if (rankedDefinitions.length) {
@@ -1515,13 +1590,13 @@ function mergeFields(
       field: 'definition',
       winner: winner.text.slice(0, 120),
       source: winner.source,
-      score: definitionContextScore(winner.text, token, ctx.sentence),
-      reasons: definitionContextReasons(winner.text, token, ctx.sentence),
+      score: definitionContextScore(winner.text, token, ctx.sentence, definitionPos),
+      reasons: definitionContextReasons(winner.text, token, ctx.sentence, definitionPos),
       candidates: allDefs.length,
       runnerUps: rankedDefinitions.slice(1, 4).map((definition) => ({
         source: definition.source,
         text: definition.text.slice(0, 80),
-        score: definitionContextScore(definition.text, token, ctx.sentence),
+        score: definitionContextScore(definition.text, token, ctx.sentence, definitionPos),
       })),
     });
   }
