@@ -528,6 +528,16 @@ Completado en la segunda fase:
 - Longman aporta frecuencia S/W y bloques semánticos;
 - Britannica pasó de Standard a VIP.
 
+Continuación 2026-09-06 (ver
+`enrichment-relations-collocations-hardening-2026-09-06.md`):
+
+- puntos 2 y 3 del veredicto atacados por FORMA: filtro de taxonomía/
+  perifrasis/componente-literal en sinónimos (`apple`, `each`, `anybody`,
+  `piece of cake`) y publicación solo de chunks de diccionario de aprendizaje
+  en colocaciones (`apple`, `week`, `support`);
+- lo que resta de 2 y 3 es binding por acepción (`know`, `each` vip,
+  antónimos figurados) — no resoluble por forma.
+
 Pendiente, en orden:
 
 1. integrar Open English WordNet en Standard con synsets;

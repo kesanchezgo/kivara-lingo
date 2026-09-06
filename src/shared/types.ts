@@ -897,8 +897,11 @@ export interface FieldProvenance {
   /** Final ranking score of the winner (lower = better; scale is
    * field-specific, so scores are comparable only within a field). */
   score?: number;
-  /** Next-best candidates in rank order, most beaten first. */
-  runnerUps?: Array<{ source: string; text: string; score?: number }>;
+  /** Next-best candidates in rank order, most beaten first. A runner-up's
+   * source may be null for the same reason the winner's can: the value was
+   * synthesized (context rule) or its originating source could not be
+   * attributed back after ranking. */
+  runnerUps?: Array<{ source: string | null; text: string; score?: number }>;
   /** Ranking signals that applied to the winner (bonus/penalty codes). */
   reasons?: string[];
   /** How many raw candidates entered the ranking before any cut. */

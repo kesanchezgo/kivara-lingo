@@ -76,6 +76,7 @@ import { youglishSource } from './sources/youglish';
 import { etymonlineSource } from './sources/etymonline';
 import { wordnetSource } from './sources/wordnet';
 import { getDB } from '../../shared/db';
+import { translateText } from '../translate';
 
 /**
  * Standard tier: always queried regardless of the VIP master switch.
@@ -353,6 +354,23 @@ export async function runEnrichment(
   }
 
   const merged = mergeFields(token, partials, ctx);
+
+  // Backfill native-language translations on examples that came from
+  // monolingual sources. Runs before the cache write so the cached payload
+  // is already complete; the translator's own IndexedDB cache keeps this
+  // from re-hitting provider quotas for a sentence we've seen before.
+  await fillMissingExampleTranslations(merged.vip.examples, ctx, token);
+  // Re-render the card's top-4 example lines so the newly filled
+  // translations show as `text — translation` (mergeFields built these from
+  // the pre-backfill data).
+  if (merged.entry && merged.vip.examples && merged.vip.examples.length) {
+    merged.entry.examples = merged.vip.examples
+      .slice(0, 4)
+      .map((example) =>
+        example.translation ? `${example.text} — ${example.translation}` : example.text,
+      );
+  }
+
   const result: EnrichmentResult = {
     entry: merged.entry,
     vip: merged.vip,
@@ -363,6 +381,203 @@ export async function runEnrichment(
   // Best-effort cache write — never let a write failure surface.
   void writeCache(cacheKey, result).catch(() => {});
   return result;
+}
+
+/* ─── Example translation backfill ────────────────────────────────────── */
+
+/**
+ * Sources whose per-example `translation` we trust verbatim. These are
+ * editorial/parallel corpora that pair sentences deliberately (professional
+ * lexicographers or aligned corpora), so we never second-guess their pairs.
+ */
+const TRUSTED_TRANSLATION_SOURCES = new Set([
+  'promtContext', 'linguee', 'reverso', 'cambridge', 'oxfordLearners',
+  'longman', 'dictionaryCom', 'merriamWebster', 'spanishDict', 'wordReference',
+  'pons', 'dictCc', 'babla',
+]);
+
+/**
+ * Sources whose per-example `translation` is community-contributed and can be
+ * flat-out wrong (a volunteer mistranslating the sentence). Tatoeba is the
+ * canonical case: "I love apples!" once paired with "¡Me encantan las
+ * naranjas!". We keep their (excellent) native *sentences* but treat their
+ * translation as a hint we may override when it looks suspect.
+ */
+const REVIEWABLE_TRANSLATION_SOURCES = new Set(['tatoeba']);
+
+/**
+ * Strip a Spanish/English word down to a comparable stem: lowercase, drop
+ * surrounding punctuation, and collapse a trailing plural `-s`/`-es`. Crude
+ * on purpose — it only needs to make "manzana"/"manzanas" and
+ * "naranja"/"naranjas" compare equal, not to be a real lemmatizer.
+ */
+function contentStem(word: string): string {
+  const w = word.toLowerCase().replace(/[^\p{L}]/gu, '');
+  if (w.length <= 3) return w;
+  if (w.endsWith('es')) return w.slice(0, -2);
+  if (w.endsWith('s')) return w.slice(0, -1);
+  return w;
+}
+
+// Function words we ignore when checking whether a translation "mentions" the
+// expected gloss — they carry no semantic signal.
+const STOPWORD_STEMS = new Set([
+  'el', 'la', 'lo', 'lu', 'un', 'una', 'de', 'del', 'a', 'al', 'en', 'con',
+  'por', 'para', 'que', 'se', 'me', 'te', 'le', 'les', 'no', 'si', 'y', 'o',
+  'su', 'mi', 'tu', 'e',
+]);
+
+function contentStems(phrase: string): Set<string> {
+  const out = new Set<string>();
+  for (const raw of phrase.split(/\s+/)) {
+    const stem = contentStem(raw);
+    if (stem && stem.length >= 2 && !STOPWORD_STEMS.has(stem)) out.add(stem);
+  }
+  return out;
+}
+
+/**
+ * Resolve the expected native gloss for the head token (e.g. apple → manzana)
+ * using the same translator the card already trusts. Returns the set of
+ * content stems in that gloss, or `null` when unavailable (offline, no dict,
+ * provider miss) — in which case the caller must NOT flag anything suspect.
+ *
+ * We translate the token straight into the TARGET language via `translateText`
+ * (cached, provider-chain). `translateToken(token, sourceLang)` is the wrong
+ * tool here: it returns a source-language dictionary entry whose `translation`
+ * field is not guaranteed to be the target-language gloss (a monolingual EN
+ * entry for "apple" carries an English definition, not "manzana").
+ */
+async function resolveExpectedGlossStems(
+  token: string,
+  ctx: EnrichmentContext,
+): Promise<Set<string> | null> {
+  try {
+    const res = await translateText({
+      text: token,
+      sourceLang: ctx.sourceLang,
+      targetLang: ctx.targetLang,
+    });
+    if (!res.ok || !res.translatedText || !res.translatedText.trim()) return null;
+    const gloss = res.translatedText.trim();
+    // A provider echoing the token back verbatim tells us nothing.
+    if (gloss.toLowerCase() === token.trim().toLowerCase()) return null;
+    const stems = contentStems(gloss);
+    return stems.size ? stems : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Decide whether a reviewable source's translation is suspect enough to
+ * override. Conservative by design (favours keeping data): flags ONLY when
+ *  - we actually know the expected gloss (stems non-null), AND
+ *  - the English text really contains the head token, AND
+ *  - the translation shares NO content stem with the expected gloss.
+ * Any of those failing ⇒ we keep the original translation.
+ */
+function isSuspectTranslation(
+  token: string,
+  text: string,
+  translation: string,
+  glossStems: Set<string> | null,
+): boolean {
+  if (!glossStems || glossStems.size === 0) return false;
+  const tok = token.toLowerCase().trim();
+  if (!tok) return false;
+  // Only judge sentences that genuinely feature the head word — otherwise the
+  // gloss legitimately may not appear.
+  if (!text.toLowerCase().includes(tok)) return false;
+  const transStems = contentStems(translation);
+  if (transStems.size === 0) return false;
+  for (const stem of glossStems) {
+    if (transStems.has(stem)) return false; // gloss present ⇒ trustworthy
+  }
+  return true; // token present in EN, but its native gloss is nowhere in ES
+}
+
+/**
+ * Backfill (and, for reviewable sources, repair) `translation` fields on
+ * merged examples.
+ *
+ * Two jobs, one pass:
+ *  1. FILL — monolingual dictionaries (Cambridge, Britannica, Wiktionary,
+ *     bundled, …) return English-only `text`. We fill the missing native line
+ *     via `translateText`.
+ *  2. REPAIR — community corpora (tatoeba) ship their own translation, which
+ *     is occasionally a volunteer's mistranslation. When such a translation
+ *     is suspect (see `isSuspectTranslation`) we override it with our own
+ *     provider-chain translation. Editorial/parallel sources
+ *     (`TRUSTED_TRANSLATION_SOURCES`) are never second-guessed.
+ *
+ * Rather than scrape more bilingual sites (fragile) or hand-edit report
+ * dumps (a mirror, not the source), we reuse the translator the extension
+ * already ships — `translateText` — cached in IndexedDB, debounced, and
+ * falling through the user's configured provider chain. The cache means a
+ * given sentence is only ever translated once across the whole corpus.
+ *
+ * Contract:
+ *  - Mutates the passed examples in place.
+ *  - Never throws: a provider miss (incl. offline mode) leaves the example
+ *    untouched, exactly as before.
+ *  - Repair is fail-safe: if the expected gloss can't be resolved, NOTHING is
+ *    flagged suspect, so we never destroy a good translation on a guess.
+ *  - Runs all lookups concurrently; the translator's own debounce + cache
+ *    keep quota use sane.
+ */
+async function fillMissingExampleTranslations(
+  examples: Array<{ source: string; text: string; translation?: string }> | undefined,
+  ctx: EnrichmentContext,
+  token: string,
+): Promise<void> {
+  if (!examples || examples.length === 0) return;
+  // Same source and target language ⇒ nothing to translate.
+  if (ctx.sourceLang.slice(0, 2) === ctx.targetLang.slice(0, 2)) return;
+
+  // Does any reviewable-source example need judging? Only then do we pay for
+  // the head-token gloss lookup.
+  const hasReviewable = examples.some(
+    (ex) => REVIEWABLE_TRANSLATION_SOURCES.has(ex.source) && ex.translation && ex.text,
+  );
+  const glossStems = hasReviewable
+    ? await resolveExpectedGlossStems(token, ctx)
+    : null;
+
+  const pending = examples.filter((ex) => {
+    if (!ex.text || ex.text.trim().length === 0) return false;
+    if (!ex.translation) return true; // FILL: missing translation
+    // REPAIR: reviewable source with a suspect translation.
+    if (
+      REVIEWABLE_TRANSLATION_SOURCES.has(ex.source) &&
+      !TRUSTED_TRANSLATION_SOURCES.has(ex.source) &&
+      isSuspectTranslation(token, ex.text, ex.translation, glossStems)
+    ) {
+      return true;
+    }
+    return false;
+  });
+  if (pending.length === 0) return;
+
+  await Promise.all(
+    pending.map(async (ex) => {
+      try {
+        const res = await translateText({
+          text: ex.text,
+          sourceLang: ctx.sourceLang,
+          targetLang: ctx.targetLang,
+        });
+        if (res.ok && res.translatedText && res.translatedText.trim()) {
+          // Guard against a provider echoing the source back verbatim.
+          if (res.translatedText.trim().toLowerCase() !== ex.text.trim().toLowerCase()) {
+            ex.translation = res.translatedText.trim();
+          }
+        }
+      } catch {
+        // Best-effort: leave this example as-is on failure.
+      }
+    }),
+  );
 }
 
 /* ─── Merge logic ─────────────────────────────────────────────────────── */
@@ -826,6 +1041,80 @@ function groupEquivalentGlossVariants(values: string[]): string[] {
   return order.map((key) => chooseGroupDisplay(groups.get(key)!));
 }
 
+// Function words that start a periphrastic gloss rather than a drop-in
+// equivalent. A "synonym" that opens with one of these is a definition
+// fragment ("any one thing", "to each one", "for each one"), not a term
+// the learner can substitute for the headword. Verified 2026-09-06 in the
+// MV3 corpus: `each` -> "to each one"/"for each one"/"from each one",
+// `anything` -> "any one thing", `anybody` -> "any of"/"a person".
+const PERIPHRASTIC_LEAD_WORDS = new Set([
+  'a', 'an', 'the', 'to', 'for', 'from', 'of', 'by', 'with', 'in', 'on',
+  'at', 'as', 'any', 'some', 'each', 'every', 'all', 'no', 'one',
+]);
+
+// A synonym candidate that is actually taxonomy or a definitional
+// paraphrase, not an equivalent term. WordNet/Wiktionary are displayable
+// sources, so their Latin binomials ("malus pumila"), hypernym glosses
+// ("orchard apple tree") and periphrases ("each and every one") pass the
+// source gate and reach the card unless rejected here. Verified
+// 2026-09-06 in the MV3 corpus.
+function isTaxonomicOrPeriphrastic(value: string, token: string): boolean {
+  const low = value.toLowerCase().trim();
+  const words = low.split(/\s+/).filter(Boolean);
+  const tokenNorm = token.toLowerCase().trim();
+  const tokenHead = tokenNorm.split(/\s+/).filter(Boolean);
+
+  // Literal-component contamination: for a multi-word headword (idiom/MWE),
+  // a single-word "synonym" that is just one of the headword's own content
+  // words is the literal sense leaking in, not an equivalent of the whole
+  // phrase. Verified 2026-09-06: `piece of cake` -> "cake". A stop word
+  // component ("of") is already dropped elsewhere; here we catch content
+  // words like "cake"/"piece".
+  if (tokenHead.length > 1 && words.length === 1 && tokenHead.includes(words[0])) {
+    return true;
+  }
+
+  // Latin binomial nomenclature (genus + species): two lowercase Latinate
+  // words, the pattern of a scientific name ("malus pumila", "canis lupus").
+  // These are WordNet instance hypernyms, never card synonyms.
+  if (words.length === 2 && /^[a-z]+$/.test(words[0]) && /^[a-z]+$/.test(words[1])) {
+    // Genus suffixes are distinctive Latin nominal endings; the species
+    // epithet varies more. Require the GENUS (first word) to look Latin and
+    // the token itself to be absent from the pair (a real synonym reuses
+    // neither a scientific genus nor species around the headword).
+    const LATIN_GENUS = /(?:us|um|is|a|ae|ex|ix|or|on)$/;
+    const tokenAbsent = !words.includes(tokenNorm);
+    if (LATIN_GENUS.test(words[0]) && words[0].length >= 4 && words[1].length >= 4 && tokenAbsent) {
+      return true;
+    }
+  }
+
+  // Multi-word candidate that just wraps the headword in a hypernym gloss:
+  // "orchard apple tree" for `apple`, "apple tree" style. If a >=2-word
+  // candidate contains the whole single-word token AND ends in a generic
+  // taxonomy head, it is a hypernym, not a synonym.
+  if (words.length >= 2 && !tokenNorm.includes(' ') && words.includes(tokenNorm)) {
+    const TAXONOMY_HEADS = new Set(['tree', 'plant', 'animal', 'bird', 'fish', 'species', 'genus', 'fruit']);
+    if (TAXONOMY_HEADS.has(words[words.length - 1])) return true;
+  }
+
+  // Periphrastic paraphrase: opens with a function word and is multi-word,
+  // OR is a bare quantifier phrase built from the token's own head
+  // ("each and every one", "to each one"). A real one-word or hyphenated
+  // synonym is exempt.
+  if (words.length >= 2 && PERIPHRASTIC_LEAD_WORDS.has(words[0])) {
+    // Keep genuine idiomatic equivalents that merely start with a lead word
+    // but do NOT reuse the token head (e.g. "give up" as a synonym is fine).
+    const reusesTokenHead = tokenHead.some((h) => h.length > 2 && words.includes(h));
+    const isQuantifierChain = words.every(
+      (w) => PERIPHRASTIC_LEAD_WORDS.has(w) || w === 'and' || w === 'or' || w === 'thing' || w === 'person' || w === 'ones',
+    );
+    if (reusesTokenHead || isQuantifierChain) return true;
+  }
+
+  return false;
+}
+
 const RELATED_TERM_SOURCE_PRIORITY = [
   'cambridge',
   'merriamWebster',
@@ -877,6 +1166,10 @@ export function pickRelatedTerms(
     const normalized = stripDiacritics(value.toLowerCase());
     if (!normalized || value.toLowerCase() === normalizedToken || value.length > 60) continue;
     if (value.split(/\s+/).length > 5) continue;
+    // Reject taxonomy ("malus pumila"), hypernym glosses ("orchard apple
+    // tree") and periphrastic paraphrases ("to each one", "any one thing")
+    // even from displayable sources. Verified 2026-09-06 MV3 corpus.
+    if (isTaxonomicOrPeriphrastic(value, token)) continue;
     const existing = grouped.get(normalized);
     if (existing) {
       existing.sources.add(candidate.source);
@@ -1670,6 +1963,18 @@ function mergeFields(
       'pons', 'ozdic', 'dictCc', 'babla', 'merriamWebster',
       'britannicaDictionary', 'dictionaryCom',
     ]);
+    // Learner-dictionary collocation authorities: Longman/Oxford/Cambridge
+    // publish hand-built collocation blocks that survive the strict
+    // normalizeCollocation cleaning. A single clean chunk from one of these
+    // is trustworthy enough to publish alone (they are already displayable
+    // at the pickCollocations layer). This lifts coverage for polysemous
+    // verbs whose ozdic sense group did not clear the contextual gate
+    // (`run`, `give` returned empty on 2026-09-06 despite 5-7 collocation
+    // sources). Ozdic stays corroboration-required by deliberate contract
+    // (sense-aware but corpus-derived); Datamuse/PONS/dictCc/wiktionary too.
+    const collocationAuthorities = new Set([
+      'longman', 'oxfordLearners', 'cambridge',
+    ]);
     const byChunk = new Map<string, { sources: Set<string> }>();
     for (const candidate of collocationCandidates) {
       const key = candidate.text.trim().toLowerCase();
@@ -1680,6 +1985,8 @@ function mergeFields(
     collocationPool = collocationCandidates.filter((candidate) => {
       const chunk = byChunk.get(candidate.text.trim().toLowerCase());
       if (!chunk) return false;
+      const authority = [...chunk.sources].some((source) => collocationAuthorities.has(source));
+      if (authority) return true;
       const editorial = [...chunk.sources].filter((source) => editorialSources.has(source));
       return editorial.length >= 1 && chunk.sources.size >= 2;
     });

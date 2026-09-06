@@ -8,6 +8,9 @@ const enrichCambridge = vi.fn(async () => ({
 }));
 const enrichFreeDictionary = vi.fn(async () => ({ translations: ['casa'] }));
 const enrichBritannica = vi.fn(async () => ({ definitions: ['an editorial learner definition'] }));
+const enrichTatoeba = vi.fn(async () => ({
+  examples: [] as Array<{ text: string; translation?: string }>,
+}));
 
 // The production implementations import large bundled JSON assets and
 // IndexedDB-backed packs. The orchestrator contract is what this suite is
@@ -27,6 +30,9 @@ vi.mock('../../src/background/enrichment/sources/free-dictionary', () => ({
 vi.mock('../../src/background/enrichment/sources/britannica-dictionary', () => ({
   britannicaDictionarySource: { id: 'britannicaDictionary', label: 'Britannica', enrich: enrichBritannica },
 }));
+vi.mock('../../src/background/enrichment/sources/tatoeba', () => ({
+  tatoebaSource: { id: 'tatoeba', label: 'Tatoeba', enrich: enrichTatoeba },
+}));
 vi.mock('../../src/background/enrichment/sources/wordnet', () => ({
   wordnetSource: {
     id: 'wordnet',
@@ -38,6 +44,31 @@ vi.mock('../../src/background/enrichment/sources/wordnet', () => ({
   },
 }));
 vi.mock('../../src/shared/db', () => ({ getDB: () => ({}) }));
+
+// Deterministic double for the translator the backfill reuses. It echoes a
+// predictable Spanish string so tests can assert the example gained a
+// native-language line without touching the network or IndexedDB.
+// The head-token gloss (apple → manzana) is resolved by translating the bare
+// token into the target language. The repair path consults that gloss to
+// decide whether a community (tatoeba) translation actually mentions the
+// word's real meaning. This dictionary lets the mock return a real gloss for
+// known head words while echoing `ES::<sentence>` for everything else.
+const TOKEN_GLOSS: Record<string, string> = { apple: 'manzana' };
+const translateTextMock = vi.fn(
+  async (req: { text: string; sourceLang: string; targetLang: string }) => {
+    const gloss = TOKEN_GLOSS[req.text.trim().toLowerCase()];
+    return {
+      ok: true as const,
+      translatedText: gloss ?? `ES::${req.text}`,
+      provider: 'mymemory' as const,
+      cached: false,
+    };
+  },
+);
+vi.mock('../../src/background/translate', () => ({
+  translateText: (req: { text: string; sourceLang: string; targetLang: string }) =>
+    translateTextMock(req),
+}));
 
 const {
   clearMemEnrichmentCache,
@@ -176,6 +207,54 @@ describe('enrichment quality ranking', () => {
     expect(ranked).toEqual(['understand', 'recognize']);
   });
 
+  it('drops taxonomy, hypernym glosses and periphrases even from displayable sources', () => {
+    // WordNet/Wiktionary are displayable, so their Latin binomials, hypernym
+    // glosses and definitional paraphrases reach the card unless rejected by
+    // shape. Verified 2026-09-06 MV3 corpus: apple/each/anybody/piece of cake.
+    expect(pickRelatedTerms('apple', [
+      { source: 'wordnet', text: 'malus pumila' },
+      { source: 'wordnet', text: 'orchard apple tree' },
+      { source: 'thesaurusCom', text: 'fruit' },
+    ], 12)).toEqual(['fruit']);
+
+    const each = pickRelatedTerms('each', [
+      { source: 'wordnet', text: 'apiece' },
+      { source: 'wordnet', text: 'to each one' },
+      { source: 'wordnet', text: 'for each one' },
+      { source: 'wordnet', text: 'each and every one' },
+    ], 12);
+    expect(each).toContain('apiece');
+    expect(each).not.toContain('to each one');
+    expect(each).not.toContain('each and every one');
+
+    const anybody = pickRelatedTerms('anybody', [
+      { source: 'wordnet', text: 'anyone' },
+      { source: 'wordnet', text: 'any of' },
+      { source: 'wordnet', text: 'a person' },
+    ], 12);
+    expect(anybody).toContain('anyone');
+    expect(anybody).not.toContain('any of');
+    expect(anybody).not.toContain('a person');
+
+    // A genuine hyphenated one-word synonym survives.
+    expect(pickRelatedTerms('lit', [
+      { source: 'wordnet', text: 'light-colored' },
+    ], 12)).toContain('light-colored');
+  });
+
+  it('drops a literal-component word as a synonym of a multiword idiom', () => {
+    // "cake" leaking in as a synonym of "piece of cake" is the literal sense,
+    // not an equivalent of the whole phrase. Verified 2026-09-06 MV3 corpus.
+    const r = pickRelatedTerms('piece of cake', [
+      { source: 'thesaurusCom', text: 'breeze' },
+      { source: 'wiktionaryApi', text: 'cake' },
+      { source: 'thesaurusCom', text: 'cinch' },
+    ], 12);
+    expect(r).toContain('breeze');
+    expect(r).toContain('cinch');
+    expect(r).not.toContain('cake');
+  });
+
   it('keeps corroboration-only relations hidden unless independent sources agree', () => {
     expect(pickRelatedTerms('support', [
       { source: 'datamuse', text: 'backing' },
@@ -231,6 +310,22 @@ describe('enrichment quality ranking', () => {
       { source: 'datamuse', text: 'public support' },
       { source: 'pons', text: 'public support' },
     ])).toEqual(['public support', 'strong support']);
+  });
+
+  it('publishes a solo learner-dictionary chunk for a polysemous verb', () => {
+    // `run`/`give` returned NO collocations on 2026-09-06 despite 5-7
+    // collocation sources: their ozdic sense group did not clear the
+    // contextual gate, and the editorial-flat fallback required two
+    // independent sources for an identical chunk (rare across wording
+    // differences). A single clean chunk from a learner-dictionary
+    // authority (Longman/Oxford/Cambridge) is now trustworthy on its own.
+    expect(pickCollocations('run', [
+      { source: 'longman', text: 'run a company' },
+    ])).toEqual(['run a company']);
+
+    expect(pickCollocations('give', [
+      { source: 'oxfordLearners', text: 'give a speech' },
+    ])).toEqual(['give a speech']);
   });
 
   it('rejects corpus adverb bigrams as headword collocations', () => {
@@ -545,5 +640,142 @@ describe('enrichment orchestrator tier and cache selection', () => {
     expect(afterDisable.entry?.monolingual).toBeUndefined();
     expect(afterDisable.successfulSources).toEqual([]);
     expect(enrichCambridge).toHaveBeenCalledOnce();
+  });
+});
+
+describe('enrichment example translation backfill', () => {
+  beforeEach(() => {
+    clearMemEnrichmentCache();
+    enrichCambridge.mockClear();
+    enrichFreeDictionary.mockClear();
+    enrichBritannica.mockClear();
+    enrichTatoeba.mockClear();
+    translateTextMock.mockClear();
+  });
+
+  it('backfills a native-language translation on a monolingual example', async () => {
+    // Cambridge is a monolingual source: it returns an English-only example
+    // with no `translation`. The orchestrator must fill it via translateText.
+    enrichCambridge.mockResolvedValueOnce({
+      definitions: ['a learner definition'],
+      examples: [{ text: 'She ate a ripe apple.' }],
+    } as unknown as Awaited<ReturnType<typeof enrichCambridge>>);
+
+    const vip = { ...withAllSourcesDisabled(), enabled: true, cambridge: true, cambridgeAudio: false };
+    const result = await runEnrichment('apple', {
+      sourceLang: 'en', targetLang: 'es', sentence: 'She ate a ripe apple.', vip, bypassCache: true,
+    });
+
+    const filled = result.vip.examples?.find((e) => e.text === 'She ate a ripe apple.');
+    expect(filled?.translation).toBe('ES::She ate a ripe apple.');
+    expect(translateTextMock).toHaveBeenCalledWith(
+      expect.objectContaining({ text: 'She ate a ripe apple.', sourceLang: 'en', targetLang: 'es' }),
+    );
+    // The card's rendered example line reflects the backfilled translation.
+    expect(result.entry?.examples?.[0]).toBe('She ate a ripe apple. — ES::She ate a ripe apple.');
+  });
+
+  it('leaves an already-translated example untouched (no extra provider call)', async () => {
+    enrichCambridge.mockResolvedValueOnce({
+      definitions: ['a learner definition'],
+      examples: [{ text: 'I love apples!', translation: '¡Me encantan las manzanas!' }],
+    } as unknown as Awaited<ReturnType<typeof enrichCambridge>>);
+
+    const vip = { ...withAllSourcesDisabled(), enabled: true, cambridge: true, cambridgeAudio: false };
+    const result = await runEnrichment('apple', {
+      sourceLang: 'en', targetLang: 'es', sentence: 'I love apples!', vip, bypassCache: true,
+    });
+
+    const kept = result.vip.examples?.find((e) => e.text === 'I love apples!');
+    expect(kept?.translation).toBe('¡Me encantan las manzanas!');
+    expect(translateTextMock).not.toHaveBeenCalled();
+  });
+
+  it('does not translate when source and target language match', async () => {
+    enrichCambridge.mockResolvedValueOnce({
+      definitions: ['a learner definition'],
+      examples: [{ text: 'She ate a ripe apple.' }],
+    } as unknown as Awaited<ReturnType<typeof enrichCambridge>>);
+
+    const vip = { ...withAllSourcesDisabled(), enabled: true, cambridge: true, cambridgeAudio: false };
+    await runEnrichment('apple', {
+      sourceLang: 'en', targetLang: 'en', sentence: 'She ate a ripe apple.', vip, bypassCache: true,
+    });
+
+    expect(translateTextMock).not.toHaveBeenCalled();
+  });
+
+  it('repairs a suspect tatoeba translation whose native gloss is absent', async () => {
+    // Tatoeba is community-sourced: a volunteer paired "I love apples!" with
+    // "¡Me encantan las naranjas!" (naranjas = oranges, wrong). The head word
+    // apple → manzana; "manzana" is nowhere in the Spanish, so it's suspect
+    // and must be overridden by our own provider-chain translation.
+    enrichTatoeba.mockResolvedValueOnce({
+      examples: [{ text: 'I love apples!', translation: '¡Me encantan las naranjas!' }],
+    } as unknown as Awaited<ReturnType<typeof enrichTatoeba>>);
+
+    const vip = { ...withAllSourcesDisabled(), enabled: true, tatoeba: true };
+    const result = await runEnrichment('apple', {
+      sourceLang: 'en', targetLang: 'es', sentence: 'I love apples!', vip, bypassCache: true,
+    });
+
+    const repaired = result.vip.examples?.find((e) => e.text === 'I love apples!');
+    expect(repaired?.translation).toBe('ES::I love apples!');
+    // The head-token gloss was resolved by translating the bare token, and the
+    // suspect sentence was then re-translated.
+    expect(translateTextMock).toHaveBeenCalledWith(
+      expect.objectContaining({ text: 'apple', sourceLang: 'en', targetLang: 'es' }),
+    );
+    expect(translateTextMock).toHaveBeenCalledWith(
+      expect.objectContaining({ text: 'I love apples!', sourceLang: 'en', targetLang: 'es' }),
+    );
+  });
+
+  it('keeps a correct tatoeba translation that contains the expected gloss', async () => {
+    // Here the Spanish translation legitimately contains "manzanas" — the
+    // gloss of apple — so it is trustworthy and must NOT be re-translated.
+    enrichTatoeba.mockResolvedValueOnce({
+      examples: [{ text: 'I love apples!', translation: '¡Me encantan las manzanas!' }],
+    } as unknown as Awaited<ReturnType<typeof enrichTatoeba>>);
+
+    const vip = { ...withAllSourcesDisabled(), enabled: true, tatoeba: true };
+    const result = await runEnrichment('apple', {
+      sourceLang: 'en', targetLang: 'es', sentence: 'I love apples!', vip, bypassCache: true,
+    });
+
+    const kept = result.vip.examples?.find((e) => e.text === 'I love apples!');
+    expect(kept?.translation).toBe('¡Me encantan las manzanas!');
+    // The gloss lookup for the head token may run, but the (correct) sentence
+    // itself must never be re-translated.
+    expect(translateTextMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ text: 'I love apples!' }),
+    );
+  });
+
+  it('does not repair a suspect translation when the expected gloss is unknown', async () => {
+    // Fail-safe: when the head-token gloss can't be resolved (here the provider
+    // just echoes the untranslatable token back verbatim), we cannot judge, so
+    // we keep whatever the source gave us rather than destroy it on a guess.
+    translateTextMock.mockImplementationOnce(async (req) => ({
+      ok: true as const,
+      translatedText: req.text, // echo ⇒ treated as "no gloss"
+      provider: 'mymemory' as const,
+      cached: false,
+    }));
+    enrichTatoeba.mockResolvedValueOnce({
+      examples: [{ text: 'I love zqplups!', translation: '¡Me encantan las naranjas!' }],
+    } as unknown as Awaited<ReturnType<typeof enrichTatoeba>>);
+
+    const vip = { ...withAllSourcesDisabled(), enabled: true, tatoeba: true };
+    const result = await runEnrichment('zqplups', {
+      sourceLang: 'en', targetLang: 'es', sentence: 'I love zqplups!', vip, bypassCache: true,
+    });
+
+    const kept = result.vip.examples?.find((e) => e.text === 'I love zqplups!');
+    expect(kept?.translation).toBe('¡Me encantan las naranjas!');
+    // The suspect sentence itself must not be re-translated.
+    expect(translateTextMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ text: 'I love zqplups!' }),
+    );
   });
 });
