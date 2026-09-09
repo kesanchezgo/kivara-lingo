@@ -651,6 +651,19 @@ const TEMPLATE_PATTERN_FILLER = new Set([
   'into', 'from', 'up', 'out', 'over', 'about',
 ]);
 
+// Body-part event nouns: a grin, yawn, wave, smile, laugh, frown, nod,
+// shrug, wink, sigh, glance, stare names a facial/bodily gesture, not a
+// thing handed over. Beside a transfer headword ("give a grin") the
+// gesture sense is a different acepción leaking in. Closed body-event
+// class, not a hand list per headword.
+const GESTURE_NOUNS = new Set([
+  'grin', 'yawn', 'wave', 'smile', 'laugh', 'frown', 'nod', 'shrug',
+  'wink', 'sigh', 'glance', 'stare', 'gaze', 'giggle', 'chuckle', 'smirk',
+  'grimace', 'pout', 'snarl', 'growl', 'howl', 'yell', 'shout', 'scream',
+  'cough', 'sneeze', 'hiccup', 'burp', 'blink', 'wince', 'shiver',
+  'tremble', 'twitch', 'movement', 'signal',
+]);
+
 /**
  * Whether a normalized chunk is a bare dictionary argument pattern rather
  * than a learner collocation. Every non-headword word must be filler
@@ -691,6 +704,39 @@ function normalizeCollocation(raw: string, token: string, isTrustedSource = fals
   if (/(?:[a-z]+-){2,}[a-z]+/i.test(text)) return null;
   if (/\([^)]*\)/.test(text)) return null;
   if (/\b(?:her|him|me|them|my|your|our)\b/i.test(text) && text.split(/\s+/).length > 3) return null;
+  // Number-led measure phrases ("a forty hour week", "a 40-hour week")
+  // name a duration, not a reusable chunk: the number is instance data
+  // (this week's hours), not a lexical pairing the learner can reuse.
+  // "working week" / "eventful week" carry no number and survive.
+  // General rule, not a headword rule: a number word anywhere in the
+  // chunk disqualifies it. Verified live 2026-09-09: `week` vip
+  // collocations.
+  if (/\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|\d)/i.test(text)) return null;
+  // Proper-name chunks ("Passion Week", "Holy Week", "Christmas Eve")
+  // are festival names, not reusable learner collocations — a learner
+  // studying `week` needs "working week" / "eventful week", not the
+  // liturgical calendar. A capitalized non-headword word beside a
+  // lowercase headword is the signature of a proper name (a genuine
+  // collocation's collocates are lowercase: "eventful", "forty").
+  // Verified live 2026-09-09: `week` vip published "Passion Week" for
+  // "Oh, yeah, last week you had a wonderful cake."
+  const headwords = new Set(tok.split(/\s+/));
+  const hasProperName = text.split(/\s+/).some((word) =>
+    /^[A-Z][a-z]/.test(word) && !headwords.has(word.toLowerCase()),
+  );
+  if (hasProperName) return null;
+  // Light-verb gesture collocations ("give a grin/grin/yawn/wave/smile/
+  // laugh/frown", "have a look", "take a walk") name a facial or
+  // bodily gesture, not a transfer of possession: the noun is a
+  // body-part event, not a thing handed over. For a transfer-possession
+  // headword the gesture sense is a different acepción leaking in — the
+  // learner with "Give me the keys" needs "give someone something to
+  // eat" / "give advice", not "give a grin". General rule for any
+  // headword: an indefinite-article + gesture noun beside the headword is
+  // a gesture collocation, never a transfer one. Verified live 2026-09-09:
+  // `give` vip published "give a grin/yawn/wave/smile/laugh/frown" for
+  // "Give me the keys, please."
+  if (GESTURE_NOUNS.has(words[words.length - 1])) return null;
   // Template-pattern guard: a chunk whose every non-headword word is a
   // pronoun slot, article, preposition or grammar label is a dictionary
   // pattern, not a learner chunk ("give something to somebody",

@@ -670,6 +670,37 @@ describe('enrichment quality ranking', () => {
     ])).toEqual(['eventful week']);
   });
 
+  it('kills proper-name chunks and number-led measure phrases', () => {
+    // Verified live 2026-09-09: `week` vip published "Passion Week"
+    // (festival name) and "a forty hour week" (duration instance) for
+    // "Oh, yeah, last week you had a wonderful cake." A capitalized
+    // non-headword word is the signature of a proper name; a number word
+    // inside an article-led phrase is instance data, not a reusable
+    // pairing. Genuine lowercase chunks survive both rules.
+    expect(pickCollocations('week', [
+      { source: 'longman', text: 'Passion Week' },
+      { source: 'oxfordLearners', text: 'Passion Week' },
+    ])).toEqual([]);
+    expect(pickCollocations('week', [
+      { source: 'longman', text: 'Holy Week' },
+    ])).toEqual([]);
+    expect(pickCollocations('week', [
+      { source: 'longman', text: 'a forty hour week' },
+      { source: 'oxfordLearners', text: 'a forty hour week' },
+    ])).toEqual([]);
+    expect(pickCollocations('week', [
+      { source: 'longman', text: 'a 40-hour week' },
+    ])).toEqual([]);
+    // Genuine chunks are untouched: lowercase collocates, no numbers.
+    expect(pickCollocations('week', [
+      { source: 'longman', text: 'eventful week' },
+    ])).toEqual(['eventful week']);
+    expect(pickCollocations('week', [
+      { source: 'longman', text: 'working week' },
+      { source: 'oxfordLearners', text: 'working week' },
+    ])).toEqual(['working week']);
+  });
+
   it('kills a pure argument template but keeps a chunk with one content word', () => {
     // Template-pattern guard, verified live 2026-09-09: the old blunt
     // something/somebody rule killed PONS (to hand) "give someone
@@ -719,6 +750,31 @@ describe('enrichment quality ranking', () => {
       { source: 'datamuse', text: 'freely give' },
       { source: 'wiktionaryHtml', text: 'freely give' },
     ])).toEqual([]);
+  });
+
+  it('kills light-verb gesture collocations for a transfer sentence', () => {
+    // Verified live 2026-09-09: `give` vip published "give a grin/yawn/
+    // wave/smile/laugh/frown" for "Give me the keys, please." — the
+    // gesture sense leaking into a transfer-possession sentence. An
+    // indefinite-article + body-event noun beside the headword is a
+    // gesture, never a transfer. Transfer chunks survive.
+    expect(pickCollocations('give', [
+      { source: 'longman', text: 'give a grin' },
+      { source: 'oxfordLearners', text: 'give a grin' },
+    ])).toEqual([]);
+    expect(pickCollocations('give', [
+      { source: 'longman', text: 'give a smile' },
+    ])).toEqual([]);
+    expect(pickCollocations('give', [
+      { source: 'longman', text: 'give a signal' },
+    ])).toEqual([]);
+    // Transfer chunks are untouched.
+    expect(pickCollocations('give', [
+      { source: 'pons', text: 'give someone something to eat', senseBound: true },
+    ])).toEqual(['give someone something to eat']);
+    expect(pickCollocations('give', [
+      { source: 'longman', text: 'give advice' },
+    ])).toEqual(['give advice']);
   });
 
   it('rates a sense-group win substantive only on content-word overlap', () => {
