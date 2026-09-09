@@ -1440,18 +1440,259 @@ const LOW_IMAGEABILITY_WORDS = new Set([
   // light / relational / cognition verbs with no stable depiction
   'know', 'think', 'want', 'need', 'seem', 'become', 'get', 'have', 'make',
   'let', 'mean', 'consider', 'suppose', 'regard',
+  // relational / transfer / cognition verbs confirmed unimageable by the
+  // 2026-09-06 image probe: they only yielded logos ("Twitter Support"),
+  // text posters ("Give to Humanity", "Luke 6") and memorials ("We can't
+  // forget"). The structural strict-depiction gate below also catches
+  // these WHEN a source tags their POS as a verb, but WordNet does not tag
+  // POS reliably for them, so this list is the deterministic safety net.
+  'support', 'give', 'forget', 'help', 'allow', 'provide', 'offer',
+  'believe', 'understand', 'remember', 'realize', 'decide', 'expect',
   // relational nouns / time words that only yield calendar/stock clichés
   'week', 'thing', 'way', 'kind', 'sort', 'type', 'amount', 'part',
 ]);
 
-function isLowImageabilityToken(normalizedToken: string): boolean {
+/**
+ * Indefinite-pronoun / quantifier compounds built morphologically:
+ * {any,every,some,no} + {thing,body,one,where,how}. Catches members the
+ * fixed list never enumerated (`anywhere`, `everywhere`, `somehow`,
+ * `noone`) without a network call. A real compound noun that merely ENDS
+ * in one of these heads (`someone` yes, but `headphone`/`overthing` are
+ * not real words, and `anyone`/`everybody` are the target) is exactly what
+ * we want to block; concrete nouns like `bee` or `week` are handled by the
+ * explicit list, not this pattern.
+ */
+const INDEFINITE_COMPOUND_RE = /^(?:any|every|some|no)(?:thing|body|one|where|how)$/;
+
+/**
+ * Decide whether a token is too abstract/relational to ever have a stable
+ * visual referent. Three signals, cheapest first, all deterministic:
+ *   1. the explicit closed-class list (fast, exact);
+ *   2. a morphological indefinite-compound pattern (catches never-listed
+ *      members);
+ *   3. an OPTIONAL part-of-speech hint from the merge: when the dominant
+ *      sense is a pronoun / determiner / conjunction / auxiliary the token
+ *      is a function word regardless of spelling.
+ *
+ * `pos` is the low-cardinality tag WordNet-style sources expose. We only
+ * treat the closed grammatical classes as unimageable — a noun/verb/
+ * adjective/adverb still goes through normal ranking, because plenty of
+ * them ARE depictable (`umbrella`, `run` a race, `red`).
+ */
+function isLowImageabilityToken(
+  normalizedToken: string,
+  pos?: string,
+): boolean {
   if (LOW_IMAGEABILITY_WORDS.has(normalizedToken)) return true;
-  // "do/does/did" and other function-word variants are covered by the base
-  // form; single-token abstract quantifier compounds ("anyone", handled
-  // above). Nothing else is treated as low-imageability by default — a
-  // concrete noun that merely contains a stopword substring ("beeswax",
-  // "weekday") is NOT blocked, because we match whole words only.
+  if (INDEFINITE_COMPOUND_RE.test(normalizedToken)) return true;
+  if (pos) {
+    const p = pos.toLowerCase();
+    if (
+      p === 'pronoun' || p === 'determiner' || p === 'conjunction' ||
+      p === 'preposition' || p === 'auxiliary' || p === 'article' ||
+      p === 'particle' || p === 'interjection'
+    ) return true;
+  }
+  // Nothing else is treated as low-imageability by default — a concrete
+  // noun that merely contains a stopword substring ("beeswax", "weekday")
+  // is NOT blocked, because we match whole words only.
   return false;
+}
+
+/**
+ * Sources whose images the card is allowed to publish. Free-license,
+ * metadata-bearing providers only. Bing/DDG are deliberately absent here
+ * as *primary* displayable sources — they carry mixed licensing and no
+ * reliable metadata, so they can only surface through the weak fallback
+ * path below, and even then only after passing the same bad-subject and
+ * shape filters. This encodes the "few trustworthy > many noisy" rule.
+ */
+const PRIMARY_DISPLAYABLE_SOURCES = ['wikimediaCommons', 'openverse', 'unsplash', 'pixabay'];
+/** Weak-signal fallback sources. Only consulted when NO primary source
+ * produced any publishable candidate. Still filtered for bad subjects
+ * and shape; an empty image beats a wrong one even here. */
+const FALLBACK_DISPLAYABLE_SOURCES = ['bingImages', 'duckduckgoImages'];
+
+const BAD_SUBJECT_RE = /\b(?:logo|icon|icons|banner|wallpaper|clip[- ]?art|vector[- ]?art|stock[- ]?vector|graphics|news|newspaper|headline|breaking|template|seo|meme|quote|did[- ]?you[- ]?know|infographic|thumbnail|avatar|profile[- ]?pic|screenshot|premium[- ]?photo|ai[- ]?generated|wikihow)\b/;
+const FIGURATIVE_RE = /\b(?:idiom|idiomatic|idiomatically|figurative|figuratively|metaphor|metaphorical|meaning|means|denote[s]?|proverb|saying|expression)\b/;
+
+/**
+ * Non-English metadata markers. Openverse/Commons aggregate multilingual
+ * captions, so a token that is a real word in another language (`lit` =
+ * "bed" in French) matches by string but depicts the WRONG concept. When
+ * the source language is English and the candidate metadata is dominated
+ * by another language's function words, the exact-match is a false friend.
+ * Corpus evidence 2026-09-06: `lit` published a French bed from Openverse.
+ */
+const NON_EN_MARKER_RE = /\b(?:et|de|la|le|les|des|une?|du|au|aux|dans|avec|vue|musee|ecole|el|los|las|con|para|und|der|die|das|mit|voor|voir|dans)\b/g;
+const EN_MARKER_RE = /\b(?:the|a|an|of|and|in|on|with|to|for|by|is|are|at|from|this)\b/g;
+
+function looksNonEnglish(metadata: string): boolean {
+  const nonEn = (metadata.match(NON_EN_MARKER_RE) ?? []).length;
+  const en = (metadata.match(EN_MARKER_RE) ?? []).length;
+  // Needs a real cluster of foreign function words AND no stronger English
+  // signal — one stray "de" in an English caption must not trip this.
+  return nonEn >= 2 && nonEn > en;
+}
+
+/** POS tags for which a title-only exact match is NOT enough to publish.
+ * A relational/light/cognition verb (`support`, `give`, `forget`) has no
+ * stable depiction, so an Openverse caption that merely contains the word
+ * ("Twitter Support", "Give to Humanity", "We can't forget") depicts text
+ * or a logo, not the concept. Such tokens may only publish from a
+ * concept-anchored source (Wikimedia P180) or with explicit depiction
+ * tags. Concrete/physical verbs still pass because their winning
+ * candidate carries a lexical anchor plus real depiction. Corpus evidence
+ * 2026-09-06: support→Twitter, give→Luke 6, forget→memorial. */
+const STRICT_DEPICTION_POS = new Set(['verb']);
+/** Sources whose relevance is structurally anchored to a concept, not to
+ * free-text captions. Wikimedia resolves the token to a Wikidata item and
+ * requires P180 "depicts"; such a hit is trustworthy even for a verb. */
+const CONCEPT_ANCHORED_SOURCES = new Set(['wikimediaCommons']);
+
+export interface ImageScore {
+  candidate: AttributedImageCandidate;
+  /** Lower is better. POSITIVE_INFINITY = disqualified. */
+  score: number;
+  /** Machine-readable reason codes, aligned with FieldProvenance. `ok-*`
+   * lowered the score; `penalty-*` raised or disqualified it. */
+  reasons: string[];
+  /** True when the candidate came from a weak-signal fallback source. */
+  fallback: boolean;
+}
+
+/**
+ * Score a single image candidate against the token. Pure and deterministic
+ * so the probe (`scripts/mv3-image-probe.mjs`) can capture the full pool
+ * with every reason code, not just the winner. This is the single source
+ * of truth the winner-picker below consumes — no second ranking pass.
+ */
+export function scoreImageCandidate(
+  candidate: AttributedImageCandidate,
+  ctx: {
+    normalizedToken: string;
+    tokenWords: string[];
+    isMultiword: boolean;
+    treatAsIdiom: boolean;
+    /** Dominant POS of the token, when a source tagged it. Drives the
+     * strict-depiction gate for relational verbs. */
+    pos?: string;
+  },
+): ImageScore {
+  const { normalizedToken, tokenWords, isMultiword, treatAsIdiom, pos } = ctx;
+  const reasons: string[] = [];
+  const metadata = stripDiacritics([
+    candidate.title ?? '',
+    ...(candidate.tags ?? []),
+    candidate.sourcePageUrl ?? '',
+  ].join(' ').toLowerCase());
+  const urlText = stripDiacritics(candidate.url.toLowerCase());
+  const searchable = `${metadata} ${urlText}`;
+  const hasMetadata = Boolean(candidate.title || candidate.tags?.length);
+  const exactMatch = metadata.includes(normalizedToken);
+  const lexicalMatches = tokenWords.filter((word) => searchable.includes(word)).length;
+  const badSubject = BAD_SUBJECT_RE.test(searchable);
+  const figurativeEvidence = FIGURATIVE_RE.test(metadata);
+  const nonEnglishMetadata = looksNonEnglish(metadata);
+  const hasDepictionTags = Boolean(candidate.tags?.length);
+  const isConceptAnchored = CONCEPT_ANCHORED_SOURCES.has(candidate.source);
+  const strictDepiction = Boolean(pos && STRICT_DEPICTION_POS.has(pos.toLowerCase()));
+  const invalidShape = candidate.width !== undefined && candidate.height !== undefined &&
+    (candidate.width < 320 || candidate.height < 240 || candidate.width / candidate.height > 2.5);
+
+  const isPrimary = PRIMARY_DISPLAYABLE_SOURCES.includes(candidate.source);
+  const isFallback = FALLBACK_DISPLAYABLE_SOURCES.includes(candidate.source);
+  const displayable = isPrimary || isFallback;
+
+  const dq = (reason: string): ImageScore => {
+    reasons.push(reason);
+    return { candidate, score: Number.POSITIVE_INFINITY, reasons, fallback: isFallback };
+  };
+
+  if (!candidate.url) return dq('penalty-no-url');
+  if (!displayable) return dq('penalty-non-displayable-source');
+  if (badSubject) return dq('penalty-bad-subject');
+  if (invalidShape) return dq('penalty-invalid-shape');
+  // A phrase image is unsafe without provider metadata tying it to the
+  // complete phrase.
+  if (isMultiword && (!hasMetadata || !exactMatch)) return dq('penalty-phrase-no-exact-metadata');
+  // Idiom-flagged tokens need figurative evidence: a literal depiction of
+  // the component nouns is the wrong sense.
+  if (treatAsIdiom && !figurativeEvidence) return dq('penalty-idiom-no-figurative-evidence');
+  // Fallback sources may only surface with a lexical anchor — a raw search
+  // hit with no token match in metadata OR url is almost always off-sense.
+  if (isFallback && !exactMatch && lexicalMatches === 0) return dq('penalty-fallback-no-lexical-anchor');
+  // False-friend guard: a multilingual caption whose function words are
+  // dominantly non-English (French `lit` = bed) matches the token string
+  // but depicts the wrong concept. Corpus evidence 2026-09-06.
+  if (nonEnglishMetadata) return dq('penalty-non-english-metadata');
+  // Relational/light/cognition verbs have no stable depiction: a caption
+  // that merely contains the word is text or a logo, not the concept. Such
+  // tokens may only publish from a concept-anchored source (Wikimedia P180)
+  // or with explicit depiction tags. Corpus evidence 2026-09-06:
+  // support→Twitter, give→Luke 6, forget→memorial.
+  if (strictDepiction && !isConceptAnchored && !hasDepictionTags) {
+    return dq('penalty-abstract-verb-caption-only');
+  }
+
+  const sourceRank = sourcePriority(candidate.source, IMAGE_SOURCE_PRIORITY);
+  let score = sourceRank * 3;
+  reasons.push(isPrimary ? 'ok-primary-source' : 'ok-fallback-source');
+  if (!hasMetadata) { score += 8; reasons.push('penalty-no-metadata'); }
+  if (exactMatch) { score -= 8; reasons.push('ok-exact-match'); }
+  else if (lexicalMatches) { score -= lexicalMatches * 2; reasons.push('ok-lexical-match'); }
+  if (candidate.width && candidate.height && candidate.width >= 640 && candidate.height >= 480) {
+    score -= 1; reasons.push('ok-high-resolution');
+  }
+  return { candidate, score, reasons, fallback: isFallback };
+}
+
+export interface ImageRankingResult {
+  winner?: AttributedImageCandidate;
+  /** Full scored pool, best first, for probes and provenance. */
+  scored: ImageScore[];
+  /** Reason the token published nothing, when it did. */
+  emptyReason?: string;
+}
+
+/**
+ * Rank the whole candidate pool and expose the full breakdown. The winner
+ * comes from the primary displayable sources first; fallback sources
+ * (Bing/DDG) are only considered when no primary candidate qualified.
+ */
+export function rankImageCandidates(
+  token: string,
+  candidates: AttributedImageCandidate[],
+  opts?: { isIdiom?: boolean; pos?: string },
+): ImageRankingResult {
+  const normalizedToken = stripDiacritics(token.toLowerCase().trim());
+  if (!normalizedToken) return { scored: [], emptyReason: 'empty-token' };
+  if (isLowImageabilityToken(normalizedToken, opts?.pos)) {
+    return { scored: [], emptyReason: 'low-imageability-token' };
+  }
+
+  const tokenWords = normalizedToken.split(/\s+/).filter((word) => word.length > 2);
+  const isMultiword = tokenWords.length > 1;
+  const treatAsIdiom = Boolean(opts?.isIdiom) || isMultiword;
+
+  const scored = candidates
+    .map((candidate) => scoreImageCandidate(candidate, {
+      normalizedToken, tokenWords, isMultiword, treatAsIdiom, pos: opts?.pos,
+    }))
+    .sort((a, b) => a.score - b.score);
+
+  const qualifies = (s: ImageScore) => Number.isFinite(s.score) && s.score <= 20;
+  // Hard hierarchy: a qualifying primary candidate always wins over any
+  // fallback candidate, regardless of raw score.
+  const primaryWinner = scored.find((s) => qualifies(s) && !s.fallback);
+  const fallbackWinner = scored.find((s) => qualifies(s) && s.fallback);
+  const winner = (primaryWinner ?? fallbackWinner)?.candidate;
+
+  let emptyReason: string | undefined;
+  if (!winner) {
+    emptyReason = candidates.length === 0 ? 'no-candidates' : 'no-candidate-qualified';
+  }
+  return { winner, scored, emptyReason };
 }
 
 export function pickImageCandidate(
@@ -1468,58 +1709,7 @@ export function pickImageCandidate(
    */
   opts?: { isIdiom?: boolean },
 ): AttributedImageCandidate | undefined {
-  const normalizedToken = stripDiacritics(token.toLowerCase().trim());
-  if (!normalizedToken || isLowImageabilityToken(normalizedToken)) return undefined;
-
-  const tokenWords = normalizedToken.split(/\s+/).filter((word) => word.length > 2);
-  const isMultiword = tokenWords.length > 1;
-  // A multiword token is treated as an idiom either when the caller says so
-  // or by structural default (a phrase image is unsafe without figurative
-  // proof). Single words are only figurative when the caller flags them.
-  const treatAsIdiom = Boolean(opts?.isIdiom) || isMultiword;
-  return candidates
-    .map((candidate) => {
-      const metadata = stripDiacritics([
-        candidate.title ?? '',
-        ...(candidate.tags ?? []),
-        candidate.sourcePageUrl ?? '',
-      ].join(' ').toLowerCase());
-      const urlText = stripDiacritics(candidate.url.toLowerCase());
-      const searchable = `${metadata} ${urlText}`;
-      const hasMetadata = Boolean(candidate.title || candidate.tags?.length);
-      const exactMatch = metadata.includes(normalizedToken);
-      const lexicalMatches = tokenWords.filter((word) => searchable.includes(word)).length;
-      const badSubject = /\b(?:logo|icon|banner|wallpaper|clipart|stock[- ]?vector|news|headline|template|seo|meme|quote)\b/.test(searchable);
-      // General figurative markers: metadata that names the phrase AS an
-      // idiom / explains its meaning is proof the image depicts the figurative
-      // sense, not the literal component nouns. Not tied to any single idiom.
-      const figurativeEvidence = /\b(?:idiom|idiomatic|idiomatically|figurative|figuratively|metaphor|metaphorical|meaning|means|denote[s]?|proverb|saying|expression)\b/.test(metadata);
-      const invalidShape = candidate.width !== undefined && candidate.height !== undefined &&
-        (candidate.width < 320 || candidate.height < 240 || candidate.width / candidate.height > 2.5);
-
-      const displayableSource = ['wikimediaCommons', 'openverse', 'unsplash', 'pixabay'].includes(candidate.source);
-      if (!candidate.url || !displayableSource || badSubject || invalidShape) {
-        return { candidate, score: Number.POSITIVE_INFINITY };
-      }
-      // A phrase image is unsafe without provider metadata tying it to the
-      // complete phrase.
-      if (isMultiword && (!hasMetadata || !exactMatch)) return { candidate, score: Number.POSITIVE_INFINITY };
-      // Idiom-flagged tokens (any idiom, not just "piece of cake") need
-      // figurative evidence: a literal depiction of the component nouns is
-      // the wrong sense. The evidence regex looks for idiom/figurative/
-      // meaning markers in the candidate metadata.
-      if (treatAsIdiom && !figurativeEvidence) {
-        return { candidate, score: Number.POSITIVE_INFINITY };
-      }
-
-      const sourceRank = sourcePriority(candidate.source, IMAGE_SOURCE_PRIORITY);
-      const score = sourceRank * 3 + (hasMetadata ? 0 : 8) -
-        (exactMatch ? 8 : lexicalMatches * 2) -
-        (candidate.width && candidate.height && candidate.width >= 640 && candidate.height >= 480 ? 1 : 0);
-      return { candidate, score };
-    })
-    .filter(({ score }) => Number.isFinite(score) && score <= 20)
-    .sort((a, b) => a.score - b.score)[0]?.candidate;
+  return rankImageCandidates(token, candidates, opts).winner;
 }
 
 const ETYMOLOGY_SOURCE_PRIORITY = [
@@ -1965,17 +2155,43 @@ function mergeFields(
   const isIdiomToken = partials.some(
     (p) => p.source.id === 'theIdioms' && (p.partial.definitions?.length || p.partial.examples?.length),
   );
-  const selectedImage = pickImageCandidate(token, imageCandidates, { isIdiom: isIdiomToken });
+  // Dominant part of speech for the image gate: the majority POS across the
+  // tagged definitions we harvested (WordNet synsets). A closed grammatical
+  // class (pronoun/determiner/...) makes the token unimageable regardless of
+  // spelling — the general form of the hand-listed function-word set. Empty
+  // when no source tagged POS; the ranking then relies on the list + the
+  // morphological pattern alone.
+  const posCounts = new Map<string, number>();
+  for (const pos of definitionPos.values()) {
+    posCounts.set(pos, (posCounts.get(pos) ?? 0) + 1);
+  }
+  const dominantPos = [...posCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  const imageRanking = rankImageCandidates(token, imageCandidates, {
+    isIdiom: isIdiomToken,
+    pos: dominantPos,
+  });
+  const selectedImage = imageRanking.winner;
   if (selectedImage) vip.imageUrl = selectedImage.url;
   // Selected-image trace for the MV3 audits: the card purpose runs the
   // image sources, and this line lets `scripts/mv3-corpus-quality.mjs
-  // --purpose card` capture what the ranking actually published (or the
-  // fact that it correctly published nothing) per token.
+  // --purpose card` and `scripts/mv3-image-probe.mjs` capture what the
+  // ranking actually published (or the fact that it correctly published
+  // nothing) per token. The `pool` carries every candidate with its score
+  // and reason codes so the probe has real rejection evidence, not guesses.
   console.info('[kivara:enrichment:image]', {
     token,
     imageUrl: selectedImage?.url ?? null,
     source: selectedImage?.source ?? null,
     candidates: imageCandidates.length,
+    emptyReason: imageRanking.emptyReason ?? null,
+    pool: imageRanking.scored.map((s) => ({
+      source: s.candidate.source,
+      url: s.candidate.url,
+      title: s.candidate.title ?? null,
+      score: Number.isFinite(s.score) ? s.score : null,
+      fallback: s.fallback,
+      reasons: s.reasons,
+    })),
   });
   if (selectedImage) {
     pushProvenance({
@@ -1983,7 +2199,8 @@ function mergeFields(
       winner: selectedImage.url.slice(0, 120),
       source: selectedImage.source,
       candidates: imageCandidates.length,
-      reasons: ['ok-depicts-concept'],
+      reasons: imageRanking.scored.find((s) => s.candidate.url === selectedImage.url)?.reasons
+        ?? ['ok-depicts-concept'],
     });
   }
   const selectedEtymology = pickEtymology(etymologyCandidates);

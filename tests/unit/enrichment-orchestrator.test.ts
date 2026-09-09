@@ -78,6 +78,7 @@ const {
   pickExamples,
   pickEtymology,
   pickImageCandidate,
+  rankImageCandidates,
   pickLexicalTranslations,
   pickRelatedTerms,
   pickSenseRelationGroups,
@@ -596,6 +597,146 @@ describe('enrichment quality ranking', () => {
     expect(pickImageCandidate('spill the beans', [
       { source: 'openverse', url: 'https://example.test/reveal.jpg', title: 'Spill the beans idiom meaning reveal a secret', width: 1200, height: 800 },
     ], { isIdiom: true })?.url).toBe('https://example.test/reveal.jpg');
+  });
+
+  it('always prefers a qualifying primary source over any fallback source', () => {
+    // Hard hierarchy: a free-license, metadata-rich source (Wikimedia/
+    // Openverse) wins the slot even when a fallback (Bing/DDG) hit scores
+    // lower on raw lexical match. "Few trustworthy > many noisy."
+    const winner = pickImageCandidate('apple', [
+      { source: 'bingImages', url: 'https://example.test/bing-apple.jpg', title: 'apple apple apple fresh apple', width: 1200, height: 800 },
+      { source: 'openverse', url: 'https://example.test/ov-apple.jpg', title: 'apple', width: 1200, height: 800 },
+    ]);
+    expect(winner?.source).toBe('openverse');
+  });
+
+  it('lets a fallback source publish ONLY when no primary source qualified', () => {
+    // No primary candidate at all -> a Bing hit with a lexical anchor may
+    // surface. This is the niche-term safety net.
+    const winner = pickImageCandidate('umbrella', [
+      { source: 'bingImages', url: 'https://example.test/umbrella.jpg', title: 'a red umbrella in the rain', width: 1200, height: 800 },
+    ]);
+    expect(winner?.source).toBe('bingImages');
+  });
+
+  it('rejects a fallback hit that has no lexical anchor to the token', () => {
+    // A raw Bing/DDG search hit whose metadata and URL never mention the
+    // token is almost always off-sense noise — dropped even as a last
+    // resort. Empty beats wrong.
+    expect(pickImageCandidate('umbrella', [
+      { source: 'duckduckgoImages', url: 'https://example.test/random123.jpg', title: 'summer vibes stock photo', width: 1200, height: 800 },
+    ])).toBeUndefined();
+  });
+
+  it('kills did-you-know / infographic / breaking-news subjects', () => {
+    // The bad-subject filter now catches the audit's `know` -> "did you
+    // know" family and `week` -> news family from either a primary or a
+    // fallback source.
+    expect(pickImageCandidate('fact', [
+      { source: 'openverse', url: 'https://example.test/f.jpg', title: 'Did you know fact infographic', width: 1200, height: 800 },
+    ])).toBeUndefined();
+    expect(pickImageCandidate('storm', [
+      { source: 'bingImages', url: 'https://example.test/s.jpg', title: 'Breaking news: storm headline', width: 1200, height: 800 },
+    ])).toBeUndefined();
+  });
+
+  it('blocks indefinite compounds by morphology and function words by POS', () => {
+    // Morphological pattern: never-listed indefinite compounds are caught
+    // without touching the fixed list.
+    for (const word of ['anywhere', 'everywhere', 'somehow']) {
+      expect(pickImageCandidate(word, [
+        { source: 'openverse', url: `https://example.test/${word}.jpg`, title: `${word} concept`, width: 1200, height: 800 },
+      ])).toBeUndefined();
+    }
+    // POS signal: a token spelled like a normal word is still blocked when
+    // its dominant sense is a closed grammatical class.
+    expect(rankImageCandidates('mine', [
+      { source: 'openverse', url: 'https://example.test/mine.jpg', title: 'mine', width: 1200, height: 800 },
+    ], { pos: 'pronoun' }).winner).toBeUndefined();
+    // ...but a genuinely depictable noun with the same spelling passes when
+    // the POS says noun.
+    expect(rankImageCandidates('mine', [
+      { source: 'openverse', url: 'https://example.test/coalmine.jpg', title: 'a coal mine', tags: ['mine'], width: 1200, height: 800 },
+    ], { pos: 'noun' }).winner?.url).toBe('https://example.test/coalmine.jpg');
+  });
+
+  it('rejects a false-friend caption in another language (corpus: lit -> French bed)', () => {
+    // Openverse aggregates multilingual captions; the English token "lit"
+    // (= on fire / great) must not publish a French bed just because the
+    // caption string contains "lit".
+    const ranking = rankImageCandidates('lit', [
+      { source: 'openverse', url: 'https://example.test/bed.jpg', title: "Lit 'Aube et Crepuscule' d'Emile Galle (musee de l'Ecole de Nancy)", width: 1200, height: 800 },
+    ]);
+    expect(ranking.winner).toBeUndefined();
+    expect(ranking.scored[0]?.reasons).toContain('penalty-non-english-metadata');
+    // A genuine English caption with one stray foreign word still passes.
+    expect(pickImageCandidate('cat', [
+      { source: 'openverse', url: 'https://example.test/cat.jpg', title: 'A cat de Paris on the sofa', tags: ['cat'], width: 1200, height: 800 },
+    ])?.url).toBe('https://example.test/cat.jpg');
+  });
+
+  it('blocks known relational verbs deterministically (corpus: support/give/forget)', () => {
+    // Corpus 2026-09-06: support->"Twitter Support", give->"Give to
+    // Humanity", forget->"We can't forget" matched by title text but
+    // depicted logos / posters. WordNet did not tag their POS in the run,
+    // so the deterministic low-imageability list is the safety net.
+    for (const [word, title] of [['support', 'Twitter Support'], ['give', 'Give to Humanity'], ['forget', "We can't forget"]] as const) {
+      expect(pickImageCandidate(word, [
+        { source: 'openverse', url: `https://example.test/${word}.jpg`, title, width: 1200, height: 800 },
+      ])).toBeUndefined();
+    }
+  });
+
+  it('blocks caption-only matches for POS-tagged verbs, allows concept-anchored ones', () => {
+    // The structural strict-depiction gate fires whenever a source DOES tag
+    // the token as a verb, independently of the list. `dispatch` is not in
+    // the low-imageability list, so only the POS signal gates it.
+    expect(rankImageCandidates('dispatch', [
+      { source: 'openverse', url: 'https://example.test/d.jpg', title: 'Dispatch to Humanity', width: 1200, height: 800 },
+    ], { pos: 'verb' }).winner).toBeUndefined();
+    // Wikimedia is concept-anchored (Wikidata P180): a verb hit from it is
+    // trustworthy and still publishes.
+    expect(rankImageCandidates('dispatch', [
+      { source: 'wikimediaCommons', url: 'https://example.test/d.jpg', title: 'File:A courier dispatches a parcel.jpg', width: 1200, height: 800 },
+    ], { pos: 'verb' }).winner?.source).toBe('wikimediaCommons');
+    // An Openverse hit WITH explicit depiction tags also publishes — tags
+    // are a real depiction signal, unlike a bare caption. `run` is
+    // imageable and not in the list.
+    expect(rankImageCandidates('run', [
+      { source: 'openverse', url: 'https://example.test/run.jpg', title: 'runner', tags: ['run', 'running', 'race'], width: 1200, height: 800 },
+    ], { pos: 'verb' }).winner?.url).toBe('https://example.test/run.jpg');
+  });
+
+  it('kills vector-art / graphics / premium-photo / wikihow subjects (corpus escapes)', () => {
+    // "Support Group Vector Art" and "How to Give Flowers - wikiHow" slipped
+    // past the old filter because of the space / domain form.
+    for (const title of ['Rocket Vector Art, Icons, and Graphics', 'How to fold a Rocket - wikiHow', 'Premium Photo | A toy rocket']) {
+      expect(pickImageCandidate('rocket', [
+        { source: 'openverse', url: 'https://example.test/x.jpg', title, width: 1200, height: 800 },
+      ])).toBeUndefined();
+    }
+  });
+
+  it('exposes the full scored pool with reason codes for the probe', () => {
+    // rankImageCandidates is the probe's evidence source: every candidate
+    // carries its score and machine-readable reasons, and the empty case
+    // names WHY nothing published.
+    const ranking = rankImageCandidates('apple', [
+      { source: 'openverse', url: 'https://example.test/ov.jpg', title: 'apple', width: 1200, height: 800 },
+      { source: 'bingImages', url: 'https://example.test/bing-logo.jpg', title: 'apple logo brand' },
+    ]);
+    expect(ranking.winner?.source).toBe('openverse');
+    expect(ranking.scored.length).toBe(2);
+    const bing = ranking.scored.find((s) => s.candidate.source === 'bingImages');
+    expect(bing?.reasons).toContain('penalty-bad-subject');
+    expect(bing?.score).toBe(Number.POSITIVE_INFINITY);
+
+    const empty = rankImageCandidates('know', []);
+    expect(empty.winner).toBeUndefined();
+    expect(empty.emptyReason).toBe('low-imageability-token');
+
+    const noCand = rankImageCandidates('apple', []);
+    expect(noCand.emptyReason).toBe('no-candidates');
   });
 
   it('keeps idiomatic examples ahead of literal phrase matches', () => {

@@ -1,0 +1,1165 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-06T23:25:50.477Z",
+  "runtime": "Playwright persistent Chromium with unpacked MV3 extension, image fan-out (purpose=card)",
+  "note": "Image-only evidence probe. `pool` carries every candidate with its ranking score and reason codes.",
+  "extensionId": "pkafehpbjfkkfnjaeombdemckeoohhpb",
+  "tiers": [
+    "standard"
+  ],
+  "corpus": [
+    {
+      "token": "apple",
+      "sentence": ""
+    },
+    {
+      "token": "tensor",
+      "sentence": ""
+    },
+    {
+      "token": "run",
+      "sentence": ""
+    },
+    {
+      "token": "lit",
+      "sentence": ""
+    },
+    {
+      "token": "forget",
+      "sentence": ""
+    },
+    {
+      "token": "support",
+      "sentence": ""
+    },
+    {
+      "token": "give",
+      "sentence": ""
+    },
+    {
+      "token": "umbrella",
+      "sentence": ""
+    }
+  ],
+  "rows": [
+    {
+      "tier": "standard",
+      "token": "apple",
+      "sentence": "",
+      "ms": 15095,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/6117/6284756738_c53e17e6bc_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 17,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/6117/6284756738_c53e17e6bc_b.jpg",
+          "title": "Apples",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/8035/8074168006_dd24e474ac_b.jpg",
+          "title": "Apples",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7296/14086869112_28c8aef2f3_b.jpg",
+          "title": "Apples - Stand out",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/5184/5806593832_1acb87d481_b.jpg",
+          "title": "Apples",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/47/139138903_3d9600174d_b.jpg",
+          "title": "apples",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.insight.com/content/dam/insight-web/en_US/store/apple/apple-multiproduct-macbookpro-ipadpro-airpodspro-iphone13promax-watch.png",
+          "title": "Apple | Insight",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.2degrees.nz/sites/default/files/2025-09/Multi-Product-Article.png",
+          "title": "Buy Apple iPhones, iPads & iPhone Accessories | 2degrees",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://9to5mac.com/wp-content/uploads/sites/6/2024/07/apple-device-lineup.jpg?resize=290",
+          "title": "Here are Apple’s big plans for new iPhone, iPad, Mac, Watch models ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://9to5mac.com/wp-content/uploads/sites/6/2026/03/Apple-products.webp?w=1600",
+          "title": "Comparing wireless specs across Mac, iPad, iPhone, and more Apple ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.macworld.com/wp-content/uploads/2021/03/apple-product-family-2020-100867498-orig-6.jpg?resize=150",
+          "title": "Apple report card: How we grade everything released in 2020",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://9to5toys.com/wp-content/uploads/sites/5/2024/12/Best-Apple-deals-still-shipping-in-time-for-the-holidays-M4-MacBook-MacBook-Air-iPad-Apple-Watch-Series-10-more.jpg?resize=768",
+          "title": "Best Apple deals: M3 MacBooks, Apple Watch, iPad, more",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.cultofmac.com/wp-content/uploads/2023/12/Mac-iPad-iPhone-Apple-TV-Watch.jpg",
+          "title": "Mac, iPad, iPhone and Apple Watch get new features in OS upgrades",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.cultofmac.com/wp-content/uploads/2020/12/38C1DA89-F8D2-486C-A091-ABF543D5D2BD.jpeg",
+          "title": "Apple rolls out big updates for iPhone, Mac, iPad and Apple Watch",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Santa_Maria_de_Huerta_Almacen.jpg/960px-Santa_Maria_de_Huerta_Almacen.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Santa Maria de Huerta Almacen.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/Pink_lady_and_cross_section.jpg/960px-Pink_lady_and_cross_section.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Pink lady and cross section.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Red_Apple.jpg/960px-Red_Apple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Red Apple.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Tree_with_red_apples_in_Barkedal_4.jpg/960px-Tree_with_red_apples_in_Barkedal_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Tree with red apples in Barkedal 4.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "tensor",
+      "sentence": "",
+      "ms": 14029,
+      "error": null,
+      "winnerUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Covariance_and_contravariance_of_vectors.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "winnerSource": "wikimediaCommons",
+      "emptyReason": null,
+      "candidateCount": 17,
+      "pool": [
+        {
+          "source": "wikimediaCommons",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Covariance_and_contravariance_of_vectors.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+          "title": "File:Covariance and contravariance of vectors.jpg",
+          "score": -8,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/4078/4895558880_47c713d852_b.jpg",
+          "title": "Tensor fasciae latae - Muscles of the Lower Extremity Anatomy Visual Atlas, page 6",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/4119/4894963869_3f84151037_b.jpg",
+          "title": "Tensor fasciae latae - Muscles of the Lower Extremity Anatomy Visual Atlas, page 7",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7105/7316574146_20a17083e1_b.jpg",
+          "title": "Tensores",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/b/b3/Components_stress_tensor_cartesian.svg",
+          "title": "Components stress tensor cartesian",
+          "score": -5,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/4/45/Components_stress_tensor.svg",
+          "title": "Components stress tensor",
+          "score": -5,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Tensor_dimensions.svg/330px-Tensor_dimensions.svg.png",
+          "title": "File:Tensor dimensions.svg - Wikimedia Commons",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.stephanosterburg.com/assets/images/posts/2019/Tensor.png",
+          "title": "Data Types - Scalars, Vectors, Matrices and Tensors",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "http://cds.iisc.ac.in/faculty/ratikanta/files/tensor.png",
+          "title": "Numerical Algorithms and Tensor Learning Laboratory (Ratikanta Behera)",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://ai.kuleuven.be/stories/post/2023-01-10-tensorlab/img/fig4.png",
+          "title": "Tensors and multilinear algebra: what and why | Leuven.AI Stories",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.stack.imgur.com/Lv1qU.jpg",
+          "title": "Tensor Tensor functionalities introduction uses bose bonani min updated ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://miro.medium.com/max/1696/1*kgzLawJmfp3i3UCG_KhfDA.png",
+          "title": "Introduction to Tensorflow - Data Science Bootcamp - Medium",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://developer.ibm.com/developer/default/articles/introduction-to-machine-learning/images/tensor.png",
+          "title": "Introduction to machine learning Understand",
+          "score": 10,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-lexical-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://image2.slideserve.com/5271618/tensor-unfolding-converting-a-tensor-to-a-matrix-l.jpg",
+          "title": "PPT - Multilinear Algebra for Analyzing Data with Multiple Linkages ...",
+          "score": 10,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-lexical-match"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Coffee_Vendor_%288625532411%29.jpg/960px-Coffee_Vendor_%288625532411%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Coffee Vendor (8625532411).jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Cube%2C_Vector_of_Cubes%2C_Matrix_of_Cubes%2C_Cube_of_Cubes.png/960px-Cube%2C_Vector_of_Cubes%2C_Matrix_of_Cubes%2C_Cube_of_Cubes.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Cube, Vector of Cubes, Matrix of Cubes, Cube of Cubes.png",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/88/Tentsore_intuizio_geometrikoa.png/960px-Tentsore_intuizio_geometrikoa.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Tentsore intuizio geometrikoa.png",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "run",
+      "sentence": "",
+      "ms": 13622,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 13,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
+          "title": "Running by Coolidge Corner",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7419/12882427743_5e03868824_b.jpg",
+          "title": "running",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/5110/5625649660_521d108ffe_b.jpg",
+          "title": "33st Annual Westport St. Patrick's Day Run",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/178/363682139_95a8486340_b.jpg",
+          "title": "Running Dog 2",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/4096/4865764084_495a7693e9.jpg",
+          "title": "Busy Running",
+          "score": -5,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/free-photo/full-shot-people-running-together-outdoors_23-2149037622.jpg?semt=ais_hybrid&w=740&q=80",
+          "title": "People running outdoors Images - Free Download on Freepik",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/free-photo/full-shot-people-running-outside_23-2149722072.jpg?w=2000",
+          "title": "People Running Outside",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://as2.ftcdn.net/v2/jpg/05/64/90/55/1000_F_564905593_vavtQEXnexeKDmy0Ij5quF0XXU6mjxOx.jpg",
+          "title": "Action motion blur of a man running on country road with sunrise ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/full-shot-people-running-outside_23-2149037675.jpg?w=2000",
+          "title": "Premium Photo | Full shot people running outside",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/person-motion-running-wet-road-golden-hour-sunset-sky-is-painted-with-hu_892434-10984.jpg?w=2000",
+          "title": "Premium Photo | A person in motion running on a wet road during the ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://c8.alamy.com/comp/KTXTB9/people-running-outside-KTXTB9.jpg",
+          "title": "People running outside Stock Vector Image & Art - Alamy",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://c8.alamy.com/comp/KTXTB4/people-running-outside-KTXTB4.jpg",
+          "title": "People running outside Stock Vector Image & Art - Alamy",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/man-motion-running-across-field-as-sun-sets-horizon-silhouette-runner-against-stunning-sunrise-ai-generated_585735-28093.jpg",
+          "title": "A man in motion running across a field as the sun sets on the horizon ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "lit",
+      "sentence": "",
+      "ms": 21408,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/7449/9733571955_b2226e9ab5_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 13,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7449/9733571955_b2226e9ab5_b.jpg",
+          "title": "'Candle Lit Dinner', United States, Maine, Wheeler Bay",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/65535/47103017054_9f6274f8a7_b.jpg",
+          "title": "The well-lit coasts of Spain, France and Italy",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img2.tradewheel.com/uploads/images/products/2/2/bedroom-furniture-home-lit-en-bois-luxury-bed-solid-wooden-frame-queen-cama-matrimonial-storage-bett-king-size-beds-lit-complet2-0837901001721540657.png",
+          "title": "Buy Bedroom Furniture Home Lit En Bois Luxury Bed Solid Wooden Frame ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img2.tradewheel.com/uploads/images/products/6/3/bedroom-furniture-lit-complet-luxury-bed-wooden-queen-frame-storage-letto-home-cama-matrimonial-bett-king-size-bed-lit-en-bois1-0765258001721539556.jpg.webp",
+          "title": "Buy Bedroom Furniture Lit Complet Luxury Bed Wooden Queen Frame Storage ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/736x/54/24/36/54243644282b899c773ece812e0b881e.jpg",
+          "title": "Lit Design IMPERIAL avec éclairage LED | Modern bed, Cool bed frames, Bed",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/736x/f0/66/d5/f066d5b5ef14c796eb6b257925f36fbf.jpg",
+          "title": "Lit adulte | Bedroom furniture design, Bed, Toddler bed",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/736x/12/8f/ae/128faea9beaf61e7c6cb15e2f831af35.jpg",
+          "title": "Lit adulte | Room inspiration, Bed, Furniture",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.idmarket.com/52407-product_main_2x/lit-double-nathan-140-x-190-cm-avec-tete-de-lit-chevets-suspendus-etagere-led-et-sommier-bois-et-noir.jpg",
+          "title": "Lit double 140 x 190 cm bois et noir avec tête de lit et chevets ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.idmarket.com/44358-product_main_2x/lit-double-santa-avec-tete-de-lit-tables-de-chevet-integrees-et-sommier-140-x-190-cm-blanc.jpg",
+          "title": "Lit double 140x190 blanc avec tête de lit et tables de chevet - SANTA ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/736x/68/6b/83/686b8331e63860bc589511d8838e6f35.jpg",
+          "title": "Modern home decor | Modern bed with unique headboard, Bedroom bed ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-fallback-no-lexical-anchor"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/4076/4880127405_5a4dd44c8b_b.jpg",
+          "title": "France, Aisne (02) Guise : Familistère : appartement : lit et fenêtre, vue extérieure.",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/8036/7915362932_d33a0dfcea_b.jpg",
+          "title": "Lit 'Aube et Crépuscule' d'Emile Gallé (musée de l'Ecole de Nancy)",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3918/15155283708_2662bf864d_b.jpg",
+          "title": "Three-year-old Jennifer Adair with a book, Montreal, Quebec / Une lectrice de trois ans, Jennifer Adair, lit dans une bibliothèque publique de Montréal (Québec)",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "forget",
+      "sentence": "",
+      "ms": 13342,
+      "error": null,
+      "winnerUrl": null,
+      "winnerSource": null,
+      "emptyReason": "low-imageability-token",
+      "candidateCount": 13,
+      "pool": [],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "support",
+      "sentence": "",
+      "ms": 13241,
+      "error": null,
+      "winnerUrl": null,
+      "winnerSource": null,
+      "emptyReason": "low-imageability-token",
+      "candidateCount": 14,
+      "pool": [],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "give",
+      "sentence": "",
+      "ms": 2102,
+      "error": null,
+      "winnerUrl": null,
+      "winnerSource": null,
+      "emptyReason": "low-imageability-token",
+      "candidateCount": 13,
+      "pool": [],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "umbrella",
+      "sentence": "",
+      "ms": 13252,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/3149/2775486094_2bacbb9be4_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 17,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3149/2775486094_2bacbb9be4_b.jpg",
+          "title": "Umbrellas 05",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3333/3208061607_efa4a3ce74_b.jpg",
+          "title": "Help me, alls I's gots is this umbrella!",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3714/8996546325_8158afa2a2_b.jpg",
+          "title": "Colourful Umbrellas",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7020/6450761035_81e6837bf4_b.jpg",
+          "title": "Umbrella",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/1/1188411_8f803b4a41.jpg",
+          "title": "thailand umbrellas 02",
+          "score": -5,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/1451040/pexels-photo-1451040.jpeg?cs=srgb&dl=pexels-enginakyurt-1451040.jpg&fm=jpg",
+          "title": "Umbrella Rain Photos, Download The BEST Free Umbrella Rain Stock Photos ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/268941/pexels-photo-268941.jpeg?cs=srgb&dl=pexels-pixabay-268941.jpg&fm=jpg",
+          "title": "Umbrella Rain Photos, Download The BEST Free Umbrella Rain Stock Photos ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/previews/013/134/783/non_2x/a-colorful-umbrella-under-the-pouring-monsoon-rain-photo.jpg",
+          "title": "Rain Umbrella Photography Rainy Day Family Photos — Greenville",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/2769117/pexels-photo-2769117.jpeg?cs=srgb&dl=pexels-joelpapalini-2769117.jpg&fm=jpg",
+          "title": "Umbrella Rain Photos, Download The BEST Free Umbrella Rain Stock Photos ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/10339885/pexels-photo-10339885.jpeg?cs=srgb&dl=pexels-reem-mansour-137930635-10339885.jpg&fm=jpg",
+          "title": "Umbrella Rain Photos, Download The BEST Free Umbrella Rain Stock Photos ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/previews/076/620/106/large_2x/green-umbrella-in-the-rain-photo.jpg",
+          "title": "Green umbrella in the rain 76620106 Stock Photo at Vecteezy",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.sjdphotodesign.com/wp-content/uploads/2017/08/Raining-Umbrella.jpg",
+          "title": "Rain Umbrella Photography Rainy Day Family Photos — Greenville - ikumen",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/5994460/pexels-photo-5994460.jpeg?cs=srgb&dl=pexels-andrei-5994460.jpg&fm=jpg",
+          "title": "Umbrella Rain Photos, Download The BEST Free Umbrella Rain Stock Photos ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Zenkoji-Nagano.JPG/960px-Zenkoji-Nagano.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Zenkoji-Nagano.JPG",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Playa_Para%C3%ADso%2C_Villajoyosa%2C_Espa%C3%B1a%2C_2014-07-03%2C_DD_01-02_PAN.JPG/960px-Playa_Para%C3%ADso%2C_Villajoyosa%2C_Espa%C3%B1a%2C_2014-07-03%2C_DD_01-02_PAN.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Playa Paraíso, Villajoyosa, España, 2014-07-03, DD 01-02 PAN.JPG",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f4/Stadtansicht-Saarburg-Leukbach-2016.jpg/960px-Stadtansicht-Saarburg-Leukbach-2016.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Stadtansicht-Saarburg-Leukbach-2016.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Public_punishment_in_the_Santa_Ana_square_by_Johann_Moritz_Rugendas_02.jpg/960px-Public_punishment_in_the_Santa_Ana_square_by_Johann_Moritz_Rugendas_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Public punishment in the Santa Ana square by Johann Moritz Rugendas 02.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    }
+  ],
+  "finishedAt": "2026-09-06T23:27:55.531Z"
+}

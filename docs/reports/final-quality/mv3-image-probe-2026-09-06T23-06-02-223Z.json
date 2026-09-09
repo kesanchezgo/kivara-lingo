@@ -1,0 +1,5051 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-06T22:59:04.426Z",
+  "runtime": "Playwright persistent Chromium with unpacked MV3 extension, image fan-out (purpose=card)",
+  "note": "Image-only evidence probe. `pool` carries every candidate with its ranking score and reason codes.",
+  "extensionId": "pkafehpbjfkkfnjaeombdemckeoohhpb",
+  "tiers": [
+    "standard",
+    "vip"
+  ],
+  "corpus": [
+    {
+      "token": "apple",
+      "sentence": ""
+    },
+    {
+      "token": "cat",
+      "sentence": ""
+    },
+    {
+      "token": "tensor",
+      "sentence": ""
+    },
+    {
+      "token": "run",
+      "sentence": ""
+    },
+    {
+      "token": "anything",
+      "sentence": ""
+    },
+    {
+      "token": "week",
+      "sentence": ""
+    },
+    {
+      "token": "know",
+      "sentence": ""
+    },
+    {
+      "token": "piece of cake",
+      "sentence": ""
+    },
+    {
+      "token": "break up",
+      "sentence": ""
+    },
+    {
+      "token": "lit",
+      "sentence": ""
+    },
+    {
+      "token": "forget",
+      "sentence": ""
+    },
+    {
+      "token": "support",
+      "sentence": ""
+    },
+    {
+      "token": "give",
+      "sentence": ""
+    },
+    {
+      "token": "umbrella",
+      "sentence": ""
+    },
+    {
+      "token": "whatever",
+      "sentence": ""
+    }
+  ],
+  "rows": [
+    {
+      "tier": "standard",
+      "token": "apple",
+      "sentence": "",
+      "ms": 15246,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/6117/6284756738_c53e17e6bc_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 25,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/6117/6284756738_c53e17e6bc_b.jpg",
+          "title": "Apples",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/8035/8074168006_dd24e474ac_b.jpg",
+          "title": "Apples",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7296/14086869112_28c8aef2f3_b.jpg",
+          "title": "Apples - Stand out",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/5184/5806593832_1acb87d481_b.jpg",
+          "title": "Apples",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/47/139138903_3d9600174d_b.jpg",
+          "title": "apples",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://media.assettype.com/deccanherald/2026-03-09/125eghcg/Apple-Watch-Series-11-Selected-1.jpg?w=1200&ar=40:21&auto=format%2Ccompress&ogImage=true&mode=crop",
+          "title": "Apple Watch Series 12 to get new heart health tracking feature",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://sm.ign.com/t/ign_ap/feature/a/apple-offi/apple-officially-has-a-new-ceo-but-what-does-that-mean_48s3.1200.jpg",
+          "title": "Apple Officially Has a New CEO, but What Does That Mean?",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.engadget.com/img/gallery/common-problems-with-apple-wallet-and-how-to-fix-them/l-intro-1788283355.jpg",
+          "title": "Common Problems With Apple Wallet And How To Fix Them",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.ikman-st.com/apple-iphone-12-pro-max-used-for-sale-kurunegala-956/10cf8776-4079-4171-a388-bcff80b4209c/1200/630/fitted.jpg",
+          "title": "Apple iPhone 12 Pro Max (Used) | ikman",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://cdn.appleosophy.com/2026/06/Apple-Intelligence-Image-Playground-Messages-and-Contact-Poster-and-Lock-Screen-260608-3240x2160.jpg",
+          "title": "VPN with Apple privacy tools when iPhone privacy meets real-world Wi-Fi",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://cdn.benzinga.com/cdn-cgi/image/width=1200,height=800,fit=crop/files/images/story/2025/11/16/Apple-Inc-.jpeg",
+          "title": "Apple Announces Major Changes: New iPhone Models and Altered Release ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://www.eastbaytimes.com/wp-content/uploads/2026/04/SJM-L-APPLEIMPACT-0000-7-1.jpg?w=2000&h=1122",
+          "title": "Apple trims more than 100 South Bay jobs at three sites, including HQ",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://media.assettype.com/deccanherald/2026-03-09/125eghcg/Apple-Watch-Series-11-Selected-1.jpg?w=1200&ar=40:21&auto=format%2Ccompress&ogImage=true&mode=crop",
+          "title": "Apple Watch Series 12 to get new heart health tracking feature",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://images.macrumors.com/t/VKXJdn9VSHTASblAcn5CsMIHCLQ=/2500x0/filters:no_upscale()/article-new/2024/10/imac-video-apple-feature.jpg?lossy",
+          "title": "Apple Released Yet Another New Product Today - MacRumors",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://cdn.appleosophy.com/2026/06/Apple-Intelligence-Image-Playground-Messages-and-Contact-Poster-and-Lock-Screen-260608-3240x2160.jpg",
+          "title": "VPN with Apple privacy tools when iPhone privacy meets real-world Wi-Fi",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://www.engadget.com/img/gallery/common-problems-with-apple-wallet-and-how-to-fix-them/l-intro-1788283355.jpg",
+          "title": "Common Problems With Apple Wallet And How To Fix Them",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://developer.apple.com/news/images/og/ios-27-round-og.png",
+          "title": "Upcoming changes to Rosetta support for Intel-based macOS apps - Latest ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.usatoday.com/gcdn/authoring/authoring-images/2026/03/03/USNK/88969263007-20260224-t-180320-z-352478058-rc-2-hsjavbns-4-rtrmadp-3-appleagm-1.JPG?crop=5183,2916,x0,y258&width=3200&height=1801&format=pjpg&auto=webp",
+          "title": "Apple launches new MacBooks with M5 chips and more storage",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Santa_Maria_de_Huerta_Almacen.jpg/960px-Santa_Maria_de_Huerta_Almacen.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Santa Maria de Huerta Almacen.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/Pink_lady_and_cross_section.jpg/960px-Pink_lady_and_cross_section.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Pink lady and cross section.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Red_Apple.jpg/960px-Red_Apple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Red Apple.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Tree_with_red_apples_in_Barkedal_4.jpg/960px-Tree_with_red_apples_in_Barkedal_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Tree with red apples in Barkedal 4.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://d.ibtimes.com.au/en/full/207766/apple-logo.jpg",
+          "title": "Apple Raises Apple TV Monthly Price to 14.99 Dollars: Five Reasons ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://img-s-msn-com.akamaized.net/tenant/amp/entityid/AA2aM3QI.img?w=1200&h=800&m=4&q=87",
+          "title": "Something new is coming to Apple stores, and the changes happening ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://api.dailyhuntline.com/media/news/images/apple-sept9-event.jpg",
+          "title": "Apple September 9 event: iPhone 18 Pro, foldable",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "cat",
+      "sentence": "",
+      "ms": 21072,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/3313/3481540500_c846c62863_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 21,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3313/3481540500_c846c62863_b.jpg",
+          "title": "Cat Fish 2",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3436/3717404325_db41d8d687_b.jpg",
+          "title": "cat",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/8417/8710251481_139d32a3a2_b.jpg",
+          "title": "CAT",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/4067/4615211501_f0cee1c22b_b.jpg",
+          "title": "cat",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/2734/4227907168_3574201e36.jpg",
+          "title": "Cats",
+          "score": -5,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.ctfassets.net/m5ehn3s5t7ec/wp-image-197581/a5246e00944982b564d4c610c56577f1/House-Cat-Breeds.jpg",
+          "title": "8 House Cat Breeds You Should Consider",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://dinoanimals.com/wp-content/uploads/2023/03/Domestic-cat-32.jpg",
+          "title": "Domestic cat (Felis catus) | DinoAnimals.com",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://dinoanimals.com/wp-content/uploads/2023/03/Domestic-cat-19.jpg",
+          "title": "Domestic cat (Felis catus) | DinoAnimals.com",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://dinoanimals.com/wp-content/uploads/2023/03/Domestic-cat-35.jpg",
+          "title": "Domestic cat (Felis catus) | DinoAnimals.com",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.lassie.co/_next/image?url=https:%2F%2Fimages.ctfassets.net%2Fr208a72kad0m%2F5MwtZRwJ8MhL9P2rIIuTV%2F4087d31c86a865a2e020ad148fdf6bd3%2FCopy_of_Untitled_Design.png&w=1200&q=75",
+          "title": "Domestic Cat - Everything you need to know about the cat breed Domestic ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://catschef.com/wp-content/uploads/2025/06/15-Domestic-Cat-Breeds-That-Are-Surprisingly-Strong-and-Resilient-1080x608.png",
+          "title": "15 Domestic Cat Breeds That Are Surprisingly Strong and Resilient",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://dinoanimals.com/wp-content/uploads/2023/03/Domestic-cat-26.jpg",
+          "title": "Domestic cat (Felis catus) | DinoAnimals.com",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://dinoanimals.com/wp-content/uploads/2023/03/Domestic-cat-24.jpg",
+          "title": "Domestic cat (Felis catus) | DinoAnimals.com",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "http://clubcatt.com/cdn/shop/articles/domestic-house-cat.png?v=1689444796",
+          "title": "Domestic House Cat • Cat Encyclopedia - CLUBCATT",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://images.ctfassets.net/m5ehn3s5t7ec/wp-image-197581/a5246e00944982b564d4c610c56577f1/House-Cat-Breeds.jpg",
+          "title": "8 House Cat Breeds You Should Consider",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://www.rd.com/wp-content/uploads/2023/05/GettyImages-1341465008.jpg",
+          "title": "Cat In The Hat Printable Coloring Pages",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://cdn.pixabay.com/photo/2024/10/16/16/14/cat-9125207_1280.jpg",
+          "title": "100,000+ Free Cat Texture & Cat Images - Pixabay",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://www.thesprucepets.com/thmb/fQmAnca8T3DT_7OycldvdcqZLUI=/3000x0/filters:no_upscale():strip_icc()/breeds-domestics-and-color-patterns-554862-hero-478231530f2d48d99ba41cededf48c40.jpg",
+          "title": "Types Of House Cats Breeds",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://dinoanimals.com/wp-content/uploads/2023/03/Domestic-cat-32.jpg",
+          "title": "Domestic cat (Felis catus) | DinoAnimals.com",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://images.pexels.com/photos/19616837/pexels-photo-19616837.jpeg?cs=srgb&dl=pexels-marwan-benjamin-622158651-19616837.jpg&fm=jpg",
+          "title": "Cat Cartoon Images Photos, Download The BEST Free Cat Cartoon Images ...",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://dinoanimals.com/wp-content/uploads/2023/03/Domestic-cat-34.jpg",
+          "title": "Domestic cat (Felis catus) | DinoAnimals.com",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "tensor",
+      "sentence": "",
+      "ms": 14073,
+      "error": null,
+      "winnerUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Covariance_and_contravariance_of_vectors.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "winnerSource": "wikimediaCommons",
+      "emptyReason": null,
+      "candidateCount": 25,
+      "pool": [
+        {
+          "source": "wikimediaCommons",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Covariance_and_contravariance_of_vectors.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+          "title": "File:Covariance and contravariance of vectors.jpg",
+          "score": -8,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/4078/4895558880_47c713d852_b.jpg",
+          "title": "Tensor fasciae latae - Muscles of the Lower Extremity Anatomy Visual Atlas, page 6",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/4119/4894963869_3f84151037_b.jpg",
+          "title": "Tensor fasciae latae - Muscles of the Lower Extremity Anatomy Visual Atlas, page 7",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7105/7316574146_20a17083e1_b.jpg",
+          "title": "Tensores",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/b/b3/Components_stress_tensor_cartesian.svg",
+          "title": "Components stress tensor cartesian",
+          "score": -5,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/4/45/Components_stress_tensor.svg",
+          "title": "Components stress tensor",
+          "score": -5,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Tensor_dimensions.svg/1200px-Tensor_dimensions.svg.png",
+          "title": "File:Tensor dimensions.svg - Wikimedia Commons",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://image2.slideserve.com/5271618/tensor-unfolding-converting-a-tensor-to-a-matrix-l.jpg",
+          "title": "Tensor Network Contraction And Multi-Linear Algebra – BKZPKO",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://uploads-ssl.webflow.com/5b1d427ae0c922e912eda447/5cd99a73f8ce4494ad86852e_arraychart.jpg",
+          "title": "Tensor Matrix Multiplication : DeepMind’s AlphaTensor Explained – JRABG",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://tensorcookbook.com/media/front.png",
+          "title": "The Tensor Cookbook",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.stack.imgur.com/Lv1qU.jpg",
+          "title": "Tensor Tensor functionalities introduction uses bose bonani min updated ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.stephanosterburg.com/assets/images/posts/2019/Tensor.png",
+          "title": "Data Types - Scalars, Vectors, Matrices and Tensors",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.packt-cdn.com/products/9781788831109/graphics/graphics/B09698_02_06.jpg",
+          "title": "Deep Learning with TensorFlow | Data | Paperback",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Tensor_dimensions.svg/1200px-Tensor_dimensions.svg.png",
+          "title": "File:Tensor dimensions.svg - Wikimedia Commons",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://databasecamp.de/wp-content/uploads/tensor-types-e1660807996975.png",
+          "title": "Was sind Tensoren im Machine Learning? | Data Basecamp",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://raw.githubusercontent.com/mrdbourke/tensorflow-deep-learning/main/images/00-scalar-vector-matrix-tensor.png",
+          "title": "00. Getting started with TensorFlow: A guide to the fundamentals - Zero ...",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://developer.ibm.com/developer/default/articles/introduction-to-machine-learning/images/tensor.png",
+          "title": "Introduction to machine learning Understand",
+          "score": 10,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-lexical-match"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://cogsciprag.github.io/Understanding-LLMs-course/_images/03-scalars-vectors-matrices-tensors.png",
+          "title": "Sheet 2.1: PyTorch essentials — Understanding LMs",
+          "score": 12,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-lexical-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "http://image.slidesharecdn.com/main-120201210932-phpapp02/95/principal-component-analysis-for-tensor-analysis-and-eeg-classification-7-638.jpg?cb=1422626677",
+          "title": "Theano张量详解-CSDN博客",
+          "score": 13,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-lexical-match"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Coffee_Vendor_%288625532411%29.jpg/960px-Coffee_Vendor_%288625532411%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Coffee Vendor (8625532411).jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Cube%2C_Vector_of_Cubes%2C_Matrix_of_Cubes%2C_Cube_of_Cubes.png/960px-Cube%2C_Vector_of_Cubes%2C_Matrix_of_Cubes%2C_Cube_of_Cubes.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Cube, Vector of Cubes, Matrix of Cubes, Cube of Cubes.png",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/88/Tentsore_intuizio_geometrikoa.png/960px-Tentsore_intuizio_geometrikoa.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Tentsore intuizio geometrikoa.png",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://www.mathsisfun.com/algebra/images/tensor.svg",
+          "title": "Tensor Trace Definition | Trace Square Matrix - PCETSK",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-invalid-shape"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://lxy-blog-pics.oss-cn-beijing.aliyuncs.com/asssets/image-20220903202649615.png",
+          "title": "2-representation | Liu Xiyang",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-fallback-no-lexical-anchor"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://miro.medium.com/v2/resize:fit:1200/0*Hp6mc4l-_uva9f8p.png",
+          "title": "Medium",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-invalid-shape"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "run",
+      "sentence": "",
+      "ms": 13460,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 21,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
+          "title": "Running by Coolidge Corner",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7419/12882427743_5e03868824_b.jpg",
+          "title": "running",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/5110/5625649660_521d108ffe_b.jpg",
+          "title": "33st Annual Westport St. Patrick's Day Run",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/178/363682139_95a8486340_b.jpg",
+          "title": "Running Dog 2",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/4096/4865764084_495a7693e9.jpg",
+          "title": "Busy Running",
+          "score": -5,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/free-photo/full-shot-people-running-together-outdoors_23-2149037622.jpg?semt=ais_hybrid&w=740&q=80",
+          "title": "People running outdoors Images - Free Download on Freepik",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/full-shot-people-running-outside_23-2149037675.jpg?w=2000",
+          "title": "Premium Photo | Full shot people running outside",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/free-photo/full-shot-people-running-outside_23-2149722072.jpg?w=2000",
+          "title": "People Running Outside",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://as2.ftcdn.net/v2/jpg/05/64/90/55/1000_F_564905593_vavtQEXnexeKDmy0Ij5quF0XXU6mjxOx.jpg",
+          "title": "Action motion blur of a man running on country road with sunrise ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/person-motion-running-wet-road-golden-hour-sunset-sky-is-painted-with-hu_892434-10984.jpg?w=2000",
+          "title": "Premium Photo | A person in motion running on a wet road during the ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/man-motion-running-across-field-as-sun-sets-horizon-silhouette-runner-against-stunning-sunrise-ai-generated_585735-28093.jpg",
+          "title": "A man in motion running across a field as the sun sets on the horizon ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://hips.hearstapps.com/hmg-prod/images/sprinter-running-fast-royalty-free-image-865688236-1553096499.jpg",
+          "title": "Photo Of Running at Shellie Tidwell blog",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://i.natgeofe.com/n/e044eb85-f74d-4ba9-8958-d875f5183f66/h_16089728.jpg",
+          "title": "Social running is all the rage—here's why it's good for you | National ...",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://strongviking.com/wp-content/uploads/2024/09/obstacle_run_event_header-1.jpg",
+          "title": "Obstacle Run Ghent | September 13 & 14 | Get your ticket!",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://images.surferseo.art/89a7f4d0-b204-4f66-99ba-aaef0909f735.png",
+          "title": "What Is The Meaning Behind Run Boy Run at Ella Byatt blog",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://static0.gamerantimages.com/wordpress/wp-content/uploads/2021/03/cookie-run-kingdom-title-vertical.jpg",
+          "title": "Cookie Run Kingdom: Mystic Flour Cookie Build and Best Toppings",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://static.vecteezy.com/system/resources/previews/019/861/831/original/running-boy-cartoon-character-free-vector.jpg",
+          "title": "Child Boy In Sportswear Running Fast Flat Cartoon Vector Illustration ...",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://cdn.albumoftheyear.org/album/1139132-run-it_053054.jpg",
+          "title": "Jelly Roll - Run It review by HattieJosh - Album of The Year",
+          "score": 6,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "duckduckgoImages",
+          "url": "https://www.vice.com/wp-content/uploads/sites/2/2025/05/The-Run-Got-Nxt-is-Bringing-the-NBA-Street-Feel-Back-with-a-Roguelike-Twist.jpg",
+          "title": "En fotos: los mejores atletas se desnudan para celebrar la imperfección ...",
+          "score": 12,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-lexical-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://c8.alamy.com/comp/KTXTB9/people-running-outside-KTXTB9.jpg",
+          "title": "People running outside Stock Vector Image & Art - Alamy",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://c8.alamy.com/comp/KTXTB4/people-running-outside-KTXTB4.jpg",
+          "title": "People running outside Stock Vector Image & Art - Alamy",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "anything",
+      "sentence": "",
+      "ms": 13388,
+      "error": null,
+      "winnerUrl": null,
+      "winnerSource": null,
+      "emptyReason": "low-imageability-token",
+      "candidateCount": 21,
+      "pool": [],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "week",
+      "sentence": "",
+      "ms": 13231,
+      "error": null,
+      "winnerUrl": null,
+      "winnerSource": null,
+      "emptyReason": "low-imageability-token",
+      "candidateCount": 21,
+      "pool": [],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "know",
+      "sentence": "",
+      "ms": 13756,
+      "error": null,
+      "winnerUrl": null,
+      "winnerSource": null,
+      "emptyReason": "low-imageability-token",
+      "candidateCount": 13,
+      "pool": [],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "piece of cake",
+      "sentence": "",
+      "ms": 13211,
+      "error": null,
+      "winnerUrl": null,
+      "winnerSource": null,
+      "emptyReason": "no-candidate-qualified",
+      "candidateCount": 13,
+      "pool": [
+        {
+          "source": "bingImages",
+          "url": "https://cdn.pixabay.com/photo/2025/02/07/14/22/chocolate-cake-9390172_1280.jpg",
+          "title": "Chocolate Cake Slice - Free photo on Pixabay",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-phrase-no-exact-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://t4.ftcdn.net/jpg/05/71/64/51/360_F_571645167_fRxwSKmcfUQOUVD04xSk1Zd7UfBLMsEx.jpg",
+          "title": "\"Piece Of Cake\" Images – Browse 15,488 Stock Photos, Vectors, and Video ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/photograph-piece-strawberry-cake_961875-11072.jpg?w=996",
+          "title": "Premium Photo | Photograph of a Piece of Strawberry Cake",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-phrase-no-exact-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/previews/047/279/724/non_2x/a-piece-of-chocolate-cake-with-a-strawberry-on-top-free-photo.jpg",
+          "title": "a piece of chocolate cake with a strawberry on top 47279724 Stock Photo ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-phrase-no-exact-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "http://www.altusq.com.au/wp-content/uploads/2018/05/Chocolate-cake-533632245_1210x868-5afa9cbde1771.jpeg",
+          "title": "6 unusual houseplants that'll make your home delightfully weird",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-phrase-no-exact-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://thumbs.dreamstime.com/b/piece-chocolate-cake-decorated-fresh-strawberry-homemade-brown-background-36754812.jpg",
+          "title": "Piece of Chocolate Cake Decorated with Fresh Strawberry Stock Photo ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-phrase-no-exact-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/17289682/pexels-photo-17289682.jpeg?cs=srgb&dl=pexels-alina-matveycheva-17289682.jpg&fm=jpg",
+          "title": "Piece Of Strawberry Cake Photos, Download The BEST Free Piece Of ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-phrase-no-exact-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://richanddelish.com/wp-content/uploads/2022/04/best-one-bowl-chocolate-cake.jpg",
+          "title": "Piece Of Chocolate",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-phrase-no-exact-metadata"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/2838/10588566084_ee99d6486f_b.jpg",
+          "title": "Oriental Studies? - Piece of Cake.",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/65535/49284514257_a2548e5838_b.jpg",
+          "title": "Piece of cake?",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3308/3334381673_9ef8845b11_b.jpg",
+          "title": "Piece of cake",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/2830/11209175334_ef153f9088_b.jpg",
+          "title": "Project 365 #338: 041213 Piece Of Cake",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3193/3694649865_3d22bce8ae_b.jpg",
+          "title": "Project 365 #187: 060709 Piece Of Cake!",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "break up",
+      "sentence": "",
+      "ms": 13934,
+      "error": null,
+      "winnerUrl": null,
+      "winnerSource": null,
+      "emptyReason": "no-candidate-qualified",
+      "candidateCount": 13,
+      "pool": [
+        {
+          "source": "bingImages",
+          "url": "https://www.simplypsychology.org/wp-content/uploads/relationship-break-up-1536x1085.jpeg",
+          "title": "How to End a Relationship: Rituals for Breakups",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://boilingwaters.ph/wp-content/uploads/2019/07/sad-couple-break-up.jpg",
+          "title": "To the man who will love her next | Boiling Waters",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://media.invisioncic.com/e322713/monthly_2025_04/Ending-Relationships-With-Compassion-and-Clarity.webp.965bcff1a0e612023c51b8dd8b941429.webp",
+          "title": "12 best breakup movies to mend a shattered heart - Breaking Up",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://cdn.pixabay.com/photo/2022/09/24/16/39/breakup-7476754_1280.jpg",
+          "title": "20,000+ Free Breakup Love & Breakup Images - Pixabay",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/736x/eb/8a/5c/eb8a5cb42b67e251616e0c22b7747128.jpg",
+          "title": "Pin on Breakup picture",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.bonobology.com/wp-content/uploads/2022/08/How-To-Break-Up-A-Couple-11-Sly-Ways-.jpg",
+          "title": "How To Break Up A Couple – 11 Sly Ways",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.herzindagi.info/image/2024/Sep/Breakup-Quotes-From-Movies.jpg",
+          "title": "20+ Heart-Touching Breakup Quotes To Mend Your Broken Heart | HerZindagi",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://m.media-amazon.com/images/M/MV5BZGZiMGMwYTctMGI4Zi00MDI0LWFiYjMtNjg4ZTVkZGQwN2Y5XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+          "title": "Break Up Scene (Short) - IMDb",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3276/2964993718_6aa4958de5.jpg",
+          "title": "Happy break-up-iversary",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/8421/7591264544_1885000c14_b.jpg",
+          "title": "Yellow Bow-Broken Heart...The Break Up",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/5310/5628123579_8ddc9c1f59_b.jpg",
+          "title": "Over (Breaking up and a Coke)",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/131/340552944_9307ad93a7_b.jpg",
+          "title": "Break up",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/5576/14803478040_44fe7f117e_b.jpg",
+          "title": "Cygnus Breaks Up Over Earth (NASA, International Space Station, 08/17/14)",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "lit",
+      "sentence": "",
+      "ms": 20908,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/4076/4880127405_5a4dd44c8b_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 13,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/4076/4880127405_5a4dd44c8b_b.jpg",
+          "title": "France, Aisne (02) Guise : Familistère : appartement : lit et fenêtre, vue extérieure.",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/8036/7915362932_d33a0dfcea_b.jpg",
+          "title": "Lit 'Aube et Crépuscule' d'Emile Gallé (musée de l'Ecole de Nancy)",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3918/15155283708_2662bf864d_b.jpg",
+          "title": "Three-year-old Jennifer Adair with a book, Montreal, Quebec / Une lectrice de trois ans, Jennifer Adair, lit dans une bibliothèque publique de Montréal (Québec)",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7449/9733571955_b2226e9ab5_b.jpg",
+          "title": "'Candle Lit Dinner', United States, Maine, Wheeler Bay",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/65535/47103017054_9f6274f8a7_b.jpg",
+          "title": "The well-lit coasts of Spain, France and Italy",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.idmarket.com/52407-product_main_2x/lit-double-nathan-140-x-190-cm-avec-tete-de-lit-chevets-suspendus-etagere-led-et-sommier-bois-et-noir.jpg",
+          "title": "Lit double 140 x 190 cm bois et noir avec tête de lit et chevets ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.idmarket.com/44358-product_main_2x/lit-double-santa-avec-tete-de-lit-tables-de-chevet-integrees-et-sommier-140-x-190-cm-blanc.jpg",
+          "title": "Lit double 140x190 blanc avec tête de lit et tables de chevet - SANTA ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img2.tradewheel.com/uploads/images/products/2/2/bedroom-furniture-home-lit-en-bois-luxury-bed-solid-wooden-frame-queen-cama-matrimonial-storage-bett-king-size-beds-lit-complet2-0837901001721540657.png",
+          "title": "Buy Bedroom Furniture Home Lit En Bois Luxury Bed Solid Wooden Frame ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img2.tradewheel.com/uploads/images/products/6/3/bedroom-furniture-lit-complet-luxury-bed-wooden-queen-frame-storage-letto-home-cama-matrimonial-bett-king-size-bed-lit-en-bois1-0765258001721539556.jpg.webp",
+          "title": "Buy Bedroom Furniture Lit Complet Luxury Bed Wooden Queen Frame Storage ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/736x/54/24/36/54243644282b899c773ece812e0b881e.jpg",
+          "title": "Lit Design IMPERIAL avec éclairage LED | Modern bed, Cool bed frames, Bed",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/736x/f0/66/d5/f066d5b5ef14c796eb6b257925f36fbf.jpg",
+          "title": "Lit adulte | Bedroom furniture design, Bed, Toddler bed",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/736x/12/8f/ae/128faea9beaf61e7c6cb15e2f831af35.jpg",
+          "title": "Lit adulte | Room inspiration, Bed, Furniture",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/736x/68/6b/83/686b8331e63860bc589511d8838e6f35.jpg",
+          "title": "Modern home decor | Modern bed with unique headboard, Bedroom bed ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-fallback-no-lexical-anchor"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "forget",
+      "sentence": "",
+      "ms": 13240,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/3220/2965470393_40fcfff25e_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 13,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3220/2965470393_40fcfff25e_b.jpg",
+          "title": "We can't forget...",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/5584/14615838300_eb3436ab1c_b.jpg",
+          "title": "Changi Beach - Lest we forget",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3151/2672780121_9528c78c25_b.jpg",
+          "title": "forgetful",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/927/43585760981_8654c67769_b.jpg",
+          "title": "She could deal with constantly forgetting her shopping list",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/1547/23787450049_704a3be5f5_b.jpg",
+          "title": "2016-01-03 strolling among the forget-me-nots of the angels",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://thebraintower.com/wp-content/uploads/2025/04/WhatsApp-Image-2025-04-01-at-12.58.14_1c2e0c5b.jpg",
+          "title": "Why Do You Keep Forgetting Things? Signs of Memory Loss & When to Worry ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://d2rd7etdn93tqb.cloudfront.net/wp-content/uploads/2017/01/forgetful-person-facepalm-010817.jpg",
+          "title": "Common Habits of Frequently Forgetful People",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://image-v2.cdn.app.senecalearning.com/2018-08/f7026e11-6afd-45be-b939-dcc2ae53e0e9/forgetful-man-forget,h_400,q_80,w_640.jpg",
+          "title": "Explanations for Forgetting | Free Notes & Practice – Psychology: AQA A ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://clozepassage.com/wp-content/uploads/20064506_6215957.jpg",
+          "title": "Mystery of Forgetfulness: Exploring the Science Behind Why People ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://dam.northwell.edu/asset/8dd71b42-fc21-4a2e-b1e9-6a0f99d7c6de/Drupal/TheWell_forgetfulness_AS_586528651.jpg",
+          "title": "Memory Loss: Red Flag Or Normal Behavior? | The Well by Northwell",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.squarespace-cdn.com/content/v1/650bf84a80967255d809e577/b1bb84fe-5a32-4500-b539-91b2eb811ded/forgetfullness.png",
+          "title": "cloft.com | How Sleep Quality Affects Mental Health",
+          "score": 10,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-lexical-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.hindustantimes.com/rf/image_size_640x362/HT/p2/2016/06/04/Pictures/_815c7640-2a09-11e6-a271-92fd27615944.jpg",
+          "title": "Forgot something? Don’t worry for it is actually good for your memory ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-fallback-no-lexical-anchor"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://png.pngtree.com/png-clipart/20230303/original/pngtree-forgetfulness-memory-loss-forgetting-png-image_8970736.png",
+          "title": "Forgetfulness WHY DO WE STRUGGLE REMEMBERING NEW NAMES & HOW TO",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "support",
+      "sentence": "",
+      "ms": 13395,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/7127/7124385985_5a581ea47f_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 14,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7127/7124385985_5a581ea47f_b.jpg",
+          "title": "Support",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3192/3024827228_0f68229854_b.jpg",
+          "title": "Twitter Support",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/65535/52639136509_f6954bf490_b.jpg",
+          "title": "Support",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7155/6527380785_c2c4d2c53b_b.jpg",
+          "title": "support",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/2911/14067182670_6211e457d0_b.jpg",
+          "title": "Flickr Support",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/1/16/A_man_helps_to_manage_cattle_at_the_cattle_post.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+          "title": "File:A man helps to manage cattle at the cattle post.jpg",
+          "score": 0,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/thumbnails/002/167/147/small_2x/teamwork-and-collaboration-colleagues-togetherness-and-support-each-other-to-achieve-business-goal-concept-group-of-businessmen-and-women-office-workers-help-and-support-to-pull-arrow-rising-up-vector.jpg",
+          "title": "Support Group Vector Art, Icons, and Graphics for Free Download",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/thumbnails/020/811/026/small_2x/community-solidarity-of-peoples-inter-racial-friendship-teamwork-volunteer-concept-hand-drawn-group-of-friendly-volunteers-putting-hands-together-illustration-vector.jpg",
+          "title": "Support Group Vector Art, Icons, and Graphics for Free Download",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/thumbnails/051/419/715/small_2x/mental-health-group-therapy-a-group-of-diverse-individuals-sitting-in-a-circle-for-therapy-highlighting-the-inclusive-nature-of-mental-health-support-in-insurance-plans-vector.jpg",
+          "title": "Support Group Vector Art, Icons, and Graphics for Free Download",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/thumbnails/000/342/058/small_2x/0039-support-group.jpg",
+          "title": "Support Group Vector Art, Icons, and Graphics for Free Download",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/thumbnails/041/175/258/small_2x/positive-psychology-positive-thinking-and-attitude-optimistic-mindset-vector.jpg",
+          "title": "Support Group Vector Art, Icons, and Graphics for Free Download",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/thumbnails/011/419/141/small_2x/meeting-of-group-of-people-for-talk-dialog-communication-discussion-business-relationship-discuss-problems-together-exchange-opinions-of-team-worker-support-group-illustration-vector.jpg",
+          "title": "Support Group Vector Art, Icons, and Graphics for Free Download",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/thumbnails/005/138/173/small_2x/support-groups-rgb-color-icons-set-mental-health-recovery-addiction-treatment-isolated-illustrations-simple-filled-line-drawings-collection-editable-stroke-quicksand-light-font-used-vector.jpg",
+          "title": "Support Group Icon Vector Art, Icons, and Graphics for Free Download",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/thumbnails/017/543/893/small_2x/interracial-idyllic-icon-outline-illustration-vector.jpg",
+          "title": "Support Group Icon Vector Art, Icons, and Graphics for Free Download",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "give",
+      "sentence": "",
+      "ms": 2143,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/248/3264112407_278e67eb32_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 13,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/248/3264112407_278e67eb32_b.jpg",
+          "title": "Give, take 'n share",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3671/13253693204_327f3ce1de_b.jpg",
+          "title": "Forgive/Give ~ Luke 6",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/25/59306504_5d561cd58c_b.jpg",
+          "title": "Give to Humanity... (repost)",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7471/15663723693_54228feeed.jpg",
+          "title": "BLMERS #GIVINGBACK: BLM Nevada Employee Gives Young Campers a Chance for Fun",
+          "score": -5,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/daisies-give-flower_87720-85228.jpg?w=996",
+          "title": "Premium Photo | Daisies give flower",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://assets.onyamagazine.com/wp-content/uploads/2020/09/25173231/Screen-Shot-2020-09-25-at-5.32.24-pm.png",
+          "title": "12 Awesome Reasons To Give Flowers To Someone You Love - Onya Magazine",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://c8.alamy.com/comp/J6P4WJ/woman-women-flower-flowers-plant-bouquet-gift-donate-give-away-girl-J6P4WJ.jpg",
+          "title": "woman women flower flowers plant bouquet gift donate give away girl ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.wikihow.com/images/d/dc/Give-Flowers-Step-17.jpg",
+          "title": "How to Give Flowers (with Pictures) - wikiHow",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.wcicfm.org/wp-content/uploads/give-yellow-flowers-istock-992112226.jpg",
+          "title": "Reflecting on 2024: A Year of Community Impact - WCIC",
+          "score": 10,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-lexical-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/5713331/pexels-photo-5713331.jpeg?cs=srgb&dl=pexels-karolina-grabowska-5713331.jpg&fm=jpg",
+          "title": "Flowers Giving Photos, Download The BEST Free Flowers Giving Stock ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-fallback-no-lexical-anchor"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://cdn.pixabay.com/photo/2012/03/12/14/40/flower-22656_1280.jpg",
+          "title": "400+ Free Giving Flowers & Thank You Photos - Pixabay",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-fallback-no-lexical-anchor"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/person-giving-flowers-smiling-friend-outdoors_878954-16220.jpg",
+          "title": "Person giving flowers to smiling friend outdoors | Premium AI-generated ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-fallback-no-lexical-anchor"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/2653/4110711805_66b77937cf_m.jpg",
+          "title": "chase giving",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-invalid-shape"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "umbrella",
+      "sentence": "",
+      "ms": 13152,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/3149/2775486094_2bacbb9be4_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 17,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3149/2775486094_2bacbb9be4_b.jpg",
+          "title": "Umbrellas 05",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3333/3208061607_efa4a3ce74_b.jpg",
+          "title": "Help me, alls I's gots is this umbrella!",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3714/8996546325_8158afa2a2_b.jpg",
+          "title": "Colourful Umbrellas",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7020/6450761035_81e6837bf4_b.jpg",
+          "title": "Umbrella",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/1/1188411_8f803b4a41.jpg",
+          "title": "thailand umbrellas 02",
+          "score": -5,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/1451040/pexels-photo-1451040.jpeg?cs=srgb&dl=pexels-enginakyurt-1451040.jpg&fm=jpg",
+          "title": "Umbrella Rain Photos, Download The BEST Free Umbrella Rain Stock Photos ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/268941/pexels-photo-268941.jpeg?cs=srgb&dl=pexels-pixabay-268941.jpg&fm=jpg",
+          "title": "Umbrella Rain Photos, Download The BEST Free Umbrella Rain Stock Photos ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/previews/013/134/783/non_2x/a-colorful-umbrella-under-the-pouring-monsoon-rain-photo.jpg",
+          "title": "Rain Umbrella Photography Rainy Day Family Photos — Greenville",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/2769117/pexels-photo-2769117.jpeg?cs=srgb&dl=pexels-joelpapalini-2769117.jpg&fm=jpg",
+          "title": "Umbrella Rain Photos, Download The BEST Free Umbrella Rain Stock Photos ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/10339885/pexels-photo-10339885.jpeg?cs=srgb&dl=pexels-reem-mansour-137930635-10339885.jpg&fm=jpg",
+          "title": "Umbrella Rain Photos, Download The BEST Free Umbrella Rain Stock Photos ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/previews/076/620/106/large_2x/green-umbrella-in-the-rain-photo.jpg",
+          "title": "Green umbrella in the rain 76620106 Stock Photo at Vecteezy",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.sjdphotodesign.com/wp-content/uploads/2017/08/Raining-Umbrella.jpg",
+          "title": "Rain Umbrella Photography Rainy Day Family Photos — Greenville - ikumen",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/5994460/pexels-photo-5994460.jpeg?cs=srgb&dl=pexels-andrei-5994460.jpg&fm=jpg",
+          "title": "Umbrella Rain Photos, Download The BEST Free Umbrella Rain Stock Photos ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Zenkoji-Nagano.JPG/960px-Zenkoji-Nagano.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Zenkoji-Nagano.JPG",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Playa_Para%C3%ADso%2C_Villajoyosa%2C_Espa%C3%B1a%2C_2014-07-03%2C_DD_01-02_PAN.JPG/960px-Playa_Para%C3%ADso%2C_Villajoyosa%2C_Espa%C3%B1a%2C_2014-07-03%2C_DD_01-02_PAN.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Playa Paraíso, Villajoyosa, España, 2014-07-03, DD 01-02 PAN.JPG",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f4/Stadtansicht-Saarburg-Leukbach-2016.jpg/960px-Stadtansicht-Saarburg-Leukbach-2016.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Stadtansicht-Saarburg-Leukbach-2016.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Public_punishment_in_the_Santa_Ana_square_by_Johann_Moritz_Rugendas_02.jpg/960px-Public_punishment_in_the_Santa_Ana_square_by_Johann_Moritz_Rugendas_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Public punishment in the Santa Ana square by Johann Moritz Rugendas 02.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "whatever",
+      "sentence": "",
+      "ms": 13233,
+      "error": null,
+      "winnerUrl": null,
+      "winnerSource": null,
+      "emptyReason": "low-imageability-token",
+      "candidateCount": 13,
+      "pool": [],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "apple",
+      "sentence": "",
+      "ms": 12693,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/6117/6284756738_c53e17e6bc_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 18,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/6117/6284756738_c53e17e6bc_b.jpg",
+          "title": "Apples",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/8035/8074168006_dd24e474ac_b.jpg",
+          "title": "Apples",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7296/14086869112_28c8aef2f3_b.jpg",
+          "title": "Apples - Stand out",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/5184/5806593832_1acb87d481_b.jpg",
+          "title": "Apples",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/47/139138903_3d9600174d_b.jpg",
+          "title": "apples",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://media.assettype.com/deccanherald/2026-03-09/125eghcg/Apple-Watch-Series-11-Selected-1.jpg?w=1200&ar=40:21&auto=format%2Ccompress&ogImage=true&mode=crop",
+          "title": "Apple Watch Series 12 to get new heart health tracking feature",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://sm.ign.com/t/ign_ap/feature/a/apple-offi/apple-officially-has-a-new-ceo-but-what-does-that-mean_48s3.1200.jpg",
+          "title": "Apple Officially Has a New CEO, but What Does That Mean?",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.engadget.com/img/gallery/common-problems-with-apple-wallet-and-how-to-fix-them/l-intro-1788283355.jpg",
+          "title": "Common Problems With Apple Wallet And How To Fix Them",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.ikman-st.com/apple-iphone-12-pro-max-used-for-sale-kurunegala-956/10cf8776-4079-4171-a388-bcff80b4209c/1200/630/fitted.jpg",
+          "title": "Apple iPhone 12 Pro Max (Used) | ikman",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://cdn.appleosophy.com/2026/06/Apple-Intelligence-Image-Playground-Messages-and-Contact-Poster-and-Lock-Screen-260608-3240x2160.jpg",
+          "title": "VPN with Apple privacy tools when iPhone privacy meets real-world Wi-Fi",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://cdn.benzinga.com/cdn-cgi/image/width=1200,height=800,fit=crop/files/images/story/2025/11/16/Apple-Inc-.jpeg",
+          "title": "Apple Announces Major Changes: New iPhone Models and Altered Release ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "pixabay",
+          "url": "https://cdn.pixabay.com/photo/2016/09/29/08/33/apple-1702316_1280.jpg",
+          "title": null,
+          "score": 15,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "penalty-no-metadata",
+            "ok-lexical-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://developer.apple.com/news/images/og/ios-27-round-og.png",
+          "title": "Upcoming changes to Rosetta support for Intel-based macOS apps - Latest ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.usatoday.com/gcdn/authoring/authoring-images/2026/03/03/USNK/88969263007-20260224-t-180320-z-352478058-rc-2-hsjavbns-4-rtrmadp-3-appleagm-1.JPG?crop=5183,2916,x0,y258&width=3200&height=1801&format=pjpg&auto=webp",
+          "title": "Apple launches new MacBooks with M5 chips and more storage",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Santa_Maria_de_Huerta_Almacen.jpg/960px-Santa_Maria_de_Huerta_Almacen.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Santa Maria de Huerta Almacen.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/Pink_lady_and_cross_section.jpg/960px-Pink_lady_and_cross_section.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Pink lady and cross section.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Red_Apple.jpg/960px-Red_Apple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Red Apple.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Tree_with_red_apples_in_Barkedal_4.jpg/960px-Tree_with_red_apples_in_Barkedal_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Tree with red apples in Barkedal 4.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "unsplash",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "pixabay",
+          "hasData": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "cat",
+      "sentence": "",
+      "ms": 12735,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/3313/3481540500_c846c62863_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 14,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3313/3481540500_c846c62863_b.jpg",
+          "title": "Cat Fish 2",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3436/3717404325_db41d8d687_b.jpg",
+          "title": "cat",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/8417/8710251481_139d32a3a2_b.jpg",
+          "title": "CAT",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/4067/4615211501_f0cee1c22b_b.jpg",
+          "title": "cat",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/2734/4227907168_3574201e36.jpg",
+          "title": "Cats",
+          "score": -5,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.ctfassets.net/m5ehn3s5t7ec/wp-image-197581/a5246e00944982b564d4c610c56577f1/House-Cat-Breeds.jpg",
+          "title": "8 House Cat Breeds You Should Consider",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://dinoanimals.com/wp-content/uploads/2023/03/Domestic-cat-32.jpg",
+          "title": "Domestic cat (Felis catus) | DinoAnimals.com",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://dinoanimals.com/wp-content/uploads/2023/03/Domestic-cat-19.jpg",
+          "title": "Domestic cat (Felis catus) | DinoAnimals.com",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://dinoanimals.com/wp-content/uploads/2023/03/Domestic-cat-35.jpg",
+          "title": "Domestic cat (Felis catus) | DinoAnimals.com",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.lassie.co/_next/image?url=https:%2F%2Fimages.ctfassets.net%2Fr208a72kad0m%2F5MwtZRwJ8MhL9P2rIIuTV%2F4087d31c86a865a2e020ad148fdf6bd3%2FCopy_of_Untitled_Design.png&w=1200&q=75",
+          "title": "Domestic Cat - Everything you need to know about the cat breed Domestic ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://catschef.com/wp-content/uploads/2025/06/15-Domestic-Cat-Breeds-That-Are-Surprisingly-Strong-and-Resilient-1080x608.png",
+          "title": "15 Domestic Cat Breeds That Are Surprisingly Strong and Resilient",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://dinoanimals.com/wp-content/uploads/2023/03/Domestic-cat-26.jpg",
+          "title": "Domestic cat (Felis catus) | DinoAnimals.com",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://dinoanimals.com/wp-content/uploads/2023/03/Domestic-cat-24.jpg",
+          "title": "Domestic cat (Felis catus) | DinoAnimals.com",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "pixabay",
+          "url": "https://cdn.pixabay.com/photo/2015/11/16/14/43/cat-1045782_1280.jpg",
+          "title": null,
+          "score": 15,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "penalty-no-metadata",
+            "ok-lexical-match"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "unsplash",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "pixabay",
+          "hasData": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "tensor",
+      "sentence": "",
+      "ms": 12849,
+      "error": null,
+      "winnerUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Covariance_and_contravariance_of_vectors.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "winnerSource": "wikimediaCommons",
+      "emptyReason": null,
+      "candidateCount": 18,
+      "pool": [
+        {
+          "source": "wikimediaCommons",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Covariance_and_contravariance_of_vectors.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+          "title": "File:Covariance and contravariance of vectors.jpg",
+          "score": -8,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/4078/4895558880_47c713d852_b.jpg",
+          "title": "Tensor fasciae latae - Muscles of the Lower Extremity Anatomy Visual Atlas, page 6",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/4119/4894963869_3f84151037_b.jpg",
+          "title": "Tensor fasciae latae - Muscles of the Lower Extremity Anatomy Visual Atlas, page 7",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7105/7316574146_20a17083e1_b.jpg",
+          "title": "Tensores",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/b/b3/Components_stress_tensor_cartesian.svg",
+          "title": "Components stress tensor cartesian",
+          "score": -5,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/4/45/Components_stress_tensor.svg",
+          "title": "Components stress tensor",
+          "score": -5,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Tensor_dimensions.svg/1200px-Tensor_dimensions.svg.png",
+          "title": "File:Tensor dimensions.svg - Wikimedia Commons",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://image2.slideserve.com/5271618/tensor-unfolding-converting-a-tensor-to-a-matrix-l.jpg",
+          "title": "Tensor Network Contraction And Multi-Linear Algebra – BKZPKO",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://uploads-ssl.webflow.com/5b1d427ae0c922e912eda447/5cd99a73f8ce4494ad86852e_arraychart.jpg",
+          "title": "Tensor Matrix Multiplication : DeepMind’s AlphaTensor Explained – JRABG",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://tensorcookbook.com/media/front.png",
+          "title": "The Tensor Cookbook",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.stack.imgur.com/Lv1qU.jpg",
+          "title": "Tensor Tensor functionalities introduction uses bose bonani min updated ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.stephanosterburg.com/assets/images/posts/2019/Tensor.png",
+          "title": "Data Types - Scalars, Vectors, Matrices and Tensors",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.packt-cdn.com/products/9781788831109/graphics/graphics/B09698_02_06.jpg",
+          "title": "Deep Learning with TensorFlow | Data | Paperback",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://developer.ibm.com/developer/default/articles/introduction-to-machine-learning/images/tensor.png",
+          "title": "Introduction to machine learning Understand",
+          "score": 10,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-lexical-match"
+          ]
+        },
+        {
+          "source": "pixabay",
+          "url": "https://cdn.pixabay.com/photo/2020/06/12/14/06/mockup-5290463_1280.jpg",
+          "title": null,
+          "score": 17,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "penalty-no-metadata"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Coffee_Vendor_%288625532411%29.jpg/960px-Coffee_Vendor_%288625532411%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Coffee Vendor (8625532411).jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Cube%2C_Vector_of_Cubes%2C_Matrix_of_Cubes%2C_Cube_of_Cubes.png/960px-Cube%2C_Vector_of_Cubes%2C_Matrix_of_Cubes%2C_Cube_of_Cubes.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Cube, Vector of Cubes, Matrix of Cubes, Cube of Cubes.png",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/88/Tentsore_intuizio_geometrikoa.png/960px-Tentsore_intuizio_geometrikoa.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Tentsore intuizio geometrikoa.png",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "unsplash",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "pixabay",
+          "hasData": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "run",
+      "sentence": "",
+      "ms": 12804,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 14,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
+          "title": "Running by Coolidge Corner",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7419/12882427743_5e03868824_b.jpg",
+          "title": "running",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/5110/5625649660_521d108ffe_b.jpg",
+          "title": "33st Annual Westport St. Patrick's Day Run",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/178/363682139_95a8486340_b.jpg",
+          "title": "Running Dog 2",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/4096/4865764084_495a7693e9.jpg",
+          "title": "Busy Running",
+          "score": -5,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/free-photo/full-shot-people-running-together-outdoors_23-2149037622.jpg?semt=ais_hybrid&w=740&q=80",
+          "title": "People running outdoors Images - Free Download on Freepik",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/full-shot-people-running-outside_23-2149037675.jpg?w=2000",
+          "title": "Premium Photo | Full shot people running outside",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/free-photo/full-shot-people-running-outside_23-2149722072.jpg?w=2000",
+          "title": "People Running Outside",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://as2.ftcdn.net/v2/jpg/05/64/90/55/1000_F_564905593_vavtQEXnexeKDmy0Ij5quF0XXU6mjxOx.jpg",
+          "title": "Action motion blur of a man running on country road with sunrise ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/person-motion-running-wet-road-golden-hour-sunset-sky-is-painted-with-hu_892434-10984.jpg?w=2000",
+          "title": "Premium Photo | A person in motion running on a wet road during the ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/man-motion-running-across-field-as-sun-sets-horizon-silhouette-runner-against-stunning-sunrise-ai-generated_585735-28093.jpg",
+          "title": "A man in motion running across a field as the sun sets on the horizon ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "pixabay",
+          "url": "https://cdn.pixabay.com/photo/2023/05/25/10/27/men-8016782_1280.jpg",
+          "title": null,
+          "score": 17,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "penalty-no-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://c8.alamy.com/comp/KTXTB9/people-running-outside-KTXTB9.jpg",
+          "title": "People running outside Stock Vector Image & Art - Alamy",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://c8.alamy.com/comp/KTXTB4/people-running-outside-KTXTB4.jpg",
+          "title": "People running outside Stock Vector Image & Art - Alamy",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "unsplash",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "pixabay",
+          "hasData": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "anything",
+      "sentence": "",
+      "ms": 12722,
+      "error": null,
+      "winnerUrl": null,
+      "winnerSource": null,
+      "emptyReason": "low-imageability-token",
+      "candidateCount": 14,
+      "pool": [],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "unsplash",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "pixabay",
+          "hasData": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "week",
+      "sentence": "",
+      "ms": 16290,
+      "error": null,
+      "winnerUrl": null,
+      "winnerSource": null,
+      "emptyReason": "low-imageability-token",
+      "candidateCount": 14,
+      "pool": [],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "unsplash",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "pixabay",
+          "hasData": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "know",
+      "sentence": "",
+      "ms": 13700,
+      "error": null,
+      "winnerUrl": null,
+      "winnerSource": null,
+      "emptyReason": "low-imageability-token",
+      "candidateCount": 14,
+      "pool": [],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "unsplash",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "pixabay",
+          "hasData": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "piece of cake",
+      "sentence": "",
+      "ms": 12856,
+      "error": null,
+      "winnerUrl": null,
+      "winnerSource": null,
+      "emptyReason": "no-candidate-qualified",
+      "candidateCount": 14,
+      "pool": [
+        {
+          "source": "bingImages",
+          "url": "https://cdn.pixabay.com/photo/2025/02/07/14/22/chocolate-cake-9390172_1280.jpg",
+          "title": "Chocolate Cake Slice - Free photo on Pixabay",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-phrase-no-exact-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/photograph-piece-strawberry-cake_961875-11072.jpg?w=996",
+          "title": "Premium Photo | Photograph of a Piece of Strawberry Cake",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-phrase-no-exact-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "http://www.altusq.com.au/wp-content/uploads/2018/05/Chocolate-cake-533632245_1210x868-5afa9cbde1771.jpeg",
+          "title": "6 unusual houseplants that'll make your home delightfully weird",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-phrase-no-exact-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://t4.ftcdn.net/jpg/05/71/64/51/360_F_571645167_fRxwSKmcfUQOUVD04xSk1Zd7UfBLMsEx.jpg",
+          "title": "\"Piece Of Cake\" Images – Browse 15,488 Stock Photos, Vectors, and Video ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/slice-chocolate-cake-with-strawberry-side_865967-42957.jpg",
+          "title": "Premium Photo | A slice of chocolate cake with a strawberry on the side",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-phrase-no-exact-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/previews/047/279/724/non_2x/a-piece-of-chocolate-cake-with-a-strawberry-on-top-free-photo.jpg",
+          "title": "a piece of chocolate cake with a strawberry on top 47279724 Stock Photo ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-phrase-no-exact-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/captured-image-strawberry-cake-piece_961875-21389.jpg?w=996",
+          "title": "Premium Photo | Captured Image of a Strawberry Cake Piece",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-phrase-no-exact-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/17289682/pexels-photo-17289682.jpeg?cs=srgb&dl=pexels-alina-matveycheva-17289682.jpg&fm=jpg",
+          "title": "Piece Of Strawberry Cake Photos, Download The BEST Free Piece Of ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-phrase-no-exact-metadata"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/2838/10588566084_ee99d6486f_b.jpg",
+          "title": "Oriental Studies? - Piece of Cake.",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/65535/49284514257_a2548e5838_b.jpg",
+          "title": "Piece of cake?",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3308/3334381673_9ef8845b11_b.jpg",
+          "title": "Piece of cake",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/2830/11209175334_ef153f9088_b.jpg",
+          "title": "Project 365 #338: 041213 Piece Of Cake",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3193/3694649865_3d22bce8ae_b.jpg",
+          "title": "Project 365 #187: 060709 Piece Of Cake!",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "pixabay",
+          "url": "https://cdn.pixabay.com/photo/2016/02/29/00/19/cake-1227842_1280.jpg",
+          "title": null,
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-phrase-no-exact-metadata"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "unsplash",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "pixabay",
+          "hasData": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "break up",
+      "sentence": "",
+      "ms": 12802,
+      "error": null,
+      "winnerUrl": null,
+      "winnerSource": null,
+      "emptyReason": "no-candidate-qualified",
+      "candidateCount": 14,
+      "pool": [
+        {
+          "source": "bingImages",
+          "url": "https://www.simplypsychology.org/wp-content/uploads/relationship-break-up-1536x1085.jpeg",
+          "title": "How to End a Relationship: Rituals for Breakups",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://boilingwaters.ph/wp-content/uploads/2019/07/sad-couple-break-up.jpg",
+          "title": "To the man who will love her next | Boiling Waters",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://media.invisioncic.com/e322713/monthly_2025_04/Ending-Relationships-With-Compassion-and-Clarity.webp.965bcff1a0e612023c51b8dd8b941429.webp",
+          "title": "12 best breakup movies to mend a shattered heart - Breaking Up",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://cdn.pixabay.com/photo/2022/09/24/16/39/breakup-7476754_1280.jpg",
+          "title": "20,000+ Free Breakup Love & Breakup Images - Pixabay",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/736x/eb/8a/5c/eb8a5cb42b67e251616e0c22b7747128.jpg",
+          "title": "Pin on Breakup picture",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.bonobology.com/wp-content/uploads/2022/08/How-To-Break-Up-A-Couple-11-Sly-Ways-.jpg",
+          "title": "How To Break Up A Couple – 11 Sly Ways",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.herzindagi.info/image/2024/Sep/Breakup-Quotes-From-Movies.jpg",
+          "title": "20+ Heart-Touching Breakup Quotes To Mend Your Broken Heart | HerZindagi",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://m.media-amazon.com/images/M/MV5BZGZiMGMwYTctMGI4Zi00MDI0LWFiYjMtNjg4ZTVkZGQwN2Y5XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+          "title": "Break Up Scene (Short) - IMDb",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3276/2964993718_6aa4958de5.jpg",
+          "title": "Happy break-up-iversary",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/8421/7591264544_1885000c14_b.jpg",
+          "title": "Yellow Bow-Broken Heart...The Break Up",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/5310/5628123579_8ddc9c1f59_b.jpg",
+          "title": "Over (Breaking up and a Coke)",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/131/340552944_9307ad93a7_b.jpg",
+          "title": "Break up",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/5576/14803478040_44fe7f117e_b.jpg",
+          "title": "Cygnus Breaks Up Over Earth (NASA, International Space Station, 08/17/14)",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        },
+        {
+          "source": "pixabay",
+          "url": "https://cdn.pixabay.com/photo/2020/06/08/18/50/chipmunk-5275697_1280.jpg",
+          "title": null,
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-idiom-no-figurative-evidence"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "unsplash",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "pixabay",
+          "hasData": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "lit",
+      "sentence": "",
+      "ms": 4021,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/4076/4880127405_5a4dd44c8b_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 13,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/4076/4880127405_5a4dd44c8b_b.jpg",
+          "title": "France, Aisne (02) Guise : Familistère : appartement : lit et fenêtre, vue extérieure.",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/8036/7915362932_d33a0dfcea_b.jpg",
+          "title": "Lit 'Aube et Crépuscule' d'Emile Gallé (musée de l'Ecole de Nancy)",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3918/15155283708_2662bf864d_b.jpg",
+          "title": "Three-year-old Jennifer Adair with a book, Montreal, Quebec / Une lectrice de trois ans, Jennifer Adair, lit dans une bibliothèque publique de Montréal (Québec)",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7449/9733571955_b2226e9ab5_b.jpg",
+          "title": "'Candle Lit Dinner', United States, Maine, Wheeler Bay",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/65535/47103017054_9f6274f8a7_b.jpg",
+          "title": "The well-lit coasts of Spain, France and Italy",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.idmarket.com/52407-product_main_2x/lit-double-nathan-140-x-190-cm-avec-tete-de-lit-chevets-suspendus-etagere-led-et-sommier-bois-et-noir.jpg",
+          "title": "Lit double 140 x 190 cm bois et noir avec tête de lit et chevets ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.idmarket.com/44358-product_main_2x/lit-double-santa-avec-tete-de-lit-tables-de-chevet-integrees-et-sommier-140-x-190-cm-blanc.jpg",
+          "title": "Lit double 140x190 blanc avec tête de lit et tables de chevet - SANTA ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img2.tradewheel.com/uploads/images/products/2/2/bedroom-furniture-home-lit-en-bois-luxury-bed-solid-wooden-frame-queen-cama-matrimonial-storage-bett-king-size-beds-lit-complet2-0837901001721540657.png",
+          "title": "Buy Bedroom Furniture Home Lit En Bois Luxury Bed Solid Wooden Frame ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img2.tradewheel.com/uploads/images/products/6/3/bedroom-furniture-lit-complet-luxury-bed-wooden-queen-frame-storage-letto-home-cama-matrimonial-bett-king-size-bed-lit-en-bois1-0765258001721539556.jpg.webp",
+          "title": "Buy Bedroom Furniture Lit Complet Luxury Bed Wooden Queen Frame Storage ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/736x/54/24/36/54243644282b899c773ece812e0b881e.jpg",
+          "title": "Lit Design IMPERIAL avec éclairage LED | Modern bed, Cool bed frames, Bed",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/736x/f0/66/d5/f066d5b5ef14c796eb6b257925f36fbf.jpg",
+          "title": "Lit adulte | Bedroom furniture design, Bed, Toddler bed",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/736x/12/8f/ae/128faea9beaf61e7c6cb15e2f831af35.jpg",
+          "title": "Lit adulte | Room inspiration, Bed, Furniture",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/736x/68/6b/83/686b8331e63860bc589511d8838e6f35.jpg",
+          "title": "Modern home decor | Modern bed with unique headboard, Bedroom bed ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-fallback-no-lexical-anchor"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "forget",
+      "sentence": "",
+      "ms": 4014,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/3220/2965470393_40fcfff25e_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 13,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3220/2965470393_40fcfff25e_b.jpg",
+          "title": "We can't forget...",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/5584/14615838300_eb3436ab1c_b.jpg",
+          "title": "Changi Beach - Lest we forget",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3151/2672780121_9528c78c25_b.jpg",
+          "title": "forgetful",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/927/43585760981_8654c67769_b.jpg",
+          "title": "She could deal with constantly forgetting her shopping list",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/1547/23787450049_704a3be5f5_b.jpg",
+          "title": "2016-01-03 strolling among the forget-me-nots of the angels",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://thebraintower.com/wp-content/uploads/2025/04/WhatsApp-Image-2025-04-01-at-12.58.14_1c2e0c5b.jpg",
+          "title": "Why Do You Keep Forgetting Things? Signs of Memory Loss & When to Worry ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://d2rd7etdn93tqb.cloudfront.net/wp-content/uploads/2017/01/forgetful-person-facepalm-010817.jpg",
+          "title": "Common Habits of Frequently Forgetful People",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://image-v2.cdn.app.senecalearning.com/2018-08/f7026e11-6afd-45be-b939-dcc2ae53e0e9/forgetful-man-forget,h_400,q_80,w_640.jpg",
+          "title": "Explanations for Forgetting | Free Notes & Practice – Psychology: AQA A ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://clozepassage.com/wp-content/uploads/20064506_6215957.jpg",
+          "title": "Mystery of Forgetfulness: Exploring the Science Behind Why People ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://dam.northwell.edu/asset/8dd71b42-fc21-4a2e-b1e9-6a0f99d7c6de/Drupal/TheWell_forgetfulness_AS_586528651.jpg",
+          "title": "Memory Loss: Red Flag Or Normal Behavior? | The Well by Northwell",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.squarespace-cdn.com/content/v1/650bf84a80967255d809e577/b1bb84fe-5a32-4500-b539-91b2eb811ded/forgetfullness.png",
+          "title": "cloft.com | How Sleep Quality Affects Mental Health",
+          "score": 10,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-lexical-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.hindustantimes.com/rf/image_size_640x362/HT/p2/2016/06/04/Pictures/_815c7640-2a09-11e6-a271-92fd27615944.jpg",
+          "title": "Forgot something? Don’t worry for it is actually good for your memory ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-fallback-no-lexical-anchor"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://png.pngtree.com/png-clipart/20230303/original/pngtree-forgetfulness-memory-loss-forgetting-png-image_8970736.png",
+          "title": "Forgetfulness WHY DO WE STRUGGLE REMEMBERING NEW NAMES & HOW TO",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "support",
+      "sentence": "",
+      "ms": 4017,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/7127/7124385985_5a581ea47f_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 14,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7127/7124385985_5a581ea47f_b.jpg",
+          "title": "Support",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3192/3024827228_0f68229854_b.jpg",
+          "title": "Twitter Support",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/65535/52639136509_f6954bf490_b.jpg",
+          "title": "Support",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7155/6527380785_c2c4d2c53b_b.jpg",
+          "title": "support",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/2911/14067182670_6211e457d0_b.jpg",
+          "title": "Flickr Support",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/1/16/A_man_helps_to_manage_cattle_at_the_cattle_post.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+          "title": "File:A man helps to manage cattle at the cattle post.jpg",
+          "score": 0,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/thumbnails/002/167/147/small_2x/teamwork-and-collaboration-colleagues-togetherness-and-support-each-other-to-achieve-business-goal-concept-group-of-businessmen-and-women-office-workers-help-and-support-to-pull-arrow-rising-up-vector.jpg",
+          "title": "Support Group Vector Art, Icons, and Graphics for Free Download",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/thumbnails/020/811/026/small_2x/community-solidarity-of-peoples-inter-racial-friendship-teamwork-volunteer-concept-hand-drawn-group-of-friendly-volunteers-putting-hands-together-illustration-vector.jpg",
+          "title": "Support Group Vector Art, Icons, and Graphics for Free Download",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/thumbnails/051/419/715/small_2x/mental-health-group-therapy-a-group-of-diverse-individuals-sitting-in-a-circle-for-therapy-highlighting-the-inclusive-nature-of-mental-health-support-in-insurance-plans-vector.jpg",
+          "title": "Support Group Vector Art, Icons, and Graphics for Free Download",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/thumbnails/000/342/058/small_2x/0039-support-group.jpg",
+          "title": "Support Group Vector Art, Icons, and Graphics for Free Download",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/thumbnails/041/175/258/small_2x/positive-psychology-positive-thinking-and-attitude-optimistic-mindset-vector.jpg",
+          "title": "Support Group Vector Art, Icons, and Graphics for Free Download",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/thumbnails/011/419/141/small_2x/meeting-of-group-of-people-for-talk-dialog-communication-discussion-business-relationship-discuss-problems-together-exchange-opinions-of-team-worker-support-group-illustration-vector.jpg",
+          "title": "Support Group Vector Art, Icons, and Graphics for Free Download",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/thumbnails/005/138/173/small_2x/support-groups-rgb-color-icons-set-mental-health-recovery-addiction-treatment-isolated-illustrations-simple-filled-line-drawings-collection-editable-stroke-quicksand-light-font-used-vector.jpg",
+          "title": "Support Group Icon Vector Art, Icons, and Graphics for Free Download",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/thumbnails/017/543/893/small_2x/interracial-idyllic-icon-outline-illustration-vector.jpg",
+          "title": "Support Group Icon Vector Art, Icons, and Graphics for Free Download",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "give",
+      "sentence": "",
+      "ms": 925,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/248/3264112407_278e67eb32_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 13,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/248/3264112407_278e67eb32_b.jpg",
+          "title": "Give, take 'n share",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3671/13253693204_327f3ce1de_b.jpg",
+          "title": "Forgive/Give ~ Luke 6",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/25/59306504_5d561cd58c_b.jpg",
+          "title": "Give to Humanity... (repost)",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7471/15663723693_54228feeed.jpg",
+          "title": "BLMERS #GIVINGBACK: BLM Nevada Employee Gives Young Campers a Chance for Fun",
+          "score": -5,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/daisies-give-flower_87720-85228.jpg?w=996",
+          "title": "Premium Photo | Daisies give flower",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://assets.onyamagazine.com/wp-content/uploads/2020/09/25173231/Screen-Shot-2020-09-25-at-5.32.24-pm.png",
+          "title": "12 Awesome Reasons To Give Flowers To Someone You Love - Onya Magazine",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://c8.alamy.com/comp/J6P4WJ/woman-women-flower-flowers-plant-bouquet-gift-donate-give-away-girl-J6P4WJ.jpg",
+          "title": "woman women flower flowers plant bouquet gift donate give away girl ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.wikihow.com/images/d/dc/Give-Flowers-Step-17.jpg",
+          "title": "How to Give Flowers (with Pictures) - wikiHow",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.wcicfm.org/wp-content/uploads/give-yellow-flowers-istock-992112226.jpg",
+          "title": "Reflecting on 2024: A Year of Community Impact - WCIC",
+          "score": 10,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-lexical-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/5713331/pexels-photo-5713331.jpeg?cs=srgb&dl=pexels-karolina-grabowska-5713331.jpg&fm=jpg",
+          "title": "Flowers Giving Photos, Download The BEST Free Flowers Giving Stock ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-fallback-no-lexical-anchor"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://cdn.pixabay.com/photo/2012/03/12/14/40/flower-22656_1280.jpg",
+          "title": "400+ Free Giving Flowers & Thank You Photos - Pixabay",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-fallback-no-lexical-anchor"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img.freepik.com/premium-photo/person-giving-flowers-smiling-friend-outdoors_878954-16220.jpg",
+          "title": "Person giving flowers to smiling friend outdoors | Premium AI-generated ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-fallback-no-lexical-anchor"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/2653/4110711805_66b77937cf_m.jpg",
+          "title": "chase giving",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-invalid-shape"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "umbrella",
+      "sentence": "",
+      "ms": 4024,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/3149/2775486094_2bacbb9be4_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 17,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3149/2775486094_2bacbb9be4_b.jpg",
+          "title": "Umbrellas 05",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3333/3208061607_efa4a3ce74_b.jpg",
+          "title": "Help me, alls I's gots is this umbrella!",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3714/8996546325_8158afa2a2_b.jpg",
+          "title": "Colourful Umbrellas",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7020/6450761035_81e6837bf4_b.jpg",
+          "title": "Umbrella",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/1/1188411_8f803b4a41.jpg",
+          "title": "thailand umbrellas 02",
+          "score": -5,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/1451040/pexels-photo-1451040.jpeg?cs=srgb&dl=pexels-enginakyurt-1451040.jpg&fm=jpg",
+          "title": "Umbrella Rain Photos, Download The BEST Free Umbrella Rain Stock Photos ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/268941/pexels-photo-268941.jpeg?cs=srgb&dl=pexels-pixabay-268941.jpg&fm=jpg",
+          "title": "Umbrella Rain Photos, Download The BEST Free Umbrella Rain Stock Photos ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/previews/013/134/783/non_2x/a-colorful-umbrella-under-the-pouring-monsoon-rain-photo.jpg",
+          "title": "Rain Umbrella Photography Rainy Day Family Photos — Greenville",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/2769117/pexels-photo-2769117.jpeg?cs=srgb&dl=pexels-joelpapalini-2769117.jpg&fm=jpg",
+          "title": "Umbrella Rain Photos, Download The BEST Free Umbrella Rain Stock Photos ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/10339885/pexels-photo-10339885.jpeg?cs=srgb&dl=pexels-reem-mansour-137930635-10339885.jpg&fm=jpg",
+          "title": "Umbrella Rain Photos, Download The BEST Free Umbrella Rain Stock Photos ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://static.vecteezy.com/system/resources/previews/076/620/106/large_2x/green-umbrella-in-the-rain-photo.jpg",
+          "title": "Green umbrella in the rain 76620106 Stock Photo at Vecteezy",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.sjdphotodesign.com/wp-content/uploads/2017/08/Raining-Umbrella.jpg",
+          "title": "Rain Umbrella Photography Rainy Day Family Photos — Greenville - ikumen",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://images.pexels.com/photos/5994460/pexels-photo-5994460.jpeg?cs=srgb&dl=pexels-andrei-5994460.jpg&fm=jpg",
+          "title": "Umbrella Rain Photos, Download The BEST Free Umbrella Rain Stock Photos ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Zenkoji-Nagano.JPG/960px-Zenkoji-Nagano.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Zenkoji-Nagano.JPG",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Playa_Para%C3%ADso%2C_Villajoyosa%2C_Espa%C3%B1a%2C_2014-07-03%2C_DD_01-02_PAN.JPG/960px-Playa_Para%C3%ADso%2C_Villajoyosa%2C_Espa%C3%B1a%2C_2014-07-03%2C_DD_01-02_PAN.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Playa Paraíso, Villajoyosa, España, 2014-07-03, DD 01-02 PAN.JPG",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f4/Stadtansicht-Saarburg-Leukbach-2016.jpg/960px-Stadtansicht-Saarburg-Leukbach-2016.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Stadtansicht-Saarburg-Leukbach-2016.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Public_punishment_in_the_Santa_Ana_square_by_Johann_Moritz_Rugendas_02.jpg/960px-Public_punishment_in_the_Santa_Ana_square_by_Johann_Moritz_Rugendas_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+          "title": "File:Public punishment in the Santa Ana square by Johann Moritz Rugendas 02.jpg",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-bad-subject"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "whatever",
+      "sentence": "",
+      "ms": 4021,
+      "error": null,
+      "winnerUrl": null,
+      "winnerSource": null,
+      "emptyReason": "low-imageability-token",
+      "candidateCount": 13,
+      "pool": [],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    }
+  ],
+  "finishedAt": "2026-09-06T23:06:02.223Z"
+}

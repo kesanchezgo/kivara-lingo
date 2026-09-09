@@ -22,13 +22,26 @@
  *   - X-Requested-With: XMLHttpRequest
  *
  * With those headers DDG ships ~90 image hits per query.
+ *
+ * DDG is a weak-signal FALLBACK source: each hit carries a `title`
+ * (and width/height) which we surface so the orchestrator's image
+ * ranking can run its bad-subject filter and require a lexical anchor.
+ * It only publishes when no free-license, metadata-rich source
+ * (Wikimedia/Openverse) had a qualifying image.
  */
 
 import { fetchHtml, fetchJson } from '../fetcher';
-import type { EnrichmentSource, SourcePartial } from '../types';
+import type { EnrichmentSource, ImageCandidate, SourcePartial } from '../types';
 
 interface DdgResults {
-  results?: Array<{ image?: string; thumbnail?: string }>;
+  results?: Array<{
+    image?: string;
+    thumbnail?: string;
+    title?: string;
+    url?: string;
+    width?: number;
+    height?: number;
+  }>;
 }
 
 export const duckduckgoImagesSource: EnrichmentSource = {
@@ -61,9 +74,22 @@ export const duckduckgoImagesSource: EnrichmentSource = {
         'Sec-Fetch-Site': 'same-origin',
       },
     });
-    const first = data?.results?.[0];
-    const url = first?.image || first?.thumbnail;
-    if (!url) return {};
-    return { imageUrl: url };
+    const seen = new Set<string>();
+    const imageCandidates: ImageCandidate[] = [];
+    for (const hit of data?.results ?? []) {
+      const url = hit.image || hit.thumbnail;
+      if (!url || !/^https?:\/\//.test(url) || seen.has(url)) continue;
+      seen.add(url);
+      imageCandidates.push({
+        url,
+        ...(hit.title?.trim() ? { title: hit.title.trim() } : {}),
+        ...(hit.url ? { sourcePageUrl: hit.url } : {}),
+        ...(typeof hit.width === 'number' ? { width: hit.width } : {}),
+        ...(typeof hit.height === 'number' ? { height: hit.height } : {}),
+      });
+      if (imageCandidates.length >= 8) break;
+    }
+    if (!imageCandidates.length) return {};
+    return { imageUrl: imageCandidates[0].url, imageCandidates };
   },
 };
