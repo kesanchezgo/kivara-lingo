@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-09T21:33:02.237Z",
+  "generatedAt": "2026-09-09T21:44:20.819Z",
   "runtime": "Playwright persistent Chromium with unpacked MV3 extension, full source set per tier",
   "extensionId": "pkafehpbjfkkfnjaeombdemckeoohhpb",
   "corpus": [
@@ -74,7 +74,7 @@
       "tier": "standard",
       "token": "apple",
       "sentence": "She ate a ripe apple.",
-      "ms": 16043,
+      "ms": 15662,
       "error": null,
       "card": {
         "entry": {
@@ -495,7 +495,7 @@
       "tier": "standard",
       "token": "run",
       "sentence": "She ran home.",
-      "ms": 13629,
+      "ms": 13427,
       "error": null,
       "card": {
         "entry": {
@@ -509,7 +509,7 @@
           "examples": [
             "She ran home. — Corrió a casa.",
             "She runs the fundraising. — Ella dirige la recaudación de fondos.",
-            "My uncle ran a corner store for forty years. — Mi tío dirigió una tienda de la esquina durante cuarenta años.",
+            "My uncle ran a corner store for forty years. — Mi tío regentó una tienda de barrio durante cuarenta años.",
             "Run away. — Huir."
           ]
         },
@@ -586,7 +586,7 @@
             {
               "source": "wiktionaryApi",
               "text": "My uncle ran a corner store for forty years.",
-              "translation": "Mi tío dirigió una tienda de la esquina durante cuarenta años."
+              "translation": "Mi tío regentó una tienda de barrio durante cuarenta años."
             },
             {
               "source": "tatoeba",
@@ -601,12 +601,12 @@
             {
               "source": "wiktionary",
               "text": "Run , and you might still catch the train !",
-              "translation": "¡Corre , y es posible que aún tomes el tren !"
+              "translation": "¡Corre y es posible que aún puedas coger el tren!"
             },
             {
               "source": "wiktionary",
               "text": "Sorry, I've got to run ; my house is on fire !",
-              "translation": "Lo siento, tengo que correr ; ¡mi casa está en llamas !"
+              "translation": "Lo siento, tengo que correr; ¡Mi casa está en llamas!"
             },
             {
               "source": "wordnet",
@@ -616,7 +616,7 @@
             {
               "source": "wordnet",
               "text": "their first tally came in the 3rd inning",
-              "translation": "su primer recuento llegó en la tercera entrada"
+              "translation": "su primera cuenta llegó en la tercera entrada."
             }
           ],
           "videoLinks": [
@@ -958,7 +958,7 @@
       "tier": "standard",
       "token": "run",
       "sentence": "She runs the company from home.",
-      "ms": 12976,
+      "ms": 12928,
       "error": null,
       "card": {
         "entry": {
@@ -973,7 +973,7 @@
             "She runs the fundraising. — Ella dirige la recaudación de fondos.",
             "She ran home. — Corrió a casa.",
             "the Yankees scored 3 runs in the bottom of the 9th — los Yankees anotaron 3 carreras en la parte baja de la novena",
-            "Run , and you might still catch the train ! — ¡Corre , y es posible que aún tomes el tren !"
+            "Run , and you might still catch the train ! — ¡Corre y es posible que aún puedas coger el tren!"
           ]
         },
         "vip": {
@@ -1054,7 +1054,7 @@
             {
               "source": "wiktionary",
               "text": "Run , and you might still catch the train !",
-              "translation": "¡Corre , y es posible que aún tomes el tren !"
+              "translation": "¡Corre y es posible que aún puedas coger el tren!"
             },
             {
               "source": "wiktionaryApi",
@@ -1079,7 +1079,7 @@
             {
               "source": "wordnet",
               "text": "their first tally came in the 3rd inning",
-              "translation": "su primer recuento llegó en la tercera entrada"
+              "translation": "su primera cuenta llegó en la tercera entrada."
             }
           ],
           "videoLinks": [
@@ -1423,7 +1423,7 @@
       "tier": "standard",
       "token": "anything",
       "sentence": "I do not need anything else.",
-      "ms": 13445,
+      "ms": 13664,
       "error": null,
       "card": {
         "entry": {
@@ -1821,7 +1821,7 @@
       "tier": "standard",
       "token": "anybody",
       "sentence": "I did not see anybody at the park.",
-      "ms": 14449,
+      "ms": 14441,
       "error": null,
       "card": {
         "entry": {
@@ -2199,7 +2199,7 @@
       "tier": "standard",
       "token": "each",
       "sentence": "Each student has a book.",
-      "ms": 13998,
+      "ms": 13486,
       "error": null,
       "card": {
         "entry": {
@@ -2632,7 +2632,7 @@
       "tier": "standard",
       "token": "tensor",
       "sentence": "The model uses a tensor.",
-      "ms": 14167,
+      "ms": 12021,
       "error": null,
       "card": {
         "entry": {
@@ -2645,7 +2645,7 @@
           ]
         },
         "vip": {
-          "etymology": "in anatomy, \"one of several muscles that stretch or tighten a part,\" 1704, Modern Latin agent noun from tens- , past-participle stem of Latin tendere \"to stretch\" (from PIE root *ten- \"to stretch\").",
+          "etymology": "Borrowed from New Latin tensor ( “ that which stretches ” ) , equivalent to tense + ‎ -or . Anatomical sense from 1704. Introduced in the 1840s by William Rowan Hamilton as an algebraic quantity unrelated to the modern notion of tensor. The contemporary mathematical meaning was introduced (as German Tensor ) by Woldemar Voigt (1898) [ 1 ] and adopted in E…",
           "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Covariance_and_contravariance_of_vectors.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
           "definitions": [
             {
@@ -2753,6 +2753,21 @@
               "reasons": [],
               "candidates": 1,
               "runnerUps": []
+            },
+            {
+              "field": "etymology",
+              "winner": "Borrowed from New Latin tensor ( “ that which stretches ” ) , equivalent to tense + ‎ -or . Anatomical sense from 1704. ",
+              "source": "wiktionaryHtml",
+              "candidates": 2,
+              "reasons": [
+                "ok-definition-domain-match"
+              ],
+              "runnerUps": [
+                {
+                  "source": "etymonline",
+                  "text": "in anatomy, \"one of several muscles that stretch or tighten a part,\" 1704, Moder"
+                }
+              ]
             },
             {
               "field": "image",
@@ -3000,7 +3015,7 @@
       "tier": "standard",
       "token": "lit",
       "sentence": "The show was lit.",
-      "ms": 18102,
+      "ms": 15694,
       "error": null,
       "card": {
         "entry": {
@@ -3009,7 +3024,7 @@
           "monolingual": "Slang: excellent, exciting, or highly enjoyable.",
           "phonetic": "/ˈlɪt/",
           "examples": [
-            "The show was lit. — El espectáculo estaba iluminado.",
+            "The show was lit. — El espectáculo estaba encendido.",
             "He lit the fuse. — Encendió el fusible.",
             "Tom lit a cigarette. — Tom prendió un cigarrillo.",
             "He walked down the lit corridor. — Caminó por el pasillo iluminado."
@@ -3077,7 +3092,7 @@
             {
               "source": "bundled",
               "text": "The show was lit.",
-              "translation": "El espectáculo estaba iluminado."
+              "translation": "El espectáculo estaba encendido."
             },
             {
               "source": "tatoeba",
@@ -3428,7 +3443,7 @@
       "tier": "standard",
       "token": "break up",
       "sentence": "They decided to break up after college because their relationship was over.",
-      "ms": 13543,
+      "ms": 13588,
       "error": null,
       "card": {
         "entry": {
@@ -3844,7 +3859,7 @@
       "tier": "standard",
       "token": "piece of cake",
       "sentence": "The exam was a piece of cake.",
-      "ms": 13575,
+      "ms": 13429,
       "error": null,
       "card": {
         "entry": {
@@ -4211,7 +4226,7 @@
       "tier": "standard",
       "token": "forget",
       "sentence": "Do not forget your keys.",
-      "ms": 13555,
+      "ms": 13479,
       "error": null,
       "card": {
         "entry": {
@@ -4231,7 +4246,7 @@
             "Do not forget your keys. — No olvides tus llaves.",
             "Forget me. — Olvídame.",
             "Forget it! — ¡Qué cosa!",
-            "People forget how much work goes into what we do. — La gente olvida cuánto trabajo se dedica a lo que hacemos."
+            "People forget how much work goes into what we do. — La gente olvida cuánto trabajo implica lo que hacemos."
           ]
         },
         "vip": {
@@ -4311,7 +4326,7 @@
             {
               "source": "wiktionaryApi",
               "text": "People forget how much work goes into what we do.",
-              "translation": "La gente olvida cuánto trabajo se dedica a lo que hacemos."
+              "translation": "La gente olvida cuánto trabajo implica lo que hacemos."
             },
             {
               "source": "wiktionary",
@@ -4321,7 +4336,7 @@
             {
               "source": "wordnet",
               "text": "Don't forget to call the chairman of the board to the meeting!",
-              "translation": "¡No olvides llamar al presidente de la junta a la reunión!"
+              "translation": "¡No olvides convocar al presidente de la junta directiva a la reunión!"
             },
             {
               "source": "wiktionary",
@@ -4462,7 +4477,7 @@
               ]
             }
           ],
-          "imageCandidates": 21
+          "imageCandidates": 13
         },
         "successfulSources": [
           "datamuse",
@@ -4478,7 +4493,6 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet"
@@ -4638,11 +4652,8 @@
         {
           "source": "duckduckgoImages",
           "token": "forget",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -4677,7 +4688,7 @@
       "tier": "standard",
       "token": "support",
       "sentence": "Her family supported her decision.",
-      "ms": 13543,
+      "ms": 13359,
       "error": null,
       "card": {
         "entry": {
@@ -4714,7 +4725,7 @@
             "We supported Tom. — Apoyamos a Tom.",
             "Nobody supports her. — Nadie la apoya.",
             "his support kept the family together — su apoyo mantuvo unida a la familia",
-            "He staggered away from the accident site, supported by one friend on each side. — Se alejó tambaleándose del lugar del accidente, apoyado por un amigo a cada lado."
+            "He staggered away from the accident site, supported by one friend on each side. — Se alejó tambaleándose del lugar del accidente, sostenido por un amigo a cada lado."
           ]
         },
         "vip": {
@@ -4794,7 +4805,7 @@
             {
               "source": "wiktionary",
               "text": "He staggered away from the accident site, supported by one friend on each side.",
-              "translation": "Se alejó tambaleándose del lugar del accidente, apoyado por un amigo a cada lado."
+              "translation": "Se alejó tambaleándose del lugar del accidente, sostenido por un amigo a cada lado."
             },
             {
               "source": "wiktionary",
@@ -4809,7 +4820,7 @@
             {
               "source": "wiktionaryApi",
               "text": "Mars does not currently support human habitation.",
-              "translation": "Marte actualmente no admite la presencia humana."
+              "translation": "Marte actualmente no es compatible con la habitación humana."
             },
             {
               "source": "wiktionaryApi",
@@ -4819,7 +4830,7 @@
             {
               "source": "bundled",
               "text": "Don’t move that beam! It supports the whole platform.",
-              "translation": "¡No muevas esa viga! Es compatible con toda la plataforma."
+              "translation": "¡No muevas ese rayo! Es compatible con toda la plataforma."
             }
           ],
           "videoLinks": [
@@ -4936,7 +4947,7 @@
               ]
             }
           ],
-          "imageCandidates": 22
+          "imageCandidates": 14
         },
         "successfulSources": [
           "datamuse",
@@ -4953,7 +4964,6 @@
           "bingImages",
           "openverse",
           "wikimediaCommons",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet"
@@ -5119,11 +5129,8 @@
         {
           "source": "duckduckgoImages",
           "token": "support",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -5158,7 +5165,7 @@
       "tier": "standard",
       "token": "give",
       "sentence": "Give me the keys, please.",
-      "ms": 12018,
+      "ms": 13461,
       "error": null,
       "card": {
         "entry": {
@@ -5397,7 +5404,7 @@
               ]
             }
           ],
-          "imageCandidates": 21
+          "imageCandidates": 13
         },
         "successfulSources": [
           "datamuse",
@@ -5413,7 +5420,6 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet"
@@ -5574,11 +5580,8 @@
         {
           "source": "duckduckgoImages",
           "token": "give",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -5613,7 +5616,7 @@
       "tier": "standard",
       "token": "know",
       "sentence": "I do not know the answer.",
-      "ms": 13513,
+      "ms": 13419,
       "error": null,
       "card": {
         "entry": {
@@ -5622,8 +5625,8 @@
           "monolingual": "perceive as familiar",
           "phonetic": "/noʊ/",
           "examples": [
-            "You know! — ¡tú qué sabes!",
-            "I want to know who is winning the game! — ¡Quiero saber quién está ganando el juego!",
+            "You know! — ¡Sabes!",
+            "I want to know who is winning the game! — ¡Quiero saber quién gana el juego!",
             "I know that the President lied to the people — Sé que el presidente le mintió al pueblo.",
             "I know that I’m right and you’re wrong. — Sé que tengo razón y tú estás equivocado."
           ]
@@ -5690,12 +5693,12 @@
             {
               "source": "tatoeba",
               "text": "You know!",
-              "translation": "¡tú qué sabes!"
+              "translation": "¡Sabes!"
             },
             {
               "source": "wordnet",
               "text": "I want to know who is winning the game!",
-              "translation": "¡Quiero saber quién está ganando el juego!"
+              "translation": "¡Quiero saber quién gana el juego!"
             },
             {
               "source": "wordnet",
@@ -5710,7 +5713,7 @@
             {
               "source": "wiktionaryApi",
               "text": "Did you know Michelle and Jack were getting divorced? ― Yes, I knew.",
-              "translation": "¿Sabías que Michelle y Jack se iban a divorciar? -Sí, lo sabía."
+              "translation": "¿Sabías que Michelle y Jack se iban a divorciar? - Sí, lo sabía."
             },
             {
               "source": "wiktionaryApi",
@@ -5724,8 +5727,7 @@
             },
             {
               "source": "wiktionary",
-              "text": "He knew something terrible was going to happen.",
-              "translation": "Sabía que algo terrible iba a pasar."
+              "text": "He knew something terrible was going to happen."
             }
           ],
           "videoLinks": [
@@ -5840,7 +5842,7 @@
               ]
             }
           ],
-          "imageCandidates": 21
+          "imageCandidates": 13
         },
         "successfulSources": [
           "datamuse",
@@ -5856,7 +5858,6 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet"
@@ -6014,11 +6015,8 @@
         {
           "source": "duckduckgoImages",
           "token": "know",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -6053,7 +6051,7 @@
       "tier": "standard",
       "token": "week",
       "sentence": "Oh, yeah, last week you had a wonderful cake.",
-      "ms": 12020,
+      "ms": 13396,
       "error": null,
       "card": {
         "entry": {
@@ -6067,8 +6065,8 @@
           "examples": [
             "It was last week. — Pasó la última semana.",
             "It happened last week. — Pasó la última semana.",
-            "it rained for a week — llovió durante una semana",
-            "they worked a 40-hour week — trabajaron una semana de 40 horas"
+            "it rained for a week — Estuvo lloviendo durante una semana.",
+            "they worked a 40-hour week — trabajaban una semana de 40 horas"
           ]
         },
         "vip": {
@@ -6131,17 +6129,17 @@
             {
               "source": "wordnet",
               "text": "it rained for a week",
-              "translation": "llovió durante una semana"
+              "translation": "Estuvo lloviendo durante una semana."
             },
             {
               "source": "wordnet",
               "text": "they worked a 40-hour week",
-              "translation": "trabajaron una semana de 40 horas"
+              "translation": "trabajaban una semana de 40 horas"
             },
             {
               "source": "wiktionaryApi",
               "text": "I'll see you Thursday week. [a week on Thursday, i.e. Thursday after next]",
-              "translation": "Te veré el jueves de la semana. [una semana el jueves, es decir, el jueves siguiente al siguiente]"
+              "translation": "Te veré el jueves por la semana. [a week on Thursday, i.e. Thursday after next]"
             },
             {
               "source": "wiktionary",
@@ -6270,7 +6268,7 @@
               ]
             }
           ],
-          "imageCandidates": 21
+          "imageCandidates": 13
         },
         "successfulSources": [
           "datamuse",
@@ -6285,7 +6283,6 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet"
@@ -6441,11 +6438,8 @@
         {
           "source": "duckduckgoImages",
           "token": "week",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -6480,14 +6474,14 @@
       "tier": "vip",
       "token": "apple",
       "sentence": "She ate a ripe apple.",
-      "ms": 12877,
+      "ms": 12806,
       "error": null,
       "card": {
         "entry": {
           "translation": "manzana",
           "bilingual": "manzana · manzano",
           "monolingual": "a hard round fruit that has red , light green , or yellow skin and is white inside",
-          "phonetic": "/ˈæp. ə l/",
+          "phonetic": "/ˈæp.əl/",
           "collocations": [
             "crab apple"
           ],
@@ -6710,7 +6704,7 @@
             },
             {
               "field": "phonetic",
-              "winner": "/ˈæp. ə l/",
+              "winner": "/ˈæp.əl/",
               "source": "cambridge",
               "candidates": 5,
               "reasons": [
@@ -6746,7 +6740,7 @@
               "field": "image",
               "winner": "https://live.staticflickr.com/6117/6284756738_c53e17e6bc_b.jpg",
               "source": "openverse",
-              "candidates": 26,
+              "candidates": 18,
               "reasons": [
                 "ok-primary-source",
                 "ok-exact-match",
@@ -6814,7 +6808,7 @@
             }
           ],
           "imageSource": "openverse",
-          "imageCandidates": 26
+          "imageCandidates": 18
         },
         "successfulSources": [
           "datamuse",
@@ -6831,7 +6825,6 @@
           "bingImages",
           "openverse",
           "wikimediaCommons",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet",
@@ -7006,11 +6999,8 @@
         {
           "source": "duckduckgoImages",
           "token": "apple",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -7221,7 +7211,7 @@
       "tier": "vip",
       "token": "run",
       "sentence": "She ran home.",
-      "ms": 12973,
+      "ms": 12909,
       "error": null,
       "card": {
         "entry": {
@@ -8005,7 +7995,7 @@
       "tier": "vip",
       "token": "run",
       "sentence": "She runs the company from home.",
-      "ms": 12699,
+      "ms": 12705,
       "error": null,
       "card": {
         "entry": {
@@ -8803,7 +8793,7 @@
       "tier": "vip",
       "token": "anything",
       "sentence": "I do not need anything else.",
-      "ms": 13301,
+      "ms": 12705,
       "error": null,
       "card": {
         "entry": {
@@ -8989,7 +8979,7 @@
             {
               "source": "cambridge",
               "text": "Is there anything I can do to help ? ¿Puedo ayudar en algo?",
-              "translation": "¿Hay algo que pueda hacer para ayudar? ¿Puedo ayudar en algo?"
+              "translation": "¿Hay algo que pueda hacer para ayudar ? ¿Puedo ayudar en algo?"
             }
           ],
           "videoLinks": [
@@ -9551,7 +9541,7 @@
       "tier": "vip",
       "token": "anybody",
       "sentence": "I did not see anybody at the park.",
-      "ms": 12646,
+      "ms": 12596,
       "error": null,
       "card": {
         "entry": {
@@ -10265,7 +10255,7 @@
       "tier": "vip",
       "token": "each",
       "sentence": "Each student has a book.",
-      "ms": 12925,
+      "ms": 12922,
       "error": null,
       "card": {
         "entry": {
@@ -11039,14 +11029,14 @@
       "tier": "vip",
       "token": "tensor",
       "sentence": "The model uses a tensor.",
-      "ms": 12875,
+      "ms": 12038,
       "error": null,
       "card": {
         "entry": {
           "translation": "tensor",
           "bilingual": "tensor · músculo tensor",
           "monolingual": "a generalization of the concept of a vector",
-          "phonetic": "/ˈten.sə r/",
+          "phonetic": "/ˈten.sər/",
           "examples": [
             "tensor , a. tensor muscle — tensor m",
             "The model uses a tensor. — El modelo utiliza un tensor.",
@@ -11055,7 +11045,7 @@
           ]
         },
         "vip": {
-          "etymology": "in anatomy, \"one of several muscles that stretch or tighten a part,\" 1704, Modern Latin agent noun from tens- , past-participle stem of Latin tendere \"to stretch\" (from PIE root *ten- \"to stretch\").",
+          "etymology": "borrowed from New Latin, from Latin tendere \"to extend outward, stretch, draw tight\" + -tor, agent suffix — more at tender entry 3",
           "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Covariance_and_contravariance_of_vectors.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
           "definitions": [
             {
@@ -11191,7 +11181,7 @@
             {
               "source": "merriamWebster",
               "text": "TPUs, or tensor processing units, are the chips that Broadcom co-designs. — Jeff Marks, CNBC , 2 Sep. 2026",
-              "translation": "Los TPU, o unidades de procesamiento de tensor, son los chips que co-diseña Broadcom. — Jeff Marks, CNBC , 2 de septiembre de 2026"
+              "translation": "Los TPU, o unidades de procesamiento de tensores, son los chips que Broadcom codiseña. - Jeff Marks, CNBC, 2 de septiembre de 2026"
             }
           ],
           "videoLinks": [
@@ -11229,7 +11219,7 @@
             },
             {
               "field": "phonetic",
-              "winner": "/ˈten.sə r/",
+              "winner": "/ˈten.sər/",
               "source": "cambridge",
               "candidates": 4,
               "reasons": [
@@ -11258,6 +11248,25 @@
                   "source": "cambridge",
                   "text": "músculo tensor",
                   "score": 0
+                }
+              ]
+            },
+            {
+              "field": "etymology",
+              "winner": "borrowed from New Latin, from Latin tendere \"to extend outward, stretch, draw tight\" + -tor, agent suffix — more at tend",
+              "source": "merriamWebster",
+              "candidates": 3,
+              "reasons": [
+                "ok-definition-domain-match"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryHtml",
+                  "text": "Borrowed from New Latin tensor ( “ that which stretches ” ) , equivalent to tens"
+                },
+                {
+                  "source": "etymonline",
+                  "text": "in anatomy, \"one of several muscles that stretch or tighten a part,\" 1704, Moder"
                 }
               ]
             },
@@ -11686,7 +11695,7 @@
       "tier": "vip",
       "token": "lit",
       "sentence": "The show was lit.",
-      "ms": 13031,
+      "ms": 12912,
       "error": null,
       "card": {
         "entry": {
@@ -11695,7 +11704,7 @@
           "monolingual": "Slang. amazing ; awesome ; cool (used as a general term of approval).",
           "phonetic": "/lɪt/",
           "examples": [
-            "The show was lit. — El espectáculo estaba iluminado.",
+            "The show was lit. — El espectáculo estaba encendido.",
             "Today's rally was really lit! — ¡El rally de hoy estaba realmente iluminado!",
             "With candles lit , everyone was in a mellow mood at the dinner. — Con las velas encendidas , todos estaban de buen ánimo en la cena.",
             "The candles stood lit on the table, creating a warm atmosphere. — Las velas encendidas sobre la mesa creaban una atmósfera cálida."
@@ -11807,7 +11816,7 @@
             {
               "source": "bundled",
               "text": "The show was lit.",
-              "translation": "El espectáculo estaba iluminado."
+              "translation": "El espectáculo estaba encendido."
             },
             {
               "source": "dictionaryCom",
@@ -12385,7 +12394,7 @@
       "tier": "vip",
       "token": "break up",
       "sentence": "They decided to break up after college because their relationship was over.",
-      "ms": 12959,
+      "ms": 12954,
       "error": null,
       "card": {
         "entry": {
@@ -12511,12 +12520,12 @@
               "text": "separar"
             },
             {
-              "source": "wordReference",
-              "text": "deshacerse ⇒ v prnl"
+              "source": "linguee",
+              "text": "break"
             },
             {
-              "source": "wordReference",
-              "text": "desintegrarse ⇒ v prnl"
+              "source": "linguee",
+              "text": "up"
             }
           ],
           "examples": [
@@ -12613,7 +12622,7 @@
               "reasons": [
                 "ok-breakup-relationship"
               ],
-              "candidates": 16,
+              "candidates": 22,
               "runnerUps": [
                 {
                   "source": null,
@@ -12688,7 +12697,7 @@
               "field": "examples",
               "winner": "He finally brought himself to break up , knowing the relationship was already over.",
               "source": "reverso",
-              "candidates": 66,
+              "candidates": 69,
               "reasons": [
                 "ok-contextual-alignment"
               ],
@@ -12735,6 +12744,7 @@
           "pons",
           "dictCc",
           "reverso",
+          "linguee",
           "promtContext",
           "wordReference",
           "pixabay"
@@ -13025,8 +13035,11 @@
         {
           "source": "linguee",
           "token": "break up",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "translations",
+            "examples"
+          ]
         },
         {
           "source": "promtContext",
@@ -13076,7 +13089,7 @@
       "tier": "vip",
       "token": "piece of cake",
       "sentence": "The exam was a piece of cake.",
-      "ms": 13112,
+      "ms": 13056,
       "error": null,
       "card": {
         "entry": {
@@ -13702,7 +13715,7 @@
       "tier": "vip",
       "token": "forget",
       "sentence": "Do not forget your keys.",
-      "ms": 12806,
+      "ms": 12690,
       "error": null,
       "card": {
         "entry": {
@@ -14068,7 +14081,7 @@
               ]
             }
           ],
-          "imageCandidates": 14
+          "imageCandidates": 22
         },
         "successfulSources": [
           "datamuse",
@@ -14084,6 +14097,7 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
+          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet",
@@ -14260,8 +14274,11 @@
         {
           "source": "duckduckgoImages",
           "token": "forget",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -14478,7 +14495,7 @@
       "tier": "vip",
       "token": "support",
       "sentence": "Her family supported her decision.",
-      "ms": 12905,
+      "ms": 12935,
       "error": null,
       "card": {
         "entry": {
@@ -14856,7 +14873,7 @@
               ]
             }
           ],
-          "imageCandidates": 15
+          "imageCandidates": 23
         },
         "successfulSources": [
           "datamuse",
@@ -14873,6 +14890,7 @@
           "bingImages",
           "openverse",
           "wikimediaCommons",
+          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet",
@@ -15055,8 +15073,11 @@
         {
           "source": "duckduckgoImages",
           "token": "support",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -15272,7 +15293,7 @@
       "tier": "vip",
       "token": "give",
       "sentence": "Give me the keys, please.",
-      "ms": 12035,
+      "ms": 12917,
       "error": null,
       "card": {
         "entry": {
@@ -15653,7 +15674,7 @@
               ]
             }
           ],
-          "imageCandidates": 14
+          "imageCandidates": 22
         },
         "successfulSources": [
           "datamuse",
@@ -15669,6 +15690,7 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
+          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet",
@@ -15846,8 +15868,11 @@
         {
           "source": "duckduckgoImages",
           "token": "give",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -16060,7 +16085,7 @@
       "tier": "vip",
       "token": "know",
       "sentence": "I do not know the answer.",
-      "ms": 12956,
+      "ms": 13556,
       "error": null,
       "card": {
         "entry": {
@@ -16241,7 +16266,7 @@
             {
               "source": "ozdic",
               "text": "'[…] I know whether a boy is telling me the truth or not.'\n'Thank you, sir.'\nDid he hell. They never bloody did.",
-              "translation": "'[…] Sé si un chico me está diciendo la verdad o no.'\n-Gracias, señor.\n¿Diablos? Nunca lo hicieron."
+              "translation": "'[…] Sé si un chico me está diciendo la verdad o no.'\n\"Gracias, señor\".\n¿Él diablos? Nunca lo hicieron."
             },
             {
               "source": "ozdic",
@@ -16404,7 +16429,7 @@
               ]
             }
           ],
-          "imageCandidates": 14
+          "imageCandidates": 22
         },
         "successfulSources": [
           "datamuse",
@@ -16420,6 +16445,7 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
+          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet",
@@ -16594,8 +16620,11 @@
         {
           "source": "duckduckgoImages",
           "token": "know",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -16812,7 +16841,7 @@
       "tier": "vip",
       "token": "week",
       "sentence": "Oh, yeah, last week you had a wonderful cake.",
-      "ms": 13208,
+      "ms": 22305,
       "error": null,
       "card": {
         "entry": {
@@ -16973,8 +17002,7 @@
             },
             {
               "source": "merriamWebster",
-              "text": "last Sunday week",
-              "translation": "El domingo pasado"
+              "text": "last Sunday week"
             },
             {
               "source": "reverso",
@@ -16983,18 +17011,17 @@
             },
             {
               "source": "longman",
-              "text": "See you next week.",
-              "translation": "Nos vemos la próxima semana."
+              "text": "See you next week."
             },
             {
               "source": "merriamWebster",
               "text": "the last week of the month",
-              "translation": "Última semana del mes"
+              "translation": "la última semana del mes"
             },
             {
               "source": "wordnet",
               "text": "it rained for a week",
-              "translation": "llovió durante una semana"
+              "translation": "Estuvo lloviendo durante una semana."
             }
           ],
           "videoLinks": [
@@ -17148,7 +17175,7 @@
               ]
             }
           ],
-          "imageCandidates": 14
+          "imageCandidates": 22
         },
         "successfulSources": [
           "datamuse",
@@ -17163,6 +17190,7 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
+          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet",
@@ -17334,8 +17362,11 @@
         {
           "source": "duckduckgoImages",
           "token": "week",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -17541,5 +17572,5 @@
       ]
     }
   ],
-  "finishedAt": "2026-09-09T21:40:47.848Z"
+  "finishedAt": "2026-09-09T21:52:12.024Z"
 }

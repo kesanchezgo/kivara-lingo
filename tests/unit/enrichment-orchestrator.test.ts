@@ -937,6 +937,27 @@ describe('enrichment quality ranking', () => {
     expect(pickEtymology([])).toBeUndefined();
   });
 
+  it('prefers a domain-neutral etymology over another field\'s history', () => {
+    // Verified live 2026-09-09: `tensor` for "The model uses a tensor."
+    // published Etymonline's anatomy paragraph ("in anatomy, one of
+    // several muscles…") while the winning definition was the ML sense
+    // ("a generalization of the concept of a vector"). A domain-labeled
+    // paragraph whose label the definition never names is the wrong
+    // sense's history and loses to a domain-neutral one — without a
+    // definition the old source order stands (backwards compatible).
+    const candidates = [
+      { source: 'etymonline', text: 'in anatomy, "one of several muscles that stretch or tighten a part," 1704.' },
+      { source: 'wiktionaryHtml', text: 'Borrowed from New Latin tensor ("that which stretches").' },
+    ];
+    expect(pickEtymology(candidates)).toBe(candidates[0].text);
+    expect(pickEtymology(candidates, 'a generalization of the concept of a vector'))
+      .toBe(candidates[1].text);
+    // A definition that names the label keeps source order: an anatomy
+    // sentence genuinely wants the anatomy history.
+    expect(pickEtymology(candidates, 'in anatomy, one of several muscles'))
+      .toBe(candidates[0].text);
+  });
+
   it('can leave unsafe images empty and prefers curated open candidates', () => {
     expect(pickImageCandidate('anything', [
       { source: 'bingImages', url: 'https://example.test/anything-logo.jpg', title: 'Anything logo' },

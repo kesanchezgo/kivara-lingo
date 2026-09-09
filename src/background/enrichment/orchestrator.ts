@@ -2025,8 +2025,29 @@ const ETYMOLOGY_SOURCE_PRIORITY = [
  */
 const HEDGE_RE = /\b(?:maybe|perhaps|possibly|probably|likely|unknown|uncertain|unclear|folk etymology|legend(?: has it|says)?|is said to|it is said|tradition holds)\b/i;
 
+/**
+ * Markers that an etymology paragraph belongs to a DIFFERENT sense than the
+ * card's: a domain label ("in anatomy", "in botany", "in zoology") or
+ * a specialist gloss naming another field's referent. `tensor` for "The
+ * model uses a tensor." published Etymonline's anatomy paragraph ("in
+ * anatomy, one of several muscles…") while the winning definition was the
+ * ML sense ("a generalization of the concept of a vector") — the wrong
+ * sense's history on the card. A domain-labeled paragraph whose label
+ * contradicts the winning definition's domain is the wrong sense and must
+ * lose to a domain-neutral one. General mechanism (domain label vs
+ * definition), not a `tensor` rule. Verified live 2026-09-09.
+ */
+const ETYMOLOGY_DOMAIN_LABEL_RE = /\bin\s+(anatomy|botany|zoology|pathology|physiology|geology|astronomy|astrology|mythology|heraldry|architecture|music|law|theology)\b/i;
+
+export function etymologyDomainLabel(text: string): string | undefined {
+  return ETYMOLOGY_DOMAIN_LABEL_RE.exec(text)?.[1]?.toLowerCase();
+}
+
 export function pickEtymology(
   candidates: Array<{ source: string; text: string }>,
+  /** Winning definition text, when the merger already picked one. Lets a
+   * domain-neutral paragraph beat a domain-labeled one from another field. */
+  definition?: string,
 ): string | undefined {
   const ranked = candidates
     .map((candidate) => ({ ...candidate, text: candidate.text.replace(/\s+/g, ' ').trim() }))
@@ -2041,6 +2062,20 @@ export function pickEtymology(
       const hedgeA = HEDGE_RE.test(a.text) ? 1 : 0;
       const hedgeB = HEDGE_RE.test(b.text) ? 1 : 0;
       if (hedgeA !== hedgeB) return hedgeA - hedgeB;
+      // A domain-labeled paragraph from another field ("in anatomy,
+      // one of several muscles…") loses to a domain-neutral one when
+      // the winning definition names no such domain (`tensor` ML:
+      // "a generalization of the concept of a vector"). The label is
+      // the wrong sense's history. Only applied when a definition is
+      // supplied, so the no-context path keeps pure source order.
+      if (definition) {
+        const defLow = definition.toLowerCase();
+        const labelA = etymologyDomainLabel(a.text);
+        const labelB = etymologyDomainLabel(b.text);
+        const mismatchA = labelA && !defLow.includes(labelA) ? 1 : 0;
+        const mismatchB = labelB && !defLow.includes(labelB) ? 1 : 0;
+        if (mismatchA !== mismatchB) return mismatchA - mismatchB;
+      }
       return (
         sourcePriority(a.source, ETYMOLOGY_SOURCE_PRIORITY) -
         sourcePriority(b.source, ETYMOLOGY_SOURCE_PRIORITY)
@@ -2553,10 +2588,19 @@ function mergeFields(
   }
 
   // Pick phonetic from the highest-priority source that has one.
+  // Cambridge IPA sometimes carries an internal space ("/ˈten.sə r/")
+  // where the page inserts a syllable break the other sources do not
+  // have (runner-ups: /ˈtɛn.sɔː/, /ˈtɛn.sə/, /ˈtensə(r)/). An internal
+  // space inside the slashes is a formatting artifact, not phonetics —
+  // collapse it so the card shows /ˈten.sər/. Verified live 2026-09-09:
+  // `tensor` vip phonetic. General cleanup, not a headword rule.
   for (const id of phoneticPriority) {
     const hit = partials.find((p) => p.source.id === id && p.partial.phonetic);
     if (hit?.partial.phonetic) {
-      const phonetic = hit.partial.phonetic;
+      const rawPhonetic = hit.partial.phonetic;
+      const phonetic = /^[/[].*[/\]]$/.test(rawPhonetic.trim())
+        ? `${rawPhonetic.trim()[0]}${rawPhonetic.trim().slice(1, -1).replace(/\s+/g, '')}${rawPhonetic.trim().slice(-1)}`
+        : rawPhonetic.replace(/\s+/g, ' ').trim();
       const hasWholePhrase = !token.includes(' ') || /\s/.test(phonetic.replace(/^[/[]|[/\]]$/g, '').trim());
       if (!hasWholePhrase) continue;
       entry.phonetic = phonetic;
@@ -2606,6 +2650,33 @@ function mergeFields(
   }
 
   const rankedDefinitions = pickDefinitions(allDefs, token, ctx.sentence, definitionPos);
+  // Re-scope the etymology pick with the winning definition's domain: a
+  // domain-labeled paragraph from another field ("in anatomy, one of
+  // several muscles…") loses to a domain-neutral one when the winning
+  // definition names no such domain (`tensor` ML: "a generalization of
+  // the concept of a vector"). The etymology block above runs before
+  // the definition pick, so it cannot see the domain — this second pass
+  // corrects the winner and its provenance when the domain-aware pick
+  // disagrees. When there is no winning definition, the first pass
+  // stands and behaviour is unchanged.
+  if (rankedDefinitions[0]) {
+    const rescopedEtymology = pickEtymology(etymologyCandidates, rankedDefinitions[0].text);
+    if (rescopedEtymology !== selectedEtymology) {
+      vip.etymology = rescopedEtymology;
+      const rescopedWinner = etymologyCandidates.find((c) => c.text.replace(/\s+/g, ' ').trim() === rescopedEtymology);
+      pushProvenance({
+        field: 'etymology',
+        winner: (rescopedEtymology ?? '').slice(0, 120),
+        source: rescopedWinner?.source ?? null,
+        candidates: etymologyCandidates.length,
+        reasons: ['ok-definition-domain-match'],
+        runnerUps: etymologyCandidates
+          .filter((c) => c !== rescopedWinner && ETYMOLOGY_SOURCE_PRIORITY.includes(c.source))
+          .slice(0, 2)
+          .map((c) => ({ source: c.source, text: c.text.slice(0, 80) })),
+      });
+    }
+  }
   // Slang-sense binding, second pass: when the winning definition proves a
   // slang sense, the literal depiction the first image pass picked is the
   // wrong sense by construction — re-rank in figurative mode (the mode
