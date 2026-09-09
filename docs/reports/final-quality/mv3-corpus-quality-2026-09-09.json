@@ -1,0 +1,3960 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-09T05:43:47.672Z",
+  "runtime": "Playwright persistent Chromium with unpacked MV3 extension, full source set per tier",
+  "extensionId": "pkafehpbjfkkfnjaeombdemckeoohhpb",
+  "corpus": [
+    {
+      "token": "run",
+      "sentence": "She ran home."
+    },
+    {
+      "token": "run",
+      "sentence": "She runs the company from home."
+    },
+    {
+      "token": "give",
+      "sentence": "Give me the keys, please."
+    }
+  ],
+  "tiers": [
+    "standard",
+    "vip"
+  ],
+  "rows": [
+    {
+      "tier": "standard",
+      "token": "run",
+      "sentence": "She ran home.",
+      "ms": 13975,
+      "error": null,
+      "card": {
+        "entry": {
+          "translation": "correr",
+          "bilingual": "correr",
+          "monolingual": "the act of running; traveling on foot at a fast pace",
+          "phonetic": "/ɹʌn/",
+          "synonyms": [
+            "running"
+          ],
+          "examples": [
+            "She ran home. — Corrió a casa.",
+            "She runs the fundraising. — Ella dirige la recaudación de fondos.",
+            "My uncle ran a corner store for forty years. — Mi tío dirigió una tienda de la esquina durante cuarenta años.",
+            "Run away. — Huir."
+          ]
+        },
+        "vip": {
+          "imageUrl": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
+          "etymology": "Old English, \"move swiftly by using the legs, go on legs more rapidly than walking,\" also \"make haste, hurry; be active, pursue or follow a course,\" and, of inanimate things, \"to move over a course.\" The modern verb is a merger of two related Old English words, in both of which the initial two letters sometimes switched places. The first is intransitive r…",
+          "definitions": [
+            {
+              "source": "wordnet",
+              "text": "the act of running; traveling on foot at a fast pace"
+            },
+            {
+              "source": "wordnet",
+              "text": "move fast by using one's feet, with one foot off the ground at any given time"
+            },
+            {
+              "source": "wiktApi",
+              "text": "To cause to move quickly or lightly."
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "To move swiftly."
+            },
+            {
+              "source": "wiktionary",
+              "text": "To go at a fast pace; to move quickly ."
+            },
+            {
+              "source": "wiktionary",
+              "text": "To cover (a course or a distance) by running."
+            },
+            {
+              "source": "wiktionary",
+              "text": "To complete a running course or event in (a given time)."
+            },
+            {
+              "source": "wiktionary",
+              "text": "To move forward quickly upon two feet by alternately making a short jump off either foot."
+            },
+            {
+              "source": "wiktionary",
+              "text": "To move swiftly. To move forward quickly upon two feet by alternately making a short jump off either foot."
+            },
+            {
+              "source": "bundled",
+              "text": "To move quickly on foot, with both feet leaving the ground between steps."
+            },
+            {
+              "source": "wordnet",
+              "text": "a race run on foot"
+            },
+            {
+              "source": "wordnet",
+              "text": "a race between candidates for elective office"
+            }
+          ],
+          "translations": [
+            {
+              "source": "wiktApi",
+              "text": "correr"
+            },
+            {
+              "source": "wiktApi",
+              "text": "apeonar"
+            },
+            {
+              "source": "wiktApi",
+              "text": "partida"
+            },
+            {
+              "source": "wiktApi",
+              "text": "carrera"
+            },
+            {
+              "source": "wiktApi",
+              "text": "temporada"
+            },
+            {
+              "source": "wiktApi",
+              "text": "dirigir"
+            },
+            {
+              "source": "bundled",
+              "text": "correr"
+            }
+          ],
+          "examples": [
+            {
+              "source": "bundled",
+              "text": "She ran home.",
+              "translation": "Corrió a casa."
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "She runs the fundraising.",
+              "translation": "Ella dirige la recaudación de fondos."
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "My uncle ran a corner store for forty years.",
+              "translation": "Mi tío dirigió una tienda de la esquina durante cuarenta años."
+            },
+            {
+              "source": "tatoeba",
+              "text": "Run away.",
+              "translation": "Huir."
+            },
+            {
+              "source": "tatoeba",
+              "text": "Run faster.",
+              "translation": "Corre más rápido"
+            },
+            {
+              "source": "wiktApi",
+              "text": "Run your fingers through my hair.",
+              "translation": "Pasa tus dedos por mi cabello."
+            },
+            {
+              "source": "wiktApi",
+              "text": "Run, and you might still catch the train!",
+              "translation": "¡Corre, y es posible que aún tomes el tren!"
+            },
+            {
+              "source": "wiktionary",
+              "text": "Sorry, I've got to run ; my house is on fire !",
+              "translation": "Lo siento, tengo que correr ; ¡mi casa está en llamas !"
+            },
+            {
+              "source": "wordnet",
+              "text": "the Yankees scored 3 runs in the bottom of the 9th",
+              "translation": "los Yankees anotaron 3 carreras en la parte baja de la novena"
+            },
+            {
+              "source": "wiktionary",
+              "text": "I have been running all over the building looking for him.",
+              "translation": "He estado corriendo por todo el edificio buscándolo."
+            },
+            {
+              "source": "wordnet",
+              "text": "their first tally came in the 3rd inning",
+              "translation": "su primer recuento llegó en la tercera entrada"
+            }
+          ],
+          "videoLinks": [
+            {
+              "url": "https://youglish.com/pronounce/run/english",
+              "source": "youglish"
+            }
+          ],
+          "frequencyEvidence": [
+            {
+              "scale": "books-band",
+              "value": "2",
+              "source": "datamuse"
+            }
+          ],
+          "provenance": [
+            {
+              "field": "image",
+              "winner": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
+              "source": "openverse",
+              "candidates": 13,
+              "reasons": [
+                "ok-primary-source",
+                "ok-exact-match",
+                "ok-high-resolution"
+              ]
+            },
+            {
+              "field": "etymology",
+              "winner": "Old English, \"move swiftly by using the legs, go on legs more rapidly than walking,\" also \"make haste, hurry; be active,",
+              "source": "etymonline",
+              "candidates": 2,
+              "reasons": [
+                "ok-source-priority"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryHtml",
+                  "text": "From Middle English runnen , rennen ( “ to run ” ) , alteration (due to the past"
+                }
+              ]
+            },
+            {
+              "field": "phonetic",
+              "winner": "/ɹʌn/",
+              "source": "wiktApi",
+              "candidates": 3,
+              "reasons": [
+                "ok-source-priority"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryApi",
+                  "text": "/ɹʌn/"
+                },
+                {
+                  "source": "bundled",
+                  "text": "/ɹʌn/"
+                }
+              ]
+            },
+            {
+              "field": "translation",
+              "winner": "correr",
+              "source": "wiktApi+bundled",
+              "score": -12,
+              "reasons": [
+                "ok-run-motion"
+              ],
+              "candidates": 7,
+              "runnerUps": []
+            },
+            {
+              "field": "definition",
+              "winner": "the act of running; traveling on foot at a fast pace",
+              "source": "wordnet",
+              "score": -10,
+              "reasons": [
+                "ok-motion-sense"
+              ],
+              "candidates": 38,
+              "runnerUps": [
+                {
+                  "source": "wordnet",
+                  "text": "move fast by using one's feet, with one foot off the ground at any given time",
+                  "score": -10
+                },
+                {
+                  "source": "wiktApi",
+                  "text": "To cause to move quickly or lightly.",
+                  "score": -10
+                },
+                {
+                  "source": "wiktionaryApi",
+                  "text": "To move swiftly.",
+                  "score": -10
+                }
+              ]
+            },
+            {
+              "field": "synonyms",
+              "winner": "running",
+              "source": "wordnet",
+              "candidates": 1,
+              "reasons": [
+                "ok-sense-group-endorsed"
+              ],
+              "runnerUps": []
+            },
+            {
+              "field": "examples",
+              "winner": "She ran home.",
+              "source": "bundled",
+              "candidates": 26,
+              "reasons": [
+                "ok-contextual-alignment"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryApi",
+                  "text": "She runs the fundraising."
+                },
+                {
+                  "source": "wiktionaryApi",
+                  "text": "My uncle ran a corner store for forty years."
+                },
+                {
+                  "source": "tatoeba",
+                  "text": "Run away."
+                }
+              ]
+            }
+          ],
+          "imageSource": "openverse",
+          "imageCandidates": 13
+        },
+        "successfulSources": [
+          "datamuse",
+          "wiktionary",
+          "wiktionaryHtml",
+          "wiktionaryApi",
+          "wiktApi",
+          "mobyThesaurus",
+          "thesaurusCom",
+          "wordHippo",
+          "bundled",
+          "tatoeba",
+          "linguaLibre",
+          "googleTtsFallback",
+          "bingImages",
+          "openverse",
+          "youglish",
+          "etymonline",
+          "wordnet"
+        ],
+        "failedSources": []
+      },
+      "sourceLogs": [
+        {
+          "source": "freeDictionary",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "datamuse",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "collocations",
+            "synonyms",
+            "antonyms",
+            "frequencyEvidence"
+          ]
+        },
+        {
+          "source": "wiktionary",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "wiktionaryHtml",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "etymology",
+            "synonyms",
+            "antonyms",
+            "collocations"
+          ]
+        },
+        {
+          "source": "wiktionaryApi",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples",
+            "phonetic"
+          ]
+        },
+        {
+          "source": "wiktApi",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples",
+            "translations"
+          ]
+        },
+        {
+          "source": "mobyThesaurus",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "synonyms"
+          ]
+        },
+        {
+          "source": "thesaurusCom",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "synonyms",
+            "antonyms"
+          ]
+        },
+        {
+          "source": "wordHippo",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "antonyms"
+          ]
+        },
+        {
+          "source": "theIdioms",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "bundled",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "translations",
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "yomitanPacks",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "tatoeba",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "examples"
+          ]
+        },
+        {
+          "source": "linguaLibre",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "googleTtsFallback",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
+        },
+        {
+          "source": "openverse",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "duckduckgoImages",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "youglish",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "videoLinks"
+          ]
+        },
+        {
+          "source": "etymonline",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "etymology"
+          ]
+        },
+        {
+          "source": "wordnet",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "relationGroups",
+            "definitions",
+            "definitionsPos",
+            "examples"
+          ]
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "run",
+      "sentence": "She runs the company from home.",
+      "ms": 12800,
+      "error": null,
+      "card": {
+        "entry": {
+          "translation": "dirigir",
+          "bilingual": "dirigir · correr",
+          "monolingual": "direct or control; projects, businesses, etc.",
+          "phonetic": "/ɹʌn/",
+          "synonyms": [
+            "operate"
+          ],
+          "examples": [
+            "She runs the fundraising. — Ella dirige la recaudación de fondos.",
+            "She ran home. — Corrió a casa.",
+            "the Yankees scored 3 runs in the bottom of the 9th — los Yankees anotaron 3 carreras en la parte baja de la novena",
+            "Run, and you might still catch the train! — ¡Corre, y es posible que aún tomes el tren!"
+          ]
+        },
+        "vip": {
+          "imageUrl": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
+          "etymology": "Old English, \"move swiftly by using the legs, go on legs more rapidly than walking,\" also \"make haste, hurry; be active, pursue or follow a course,\" and, of inanimate things, \"to move over a course.\" The modern verb is a merger of two related Old English words, in both of which the initial two letters sometimes switched places. The first is intransitive r…",
+          "definitions": [
+            {
+              "source": "wordnet",
+              "text": "direct or control; projects, businesses, etc."
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "(transitive) To control or manage; to be in charge of."
+            },
+            {
+              "source": "wiktionary",
+              "text": "To cover (a course or a distance) by running."
+            },
+            {
+              "source": "wiktionary",
+              "text": "To complete a running course or event in (a given time)."
+            },
+            {
+              "source": "wordnet",
+              "text": "move fast by using one's feet, with one foot off the ground at any given time"
+            },
+            {
+              "source": "wiktApi",
+              "text": "Exhausted; depleted (especially with \"down\" or \"out\")."
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "To flow."
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "(intransitive) To be a candidate in an election."
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "To make participate in certain kinds of competitions."
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "(nautical, of a vessel) To sail before the wind, in distinction from reaching or sailing close-hauled."
+            },
+            {
+              "source": "wiktApi",
+              "text": "To cause to move quickly or lightly."
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "To move swiftly."
+            }
+          ],
+          "translations": [
+            {
+              "source": "wiktApi",
+              "text": "correr"
+            },
+            {
+              "source": "wiktApi",
+              "text": "apeonar"
+            },
+            {
+              "source": "wiktApi",
+              "text": "partida"
+            },
+            {
+              "source": "wiktApi",
+              "text": "carrera"
+            },
+            {
+              "source": "wiktApi",
+              "text": "temporada"
+            },
+            {
+              "source": "wiktApi",
+              "text": "dirigir"
+            },
+            {
+              "source": "bundled",
+              "text": "correr"
+            }
+          ],
+          "examples": [
+            {
+              "source": "wiktionaryApi",
+              "text": "She runs the fundraising.",
+              "translation": "Ella dirige la recaudación de fondos."
+            },
+            {
+              "source": "bundled",
+              "text": "She ran home.",
+              "translation": "Corrió a casa."
+            },
+            {
+              "source": "wordnet",
+              "text": "the Yankees scored 3 runs in the bottom of the 9th",
+              "translation": "los Yankees anotaron 3 carreras en la parte baja de la novena"
+            },
+            {
+              "source": "wiktApi",
+              "text": "Run, and you might still catch the train!",
+              "translation": "¡Corre, y es posible que aún tomes el tren!"
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "He is running the candidate's expensive campaign.",
+              "translation": "Está dirigiendo la costosa campaña del candidato."
+            },
+            {
+              "source": "wiktApi",
+              "text": "Every day I run my dog across the field and back.",
+              "translation": "Todos los días corro a mi perro por el campo y de regreso."
+            },
+            {
+              "source": "wiktionary",
+              "text": "I have been running all over the building looking for him.",
+              "translation": "He estado corriendo por todo el edificio buscándolo."
+            },
+            {
+              "source": "wiktionary",
+              "text": "I can run a mile, but I can't run the cross-country course.",
+              "translation": "Puedo correr una milla, pero no puedo correr el campo traviesa."
+            },
+            {
+              "source": "tatoeba",
+              "text": "Run away.",
+              "translation": "Huir."
+            },
+            {
+              "source": "tatoeba",
+              "text": "Run faster.",
+              "translation": "Corre más rápido"
+            },
+            {
+              "source": "wordnet",
+              "text": "their first tally came in the 3rd inning",
+              "translation": "su primer recuento llegó en la tercera entrada"
+            }
+          ],
+          "videoLinks": [
+            {
+              "url": "https://youglish.com/pronounce/run/english",
+              "source": "youglish"
+            }
+          ],
+          "frequencyEvidence": [
+            {
+              "scale": "books-band",
+              "value": "2",
+              "source": "datamuse"
+            }
+          ],
+          "provenance": [
+            {
+              "field": "image",
+              "winner": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
+              "source": "openverse",
+              "candidates": 13,
+              "reasons": [
+                "ok-primary-source",
+                "ok-exact-match",
+                "ok-high-resolution"
+              ]
+            },
+            {
+              "field": "etymology",
+              "winner": "Old English, \"move swiftly by using the legs, go on legs more rapidly than walking,\" also \"make haste, hurry; be active,",
+              "source": "etymonline",
+              "candidates": 2,
+              "reasons": [
+                "ok-source-priority"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryHtml",
+                  "text": "From Middle English runnen , rennen ( “ to run ” ) , alteration (due to the past"
+                }
+              ]
+            },
+            {
+              "field": "phonetic",
+              "winner": "/ɹʌn/",
+              "source": "wiktApi",
+              "candidates": 3,
+              "reasons": [
+                "ok-source-priority"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryApi",
+                  "text": "/ɹʌn/"
+                },
+                {
+                  "source": "bundled",
+                  "text": "/ɹʌn/"
+                }
+              ]
+            },
+            {
+              "field": "translation",
+              "winner": "dirigir",
+              "source": "wiktApi",
+              "score": -12,
+              "reasons": [
+                "ok-run-manage"
+              ],
+              "candidates": 7,
+              "runnerUps": [
+                {
+                  "source": "wiktApi",
+                  "text": "correr",
+                  "score": 6
+                }
+              ]
+            },
+            {
+              "field": "definition",
+              "winner": "direct or control; projects, businesses, etc.",
+              "source": "wordnet",
+              "score": -22,
+              "reasons": [
+                "ok-pos-match",
+                "ok-manage-sense",
+                "ok-domain-gloss"
+              ],
+              "candidates": 38,
+              "runnerUps": [
+                {
+                  "source": "wiktionaryApi",
+                  "text": "(transitive) To control or manage; to be in charge of.",
+                  "score": -16
+                },
+                {
+                  "source": "wiktionary",
+                  "text": "To cover (a course or a distance) by running.",
+                  "score": -10
+                },
+                {
+                  "source": "wiktionary",
+                  "text": "To complete a running course or event in (a given time).",
+                  "score": -10
+                }
+              ]
+            },
+            {
+              "field": "synonyms",
+              "winner": "operate",
+              "source": "wordnet",
+              "candidates": 1,
+              "reasons": [
+                "ok-sense-group-endorsed"
+              ],
+              "runnerUps": []
+            },
+            {
+              "field": "examples",
+              "winner": "She runs the fundraising.",
+              "source": "wiktionaryApi",
+              "candidates": 26,
+              "reasons": [
+                "ok-contextual-alignment"
+              ],
+              "runnerUps": [
+                {
+                  "source": "bundled",
+                  "text": "She ran home."
+                },
+                {
+                  "source": "wordnet",
+                  "text": "the Yankees scored 3 runs in the bottom of the 9th"
+                },
+                {
+                  "source": "wiktApi",
+                  "text": "Run, and you might still catch the train!"
+                }
+              ]
+            }
+          ],
+          "imageSource": "openverse",
+          "imageCandidates": 13
+        },
+        "successfulSources": [
+          "datamuse",
+          "wiktionary",
+          "wiktionaryHtml",
+          "wiktionaryApi",
+          "wiktApi",
+          "mobyThesaurus",
+          "thesaurusCom",
+          "wordHippo",
+          "bundled",
+          "tatoeba",
+          "linguaLibre",
+          "googleTtsFallback",
+          "bingImages",
+          "openverse",
+          "youglish",
+          "etymonline",
+          "wordnet"
+        ],
+        "failedSources": []
+      },
+      "sourceLogs": [
+        {
+          "source": "freeDictionary",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "datamuse",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "collocations",
+            "synonyms",
+            "antonyms",
+            "frequencyEvidence"
+          ]
+        },
+        {
+          "source": "wiktionary",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "wiktionaryHtml",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "etymology",
+            "synonyms",
+            "antonyms",
+            "collocations"
+          ]
+        },
+        {
+          "source": "wiktionaryApi",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples",
+            "phonetic"
+          ]
+        },
+        {
+          "source": "wiktApi",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples",
+            "translations"
+          ]
+        },
+        {
+          "source": "mobyThesaurus",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "synonyms"
+          ]
+        },
+        {
+          "source": "thesaurusCom",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "synonyms",
+            "antonyms"
+          ]
+        },
+        {
+          "source": "wordHippo",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "antonyms"
+          ]
+        },
+        {
+          "source": "theIdioms",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "bundled",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "translations",
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "yomitanPacks",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "tatoeba",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "examples"
+          ]
+        },
+        {
+          "source": "linguaLibre",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "googleTtsFallback",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
+        },
+        {
+          "source": "openverse",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "duckduckgoImages",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "youglish",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "videoLinks"
+          ]
+        },
+        {
+          "source": "etymonline",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "etymology"
+          ]
+        },
+        {
+          "source": "wordnet",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "relationGroups",
+            "definitions",
+            "definitionsPos",
+            "examples"
+          ]
+        }
+      ]
+    },
+    {
+      "tier": "standard",
+      "token": "give",
+      "sentence": "Give me the keys, please.",
+      "ms": 2238,
+      "error": null,
+      "card": {
+        "entry": {
+          "translation": "dar",
+          "bilingual": "dar · donar · entregar",
+          "monolingual": "transfer possession of something concrete or abstract to somebody",
+          "phonetic": "/ˈɡɪv/",
+          "synonyms": [
+            "bestow",
+            "communicate",
+            "deliver",
+            "grant",
+            "supply",
+            "cede",
+            "confer",
+            "furnish",
+            "impart"
+          ],
+          "collocations": [],
+          "examples": [
+            "Give up. — Rendirse",
+            "Give tea. — Dé té.",
+            "I give it a 95% chance of success. — Le doy un 95% de posibilidades de éxito.",
+            "I'd give it a 95% chance of success. — Le daría un 95% de posibilidades de éxito."
+          ]
+        },
+        "vip": {
+          "etymology": "Old English giefan (West Saxon) \"to give, bestow, deliver to another; allot, grant; commit, devote, entrust,\" class V strong verb (past tense geaf , past participle giefen ), from Proto-Germanic *geban (source also of Old Frisian jeva , Middle Dutch gheven , Dutch geven , Old High German geban , German geben , Gothic giban ), from PIE root *ghabh- \"to giv…",
+          "definitions": [
+            {
+              "source": "wordnet",
+              "text": "transfer possession of something concrete or abstract to somebody"
+            },
+            {
+              "source": "wiktApi",
+              "text": "To provide or administer (a medication)"
+            },
+            {
+              "source": "wiktApi",
+              "text": "To move, shift, provide something abstract or concrete to someone or something or somewhere."
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "(transitive, dated) To provide a view of."
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "(transitive) To provide, as, a service or a broadcast."
+            },
+            {
+              "source": "wiktionary",
+              "text": "To provide (something) to (someone), to allow or afford ."
+            },
+            {
+              "source": "wiktionary",
+              "text": "To transfer one's possession or holding of (something) to (someone)."
+            },
+            {
+              "source": "wiktionary",
+              "text": "To move , shift , provide something abstract or concrete to someone or something or somewhere. To transfer one's possession or holding of (something) to (someone)."
+            },
+            {
+              "source": "freeDictionary",
+              "text": "To provide, as, a service or a broadcast."
+            },
+            {
+              "source": "freeDictionary",
+              "text": "(ditransitive) To move, shift, provide something abstract or concrete to someone or something or somewhere."
+            },
+            {
+              "source": "wordnet",
+              "text": "dedicate"
+            },
+            {
+              "source": "wordnet",
+              "text": "bring about"
+            }
+          ],
+          "translations": [
+            {
+              "source": "wiktApi",
+              "text": "dar"
+            },
+            {
+              "source": "wiktApi",
+              "text": "entregar"
+            },
+            {
+              "source": "wiktApi",
+              "text": "donar"
+            },
+            {
+              "source": "wiktApi",
+              "text": "ceder"
+            },
+            {
+              "source": "wiktApi",
+              "text": "hundirse"
+            },
+            {
+              "source": "wiktApi",
+              "text": "dar de sí"
+            },
+            {
+              "source": "bundled",
+              "text": "dar"
+            }
+          ],
+          "examples": [
+            {
+              "source": "tatoeba",
+              "text": "Give up.",
+              "translation": "Rendirse"
+            },
+            {
+              "source": "tatoeba",
+              "text": "Give tea.",
+              "translation": "Dé té."
+            },
+            {
+              "source": "freeDictionary",
+              "text": "I give it a 95% chance of success.",
+              "translation": "Le doy un 95% de posibilidades de éxito."
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "I'd give it a 95% chance of success.",
+              "translation": "Le daría un 95% de posibilidades de éxito."
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "I'll give their marriage six months.",
+              "translation": "Le daré a su matrimonio seis meses."
+            },
+            {
+              "source": "freeDictionary",
+              "text": "The master bedroom gives onto a spacious balcony.",
+              "translation": "El dormitorio principal da a un amplio balcón."
+            },
+            {
+              "source": "wiktionary",
+              "text": "I'm going to give my wife a necklace for her birthday.",
+              "translation": "Le voy a regalar a mi esposa un collar por su cumpleaños."
+            },
+            {
+              "source": "wordnet",
+              "text": "The draft gave me a cold",
+              "translation": "El borrador me dio un resfriado"
+            },
+            {
+              "source": "wordnet",
+              "text": "He gave me a lot of trouble",
+              "translation": "Me dio muchos problemas"
+            },
+            {
+              "source": "wiktionary",
+              "text": "I gave my coat to the beggar.",
+              "translation": "Le di mi abrigo al mendigo."
+            },
+            {
+              "source": "wiktApi",
+              "text": "I gave him my coat.",
+              "translation": "Le di mi abrigo."
+            },
+            {
+              "source": "wiktApi",
+              "text": "When they asked, I gave my coat.",
+              "translation": "Cuando me preguntaron, les di mi abrigo."
+            }
+          ],
+          "videoLinks": [
+            {
+              "url": "https://youglish.com/pronounce/give/english",
+              "source": "youglish"
+            }
+          ],
+          "frequencyEvidence": [
+            {
+              "scale": "books-band",
+              "value": "1",
+              "source": "datamuse"
+            }
+          ],
+          "provenance": [
+            {
+              "field": "etymology",
+              "winner": "Old English giefan (West Saxon) \"to give, bestow, deliver to another; allot, grant; commit, devote, entrust,\" class V st",
+              "source": "etymonline",
+              "candidates": 2,
+              "reasons": [
+                "ok-source-priority"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryHtml",
+                  "text": "From Middle English given , yeven , yiven , ȝiven , from merger of Old English ġ"
+                }
+              ]
+            },
+            {
+              "field": "phonetic",
+              "winner": "/ɡɪv/",
+              "source": "freeDictionary",
+              "candidates": 4,
+              "reasons": [
+                "ok-source-priority"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryApi",
+                  "text": "/ɡɪv/"
+                },
+                {
+                  "source": "wiktApi",
+                  "text": "/ɡɪv/"
+                }
+              ]
+            },
+            {
+              "field": "translation",
+              "winner": "dar",
+              "source": "wiktApi+bundled",
+              "score": -17,
+              "reasons": [
+                "ok-give-transfer",
+                "ok-core-give-sense"
+              ],
+              "candidates": 7,
+              "runnerUps": [
+                {
+                  "source": "wiktApi",
+                  "text": "donar",
+                  "score": -3
+                },
+                {
+                  "source": "wiktApi",
+                  "text": "entregar",
+                  "score": -3
+                }
+              ]
+            },
+            {
+              "field": "definition",
+              "winner": "transfer possession of something concrete or abstract to somebody",
+              "source": "wordnet",
+              "score": -12,
+              "reasons": [
+                "ok-give-transfer-sense"
+              ],
+              "candidates": 44,
+              "runnerUps": [
+                {
+                  "source": "wiktApi",
+                  "text": "To provide or administer (a medication)",
+                  "score": -12
+                },
+                {
+                  "source": "wiktApi",
+                  "text": "To move, shift, provide something abstract or concrete to someone or something o",
+                  "score": -12
+                },
+                {
+                  "source": "wiktionaryApi",
+                  "text": "(transitive, dated) To provide a view of.",
+                  "score": -12
+                }
+              ]
+            },
+            {
+              "field": "examples",
+              "winner": "Give up.",
+              "source": "tatoeba",
+              "candidates": 33,
+              "reasons": [
+                "ok-contextual-alignment"
+              ],
+              "runnerUps": [
+                {
+                  "source": "tatoeba",
+                  "text": "Give tea."
+                },
+                {
+                  "source": "freeDictionary",
+                  "text": "I give it a 95% chance of success."
+                },
+                {
+                  "source": "wiktionaryApi",
+                  "text": "I'd give it a 95% chance of success."
+                }
+              ]
+            }
+          ],
+          "imageCandidates": 13
+        },
+        "successfulSources": [
+          "freeDictionary",
+          "datamuse",
+          "wiktionary",
+          "wiktionaryHtml",
+          "wiktionaryApi",
+          "wiktApi",
+          "mobyThesaurus",
+          "thesaurusCom",
+          "wordHippo",
+          "bundled",
+          "tatoeba",
+          "linguaLibre",
+          "googleTtsFallback",
+          "bingImages",
+          "openverse",
+          "youglish",
+          "etymonline",
+          "wordnet"
+        ],
+        "failedSources": []
+      },
+      "sourceLogs": [
+        {
+          "source": "freeDictionary",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples",
+            "synonyms",
+            "antonyms",
+            "audio",
+            "phonetic"
+          ]
+        },
+        {
+          "source": "datamuse",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "collocations",
+            "synonyms",
+            "antonyms",
+            "frequencyEvidence"
+          ]
+        },
+        {
+          "source": "wiktionary",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "wiktionaryHtml",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "etymology",
+            "collocations"
+          ]
+        },
+        {
+          "source": "wiktionaryApi",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples",
+            "synonyms",
+            "antonyms",
+            "phonetic"
+          ]
+        },
+        {
+          "source": "wiktApi",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples",
+            "translations"
+          ]
+        },
+        {
+          "source": "mobyThesaurus",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "synonyms"
+          ]
+        },
+        {
+          "source": "thesaurusCom",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "synonyms",
+            "antonyms"
+          ]
+        },
+        {
+          "source": "wordHippo",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "antonyms"
+          ]
+        },
+        {
+          "source": "theIdioms",
+          "token": "give",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "bundled",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "translations",
+            "definitions",
+            "examples",
+            "synonyms"
+          ]
+        },
+        {
+          "source": "yomitanPacks",
+          "token": "give",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "tatoeba",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "examples"
+          ]
+        },
+        {
+          "source": "linguaLibre",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "googleTtsFallback",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
+        },
+        {
+          "source": "openverse",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "token": "give",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "duckduckgoImages",
+          "token": "give",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "youglish",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "videoLinks"
+          ]
+        },
+        {
+          "source": "etymonline",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "etymology"
+          ]
+        },
+        {
+          "source": "wordnet",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "relationGroups",
+            "definitions",
+            "definitionsPos",
+            "examples"
+          ]
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "run",
+      "sentence": "She ran home.",
+      "ms": 12810,
+      "error": null,
+      "card": {
+        "entry": {
+          "translation": "correr",
+          "bilingual": "correr · dirigir · manejar · ejecutar",
+          "monolingual": "to move very quickly, by moving your legs more quickly than when you walk",
+          "phonetic": "/ɹʌn/",
+          "synonyms": [
+            "race",
+            "jog",
+            "trot",
+            "rush",
+            "sprint",
+            "gallop",
+            "dash",
+            "flow",
+            "fly",
+            "flee",
+            "bolt",
+            "leave"
+          ],
+          "antonyms": [
+            "dawdle",
+            "stay",
+            "remain",
+            "stroll",
+            "saunter",
+            "lag",
+            "drag",
+            "poke"
+          ],
+          "examples": [
+            "She ran home. — Corrió a casa.",
+            "I'll have to run home and change — tendré que ir corriendo or rápido a casa a cambiarme",
+            "she let the line run through her hands — dejó que la cuerda se deslizara entre sus manos",
+            "She turned and ran away. — Se dio la vuelta y huyó."
+          ]
+        },
+        "vip": {
+          "imageUrl": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
+          "etymology": "Old English, \"move swiftly by using the legs, go on legs more rapidly than walking,\" also \"make haste, hurry; be active, pursue or follow a course,\" and, of inanimate things, \"to move over a course.\" The modern verb is a merger of two related Old English words, in both of which the initial two letters sometimes switched places. The first is intransitive r…",
+          "definitions": [
+            {
+              "source": "longman",
+              "text": "to move very quickly, by moving your legs more quickly than when you walk"
+            },
+            {
+              "source": "cambridge",
+              "text": "to go quickly or in a hurry"
+            },
+            {
+              "source": "cambridge",
+              "text": "(of people and some animals ) to move along, faster than walking , by taking quick steps in which each foot is lifted before the next foot touches the ground"
+            },
+            {
+              "source": "oxfordLearners",
+              "text": "to travel a particular distance by running"
+            },
+            {
+              "source": "oxfordLearners",
+              "text": "to move using your legs, going faster than when you walk"
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "to move with haste; act quickly."
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "to depart quickly; take to flight; flee or escape."
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "to go quickly by moving the legs more rapidly than at a walk and in such a manner that for an instant in each step all or both feet are off the ground."
+            },
+            {
+              "source": "britannicaDictionary",
+              "text": "to leave a place quickly by running"
+            },
+            {
+              "source": "britannicaDictionary",
+              "text": "to move with your legs at a speed that is faster than walking"
+            },
+            {
+              "source": "merriamWebster",
+              "text": "to move at a fast gallop"
+            },
+            {
+              "source": "wordnet",
+              "text": "the act of running; traveling on foot at a fast pace"
+            }
+          ],
+          "translations": [
+            {
+              "source": "wiktApi",
+              "text": "correr"
+            },
+            {
+              "source": "wiktApi",
+              "text": "apeonar"
+            },
+            {
+              "source": "wiktApi",
+              "text": "partida"
+            },
+            {
+              "source": "wiktApi",
+              "text": "carrera"
+            },
+            {
+              "source": "wiktApi",
+              "text": "temporada"
+            },
+            {
+              "source": "wiktApi",
+              "text": "dirigir"
+            },
+            {
+              "source": "bundled",
+              "text": "correr"
+            },
+            {
+              "source": "cambridge",
+              "text": "correr"
+            },
+            {
+              "source": "cambridge",
+              "text": "Los niños tenían que correr para alcanzar a su padre y no quedarse atrás."
+            },
+            {
+              "source": "cambridge",
+              "text": "Puedo correr una milla en cinco minutos."
+            },
+            {
+              "source": "cambridge",
+              "text": "Una niña vino corriendo hacia mí llorando porque no encontraba a su papá."
+            },
+            {
+              "source": "cambridge",
+              "text": "competir con"
+            }
+          ],
+          "examples": [
+            {
+              "source": "bundled",
+              "text": "She ran home.",
+              "translation": "Corrió a casa."
+            },
+            {
+              "source": "pons",
+              "text": "I'll have to run home and change",
+              "translation": "tendré que ir corriendo or rápido a casa a cambiarme"
+            },
+            {
+              "source": "pons",
+              "text": "she let the line run through her hands",
+              "translation": "dejó que la cuerda se deslizara entre sus manos"
+            },
+            {
+              "source": "longman",
+              "text": "She turned and ran away.",
+              "translation": "Se dio la vuelta y huyó."
+            },
+            {
+              "source": "britannicaDictionary",
+              "text": "She ran to me for help.",
+              "translation": "Corrió a pedirme ayuda."
+            },
+            {
+              "source": "britannicaDictionary",
+              "text": "She ran up the stairs to get her jacket.",
+              "translation": "Subió corriendo las escaleras para coger su chaqueta."
+            },
+            {
+              "source": "promtContext",
+              "text": "I'm able to run .",
+              "translation": "Puedo correr ."
+            },
+            {
+              "source": "promtContext",
+              "text": "Why did you run away?",
+              "translation": "¿Por qué huiste ?"
+            },
+            {
+              "source": "linguee",
+              "text": "Cheetahs can run very fast.",
+              "translation": "Mi sue�o es tener mi propio negocio."
+            },
+            {
+              "source": "linguee",
+              "text": "My dream is to run my own business.",
+              "translation": "Este software puede ejecutar varias tareas al mismo tiempo."
+            },
+            {
+              "source": "reverso",
+              "text": "He always likes to head out for a run in the morning.",
+              "translation": "A él siempre le gusta salir a correr por la mañana."
+            },
+            {
+              "source": "reverso",
+              "text": "We can either run from this crisis or stand and fight it.",
+              "translation": "Podemos huir de esta crisis o plantar cara y luchar contra ella."
+            }
+          ],
+          "videoLinks": [
+            {
+              "url": "https://youglish.com/pronounce/run/english",
+              "source": "youglish"
+            }
+          ],
+          "frequencyEvidence": [
+            {
+              "scale": "books-band",
+              "value": "2",
+              "source": "datamuse"
+            },
+            {
+              "scale": "longman-spoken",
+              "value": "S1",
+              "corpus": "LDOCE",
+              "source": "longman"
+            },
+            {
+              "scale": "longman-written",
+              "value": "W1",
+              "corpus": "LDOCE",
+              "source": "longman"
+            }
+          ],
+          "provenance": [
+            {
+              "field": "image",
+              "winner": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
+              "source": "openverse",
+              "candidates": 14,
+              "reasons": [
+                "ok-primary-source",
+                "ok-exact-match",
+                "ok-high-resolution"
+              ]
+            },
+            {
+              "field": "etymology",
+              "winner": "Old English, \"move swiftly by using the legs, go on legs more rapidly than walking,\" also \"make haste, hurry; be active,",
+              "source": "etymonline",
+              "candidates": 3,
+              "reasons": [
+                "ok-source-priority"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryHtml",
+                  "text": "From Middle English runnen , rennen ( “ to run ” ) , alteration (due to the past"
+                },
+                {
+                  "source": "merriamWebster",
+                  "text": "Middle English ronnen , alteration of rinnen , intransitive verb (from Old Engli"
+                }
+              ]
+            },
+            {
+              "field": "phonetic",
+              "winner": "/rʌn/",
+              "source": "cambridge",
+              "candidates": 8,
+              "reasons": [
+                "ok-source-priority"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryApi",
+                  "text": "/ɹʌn/"
+                },
+                {
+                  "source": "wiktApi",
+                  "text": "/ɹʌn/"
+                }
+              ]
+            },
+            {
+              "field": "translation",
+              "winner": "correr",
+              "source": "wiktApi+bundled+cambridge+pons+babla+linguee",
+              "score": -12,
+              "reasons": [
+                "ok-run-motion"
+              ],
+              "candidates": 44,
+              "runnerUps": [
+                {
+                  "source": "wiktApi",
+                  "text": "dirigir",
+                  "score": 0
+                },
+                {
+                  "source": "dictCc",
+                  "text": "manejar",
+                  "score": 0
+                },
+                {
+                  "source": "reverso",
+                  "text": "ejecutar",
+                  "score": 0
+                }
+              ]
+            },
+            {
+              "field": "definition",
+              "winner": "to move very quickly, by moving your legs more quickly than when you walk",
+              "source": "longman",
+              "score": -10,
+              "reasons": [
+                "ok-motion-sense"
+              ],
+              "candidates": 70,
+              "runnerUps": [
+                {
+                  "source": "cambridge",
+                  "text": "to go quickly or in a hurry",
+                  "score": -10
+                },
+                {
+                  "source": "cambridge",
+                  "text": "(of people and some animals ) to move along, faster than walking , by taking qui",
+                  "score": -10
+                },
+                {
+                  "source": "oxfordLearners",
+                  "text": "to travel a particular distance by running",
+                  "score": -10
+                }
+              ]
+            },
+            {
+              "field": "synonyms",
+              "winner": "race",
+              "source": "longman",
+              "candidates": 36,
+              "reasons": [
+                "ok-sense-group-endorsed"
+              ],
+              "runnerUps": [
+                {
+                  "source": "longman",
+                  "text": "jog"
+                },
+                {
+                  "source": "longman",
+                  "text": "trot"
+                },
+                {
+                  "source": "merriamWebsterThesaurus",
+                  "text": "rush"
+                }
+              ]
+            },
+            {
+              "field": "examples",
+              "winner": "She ran home.",
+              "source": "bundled",
+              "candidates": 82,
+              "reasons": [
+                "ok-contextual-alignment"
+              ],
+              "runnerUps": [
+                {
+                  "source": "pons",
+                  "text": "I'll have to run home and change"
+                },
+                {
+                  "source": "pons",
+                  "text": "she let the line run through her hands"
+                },
+                {
+                  "source": "longman",
+                  "text": "She turned and ran away."
+                }
+              ]
+            }
+          ],
+          "imageSource": "openverse",
+          "imageCandidates": 14
+        },
+        "successfulSources": [
+          "datamuse",
+          "wiktionary",
+          "wiktionaryHtml",
+          "wiktionaryApi",
+          "wiktApi",
+          "mobyThesaurus",
+          "thesaurusCom",
+          "wordHippo",
+          "bundled",
+          "tatoeba",
+          "linguaLibre",
+          "googleTtsFallback",
+          "bingImages",
+          "openverse",
+          "youglish",
+          "etymonline",
+          "wordnet",
+          "britannicaDictionary",
+          "cambridge",
+          "oxfordLearners",
+          "longman",
+          "dictionaryCom",
+          "merriamWebster",
+          "merriamWebsterThesaurus",
+          "ozdic",
+          "pons",
+          "babla",
+          "dictCc",
+          "reverso",
+          "linguee",
+          "promtContext",
+          "wordReference",
+          "spanishDict",
+          "forvo",
+          "pixabay"
+        ],
+        "failedSources": []
+      },
+      "sourceLogs": [
+        {
+          "source": "freeDictionary",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "datamuse",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "collocations",
+            "synonyms",
+            "antonyms",
+            "frequencyEvidence"
+          ]
+        },
+        {
+          "source": "wiktionary",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "wiktionaryHtml",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "etymology",
+            "synonyms",
+            "antonyms",
+            "collocations"
+          ]
+        },
+        {
+          "source": "wiktionaryApi",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples",
+            "phonetic"
+          ]
+        },
+        {
+          "source": "wiktApi",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples",
+            "translations"
+          ]
+        },
+        {
+          "source": "mobyThesaurus",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "synonyms"
+          ]
+        },
+        {
+          "source": "thesaurusCom",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "synonyms",
+            "antonyms"
+          ]
+        },
+        {
+          "source": "wordHippo",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "antonyms"
+          ]
+        },
+        {
+          "source": "theIdioms",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "bundled",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "translations",
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "yomitanPacks",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "tatoeba",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "examples"
+          ]
+        },
+        {
+          "source": "linguaLibre",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "googleTtsFallback",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
+        },
+        {
+          "source": "openverse",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "duckduckgoImages",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "youglish",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "videoLinks"
+          ]
+        },
+        {
+          "source": "etymonline",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "etymology"
+          ]
+        },
+        {
+          "source": "wordnet",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "relationGroups",
+            "definitions",
+            "definitionsPos",
+            "examples"
+          ]
+        },
+        {
+          "source": "britannicaDictionary",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "cambridge",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "definitions",
+            "translations",
+            "examples",
+            "relationGroups"
+          ]
+        },
+        {
+          "source": "oxfordLearners",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "longman",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples",
+            "collocations",
+            "frequencyEvidence",
+            "relationGroups"
+          ]
+        },
+        {
+          "source": "dictionaryCom",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "merriamWebster",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "audio",
+            "definitions",
+            "examples",
+            "etymology"
+          ]
+        },
+        {
+          "source": "merriamWebsterThesaurus",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "relationGroups",
+            "examples"
+          ]
+        },
+        {
+          "source": "ozdic",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples",
+            "collocations",
+            "relationGroups"
+          ]
+        },
+        {
+          "source": "pons",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "examples",
+            "collocations"
+          ]
+        },
+        {
+          "source": "babla",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "audio"
+          ]
+        },
+        {
+          "source": "dictCc",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "collocations"
+          ]
+        },
+        {
+          "source": "reverso",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "examples"
+          ]
+        },
+        {
+          "source": "linguee",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "examples"
+          ]
+        },
+        {
+          "source": "promtContext",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "examples"
+          ]
+        },
+        {
+          "source": "wordReference",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations"
+          ]
+        },
+        {
+          "source": "spanishDict",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations"
+          ]
+        },
+        {
+          "source": "forvo",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "unsplash",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "pixabay",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "imageUrl"
+          ]
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "run",
+      "sentence": "She runs the company from home.",
+      "ms": 12688,
+      "error": null,
+      "card": {
+        "entry": {
+          "translation": "dirigir",
+          "bilingual": "dirigir · correr · manejar",
+          "monolingual": "direct or control; projects, businesses, etc.",
+          "phonetic": "/ɹʌn/",
+          "synonyms": [
+            "operate",
+            "work",
+            "drive",
+            "manage",
+            "direct",
+            "oversee",
+            "supervise",
+            "coordinate",
+            "use",
+            "steer",
+            "wield",
+            "guide"
+          ],
+          "collocations": [
+            "well run",
+            "badly run"
+          ],
+          "examples": [
+            "she let the line run through her hands — dejó que la cuerda se deslizara entre sus manos",
+            "She runs the fundraising. — Ella dirige la recaudación de fondos.",
+            "He managed to run the machine. — Consiguió que la máquina funcionara .",
+            "The hotel is run by his uncle. — Su tío dirige el hotel."
+          ]
+        },
+        "vip": {
+          "imageUrl": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
+          "etymology": "Old English, \"move swiftly by using the legs, go on legs more rapidly than walking,\" also \"make haste, hurry; be active, pursue or follow a course,\" and, of inanimate things, \"to move over a course.\" The modern verb is a merger of two related Old English words, in both of which the initial two letters sometimes switched places. The first is intransitive r…",
+          "definitions": [
+            {
+              "source": "wordnet",
+              "text": "direct or control; projects, businesses, etc."
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "(transitive) To control or manage; to be in charge of."
+            },
+            {
+              "source": "oxfordLearners",
+              "text": "to travel a particular distance by running"
+            },
+            {
+              "source": "wiktionary",
+              "text": "To cover (a course or a distance) by running."
+            },
+            {
+              "source": "wiktionary",
+              "text": "To complete a running course or event in (a given time)."
+            },
+            {
+              "source": "wordnet",
+              "text": "move fast by using one's feet, with one foot off the ground at any given time"
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "to have recourse for aid, support, comfort, etc.."
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "to make a quick trip or informal visit for a short stay at a place."
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "to go around, rove, or ramble without restraint (often followed by about )."
+            },
+            {
+              "source": "britannicaDictionary",
+              "text": "to function or operate"
+            },
+            {
+              "source": "merriamWebster",
+              "text": "flee , retreat , escape"
+            },
+            {
+              "source": "merriamWebster",
+              "text": "to go faster than a walk"
+            }
+          ],
+          "translations": [
+            {
+              "source": "wiktApi",
+              "text": "correr"
+            },
+            {
+              "source": "wiktApi",
+              "text": "apeonar"
+            },
+            {
+              "source": "wiktApi",
+              "text": "partida"
+            },
+            {
+              "source": "wiktApi",
+              "text": "carrera"
+            },
+            {
+              "source": "wiktApi",
+              "text": "temporada"
+            },
+            {
+              "source": "wiktApi",
+              "text": "dirigir"
+            },
+            {
+              "source": "bundled",
+              "text": "correr"
+            },
+            {
+              "source": "cambridge",
+              "text": "correr"
+            },
+            {
+              "source": "cambridge",
+              "text": "Los niños tenían que correr para alcanzar a su padre y no quedarse atrás."
+            },
+            {
+              "source": "cambridge",
+              "text": "Puedo correr una milla en cinco minutos."
+            },
+            {
+              "source": "cambridge",
+              "text": "Una niña vino corriendo hacia mí llorando porque no encontraba a su papá."
+            },
+            {
+              "source": "cambridge",
+              "text": "competir con"
+            }
+          ],
+          "examples": [
+            {
+              "source": "pons",
+              "text": "she let the line run through her hands",
+              "translation": "dejó que la cuerda se deslizara entre sus manos"
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "She runs the fundraising.",
+              "translation": "Ella dirige la recaudación de fondos."
+            },
+            {
+              "source": "promtContext",
+              "text": "He managed to run the machine.",
+              "translation": "Consiguió que la máquina funcionara ."
+            },
+            {
+              "source": "promtContext",
+              "text": "The hotel is run by his uncle.",
+              "translation": "Su tío dirige el hotel."
+            },
+            {
+              "source": "reverso",
+              "text": "He always likes to head out for a run in the morning.",
+              "translation": "A él siempre le gusta salir a correr por la mañana."
+            },
+            {
+              "source": "reverso",
+              "text": "We can either run from this crisis or stand and fight it.",
+              "translation": "Podemos huir de esta crisis o plantar cara y luchar contra ella."
+            },
+            {
+              "source": "bundled",
+              "text": "She ran home.",
+              "translation": "Corrió a casa."
+            },
+            {
+              "source": "pons",
+              "text": "I had to run for the train",
+              "translation": "tuve que correr para no perder el tren"
+            },
+            {
+              "source": "britannicaDictionary",
+              "text": "She ran up the stairs to get her jacket.",
+              "translation": "Subió corriendo las escaleras para coger su chaqueta."
+            },
+            {
+              "source": "britannicaDictionary",
+              "text": "He runs faster than anyone else on the team.",
+              "translation": "Corre más rápido que nadie en el equipo."
+            },
+            {
+              "source": "wordnet",
+              "text": "the Yankees scored 3 runs in the bottom of the 9th",
+              "translation": "los Yankees anotaron 3 carreras en la parte baja de la novena"
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "to run from danger.",
+              "translation": "huir del peligro."
+            }
+          ],
+          "videoLinks": [
+            {
+              "url": "https://youglish.com/pronounce/run/english",
+              "source": "youglish"
+            }
+          ],
+          "frequencyEvidence": [
+            {
+              "scale": "books-band",
+              "value": "2",
+              "source": "datamuse"
+            },
+            {
+              "scale": "longman-spoken",
+              "value": "S1",
+              "corpus": "LDOCE",
+              "source": "longman"
+            },
+            {
+              "scale": "longman-written",
+              "value": "W1",
+              "corpus": "LDOCE",
+              "source": "longman"
+            }
+          ],
+          "provenance": [
+            {
+              "field": "image",
+              "winner": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
+              "source": "openverse",
+              "candidates": 14,
+              "reasons": [
+                "ok-primary-source",
+                "ok-exact-match",
+                "ok-high-resolution"
+              ]
+            },
+            {
+              "field": "etymology",
+              "winner": "Old English, \"move swiftly by using the legs, go on legs more rapidly than walking,\" also \"make haste, hurry; be active,",
+              "source": "etymonline",
+              "candidates": 3,
+              "reasons": [
+                "ok-source-priority"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryHtml",
+                  "text": "From Middle English runnen , rennen ( “ to run ” ) , alteration (due to the past"
+                },
+                {
+                  "source": "merriamWebster",
+                  "text": "Middle English ronnen , alteration of rinnen , intransitive verb (from Old Engli"
+                }
+              ]
+            },
+            {
+              "field": "phonetic",
+              "winner": "/rʌn/",
+              "source": "cambridge",
+              "candidates": 8,
+              "reasons": [
+                "ok-source-priority"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryApi",
+                  "text": "/ɹʌn/"
+                },
+                {
+                  "source": "wiktApi",
+                  "text": "/ɹʌn/"
+                }
+              ]
+            },
+            {
+              "field": "translation",
+              "winner": "dirigir",
+              "source": "wiktApi+dictCc",
+              "score": -12,
+              "reasons": [
+                "ok-run-manage"
+              ],
+              "candidates": 38,
+              "runnerUps": [
+                {
+                  "source": "wiktApi",
+                  "text": "correr",
+                  "score": 6
+                },
+                {
+                  "source": "dictCc",
+                  "text": "manejar",
+                  "score": 0
+                }
+              ]
+            },
+            {
+              "field": "definition",
+              "winner": "direct or control; projects, businesses, etc.",
+              "source": "wordnet",
+              "score": -22,
+              "reasons": [
+                "ok-pos-match",
+                "ok-manage-sense",
+                "ok-domain-gloss"
+              ],
+              "candidates": 70,
+              "runnerUps": [
+                {
+                  "source": "wiktionaryApi",
+                  "text": "(transitive) To control or manage; to be in charge of.",
+                  "score": -16
+                },
+                {
+                  "source": "oxfordLearners",
+                  "text": "to travel a particular distance by running",
+                  "score": -10
+                },
+                {
+                  "source": "wiktionary",
+                  "text": "To cover (a course or a distance) by running.",
+                  "score": -10
+                }
+              ]
+            },
+            {
+              "field": "synonyms",
+              "winner": "operate",
+              "source": "wordnet",
+              "candidates": 21,
+              "reasons": [
+                "ok-sense-group-endorsed"
+              ],
+              "runnerUps": [
+                {
+                  "source": "merriamWebsterThesaurus",
+                  "text": "work"
+                },
+                {
+                  "source": "merriamWebsterThesaurus",
+                  "text": "drive"
+                },
+                {
+                  "source": "cambridge",
+                  "text": "manage"
+                }
+              ]
+            },
+            {
+              "field": "collocations",
+              "winner": "well run",
+              "source": "longman",
+              "candidates": 66,
+              "reasons": [
+                "ok-editorial-or-corroborated"
+              ]
+            },
+            {
+              "field": "examples",
+              "winner": "she let the line run through her hands",
+              "source": "pons",
+              "candidates": 79,
+              "reasons": [
+                "ok-contextual-alignment"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryApi",
+                  "text": "She runs the fundraising."
+                },
+                {
+                  "source": "promtContext",
+                  "text": "He managed to run the machine."
+                },
+                {
+                  "source": "promtContext",
+                  "text": "The hotel is run by his uncle."
+                }
+              ]
+            }
+          ],
+          "imageSource": "openverse",
+          "imageCandidates": 14
+        },
+        "successfulSources": [
+          "datamuse",
+          "wiktionary",
+          "wiktionaryHtml",
+          "wiktionaryApi",
+          "wiktApi",
+          "mobyThesaurus",
+          "thesaurusCom",
+          "wordHippo",
+          "bundled",
+          "tatoeba",
+          "linguaLibre",
+          "googleTtsFallback",
+          "bingImages",
+          "openverse",
+          "youglish",
+          "etymonline",
+          "wordnet",
+          "britannicaDictionary",
+          "cambridge",
+          "oxfordLearners",
+          "longman",
+          "dictionaryCom",
+          "merriamWebster",
+          "merriamWebsterThesaurus",
+          "ozdic",
+          "pons",
+          "babla",
+          "dictCc",
+          "reverso",
+          "promtContext",
+          "wordReference",
+          "spanishDict",
+          "forvo",
+          "pixabay"
+        ],
+        "failedSources": []
+      },
+      "sourceLogs": [
+        {
+          "source": "freeDictionary",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "datamuse",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "collocations",
+            "synonyms",
+            "antonyms",
+            "frequencyEvidence"
+          ]
+        },
+        {
+          "source": "wiktionary",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "wiktionaryHtml",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "etymology",
+            "synonyms",
+            "antonyms",
+            "collocations"
+          ]
+        },
+        {
+          "source": "wiktionaryApi",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples",
+            "phonetic"
+          ]
+        },
+        {
+          "source": "wiktApi",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples",
+            "translations"
+          ]
+        },
+        {
+          "source": "mobyThesaurus",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "synonyms"
+          ]
+        },
+        {
+          "source": "thesaurusCom",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "synonyms",
+            "antonyms"
+          ]
+        },
+        {
+          "source": "wordHippo",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "antonyms"
+          ]
+        },
+        {
+          "source": "theIdioms",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "bundled",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "translations",
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "yomitanPacks",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "tatoeba",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "examples"
+          ]
+        },
+        {
+          "source": "linguaLibre",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "googleTtsFallback",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
+        },
+        {
+          "source": "openverse",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "duckduckgoImages",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "youglish",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "videoLinks"
+          ]
+        },
+        {
+          "source": "etymonline",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "etymology"
+          ]
+        },
+        {
+          "source": "wordnet",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "relationGroups",
+            "definitions",
+            "definitionsPos",
+            "examples"
+          ]
+        },
+        {
+          "source": "britannicaDictionary",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "cambridge",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "definitions",
+            "translations",
+            "examples",
+            "relationGroups"
+          ]
+        },
+        {
+          "source": "oxfordLearners",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "longman",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples",
+            "collocations",
+            "frequencyEvidence",
+            "relationGroups"
+          ]
+        },
+        {
+          "source": "dictionaryCom",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "merriamWebster",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "audio",
+            "definitions",
+            "examples",
+            "etymology"
+          ]
+        },
+        {
+          "source": "merriamWebsterThesaurus",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "relationGroups",
+            "examples"
+          ]
+        },
+        {
+          "source": "ozdic",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples",
+            "collocations",
+            "relationGroups"
+          ]
+        },
+        {
+          "source": "pons",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "examples",
+            "collocations"
+          ]
+        },
+        {
+          "source": "babla",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "audio"
+          ]
+        },
+        {
+          "source": "dictCc",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "collocations"
+          ]
+        },
+        {
+          "source": "reverso",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "examples"
+          ]
+        },
+        {
+          "source": "linguee",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "promtContext",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "examples"
+          ]
+        },
+        {
+          "source": "wordReference",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations"
+          ]
+        },
+        {
+          "source": "spanishDict",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations"
+          ]
+        },
+        {
+          "source": "forvo",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "unsplash",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "pixabay",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "imageUrl"
+          ]
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "give",
+      "sentence": "Give me the keys, please.",
+      "ms": 2115,
+      "error": null,
+      "card": {
+        "entry": {
+          "translation": "dar",
+          "bilingual": "dar · regalar · donar · obsequiar · entregar · prestar · conceder · ofrecer",
+          "monolingual": "to put something in someone’s hand",
+          "phonetic": "/ˈɡɪv/",
+          "synonyms": [
+            "supply",
+            "donate",
+            "provide",
+            "deliver",
+            "present",
+            "hand",
+            "furnish",
+            "allocate",
+            "distribute",
+            "hand over",
+            "award",
+            "confer"
+          ],
+          "antonyms": [
+            "receive",
+            "retain",
+            "withhold",
+            "preserve",
+            "save",
+            "reserve",
+            "maintain",
+            "conserve"
+          ],
+          "collocations": [],
+          "examples": [
+            "give me strength! — ¡Señor, dame fuerzas or paciencia!",
+            "Give me something to eat. — Dame algo de comer.",
+            "Don't give me such a sad look. — No me pongas una cara tan triste.",
+            "The slate tiles in the bathroom give it a modern look. — Las baldosas de pizarra en el baño le dan un aspecto moderno."
+          ]
+        },
+        "vip": {
+          "etymology": "Old English giefan (West Saxon) \"to give, bestow, deliver to another; allot, grant; commit, devote, entrust,\" class V strong verb (past tense geaf , past participle giefen ), from Proto-Germanic *geban (source also of Old Frisian jeva , Middle Dutch gheven , Dutch geven , Old High German geban , German geben , Gothic giban ), from PIE root *ghabh- \"to giv…",
+          "definitions": [
+            {
+              "source": "longman",
+              "text": "to put something in someone’s hand"
+            },
+            {
+              "source": "longman",
+              "text": "to let someone have something as a present, or to provide something for someone"
+            },
+            {
+              "source": "cambridge",
+              "text": "to offer something to someone, or to provide someone with something"
+            },
+            {
+              "source": "oxfordLearners",
+              "text": "to provide somebody with something"
+            },
+            {
+              "source": "oxfordLearners",
+              "text": "to hand something to somebody so that they can look at it, use it or keep it for a time"
+            },
+            {
+              "source": "oxfordLearners",
+              "text": "to hand something to somebody as a present; to allow somebody to have something as a present"
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "to hand to someone."
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "to present voluntarily and without expecting compensation; bestow."
+            },
+            {
+              "source": "britannicaDictionary",
+              "text": "to put (something) into someone's hand"
+            },
+            {
+              "source": "britannicaDictionary",
+              "text": "to provide someone with (something wanted or needed)"
+            },
+            {
+              "source": "britannicaDictionary",
+              "text": "to allow someone to have or take (an amount of time)"
+            },
+            {
+              "source": "britannicaDictionary",
+              "text": "to allow someone to have (something wanted or needed)"
+            }
+          ],
+          "translations": [
+            {
+              "source": "wiktApi",
+              "text": "dar"
+            },
+            {
+              "source": "wiktApi",
+              "text": "entregar"
+            },
+            {
+              "source": "wiktApi",
+              "text": "donar"
+            },
+            {
+              "source": "wiktApi",
+              "text": "ceder"
+            },
+            {
+              "source": "wiktApi",
+              "text": "hundirse"
+            },
+            {
+              "source": "wiktApi",
+              "text": "dar de sí"
+            },
+            {
+              "source": "bundled",
+              "text": "dar"
+            },
+            {
+              "source": "cambridge",
+              "text": "dar"
+            },
+            {
+              "source": "cambridge",
+              "text": "Nos regaló un juego de cazuelas cuando nos casamos."
+            },
+            {
+              "source": "cambridge",
+              "text": "Le di 20 libras al taxista y le dije que se guardara el cambio."
+            },
+            {
+              "source": "cambridge",
+              "text": "conceder algo"
+            },
+            {
+              "source": "cambridge",
+              "text": "Estamos muy agradecidos a todos los que nos han concedido su tiempo."
+            }
+          ],
+          "examples": [
+            {
+              "source": "pons",
+              "text": "give me strength!",
+              "translation": "¡Señor, dame fuerzas or paciencia!"
+            },
+            {
+              "source": "promtContext",
+              "text": "Give me something to eat.",
+              "translation": "Dame algo de comer."
+            },
+            {
+              "source": "promtContext",
+              "text": "Don't give me such a sad look.",
+              "translation": "No me pongas una cara tan triste."
+            },
+            {
+              "source": "reverso",
+              "text": "The slate tiles in the bathroom give it a modern look.",
+              "translation": "Las baldosas de pizarra en el baño le dan un aspecto moderno."
+            },
+            {
+              "source": "reverso",
+              "text": "This new evidence will give the jury something to chew on.",
+              "translation": "Estas nuevas pruebas van a ofrecer al jurado un tema de reflexión."
+            },
+            {
+              "source": "pons",
+              "text": "to give it all one's got",
+              "translation": "dar lo mejor de sí"
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "Give me that plate, please.",
+              "translation": "Dame ese plato, por favor."
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "If you give me your coat, I'll put it in the closet.",
+              "translation": "Si me das tu abrigo, lo pondré en el armario."
+            },
+            {
+              "source": "tatoeba",
+              "text": "Give up.",
+              "translation": "Rendirse"
+            },
+            {
+              "source": "tatoeba",
+              "text": "Give tea.",
+              "translation": "Dé té."
+            },
+            {
+              "source": "cambridge",
+              "text": "Can you give me a date for another appointment ?",
+              "translation": "¿Puede darme una fecha para otra cita ?"
+            },
+            {
+              "source": "oxfordLearners",
+              "text": "Give your mother the letter.",
+              "translation": "Dale la carta a tu madre."
+            }
+          ],
+          "videoLinks": [
+            {
+              "url": "https://youglish.com/pronounce/give/english",
+              "source": "youglish"
+            }
+          ],
+          "frequencyEvidence": [
+            {
+              "scale": "books-band",
+              "value": "1",
+              "source": "datamuse"
+            },
+            {
+              "scale": "longman-spoken",
+              "value": "S1",
+              "corpus": "LDOCE",
+              "source": "longman"
+            },
+            {
+              "scale": "longman-written",
+              "value": "W1",
+              "corpus": "LDOCE",
+              "source": "longman"
+            }
+          ],
+          "provenance": [
+            {
+              "field": "etymology",
+              "winner": "Old English giefan (West Saxon) \"to give, bestow, deliver to another; allot, grant; commit, devote, entrust,\" class V st",
+              "source": "etymonline",
+              "candidates": 3,
+              "reasons": [
+                "ok-source-priority"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryHtml",
+                  "text": "From Middle English given , yeven , yiven , ȝiven , from merger of Old English ġ"
+                },
+                {
+                  "source": "merriamWebster",
+                  "text": "Middle English, of Scandinavian origin; akin to Old Swedish giva to give; akin t"
+                }
+              ]
+            },
+            {
+              "field": "phonetic",
+              "winner": "/ɡɪv/",
+              "source": "cambridge",
+              "candidates": 9,
+              "reasons": [
+                "ok-source-priority"
+              ],
+              "runnerUps": [
+                {
+                  "source": "freeDictionary",
+                  "text": "/ɡɪv/"
+                },
+                {
+                  "source": "wiktionaryApi",
+                  "text": "/ɡɪv/"
+                }
+              ]
+            },
+            {
+              "field": "translation",
+              "winner": "dar",
+              "source": "wiktApi+bundled+cambridge+pons+babla+dictCc+linguee",
+              "score": -17,
+              "reasons": [
+                "ok-give-transfer",
+                "ok-core-give-sense"
+              ],
+              "candidates": 42,
+              "runnerUps": [
+                {
+                  "source": "pons",
+                  "text": "regalar",
+                  "score": -7
+                },
+                {
+                  "source": "wiktApi",
+                  "text": "donar",
+                  "score": -3
+                },
+                {
+                  "source": "pons",
+                  "text": "obsequiar",
+                  "score": -7
+                }
+              ]
+            },
+            {
+              "field": "definition",
+              "winner": "to put something in someone’s hand",
+              "source": "longman",
+              "score": -12,
+              "reasons": [
+                "ok-give-transfer-sense"
+              ],
+              "candidates": 76,
+              "runnerUps": [
+                {
+                  "source": "longman",
+                  "text": "to let someone have something as a present, or to provide something for someone",
+                  "score": -12
+                },
+                {
+                  "source": "cambridge",
+                  "text": "to offer something to someone, or to provide someone with something",
+                  "score": -12
+                },
+                {
+                  "source": "oxfordLearners",
+                  "text": "to provide somebody with something",
+                  "score": -12
+                }
+              ]
+            },
+            {
+              "field": "synonyms",
+              "winner": "supply",
+              "source": "cambridge",
+              "candidates": 48,
+              "reasons": [
+                "ok-sense-group-endorsed"
+              ],
+              "runnerUps": [
+                {
+                  "source": "cambridge",
+                  "text": "donate"
+                },
+                {
+                  "source": "cambridge",
+                  "text": "provide"
+                },
+                {
+                  "source": "merriamWebsterThesaurus",
+                  "text": "deliver"
+                }
+              ]
+            },
+            {
+              "field": "examples",
+              "winner": "give me strength!",
+              "source": "pons",
+              "candidates": 89,
+              "reasons": [
+                "ok-contextual-alignment"
+              ],
+              "runnerUps": [
+                {
+                  "source": "promtContext",
+                  "text": "Give me something to eat."
+                },
+                {
+                  "source": "promtContext",
+                  "text": "Don't give me such a sad look."
+                },
+                {
+                  "source": "reverso",
+                  "text": "The slate tiles in the bathroom give it a modern look."
+                }
+              ]
+            }
+          ],
+          "imageCandidates": 14
+        },
+        "successfulSources": [
+          "freeDictionary",
+          "datamuse",
+          "wiktionary",
+          "wiktionaryHtml",
+          "wiktionaryApi",
+          "wiktApi",
+          "mobyThesaurus",
+          "thesaurusCom",
+          "wordHippo",
+          "bundled",
+          "tatoeba",
+          "linguaLibre",
+          "googleTtsFallback",
+          "bingImages",
+          "openverse",
+          "youglish",
+          "etymonline",
+          "wordnet",
+          "britannicaDictionary",
+          "cambridge",
+          "oxfordLearners",
+          "longman",
+          "dictionaryCom",
+          "merriamWebster",
+          "merriamWebsterThesaurus",
+          "ozdic",
+          "pons",
+          "babla",
+          "dictCc",
+          "reverso",
+          "linguee",
+          "promtContext",
+          "wordReference",
+          "spanishDict",
+          "forvo",
+          "pixabay"
+        ],
+        "failedSources": []
+      },
+      "sourceLogs": [
+        {
+          "source": "freeDictionary",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples",
+            "synonyms",
+            "antonyms",
+            "audio",
+            "phonetic"
+          ]
+        },
+        {
+          "source": "datamuse",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "collocations",
+            "synonyms",
+            "antonyms",
+            "frequencyEvidence"
+          ]
+        },
+        {
+          "source": "wiktionary",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "wiktionaryHtml",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "etymology",
+            "collocations"
+          ]
+        },
+        {
+          "source": "wiktionaryApi",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples",
+            "synonyms",
+            "antonyms",
+            "phonetic"
+          ]
+        },
+        {
+          "source": "wiktApi",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples",
+            "translations"
+          ]
+        },
+        {
+          "source": "mobyThesaurus",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "synonyms"
+          ]
+        },
+        {
+          "source": "thesaurusCom",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "synonyms",
+            "antonyms"
+          ]
+        },
+        {
+          "source": "wordHippo",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "antonyms"
+          ]
+        },
+        {
+          "source": "theIdioms",
+          "token": "give",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "bundled",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "translations",
+            "definitions",
+            "examples",
+            "synonyms"
+          ]
+        },
+        {
+          "source": "yomitanPacks",
+          "token": "give",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "tatoeba",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "examples"
+          ]
+        },
+        {
+          "source": "linguaLibre",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "googleTtsFallback",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
+        },
+        {
+          "source": "openverse",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "token": "give",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "duckduckgoImages",
+          "token": "give",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "youglish",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "videoLinks"
+          ]
+        },
+        {
+          "source": "etymonline",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "etymology"
+          ]
+        },
+        {
+          "source": "wordnet",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "relationGroups",
+            "definitions",
+            "definitionsPos",
+            "examples"
+          ]
+        },
+        {
+          "source": "britannicaDictionary",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "cambridge",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "definitions",
+            "translations",
+            "examples",
+            "relationGroups"
+          ]
+        },
+        {
+          "source": "oxfordLearners",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "longman",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples",
+            "collocations",
+            "frequencyEvidence",
+            "relationGroups"
+          ]
+        },
+        {
+          "source": "dictionaryCom",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "merriamWebster",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "audio",
+            "definitions",
+            "examples",
+            "etymology"
+          ]
+        },
+        {
+          "source": "merriamWebsterThesaurus",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "relationGroups",
+            "examples"
+          ]
+        },
+        {
+          "source": "ozdic",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "pons",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "examples",
+            "collocations"
+          ]
+        },
+        {
+          "source": "babla",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "audio"
+          ]
+        },
+        {
+          "source": "dictCc",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "collocations"
+          ]
+        },
+        {
+          "source": "reverso",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "examples"
+          ]
+        },
+        {
+          "source": "linguee",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "examples"
+          ]
+        },
+        {
+          "source": "promtContext",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "examples"
+          ]
+        },
+        {
+          "source": "wordReference",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "translations"
+          ]
+        },
+        {
+          "source": "spanishDict",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "translations"
+          ]
+        },
+        {
+          "source": "forvo",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "unsplash",
+          "token": "give",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "pixabay",
+          "token": "give",
+          "hasData": true,
+          "fields": [
+            "imageUrl"
+          ]
+        }
+      ]
+    }
+  ],
+  "finishedAt": "2026-09-09T05:44:57.276Z"
+}

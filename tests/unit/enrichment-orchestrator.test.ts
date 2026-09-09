@@ -534,7 +534,7 @@ describe('enrichment quality ranking', () => {
     // words (`someone`/`something` frame EVERY sense) proves nothing —
     // its chunks must still ride the flat anchor. Verified live
     // 2026-09-06: Longman give__4 won on {someone, something} alone.
-    const anchor = new Set(['key', 'please', 'put', 'hand', 'someon', 'someth']);
+    const anchor = new Set(['key', 'please', 'put', 'hand', 'someone', 'someth']);
     expect(hasSubstantiveSenseOverlap(
       { guide: 'to tell someone information or details about something' },
       anchor,
@@ -542,7 +542,7 @@ describe('enrichment quality ranking', () => {
     )).toBe(false);
     // A real content overlap (`business`/`organize`) earns the bypass:
     // `well run` never appears in prose but belongs to the manage sense.
-    const manageAnchor = new Set(['busines', 'home', 'organiz', 'charg']);
+    const manageAnchor = new Set(['business', 'home', 'organize', 'charge']);
     expect(hasSubstantiveSenseOverlap(
       { guide: 'to organize or be in charge of a business' },
       manageAnchor,
@@ -554,6 +554,48 @@ describe('enrichment quality ranking', () => {
       undefined,
       'run',
     )).toBe(false);
+  });
+
+  it('selects the Longman manage-sense group when singular meets plural', () => {
+    // Verified 2026-09-09 MV3 miss: the winning definition carries
+    // "businesses" (plural) while Longman's manage guide carries "business"
+    // (singular). The old stemmer cut them apart (busines vs business), the
+    // manage group scored overlap 0, and `run`/manage published [].
+    const selected = pickSenseRelationGroups('run', [
+      {
+        source: 'longman',
+        guide: 'if a machine or engine runs, it operates',
+        definition: 'if a machine or engine runs, it operates',
+        collocations: ['run on electricity'],
+      },
+      {
+        source: 'longman',
+        guide: 'to organize or be in charge of an activity, business, organization, or country',
+        definition: 'to organize or be in charge of an activity, business, organization, or country',
+        collocations: ['well run', 'badly run'],
+      },
+    ], 'She runs the company from home.', [
+      { source: 'wordnet', text: 'direct or control; projects, businesses, etc.' },
+    ]);
+
+    expect(selected).toHaveLength(1);
+    expect(selected[0]?.collocations).toEqual(['well run', 'badly run']);
+  });
+
+  it('meets inflected verbs with their citation stem', () => {
+    // 3rd-person -s on a silent-e stem (`organizes`) hid behind the
+    // sibilant+es cut (`organiz`); an -ings plural (`somethings`) hid behind
+    // the -ing cut. Both cuts are kept so either number meets.
+    expect(hasSubstantiveSenseOverlap(
+      { guide: 'she organizes events' },
+      new Set(['organize']),
+      'team',
+    )).toBe(true);
+    expect(hasSubstantiveSenseOverlap(
+      { guide: 'she houses guests' },
+      new Set(['house']),
+      'team',
+    )).toBe(true);
   });
   it('rejects infinitive-marked chunks and bare corpus adverbs', () => {
     // "to run aground" (dictionary phrasal listing) and "clean forget"

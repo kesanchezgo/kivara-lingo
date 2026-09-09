@@ -1353,19 +1353,63 @@ const RELATION_STOP_WORDS = new Set([
 function relationStem(word: string): string {
   if (word.length > 5 && word.endsWith('ing')) return word.slice(0, -3);
   if (word.length > 4 && word.endsWith('ied')) return `${word.slice(0, -3)}y`;
+  // Plural in -ies meets the -y singular (company/companies,
+  // activity/activities). Without this the two numbers stem apart
+  // (compani vs company) and never overlap.
+  if (word.length > 4 && word.endsWith('ies')) return `${word.slice(0, -3)}y`;
   if (word.length > 4 && word.endsWith('ed')) return word.slice(0, -2);
-  if (word.length > 4 && word.endsWith('es')) return word.slice(0, -2);
+  // A lone -ss singular keeps its s (business, class, process). The old
+  // rule stripped it (busines) so singular and plural never met — the
+  // verified 2026-09-09 MV3 miss: Longman's manage guide carries
+  // "business" while WordNet's winning definition carries "businesses".
+  if (word.endsWith('ss')) return word;
+  // Plural in -es after a sibilant meets the singular (watches→watch,
+  // buses→bus, boxes→box). After any other consonant the -es is really -s
+  // on a silent-e stem (likes→like, gives→give, charges→charge,
+  // services→service) — strip one so verb agreement and -ce/-ge plurals
+  // meet their singulars too. The old blanket es-strip broke all of these
+  // (lik, giv, charg) while fixing only the sibilants.
+  if (word.length > 4 && /(?:s|x|z|ch|sh)es$/.test(word)) return word.slice(0, -2);
   if (word.length > 3 && word.endsWith('s')) return word.slice(0, -1);
   return word;
 }
 
+/**
+ * All stems a word can meet its inflections under. The single-form
+ * `relationStem` above picks one cut, but English hides the singular
+ * behind two different cuts: a 3rd-person -s on a silent-e stem
+ * (`organizes` = organize+s) and a true -es plural (`watches` =
+ * watch+es) both end in a sibilant + es, and an -ings plural
+ * (`somethings`) hides behind the -ing rule. Keeping both forms means
+ * either side of an overlap check meets the other, whichever number
+ * each source happened to print — verified 2026-09-09 MV3 miss where
+ * `business` (Longman guide) never met `businesses` (WordNet definition)
+ * and the whole manage sense lost its collocations.
+ */
+function relationStemVariants(word: string): string[] {
+  const primary = relationStem(word);
+  const out = [primary];
+  // Sibilant + es: the -1 cut is the silent-e singular (organizes→organize,
+  // houses→house); the primary -2 cut is the sibilant plural (watches→watch).
+  if (word.length > 4 && /(?:s|x|z|ch|sh)es$/.test(word)) {
+    const alt = word.slice(0, -1);
+    if (alt !== primary) out.push(alt);
+  }
+  // -ings plural of an -ing noun (somethings→someth + something).
+  if (word.length > 7 && word.endsWith('ings')) {
+    const alt = word.slice(0, -4);
+    if (alt !== primary && !out.includes(alt)) out.push(alt);
+  }
+  return out;
+}
+
 function relationTerms(text: string, token: string): Set<string> {
   const tokenTerms = new Set(
-    stripDiacritics(token.toLowerCase()).match(/[a-z0-9]+/g)?.map(relationStem) ?? [],
+    stripDiacritics(token.toLowerCase()).match(/[a-z0-9]+/g)?.flatMap(relationStemVariants) ?? [],
   );
   return new Set(
     (stripDiacritics(text.toLowerCase()).match(/[a-z0-9]+/g) ?? [])
-      .map(relationStem)
+      .flatMap(relationStemVariants)
       .filter((word) => word.length > 2 && !RELATION_STOP_WORDS.has(word) && !tokenTerms.has(word)),
   );
 }
@@ -1377,13 +1421,14 @@ function relationTerms(text: string, token: string): Set<string> {
 // candidate group trivially overlaps. A closed grammatical class
 // (indefinite pronouns + light nouns), not a hand list — same rationale
 // as LOW_IMAGEABILITY_WORDS. Stored STEMMED: both sides pass through
-// relationTerms, so `things`/`thing` meet as `thing` and
-// `something`/`somebody` as `someth`/`somebodi`.
+// relationTerms, so `things`/`thing` meet as `thing` and `something` as
+// `someth` (it ends in -ing); `somebody`/`someone` are untouched by the
+// stemmer and match literally.
 const GENERIC_SENSE_OVERLAP_WORDS = new Set(
   [
     'someone', 'somebody', 'something', 'anyone', 'anybody', 'anything',
     'everyone', 'everybody', 'everything', 'nothing', 'one', 'people', 'thing',
-  ].map(relationStem),
+  ].flatMap(relationStemVariants),
 );
 
 /**
