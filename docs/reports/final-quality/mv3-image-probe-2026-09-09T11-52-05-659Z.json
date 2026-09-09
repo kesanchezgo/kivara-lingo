@@ -1,0 +1,387 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-09T11:51:31.097Z",
+  "runtime": "Playwright persistent Chromium with unpacked MV3 extension, image fan-out (purpose=card)",
+  "note": "Image-only evidence probe. `pool` carries every candidate with its ranking score and reason codes.",
+  "extensionId": "pkafehpbjfkkfnjaeombdemckeoohhpb",
+  "tiers": [
+    "standard",
+    "vip"
+  ],
+  "corpus": [
+    {
+      "token": "lit",
+      "sentence": ""
+    }
+  ],
+  "rows": [
+    {
+      "tier": "standard",
+      "token": "lit",
+      "sentence": "",
+      "ms": 13561,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/7449/9733571955_b2226e9ab5_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 13,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7449/9733571955_b2226e9ab5_b.jpg",
+          "title": "'Candle Lit Dinner', United States, Maine, Wheeler Bay",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/65535/47103017054_9f6274f8a7_b.jpg",
+          "title": "The well-lit coasts of Spain, France and Italy",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img2.tradewheel.com/uploads/images/products/2/2/bedroom-furniture-home-lit-en-bois-luxury-bed-solid-wooden-frame-queen-cama-matrimonial-storage-bett-king-size-beds-lit-complet2-0837901001721540657.png",
+          "title": "Buy Bedroom Furniture Home Lit En Bois Luxury Bed Solid Wooden Frame ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://meublerdesign1.b-cdn.net/2449-large_default/pour-la-chambre-lit-design-alexi-avec-sommier-et-coffre-de-rangement.jpg",
+          "title": "MeublerDesign Ventes de meubles, lits, canapés, tables à petit prix",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img2.tradewheel.com/uploads/images/products/6/3/bedroom-furniture-lit-complet-luxury-bed-wooden-queen-frame-storage-letto-home-cama-matrimonial-bett-king-size-bed-lit-en-bois1-0765258001721539556.jpg.webp",
+          "title": "Buy Bedroom Furniture Lit Complet Luxury Bed Wooden Queen Frame Storage ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/736x/54/24/36/54243644282b899c773ece812e0b881e.jpg",
+          "title": "Lit Design IMPERIAL avec éclairage LED | Modern bed, Cool bed frames, Bed",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.idmarket.com/44358-product_main_2x/lit-double-santa-avec-tete-de-lit-tables-de-chevet-integrees-et-sommier-140-x-190-cm-blanc.jpg",
+          "title": "Lit double 140x190 blanc avec tête de lit et tables de chevet - SANTA ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://pipcke.fr/idees-deco/wp-content/uploads/2024/09/une-chambre-avec-un-lit-design-en-bois-et-une-deco-naturelle.jpeg",
+          "title": "Lit design en bois : La tendance écoresponsable à adopter",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/originals/e1/97/08/e197088efeabc6b458d3ae701d2236c7.jpg",
+          "title": "Agrandir l'image | Idées de lit, Lit en bois moderne, Modèles de lit en ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://meublerdesign1.b-cdn.net/19853-large_default/pour-la-chambre-lit-velours-coffre-led-grand-tete-de-lit-osmos.jpg",
+          "title": "Lit design adulte led intégré et sommier pour chambre - MEUBLER DESIGN",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/4076/4880127405_5a4dd44c8b_b.jpg",
+          "title": "France, Aisne (02) Guise : Familistère : appartement : lit et fenêtre, vue extérieure.",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/8036/7915362932_d33a0dfcea_b.jpg",
+          "title": "Lit 'Aube et Crépuscule' d'Emile Gallé (musée de l'Ecole de Nancy)",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3918/15155283708_2662bf864d_b.jpg",
+          "title": "Three-year-old Jennifer Adair with a book, Montreal, Quebec / Une lectrice de trois ans, Jennifer Adair, lit dans une bibliothèque publique de Montréal (Québec)",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "lit",
+      "sentence": "",
+      "ms": 16107,
+      "error": null,
+      "winnerUrl": "https://live.staticflickr.com/7449/9733571955_b2226e9ab5_b.jpg",
+      "winnerSource": "openverse",
+      "emptyReason": null,
+      "candidateCount": 14,
+      "pool": [
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/7449/9733571955_b2226e9ab5_b.jpg",
+          "title": "'Candle Lit Dinner', United States, Maine, Wheeler Bay",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/65535/47103017054_9f6274f8a7_b.jpg",
+          "title": "The well-lit coasts of Spain, France and Italy",
+          "score": -6,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "ok-exact-match",
+            "ok-high-resolution"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img2.tradewheel.com/uploads/images/products/2/2/bedroom-furniture-home-lit-en-bois-luxury-bed-solid-wooden-frame-queen-cama-matrimonial-storage-bett-king-size-beds-lit-complet2-0837901001721540657.png",
+          "title": "Buy Bedroom Furniture Home Lit En Bois Luxury Bed Solid Wooden Frame ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://meublerdesign1.b-cdn.net/2449-large_default/pour-la-chambre-lit-design-alexi-avec-sommier-et-coffre-de-rangement.jpg",
+          "title": "MeublerDesign Ventes de meubles, lits, canapés, tables à petit prix",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://img2.tradewheel.com/uploads/images/products/6/3/bedroom-furniture-lit-complet-luxury-bed-wooden-queen-frame-storage-letto-home-cama-matrimonial-bett-king-size-bed-lit-en-bois1-0765258001721539556.jpg.webp",
+          "title": "Buy Bedroom Furniture Lit Complet Luxury Bed Wooden Queen Frame Storage ...",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/736x/54/24/36/54243644282b899c773ece812e0b881e.jpg",
+          "title": "Lit Design IMPERIAL avec éclairage LED | Modern bed, Cool bed frames, Bed",
+          "score": 4,
+          "fallback": true,
+          "reasons": [
+            "ok-fallback-source",
+            "ok-exact-match"
+          ]
+        },
+        {
+          "source": "pixabay",
+          "url": "https://cdn.pixabay.com/photo/2021/11/02/15/30/tealights-6763542_1280.jpg",
+          "title": null,
+          "score": 17,
+          "fallback": false,
+          "reasons": [
+            "ok-primary-source",
+            "penalty-no-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://www.idmarket.com/44358-product_main_2x/lit-double-santa-avec-tete-de-lit-tables-de-chevet-integrees-et-sommier-140-x-190-cm-blanc.jpg",
+          "title": "Lit double 140x190 blanc avec tête de lit et tables de chevet - SANTA ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://pipcke.fr/idees-deco/wp-content/uploads/2024/09/une-chambre-avec-un-lit-design-en-bois-et-une-deco-naturelle.jpeg",
+          "title": "Lit design en bois : La tendance écoresponsable à adopter",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://i.pinimg.com/originals/e1/97/08/e197088efeabc6b458d3ae701d2236c7.jpg",
+          "title": "Agrandir l'image | Idées de lit, Lit en bois moderne, Modèles de lit en ...",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "url": "https://meublerdesign1.b-cdn.net/19853-large_default/pour-la-chambre-lit-velours-coffre-led-grand-tete-de-lit-osmos.jpg",
+          "title": "Lit design adulte led intégré et sommier pour chambre - MEUBLER DESIGN",
+          "score": null,
+          "fallback": true,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/4076/4880127405_5a4dd44c8b_b.jpg",
+          "title": "France, Aisne (02) Guise : Familistère : appartement : lit et fenêtre, vue extérieure.",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/8036/7915362932_d33a0dfcea_b.jpg",
+          "title": "Lit 'Aube et Crépuscule' d'Emile Gallé (musée de l'Ecole de Nancy)",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        },
+        {
+          "source": "openverse",
+          "url": "https://live.staticflickr.com/3918/15155283708_2662bf864d_b.jpg",
+          "title": "Three-year-old Jennifer Adair with a book, Montreal, Quebec / Une lectrice de trois ans, Jennifer Adair, lit dans une bibliothèque publique de Montréal (Québec)",
+          "score": null,
+          "fallback": false,
+          "reasons": [
+            "penalty-non-english-metadata"
+          ]
+        }
+      ],
+      "imageSources": [
+        {
+          "source": "bingImages",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "openverse",
+          "hasData": true,
+          "error": null
+        },
+        {
+          "source": "wikimediaCommons",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "duckduckgoImages",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "unsplash",
+          "hasData": false,
+          "error": null
+        },
+        {
+          "source": "pixabay",
+          "hasData": true,
+          "error": null
+        }
+      ]
+    }
+  ],
+  "finishedAt": "2026-09-09T11:52:05.659Z"
+}

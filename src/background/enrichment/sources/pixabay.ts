@@ -15,13 +15,15 @@
  */
 
 import { fetchHtml, fetchJson } from '../fetcher';
-import type { EnrichmentContext, EnrichmentSource, SourcePartial } from '../types';
+import type { EnrichmentContext, EnrichmentSource, ImageCandidate, SourcePartial } from '../types';
 
 interface PixabayApiResponse {
   hits?: Array<{
     webformatURL?: string;
     largeImageURL?: string;
     previewURL?: string;
+    tags?: string;
+    pageURL?: string;
   }>;
 }
 
@@ -54,10 +56,22 @@ export const pixabaySource: EnrichmentSource = {
         timeoutMs: ctx.timeoutMs,
         signal: ctx.signal,
       });
-      const hit = data?.hits?.[0];
-      const imageUrl =
-        hit?.largeImageURL || hit?.webformatURL || hit?.previewURL;
-      if (imageUrl) return { imageUrl };
+      // Ranked candidates, not a single hero URL: the merger's semantic
+      // ranking (bad-subject, language, idiom gates) decides what
+      // publishes. A single `imageUrl` bypasses every gate the probe
+      // verified — same fix as Unsplash.
+      const candidates: ImageCandidate[] = [];
+      for (const hit of data?.hits ?? []) {
+        const imageUrl = hit?.largeImageURL || hit?.webformatURL || hit?.previewURL;
+        if (!imageUrl) continue;
+        candidates.push({
+          url: imageUrl,
+          ...(hit?.tags ? { title: hit.tags } : {}),
+          ...(hit?.pageURL ? { sourcePageUrl: hit.pageURL } : {}),
+        });
+        if (candidates.length >= 5) break;
+      }
+      if (candidates.length) return { imageCandidates: candidates };
       // fall through to scrape if API call failed.
     }
 

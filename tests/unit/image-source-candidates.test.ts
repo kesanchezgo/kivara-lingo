@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { openverseSource } from '../../src/background/enrichment/sources/openverse';
 import { wikimediaCommonsSource } from '../../src/background/enrichment/sources/wikimedia-commons';
+import { unsplashSource } from '../../src/background/enrichment/sources/unsplash';
+import { pixabaySource } from '../../src/background/enrichment/sources/pixabay';
 
 const ctx = { sourceLang: 'en', targetLang: 'es', timeoutMs: 8000 };
 
@@ -179,5 +181,72 @@ describe('standard image source candidates', () => {
 
     await expect(openverseSource.enrich('apple', ctx)).resolves.toEqual({});
     await expect(wikimediaCommonsSource.enrich('apple', ctx)).resolves.toEqual({});
+  });
+});
+
+describe('BYOK image source candidates', () => {
+  it('emits ranked Unsplash candidates instead of a single hero URL', async () => {
+    // A single `imageUrl` bypasses every gate the image probe verified
+    // (bad-subject, language, idiom). Ranked candidates let the merger
+    // decide what publishes.
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({
+      results: [
+        {
+          urls: { regular: 'https://images.unsplash.com/a' },
+          alt_description: 'Red apple on a table',
+          tags: ['apple', 'fruit'],
+        },
+        { urls: { small: 'https://images.unsplash.com/b' } },
+        {},
+      ],
+    }));
+
+    const result = await unsplashSource.enrich('apple', {
+      ...ctx,
+      unsplashAccessKey: 'test-key',
+    } as never);
+
+    expect(result.imageUrl).toBeUndefined();
+    expect(result.imageCandidates).toEqual([
+      {
+        url: 'https://images.unsplash.com/a',
+        title: 'Red apple on a table',
+        tags: ['apple', 'fruit'],
+      },
+      { url: 'https://images.unsplash.com/b' },
+    ]);
+  });
+
+  it('stays silent without an Unsplash key', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    await expect(unsplashSource.enrich('apple', ctx)).resolves.toEqual({});
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('emits ranked Pixabay API candidates instead of a single hero URL', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({
+      hits: [
+        {
+          largeImageURL: 'https://cdn.pixabay.com/a.jpg',
+          tags: 'red apple, fruit',
+          pageURL: 'https://pixabay.com/photos/a/',
+        },
+        { webformatURL: 'https://cdn.pixabay.com/b.jpg' },
+        {},
+      ],
+    }));
+
+    const result = await pixabaySource.enrich('apple', {
+      ...ctx,
+      pixabayApiKey: 'test-key',
+    } as never);
+
+    expect(result.imageUrl).toBeUndefined();
+    expect(result.imageCandidates?.[0]).toEqual({
+      url: 'https://cdn.pixabay.com/a.jpg',
+      title: 'red apple, fruit',
+      sourcePageUrl: 'https://pixabay.com/photos/a/',
+    });
+    expect(result.imageCandidates).toHaveLength(2);
   });
 });

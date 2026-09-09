@@ -18,7 +18,7 @@
  */
 
 import { fetchWithTimeout } from '../fetcher';
-import type { EnrichmentContext, EnrichmentSource, SourcePartial } from '../types';
+import type { EnrichmentContext, EnrichmentSource, ImageCandidate, SourcePartial } from '../types';
 
 interface UnsplashResult {
   urls?: {
@@ -26,6 +26,8 @@ interface UnsplashResult {
     small?: string;
     thumb?: string;
   };
+  alt_description?: string;
+  tags?: string[];
 }
 
 interface UnsplashResponse {
@@ -61,9 +63,21 @@ export const unsplashSource: EnrichmentSource = {
     } catch {
       return {};
     }
-    const first = data.results?.[0];
-    const imageUrl = first?.urls?.regular || first?.urls?.small || first?.urls?.thumb;
-    if (!imageUrl) return {};
-    return { imageUrl };
+    // Ranked candidates, not a single hero URL: the merger's semantic
+    // ranking (bad-subject, language, idiom gates) decides what publishes.
+    // A single `imageUrl` bypasses every gate the image probe verified.
+    const candidates: ImageCandidate[] = [];
+    for (const result of data.results ?? []) {
+      const imageUrl = result?.urls?.regular || result?.urls?.small || result?.urls?.thumb;
+      if (!imageUrl) continue;
+      candidates.push({
+        url: imageUrl,
+        ...(result?.alt_description ? { title: result.alt_description } : {}),
+        ...((result?.tags?.length ?? 0) > 0 ? { tags: result.tags } : {}),
+      });
+      if (candidates.length >= 5) break;
+    }
+    if (!candidates.length) return {};
+    return { imageCandidates: candidates };
   },
 };

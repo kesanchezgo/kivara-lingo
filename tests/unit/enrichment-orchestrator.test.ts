@@ -6,6 +6,11 @@ const enrichCambridge = vi.fn(async () => ({
   definitions: ['a learner definition'],
   audio: [{ url: 'https://audio.example/cambridge.mp3', accent: 'UK' }],
 }));
+const enrichOpenverse = vi.fn(async () => ({
+  imageCandidates: [
+    { url: 'https://images.example/lit-dinner.jpg', title: 'Candle lit dinner' },
+  ],
+}));
 const enrichFreeDictionary = vi.fn(async () => ({ translations: ['casa'] }));
 const enrichBritannica = vi.fn(async () => ({ definitions: ['an editorial learner definition'] }));
 const enrichTatoeba = vi.fn(async () => ({
@@ -23,6 +28,9 @@ vi.mock('../../src/background/enrichment/sources/yomitan-packs', () => ({
 }));
 vi.mock('../../src/background/enrichment/sources/cambridge', () => ({
   cambridgeSource: { id: 'cambridge', label: 'Cambridge', enrich: enrichCambridge },
+}));
+vi.mock('../../src/background/enrichment/sources/openverse', () => ({
+  openverseSource: { id: 'openverse', label: 'Openverse', enrich: enrichOpenverse },
 }));
 vi.mock('../../src/background/enrichment/sources/free-dictionary', () => ({
   freeDictionarySource: { id: 'freeDictionary', label: 'Free Dictionary', enrich: enrichFreeDictionary },
@@ -846,6 +854,55 @@ describe('enrichment quality ranking', () => {
       { source: 'bingImages', url: 'https://example.test/apple-news.jpg', title: 'Apple news headline' },
       { source: 'openverse', url: 'https://example.test/fruit.jpg', title: 'Red apple fruit', width: 1200, height: 800 },
     ])?.url).toBe('https://example.test/fruit.jpg');
+  });
+
+  it('rejects a literal-axis depiction when the winning definition proves a slang sense', () => {
+    // Verified live 2026-09-09: `lit` slang ("The show was lit") won the
+    // definition (`ok-lit-slang-sense`) but published a candle-lit dinner —
+    // the literal sense. On a slang-sense win the merger re-ranks with the
+    // slang flag: a literal-axis caption (candle/dinner/lamp) with no slang
+    // axis (party/show/excellent) is the wrong sense and drops. Unit level
+    // asserts the contract the merger consumes.
+    const reasons = definitionContextReasons(
+      'Slang. amazing ; awesome ; cool (used as a general term of approval).',
+      'lit',
+      'The show was lit.',
+    );
+    expect(reasons).toContain('ok-lit-slang-sense');
+    const candidate = {
+      source: 'openverse',
+      url: 'https://images.example/lit-dinner.jpg',
+      title: 'Candle lit dinner',
+      width: 1200,
+      height: 800,
+    };
+    expect(rankImageCandidates('lit', [candidate]).winner?.url)
+      .toBe('https://images.example/lit-dinner.jpg');
+    const slang = rankImageCandidates('lit', [candidate], { slangSense: true });
+    expect(slang.winner).toBeUndefined();
+    expect(slang.scored[0]?.reasons).toContain('penalty-slang-sense-literal-depiction');
+    // A slang-axis caption survives the same flag: the axes decide, not a
+    // blanket ban.
+    const party = rankImageCandidates('lit', [{
+      source: 'openverse',
+      url: 'https://images.example/lit-party.jpg',
+      title: 'Lit party show with amazing crowd',
+      width: 1200,
+      height: 800,
+    }], { slangSense: true });
+    expect(party.winner?.url).toBe('https://images.example/lit-party.jpg');
+    // Hyphenated literal forms are caught too: Openverse writes "well-lit"
+    // hyphenated ("The well-lit coasts"), the most common literal
+    // depiction — verified live 2026-09-09 after the candle dinner gate.
+    const coasts = rankImageCandidates('lit', [{
+      source: 'openverse',
+      url: 'https://images.example/lit-coasts.jpg',
+      title: 'The well-lit coasts of Spain, France and Italy',
+      width: 1200,
+      height: 800,
+    }], { slangSense: true });
+    expect(coasts.winner).toBeUndefined();
+    expect(coasts.scored[0]?.reasons).toContain('penalty-slang-sense-literal-depiction');
   });
 
   it('rejects images for low-imageability function words in general, not a fixed list', () => {

@@ -1745,6 +1745,25 @@ const BAD_SUBJECT_RE = /\b(?:logo|icon|icons|banner|wallpaper|clip[- ]?art|vecto
 const FIGURATIVE_RE = /\b(?:idiom|idiomatic|idiomatically|figurative|figuratively|metaphor|metaphorical|meaning|means|denote[s]?|proverb|saying|expression)\b/;
 
 /**
+ * Slang-axis markers: words that name the slang sense of a headword rather
+ * than its literal depiction. When the winning definition proves a slang
+ * sense, a candidate whose metadata carries the LITERAL axis but none of
+ * the slang axis depicts the wrong sense — `lit` slang ("The show was
+ * lit") must not publish a candle-lit dinner. Closed per-axis class:
+ * celebration/excellence words vs light/fire words. Verified live
+ * 2026-09-09: `lit` vip published a candle-lit dinner for the slang
+ * sentence with reasons ok-primary-source/ok-exact-match.
+ */
+const SLANG_AXIS_RE = /\b(?:amazing|awesome|cool|excellent|exciting|fun|party|concert|show|celebrat|slang|approval)\b/;
+// Literal-axis markers: words that depict the headword's literal sense.
+// Includes hyphenated `well-lit`/`well-lighted` forms: Openverse captions
+// write them hyphenated ("The well-lit coasts"), and without the hyphen
+// branch the slang binding misses the most common literal depiction.
+// Verified live 2026-09-09: `lit` vip published well-lit coasts for the
+// slang sentence after the candle-lit dinner was gated.
+const LITERAL_AXIS_RE = /\b(?:candle|dinner|lamp|lighted|illuminat|afire|burning|glow|lantern|bulb|chandelier)\b|well-lit|well-lighted/i;
+
+/**
  * Non-English metadata markers. Openverse/Commons aggregate multilingual
  * captions, so a token that is a real word in another language (`lit` =
  * "bed" in French) matches by string but depicts the WRONG concept. When
@@ -1805,9 +1824,13 @@ export function scoreImageCandidate(
     /** Dominant POS of the token, when a source tagged it. Drives the
      * strict-depiction gate for relational verbs. */
     pos?: string;
+    /** The winning definition proved a slang sense: literal-axis depictions
+     * of the headword are the wrong sense (`lit` slang vs candle-lit
+     * dinner). Set by the merger's second pass, never by callers. */
+    slangSense?: boolean;
   },
 ): ImageScore {
-  const { normalizedToken, tokenWords, isMultiword, treatAsIdiom, pos } = ctx;
+  const { normalizedToken, tokenWords, isMultiword, treatAsIdiom, pos, slangSense } = ctx;
   const reasons: string[] = [];
   const metadata = stripDiacritics([
     candidate.title ?? '',
@@ -1847,6 +1870,14 @@ export function scoreImageCandidate(
   // Idiom-flagged tokens need figurative evidence: a literal depiction of
   // the component nouns is the wrong sense.
   if (treatAsIdiom && !figurativeEvidence) return dq('penalty-idiom-no-figurative-evidence');
+  // Slang-sense binding: when the winning definition proves a slang sense,
+  // a candidate carrying the LITERAL axis but none of the slang axis
+  // depicts the wrong sense — `lit` slang ("The show was lit") must not
+  // publish a candle-lit dinner. General mechanism: the axes are small
+  // closed classes, not token rules. Verified live 2026-09-09.
+  if (slangSense && LITERAL_AXIS_RE.test(metadata) && !SLANG_AXIS_RE.test(metadata)) {
+    return dq('penalty-slang-sense-literal-depiction');
+  }
   // Fallback sources may only surface with a lexical anchor — a raw search
   // hit with no token match in metadata OR url is almost always off-sense.
   if (isFallback && !exactMatch && lexicalMatches === 0) return dq('penalty-fallback-no-lexical-anchor');
@@ -1891,7 +1922,7 @@ export interface ImageRankingResult {
 export function rankImageCandidates(
   token: string,
   candidates: AttributedImageCandidate[],
-  opts?: { isIdiom?: boolean; pos?: string },
+  opts?: { isIdiom?: boolean; pos?: string; slangSense?: boolean },
 ): ImageRankingResult {
   const normalizedToken = stripDiacritics(token.toLowerCase().trim());
   if (!normalizedToken) return { scored: [], emptyReason: 'empty-token' };
@@ -1906,6 +1937,7 @@ export function rankImageCandidates(
   const scored = candidates
     .map((candidate) => scoreImageCandidate(candidate, {
       normalizedToken, tokenWords, isMultiword, treatAsIdiom, pos: opts?.pos,
+      slangSense: opts?.slangSense,
     }))
     .sort((a, b) => a.score - b.score);
 
@@ -2420,43 +2452,57 @@ function mergeFields(
     posCounts.set(pos, (posCounts.get(pos) ?? 0) + 1);
   }
   const dominantPos = [...posCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-  const imageRanking = rankImageCandidates(token, imageCandidates, {
+  // Slang-sense binding for images (applied after the definition pick
+  // below): when the winning definition is a slang sense, a literal
+  // depiction of the headword is the wrong sense — `lit` slang ("The show
+  // was lit") must not publish a candle-lit dinner. General mechanism,
+  // not a `lit` rule: any token whose top definition carries a slang-sense
+  // reason forces figurative-mode ranking, the same mode idioms already
+  // use. When no slang sense won, behaviour is unchanged.
+  let imageRanking = rankImageCandidates(token, imageCandidates, {
     isIdiom: isIdiomToken,
     pos: dominantPos,
   });
-  const selectedImage = imageRanking.winner;
-  if (selectedImage) vip.imageUrl = selectedImage.url;
+  let selectedImage = imageRanking.winner;
+  // NOTE: `vip.imageUrl`, the `[kivara:enrichment:image]` trace and the
+  // image provenance are all written AFTER the definition pick below, so
+  // the slang-sense second pass can still override them. Do not publish
+  // here.
   // Selected-image trace for the MV3 audits: the card purpose runs the
   // image sources, and this line lets `scripts/mv3-corpus-quality.mjs
   // --purpose card` and `scripts/mv3-image-probe.mjs` capture what the
   // ranking actually published (or the fact that it correctly published
   // nothing) per token. The `pool` carries every candidate with its score
   // and reason codes so the probe has real rejection evidence, not guesses.
-  console.info('[kivara:enrichment:image]', {
-    token,
-    imageUrl: selectedImage?.url ?? null,
-    source: selectedImage?.source ?? null,
-    candidates: imageCandidates.length,
-    emptyReason: imageRanking.emptyReason ?? null,
-    pool: imageRanking.scored.map((s) => ({
-      source: s.candidate.source,
-      url: s.candidate.url,
-      title: s.candidate.title ?? null,
-      score: Number.isFinite(s.score) ? s.score : null,
-      fallback: s.fallback,
-      reasons: s.reasons,
-    })),
-  });
-  if (selectedImage) {
-    pushProvenance({
-      field: 'image',
-      winner: selectedImage.url.slice(0, 120),
-      source: selectedImage.source,
+  // NOTE: written AFTER the slang-sense second pass below, so the trace
+  // reflects the final ranking, not the first pass.
+  const writeImageTrace = (): void => {
+    console.info('[kivara:enrichment:image]', {
+      token,
+      imageUrl: selectedImage?.url ?? null,
+      source: selectedImage?.source ?? null,
       candidates: imageCandidates.length,
-      reasons: imageRanking.scored.find((s) => s.candidate.url === selectedImage.url)?.reasons
-        ?? ['ok-depicts-concept'],
+      emptyReason: imageRanking.emptyReason ?? null,
+      pool: imageRanking.scored.map((s) => ({
+        source: s.candidate.source,
+        url: s.candidate.url,
+        title: s.candidate.title ?? null,
+        score: Number.isFinite(s.score) ? s.score : null,
+        fallback: s.fallback,
+        reasons: s.reasons,
+      })),
     });
-  }
+    if (selectedImage) {
+      pushProvenance({
+        field: 'image',
+        winner: selectedImage.url.slice(0, 120),
+        source: selectedImage.source,
+        candidates: imageCandidates.length,
+        reasons: imageRanking.scored.find((s) => s.candidate.url === (selectedImage as AttributedImageCandidate).url)?.reasons
+          ?? ['ok-depicts-concept'],
+      });
+    }
+  };
   const selectedEtymology = pickEtymology(etymologyCandidates);
   vip.etymology = selectedEtymology;
   if (selectedEtymology) {
@@ -2528,6 +2574,32 @@ function mergeFields(
   }
 
   const rankedDefinitions = pickDefinitions(allDefs, token, ctx.sentence, definitionPos);
+  // Slang-sense binding, second pass: when the winning definition proves a
+  // slang sense, the literal depiction the first image pass picked is the
+  // wrong sense by construction — re-rank in figurative mode (the mode
+  // idioms already use). `lit` slang ("The show was lit") drops its
+  // candle-lit dinner and publishes nothing rather than the wrong sense.
+  // When no slang sense won, the first pass stands and behaviour is
+  // unchanged.
+  const slangSenseWon = (rankedDefinitions[0]
+    ? definitionContextReasons(rankedDefinitions[0].text, token, ctx.sentence, definitionPos)
+    : []
+  ).some((reason) => reason.includes('-slang-sense'));
+  if (slangSenseWon && !isIdiomToken) {
+    const figurativeRanking = rankImageCandidates(token, imageCandidates, {
+      pos: dominantPos,
+      slangSense: true,
+    });
+    imageRanking = figurativeRanking;
+    selectedImage = figurativeRanking.winner;
+    if (selectedImage) vip.imageUrl = selectedImage.url;
+    else delete vip.imageUrl;
+  }
+  // Publish the final image state AFTER the slang-sense second pass, so
+  // the trace and provenance reflect the re-ranked winner — never the
+  // first-pass literal the second pass already discarded.
+  if (selectedImage) vip.imageUrl = selectedImage.url;
+  writeImageTrace();
   const selectedRelationGroups = pickSenseRelationGroups(token, relationGroups, ctx.sentence, rankedDefinitions);
 
   // Sense anchor for the sense-blind flat fields (thesaurus synonyms/antonyms
