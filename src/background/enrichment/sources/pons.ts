@@ -9,7 +9,7 @@
 
 import { fetchHtml } from '../fetcher';
 import { expandSlashAlternatives, stripHtml } from '../html-utils';
-import type { EnrichmentContext, EnrichmentSource, SourcePartial } from '../types';
+import type { EnrichmentContext, EnrichmentSource, SenseRelationGroup, SourcePartial } from '../types';
 
 const BASE = 'https://en.pons.com';
 
@@ -87,10 +87,62 @@ function isUsefulExample(source: string, target: string, token: string): boolean
   return /[.!?¿¡]|\b(i|you|he|she|we|they|it|do|does|did|what|if|this|that|there)\b/i.test(source);
 }
 
+interface PonsSenseGroup {
+  /** Segment gloss (`(to hand)`), the sense anchor for the merger's gate. */
+  gloss: string;
+  sources: string[];
+  targets: string[];
+  /** First example sentence of the segment, when any. Gives the group a
+   *  concrete lexical surface beyond the generic gloss: `(to donate)` never
+   *  shares words with "She gave blood", but its example "they have given
+   *  $100,000 for a new music room" might. Same contract as Longman Sense
+   *  groups (guide + example) and Cambridge dsense groups. */
+  example?: string;
+}
+
+/**
+ * Split the PONS page into sense segments. Every translation row lives
+ * inside exactly one `class="sense">gloss</span>` segment (verified live
+ * 2026-09-09 on `give`: 406/406 buttons inside 118 segments, 0 orphans),
+ * so each row inherits its segment's gloss as a sense anchor — the same
+ * contract as Longman Sense blocks and ozdic collocation blocks.
+ */
+export function extractPonsSenseGroups(html: string, token = ''): PonsSenseGroup[] {
+  const marks = [...html.matchAll(/class="sense">([\s\S]{0,120}?)<\/span>/gi)];
+  if (!marks.length) return [];
+  const groups: PonsSenseGroup[] = [];
+  for (let i = 0; i < marks.length; i += 1) {
+    const mark = marks[i];
+    if (mark.index === undefined) continue;
+    const gloss = cleanText(mark[1]);
+    const seg = html.slice(mark.index, i + 1 < marks.length ? marks[i + 1].index : html.length);
+    const sources: string[] = [];
+    const targets: string[] = [];
+    let example: string | undefined;
+    for (const block of seg.match(/<button[\s\S]*?add-to-vocabulary-trainer[\s\S]*?<\/button>/gi) ?? []) {
+      const source = cleanText(attr(block, 'data-translation-source'));
+      const target = cleanText(attr(block, 'data-translation-target'));
+      if (!source || !target) continue;
+      sources.push(source);
+      targets.push(target);
+      // First sentence-like row becomes the group's example surface.
+      if (!example && isSourceSentence(source) && sourceContainsToken(source, token)) example = source;
+    }
+    if (sources.length) groups.push({ gloss, sources, targets, ...(example ? { example } : {}) });
+  }
+  return groups;
+}
+
 function normalizeCollocations(source: string, token: string): string[] {
   const clean = source
     .replace(/\s+/g, ' ')
     .replace(/\b(sb|sth)\b/gi, 'someone')
+    // Object pronouns are argument slots, not lexical content: `give her
+    // something to eat` becomes the reusable pattern `give someone
+    // something to eat`. Verified live 2026-09-09: PONS (to hand) rows
+    // carry her/me/them slots; without this the chunk keeps its
+    // sentence-specific pronoun and dies downstream as noise.
+    .replace(/\b(her|him|me|them|us|you)\b/gi, 'someone')
     .replace(/\s*,\s*/g, ' / ')
     .trim();
   if (!sourceContainsToken(clean, token)) return [];
@@ -134,11 +186,34 @@ export const ponsSource: EnrichmentSource = {
     const translations: string[] = [];
     const examples: Array<{ text: string; translation?: string }> = [];
     const collocations: string[] = [];
+    // Sense-scoped collocation groups ride the merger's contextual gate
+    // like Longman Sense blocks: the segment gloss anchors each chunk to
+    // its sense instead of dumping every sense's phrases flat.
+    const relationGroups: SenseRelationGroup[] = [];
 
-    const blocks = html.match(/<button[\s\S]*?add-to-vocabulary-trainer[\s\S]*?<\/button>/gi) ?? [];
-    for (const block of blocks) {
-      const source = cleanText(attr(block, 'data-translation-source'));
-      const target = cleanText(attr(block, 'data-translation-target'));
+    const senseGroups = extractPonsSenseGroups(html, token);
+    const walkRows = senseGroups.length
+      ? senseGroups.flatMap((group) =>
+        group.sources.map((source, i) => ({
+          source,
+          target: group.targets[i] ?? '',
+          gloss: group.gloss,
+          example: group.example,
+        })),
+      )
+      // No sense marks (markup drift): the old flat contract, no groups.
+      : (html.match(/<button[\s\S]*?add-to-vocabulary-trainer[\s\S]*?<\/button>/gi) ?? []).map(
+        (block) => ({
+          source: cleanText(attr(block, 'data-translation-source')),
+          target: cleanText(attr(block, 'data-translation-target')),
+          gloss: '',
+          example: undefined as string | undefined,
+        }),
+      );
+    const groupChunks = new Map<string, Set<string>>();
+    const groupExamples = new Map<string, string>();
+    const groupOrder: string[] = [];
+    for (const { source, target, gloss, example } of walkRows) {
       if (!source || !target) continue;
 
       if (isUsefulExample(source, target, token)) {
@@ -148,21 +223,47 @@ export const ponsSource: EnrichmentSource = {
         continue;
       }
 
-      for (const collocation of normalizeCollocations(source, token)) {
-        uniquePush(collocations, collocation, 12);
+      const chunks = normalizeCollocations(source, token);
+      for (const collocation of chunks) uniquePush(collocations, collocation, 12);
+      // Chunks of one segment share one guide: the selected sense's
+      // chunks publish as a unit, like Longman/Ozdic sense groups.
+      if (gloss && chunks.length) {
+        let set = groupChunks.get(gloss);
+        if (!set) {
+          set = new Set<string>();
+          groupChunks.set(gloss, set);
+          groupOrder.push(gloss);
+        }
+        if (example && !groupExamples.has(gloss)) groupExamples.set(gloss, example);
+        for (const chunk of chunks) {
+          if (set.size >= 8) break;
+          set.add(chunk);
+        }
       }
 
       // Main bilingual gloss: only compact source rows that refer to the
       // headword or a short headword phrase, never sentence examples.
       if (allowTranslations && sourceContainsToken(source, token) && !isSourceSentence(source)) {
-        for (const gloss of cleanGlossCandidate(target)) uniquePush(translations, gloss, 10);
+        for (const glossCandidate of cleanGlossCandidate(target)) uniquePush(translations, glossCandidate, 10);
       }
+    }
+    for (const gloss of groupOrder.slice(0, 10)) {
+      const chunks = groupChunks.get(gloss);
+      if (!chunks?.size) continue;
+      const groupExample = groupExamples.get(gloss);
+      relationGroups.push({
+        guide: gloss,
+        definition: gloss,
+        ...(groupExample ? { example: groupExample } : {}),
+        collocations: [...chunks],
+      });
     }
 
     const partial: SourcePartial = {};
     if (translations.length) partial.translations = translations.slice(0, 6);
     if (examples.length) partial.examples = examples.slice(0, 6);
     if (collocations.length) partial.collocations = collocations.slice(0, 10);
+    if (relationGroups.length) partial.relationGroups = relationGroups;
     return partial;
   },
 };

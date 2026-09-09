@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-09T05:43:47.672Z",
+  "generatedAt": "2026-09-09T07:05:49.788Z",
   "runtime": "Playwright persistent Chromium with unpacked MV3 extension, full source set per tier",
   "extensionId": "pkafehpbjfkkfnjaeombdemckeoohhpb",
   "corpus": [
@@ -26,7 +26,7 @@
       "tier": "standard",
       "token": "run",
       "sentence": "She ran home.",
-      "ms": 13975,
+      "ms": 13928,
       "error": null,
       "card": {
         "entry": {
@@ -202,7 +202,7 @@
               "field": "image",
               "winner": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
               "source": "openverse",
-              "candidates": 13,
+              "candidates": 21,
               "reasons": [
                 "ok-primary-source",
                 "ok-exact-match",
@@ -316,7 +316,7 @@
             }
           ],
           "imageSource": "openverse",
-          "imageCandidates": 13
+          "imageCandidates": 21
         },
         "successfulSources": [
           "datamuse",
@@ -333,6 +333,7 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
+          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet"
@@ -498,8 +499,11 @@
         {
           "source": "duckduckgoImages",
           "token": "run",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -534,7 +538,7 @@
       "tier": "standard",
       "token": "run",
       "sentence": "She runs the company from home.",
-      "ms": 12800,
+      "ms": 12863,
       "error": null,
       "card": {
         "entry": {
@@ -710,7 +714,7 @@
               "field": "image",
               "winner": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
               "source": "openverse",
-              "candidates": 13,
+              "candidates": 21,
               "reasons": [
                 "ok-primary-source",
                 "ok-exact-match",
@@ -832,7 +836,7 @@
             }
           ],
           "imageSource": "openverse",
-          "imageCandidates": 13
+          "imageCandidates": 21
         },
         "successfulSources": [
           "datamuse",
@@ -849,6 +853,7 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
+          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet"
@@ -1014,8 +1019,11 @@
         {
           "source": "duckduckgoImages",
           "token": "run",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -1050,7 +1058,7 @@
       "tier": "standard",
       "token": "give",
       "sentence": "Give me the keys, please.",
-      "ms": 2238,
+      "ms": 3061,
       "error": null,
       "card": {
         "entry": {
@@ -1343,7 +1351,7 @@
               ]
             }
           ],
-          "imageCandidates": 13
+          "imageCandidates": 21
         },
         "successfulSources": [
           "freeDictionary",
@@ -1361,6 +1369,7 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
+          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet"
@@ -1534,8 +1543,11 @@
         {
           "source": "duckduckgoImages",
           "token": "give",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -1570,7 +1582,7 @@
       "tier": "vip",
       "token": "run",
       "sentence": "She ran home.",
-      "ms": 12810,
+      "ms": 12951,
       "error": null,
       "card": {
         "entry": {
@@ -1804,7 +1816,7 @@
               "field": "image",
               "winner": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
               "source": "openverse",
-              "candidates": 14,
+              "candidates": 22,
               "reasons": [
                 "ok-primary-source",
                 "ok-exact-match",
@@ -1951,7 +1963,7 @@
             }
           ],
           "imageSource": "openverse",
-          "imageCandidates": 14
+          "imageCandidates": 22
         },
         "successfulSources": [
           "datamuse",
@@ -1968,6 +1980,7 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
+          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet",
@@ -2151,8 +2164,11 @@
         {
           "source": "duckduckgoImages",
           "token": "run",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -2278,7 +2294,8 @@
           "fields": [
             "translations",
             "examples",
-            "collocations"
+            "collocations",
+            "relationGroups"
           ]
         },
         {
@@ -2369,12 +2386,12 @@
       "tier": "vip",
       "token": "run",
       "sentence": "She runs the company from home.",
-      "ms": 12688,
+      "ms": 12574,
       "error": null,
       "card": {
         "entry": {
           "translation": "dirigir",
-          "bilingual": "dirigir · correr · manejar",
+          "bilingual": "dirigir · correr · manejar · ejecutar",
           "monolingual": "direct or control; projects, businesses, etc.",
           "phonetic": "/ɹʌn/",
           "synonyms": [
@@ -2396,10 +2413,10 @@
             "badly run"
           ],
           "examples": [
+            "The athlete runs every day to improve his endurance. — Mi empresa organiza un concurso de ventas todos los a�os.",
             "she let the line run through her hands — dejó que la cuerda se deslizara entre sus manos",
             "She runs the fundraising. — Ella dirige la recaudación de fondos.",
-            "He managed to run the machine. — Consiguió que la máquina funcionara .",
-            "The hotel is run by his uncle. — Su tío dirige el hotel."
+            "He managed to run the machine. — Consiguió que la máquina funcionara ."
           ]
         },
         "vip": {
@@ -2507,6 +2524,11 @@
           ],
           "examples": [
             {
+              "source": "linguee",
+              "text": "The athlete runs every day to improve his endurance.",
+              "translation": "Mi empresa organiza un concurso de ventas todos los a�os."
+            },
+            {
               "source": "pons",
               "text": "she let the line run through her hands",
               "translation": "dejó que la cuerda se deslizara entre sus manos"
@@ -2547,6 +2569,11 @@
               "translation": "tuve que correr para no perder el tren"
             },
             {
+              "source": "linguee",
+              "text": "Cheetahs can run very fast.",
+              "translation": "Mi sue�o es tener mi propio negocio."
+            },
+            {
               "source": "britannicaDictionary",
               "text": "She ran up the stairs to get her jacket.",
               "translation": "Subió corriendo las escaleras para coger su chaqueta."
@@ -2555,16 +2582,6 @@
               "source": "britannicaDictionary",
               "text": "He runs faster than anyone else on the team.",
               "translation": "Corre más rápido que nadie en el equipo."
-            },
-            {
-              "source": "wordnet",
-              "text": "the Yankees scored 3 runs in the bottom of the 9th",
-              "translation": "los Yankees anotaron 3 carreras en la parte baja de la novena"
-            },
-            {
-              "source": "dictionaryCom",
-              "text": "to run from danger.",
-              "translation": "huir del peligro."
             }
           ],
           "videoLinks": [
@@ -2597,7 +2614,7 @@
               "field": "image",
               "winner": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
               "source": "openverse",
-              "candidates": 14,
+              "candidates": 22,
               "reasons": [
                 "ok-primary-source",
                 "ok-exact-match",
@@ -2645,12 +2662,12 @@
             {
               "field": "translation",
               "winner": "dirigir",
-              "source": "wiktApi+dictCc",
+              "source": "wiktApi+dictCc+linguee",
               "score": -12,
               "reasons": [
                 "ok-run-manage"
               ],
-              "candidates": 38,
+              "candidates": 44,
               "runnerUps": [
                 {
                   "source": "wiktApi",
@@ -2660,6 +2677,11 @@
                 {
                   "source": "dictCc",
                   "text": "manejar",
+                  "score": 0
+                },
+                {
+                  "source": "reverso",
+                  "text": "ejecutar",
                   "score": 0
                 }
               ]
@@ -2727,13 +2749,17 @@
             },
             {
               "field": "examples",
-              "winner": "she let the line run through her hands",
-              "source": "pons",
-              "candidates": 79,
+              "winner": "The athlete runs every day to improve his endurance.",
+              "source": "linguee",
+              "candidates": 82,
               "reasons": [
                 "ok-contextual-alignment"
               ],
               "runnerUps": [
+                {
+                  "source": "pons",
+                  "text": "she let the line run through her hands"
+                },
                 {
                   "source": "wiktionaryApi",
                   "text": "She runs the fundraising."
@@ -2741,16 +2767,12 @@
                 {
                   "source": "promtContext",
                   "text": "He managed to run the machine."
-                },
-                {
-                  "source": "promtContext",
-                  "text": "The hotel is run by his uncle."
                 }
               ]
             }
           ],
           "imageSource": "openverse",
-          "imageCandidates": 14
+          "imageCandidates": 22
         },
         "successfulSources": [
           "datamuse",
@@ -2767,6 +2789,7 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
+          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet",
@@ -2782,6 +2805,7 @@
           "babla",
           "dictCc",
           "reverso",
+          "linguee",
           "promtContext",
           "wordReference",
           "spanishDict",
@@ -2949,8 +2973,11 @@
         {
           "source": "duckduckgoImages",
           "token": "run",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -3076,7 +3103,8 @@
           "fields": [
             "translations",
             "examples",
-            "collocations"
+            "collocations",
+            "relationGroups"
           ]
         },
         {
@@ -3109,8 +3137,11 @@
         {
           "source": "linguee",
           "token": "run",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "translations",
+            "examples"
+          ]
         },
         {
           "source": "promtContext",
@@ -3164,12 +3195,12 @@
       "tier": "vip",
       "token": "give",
       "sentence": "Give me the keys, please.",
-      "ms": 2115,
+      "ms": 2470,
       "error": null,
       "card": {
         "entry": {
           "translation": "dar",
-          "bilingual": "dar · regalar · donar · obsequiar · entregar · prestar · conceder · ofrecer",
+          "bilingual": "dar · regalar · obsequiar · donar · entregar · prestar · conceder · ofrecer",
           "monolingual": "to put something in someone’s hand",
           "phonetic": "/ˈɡɪv/",
           "synonyms": [
@@ -3196,7 +3227,9 @@
             "maintain",
             "conserve"
           ],
-          "collocations": [],
+          "collocations": [
+            "give someone something to eat"
+          ],
           "examples": [
             "give me strength! — ¡Señor, dame fuerzas or paciencia!",
             "Give me something to eat. — Dame algo de comer.",
@@ -3435,13 +3468,13 @@
             {
               "field": "translation",
               "winner": "dar",
-              "source": "wiktApi+bundled+cambridge+pons+babla+dictCc+linguee",
+              "source": "wiktApi+bundled+cambridge+pons+babla+dictCc",
               "score": -17,
               "reasons": [
                 "ok-give-transfer",
                 "ok-core-give-sense"
               ],
-              "candidates": 42,
+              "candidates": 36,
               "runnerUps": [
                 {
                   "source": "pons",
@@ -3449,14 +3482,14 @@
                   "score": -7
                 },
                 {
-                  "source": "wiktApi",
-                  "text": "donar",
-                  "score": -3
-                },
-                {
                   "source": "pons",
                   "text": "obsequiar",
                   "score": -7
+                },
+                {
+                  "source": "wiktApi",
+                  "text": "donar",
+                  "score": -3
                 }
               ]
             },
@@ -3511,10 +3544,19 @@
               ]
             },
             {
+              "field": "collocations",
+              "winner": "give someone something to eat",
+              "source": "pons",
+              "candidates": 55,
+              "reasons": [
+                "ok-editorial-or-corroborated"
+              ]
+            },
+            {
               "field": "examples",
               "winner": "give me strength!",
               "source": "pons",
-              "candidates": 89,
+              "candidates": 86,
               "reasons": [
                 "ok-contextual-alignment"
               ],
@@ -3534,7 +3576,7 @@
               ]
             }
           ],
-          "imageCandidates": 14
+          "imageCandidates": 22
         },
         "successfulSources": [
           "freeDictionary",
@@ -3552,6 +3594,7 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
+          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet",
@@ -3567,7 +3610,6 @@
           "babla",
           "dictCc",
           "reverso",
-          "linguee",
           "promtContext",
           "wordReference",
           "spanishDict",
@@ -3743,8 +3785,11 @@
         {
           "source": "duckduckgoImages",
           "token": "give",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -3868,7 +3913,8 @@
           "fields": [
             "translations",
             "examples",
-            "collocations"
+            "collocations",
+            "relationGroups"
           ]
         },
         {
@@ -3901,11 +3947,8 @@
         {
           "source": "linguee",
           "token": "give",
-          "hasData": true,
-          "fields": [
-            "translations",
-            "examples"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "promtContext",
@@ -3956,5 +3999,5 @@
       ]
     }
   ],
-  "finishedAt": "2026-09-09T05:44:57.276Z"
+  "finishedAt": "2026-09-09T07:07:00.682Z"
 }

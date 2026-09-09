@@ -516,6 +516,44 @@ describe('enrichment quality ranking', () => {
     ])).toEqual(['give advice']);
   });
 
+  it('kills a pure argument template but keeps a chunk with one content word', () => {
+    // Template-pattern guard, verified live 2026-09-09: the old blunt
+    // something/somebody rule killed PONS (to hand) "give someone
+    // something to eat" even though its sense group had won the gate.
+    // A bare argument pattern carries no content word beside the headword.
+    expect(pickCollocations('give', [
+      { source: 'pons', text: 'give something to somebody' },
+    ])).toEqual([]);
+    expect(pickCollocations('run', [
+      { source: 'pons', text: 'run somebody something' },
+    ])).toEqual([]);
+    // One content word beside the headword makes it real — even with
+    // pronoun slots in the chunk.
+    expect(pickCollocations('give', [
+      { source: 'pons', text: 'give somebody control' },
+    ])).toEqual([]); // single corpus-tier source, still corroboration-only
+    expect(pickCollocations('give', [
+      { source: 'pons', text: 'give somebody control' },
+      { source: 'longman', text: 'give somebody control' },
+    ])).toContain('give somebody control');
+    expect(pickCollocations('give', [
+      { source: 'pons', text: 'give someone something to eat', senseBound: true },
+    ])).toEqual(['give someone something to eat']);
+  });
+
+  it('lets a sense-bound chunk publish solo: the sense gate is its corroboration', () => {
+    // A sense-bound chunk already won the merger's contextual gate via its
+    // group's gloss — that win IS the corroboration, so no second source
+    // is needed. Shape rules still apply: a template pattern never rides.
+    // Verified live 2026-09-09: PONS (to hand) "give her something to eat".
+    expect(pickCollocations('give', [
+      { source: 'pons', text: 'give someone something to eat', senseBound: true },
+    ])).toEqual(['give someone something to eat']);
+    expect(pickCollocations('give', [
+      { source: 'pons', text: 'give something to somebody', senseBound: true },
+    ])).toEqual([]);
+  });
+
   it('lets a dictionary-attested adverb chunk through while corpus bigrams stay out', () => {
     // `well run` lives in Longman's manage-sense COLLO block (run__3,
     // verified live 2026-09-06) — lexicographer-attested, not a corpus

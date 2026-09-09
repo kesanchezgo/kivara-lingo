@@ -644,6 +644,25 @@ const BAD_COLLOCATION_TAILS = new Set([
   'each', 'every', 'long', 'short', 'say', 'know', 'last', 'next', 'second', 'business', 'more', 'most', 'his', 'limit', 'effect',
 ]);
 
+const TEMPLATE_PATTERN_FILLER = new Set([
+  'someone', 'somebody', 'something', 'anyone', 'anybody', 'anything',
+  'everyone', 'everybody', 'everything', 'nothing', 'one', 'ones',
+  'a', 'an', 'the', 'to', 'for', 'of', 'with', 'by', 'on', 'in', 'at',
+  'into', 'from', 'up', 'out', 'over', 'about',
+]);
+
+/**
+ * Whether a normalized chunk is a bare dictionary argument pattern rather
+ * than a learner collocation. Every non-headword word must be filler
+ * (pronoun slot, article, preposition) — a single content word beside the
+ * headword makes it real. `headwords` carries the multi-word token's own
+ * words so an idiom component never counts as filler.
+ */
+function isTemplatePattern(words: string[], headwords: Set<string>): boolean {
+  const rest = words.filter((w) => !headwords.has(w));
+  return rest.length > 0 && rest.every((w) => TEMPLATE_PATTERN_FILLER.has(w));
+}
+
 function normalizeCollocation(raw: string, token: string, isTrustedSource = false): string | null {
   const text = raw
     .replace(/\((?:your|someone's|somebody's)\)/gi, ' ')
@@ -662,7 +681,15 @@ function normalizeCollocation(raw: string, token: string, isTrustedSource = fals
   if (/[~:/…]|\bwith neg\b|\b(?:liter|person\/place)\b/i.test(text)) return null;
   if (/\([^)]*\)/.test(text)) return null;
   if (/\b(?:her|him|me|them|my|your|our)\b/i.test(text) && text.split(/\s+/).length > 3) return null;
-  if (/\b(?:something|somebody)\b/i.test(text) && text.split(/\s+/).length <= 5) return null;
+  // Template-pattern guard: a chunk whose every non-headword word is a
+  // pronoun slot, article, preposition or grammar label is a dictionary
+  // pattern, not a learner chunk ("give something to somebody",
+  // "run somebody + adv./prep."). One content word beside the headword
+  // makes it real: "give somebody control", "give someone something to
+  // eat" (PONS (to hand), verified live 2026-09-09 — the old blunt
+  // something/somebody rule killed it as "template noise" even though its
+  // sense group had won the contextual gate).
+  if (isTemplatePattern(words, new Set(tok.split(/\s+/)))) return null;
   if (tok.includes(' ') && low.startsWith(`${tok} `) && words.length === tok.split(/\s+/).length + 1) return null;
   // Periphrastic gloss, not a chunk: "a day of the week", "a member of the
   // team" — a determiner-led phrase whose head is joined to the token by
@@ -717,18 +744,24 @@ const CORPUS_ADVERB_HEADS = new Set([
 
 export function pickCollocations(
   token: string,
-  candidates: Array<{ source: string; text: string }>,
+  candidates: Array<{ source: string; text: string; senseBound?: boolean }>,
   /**
    * Optional stemmed context terms (sentence + selected definition). When
    * present, a chunk must share at least one non-headword term with the
    * active sense's context, otherwise it is a different-acception chunk
    * ("run a marathon" for the management sense of `run`). Skipped when no
    * anchor is supplied so monosemous-word merges behave unchanged.
+   *
+   * A candidate marked `senseBound` already won the merger's contextual
+   * sense gate via its group's gloss (PONS segment, Longman Sense block) —
+   * the gate IS its corroboration, so it is exempt from the
+   * count/displayable filter below. Shape rules (normalizeCollocation)
+   * still apply: the gate never excuses a template pattern.
    */
   contextTerms?: Set<string>,
 ): string[] {
   const hasContextAnchor = Boolean(contextTerms && contextTerms.size > 0);
-  const grouped = new Map<string, { value: string; sources: Set<string>; sourceRank: number }>();
+  const grouped = new Map<string, { value: string; sources: Set<string>; sourceRank: number; senseBound: boolean }>();
   for (const candidate of candidates) {
     // Chunks scraped from a dictionary's own collocation block (Longman
     // COLLO, Cambridge collocation page) are lexicographer-attested, not
@@ -756,17 +789,24 @@ export function pickCollocations(
     if (existing) {
       existing.sources.add(candidate.source);
       existing.sourceRank = Math.min(existing.sourceRank, sourcePriority(candidate.source, COLLOCATION_SOURCE_PRIORITY));
+      existing.senseBound = existing.senseBound || (candidate.senseBound ?? false);
     } else {
       grouped.set(key, {
         value: normalized,
         sources: new Set([candidate.source]),
         sourceRank: sourcePriority(candidate.source, COLLOCATION_SOURCE_PRIORITY),
+        senseBound: candidate.senseBound ?? false,
       });
     }
   }
 
   return [...grouped.values()]
     .filter((candidate) =>
+      // A sense-bound chunk already won the merger's contextual gate via
+      // its group's gloss — the gate IS its corroboration, so it needs no
+      // second source (PONS (to hand) "give someone something to eat",
+      // verified live 2026-09-09). Shape rules above still apply.
+      candidate.senseBound ||
       candidate.sources.size > 1 ||
       [...candidate.sources].some((source) => DISPLAYABLE_COLLOCATION_SOURCES.has(source)),
     )
@@ -2451,14 +2491,14 @@ function mergeFields(
   // each chunk would kill terms that never appear in prose (`well run`
   // for the manage sense — verified live 2026-09-06, the anchor
   // {company,home,organize} contains neither `well` nor `badly`).
-  const senseBoundCollocations: Array<{ source: string; text: string }> = [];
+  const senseBoundCollocations: Array<{ source: string; text: string; senseBound: true }> = [];
   for (const group of selectedRelationGroups) {
     if (!group.collocations?.length) continue;
     for (const collocation of group.collocations) {
-      senseBoundCollocations.push({ source: group.source, text: collocation });
+      senseBoundCollocations.push({ source: group.source, text: collocation, senseBound: true });
     }
   }
-  let collocationPool = collocationCandidates;
+  let collocationPool: Array<{ source: string; text: string; senseBound?: boolean }> = collocationCandidates;
   // The group's gloss already earned the contextual gate; chunks ride free
   // ONLY when that win was substantive (a real content-word overlap, not
   // generic argument-structure words like `someone`/`something`). A
