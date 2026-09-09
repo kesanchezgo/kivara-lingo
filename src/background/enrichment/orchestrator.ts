@@ -1745,25 +1745,6 @@ const BAD_SUBJECT_RE = /\b(?:logo|icon|icons|banner|wallpaper|clip[- ]?art|vecto
 const FIGURATIVE_RE = /\b(?:idiom|idiomatic|idiomatically|figurative|figuratively|metaphor|metaphorical|meaning|means|denote[s]?|proverb|saying|expression)\b/;
 
 /**
- * Slang-axis markers: words that name the slang sense of a headword rather
- * than its literal depiction. When the winning definition proves a slang
- * sense, a candidate whose metadata carries the LITERAL axis but none of
- * the slang axis depicts the wrong sense — `lit` slang ("The show was
- * lit") must not publish a candle-lit dinner. Closed per-axis class:
- * celebration/excellence words vs light/fire words. Verified live
- * 2026-09-09: `lit` vip published a candle-lit dinner for the slang
- * sentence with reasons ok-primary-source/ok-exact-match.
- */
-const SLANG_AXIS_RE = /\b(?:amazing|awesome|cool|excellent|exciting|fun|party|concert|show|celebrat|slang|approval)\b/;
-// Literal-axis markers: words that depict the headword's literal sense.
-// Includes hyphenated `well-lit`/`well-lighted` forms: Openverse captions
-// write them hyphenated ("The well-lit coasts"), and without the hyphen
-// branch the slang binding misses the most common literal depiction.
-// Verified live 2026-09-09: `lit` vip published well-lit coasts for the
-// slang sentence after the candle-lit dinner was gated.
-const LITERAL_AXIS_RE = /\b(?:candle|dinner|lamp|lighted|illuminat|afire|burning|glow|lantern|bulb|chandelier)\b|well-lit|well-lighted/i;
-
-/**
  * Non-English metadata markers. Openverse/Commons aggregate multilingual
  * captions, so a token that is a real word in another language (`lit` =
  * "bed" in French) matches by string but depicts the WRONG concept. When
@@ -1824,13 +1805,9 @@ export function scoreImageCandidate(
     /** Dominant POS of the token, when a source tagged it. Drives the
      * strict-depiction gate for relational verbs. */
     pos?: string;
-    /** The winning definition proved a slang sense: literal-axis depictions
-     * of the headword are the wrong sense (`lit` slang vs candle-lit
-     * dinner). Set by the merger's second pass, never by callers. */
-    slangSense?: boolean;
   },
 ): ImageScore {
-  const { normalizedToken, tokenWords, isMultiword, treatAsIdiom, pos, slangSense } = ctx;
+  const { normalizedToken, tokenWords, isMultiword, treatAsIdiom, pos } = ctx;
   const reasons: string[] = [];
   const metadata = stripDiacritics([
     candidate.title ?? '',
@@ -1870,14 +1847,6 @@ export function scoreImageCandidate(
   // Idiom-flagged tokens need figurative evidence: a literal depiction of
   // the component nouns is the wrong sense.
   if (treatAsIdiom && !figurativeEvidence) return dq('penalty-idiom-no-figurative-evidence');
-  // Slang-sense binding: when the winning definition proves a slang sense,
-  // a candidate carrying the LITERAL axis but none of the slang axis
-  // depicts the wrong sense — `lit` slang ("The show was lit") must not
-  // publish a candle-lit dinner. General mechanism: the axes are small
-  // closed classes, not token rules. Verified live 2026-09-09.
-  if (slangSense && LITERAL_AXIS_RE.test(metadata) && !SLANG_AXIS_RE.test(metadata)) {
-    return dq('penalty-slang-sense-literal-depiction');
-  }
   // Fallback sources may only surface with a lexical anchor — a raw search
   // hit with no token match in metadata OR url is almost always off-sense.
   if (isFallback && !exactMatch && lexicalMatches === 0) return dq('penalty-fallback-no-lexical-anchor');
@@ -1929,6 +1898,16 @@ export function rankImageCandidates(
   if (isLowImageabilityToken(normalizedToken, opts?.pos)) {
     return { scored: [], emptyReason: 'low-imageability-token' };
   }
+  // A slang sense with no stable depiction ("great" for `lit`) is
+  // unimageable AS THAT SENSE — the same class rule as `know`/`whatever`,
+  // but decided by the winning definition, not the spelling. Chasing
+  // literal-axis words (candle → coasts → tealights) is persecution, not
+  // closure: every literal depiction of the headword is the wrong sense
+  // by construction. Verified live 2026-09-09: three consecutive literal
+  // winners for the slang sentence across three corpus runs.
+  if (opts?.slangSense) {
+    return { scored: [], emptyReason: 'slang-sense-undepictable' };
+  }
 
   const tokenWords = normalizedToken.split(/\s+/).filter((word) => word.length > 2);
   const isMultiword = tokenWords.length > 1;
@@ -1937,7 +1916,6 @@ export function rankImageCandidates(
   const scored = candidates
     .map((candidate) => scoreImageCandidate(candidate, {
       normalizedToken, tokenWords, isMultiword, treatAsIdiom, pos: opts?.pos,
-      slangSense: opts?.slangSense,
     }))
     .sort((a, b) => a.score - b.score);
 

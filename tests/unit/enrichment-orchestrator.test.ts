@@ -859,9 +859,12 @@ describe('enrichment quality ranking', () => {
   it('rejects a literal-axis depiction when the winning definition proves a slang sense', () => {
     // Verified live 2026-09-09: `lit` slang ("The show was lit") won the
     // definition (`ok-lit-slang-sense`) but published a candle-lit dinner —
-    // the literal sense. On a slang-sense win the merger re-ranks with the
-    // slang flag: a literal-axis caption (candle/dinner/lamp) with no slang
-    // axis (party/show/excellent) is the wrong sense and drops. Unit level
+    // then well-lit coasts, then tealights. Chasing literal-axis words one
+    // by one is persecution, not closure: every literal depiction of the
+    // headword is the wrong sense by construction. So a slang-sense win
+    // short-circuits the whole pool to EMPTY with reason
+    // `slang-sense-undepictable` — the same class rule as know/whatever,
+    // decided by the winning definition, not the spelling. Unit level
     // asserts the contract the merger consumes.
     const reasons = definitionContextReasons(
       'Slang. amazing ; awesome ; cool (used as a general term of approval).',
@@ -878,11 +881,14 @@ describe('enrichment quality ranking', () => {
     };
     expect(rankImageCandidates('lit', [candidate]).winner?.url)
       .toBe('https://images.example/lit-dinner.jpg');
+    // Slang flag: whole pool drops to EMPTY, no per-candidate scoring.
     const slang = rankImageCandidates('lit', [candidate], { slangSense: true });
     expect(slang.winner).toBeUndefined();
-    expect(slang.scored[0]?.reasons).toContain('penalty-slang-sense-literal-depiction');
-    // A slang-axis caption survives the same flag: the axes decide, not a
-    // blanket ban.
+    expect(slang.scored).toEqual([]);
+    expect(slang.emptyReason).toBe('slang-sense-undepictable');
+    // Even a slang-axis caption stays out: "great" as a sense has no
+    // stable depiction, so any depiction of the headword is the wrong
+    // sense by construction. Empty beats ruidoso.
     const party = rankImageCandidates('lit', [{
       source: 'openverse',
       url: 'https://images.example/lit-party.jpg',
@@ -890,10 +896,9 @@ describe('enrichment quality ranking', () => {
       width: 1200,
       height: 800,
     }], { slangSense: true });
-    expect(party.winner?.url).toBe('https://images.example/lit-party.jpg');
-    // Hyphenated literal forms are caught too: Openverse writes "well-lit"
-    // hyphenated ("The well-lit coasts"), the most common literal
-    // depiction — verified live 2026-09-09 after the candle dinner gate.
+    expect(party.winner).toBeUndefined();
+    expect(party.emptyReason).toBe('slang-sense-undepictable');
+    // Hyphenated literal forms drop the same way.
     const coasts = rankImageCandidates('lit', [{
       source: 'openverse',
       url: 'https://images.example/lit-coasts.jpg',
@@ -902,7 +907,7 @@ describe('enrichment quality ranking', () => {
       height: 800,
     }], { slangSense: true });
     expect(coasts.winner).toBeUndefined();
-    expect(coasts.scored[0]?.reasons).toContain('penalty-slang-sense-literal-depiction');
+    expect(coasts.emptyReason).toBe('slang-sense-undepictable');
   });
 
   it('rejects images for low-imageability function words in general, not a fixed list', () => {
