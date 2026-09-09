@@ -682,6 +682,33 @@ describe('enrichment quality ranking', () => {
     ])).toBe('From Old English through a documented historical form.');
   });
 
+  it('ranks a confident paragraph above a hedging one regardless of source order', () => {
+    // A hedging paragraph loses even when it comes from the top source:
+    // "legend says…" is anecdote, not record. Verified 2026-09-09: The
+    // Idioms ships origin anecdotes that read as history but are not.
+    expect(pickEtymology([
+      { source: 'etymonline', text: 'Legend says the phrase comes from a sailor, maybe in the 1800s.' },
+      { source: 'merriamWebster', text: 'A concise editorial word history.' },
+    ])).toBe('A concise editorial word history.');
+    // Two hedges still prefer the better source — but a hedge-only pool
+    // stays honest only when the sources behind it are authorities. This
+    // is covered by the all-hedge test below; here the confident case
+    // already proved the sort order.
+    expect(pickEtymology([
+      { source: 'wiktionaryHtml', text: 'From an earlier English form recorded in Wiktionary.' },
+      { source: 'etymonline', text: 'Maybe from Old English, though this is uncertain.' },
+    ])).toBe('From an earlier English form recorded in Wiktionary.');
+  });
+
+  it('publishes nothing when every etymology candidate hedges', () => {
+    // No etymology beats a doubtful one: an empty field is the honest card.
+    expect(pickEtymology([
+      { source: 'etymonline', text: 'Perhaps from Old English, origin unknown.' },
+      { source: 'merriamWebster', text: 'Tradition holds it comes from legend, it is said.' },
+    ])).toBeUndefined();
+    expect(pickEtymology([])).toBeUndefined();
+  });
+
   it('can leave unsafe images empty and prefers curated open candidates', () => {
     expect(pickImageCandidate('anything', [
       { source: 'bingImages', url: 'https://example.test/anything-logo.jpg', title: 'Anything logo' },

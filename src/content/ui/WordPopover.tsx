@@ -10,6 +10,7 @@ import type {
   ResolveWordStreamMsg,
   ResolveWordStreamRequest,
 } from '../../shared/types';
+import { formatFrequencyBand, pickFrequencyWinner } from '../../shared/frequency';
 import { lookupDictionary } from '../nlp/dictionary';
 
 interface WordPopoverProps {
@@ -684,23 +685,27 @@ export function WordPopover({
               ))}
             </div>
           )}
-          {meta.vip?.frequencyEvidence && meta.vip.frequencyEvidence.length > 0 && (
-            <div className="mt-1 flex flex-wrap items-baseline gap-1">
-              <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-semibold mr-1">
-                Frecuencia
-              </span>
-              {meta.vip.frequencyEvidence.slice(0, 3).map((evidence) => (
+          {meta.vip?.frequencyEvidence && meta.vip.frequencyEvidence.length > 0 && (() => {
+            // One learner-facing band wins: spoken Longman > written
+            // Longman > books-band. Same single-band contract as the Anki
+            // writer — three chips with three scales teach nothing.
+            const winner = pickFrequencyWinner(meta.vip.frequencyEvidence);
+            if (!winner) return null;
+            return (
+              <div className="mt-1 flex flex-wrap items-baseline gap-1">
+                <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-semibold mr-1">
+                  Frecuencia
+                </span>
                 <span
-                  key={`${evidence.source}:${evidence.scale}:${evidence.value}`}
-                  title={`${formatSource(evidence.source)} · ${evidence.corpus ?? evidence.scale}`}
+                  key={`${winner.source}:${winner.scale}:${winner.value}`}
+                  title={`${formatSource(winner.source)} · ${winner.corpus ?? winner.scale}`}
                   className="text-[10.5px] text-sky-300/90 bg-sky-500/10 ring-1 ring-sky-500/20 px-1.5 py-0.5 rounded normal-case"
                 >
-                  {evidence.scale === 'longman-spoken' ? 'Hablado' :
-                    evidence.scale === 'longman-written' ? 'Escrito' : evidence.scale}: {evidence.value}
+                  {formatFrequencyBand(winner.scale, winner.value)}
                 </span>
-              ))}
-            </div>
-          )}
+              </div>
+            );
+          })()}
           {/* VIP block — multi-source attributed extras shown only when
               the user has VIP enabled and at least one VIP source
               actually returned data. Examples carry their original
@@ -1058,6 +1063,7 @@ function renderSentenceWithHighlight(sentence: string, term: string): React.Reac
  * Human-readable provider label for the popover footer.
  * Keeps marketing-y names short so they fit on one line.
  */
+
 function formatSource(source: string | null): string {
   if (!source) return '\u2014';
   // Yomitan packs come in as "pack:<title>" so we can show the pack name

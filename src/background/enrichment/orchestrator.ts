@@ -1861,18 +1861,44 @@ const ETYMOLOGY_SOURCE_PRIORITY = [
   'wiktionary',
 ];
 
+/**
+ * Markers of a folk/uncertain etymology: the source itself hedges
+ * ("maybe", "perhaps", "unknown") or leans on legend rather than
+ * record ("legend says", "is said to"). A hedging paragraph from a
+ * lower-priority source must never outrank a confident one — and when
+ * EVERY candidate hedges, the card stays empty: no etymology beats a
+ * doubtful one. Verified 2026-09-09: The Idioms ships origin anecdotes
+ * ("legend says…") that read as history but are not.
+ */
+const HEDGE_RE = /\b(?:maybe|perhaps|possibly|probably|likely|unknown|uncertain|unclear|folk etymology|legend(?: has it|says)?|is said to|it is said|tradition holds)\b/i;
+
 export function pickEtymology(
   candidates: Array<{ source: string; text: string }>,
 ): string | undefined {
-  return candidates
+  const ranked = candidates
     .map((candidate) => ({ ...candidate, text: candidate.text.replace(/\s+/g, ' ').trim() }))
     .filter((candidate) =>
       candidate.text.length >= 12 && ETYMOLOGY_SOURCE_PRIORITY.includes(candidate.source),
     )
-    .sort((a, b) =>
-      sourcePriority(a.source, ETYMOLOGY_SOURCE_PRIORITY) -
-      sourcePriority(b.source, ETYMOLOGY_SOURCE_PRIORITY),
-    )[0]?.text;
+    .sort((a, b) => {
+      // A hedging paragraph loses to a confident one regardless of source
+      // order: "legend says…" from etymonline must not beat a clean
+      // merriamWebster paragraph. Two hedges keep source order (the
+      // better source's hedge is still the better hedge).
+      const hedgeA = HEDGE_RE.test(a.text) ? 1 : 0;
+      const hedgeB = HEDGE_RE.test(b.text) ? 1 : 0;
+      if (hedgeA !== hedgeB) return hedgeA - hedgeB;
+      return (
+        sourcePriority(a.source, ETYMOLOGY_SOURCE_PRIORITY) -
+        sourcePriority(b.source, ETYMOLOGY_SOURCE_PRIORITY)
+      );
+    });
+  // When EVERY candidate hedges, publish nothing: a doubtful origin story
+  // is worse than an empty field.
+  if (ranked.length && ranked.every((candidate) => HEDGE_RE.test(candidate.text))) {
+    return undefined;
+  }
+  return ranked[0]?.text;
 }
 
 interface RankedTranslation {

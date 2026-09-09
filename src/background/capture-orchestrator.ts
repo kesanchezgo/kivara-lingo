@@ -17,6 +17,7 @@ import { enrichWithAi, getAiSettings, getResolvedNativeLang } from './ai-enrich'
 import { generateTtsAudio } from './tts';
 import { getMissingPhonetic } from './phonetic-augment';
 import { runEnrichment } from './enrichment/orchestrator';
+import { formatFrequencyBand, pickFrequencyWinner } from '../shared/frequency';
 import { getVipSettings, loadTranslateTargetLang } from './vip-settings';
 import { computeCueWindow, shouldFallbackToTts, waitForCueTailMs } from './cue-window';
 
@@ -436,15 +437,17 @@ export async function createCardFromRequest(
         ctx.bilingual = lexicalTranslations.slice(0, 8).join(' · ');
       }
       if (enriched.vip.frequencyEvidence?.length) {
-        ctx.frequency = enriched.vip.frequencyEvidence
-          .slice(0, 4)
-          .map((evidence) => {
-            const scale = evidence.scale === 'longman-spoken' ? 'Hablado' :
-              evidence.scale === 'longman-written' ? 'Escrito' :
-              evidence.scale === 'books-band' ? 'Libros' : evidence.scale;
-            return `${scale} ${evidence.value}`;
-          })
-          .join(' · ');
+        // One learner-facing band wins: spoken Longman > written Longman >
+        // books-band. The three scales are not comparable (spoken top-1000
+        // vs written top-1000 vs corpus-per-million bands), so averaging or
+        // listing all three teaches nothing — a single band answers "how
+        // common is this word". Verified 2026-09-09 corpus: every vip row
+        // with Longman S1/W1 also carries books-band; Standard keeps
+        // books-band alone and is unaffected.
+        const winner = pickFrequencyWinner(enriched.vip.frequencyEvidence);
+        if (winner) {
+          ctx.frequency = formatFrequencyBand(winner.scale, winner.value);
+        }
       }
       if (enriched.vip.etymology) ctx.etymology = enriched.vip.etymology;
       if (enriched.vip.mnemonic) ctx.mnemonic = enriched.vip.mnemonic;
