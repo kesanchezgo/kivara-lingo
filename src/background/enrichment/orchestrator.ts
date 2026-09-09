@@ -651,6 +651,24 @@ const TEMPLATE_PATTERN_FILLER = new Set([
   'into', 'from', 'up', 'out', 'over', 'about',
 ]);
 
+// Closed-class heads take no collocations: an indefinite pronoun or
+// determiner (`anything`, `anybody`, `each`) names a grammatical slot,
+// not a concept with reusable lexical pairings. What corpus sources emit
+// for them are sentence fragments ("anything for a change", "hardly
+// anybody disagrees") or grammar patterns ("to help each other", "each
+// and every house"), never learner chunks. Standard already publishes
+// EMPTY here; this aligns VIP with it. Same class logic as
+// INDEFINITE_PRONOUN_HEADS / DETERMINER_NON_SYNONYMS / LOW_IMAGEABILITY.
+// Verified live 2026-09-09: `each` vip 8 chunks, `anything`/`anybody` vip
+// 1 each, all fragments — Standard EMPTY in all three.
+const CLOSED_CLASS_COLLOCATION_HEADS = new Set([
+  'anything', 'anybody', 'anyone', 'something', 'somebody', 'someone',
+  'nothing', 'nobody', 'none', 'no one', 'everything', 'everybody',
+  'everyone', 'whatever', 'whichever', 'whoever', 'anywhere', 'somewhere',
+  'any', 'all', 'every', 'each', 'either', 'neither', 'no',
+  'some', 'both', 'several', 'various',
+]);
+
 // Body-part event nouns: a grin, yawn, wave, smile, laugh, frown, nod,
 // shrug, wink, sigh, glance, stare names a facial/bodily gesture, not a
 // thing handed over. Beside a transfer headword ("give a grin") the
@@ -688,6 +706,11 @@ function normalizeCollocation(raw: string, token: string, isTrustedSource = fals
   const words = low.split(/\s+/).filter(Boolean);
   if (low === tok) return null;
   if (!low.includes(tok)) return null;
+  // Closed-class heads (indefinite pronouns, determiners) take no
+  // collocations at all — the head is a grammatical slot, and every
+  // candidate is a sentence fragment or grammar pattern, never a
+  // reusable chunk. Cheapest gate first.
+  if (CLOSED_CLASS_COLLOCATION_HEADS.has(tok)) return null;
   if (/^[a-z]+$/.test(text) && !text.includes(' ')) return null;
   if (/^[a-z]+-[a-z]+$/i.test(text)) return null;
   if (/\b(?:limit|effect|his|more|most)\b/i.test(text) && text.split(/\s+/).length <= 4) return null;
@@ -1422,6 +1445,24 @@ function isExplanatoryPhrase(low: string): boolean {
   return false;
 }
 
+// Upkeep nouns: financial/material maintenance words (sustenance, upkeep,
+// livelihood, maintenance, subsistence, means, keep, living, funding).
+// Beside an endorsement-sense headword (backing a decision) they are the
+// financial-support sense leaking into the moral-support card — the
+// learner with "Her family supported her decision." needs back/endorse,
+// not sustenance. Closed upkeep class, not a hand list per headword.
+// Verified live 2026-09-09: `support` vip syn mixed sustenance/means/
+// upkeep/livelihood/maintenance/subsistence into back/bear/endorse.
+// NOTE: the live anchor is {family, support, decis, behind, approv} —
+// the WINNING DEFINITION ("be behind; approve of") supplies behind/
+// approv, the sentence supplies family/decis. There is no `back` or
+// `endors` stem in it (those are synonyms, not anchor terms), so the
+// trigger below keys on behind/approv/decis/family, not back/endors.
+const UPKEEP_NOUNS = new Set([
+  'sustenance', 'upkeep', 'livelihood', 'maintenance', 'subsistence',
+  'means', 'keep', 'living', 'funding', 'backing',
+]);
+
 export function pickRelatedTerms(
   token: string,
   candidates: Array<{ source: string; text: string }>,
@@ -1475,6 +1516,20 @@ export function pickRelatedTerms(
     // another polarity or register. Verified live 2026-09-09: `anything`
     // vip syn whatever/something/whatnot/whichever/what all.
     if (INDEFINITE_PRONOUN_HEADS.has(normalizedToken)) continue;
+    // Upkeep nouns are the financial-support sense: beside a headword
+    // whose ANCHOR names endorsement (behind/approv/decis/family from
+    // the sentence + winning definition), they are the wrong sense
+    // leaking in. Without an endorsement anchor (monosemous path)
+    // behaviour is unchanged. Verified live 2026-09-09: `support` vip
+    // syn mixed sustenance/means/upkeep into back/bear/endorse for
+    // "Her family supported her decision." (anchor {family, support,
+    // decis, behind, approv}).
+    if (
+      UPKEEP_NOUNS.has(normalized) &&
+      hasContextAnchor &&
+      (contextTerms!.has('behind') || contextTerms!.has('approv') ||
+        contextTerms!.has('decis') || contextTerms!.has('family'))
+    ) continue;
     // Reject dictionary explanations / clauses masquerading as synonyms
     // ("my mind goes blank", "don't remember/can't remember"). Verified
     // 2026-09-06 live corpus on `forget`.
@@ -2093,12 +2148,32 @@ export function etymologyDomainLabel(text: string): string | undefined {
   return ETYMOLOGY_DOMAIN_LABEL_RE.exec(text)?.[1]?.toLowerCase();
 }
 
+/**
+ * Whether the winning definition proves a slang/figurative sense: the
+ * definition carries a slang-sense reason (the same signal the image
+ * second pass consumes: `ok-*-slang-sense`). A slang sense's "history"
+ * is the literal word's history ("illuminated; afire, from light"),
+ * not the slang sense's — there is no etymology of "genial".
+ * Publishing the literal history on a slang card teaches the wrong
+ * lesson, so the field stays EMPTY. Verified live 2026-09-09: `lit`
+ * vip published "illuminated; afire… Slang meaning drunk 1914" for
+ * "The show was lit." (genial).
+ */
+export function isSlangSenseDefinition(definition: string | undefined): boolean {
+  if (!definition) return false;
+  return /\bslang\b/i.test(definition);
+}
+
 export function pickEtymology(
   candidates: Array<{ source: string; text: string }>,
   /** Winning definition text, when the merger already picked one. Lets a
-   * domain-neutral paragraph beat a domain-labeled one from another field. */
+   * domain-neutral paragraph beat a domain-labeled one from another field,
+   * and empties the field for slang senses (no etymology of "genial"). */
   definition?: string,
 ): string | undefined {
+  // A slang sense has no etymology: the literal word's history is the
+  // wrong sense's history on a slang card. Empty beats wrong.
+  if (isSlangSenseDefinition(definition)) return undefined;
   const ranked = candidates
     .map((candidate) => ({ ...candidate, text: candidate.text.replace(/\s+/g, ' ').trim() }))
     .filter((candidate) =>

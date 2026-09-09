@@ -967,6 +967,55 @@ describe('enrichment quality ranking', () => {
     ], 12)).toContain('object');
   });
 
+  it('takes no collocations for a closed-class headword', () => {
+    // Verified live 2026-09-09: `each` vip published 8 chunks, `anything` /
+    // `anybody` vip 1 each — all sentence fragments or grammar patterns
+    // ("anything for a change", "hardly anybody disagrees", "to help
+    // each other", "each and every house"). The head is a grammatical
+    // slot, so every candidate is a fragment, never a reusable chunk.
+    // Standard already publishes EMPTY here; VIP aligns.
+    expect(pickCollocations('each', [
+      { source: 'wiktionaryHtml', text: 'each other' },
+      { source: 'longman', text: 'each day' },
+    ])).toEqual([]);
+    expect(pickCollocations('anything', [
+      { source: 'pons', text: 'anything for a change' },
+    ])).toEqual([]);
+    expect(pickCollocations('anybody', [
+      { source: 'pons', text: 'hardly anybody disagrees' },
+    ])).toEqual([]);
+    // A content headword is untouched by this gate.
+    expect(pickCollocations('week', [
+      { source: 'longman', text: 'eventful week' },
+    ])).toEqual(['eventful week']);
+  });
+
+  it('drops upkeep nouns for an endorsement-anchored headword', () => {
+    // Verified live 2026-09-09: `support` vip mixed sustenance/means/
+    // upkeep/livelihood/maintenance/subsistence into back/bear/endorse
+    // for "Her family supported her decision." — the financial-support
+    // sense leaking into a moral-support card. With an endorsement
+    // anchor the upkeep nouns die; endorsement terms survive.
+    const anchor = new Set(['family', 'decis', 'behind', 'approv']);
+    const ranked = pickRelatedTerms('support', [
+      { source: 'longman', text: 'back' },
+      { source: 'longman', text: 'endorse' },
+      { source: 'cambridge', text: 'sustenance' },
+      { source: 'cambridge', text: 'upkeep' },
+      { source: 'cambridge', text: 'livelihood' },
+    ], 12, anchor);
+    expect(ranked).toContain('back');
+    expect(ranked).toContain('endorse');
+    expect(ranked).not.toContain('sustenance');
+    expect(ranked).not.toContain('upkeep');
+    expect(ranked).not.toContain('livelihood');
+    // Without an endorsement anchor (monosemous path) behaviour is
+    // unchanged: upkeep nouns survive.
+    expect(pickRelatedTerms('support', [
+      { source: 'cambridge', text: 'sustenance' },
+    ], 12)).toContain('sustenance');
+  });
+
   it('uses explicit etymology authority instead of provider completion order', () => {
     expect(pickEtymology([
       { source: 'wiktionaryHtml', text: 'From an earlier English form recorded in Wiktionary.' },
@@ -1021,6 +1070,23 @@ describe('enrichment quality ranking', () => {
     // A definition that names the label keeps source order: an anatomy
     // sentence genuinely wants the anatomy history.
     expect(pickEtymology(candidates, 'in anatomy, one of several muscles'))
+      .toBe(candidates[0].text);
+  });
+
+  it('leaves etymology empty for a slang sense', () => {
+    // Verified live 2026-09-09: `lit` vip published "illuminated;
+    // afire… Slang meaning drunk 1914" for "The show was lit."
+    // (genial). The literal word's history is the wrong sense's history
+    // on a slang card — there is no etymology of "genial". Empty
+    // beats wrong, same policy as images for slang senses.
+    const candidates = [
+      { source: 'etymonline', text: '"illuminated; afire," past-participle adjective from light (v.2).' },
+      { source: 'merriamWebster', text: 'by shortening' },
+    ];
+    expect(pickEtymology(candidates, 'Slang. amazing ; awesome ; cool (used as a general term of approval).'))
+      .toBeUndefined();
+    // A non-slang definition keeps the old behaviour.
+    expect(pickEtymology(candidates, 'a generalization of the concept of a vector'))
       .toBe(candidates[0].text);
   });
 

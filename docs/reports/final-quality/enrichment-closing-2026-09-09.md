@@ -1,4 +1,4 @@
-# Cierre: BYOK rankeable + binding slang↔imagen — 2026-09-09
+# Cierre: BYOK rankeable + binding slang↔imagen — 2026-09-09 (actualizado)
 
 Último vuelo de la serie. Lo que queda del fondo viejo, cerrado con
 evidencia viva o diagnosticado con honestidad.
@@ -16,38 +16,37 @@ los gates del ranking (bad-subject, idioma, idiom). Ambos emiten ahora
 El merge ya consumía `imageCandidates` por el ranking — cero cambios en el
 merge. 4 tests nuevos en `image-source-candidates.test.ts`.
 
-## 2. `lit` slang en imagen → mecanismo construido, literal sigue ganando
+## 2. `lit` slang en imagen → CERRADO con vacío por sentido
 
-**Estado:** el binding existe y funciona en unit, pero en vivo `lit`
-slang sigue publicando literal en ambos tiers (standard: pinimg, vip:
-pixabay tealights).
+**Estado:** EMPTY en ambos tiers, verificado en vivo.
 
-**Lo construido:**
+**Cadena:** el primer mecanismo (ejes slang/literal + `penalty-…` por
+candidato) era persecución: cada corrida viva traía un literal nuevo
+(cena → costas → velas). El cierre real fue clasificar el sentido slang
+no-depictable como low-imageability **por sentido, no por token**: cuando
+la definición ganadora prueba slang (`ok-*-slang-sense`), `rankImageCandidates`
+cortocircuita el pool entero a EMPTY con `slang-sense-undepictable` — la
+misma regla de clase que `know`/`whatever`, decidida por la definición
+ganadora en vez de la ortografía. Los ejes y el gate por candidato se
+retiraron (código muerto).
 
-- Ejes slang/literal (`SLANG_AXIS_RE`/`LITERAL_AXIS_RE`, clases cerradas,
-  cero reglas por token) + `penalty-slang-sense-literal-depiction` en el
-  scorer + flag `slangSense` propagado por `rankImageCandidates`.
-- Segunda pasada en el merge: cuando la definición ganadora prueba slang
-  (`ok-*-slang-sense`), re-rank con el flag; traza y provenance escritas
-  DESPUÉS del re-rank (la primera versión las escribía antes y la segunda
-  llegaba tarde a todo — cazado en vivo).
-- Test unit: cena con velas cae con el flag, fiesta sobrevive, `well-lit`
-  con guion también cae.
+Commits `957221e` (mecanismo) → `6b82581` (cierre por sentido).
 
-**Por qué sigue ganando el literal en vivo:** el pool real no trae la
-cena con velas de mentira del test — trae `well-lit coasts` y `tealights`,
-y mi eje literal inicial no cazaba `well-lit` con guion. El eje ya se
-amplió (`well-lit|well-lighted`) y el test lo blinda, pero cada corrida
-viva trae un literal nuevo (cena → costas → velas). Los ejes son
-persecución, no cierre.
+## 2b. `lit` slang en relaciones → CERRADO con gate de pegamento
 
-**Diagnóstico honesto:** el binding sentido↔imagen necesita la señal
-contraria — no "esta metadata es literal" (persecución infinita de
-sinónimos de luz) sino "este token en este sentido ES imageable o no".
-`lit` slang (genial) no tiene referente visual estable: es como `know` o
-`whatever`, que ya van a EMPTY por clase cerrada. El cierre real es
-clasificar los sentidos slang no-depictables como low-imageability por
-sentido, no por token. Queda como crumb arquitectónico con su evidencia.
+`lit→light` trae 47 sentidos de WordNet; el grupo color ganaba por `used`
+solo (que también vive en la definición ganadora). `used` entró a
+`GENERIC_SENSE_OVERLAP_WORDS`: victoria solo-pegamento en sentido
+no-default salta. `lit` slang publica syn/ant EMPTY en ambos tiers.
+
+Commit `40426a5`.
+
+## 2c. `lit` slang en etimología → CERRADO con vacío
+
+La historia de la palabra literal (`illuminated; afire, from light… drunk
+1914`) es la historia del sentido equivocado en una tarjeta slang — no
+hay etimología de "genial". `pickEtymology` devuelve vacío cuando la
+definición ganadora es slang. Commit de esta vuelta.
 
 ## 3. POS estructural infrautilizado → cerrado por decisión
 
@@ -62,17 +61,24 @@ variantes y a los gates actuales. Se cierra sin código.
 | caso | antes | después |
 |---|---|---|
 | `run`/manage vip coll | well run/badly run | sin cambio |
-| `give` vip coll | transfer correcto | sin cambio |
+| `give` vip coll | transfer correcto | transfer (gestos fuera) |
 | `know` vip syn | cognize/aware/… | sin cambio |
-| `week` vip coll | Passion/eventful/forty hour | sin cambio |
+| `week` vip coll | Passion/eventful/forty hour | eventful week |
 | `piece of cake` vip ant | pain/labor/chore/… | sin cambio |
-| `lit` slang img | cena/costas/velas literales | **sigue literal (diagnóstico arriba)** |
+| `lit` slang img | cena/costas/velas literales | **EMPTY ambos tiers** |
+| `lit` slang syn/ant | light-colored/dark | **EMPTY ambos tiers** |
+| `lit` slang ety | illuminated/afire… | **EMPTY** |
+| `each` vip syn | any/all/several/… | apiece |
+| `support` vip def | adopt as a belief | be behind; approve of |
+| `anything`/`anybody` vip syn | whatever/something/… | EMPTY (como Standard) |
+| `each`/`anything`/`anybody` vip coll | 8/1/1 fragmentos | EMPTY (como Standard) |
 | standard (todo) | vacío controlado donde toca | sin cambio |
 
 ## Verificación
 
 - `tsc --noEmit` limpio.
-- Suite completa: 36 files / **385 tests passed**.
+- Suite completa: 36 files / **394 tests passed**.
 - Build `vite build` verde.
-- Corpus vivo entero re-corrido (30 tarjetas, 0 errores) + probe de
-  imágenes para `lit`.
+- Corpus vivo entero re-corrido (30 tarjetas, 0 errores) tras cada cambio,
+  perfil limpiado antes de cada corrida (SW viejo = evidencia falsa).
+- Diagnósticos temporales retirados; árbol sin rastros.

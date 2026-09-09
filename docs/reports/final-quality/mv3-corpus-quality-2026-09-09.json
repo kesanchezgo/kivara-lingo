@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-09T22:13:18.032Z",
+  "generatedAt": "2026-09-09T22:42:10.667Z",
   "runtime": "Playwright persistent Chromium with unpacked MV3 extension, full source set per tier",
   "extensionId": "pkafehpbjfkkfnjaeombdemckeoohhpb",
   "corpus": [
@@ -74,7 +74,7 @@
       "tier": "standard",
       "token": "apple",
       "sentence": "She ate a ripe apple.",
-      "ms": 15299,
+      "ms": 17521,
       "error": null,
       "card": {
         "entry": {
@@ -83,10 +83,10 @@
           "monolingual": "fruit with red or yellow or green skin and sweet to tart crisp whitish flesh",
           "phonetic": "/ˈæp.əl/",
           "examples": [
-            "She ate a ripe apple. — Se comió una manzana madura.",
+            "She ate a ripe apple. — Ella comió una manzana madura.",
             "Dice the apple. — Corta la manzana en dados.",
             "I love apples! — ¡Me encantan las manzanas!",
-            "custard apple rose apple thorn apple — natilla manzana rosa manzana espina manzana"
+            "custard apple rose apple thorn apple — chirimoya manzana rosada manzana espina"
           ]
         },
         "vip": {
@@ -152,7 +152,7 @@
             {
               "source": "bundled",
               "text": "She ate a ripe apple.",
-              "translation": "Se comió una manzana madura."
+              "translation": "Ella comió una manzana madura."
             },
             {
               "source": "tatoeba",
@@ -167,12 +167,12 @@
             {
               "source": "wiktionary",
               "text": "custard apple rose apple thorn apple",
-              "translation": "natilla manzana rosa manzana espina manzana"
+              "translation": "chirimoya manzana rosada manzana espina"
             },
             {
               "source": "wiktionary",
               "text": "He's only three apples tall",
-              "translation": "Solo mide tres manzanas"
+              "translation": "Sólo mide tres manzanas."
             }
           ],
           "videoLinks": [
@@ -495,7 +495,7 @@
       "tier": "standard",
       "token": "run",
       "sentence": "She ran home.",
-      "ms": 13213,
+      "ms": 14500,
       "error": null,
       "card": {
         "entry": {
@@ -507,7 +507,7 @@
             "running"
           ],
           "examples": [
-            "She ran home. — Corrió a casa.",
+            "She ran home. — Ella corrió a casa.",
             "She runs the fundraising. — Ella dirige la recaudación de fondos.",
             "My uncle ran a corner store for forty years. — Mi tío regentó una tienda de barrio durante cuarenta años.",
             "Run away. — Huir."
@@ -576,7 +576,7 @@
             {
               "source": "bundled",
               "text": "She ran home.",
-              "translation": "Corrió a casa."
+              "translation": "Ella corrió a casa."
             },
             {
               "source": "wiktionaryApi",
@@ -596,7 +596,7 @@
             {
               "source": "tatoeba",
               "text": "Run faster.",
-              "translation": "Corre más rápido"
+              "translation": "Corre más rápido."
             },
             {
               "source": "wiktionary",
@@ -958,7 +958,7 @@
       "tier": "standard",
       "token": "run",
       "sentence": "She runs the company from home.",
-      "ms": 12838,
+      "ms": 13390,
       "error": null,
       "card": {
         "entry": {
@@ -971,7 +971,7 @@
           ],
           "examples": [
             "She runs the fundraising. — Ella dirige la recaudación de fondos.",
-            "She ran home. — Corrió a casa.",
+            "She ran home. — Ella corrió a casa.",
             "the Yankees scored 3 runs in the bottom of the 9th — los Yankees anotaron 3 carreras en la parte baja de la novena",
             "Run , and you might still catch the train ! — ¡Corre y es posible que aún puedas coger el tren!"
           ]
@@ -1044,7 +1044,7 @@
             {
               "source": "bundled",
               "text": "She ran home.",
-              "translation": "Corrió a casa."
+              "translation": "Ella corrió a casa."
             },
             {
               "source": "wordnet",
@@ -1059,7 +1059,7 @@
             {
               "source": "wiktionaryApi",
               "text": "He is running the candidate's expensive campaign.",
-              "translation": "Está dirigiendo la costosa campaña del candidato."
+              "translation": "Él está dirigiendo la costosa campaña del candidato."
             },
             {
               "source": "wiktionary",
@@ -1074,7 +1074,7 @@
             {
               "source": "tatoeba",
               "text": "Run faster.",
-              "translation": "Corre más rápido"
+              "translation": "Corre más rápido."
             },
             {
               "source": "wordnet",
@@ -1423,7 +1423,7 @@
       "tier": "standard",
       "token": "anything",
       "sentence": "I do not need anything else.",
-      "ms": 12027,
+      "ms": 15114,
       "error": null,
       "card": {
         "entry": {
@@ -1500,7 +1500,7 @@
             {
               "source": "wiktionaryApi",
               "text": "–I don't want to accompany him! –You never want to anything him!",
-              "translation": "- ¡No quiero acompañarlo! - ¡Nunca quieres nada con él!"
+              "translation": "–¡No quiero acompañarlo! –¡Nunca quieres nada de él!"
             },
             {
               "source": "wiktionary",
@@ -1821,7 +1821,7 @@
       "tier": "standard",
       "token": "anybody",
       "sentence": "I did not see anybody at the park.",
-      "ms": 12020,
+      "ms": 17478,
       "error": null,
       "card": {
         "entry": {
@@ -1830,10 +1830,10 @@
           "monolingual": "Any one out of an indefinite number of persons ; anyone ; any person .",
           "phonetic": "/ˈɛn.i.bə.di/",
           "examples": [
-            "Has anybody come? — ¿Ha venido alguien?",
-            "Is anybody there? — Hay alguien ahí?",
-            "Anybody will do. — Quien sea.",
-            "Is there anybody inside? — ¿Alguien más adentro?"
+            "Has anybody come? — ¿Alguien ha venido?",
+            "Is anybody there? — ¿Hay alguien ahí?",
+            "Anybody will do. — Cualquiera servirá.",
+            "Is there anybody inside? — ¿Hay alguien dentro?"
           ]
         },
         "vip": {
@@ -1856,22 +1856,22 @@
             {
               "source": "tatoeba",
               "text": "Has anybody come?",
-              "translation": "¿Ha venido alguien?"
+              "translation": "¿Alguien ha venido?"
             },
             {
               "source": "tatoeba",
               "text": "Is anybody there?",
-              "translation": "Hay alguien ahí?"
+              "translation": "¿Hay alguien ahí?"
             },
             {
               "source": "wiktionary",
               "text": "Anybody will do.",
-              "translation": "Quien sea."
+              "translation": "Cualquiera servirá."
             },
             {
               "source": "wiktionaryApi",
               "text": "Is there anybody inside?",
-              "translation": "¿Alguien más adentro?"
+              "translation": "¿Hay alguien dentro?"
             },
             {
               "source": "wiktionaryApi",
@@ -1881,7 +1881,7 @@
             {
               "source": "wiktionary",
               "text": "Everybody who wants to be anybody will come to Jake's party.",
-              "translation": "Todos los que quieran ser cualquiera vendrán a la fiesta de Jake."
+              "translation": "Todos los que quieran ser alguien vendrán a la fiesta de Jake."
             }
           ],
           "videoLinks": [
@@ -2175,7 +2175,7 @@
       "tier": "standard",
       "token": "each",
       "sentence": "Each student has a book.",
-      "ms": 12023,
+      "ms": 16560,
       "error": null,
       "card": {
         "entry": {
@@ -2263,7 +2263,7 @@
             {
               "source": "wiktionaryApi",
               "text": "We ordered half a chicken each, but we each got a whole one.",
-              "translation": "Pedimos medio pollo cada uno, pero cada uno recibió uno entero."
+              "translation": "Pedimos medio pollo cada uno, pero nos dieron uno entero a cada uno."
             },
             {
               "source": "wordnet",
@@ -2273,7 +2273,7 @@
             {
               "source": "wordnet",
               "text": "each party is welcome",
-              "translation": "cada parte es bienvenida"
+              "translation": "cada fiesta es bienvenida"
             },
             {
               "source": "wiktionaryApi",
@@ -2608,7 +2608,7 @@
       "tier": "standard",
       "token": "tensor",
       "sentence": "The model uses a tensor.",
-      "ms": 14135,
+      "ms": 15384,
       "error": null,
       "card": {
         "entry": {
@@ -2991,7 +2991,7 @@
       "tier": "standard",
       "token": "lit",
       "sentence": "The show was lit.",
-      "ms": 16247,
+      "ms": 18070,
       "error": null,
       "card": {
         "entry": {
@@ -3000,14 +3000,13 @@
           "monolingual": "Slang: excellent, exciting, or highly enjoyable.",
           "phonetic": "/ˈlɪt/",
           "examples": [
-            "The show was lit. — El espectáculo estaba iluminado.",
-            "He lit the fuse. — Encendió el fusible.",
-            "Tom lit a cigarette. — Tom prendió un cigarrillo.",
+            "The show was lit. — El espectáculo estaba encendido.",
+            "He lit the fuse. — Encendió la mecha.",
+            "Tom lit a cigarette. — Tom encendió un cigarrillo.",
             "He walked down the lit corridor. — Caminó por el pasillo iluminado."
           ]
         },
         "vip": {
-          "etymology": "\"illuminated; afire,\" past-participle adjective from light (v.2). Slang meaning \"drunk\" is recorded from 1914.",
           "definitions": [
             {
               "source": "bundled",
@@ -3068,17 +3067,17 @@
             {
               "source": "bundled",
               "text": "The show was lit.",
-              "translation": "El espectáculo estaba iluminado."
+              "translation": "El espectáculo estaba encendido."
             },
             {
               "source": "tatoeba",
               "text": "He lit the fuse.",
-              "translation": "Encendió el fusible."
+              "translation": "Encendió la mecha."
             },
             {
               "source": "tatoeba",
               "text": "Tom lit a cigarette.",
-              "translation": "Tom prendió un cigarrillo."
+              "translation": "Tom encendió un cigarrillo."
             },
             {
               "source": "wiktionary",
@@ -3088,22 +3087,22 @@
             {
               "source": "wiktionaryApi",
               "text": "At his Upper East Side office, the talented doctor has a very lit and elegant office, where art canvasses the walls.",
-              "translation": "En su oficina del Upper East Side, el talentoso médico tiene una oficina muy iluminada y elegante, donde el arte cubre las paredes."
+              "translation": "En su consulta del Upper East Side, el talentoso médico tiene un despacho muy iluminado y elegante, donde el arte cubre las paredes."
             },
             {
               "source": "wiktionaryApi",
               "text": "Those jeans are lit.",
-              "translation": "Esos vaqueros están encendidos."
+              "translation": "Esos jeans están encendidos."
             },
             {
               "source": "wiktionary",
               "text": "This party is gonna be lit .",
-              "translation": "Esta fiesta se va a encender ."
+              "translation": "Esta fiesta va a estar encendida."
             },
             {
               "source": "wordnet",
               "text": "a light load",
-              "translation": "A ligero"
+              "translation": "una carga ligera"
             },
             {
               "source": "wordnet",
@@ -3158,6 +3157,25 @@
               "reasons": [],
               "candidates": 1,
               "runnerUps": []
+            },
+            {
+              "field": "etymology",
+              "winner": "",
+              "source": null,
+              "candidates": 2,
+              "reasons": [
+                "ok-definition-domain-match"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryHtml",
+                  "text": "Alteration of earlier light , from Middle English lighte , from Old English līht"
+                },
+                {
+                  "source": "etymonline",
+                  "text": "\"illuminated; afire,\" past-participle adjective from light (v.2). Slang meaning "
+                }
+              ]
             },
             {
               "field": "definition",
@@ -3419,7 +3437,7 @@
       "tier": "standard",
       "token": "break up",
       "sentence": "They decided to break up after college because their relationship was over.",
-      "ms": 13375,
+      "ms": 15266,
       "error": null,
       "card": {
         "entry": {
@@ -3430,10 +3448,10 @@
             "dissolve"
           ],
           "examples": [
-            "We should break up. — Deberíamos romper.",
+            "We should break up. — Deberíamos separarnos.",
             "We didn't break up. — No rompimos.",
-            "You're breaking up. Can you repeat that? Well, it got cut off. — Te estás separando. ¿Puedes repetir eso? Bueno, se cortó.",
-            "Break up the cheese and put it in the salad. — Rompe el queso y ponlo en la ensalada."
+            "You're breaking up. Can you repeat that? Well, it got cut off. — Estás rompiendo. ¿Puedes repetir eso? Bueno, se cortó.",
+            "Break up the cheese and put it in the salad. — Tritura el queso y ponlo en la ensalada."
           ]
         },
         "vip": {
@@ -3499,7 +3517,7 @@
             {
               "source": "tatoeba",
               "text": "We should break up.",
-              "translation": "Deberíamos romper."
+              "translation": "Deberíamos separarnos."
             },
             {
               "source": "tatoeba",
@@ -3509,22 +3527,22 @@
             {
               "source": "wiktionaryApi",
               "text": "You're breaking up. Can you repeat that? Well, it got cut off.",
-              "translation": "Te estás separando. ¿Puedes repetir eso? Bueno, se cortó."
+              "translation": "Estás rompiendo. ¿Puedes repetir eso? Bueno, se cortó."
             },
             {
               "source": "wiktionary",
               "text": "Break up the cheese and put it in the salad.",
-              "translation": "Rompe el queso y ponlo en la ensalada."
+              "translation": "Tritura el queso y ponlo en la ensalada."
             },
             {
               "source": "bundled",
               "text": "They broke up last summer.",
-              "translation": "Rompieron el verano pasado."
+              "translation": "Se separaron el verano pasado."
             },
             {
               "source": "wordnet",
               "text": "the group broke up",
-              "translation": "el grupo se separó"
+              "translation": "el grupo se disolvió"
             },
             {
               "source": "wiktionaryApi",
@@ -3534,12 +3552,12 @@
             {
               "source": "wiktionary",
               "text": "The meeting finally broke up after a three-hour discussion.",
-              "translation": "La reunión finalmente se rompió después de una discusión de tres horas."
+              "translation": "La reunión finalmente terminó después de tres horas de discusión."
             },
             {
               "source": "wordnet",
               "text": "The business partners broke over a tax question",
-              "translation": "Los socios comerciales respondieron a una pregunta sobre impuestos"
+              "translation": "Los socios comerciales rompieron por una cuestión fiscal"
             }
           ],
           "videoLinks": [
@@ -3844,7 +3862,7 @@
       "tier": "standard",
       "token": "piece of cake",
       "sentence": "The exam was a piece of cake.",
-      "ms": 13229,
+      "ms": 14751,
       "error": null,
       "card": {
         "entry": {
@@ -3862,10 +3880,10 @@
             "pushover"
           ],
           "examples": [
-            "Piece of cake! — ¡Es pan comido!",
+            "Piece of cake! — ¡Pedazo de pastel!",
             "The exam was a piece of cake. — El examen fue pan comido.",
             "Sure, no problem. It'll be a piece of cake. — Claro, no hay problema. Será pan comido.",
-            "It was a piece of cake. — Era pan comido."
+            "It was a piece of cake. — Fue pan comido."
           ]
         },
         "vip": {
@@ -3901,7 +3919,7 @@
             {
               "source": "tatoeba",
               "text": "Piece of cake!",
-              "translation": "¡Es pan comido!"
+              "translation": "¡Pedazo de pastel!"
             },
             {
               "source": "bundled",
@@ -3916,12 +3934,12 @@
             {
               "source": "tatoeba",
               "text": "It was a piece of cake.",
-              "translation": "Era pan comido."
+              "translation": "Fue pan comido."
             },
             {
               "source": "wordnet",
               "text": "marketing this product will be no picnic",
-              "translation": "comercializar este producto no será un día de campo"
+              "translation": "comercializar este producto no será nada fácil"
             }
           ],
           "videoLinks": [
@@ -4208,7 +4226,7 @@
       "tier": "standard",
       "token": "forget",
       "sentence": "Do not forget your keys.",
-      "ms": 13421,
+      "ms": 15227,
       "error": null,
       "card": {
         "entry": {
@@ -4227,8 +4245,8 @@
           "examples": [
             "Do not forget your keys. — No olvides tus llaves.",
             "Forget me. — Olvídame.",
-            "Forget it! — ¡Qué cosa!",
-            "People forget how much work goes into what we do. — La gente olvida cuánto trabajo se dedica a lo que hacemos."
+            "Forget it! — ¡Olvídalo!",
+            "People forget how much work goes into what we do. — La gente olvida cuánto trabajo implica lo que hacemos."
           ]
         },
         "vip": {
@@ -4303,12 +4321,12 @@
             {
               "source": "tatoeba",
               "text": "Forget it!",
-              "translation": "¡Qué cosa!"
+              "translation": "¡Olvídalo!"
             },
             {
               "source": "wiktionaryApi",
               "text": "People forget how much work goes into what we do.",
-              "translation": "La gente olvida cuánto trabajo se dedica a lo que hacemos."
+              "translation": "La gente olvida cuánto trabajo implica lo que hacemos."
             },
             {
               "source": "wiktionary",
@@ -4318,12 +4336,12 @@
             {
               "source": "wordnet",
               "text": "Don't forget to call the chairman of the board to the meeting!",
-              "translation": "¡No olvides llamar al presidente de la junta a la reunión!"
+              "translation": "¡No olvides convocar al presidente de la junta directiva a la reunión!"
             },
             {
               "source": "wiktionary",
               "text": "I forgot my car keys in the living room.",
-              "translation": "Olvidé las llaves de mi auto en la sala de estar."
+              "translation": "Olvidé las llaves de mi auto en la sala."
             },
             {
               "source": "wordnet",
@@ -4670,7 +4688,7 @@
       "tier": "standard",
       "token": "support",
       "sentence": "Her family supported her decision.",
-      "ms": 13398,
+      "ms": 19273,
       "error": null,
       "card": {
         "entry": {
@@ -4711,7 +4729,7 @@
             "We supported Tom. — Apoyamos a Tom.",
             "Nobody supports her. — Nadie la apoya.",
             "his support kept the family together — su apoyo mantuvo unida a la familia",
-            "He staggered away from the accident site, supported by one friend on each side. — Se alejó tambaleándose del lugar del accidente, apoyado por un amigo a cada lado."
+            "He staggered away from the accident site, supported by one friend on each side. — Se alejó tambaleándose del lugar del accidente, sostenido por un amigo a cada lado."
           ]
         },
         "vip": {
@@ -4791,7 +4809,7 @@
             {
               "source": "wiktionary",
               "text": "He staggered away from the accident site, supported by one friend on each side.",
-              "translation": "Se alejó tambaleándose del lugar del accidente, apoyado por un amigo a cada lado."
+              "translation": "Se alejó tambaleándose del lugar del accidente, sostenido por un amigo a cada lado."
             },
             {
               "source": "wiktionary",
@@ -4806,7 +4824,7 @@
             {
               "source": "wiktionaryApi",
               "text": "Mars does not currently support human habitation.",
-              "translation": "Marte actualmente no admite la presencia humana."
+              "translation": "Marte actualmente no es compatible con la habitación humana."
             },
             {
               "source": "wiktionaryApi",
@@ -4816,7 +4834,7 @@
             {
               "source": "bundled",
               "text": "Don’t move that beam! It supports the whole platform.",
-              "translation": "¡No muevas esa viga! Es compatible con toda la plataforma."
+              "translation": "¡No muevas ese rayo! Es compatible con toda la plataforma."
             }
           ],
           "videoLinks": [
@@ -5165,7 +5183,7 @@
       "tier": "standard",
       "token": "give",
       "sentence": "Give me the keys, please.",
-      "ms": 13363,
+      "ms": 15212,
       "error": null,
       "card": {
         "entry": {
@@ -5187,9 +5205,9 @@
           "collocations": [],
           "examples": [
             "Give up. — Abandonar.",
-            "Give tea. — Dé té.",
+            "Give tea. — Dar té.",
             "I'd give it a 95% chance of success. — Le daría un 95% de posibilidades de éxito.",
-            "I'll give their marriage six months. — Le daré a su matrimonio seis meses."
+            "I'll give their marriage six months. — Le daré seis meses a su matrimonio."
           ]
         },
         "vip": {
@@ -5259,7 +5277,7 @@
             {
               "source": "tatoeba",
               "text": "Give tea.",
-              "translation": "Dé té."
+              "translation": "Dar té."
             },
             {
               "source": "wiktionaryApi",
@@ -5269,17 +5287,17 @@
             {
               "source": "wiktionaryApi",
               "text": "I'll give their marriage six months.",
-              "translation": "Le daré a su matrimonio seis meses."
+              "translation": "Le daré seis meses a su matrimonio."
             },
             {
               "source": "wiktionary",
               "text": "I'm going to give my wife a necklace for her birthday.",
-              "translation": "Le voy a regalar a mi esposa un collar por su cumpleaños."
+              "translation": "Le voy a regalar un collar a mi esposa por su cumpleaños."
             },
             {
               "source": "wordnet",
               "text": "The draft gave me a cold",
-              "translation": "El borrador me dio un resfriado"
+              "translation": "La corriente me dio un resfriado."
             },
             {
               "source": "wordnet",
@@ -5616,7 +5634,7 @@
       "tier": "standard",
       "token": "know",
       "sentence": "I do not know the answer.",
-      "ms": 13345,
+      "ms": 13741,
       "error": null,
       "card": {
         "entry": {
@@ -5625,9 +5643,9 @@
           "monolingual": "perceive as familiar",
           "phonetic": "/noʊ/",
           "examples": [
-            "You know! — ¡tú qué sabes!",
-            "I want to know who is winning the game! — ¡Quiero saber quién está ganando el juego!",
-            "I know that the President lied to the people — Sé que el presidente mintió a la gente",
+            "You know! — ¡Sabes!",
+            "I want to know who is winning the game! — ¡Quiero saber quién gana el juego!",
+            "I know that the President lied to the people — Sé que el presidente le mintió al pueblo.",
             "I know that I’m right and you’re wrong. — Sé que tengo razón y tú estás equivocado."
           ]
         },
@@ -5693,17 +5711,17 @@
             {
               "source": "tatoeba",
               "text": "You know!",
-              "translation": "¡tú qué sabes!"
+              "translation": "¡Sabes!"
             },
             {
               "source": "wordnet",
               "text": "I want to know who is winning the game!",
-              "translation": "¡Quiero saber quién está ganando el juego!"
+              "translation": "¡Quiero saber quién gana el juego!"
             },
             {
               "source": "wordnet",
               "text": "I know that the President lied to the people",
-              "translation": "Sé que el presidente mintió a la gente"
+              "translation": "Sé que el presidente le mintió al pueblo."
             },
             {
               "source": "wiktionary",
@@ -5713,7 +5731,7 @@
             {
               "source": "wiktionaryApi",
               "text": "Did you know Michelle and Jack were getting divorced? ― Yes, I knew.",
-              "translation": "¿Sabías que Michelle y Jack se iban a divorciar? -Sí, lo sabía."
+              "translation": "¿Sabías que Michelle y Jack se iban a divorciar? - Sí, lo sabía."
             },
             {
               "source": "wiktionaryApi",
@@ -6052,7 +6070,7 @@
       "tier": "standard",
       "token": "week",
       "sentence": "Oh, yeah, last week you had a wonderful cake.",
-      "ms": 4755,
+      "ms": 5094,
       "error": null,
       "card": {
         "entry": {
@@ -6066,8 +6084,8 @@
           "examples": [
             "It was last week. — Pasó la última semana.",
             "It happened last week. — Pasó la última semana.",
-            "it rained for a week — Estuvo lloviendo durante una semana.",
-            "they worked a 40-hour week — trabajaban una semana de 40 horas"
+            "it rained for a week — llovió durante una semana",
+            "they worked a 40-hour week — trabajaron una semana de 40 horas"
           ]
         },
         "vip": {
@@ -6134,22 +6152,22 @@
             {
               "source": "wordnet",
               "text": "it rained for a week",
-              "translation": "Estuvo lloviendo durante una semana."
+              "translation": "llovió durante una semana"
             },
             {
               "source": "wordnet",
               "text": "they worked a 40-hour week",
-              "translation": "trabajaban una semana de 40 horas"
+              "translation": "trabajaron una semana de 40 horas"
             },
             {
               "source": "freeDictionary",
               "text": "I'll see you Thursday week.",
-              "translation": "Te veré el jueves por la semana."
+              "translation": "Te veré el jueves de la semana."
             },
             {
               "source": "wiktionaryApi",
               "text": "I'll see you Thursday week. [a week on Thursday, i.e. Thursday after next]",
-              "translation": "Te veré el jueves por la semana. [a week on Thursday, i.e. Thursday after next]"
+              "translation": "Te veré el jueves de la semana. [una semana el jueves, es decir, el jueves siguiente al siguiente]"
             },
             {
               "source": "freeDictionary",
@@ -6159,7 +6177,7 @@
             {
               "source": "wiktionaryApi",
               "text": "The wedding is tomorrow week. [a week tomorrow, i.e. in eight days' time]",
-              "translation": "La boda es mañana por la semana. [una semana mañana, es decir, dentro de ocho días]"
+              "translation": "La boda es mañana semana. [mañana una semana, es decir, dentro de ocho días]"
             }
           ],
           "videoLinks": [
@@ -6495,7 +6513,7 @@
       "tier": "vip",
       "token": "apple",
       "sentence": "She ate a ripe apple.",
-      "ms": 12910,
+      "ms": 14376,
       "error": null,
       "card": {
         "entry": {
@@ -6507,7 +6525,7 @@
             "crab apple"
           ],
           "examples": [
-            "She ate a ripe apple. — Se comió una manzana madura.",
+            "She ate a ripe apple. — Ella comió una manzana madura.",
             "Each polished apple on the stall shone bright as a new coin. — Cada manzana pulida del puesto brillaba, reluciente como un espejo.",
             "I watched a video clip that explained how to bake an apple pie. — Vi un clip de video que explicaba cómo hacer una tarta de manzana .",
             "an apple a day keeps the doctor away — a diario una manzana es cosa sana"
@@ -6534,14 +6552,6 @@
               "text": "a round fruit with shiny red or green skin that is fairly hard and white inside"
             },
             {
-              "source": "merriamWebster",
-              "text": "a rounded fruit with a red, yellow, or green skin, firm white flesh and a seedy core"
-            },
-            {
-              "source": "merriamWebster",
-              "text": "a fruit (such as a star apple) or other vegetative growth (such as an oak apple) suggestive of an apple"
-            },
-            {
               "source": "wordnet",
               "text": "fruit with red or yellow or green skin and sweet to tart crisp whitish flesh"
             },
@@ -6558,12 +6568,20 @@
               "text": "the usually round, red or yellow, edible fruit of a small tree, Malus sylvestris, of the rose family."
             },
             {
-              "source": "merriamWebster",
-              "text": "the fleshy, usually rounded red, yellow, or green edible pome fruit of a usually cultivated tree (genus Malus ) of the rose family"
-            },
-            {
               "source": "wiktionaryApi",
               "text": "A tree of the genus Malus; especially Malus domestica which is cultivated for its edible fruit; the apple tree."
+            },
+            {
+              "source": "wiktionary",
+              "text": "A common , firm , round fruit produced by a tree of the genus Malus ."
+            },
+            {
+              "source": "wiktionary",
+              "text": "The fruit of the tree Malus domestica , chiefly with a green , red , or yellow skin , cultivated in temperate climates for cidermaking , cooking , and eating ."
+            },
+            {
+              "source": "wiktionary",
+              "text": "Often with a qualifying word : any fruit or vegetable , or any other thing (such as a cone or gall ) produced by a plant , especially if from a tree and similar to the fruit of Malus domestica ( noun sense 1.1 ) ."
             }
           ],
           "translations": [
@@ -6620,7 +6638,7 @@
             {
               "source": "bundled",
               "text": "She ate a ripe apple.",
-              "translation": "Se comió una manzana madura."
+              "translation": "Ella comió una manzana madura."
             },
             {
               "source": "reverso",
@@ -6665,17 +6683,17 @@
             {
               "source": "longman",
               "text": "roast pork and apple sauce (= a thick sauce made from cooked apples )",
-              "translation": "salsa de cerdo asado y manzana (= una salsa espesa hecha de manzanas cocidas)"
+              "translation": "cerdo asado y salsa de manzana (= una salsa espesa hecha con manzanas cocidas)"
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "Somerset's cider apple growers know this is not a freak year.",
+              "translation": "Los productores de manzanas para sidra de Somerset saben que éste no es un año extraño."
             },
             {
               "source": "oxfordLearners",
               "text": "an apple pie",
-              "translation": "tarta de manzana"
-            },
-            {
-              "source": "longman",
-              "text": "an apple tree",
-              "translation": "Un manzano"
+              "translation": "una tarta de manzana"
             }
           ],
           "videoLinks": [
@@ -6708,7 +6726,7 @@
               "field": "etymology",
               "winner": "Middle English appel , from Old English æppel \"apple; any kind of fruit; fruit in general,\" from Proto-Germanic *ap(a)la",
               "source": "etymonline",
-              "candidates": 3,
+              "candidates": 2,
               "reasons": [
                 "ok-source-priority"
               ],
@@ -6716,10 +6734,6 @@
                 {
                   "source": "wiktionaryHtml",
                   "text": "The noun is derived from Middle English appel ( “ Malus domestica fruit or tree,"
-                },
-                {
-                  "source": "merriamWebster",
-                  "text": "Middle English appel , from Old English æppel ; akin to Old High German apful ap"
                 }
               ]
             },
@@ -6745,10 +6759,10 @@
             {
               "field": "translation",
               "winner": "manzana",
-              "source": "bundled+cambridge+babla+dictCc+linguee+wordReference",
+              "source": "bundled+cambridge+dictCc+linguee+wordReference",
               "score": 0,
               "reasons": [],
-              "candidates": 34,
+              "candidates": 33,
               "runnerUps": [
                 {
                   "source": "reverso",
@@ -6776,7 +6790,7 @@
               "reasons": [
                 "ok-apple-fruit-sense"
               ],
-              "candidates": 37,
+              "candidates": 33,
               "runnerUps": [
                 {
                   "source": "cambridge",
@@ -6808,7 +6822,7 @@
               "field": "examples",
               "winner": "She ate a ripe apple.",
               "source": "bundled",
-              "candidates": 44,
+              "candidates": 41,
               "reasons": [
                 "ok-contextual-alignment"
               ],
@@ -6853,10 +6867,8 @@
           "oxfordLearners",
           "longman",
           "dictionaryCom",
-          "merriamWebster",
           "ozdic",
           "pons",
-          "babla",
           "dictCc",
           "reverso",
           "linguee",
@@ -7101,13 +7113,8 @@
         {
           "source": "merriamWebster",
           "token": "apple",
-          "hasData": true,
-          "fields": [
-            "audio",
-            "definitions",
-            "examples",
-            "etymology"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "merriamWebsterThesaurus",
@@ -7139,11 +7146,8 @@
         {
           "source": "babla",
           "token": "apple",
-          "hasData": true,
-          "fields": [
-            "translations",
-            "audio"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "dictCc",
@@ -7221,7 +7225,7 @@
       "tier": "vip",
       "token": "run",
       "sentence": "She ran home.",
-      "ms": 12831,
+      "ms": 16236,
       "error": null,
       "card": {
         "entry": {
@@ -7231,33 +7235,27 @@
           "phonetic": "/ɹʌn/",
           "synonyms": [
             "race",
-            "jog",
-            "trot",
-            "rush",
-            "sprint",
-            "gallop",
             "dash",
             "flow",
             "fly",
             "flee",
             "bolt",
-            "leave"
+            "leave",
+            "steal away",
+            "take flight",
+            "jog",
+            "tear",
+            "lope"
           ],
           "antonyms": [
-            "dawdle",
             "stay",
-            "remain",
-            "stroll",
-            "saunter",
-            "lag",
-            "drag",
-            "poke"
+            "remain"
           ],
           "examples": [
-            "She ran home. — Corrió a casa.",
+            "She ran home. — Ella corrió a casa.",
             "I'll have to run home and change — tendré que ir corriendo or rápido a casa a cambiarme",
             "she let the line run through her hands — dejó que la cuerda se deslizara entre sus manos",
-            "She turned and ran away. — Se dio la vuelta y huyó."
+            "She turned and ran away. — Ella se dio vuelta y se escapó."
           ]
         },
         "vip": {
@@ -7297,10 +7295,6 @@
               "text": "to go quickly by moving the legs more rapidly than at a walk and in such a manner that for an instant in each step all or both feet are off the ground."
             },
             {
-              "source": "merriamWebster",
-              "text": "to move at a fast gallop"
-            },
-            {
               "source": "wordnet",
               "text": "the act of running; traveling on foot at a fast pace"
             },
@@ -7311,6 +7305,10 @@
             {
               "source": "wiktionaryApi",
               "text": "To move swiftly."
+            },
+            {
+              "source": "wiktionary",
+              "text": "To go at a fast pace; to move quickly ."
             }
           ],
           "translations": [
@@ -7367,7 +7365,7 @@
             {
               "source": "bundled",
               "text": "She ran home.",
-              "translation": "Corrió a casa."
+              "translation": "Ella corrió a casa."
             },
             {
               "source": "pons",
@@ -7382,7 +7380,7 @@
             {
               "source": "longman",
               "text": "She turned and ran away.",
-              "translation": "Se dio la vuelta y huyó."
+              "translation": "Ella se dio vuelta y se escapó."
             },
             {
               "source": "linguee",
@@ -7407,22 +7405,22 @@
             {
               "source": "cambridge",
               "text": "The sheep ran away/off in fright .",
-              "translation": "La oveja huyó/se fue asustada ."
+              "translation": "La oveja se escapó asustada."
             },
             {
               "source": "cambridge",
               "text": "A little girl ran up to (= came quickly beside) me, crying for her daddy . Una niña vino corriendo hacia mí llorando porque no encontraba a su papá.",
-              "translation": "Una niña corrió hacia (= vino rápidamente a mi lado), llorando por su papá . Una niña vino corriendo hacia mí llorando porque no había su papá."
+              "translation": "Una niña pequeña corrió hacia mí (= vino rápidamente a mi lado), llorando por su papá. Una niña vino corriendo hacia mí llorando porque no encontraba a su papá."
             },
             {
               "source": "oxfordLearners",
               "text": "She came running to meet us.",
-              "translation": "Vino corriendo a nuestro encuentro."
+              "translation": "Ella vino corriendo a nuestro encuentro."
             },
             {
               "source": "oxfordLearners",
               "text": "They turned and ran when they saw us coming.",
-              "translation": "Se dieron la vuelta y corrieron cuando nos vieron venir."
+              "translation": "Se dieron vuelta y corrieron cuando nos vieron llegar."
             }
           ],
           "videoLinks": [
@@ -7455,7 +7453,7 @@
               "field": "etymology",
               "winner": "Old English, \"move swiftly by using the legs, go on legs more rapidly than walking,\" also \"make haste, hurry; be active,",
               "source": "etymonline",
-              "candidates": 3,
+              "candidates": 2,
               "reasons": [
                 "ok-source-priority"
               ],
@@ -7463,10 +7461,6 @@
                 {
                   "source": "wiktionaryHtml",
                   "text": "From Middle English runnen , rennen ( “ to run ” ) , alteration (due to the past"
-                },
-                {
-                  "source": "merriamWebster",
-                  "text": "Middle English ronnen , alteration of rinnen , intransitive verb (from Old Engli"
                 }
               ]
             },
@@ -7535,7 +7529,7 @@
               "reasons": [
                 "ok-motion-sense"
               ],
-              "candidates": 58,
+              "candidates": 54,
               "runnerUps": [
                 {
                   "source": "cambridge",
@@ -7558,22 +7552,22 @@
               "field": "synonyms",
               "winner": "race",
               "source": "longman",
-              "candidates": 36,
+              "candidates": 23,
               "reasons": [
                 "ok-sense-group-endorsed"
               ],
               "runnerUps": [
                 {
                   "source": "longman",
-                  "text": "jog"
+                  "text": "dash"
                 },
                 {
-                  "source": "longman",
-                  "text": "trot"
+                  "source": "wordnet",
+                  "text": "flow"
                 },
                 {
-                  "source": "merriamWebsterThesaurus",
-                  "text": "rush"
+                  "source": "cambridge",
+                  "text": "fly"
                 }
               ]
             },
@@ -7581,7 +7575,7 @@
               "field": "examples",
               "winner": "She ran home.",
               "source": "bundled",
-              "candidates": 64,
+              "candidates": 58,
               "reasons": [
                 "ok-contextual-alignment"
               ],
@@ -7597,6 +7591,782 @@
                 {
                   "source": "longman",
                   "text": "She turned and ran away."
+                }
+              ]
+            }
+          ],
+          "imageSource": "openverse",
+          "imageCandidates": 14
+        },
+        "successfulSources": [
+          "datamuse",
+          "wiktionary",
+          "wiktionaryHtml",
+          "wiktionaryApi",
+          "mobyThesaurus",
+          "thesaurusCom",
+          "wordHippo",
+          "bundled",
+          "tatoeba",
+          "linguaLibre",
+          "googleTtsFallback",
+          "bingImages",
+          "openverse",
+          "youglish",
+          "etymonline",
+          "wordnet",
+          "cambridge",
+          "oxfordLearners",
+          "longman",
+          "dictionaryCom",
+          "ozdic",
+          "pons",
+          "babla",
+          "dictCc",
+          "reverso",
+          "linguee",
+          "wordReference",
+          "spanishDict",
+          "pixabay"
+        ],
+        "failedSources": []
+      },
+      "sourceLogs": [
+        {
+          "source": "freeDictionary",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "datamuse",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "collocations",
+            "synonyms",
+            "antonyms",
+            "frequencyEvidence"
+          ]
+        },
+        {
+          "source": "wiktionary",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "wiktionaryHtml",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "etymology",
+            "synonyms",
+            "antonyms",
+            "collocations"
+          ]
+        },
+        {
+          "source": "wiktionaryApi",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples",
+            "phonetic"
+          ]
+        },
+        {
+          "source": "wiktApi",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "mobyThesaurus",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "synonyms"
+          ]
+        },
+        {
+          "source": "thesaurusCom",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "synonyms",
+            "antonyms"
+          ]
+        },
+        {
+          "source": "wordHippo",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "antonyms"
+          ]
+        },
+        {
+          "source": "theIdioms",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "bundled",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "translations",
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "yomitanPacks",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "tatoeba",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "examples"
+          ]
+        },
+        {
+          "source": "linguaLibre",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "googleTtsFallback",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "audio"
+          ]
+        },
+        {
+          "source": "bingImages",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
+        },
+        {
+          "source": "openverse",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
+        },
+        {
+          "source": "wikimediaCommons",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "duckduckgoImages",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "youglish",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "videoLinks"
+          ]
+        },
+        {
+          "source": "etymonline",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "etymology"
+          ]
+        },
+        {
+          "source": "wordnet",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "relationGroups",
+            "definitions",
+            "definitionsPos",
+            "examples"
+          ]
+        },
+        {
+          "source": "britannicaDictionary",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "cambridge",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "definitions",
+            "translations",
+            "examples",
+            "relationGroups"
+          ]
+        },
+        {
+          "source": "oxfordLearners",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "longman",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples",
+            "collocations",
+            "frequencyEvidence",
+            "relationGroups"
+          ]
+        },
+        {
+          "source": "dictionaryCom",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples"
+          ]
+        },
+        {
+          "source": "merriamWebster",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "merriamWebsterThesaurus",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "ozdic",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples",
+            "collocations",
+            "relationGroups"
+          ]
+        },
+        {
+          "source": "pons",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "examples",
+            "collocations",
+            "relationGroups"
+          ]
+        },
+        {
+          "source": "babla",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "audio"
+          ]
+        },
+        {
+          "source": "dictCc",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "collocations"
+          ]
+        },
+        {
+          "source": "reverso",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "examples"
+          ]
+        },
+        {
+          "source": "linguee",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations",
+            "examples"
+          ]
+        },
+        {
+          "source": "promtContext",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "wordReference",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations"
+          ]
+        },
+        {
+          "source": "spanishDict",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "translations"
+          ]
+        },
+        {
+          "source": "forvo",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "unsplash",
+          "token": "run",
+          "hasData": false,
+          "fields": []
+        },
+        {
+          "source": "pixabay",
+          "token": "run",
+          "hasData": true,
+          "fields": [
+            "imageUrl"
+          ]
+        }
+      ]
+    },
+    {
+      "tier": "vip",
+      "token": "run",
+      "sentence": "She runs the company from home.",
+      "ms": 12449,
+      "error": null,
+      "card": {
+        "entry": {
+          "translation": "dirigir",
+          "bilingual": "dirigir · correr · manejar · ejecutar",
+          "monolingual": "direct or control; projects, businesses, etc.",
+          "phonetic": "/ɹʌn/",
+          "synonyms": [
+            "operate",
+            "work",
+            "drive",
+            "manage",
+            "direct",
+            "oversee",
+            "supervise",
+            "coordinate",
+            "use",
+            "steer",
+            "wield",
+            "guide"
+          ],
+          "collocations": [
+            "well run",
+            "badly run"
+          ],
+          "examples": [
+            "The athlete runs every day to improve his endurance. — Mi empresa organiza un concurso de ventas todos los a�os.",
+            "she let the line run through her hands — dejó que la cuerda se deslizara entre sus manos",
+            "She runs the fundraising. — Ella dirige la recaudación de fondos.",
+            "He always likes to head out for a run in the morning. — A él siempre le gusta salir a correr por la mañana."
+          ]
+        },
+        "vip": {
+          "etymology": "Old English, \"move swiftly by using the legs, go on legs more rapidly than walking,\" also \"make haste, hurry; be active, pursue or follow a course,\" and, of inanimate things, \"to move over a course.\" The modern verb is a merger of two related Old English words, in both of which the initial two letters sometimes switched places. The first is intransitive r…",
+          "imageUrl": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
+          "definitions": [
+            {
+              "source": "wordnet",
+              "text": "direct or control; projects, businesses, etc."
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "(transitive) To control or manage; to be in charge of."
+            },
+            {
+              "source": "oxfordLearners",
+              "text": "to travel a particular distance by running"
+            },
+            {
+              "source": "wiktionary",
+              "text": "To cover (a course or a distance) by running."
+            },
+            {
+              "source": "wiktionary",
+              "text": "To complete a running course or event in (a given time)."
+            },
+            {
+              "source": "wordnet",
+              "text": "move fast by using one's feet, with one foot off the ground at any given time"
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "to have recourse for aid, support, comfort, etc.."
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "to make a quick trip or informal visit for a short stay at a place."
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "to go around, rove, or ramble without restraint (often followed by about )."
+            },
+            {
+              "source": "merriamWebster",
+              "text": "flee , retreat , escape"
+            },
+            {
+              "source": "merriamWebster",
+              "text": "to go faster than a walk"
+            },
+            {
+              "source": "merriamWebster",
+              "text": "to go steadily by springing steps so that both feet leave the ground for an instant in each step"
+            }
+          ],
+          "translations": [
+            {
+              "source": "bundled",
+              "text": "correr"
+            },
+            {
+              "source": "cambridge",
+              "text": "correr"
+            },
+            {
+              "source": "cambridge",
+              "text": "Los niños tenían que correr para alcanzar a su padre y no quedarse atrás."
+            },
+            {
+              "source": "cambridge",
+              "text": "Puedo correr una milla en cinco minutos."
+            },
+            {
+              "source": "cambridge",
+              "text": "Una niña vino corriendo hacia mí llorando porque no encontraba a su papá."
+            },
+            {
+              "source": "cambridge",
+              "text": "competir con"
+            },
+            {
+              "source": "cambridge",
+              "text": "Thompson Stables compite con tres caballos en la próxima carrera."
+            },
+            {
+              "source": "pons",
+              "text": "correr"
+            },
+            {
+              "source": "pons",
+              "text": "ir (en coche)"
+            },
+            {
+              "source": "pons",
+              "text": "encallar"
+            },
+            {
+              "source": "pons",
+              "text": "decir"
+            },
+            {
+              "source": "pons",
+              "text": "gotear"
+            }
+          ],
+          "examples": [
+            {
+              "source": "linguee",
+              "text": "The athlete runs every day to improve his endurance.",
+              "translation": "Mi empresa organiza un concurso de ventas todos los a�os."
+            },
+            {
+              "source": "pons",
+              "text": "she let the line run through her hands",
+              "translation": "dejó que la cuerda se deslizara entre sus manos"
+            },
+            {
+              "source": "wiktionaryApi",
+              "text": "She runs the fundraising.",
+              "translation": "Ella dirige la recaudación de fondos."
+            },
+            {
+              "source": "reverso",
+              "text": "He always likes to head out for a run in the morning.",
+              "translation": "A él siempre le gusta salir a correr por la mañana."
+            },
+            {
+              "source": "reverso",
+              "text": "We can either run from this crisis or stand and fight it.",
+              "translation": "Podemos huir de esta crisis o plantar cara y luchar contra ella."
+            },
+            {
+              "source": "bundled",
+              "text": "She ran home.",
+              "translation": "Ella corrió a casa."
+            },
+            {
+              "source": "pons",
+              "text": "I had to run for the train",
+              "translation": "tuve que correr para no perder el tren"
+            },
+            {
+              "source": "linguee",
+              "text": "Cheetahs can run very fast.",
+              "translation": "Mi sue�o es tener mi propio negocio."
+            },
+            {
+              "source": "wordnet",
+              "text": "the Yankees scored 3 runs in the bottom of the 9th",
+              "translation": "los Yankees anotaron 3 carreras en la parte baja de la novena"
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "to run from danger.",
+              "translation": "para huir del peligro."
+            },
+            {
+              "source": "longman",
+              "text": "She turned and ran away.",
+              "translation": "Ella se dio vuelta y se escapó."
+            },
+            {
+              "source": "cambridge",
+              "text": "The sheep ran away/off in fright .",
+              "translation": "La oveja se escapó asustada."
+            }
+          ],
+          "videoLinks": [
+            {
+              "url": "https://youglish.com/pronounce/run/english",
+              "source": "youglish"
+            }
+          ],
+          "frequencyEvidence": [
+            {
+              "scale": "books-band",
+              "value": "2",
+              "source": "datamuse"
+            },
+            {
+              "scale": "longman-spoken",
+              "value": "S1",
+              "corpus": "LDOCE",
+              "source": "longman"
+            },
+            {
+              "scale": "longman-written",
+              "value": "W1",
+              "corpus": "LDOCE",
+              "source": "longman"
+            }
+          ],
+          "provenance": [
+            {
+              "field": "etymology",
+              "winner": "Old English, \"move swiftly by using the legs, go on legs more rapidly than walking,\" also \"make haste, hurry; be active,",
+              "source": "etymonline",
+              "candidates": 3,
+              "reasons": [
+                "ok-source-priority"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryHtml",
+                  "text": "From Middle English runnen , rennen ( “ to run ” ) , alteration (due to the past"
+                },
+                {
+                  "source": "merriamWebster",
+                  "text": "Middle English ronnen , alteration of rinnen , intransitive verb (from Old Engli"
+                }
+              ]
+            },
+            {
+              "field": "phonetic",
+              "winner": "/rʌn/",
+              "source": "cambridge",
+              "candidates": 6,
+              "reasons": [
+                "ok-source-priority"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryApi",
+                  "text": "/ɹʌn/"
+                },
+                {
+                  "source": "bundled",
+                  "text": "/ɹʌn/"
+                }
+              ]
+            },
+            {
+              "field": "translation",
+              "winner": "dirigir",
+              "source": "dictCc+linguee",
+              "score": -12,
+              "reasons": [
+                "ok-run-manage"
+              ],
+              "candidates": 38,
+              "runnerUps": [
+                {
+                  "source": "bundled",
+                  "text": "correr",
+                  "score": 6
+                },
+                {
+                  "source": "dictCc",
+                  "text": "manejar",
+                  "score": 0
+                },
+                {
+                  "source": "reverso",
+                  "text": "ejecutar",
+                  "score": 0
+                }
+              ]
+            },
+            {
+              "field": "image",
+              "winner": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
+              "source": "openverse",
+              "candidates": 14,
+              "reasons": [
+                "ok-primary-source",
+                "ok-exact-match",
+                "ok-high-resolution"
+              ]
+            },
+            {
+              "field": "definition",
+              "winner": "direct or control; projects, businesses, etc.",
+              "source": "wordnet",
+              "score": -22,
+              "reasons": [
+                "ok-pos-match",
+                "ok-manage-sense",
+                "ok-domain-gloss"
+              ],
+              "candidates": 58,
+              "runnerUps": [
+                {
+                  "source": "wiktionaryApi",
+                  "text": "(transitive) To control or manage; to be in charge of.",
+                  "score": -16
+                },
+                {
+                  "source": "oxfordLearners",
+                  "text": "to travel a particular distance by running",
+                  "score": -10
+                },
+                {
+                  "source": "wiktionary",
+                  "text": "To cover (a course or a distance) by running.",
+                  "score": -10
+                }
+              ]
+            },
+            {
+              "field": "synonyms",
+              "winner": "operate",
+              "source": "wordnet",
+              "candidates": 21,
+              "reasons": [
+                "ok-sense-group-endorsed"
+              ],
+              "runnerUps": [
+                {
+                  "source": "merriamWebsterThesaurus",
+                  "text": "work"
+                },
+                {
+                  "source": "merriamWebsterThesaurus",
+                  "text": "drive"
+                },
+                {
+                  "source": "cambridge",
+                  "text": "manage"
+                }
+              ]
+            },
+            {
+              "field": "collocations",
+              "winner": "well run",
+              "source": "longman",
+              "candidates": 66,
+              "reasons": [
+                "ok-editorial-or-corroborated"
+              ]
+            },
+            {
+              "field": "examples",
+              "winner": "The athlete runs every day to improve his endurance.",
+              "source": "linguee",
+              "candidates": 64,
+              "reasons": [
+                "ok-contextual-alignment"
+              ],
+              "runnerUps": [
+                {
+                  "source": "pons",
+                  "text": "she let the line run through her hands"
+                },
+                {
+                  "source": "wiktionaryApi",
+                  "text": "She runs the fundraising."
+                },
+                {
+                  "source": "reverso",
+                  "text": "He always likes to head out for a run in the morning."
                 }
               ]
             }
@@ -8000,801 +8770,21 @@
     },
     {
       "tier": "vip",
-      "token": "run",
-      "sentence": "She runs the company from home.",
-      "ms": 12822,
-      "error": null,
-      "card": {
-        "entry": {
-          "translation": "dirigir",
-          "bilingual": "dirigir · correr · manejar",
-          "monolingual": "direct or control; projects, businesses, etc.",
-          "phonetic": "/ɹʌn/",
-          "synonyms": [
-            "operate",
-            "work",
-            "drive",
-            "manage",
-            "direct",
-            "oversee",
-            "supervise",
-            "coordinate",
-            "use",
-            "steer",
-            "wield",
-            "guide"
-          ],
-          "collocations": [
-            "well run",
-            "badly run"
-          ],
-          "examples": [
-            "she let the line run through her hands — dejó que la cuerda se deslizara entre sus manos",
-            "She runs the fundraising. — Ella dirige la recaudación de fondos.",
-            "He always likes to head out for a run in the morning. — A él siempre le gusta salir a correr por la mañana.",
-            "We can either run from this crisis or stand and fight it. — Podemos huir de esta crisis o plantar cara y luchar contra ella."
-          ]
-        },
-        "vip": {
-          "etymology": "Old English, \"move swiftly by using the legs, go on legs more rapidly than walking,\" also \"make haste, hurry; be active, pursue or follow a course,\" and, of inanimate things, \"to move over a course.\" The modern verb is a merger of two related Old English words, in both of which the initial two letters sometimes switched places. The first is intransitive r…",
-          "imageUrl": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
-          "definitions": [
-            {
-              "source": "wordnet",
-              "text": "direct or control; projects, businesses, etc."
-            },
-            {
-              "source": "wiktionaryApi",
-              "text": "(transitive) To control or manage; to be in charge of."
-            },
-            {
-              "source": "oxfordLearners",
-              "text": "to travel a particular distance by running"
-            },
-            {
-              "source": "wiktionary",
-              "text": "To cover (a course or a distance) by running."
-            },
-            {
-              "source": "wiktionary",
-              "text": "To complete a running course or event in (a given time)."
-            },
-            {
-              "source": "wordnet",
-              "text": "move fast by using one's feet, with one foot off the ground at any given time"
-            },
-            {
-              "source": "dictionaryCom",
-              "text": "to have recourse for aid, support, comfort, etc.."
-            },
-            {
-              "source": "dictionaryCom",
-              "text": "to make a quick trip or informal visit for a short stay at a place."
-            },
-            {
-              "source": "dictionaryCom",
-              "text": "to go around, rove, or ramble without restraint (often followed by about )."
-            },
-            {
-              "source": "merriamWebster",
-              "text": "flee , retreat , escape"
-            },
-            {
-              "source": "merriamWebster",
-              "text": "to go faster than a walk"
-            },
-            {
-              "source": "merriamWebster",
-              "text": "to go steadily by springing steps so that both feet leave the ground for an instant in each step"
-            }
-          ],
-          "translations": [
-            {
-              "source": "bundled",
-              "text": "correr"
-            },
-            {
-              "source": "cambridge",
-              "text": "correr"
-            },
-            {
-              "source": "cambridge",
-              "text": "Los niños tenían que correr para alcanzar a su padre y no quedarse atrás."
-            },
-            {
-              "source": "cambridge",
-              "text": "Puedo correr una milla en cinco minutos."
-            },
-            {
-              "source": "cambridge",
-              "text": "Una niña vino corriendo hacia mí llorando porque no encontraba a su papá."
-            },
-            {
-              "source": "cambridge",
-              "text": "competir con"
-            },
-            {
-              "source": "cambridge",
-              "text": "Thompson Stables compite con tres caballos en la próxima carrera."
-            },
-            {
-              "source": "pons",
-              "text": "correr"
-            },
-            {
-              "source": "pons",
-              "text": "ir (en coche)"
-            },
-            {
-              "source": "pons",
-              "text": "encallar"
-            },
-            {
-              "source": "pons",
-              "text": "decir"
-            },
-            {
-              "source": "pons",
-              "text": "gotear"
-            }
-          ],
-          "examples": [
-            {
-              "source": "pons",
-              "text": "she let the line run through her hands",
-              "translation": "dejó que la cuerda se deslizara entre sus manos"
-            },
-            {
-              "source": "wiktionaryApi",
-              "text": "She runs the fundraising.",
-              "translation": "Ella dirige la recaudación de fondos."
-            },
-            {
-              "source": "reverso",
-              "text": "He always likes to head out for a run in the morning.",
-              "translation": "A él siempre le gusta salir a correr por la mañana."
-            },
-            {
-              "source": "reverso",
-              "text": "We can either run from this crisis or stand and fight it.",
-              "translation": "Podemos huir de esta crisis o plantar cara y luchar contra ella."
-            },
-            {
-              "source": "bundled",
-              "text": "She ran home.",
-              "translation": "Corrió a casa."
-            },
-            {
-              "source": "pons",
-              "text": "I had to run for the train",
-              "translation": "tuve que correr para no perder el tren"
-            },
-            {
-              "source": "wordnet",
-              "text": "the Yankees scored 3 runs in the bottom of the 9th",
-              "translation": "los Yankees anotaron 3 carreras en la parte baja de la novena"
-            },
-            {
-              "source": "dictionaryCom",
-              "text": "to run from danger.",
-              "translation": "huir del peligro."
-            },
-            {
-              "source": "longman",
-              "text": "She turned and ran away.",
-              "translation": "Se dio la vuelta y huyó."
-            },
-            {
-              "source": "cambridge",
-              "text": "The sheep ran away/off in fright .",
-              "translation": "La oveja huyó/se fue asustada ."
-            },
-            {
-              "source": "oxfordLearners",
-              "text": "She came running to meet us.",
-              "translation": "Vino corriendo a nuestro encuentro."
-            },
-            {
-              "source": "oxfordLearners",
-              "text": "I had to run to catch the bus.",
-              "translation": "Tuve que correr para coger el autobús."
-            }
-          ],
-          "videoLinks": [
-            {
-              "url": "https://youglish.com/pronounce/run/english",
-              "source": "youglish"
-            }
-          ],
-          "frequencyEvidence": [
-            {
-              "scale": "books-band",
-              "value": "2",
-              "source": "datamuse"
-            },
-            {
-              "scale": "longman-spoken",
-              "value": "S1",
-              "corpus": "LDOCE",
-              "source": "longman"
-            },
-            {
-              "scale": "longman-written",
-              "value": "W1",
-              "corpus": "LDOCE",
-              "source": "longman"
-            }
-          ],
-          "provenance": [
-            {
-              "field": "etymology",
-              "winner": "Old English, \"move swiftly by using the legs, go on legs more rapidly than walking,\" also \"make haste, hurry; be active,",
-              "source": "etymonline",
-              "candidates": 3,
-              "reasons": [
-                "ok-source-priority"
-              ],
-              "runnerUps": [
-                {
-                  "source": "wiktionaryHtml",
-                  "text": "From Middle English runnen , rennen ( “ to run ” ) , alteration (due to the past"
-                },
-                {
-                  "source": "merriamWebster",
-                  "text": "Middle English ronnen , alteration of rinnen , intransitive verb (from Old Engli"
-                }
-              ]
-            },
-            {
-              "field": "phonetic",
-              "winner": "/rʌn/",
-              "source": "cambridge",
-              "candidates": 6,
-              "reasons": [
-                "ok-source-priority"
-              ],
-              "runnerUps": [
-                {
-                  "source": "wiktionaryApi",
-                  "text": "/ɹʌn/"
-                },
-                {
-                  "source": "bundled",
-                  "text": "/ɹʌn/"
-                }
-              ]
-            },
-            {
-              "field": "translation",
-              "winner": "dirigir",
-              "source": "dictCc",
-              "score": -12,
-              "reasons": [
-                "ok-run-manage"
-              ],
-              "candidates": 32,
-              "runnerUps": [
-                {
-                  "source": "bundled",
-                  "text": "correr",
-                  "score": 6
-                },
-                {
-                  "source": "dictCc",
-                  "text": "manejar",
-                  "score": 0
-                }
-              ]
-            },
-            {
-              "field": "image",
-              "winner": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
-              "source": "openverse",
-              "candidates": 14,
-              "reasons": [
-                "ok-primary-source",
-                "ok-exact-match",
-                "ok-high-resolution"
-              ]
-            },
-            {
-              "field": "definition",
-              "winner": "direct or control; projects, businesses, etc.",
-              "source": "wordnet",
-              "score": -22,
-              "reasons": [
-                "ok-pos-match",
-                "ok-manage-sense",
-                "ok-domain-gloss"
-              ],
-              "candidates": 58,
-              "runnerUps": [
-                {
-                  "source": "wiktionaryApi",
-                  "text": "(transitive) To control or manage; to be in charge of.",
-                  "score": -16
-                },
-                {
-                  "source": "oxfordLearners",
-                  "text": "to travel a particular distance by running",
-                  "score": -10
-                },
-                {
-                  "source": "wiktionary",
-                  "text": "To cover (a course or a distance) by running.",
-                  "score": -10
-                }
-              ]
-            },
-            {
-              "field": "synonyms",
-              "winner": "operate",
-              "source": "wordnet",
-              "candidates": 21,
-              "reasons": [
-                "ok-sense-group-endorsed"
-              ],
-              "runnerUps": [
-                {
-                  "source": "merriamWebsterThesaurus",
-                  "text": "work"
-                },
-                {
-                  "source": "merriamWebsterThesaurus",
-                  "text": "drive"
-                },
-                {
-                  "source": "cambridge",
-                  "text": "manage"
-                }
-              ]
-            },
-            {
-              "field": "collocations",
-              "winner": "well run",
-              "source": "longman",
-              "candidates": 66,
-              "reasons": [
-                "ok-editorial-or-corroborated"
-              ]
-            },
-            {
-              "field": "examples",
-              "winner": "she let the line run through her hands",
-              "source": "pons",
-              "candidates": 61,
-              "reasons": [
-                "ok-contextual-alignment"
-              ],
-              "runnerUps": [
-                {
-                  "source": "wiktionaryApi",
-                  "text": "She runs the fundraising."
-                },
-                {
-                  "source": "reverso",
-                  "text": "He always likes to head out for a run in the morning."
-                },
-                {
-                  "source": "reverso",
-                  "text": "We can either run from this crisis or stand and fight it."
-                }
-              ]
-            }
-          ],
-          "imageSource": "openverse",
-          "imageCandidates": 14
-        },
-        "successfulSources": [
-          "datamuse",
-          "wiktionary",
-          "wiktionaryHtml",
-          "wiktionaryApi",
-          "mobyThesaurus",
-          "thesaurusCom",
-          "wordHippo",
-          "bundled",
-          "tatoeba",
-          "linguaLibre",
-          "googleTtsFallback",
-          "bingImages",
-          "openverse",
-          "youglish",
-          "etymonline",
-          "wordnet",
-          "cambridge",
-          "oxfordLearners",
-          "longman",
-          "dictionaryCom",
-          "merriamWebster",
-          "merriamWebsterThesaurus",
-          "ozdic",
-          "pons",
-          "babla",
-          "dictCc",
-          "reverso",
-          "wordReference",
-          "spanishDict",
-          "pixabay"
-        ],
-        "failedSources": []
-      },
-      "sourceLogs": [
-        {
-          "source": "freeDictionary",
-          "token": "run",
-          "hasData": false,
-          "fields": []
-        },
-        {
-          "source": "datamuse",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "collocations",
-            "synonyms",
-            "antonyms",
-            "frequencyEvidence"
-          ]
-        },
-        {
-          "source": "wiktionary",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "definitions",
-            "examples"
-          ]
-        },
-        {
-          "source": "wiktionaryHtml",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "etymology",
-            "synonyms",
-            "antonyms",
-            "collocations"
-          ]
-        },
-        {
-          "source": "wiktionaryApi",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "definitions",
-            "examples",
-            "phonetic"
-          ]
-        },
-        {
-          "source": "wiktApi",
-          "token": "run",
-          "hasData": false,
-          "fields": []
-        },
-        {
-          "source": "mobyThesaurus",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "synonyms"
-          ]
-        },
-        {
-          "source": "thesaurusCom",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "synonyms",
-            "antonyms"
-          ]
-        },
-        {
-          "source": "wordHippo",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "antonyms"
-          ]
-        },
-        {
-          "source": "theIdioms",
-          "token": "run",
-          "hasData": false,
-          "fields": []
-        },
-        {
-          "source": "bundled",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "phonetic",
-            "translations",
-            "definitions",
-            "examples"
-          ]
-        },
-        {
-          "source": "yomitanPacks",
-          "token": "run",
-          "hasData": false,
-          "fields": []
-        },
-        {
-          "source": "tatoeba",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "examples"
-          ]
-        },
-        {
-          "source": "linguaLibre",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "audio"
-          ]
-        },
-        {
-          "source": "googleTtsFallback",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "audio"
-          ]
-        },
-        {
-          "source": "bingImages",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
-        },
-        {
-          "source": "openverse",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
-        },
-        {
-          "source": "wikimediaCommons",
-          "token": "run",
-          "hasData": false,
-          "fields": []
-        },
-        {
-          "source": "duckduckgoImages",
-          "token": "run",
-          "hasData": false,
-          "fields": []
-        },
-        {
-          "source": "youglish",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "videoLinks"
-          ]
-        },
-        {
-          "source": "etymonline",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "etymology"
-          ]
-        },
-        {
-          "source": "wordnet",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "relationGroups",
-            "definitions",
-            "definitionsPos",
-            "examples"
-          ]
-        },
-        {
-          "source": "britannicaDictionary",
-          "token": "run",
-          "hasData": false,
-          "fields": []
-        },
-        {
-          "source": "cambridge",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "phonetic",
-            "definitions",
-            "translations",
-            "examples",
-            "relationGroups"
-          ]
-        },
-        {
-          "source": "oxfordLearners",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "phonetic",
-            "audio",
-            "definitions",
-            "examples"
-          ]
-        },
-        {
-          "source": "longman",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "phonetic",
-            "audio",
-            "definitions",
-            "examples",
-            "collocations",
-            "frequencyEvidence",
-            "relationGroups"
-          ]
-        },
-        {
-          "source": "dictionaryCom",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "phonetic",
-            "audio",
-            "definitions",
-            "examples"
-          ]
-        },
-        {
-          "source": "merriamWebster",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "audio",
-            "definitions",
-            "examples",
-            "etymology"
-          ]
-        },
-        {
-          "source": "merriamWebsterThesaurus",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "relationGroups",
-            "examples"
-          ]
-        },
-        {
-          "source": "ozdic",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "definitions",
-            "examples",
-            "collocations",
-            "relationGroups"
-          ]
-        },
-        {
-          "source": "pons",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "translations",
-            "examples",
-            "collocations",
-            "relationGroups"
-          ]
-        },
-        {
-          "source": "babla",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "translations",
-            "audio"
-          ]
-        },
-        {
-          "source": "dictCc",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "translations",
-            "collocations"
-          ]
-        },
-        {
-          "source": "reverso",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "translations",
-            "examples"
-          ]
-        },
-        {
-          "source": "linguee",
-          "token": "run",
-          "hasData": false,
-          "fields": []
-        },
-        {
-          "source": "promtContext",
-          "token": "run",
-          "hasData": false,
-          "fields": []
-        },
-        {
-          "source": "wordReference",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "translations"
-          ]
-        },
-        {
-          "source": "spanishDict",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "translations"
-          ]
-        },
-        {
-          "source": "forvo",
-          "token": "run",
-          "hasData": false,
-          "fields": []
-        },
-        {
-          "source": "unsplash",
-          "token": "run",
-          "hasData": false,
-          "fields": []
-        },
-        {
-          "source": "pixabay",
-          "token": "run",
-          "hasData": true,
-          "fields": [
-            "imageUrl"
-          ]
-        }
-      ]
-    },
-    {
-      "tier": "vip",
       "token": "anything",
       "sentence": "I do not need anything else.",
-      "ms": 12032,
+      "ms": 14691,
       "error": null,
       "card": {
         "entry": {
           "translation": "nada",
-          "bilingual": "nada · cualquier cosa · algo más · algo · alguna cosa",
+          "bilingual": "nada · cualquier cosa · algo más · algo",
           "monolingual": "used in negative sentences to mean no thing, event etc",
           "phonetic": "/ˈɛn.ɪ.θɪŋ/",
-          "collocations": [
-            "anything for a change"
-          ],
           "examples": [
             "Do you need anything else? — ¿Necesitas algo más?",
-            "I'd rather not carry anything fragile, I'm a bit clumsy. — Prefiero no llevar nada fr�gil, soy un poco torpe.",
             "Anything else? — ¿Algo más?",
-            "Is there anything else I can help you with? — ¿Alguna otra cosa?"
+            "Is there anything else I can help you with? — ¿Alguna otra cosa?",
+            "I looked everywhere, but I couldn't find anything that fit. — Busqué por todas partes, pero no encontré nada que me quedara bien."
           ]
         },
         "vip": {
@@ -8906,11 +8896,6 @@
               "translation": "¿Necesitas algo más?"
             },
             {
-              "source": "linguee",
-              "text": "I'd rather not carry anything fragile, I'm a bit clumsy.",
-              "translation": "Prefiero no llevar nada fr�gil, soy un poco torpe."
-            },
-            {
               "source": "tatoeba",
               "text": "Anything else?",
               "translation": "¿Algo más?"
@@ -8919,11 +8904,6 @@
               "source": "spanishDict",
               "text": "Is there anything else I can help you with?",
               "translation": "¿Alguna otra cosa?"
-            },
-            {
-              "source": "linguee",
-              "text": "My parents would do anything to help me.",
-              "translation": "Mis padres har�an cualquier cosa para ayudarme."
             },
             {
               "source": "reverso",
@@ -8958,7 +8938,17 @@
             {
               "source": "cambridge",
               "text": "Is there anything I can do to help ? ¿Puedo ayudar en algo?",
-              "translation": "¿Hay algo que pueda hacer para ayudar ? ¿Puedo ayudar en algo?"
+              "translation": "¿Hay algo que pueda hacer para ayudar? ¿Puedo ayudar en algo?"
+            },
+            {
+              "source": "oxfordLearners",
+              "text": "Would you like anything else ?",
+              "translation": "Quieres algo más ?"
+            },
+            {
+              "source": "cambridge",
+              "text": "Do you have anything less expensive ? ¿Tienes algo más barato?",
+              "translation": "Tiene algo más barato ? ¿Tienes algo más barato?"
             }
           ],
           "videoLinks": [
@@ -9024,12 +9014,12 @@
             {
               "field": "translation",
               "winner": "nada",
-              "source": "cambridge+pons+linguee+wordReference",
+              "source": "cambridge+pons+wordReference",
               "score": -12,
               "reasons": [
                 "ok-anything-negative-nada"
               ],
-              "candidates": 34,
+              "candidates": 28,
               "runnerUps": [
                 {
                   "source": "bundled",
@@ -9076,27 +9066,14 @@
               ]
             },
             {
-              "field": "collocations",
-              "winner": "anything for a change",
-              "source": "pons",
-              "candidates": 32,
-              "reasons": [
-                "ok-editorial-or-corroborated"
-              ]
-            },
-            {
               "field": "examples",
               "winner": "Do you need anything else?",
               "source": "spanishDict",
-              "candidates": 66,
+              "candidates": 61,
               "reasons": [
                 "ok-contextual-alignment"
               ],
               "runnerUps": [
-                {
-                  "source": "linguee",
-                  "text": "I'd rather not carry anything fragile, I'm a bit clumsy."
-                },
                 {
                   "source": "tatoeba",
                   "text": "Anything else?"
@@ -9104,6 +9081,10 @@
                 {
                   "source": "spanishDict",
                   "text": "Is there anything else I can help you with?"
+                },
+                {
+                  "source": "reverso",
+                  "text": "I looked everywhere, but I couldn't find anything that fit."
                 }
               ]
             }
@@ -9136,7 +9117,6 @@
           "pons",
           "babla",
           "reverso",
-          "linguee",
           "wordReference",
           "spanishDict",
           "pixabay"
@@ -9435,11 +9415,8 @@
         {
           "source": "linguee",
           "token": "anything",
-          "hasData": true,
-          "fields": [
-            "translations",
-            "examples"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "promtContext",
@@ -9490,22 +9467,19 @@
       "tier": "vip",
       "token": "anybody",
       "sentence": "I did not see anybody at the park.",
-      "ms": 12560,
+      "ms": 12590,
       "error": null,
       "card": {
         "entry": {
           "translation": "nadie",
-          "bilingual": "nadie · cualquiera · alguien · ninguno/a · cualquier persona · alguno · alguien más",
+          "bilingual": "nadie · cualquiera · alguien · alguno · ninguno/a · cualquier persona · anybody else · alguien más",
           "monolingual": "any person at all; it does not matter who",
           "phonetic": "/ˈen.iˌbɒd.i/",
-          "collocations": [
-            "hardly anybody disagrees"
-          ],
           "examples": [
             "anybody at home? — ¿hay alguien en casa?",
             "I told him my biggest mistake and begged him not to tell anybody . — Le conté mi mayor error y le rogué que no se lo cuentes a nadie .",
-            "Has anybody come? — ¿Ha venido alguien?",
-            "Is anybody there? — Hay alguien ahí?"
+            "Has anybody come? — ¿Alguien ha venido?",
+            "Is anybody there? — ¿Hay alguien ahí?"
           ]
         },
         "vip": {
@@ -9624,12 +9598,12 @@
             {
               "source": "tatoeba",
               "text": "Has anybody come?",
-              "translation": "¿Ha venido alguien?"
+              "translation": "¿Alguien ha venido?"
             },
             {
               "source": "tatoeba",
               "text": "Is anybody there?",
-              "translation": "Hay alguien ahí?"
+              "translation": "¿Hay alguien ahí?"
             },
             {
               "source": "spanishDict",
@@ -9654,22 +9628,22 @@
             {
               "source": "wiktionary",
               "text": "Anybody will do.",
-              "translation": "Quien sea."
+              "translation": "Cualquiera servirá."
             },
             {
               "source": "oxfordLearners",
               "text": "Anybody can use the pool—you don't need to be a member.",
-              "translation": "Cualquiera puede usar el grupo, no es necesario que seas miembro."
-            },
-            {
-              "source": "merriamWebster",
-              "text": "I don't know how anybody can believe that.",
-              "translation": "No sé cómo alguien puede creer eso."
+              "translation": "Cualquiera puede utilizar el grupo; no es necesario ser miembro."
             },
             {
               "source": "wiktionaryApi",
               "text": "Is there anybody inside?",
-              "translation": "¿Alguien más adentro?"
+              "translation": "¿Hay alguien dentro?"
+            },
+            {
+              "source": "cambridge",
+              "text": "Does anybody want one? ¿Alguien quiere uno?",
+              "translation": "¿Alguien quiere uno? ¿Alguien quiere uno?"
             }
           ],
           "videoLinks": [
@@ -9735,12 +9709,12 @@
             {
               "field": "translation",
               "winner": "nadie",
-              "source": "cambridge+pons+reverso+wordReference",
+              "source": "cambridge+pons+reverso+linguee+wordReference",
               "score": -12,
               "reasons": [
                 "ok-anybody-negative-nadie"
               ],
-              "candidates": 22,
+              "candidates": 28,
               "runnerUps": [
                 {
                   "source": "pons",
@@ -9753,8 +9727,8 @@
                   "score": 2
                 },
                 {
-                  "source": "cambridge",
-                  "text": "ninguno/a",
+                  "source": "pons",
+                  "text": "alguno",
                   "score": 0
                 }
               ]
@@ -9767,7 +9741,7 @@
               "reasons": [
                 "ok-anybody-generic-sense"
               ],
-              "candidates": 17,
+              "candidates": 16,
               "runnerUps": [
                 {
                   "source": "dictionaryCom",
@@ -9787,19 +9761,10 @@
               ]
             },
             {
-              "field": "collocations",
-              "winner": "hardly anybody disagrees",
-              "source": "pons",
-              "candidates": 31,
-              "reasons": [
-                "ok-editorial-or-corroborated"
-              ]
-            },
-            {
               "field": "examples",
               "winner": "anybody at home?",
               "source": "pons",
-              "candidates": 46,
+              "candidates": 43,
               "reasons": [
                 "ok-contextual-alignment"
               ],
@@ -9840,13 +9805,12 @@
           "oxfordLearners",
           "longman",
           "dictionaryCom",
-          "merriamWebster",
-          "merriamWebsterThesaurus",
           "ozdic",
           "pons",
           "babla",
           "dictCc",
           "reverso",
+          "linguee",
           "wordReference",
           "spanishDict",
           "pixabay"
@@ -10074,20 +10038,14 @@
         {
           "source": "merriamWebster",
           "token": "anybody",
-          "hasData": true,
-          "fields": [
-            "audio",
-            "definitions",
-            "examples"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "merriamWebsterThesaurus",
           "token": "anybody",
-          "hasData": true,
-          "fields": [
-            "relationGroups"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "ozdic",
@@ -10138,8 +10096,10 @@
         {
           "source": "linguee",
           "token": "anybody",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "translations"
+          ]
         },
         {
           "source": "promtContext",
@@ -10190,7 +10150,7 @@
       "tier": "vip",
       "token": "each",
       "sentence": "Each student has a book.",
-      "ms": 12782,
+      "ms": 16100,
       "error": null,
       "card": {
         "entry": {
@@ -10201,21 +10161,11 @@
           "synonyms": [
             "apiece"
           ],
-          "collocations": [
-            "each other",
-            "each day",
-            "each week",
-            "each month",
-            "to help each other",
-            "each and every house",
-            "to be made for each other",
-            "to interrelate with each other"
-          ],
           "examples": [
             "Each student has a book. — Cada estudiante tiene un libro.",
-            "Each country has its own culture. — Cada pa�s tiene su propia cultura.",
-            "Each of us is a member of society. — Cada uno de nosotros es un miembro de la sociedad.",
-            "Saving a portion of each paycheck is essential for financial security. — Ahorrar una parte de cada nómina es esencial para la seguridad financiera."
+            "Saving a portion of each paycheck is essential for financial security. — Ahorrar una parte de cada nómina es esencial para la seguridad financiera.",
+            "We bath each day. — Nos bañamos todos los días.",
+            "Each cat is unique. — Cada gato es único."
           ]
         },
         "vip": {
@@ -10250,10 +10200,6 @@
               "text": "every one of two or more considered individually or one by one."
             },
             {
-              "source": "merriamWebster",
-              "text": "each one"
-            },
-            {
               "source": "wordnet",
               "text": "to or from every one of two or more (considered individually)"
             },
@@ -10268,6 +10214,10 @@
             {
               "source": "bundled",
               "text": "Every one of two or more people or things, considered separately."
+            },
+            {
+              "source": "cambridge",
+              "text": "used to say that everyone likes different things"
             }
           ],
           "translations": [
@@ -10327,16 +10277,6 @@
               "translation": "Cada estudiante tiene un libro."
             },
             {
-              "source": "linguee",
-              "text": "Each country has its own culture.",
-              "translation": "Cada pa�s tiene su propia cultura."
-            },
-            {
-              "source": "linguee",
-              "text": "Each of us is a member of society.",
-              "translation": "Cada uno de nosotros es un miembro de la sociedad."
-            },
-            {
               "source": "reverso",
               "text": "Saving a portion of each paycheck is essential for financial security.",
               "translation": "Ahorrar una parte de cada nómina es esencial para la seguridad financiera."
@@ -10367,19 +10307,29 @@
               "translation": "Después de cortar el pastel, serví a cada invitado un noveno."
             },
             {
-              "source": "merriamWebster",
-              "text": "Each student had a different explanation.",
-              "translation": "Cada estudiante tenía una explicación diferente."
-            },
-            {
-              "source": "merriamWebster",
-              "text": "cost a dollar each",
-              "translation": "cuestan un dólar cada uno"
-            },
-            {
               "source": "cambridge",
               "text": "Each of the companies supports a local charity . Cada una de las empresas apoya a una organización benéfica local.",
               "translation": "Cada una de las empresas apoya a una organización benéfica local. Cada una de las empresas apoya a una organización benéfica local."
+            },
+            {
+              "source": "cambridge",
+              "text": "Each and every one of the flowers has its own colour and smell . Todas y cada una de las flores tiene su propio color y aroma.",
+              "translation": "Todas y cada una de las flores tienen su propio color y olor. Todas y cada una de las flores tiene su propio color y aroma."
+            },
+            {
+              "source": "longman",
+              "text": "She had a bottle in each hand.",
+              "translation": "Tenía una botella en cada mano."
+            },
+            {
+              "source": "longman",
+              "text": "Each member of the team is given a particular job to do.",
+              "translation": "A cada miembro del equipo se le asigna un trabajo particular que realizar."
+            },
+            {
+              "source": "dictionaryCom",
+              "text": "They cost a dollar each.",
+              "translation": "Cuestan un dólar cada uno."
             }
           ],
           "videoLinks": [
@@ -10412,7 +10362,7 @@
               "field": "etymology",
               "winner": "Old English ælc (n., pron., adj.) \"any, all, every, each (one),\" short for a-gelic \"ever alike,\" from a \"ever\" (see aye ",
               "source": "etymonline",
-              "candidates": 3,
+              "candidates": 2,
               "reasons": [
                 "ok-source-priority"
               ],
@@ -10420,10 +10370,6 @@
                 {
                   "source": "wiktionaryHtml",
                   "text": "From Middle English eche , elche , ilch , from Old English ǣlċ , contraction of "
-                },
-                {
-                  "source": "merriamWebster",
-                  "text": "Middle English ech , from Old English ǣlc ; akin to Old High German iogilīh each"
                 }
               ]
             },
@@ -10449,10 +10395,10 @@
             {
               "field": "translation",
               "winner": "cada",
-              "source": "bundled+pons+babla+dictCc+linguee+wordReference",
+              "source": "bundled+pons+babla+dictCc+wordReference",
               "score": 0,
               "reasons": [],
-              "candidates": 36,
+              "candidates": 30,
               "runnerUps": [
                 {
                   "source": "cambridge",
@@ -10474,7 +10420,7 @@
               "reasons": [
                 "ok-each-distributive-sense"
               ],
-              "candidates": 34,
+              "candidates": 30,
               "runnerUps": [
                 {
                   "source": "cambridge",
@@ -10497,41 +10443,32 @@
               "field": "synonyms",
               "winner": "apiece",
               "source": "wordnet",
-              "candidates": 33,
+              "candidates": 9,
               "reasons": [
                 "ok-sense-group-endorsed"
               ],
               "runnerUps": []
             },
             {
-              "field": "collocations",
-              "winner": "each other",
-              "source": "wiktionaryHtml",
-              "candidates": 35,
-              "reasons": [
-                "ok-editorial-or-corroborated"
-              ]
-            },
-            {
               "field": "examples",
               "winner": "Each student has a book.",
               "source": "bundled",
-              "candidates": 65,
+              "candidates": 56,
               "reasons": [
                 "ok-contextual-alignment"
               ],
               "runnerUps": [
                 {
-                  "source": "linguee",
-                  "text": "Each country has its own culture."
-                },
-                {
-                  "source": "linguee",
-                  "text": "Each of us is a member of society."
-                },
-                {
                   "source": "reverso",
                   "text": "Saving a portion of each paycheck is essential for financial security."
+                },
+                {
+                  "source": "tatoeba",
+                  "text": "We bath each day."
+                },
+                {
+                  "source": "tatoeba",
+                  "text": "Each cat is unique."
                 }
               ]
             }
@@ -10559,14 +10496,11 @@
           "oxfordLearners",
           "longman",
           "dictionaryCom",
-          "merriamWebster",
-          "merriamWebsterThesaurus",
           "ozdic",
           "pons",
           "babla",
           "dictCc",
           "reverso",
-          "linguee",
           "wordReference",
           "spanishDict",
           "pixabay"
@@ -10809,22 +10743,14 @@
         {
           "source": "merriamWebster",
           "token": "each",
-          "hasData": true,
-          "fields": [
-            "audio",
-            "definitions",
-            "examples",
-            "etymology"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "merriamWebsterThesaurus",
           "token": "each",
-          "hasData": true,
-          "fields": [
-            "relationGroups",
-            "examples"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "ozdic",
@@ -10876,11 +10802,8 @@
         {
           "source": "linguee",
           "token": "each",
-          "hasData": true,
-          "fields": [
-            "translations",
-            "examples"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "promtContext",
@@ -10930,7 +10853,7 @@
       "tier": "vip",
       "token": "tensor",
       "sentence": "The model uses a tensor.",
-      "ms": 12823,
+      "ms": 13491,
       "error": null,
       "card": {
         "entry": {
@@ -10946,7 +10869,7 @@
           ]
         },
         "vip": {
-          "etymology": "Borrowed from New Latin tensor ( “ that which stretches ” ) , equivalent to tense + ‎ -or . Anatomical sense from 1704. Introduced in the 1840s by William Rowan Hamilton as an algebraic quantity unrelated to the modern notion of tensor. The contemporary mathematical meaning was introduced (as German Tensor ) by Woldemar Voigt (1898) [ 1 ] and adopted in E…",
+          "etymology": "borrowed from New Latin, from Latin tendere \"to extend outward, stretch, draw tight\" + -tor, agent suffix — more at tender entry 3",
           "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Covariance_and_contravariance_of_vectors.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
           "definitions": [
             {
@@ -10964,6 +10887,10 @@
             {
               "source": "dictionaryCom",
               "text": "maths a set of components, functions of the coordinates of any point in space, that transform linearly between coordinate systems. For three-dimensional space there are 3 r components, where r is the rank. A tensor of zero rank is a scalar, of rank one, a vector"
+            },
+            {
+              "source": "merriamWebster",
+              "text": "a generalized vector with more than three components each of which is a function of the coordinates of an arbitrary point in space of an appropriate number of dimensions"
             },
             {
               "source": "wiktionaryApi",
@@ -10992,10 +10919,6 @@
             {
               "source": "wiktionary",
               "text": "To compute the tensor product of two tensors or algebraic structures."
-            },
-            {
-              "source": "cambridge",
-              "text": "a muscle that tightens or stretches part of the body"
             }
           ],
           "translations": [
@@ -11024,12 +10947,28 @@
               "text": "tensorial"
             },
             {
-              "source": "wordReference",
-              "text": "músculo tensor"
+              "source": "linguee",
+              "text": "tensor"
             },
             {
-              "source": "wordReference",
-              "text": "tensor"
+              "source": "linguee",
+              "text": "tensioner"
+            },
+            {
+              "source": "linguee",
+              "text": "tightener"
+            },
+            {
+              "source": "linguee",
+              "text": "turnbuckle"
+            },
+            {
+              "source": "linguee",
+              "text": "tensing"
+            },
+            {
+              "source": "linguee",
+              "text": "efecto tensor"
             }
           ],
           "examples": [
@@ -11056,12 +10995,17 @@
             {
               "source": "dictionaryCom",
               "text": "Google’s tensor processing units have been a major selling point for the company’s AI strategy.",
-              "translation": "Las unidades de procesamiento tensorial de Google han sido un importante punto de venta para la estrategia de IA de la empresa."
+              "translation": "Las unidades de procesamiento de tensores de Google han sido un importante punto de venta para la estrategia de inteligencia artificial de la empresa."
             },
             {
               "source": "dictionaryCom",
               "text": "The researchers overcame this barrier by developing and applying new tools based on tensor networks.",
               "translation": "Los investigadores superaron esta barrera desarrollando y aplicando nuevas herramientas basadas en redes tensoriales."
+            },
+            {
+              "source": "merriamWebster",
+              "text": "TPUs, or tensor processing units, are the chips that Broadcom co-designs. — Jeff Marks, CNBC , 2 Sep. 2026",
+              "translation": "Los TPU, o unidades de procesamiento de tensores, son los chips que Broadcom codiseña. - Jeff Marks, CNBC, 2 de septiembre de 2026"
             }
           ],
           "videoLinks": [
@@ -11082,7 +11026,7 @@
               "field": "etymology",
               "winner": "in anatomy, \"one of several muscles that stretch or tighten a part,\" 1704, Modern Latin agent noun from tens- , past-par",
               "source": "etymonline",
-              "candidates": 2,
+              "candidates": 3,
               "reasons": [
                 "ok-source-priority"
               ],
@@ -11090,6 +11034,10 @@
                 {
                   "source": "wiktionaryHtml",
                   "text": "Borrowed from New Latin tensor ( “ that which stretches ” ) , equivalent to tens"
+                },
+                {
+                  "source": "merriamWebster",
+                  "text": "borrowed from New Latin, from Latin tendere \"to extend outward, stretch, draw ti"
                 }
               ]
             },
@@ -11115,10 +11063,10 @@
             {
               "field": "translation",
               "winner": "tensor",
-              "source": "bundled+pons+babla+wordReference",
+              "source": "bundled+pons+babla+linguee+wordReference",
               "score": 0,
               "reasons": [],
-              "candidates": 8,
+              "candidates": 14,
               "runnerUps": [
                 {
                   "source": "cambridge",
@@ -11129,13 +11077,17 @@
             },
             {
               "field": "etymology",
-              "winner": "Borrowed from New Latin tensor ( “ that which stretches ” ) , equivalent to tense + ‎ -or . Anatomical sense from 1704. ",
-              "source": "wiktionaryHtml",
-              "candidates": 2,
+              "winner": "borrowed from New Latin, from Latin tendere \"to extend outward, stretch, draw tight\" + -tor, agent suffix — more at tend",
+              "source": "merriamWebster",
+              "candidates": 3,
               "reasons": [
                 "ok-definition-domain-match"
               ],
               "runnerUps": [
+                {
+                  "source": "wiktionaryHtml",
+                  "text": "Borrowed from New Latin tensor ( “ that which stretches ” ) , equivalent to tens"
+                },
                 {
                   "source": "etymonline",
                   "text": "in anatomy, \"one of several muscles that stretch or tighten a part,\" 1704, Moder"
@@ -11146,7 +11098,7 @@
               "field": "image",
               "winner": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Covariance_and_contravariance_of_vectors.jpg?utm_source=commons.wiki",
               "source": "wikimediaCommons",
-              "candidates": 18,
+              "candidates": 26,
               "reasons": [
                 "ok-primary-source",
                 "ok-exact-match"
@@ -11161,7 +11113,7 @@
                 "ok-pos-match",
                 "ok-tensor-ml-sense"
               ],
-              "candidates": 24,
+              "candidates": 28,
               "runnerUps": [
                 {
                   "source": "dictionaryCom",
@@ -11184,7 +11136,7 @@
               "field": "examples",
               "winner": "tensor , a. tensor muscle",
               "source": "pons",
-              "candidates": 13,
+              "candidates": 14,
               "reasons": [
                 "ok-contextual-alignment"
               ],
@@ -11205,7 +11157,7 @@
             }
           ],
           "imageSource": "wikimediaCommons",
-          "imageCandidates": 18
+          "imageCandidates": 26
         },
         "successfulSources": [
           "datamuse",
@@ -11219,17 +11171,20 @@
           "bingImages",
           "openverse",
           "wikimediaCommons",
+          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet",
           "cambridge",
           "oxfordLearners",
           "dictionaryCom",
+          "merriamWebster",
           "ozdic",
           "pons",
           "babla",
           "dictCc",
           "reverso",
+          "linguee",
           "wordReference",
           "pixabay"
         ],
@@ -11377,8 +11332,11 @@
         {
           "source": "duckduckgoImages",
           "token": "tensor",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -11451,8 +11409,13 @@
         {
           "source": "merriamWebster",
           "token": "tensor",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "audio",
+            "definitions",
+            "examples",
+            "etymology"
+          ]
         },
         {
           "source": "merriamWebsterThesaurus",
@@ -11506,8 +11469,10 @@
         {
           "source": "linguee",
           "token": "tensor",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "translations"
+          ]
         },
         {
           "source": "promtContext",
@@ -11555,23 +11520,22 @@
       "tier": "vip",
       "token": "lit",
       "sentence": "The show was lit.",
-      "ms": 12798,
+      "ms": 14311,
       "error": null,
       "card": {
         "entry": {
           "translation": "genial",
-          "bilingual": "genial · iluminado · literatura · prendido · encendido",
+          "bilingual": "genial · iluminado · prendido · encendido · literatura",
           "monolingual": "Slang. amazing ; awesome ; cool (used as a general term of approval).",
           "phonetic": "/lɪt/",
           "examples": [
-            "The show was lit. — El espectáculo estaba iluminado.",
-            "Today's rally was really lit! — ¡El rally de hoy estaba realmente iluminado!",
+            "The show was lit. — El espectáculo estaba encendido.",
+            "Today's rally was really lit! — ¡El mitin de hoy estuvo realmente iluminado!",
             "With candles lit , everyone was in a mellow mood at the dinner. — Con las velas encendidas , todos estaban de buen ánimo en la cena.",
             "The candles stood lit on the table, creating a warm atmosphere. — Las velas encendidas sobre la mesa creaban una atmósfera cálida."
           ]
         },
         "vip": {
-          "etymology": "\"illuminated; afire,\" past-participle adjective from light (v.2). Slang meaning \"drunk\" is recorded from 1914.",
           "definitions": [
             {
               "source": "dictionaryCom",
@@ -11668,20 +11632,20 @@
               "text": "prendido"
             },
             {
-              "source": "wordReference",
-              "text": "iluminado"
+              "source": "linguee",
+              "text": "lit"
             }
           ],
           "examples": [
             {
               "source": "bundled",
               "text": "The show was lit.",
-              "translation": "El espectáculo estaba iluminado."
+              "translation": "El espectáculo estaba encendido."
             },
             {
               "source": "dictionaryCom",
               "text": "Today's rally was really lit!",
-              "translation": "¡El rally de hoy estaba realmente iluminado!"
+              "translation": "¡El mitin de hoy estuvo realmente iluminado!"
             },
             {
               "source": "reverso",
@@ -11696,7 +11660,7 @@
             {
               "source": "tatoeba",
               "text": "He lit the fuse.",
-              "translation": "Encendió el fusible."
+              "translation": "Encendió la mecha."
             },
             {
               "source": "pons",
@@ -11706,12 +11670,7 @@
             {
               "source": "tatoeba",
               "text": "Tom lit a cigarette.",
-              "translation": "Tom prendió un cigarrillo."
-            },
-            {
-              "source": "dictionaryCom",
-              "text": "The sword of Damocles didn’t descend, but its glint lit every meeting.",
-              "translation": "La espada de Damocles no descendía, pero su brillo iluminaba cada encuentro."
+              "translation": "Tom encendió un cigarrillo."
             },
             {
               "source": "wiktionary",
@@ -11721,17 +11680,22 @@
             {
               "source": "ozdic",
               "text": "DJ sets so lit the dance floor's dripping with sweat?",
-              "translation": "¿Los sets de DJ están tan iluminados que la pista de baile está empapada de sudor?"
+              "translation": "¿Los DJ están tan iluminados que la pista de baile está empapada de sudor?"
             },
             {
               "source": "wiktionaryApi",
               "text": "At his Upper East Side office, the talented doctor has a very lit and elegant office, where art canvasses the walls.",
-              "translation": "En su oficina del Upper East Side, el talentoso médico tiene una oficina muy iluminada y elegante, donde el arte cubre las paredes."
+              "translation": "En su consulta del Upper East Side, el talentoso médico tiene un despacho muy iluminado y elegante, donde el arte cubre las paredes."
             },
             {
               "source": "wiktionaryApi",
               "text": "Those jeans are lit.",
-              "translation": "Esos vaqueros están encendidos."
+              "translation": "Esos jeans están encendidos."
+            },
+            {
+              "source": "ozdic",
+              "text": "This party is gonna be lit.",
+              "translation": "Esta fiesta va a estar encendida."
             }
           ],
           "videoLinks": [
@@ -11788,7 +11752,7 @@
               "source": "bundled",
               "score": 0,
               "reasons": [],
-              "candidates": 21,
+              "candidates": 27,
               "runnerUps": [
                 {
                   "source": "babla",
@@ -11796,14 +11760,33 @@
                   "score": 0
                 },
                 {
-                  "source": "cambridge",
-                  "text": "literatura",
+                  "source": "reverso",
+                  "text": "prendido",
                   "score": 0
                 },
                 {
                   "source": "reverso",
-                  "text": "prendido",
+                  "text": "encendido",
                   "score": 0
+                }
+              ]
+            },
+            {
+              "field": "etymology",
+              "winner": "",
+              "source": null,
+              "candidates": 2,
+              "reasons": [
+                "ok-definition-domain-match"
+              ],
+              "runnerUps": [
+                {
+                  "source": "wiktionaryHtml",
+                  "text": "Alteration of earlier light , from Middle English lighte , from Old English līht"
+                },
+                {
+                  "source": "etymonline",
+                  "text": "\"illuminated; afire,\" past-participle adjective from light (v.2). Slang meaning "
                 }
               ]
             },
@@ -11838,7 +11821,7 @@
               "field": "examples",
               "winner": "The show was lit.",
               "source": "bundled",
-              "candidates": 42,
+              "candidates": 43,
               "reasons": [
                 "ok-contextual-alignment"
               ],
@@ -11858,7 +11841,7 @@
               ]
             }
           ],
-          "imageCandidates": 14
+          "imageCandidates": 22
         },
         "successfulSources": [
           "datamuse",
@@ -11874,6 +11857,7 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
+          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet",
@@ -11885,6 +11869,7 @@
           "pons",
           "babla",
           "reverso",
+          "linguee",
           "wordReference",
           "spanishDict",
           "pixabay"
@@ -12042,8 +12027,11 @@
         {
           "source": "duckduckgoImages",
           "token": "lit",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -12179,8 +12167,11 @@
         {
           "source": "linguee",
           "token": "lit",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "translations",
+            "examples"
+          ]
         },
         {
           "source": "promtContext",
@@ -12230,7 +12221,7 @@
       "tier": "vip",
       "token": "break up",
       "sentence": "They decided to break up after college because their relationship was over.",
-      "ms": 12875,
+      "ms": 14166,
       "error": null,
       "card": {
         "entry": {
@@ -12238,11 +12229,26 @@
           "bilingual": "terminar · separarse · acabar · romper (relación)",
           "monolingual": "come to an end (of a state)",
           "synonyms": [
-            "dissolve"
+            "end",
+            "stop",
+            "halt",
+            "pass",
+            "cease",
+            "expire",
+            "finish",
+            "dissolve",
+            "conclude",
+            "wind up",
+            "break off",
+            "leave off"
+          ],
+          "antonyms": [
+            "hang on",
+            "draw out"
           ],
           "examples": [
             "He finally brought himself to break up , knowing the relationship was already over. — Por fin se animó a terminar la relación, sabiendo que ya estaba acabada.",
-            "We should break up. — Deberíamos romper.",
+            "We should break up. — Deberíamos separarnos.",
             "We didn't break up. — No rompimos.",
             "She made up her mind to break up after months of constant arguing. — Ella se decidió a romper después de meses de discusiones constantes."
           ]
@@ -12280,6 +12286,10 @@
               "text": "to put an end to (a relationship) or (of a relationship) to come to an end"
             },
             {
+              "source": "merriamWebster",
+              "text": "to end a romance"
+            },
+            {
               "source": "wiktionaryApi",
               "text": "(intransitive, idiomatic) To end a (usually romantic or sexual) relationship."
             },
@@ -12294,10 +12304,6 @@
             {
               "source": "wiktionary",
               "text": "To end a (usually romantic or sexual) relationship with each other."
-            },
-            {
-              "source": "bundled",
-              "text": "To end a romantic relationship."
             }
           ],
           "translations": [
@@ -12359,7 +12365,7 @@
             {
               "source": "tatoeba",
               "text": "We should break up.",
-              "translation": "Deberíamos romper."
+              "translation": "Deberíamos separarnos."
             },
             {
               "source": "tatoeba",
@@ -12384,22 +12390,22 @@
             {
               "source": "dictionaryCom",
               "text": "The 34-year-old was twice a break up in the third set and served for the match - only to be taken to a deciding 10-point tie-break.",
-              "translation": "El jugador de 34 años rompió dos veces en el tercer set y sirvió para el partido, solo para ser llevado a un decisivo desempate de 10 puntos."
+              "translation": "El jugador de 34 años tuvo dos oportunidades de break en el tercer set y sirvió para el partido, sólo para ser llevado a un decisivo tie-break de 10 puntos."
             },
             {
               "source": "oxfordLearners",
               "text": "When do you break up for Christmas?",
-              "translation": "¿Cuándo rompes para Navidad?"
+              "translation": "¿Cuándo terminas en Navidad?"
             },
             {
               "source": "cambridge",
               "text": "It was feared that the break-up of the oil tanker would result in further pollution . Se temía que la desintegración del petrolero provocara una mayor contaminación.",
-              "translation": "Se temía que la desintegración del petrolero resultara en una mayor contaminación . Se temía que la desintegración del petrolero provocara una mayor contaminación."
+              "translation": "Se temía que la rotura del petrolero provocaría una mayor contaminación. Se teme que la desintegración del petrolero provocará una mayor contaminación."
             },
             {
               "source": "longman",
               "text": "You need a few trees and bushes to break up the lawn.",
-              "translation": "Necesitas algunos árboles y arbustos para romper el césped."
+              "translation": "Necesitas algunos árboles y arbustos para dividir el césped."
             },
             {
               "source": "longman",
@@ -12409,7 +12415,7 @@
             {
               "source": "dictionaryCom",
               "text": "you're breaking up",
-              "translation": "¡Está rompiendo!..."
+              "translation": "estás rompiendo"
             }
           ],
           "videoLinks": [
@@ -12467,7 +12473,7 @@
               "field": "image",
               "winner": "https://live.staticflickr.com/8421/7591264544_1885000c14_b.jpg",
               "source": "openverse",
-              "candidates": 14,
+              "candidates": 22,
               "reasons": [
                 "ok-primary-source",
                 "ok-exact-match",
@@ -12484,7 +12490,7 @@
                 "ok-relationship-sense",
                 "ok-breakup-relationship-sense"
               ],
-              "candidates": 49,
+              "candidates": 53,
               "runnerUps": [
                 {
                   "source": "wordnet",
@@ -12505,19 +12511,32 @@
             },
             {
               "field": "synonyms",
-              "winner": "dissolve",
-              "source": "wordnet",
-              "candidates": 1,
+              "winner": "end",
+              "source": "merriamWebsterThesaurus",
+              "candidates": 13,
               "reasons": [
                 "ok-sense-group-endorsed"
               ],
-              "runnerUps": []
+              "runnerUps": [
+                {
+                  "source": "merriamWebsterThesaurus",
+                  "text": "stop"
+                },
+                {
+                  "source": "merriamWebsterThesaurus",
+                  "text": "halt"
+                },
+                {
+                  "source": "merriamWebsterThesaurus",
+                  "text": "pass"
+                }
+              ]
             },
             {
               "field": "examples",
               "winner": "He finally brought himself to break up , knowing the relationship was already over.",
               "source": "reverso",
-              "candidates": 48,
+              "candidates": 54,
               "reasons": [
                 "ok-contextual-alignment"
               ],
@@ -12538,7 +12557,7 @@
             }
           ],
           "imageSource": "openverse",
-          "imageCandidates": 14
+          "imageCandidates": 22
         },
         "successfulSources": [
           "datamuse",
@@ -12552,12 +12571,15 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
+          "duckduckgoImages",
           "youglish",
           "wordnet",
           "cambridge",
           "oxfordLearners",
           "longman",
           "dictionaryCom",
+          "merriamWebster",
+          "merriamWebsterThesaurus",
           "pons",
           "dictCc",
           "reverso",
@@ -12707,8 +12729,11 @@
         {
           "source": "duckduckgoImages",
           "token": "break up",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -12783,14 +12808,22 @@
         {
           "source": "merriamWebster",
           "token": "break up",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "phonetic",
+            "audio",
+            "definitions",
+            "examples"
+          ]
         },
         {
           "source": "merriamWebsterThesaurus",
           "token": "break up",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "relationGroups",
+            "examples"
+          ]
         },
         {
           "source": "ozdic",
@@ -12884,7 +12917,7 @@
       "tier": "vip",
       "token": "piece of cake",
       "sentence": "The exam was a piece of cake.",
-      "ms": 12894,
+      "ms": 14521,
       "error": null,
       "card": {
         "entry": {
@@ -12892,20 +12925,32 @@
           "bilingual": "pan comido",
           "monolingual": "any undertaking that is easy to do",
           "synonyms": [
-            "cinch",
             "breeze",
-            "walkover",
+            "cinch",
             "duck soup",
             "child's play",
-            "snap",
             "picnic",
-            "pushover"
+            "pushover",
+            "walkover",
+            "cakewalk",
+            "walk in the park",
+            "snap",
+            "roses",
+            "nothing"
+          ],
+          "antonyms": [
+            "pain",
+            "labor",
+            "chore",
+            "trouble",
+            "headache",
+            "sticky wicket"
           ],
           "examples": [
-            "Piece of cake! — ¡Es pan comido!",
+            "Piece of cake! — ¡Pedazo de pastel!",
             "Learning to use the new software was a piece of cake for him. — Aprender a usar el nuevo programa fue pan comido para él.",
             "Finishing the puzzle alone was a piece of cake for the clever child. — Terminar el rompecabezas solo fue pan comido para el niño listo.",
-            "The exam was a piece of cake . El examen fue pan comido. — El examen era pan comido . El examen fue pan comido."
+            "The exam was a piece of cake . El examen fue pan comido. — El examen fue pan comido. El examen fue pan comido."
           ]
         },
         "vip": {
@@ -12921,6 +12966,14 @@
             {
               "source": "dictionaryCom",
               "text": "Something easily accomplished, as in I had no trouble finding your house—a piece of cake . This expression originated in the Royal Air Force in the late 1930s for an easy mission, and the precise reference is as mysterious as that of the simile easy as pie . Possibly it evokes the easy accomplishment of swallowing a slice of sweet dessert."
+            },
+            {
+              "source": "merriamWebster",
+              "text": "something easy to do"
+            },
+            {
+              "source": "merriamWebster",
+              "text": "something easily done : cinch , breeze"
             },
             {
               "source": "wiktionaryApi",
@@ -12989,7 +13042,7 @@
             {
               "source": "tatoeba",
               "text": "Piece of cake!",
-              "translation": "¡Es pan comido!"
+              "translation": "¡Pedazo de pastel!"
             },
             {
               "source": "reverso",
@@ -13004,12 +13057,17 @@
             {
               "source": "cambridge",
               "text": "The exam was a piece of cake . El examen fue pan comido.",
-              "translation": "El examen era pan comido . El examen fue pan comido."
+              "translation": "El examen fue pan comido. El examen fue pan comido."
             },
             {
               "source": "bundled",
               "text": "The exam was a piece of cake.",
               "translation": "El examen fue pan comido."
+            },
+            {
+              "source": "merriamWebsterThesaurus",
+              "text": "The final exam for the class was a piece of cake .",
+              "translation": "El examen final de la clase fue pan comido."
             },
             {
               "source": "wiktionaryApi",
@@ -13019,22 +13077,27 @@
             {
               "source": "tatoeba",
               "text": "It was a piece of cake.",
-              "translation": "Era pan comido."
+              "translation": "Fue pan comido."
             },
             {
               "source": "dictionaryCom",
               "text": "“One day when I’m 40, I’ll be able to say, ‘That was a piece of cake .’",
-              "translation": "“Un día, cuando tenga 40 años, podré decir: ‘Eso fue pan comido’."
+              "translation": "“Un día, cuando tenga 40 años, podré decir: 'Eso fue pan comido'."
             },
             {
               "source": "dictionaryCom",
               "text": "Yet it was rather telling that Howe later referred to that bruising window as a \"piece of cake\" compared to these past few months.",
-              "translation": "Sin embargo, era bastante revelador que Howe se refiriera más tarde a esa ventana magullada como un \"pedazo de pastel\" en comparación con estos últimos meses."
+              "translation": "Sin embargo, fue bastante revelador que Howe luego se refiriera a esa ventana dolorosa como \"pan comido\" en comparación con estos últimos meses."
             },
             {
-              "source": "wordnet",
-              "text": "marketing this product will be no picnic",
-              "translation": "comercializar este producto no será un día de campo"
+              "source": "merriamWebster",
+              "text": "While the obsession may seem like an overnight internet sensation, building the company responsible for this trend was no piece of cake . — Lea Donenberg, Vogue , 5 June 2026",
+              "translation": "Si bien la obsesión puede parecer una sensación en Internet de la noche a la mañana, construir la empresa responsable de esta tendencia no fue pan comido. - Lea Donenberg, Vogue, 5 de junio de 2026"
+            },
+            {
+              "source": "merriamWebster",
+              "text": "Traditionally, the person who receives the piece of cake with the trinket is named king or queen of the festivities and is obligated to host the next party. — Elissa Jorgensen, Dallas Morning News , 14 Jan. 2026",
+              "translation": "Tradicionalmente, la persona que recibe el trozo de tarta con la chuchería es nombrada rey o reina de las festividades y está obligada a ser la anfitriona de la siguiente fiesta. - Elissa Jorgensen, Dallas Morning News, 14 de enero de 2026"
             }
           ],
           "videoLinks": [
@@ -13063,7 +13126,7 @@
               "reasons": [
                 "ok-pos-match"
               ],
-              "candidates": 8,
+              "candidates": 10,
               "runnerUps": [
                 {
                   "source": "cambridge",
@@ -13076,32 +13139,32 @@
                   "score": 0
                 },
                 {
-                  "source": "wiktionaryApi",
-                  "text": "(idiomatic) A job, task or other activity that is pleasant or, by extension, eas",
+                  "source": "merriamWebster",
+                  "text": "something easy to do",
                   "score": 0
                 }
               ]
             },
             {
               "field": "synonyms",
-              "winner": "cinch",
+              "winner": "breeze",
               "source": "wordnet",
-              "candidates": 18,
+              "candidates": 32,
               "reasons": [
                 "ok-sense-group-endorsed"
               ],
               "runnerUps": [
                 {
                   "source": "wordnet",
-                  "text": "breeze"
-                },
-                {
-                  "source": "wordnet",
-                  "text": "walkover"
+                  "text": "cinch"
                 },
                 {
                   "source": "wordnet",
                   "text": "duck soup"
+                },
+                {
+                  "source": "wordnet",
+                  "text": "child's play"
                 }
               ]
             },
@@ -13109,7 +13172,7 @@
               "field": "examples",
               "winner": "Piece of cake!",
               "source": "tatoeba",
-              "candidates": 22,
+              "candidates": 27,
               "reasons": [
                 "ok-contextual-alignment"
               ],
@@ -13129,7 +13192,7 @@
               ]
             }
           ],
-          "imageCandidates": 14
+          "imageCandidates": 22
         },
         "successfulSources": [
           "wiktionary",
@@ -13142,10 +13205,13 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
+          "duckduckgoImages",
           "youglish",
           "wordnet",
           "cambridge",
           "dictionaryCom",
+          "merriamWebster",
+          "merriamWebsterThesaurus",
           "pons",
           "reverso",
           "wordReference",
@@ -13293,8 +13359,11 @@
         {
           "source": "duckduckgoImages",
           "token": "piece of cake",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -13361,14 +13430,20 @@
         {
           "source": "merriamWebster",
           "token": "piece of cake",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples"
+          ]
         },
         {
           "source": "merriamWebsterThesaurus",
           "token": "piece of cake",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "relationGroups",
+            "examples"
+          ]
         },
         {
           "source": "ozdic",
@@ -13458,7 +13533,7 @@
       "tier": "vip",
       "token": "forget",
       "sentence": "Do not forget your keys.",
-      "ms": 12805,
+      "ms": 12747,
       "error": null,
       "card": {
         "entry": {
@@ -13643,22 +13718,22 @@
             {
               "source": "tatoeba",
               "text": "Forget it!",
-              "translation": "¡Qué cosa!"
+              "translation": "¡Olvídalo!"
             },
             {
               "source": "dictionaryCom",
               "text": "to forget one's keys.",
-              "translation": "olvidarse de las llaves."
+              "translation": "olvidar las llaves."
             },
             {
               "source": "wiktionaryApi",
               "text": "People forget how much work goes into what we do.",
-              "translation": "La gente olvida cuánto trabajo se dedica a lo que hacemos."
+              "translation": "La gente olvida cuánto trabajo implica lo que hacemos."
             },
             {
               "source": "merriamWebsterThesaurus",
               "text": "she promised not to forget her high school friends after she went off to college",
-              "translation": "prometió no olvidar a sus amigos de la escuela secundaria después de ir a la universidad"
+              "translation": "Prometió no olvidar a sus amigos de la secundaria después de ir a la universidad."
             }
           ],
           "videoLinks": [
@@ -13824,7 +13899,7 @@
               ]
             }
           ],
-          "imageCandidates": 14
+          "imageCandidates": 22
         },
         "successfulSources": [
           "datamuse",
@@ -13840,6 +13915,7 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
+          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet",
@@ -14013,8 +14089,11 @@
         {
           "source": "duckduckgoImages",
           "token": "forget",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -14222,7 +14301,7 @@
       "tier": "vip",
       "token": "support",
       "sentence": "Her family supported her decision.",
-      "ms": 12895,
+      "ms": 13366,
       "error": null,
       "card": {
         "entry": {
@@ -14235,14 +14314,12 @@
             "bear",
             "endorse",
             "hold up",
-            "sustenance",
             "hold",
             "carry",
-            "means",
-            "upkeep",
-            "livelihood",
-            "maintenance",
-            "subsistence"
+            "prop up",
+            "indorse",
+            "plump for",
+            "plunk for"
           ],
           "antonyms": [
             "abandon",
@@ -14414,7 +14491,7 @@
             {
               "source": "cambridge",
               "text": "My father supported the Labour Party all his life . Mi padre apoyó al Partido Laborista toda la vida.",
-              "translation": "Mi padre apoyó al Partido Laborista toda su vida . Mi padre apoyó al Partido Laborista toda la vida."
+              "translation": "Mi padre apoyó al Partido Laborista toda su vida. Mi padre apoyó al Partido Laborista toda la vida."
             },
             {
               "source": "oxfordLearners",
@@ -14429,12 +14506,12 @@
             {
               "source": "longman",
               "text": "The bill was supported by a large majority in the Senate.",
-              "translation": "El proyecto de ley fue apoyado por una gran mayoría en el Senado."
+              "translation": "El proyecto de ley fue apoyado por una amplia mayoría en el Senado."
             },
             {
               "source": "dictionaryCom",
               "text": "They supported him throughout his ordeal.",
-              "translation": "Lo apoyaron a lo largo de su terrible experiencia."
+              "translation": "Lo apoyaron durante su terrible experiencia."
             }
           ],
           "videoLinks": [
@@ -14601,7 +14678,7 @@
               ]
             }
           ],
-          "imageCandidates": 15
+          "imageCandidates": 23
         },
         "successfulSources": [
           "datamuse",
@@ -14618,6 +14695,7 @@
           "bingImages",
           "openverse",
           "wikimediaCommons",
+          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet",
@@ -14797,8 +14875,11 @@
         {
           "source": "duckduckgoImages",
           "token": "support",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "imageUrl",
+            "imageCandidates"
+          ]
         },
         {
           "source": "youglish",
@@ -15006,7 +15087,7 @@
       "tier": "vip",
       "token": "give",
       "sentence": "Give me the keys, please.",
-      "ms": 12881,
+      "ms": 14355,
       "error": null,
       "card": {
         "entry": {
@@ -15179,7 +15260,7 @@
             {
               "source": "dictionaryCom",
               "text": "If you give me your coat, I'll put it in the closet.",
-              "translation": "Si me das tu abrigo, lo pondré en el armario."
+              "translation": "Si me das tu abrigo, lo guardaré en el armario."
             },
             {
               "source": "tatoeba",
@@ -15189,12 +15270,12 @@
             {
               "source": "tatoeba",
               "text": "Give tea.",
-              "translation": "Dé té."
+              "translation": "Dar té."
             },
             {
               "source": "cambridge",
               "text": "Can you give me a date for another appointment ?",
-              "translation": "¿Puede darme una fecha para otra cita ?"
+              "translation": "¿Puedes darme una fecha para otra cita?"
             },
             {
               "source": "oxfordLearners",
@@ -15209,7 +15290,7 @@
             {
               "source": "longman",
               "text": "What did Bob give you for your birthday?",
-              "translation": "¿Qué te regaló para tu cumpleaños?"
+              "translation": "¿Qué te regaló Bob por tu cumpleaños?"
             }
           ],
           "videoLinks": [
@@ -15782,7 +15863,7 @@
       "tier": "vip",
       "token": "know",
       "sentence": "I do not know the answer.",
-      "ms": 12902,
+      "ms": 23849,
       "error": null,
       "card": {
         "entry": {
@@ -15943,32 +16024,31 @@
             {
               "source": "merriamWebster",
               "text": "Do you know the answer?",
-              "translation": "A ver que mas.....ah si, Â¿que temperatura suele hacer en mayo?"
+              "translation": "¿Sabes la respuesta?"
             },
             {
               "source": "dictionaryCom",
-              "text": "I know it.",
-              "translation": "Yo lo sé."
+              "text": "I know it."
             },
             {
               "source": "ozdic",
               "text": "'[…] I know whether a boy is telling me the truth or not.'\n'Thank you, sir.'\nDid he hell. They never bloody did.",
-              "translation": "'[…] Sé si un chico me está diciendo la verdad o no.'\n-Gracias, señor.\n¿Diablos? Nunca lo hicieron."
+              "translation": "'[…] Sé si un chico me está diciendo la verdad o no.'\n\"Gracias, señor\".\n¿Él diablos? Nunca lo hicieron."
             },
             {
               "source": "ozdic",
               "text": "Question things. I have the most fun when I'm writing questioning things that people do not question- the assumptions that everybody knows are true.",
-              "translation": "Cuestiona las cosas. Me divierto más cuando escribo cuestionando cosas que la gente no cuestiona, las suposiciones que todos saben que son ciertas."
+              "translation": "Cuestiona las cosas. Me divierto más cuando escribo cuestionando cosas que la gente no cuestiona: las suposiciones que todos saben que son ciertas."
             },
             {
               "source": "dictionaryCom",
               "text": "I know the situation fully.",
-              "translation": "Conozco la situación por completo."
+              "translation": "Conozco perfectamente la situación."
             },
             {
               "source": "tatoeba",
               "text": "You know!",
-              "translation": "¡tú qué sabes!"
+              "translation": "¡Sabes!"
             }
           ],
           "videoLinks": [
@@ -16522,7 +16602,7 @@
       "tier": "vip",
       "token": "week",
       "sentence": "Oh, yeah, last week you had a wonderful cake.",
-      "ms": 7363,
+      "ms": 13493,
       "error": null,
       "card": {
         "entry": {
@@ -16674,7 +16754,7 @@
             {
               "source": "merriamWebster",
               "text": "last Sunday week",
-              "translation": "El domingo pasado"
+              "translation": "último domingo de la semana"
             },
             {
               "source": "reverso",
@@ -16689,17 +16769,17 @@
             {
               "source": "merriamWebster",
               "text": "the last week of the month",
-              "translation": "Última semana del mes"
+              "translation": "la última semana del mes"
             },
             {
               "source": "wordnet",
               "text": "it rained for a week",
-              "translation": "Estuvo lloviendo durante una semana."
+              "translation": "llovió durante una semana"
             },
             {
               "source": "cambridge",
               "text": "Will you be going to next week's class ? ¿Irás a la clase de la semana que viene?",
-              "translation": "¿Vas a ir a la clase de la próxima semana? ¿Irás a la clase de la semana que viene?"
+              "translation": "¿Irás a la clase de la próxima semana? ¿Irás a la clase de la semana que viene?"
             },
             {
               "source": "dictionaryCom",
@@ -17247,5 +17327,5 @@
       ]
     }
   ],
-  "finishedAt": "2026-09-09T22:20:40.581Z"
+  "finishedAt": "2026-09-09T22:50:41.929Z"
 }
