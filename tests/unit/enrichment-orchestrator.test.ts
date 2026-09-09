@@ -484,6 +484,46 @@ describe('enrichment quality ranking', () => {
     ])).toHaveLength(1);
   });
 
+  it('skips a glue-verb-only win for a slang sentence', () => {
+    // Verified live 2026-09-09: `lit` slang ("The show was lit.") picked
+    // WordNet's light-color sense ("(used of color) having a relatively
+    // small amount of coloring agent") on `used` alone, publishing
+    // `light-colored` / `dark` for the slang sense. Live the color group
+    // was NON-default (light's senses come first via lit→light lemma
+    // merge) beating a zero-overlap default — so the test mirrors that:
+    // a default with no overlap plus the color group winning only on
+    // `used`. `used` is gloss glue ("(used of color)", "used as a
+    // general term") — every gloss uses it, so a win carried only by it
+    // proves nothing about the sense and skips like any generic-only win.
+    const litGroups = [
+      {
+        source: 'wordnet',
+        definition: 'of comparatively little physical weight or density',
+        antonyms: ['heavy'],
+      },
+      {
+        source: 'wordnet',
+        definition: '(used of color) having a relatively small amount of coloring agent',
+        synonyms: ['light-colored'],
+        antonyms: ['dark'],
+      },
+    ];
+    const litDefs = [
+      { source: 'dictionaryCom', text: 'Slang. amazing ; awesome ; cool (used as a general term of approval).' },
+    ];
+    expect(pickSenseRelationGroups('lit', litGroups, 'The show was lit.', litDefs)).toEqual([]);
+    // A substantively-winning slang group still publishes on its own.
+    expect(pickSenseRelationGroups('lit', [
+      {
+        source: 'wordnet',
+        guide: 'excellent',
+        definition: 'an amazing and awesome show',
+        example: 'the party was excellent',
+        synonyms: ['awesome'],
+      },
+    ], 'The show was lit.', litDefs)).toHaveLength(1);
+  });
+
   it('requires editorial or corroborated evidence for collocations', () => {
     expect(pickCollocations('support', [
       { source: 'datamuse', text: 'public support' },

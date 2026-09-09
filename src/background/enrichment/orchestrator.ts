@@ -1534,6 +1534,14 @@ const GENERIC_SENSE_OVERLAP_WORDS = new Set(
     // for "I do not know the answer." Stored stemmed: both sides pass
     // through relationTerms.
     'be', 'have', 'get', 'about', 'such',
+    // Glue verb of dictionary glosses ("(used of color)", "used as a
+    // general term"): every gloss uses it, so overlap carried only by
+    // `used` proves nothing about the sense — verified live 2026-09-09:
+    // `lit` slang ("The show was lit.") picked the light-color sense
+    // ("(used of color)…") on `used` alone, publishing `light-colored` /
+    // `dark` for the slang sense. Stored raw: `used` passes the stemmer
+    // untouched, so both sides meet literally.
+    'used',
   ].flatMap(relationStemVariants),
 );
 
