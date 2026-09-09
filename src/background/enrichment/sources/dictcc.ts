@@ -8,7 +8,7 @@
  */
 
 import { fetchHtml } from '../fetcher';
-import { stripHtml } from '../html-utils';
+import { expandSlashAlternatives, stripHtml } from '../html-utils';
 import type { EnrichmentContext, EnrichmentSource, SourcePartial } from '../types';
 
 const BASE = 'https://enes.dict.cc/';
@@ -17,6 +17,7 @@ function norm(text?: string | null): string {
   return stripHtml(text ?? '')
     .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
     .replace(/\\"/g, '"')
+    .replace(/\\'/g, "'")
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -48,6 +49,49 @@ function normalizedEnglish(raw: string): string {
     .replace(/\bsb\/sth\.*/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/**
+ * dict.cc rows as bare learner chunks (`to give advice` → `give advice`,
+ * `to run away / off` → `run away` + `run off`). dict.cc rows are
+ * infinitive-marked dictionary entries; the merger's anti-infinitive rule
+ * would kill them all as usage notes, so the parser strips the leading
+ * `to` and normalizes argument slots up front. A bare `to <headword>`
+ * (`to give`) carries no collocate and stays out — it feeds translations,
+ * not collocations. Slash variants expand with the same single-word
+ * safety rule as Longman/PONS. Verified live 2026-09-09: `give` ships 51
+ * rows, almost all `to give X` shaped.
+ */
+export function bareCollocationChunks(english: string, token: string): string[] {
+  let text = norm(english)
+    .replace(/\[.*?\]/g, ' ')
+    .replace(/\b(sb|sth)\.?/gi, 'someone')
+    .replace(/\bsb\/sth\.*/gi, 'someone')
+    .replace(/\s+/g, ' ')
+    .replace(/[.,;:!?]+$/g, '')
+    .trim();
+  if (!text) return [];
+  // Strip the infinitive marker so the chunk is a reusable bare pair.
+  text = text.replace(/^to\s+/i, '').replace(/\s+/g, ' ').trim();
+  if (!text) return [];
+  const t = token.toLowerCase().trim();
+  if (text.toLowerCase() === t) return [];
+  if (text.length > 80) return [];
+  // A lone slot (`give someone`) or slot-only variants
+  // (`run someone/someone over` before the merger's slash rule) carry no
+  // lexical collocate — the merger's template guard would kill them
+  // anyway, so save the round.
+  const SLOT = new Set(['someone', 'somebody', 'something']);
+  const isSlotWord = (w: string) =>
+    SLOT.has(w) || w.split('/').filter(Boolean).every((part) => SLOT.has(part));
+  const out: string[] = [];
+  for (const chunk of expandSlashAlternatives(text)) {
+    const rest = chunk.toLowerCase().split(/\s+/).filter((w) => w && w !== t);
+    if (!rest.length) continue;
+    if (rest.every(isSlotWord)) continue;
+    out.push(chunk);
+  }
+  return out;
 }
 
 function isBadSpanish(value: string): boolean {
@@ -111,7 +155,10 @@ export const dictCcSource: EnrichmentSource = {
       if (englishMatches(en, token)) {
         uniquePush(translations, es, 6);
       } else if (en.toLowerCase().includes(token.toLowerCase()) && en.length < 80) {
-        uniquePush(collocations, en, 8);
+        // Infinitive-marked rows arrive bare (`give advice`, not
+        // `to give advice`): the merger's anti-infinitive rule targets
+        // usage-note shapes, and a bare dictionary row is a real chunk.
+        for (const chunk of bareCollocationChunks(en, token)) uniquePush(collocations, chunk, 8);
       }
     }
 
