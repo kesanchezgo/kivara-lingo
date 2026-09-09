@@ -207,6 +207,26 @@ describe('enrichment quality ranking', () => {
     expect(ranked[0].text).toContain('relationship');
   });
 
+  it('prefers an endorsement gloss over a belief gloss for a backing sentence', () => {
+    // Verified live 2026-09-09: `support` vip won "adopt as a belief"
+    // for "Her family supported her decision." — the creed sense for
+    // an endorsement sentence. An endorsement-domain sentence (family /
+    // team / friend backing a decision) penalizes the belief gloss and
+    // bonuses the backing gloss. General mechanism, not a token rule.
+    const ranked = pickDefinitions([
+      { source: 'wordnet', text: 'adopt as a belief' },
+      { source: 'wordnet', text: 'be behind; approve of' },
+    ], 'support', 'Her family supported her decision.');
+    expect(ranked[0].text).toBe('be behind; approve of');
+    // Without an endorsement domain the belief gloss keeps source order
+    // (a creed sentence genuinely wants it).
+    const plain = pickDefinitions([
+      { source: 'wordnet', text: 'adopt as a belief' },
+      { source: 'wordnet', text: 'be behind; approve of' },
+    ], 'support', 'He adopted the faith.');
+    expect(plain[0].text).toBe('adopt as a belief');
+  });
+
   it('keeps precise dictionary synonyms ahead of broad Moby associations', () => {
     const ranked = pickRelatedTerms('know', [
       { source: 'mobyThesaurus', text: 'coitize' },
@@ -899,6 +919,33 @@ describe('enrichment quality ranking', () => {
     expect(pickDefinitions([
       { source: 'theIdioms', text: 'an unsupported explanation of this idiom' },
     ], 'piece of cake', 'The exam was a piece of cake.')).toEqual([]);
+  });
+
+  it('rejects closed-class determiners as synonyms of a determiner headword', () => {
+    // Verified live 2026-09-09: `each` vip published syn
+    // any/all/several/respective/particular/every/various/specific/either
+    // for "Each student has a book." — determiners, not equivalents of
+    // the distributive determiner. The genuine one-word equivalent
+    // ("apiece") survives; multi-word phrases ride the periphrastic
+    // rules, not this gate.
+    const eachPool = [
+      { source: 'merriamWebsterThesaurus', text: 'any' },
+      { source: 'merriamWebsterThesaurus', text: 'all' },
+      { source: 'merriamWebsterThesaurus', text: 'every' },
+      { source: 'merriamWebsterThesaurus', text: 'apiece' },
+      { source: 'merriamWebsterThesaurus', text: 'each other' },
+    ];
+    const ranked = pickRelatedTerms('each', eachPool, 12);
+    expect(ranked).toContain('apiece');
+    expect(ranked).not.toContain('any');
+    expect(ranked).not.toContain('all');
+    expect(ranked).not.toContain('every');
+    // A content headword is untouched: "any" stays a valid synonym of
+    // a noun (this gate only fires when the headword IS a determiner).
+    expect(pickRelatedTerms('choice', [
+      { source: 'cambridge', text: 'any' },
+      { source: 'cambridge', text: 'option' },
+    ], 12)).toContain('any');
   });
 
   it('uses explicit etymology authority instead of provider completion order', () => {

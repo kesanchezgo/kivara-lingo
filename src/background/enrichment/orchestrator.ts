@@ -1187,6 +1187,24 @@ const PERIPHRASTIC_LEAD_WORDS = new Set([
   'at', 'as', 'any', 'some', 'each', 'every', 'all', 'no', 'one',
 ]);
 
+// Function words that are closed-class determiners/quantifiers, not
+// substitutable synonyms. A "synonym" that IS one of these is a
+// different grammatical category leaking in: `each` → "any"/"all"/
+// "every"/"either"/"neither"/"none"/"no" are determiners, not
+// equivalents of the distributive determiner — the learner with "Each
+// student has a book." needs "apiece", not "any". Same class logic
+// as LOW_IMAGEABILITY_WORDS: closed grammatical class, not a hand list
+// per headword. Verified live 2026-09-09: `each` vip syn
+// any/all/several/respective/particular/every/various/specific/either.
+// Multi-word candidates are exempt ("each other" is a real phrase, and
+// periphrastic rules handle those); the headword itself is exempt so a
+// determiner headword keeps its genuine one-word equivalents ("apiece"
+// is not in this set and survives; "either" as headword keeps its own).
+const DETERMINER_NON_SYNONYMS = new Set([
+  'any', 'all', 'every', 'each', 'either', 'neither', 'none', 'no',
+  'some', 'both', 'several', 'various', 'respective', 'particular', 'specific',
+]);
+
 // A synonym candidate that is actually taxonomy or a definitional
 // paraphrase, not an equivalent term. WordNet/Wiktionary are displayable
 // sources, so their Latin binomials ("malus pumila"), hypernym glosses
@@ -1424,6 +1442,16 @@ export function pickRelatedTerms(
     if (
       LIGHT_VERB_NON_SYNONYMS.has(normalized) &&
       !LIGHT_VERB_NON_SYNONYMS.has(normalizedToken)
+    ) continue;
+    // Closed-class determiners are not synonyms of a determiner headword.
+    // Only rejected when the headword itself IS a determiner (so "any"
+    // as a synonym of a noun headword is still allowed — this gate is
+    // about `each` → any/all/every, not about content words).
+    // Verified live 2026-09-09: `each` vip syn any/all/several/…
+    if (
+      value.split(/\s+/).length === 1 &&
+      DETERMINER_NON_SYNONYMS.has(normalized) &&
+      DETERMINER_NON_SYNONYMS.has(normalizedToken)
     ) continue;
     // Reject dictionary explanations / clauses masquerading as synonyms
     // ("my mind goes blank", "don't remember/can't remember"). Verified
@@ -2306,6 +2334,17 @@ function definitionContextTrace(
   }
   if (t === 'forget' && /\b(?:keys|wallet|name|remember)\b/.test(s)) {
     if (/\b(?:fail to remember|unable to remember|forget to bring|forget to take)\b/.test(d)) { score -= 12; reasons.push('ok-forget-memory-sense'); }
+  }
+  // Endorsement-domain binding: when the sentence names a person/group
+  // whose favor is at stake (family, friend, team…), a gloss about belief
+  // adoption ("adopt as a belief", "subscribe to a view") is the
+  // wrong sense — the sentence is about backing a decision, not joining
+  // a creed. General mechanism (endorsement domain vs belief gloss), not
+  // a `support` rule. Verified live 2026-09-09: `support` vip won
+  // "adopt as a belief" for "Her family supported her decision."
+  if (/\b(?:family|families|friend|friends|team|colleague|parent|mother|father|brother|sister|member|crowd|audience|voter|fan|customer|client)\b/.test(s)) {
+    if (/\badopt as a belief\b/.test(d)) { score += 14; reasons.push('penalty-belief-sense-without-belief-context'); }
+    if (/\b(?:back|endorse|approve|defen[cs]e|materially|financially|moral|psychological|decision|motion|cause)\b/.test(d)) { score -= 10; reasons.push('ok-endorsement-sense'); }
   }
   return [score, reasons];
 }
