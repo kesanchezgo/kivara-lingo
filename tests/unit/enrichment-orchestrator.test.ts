@@ -516,6 +516,28 @@ describe('enrichment quality ranking', () => {
     ])).toEqual(['give advice']);
   });
 
+  it('kills dictionary debris: stray etc, domain labels, multi-hyphen numbers', () => {
+    // Verified live 2026-09-09 on `week` vip: PONS/Longman rows leak
+    // shorthand (`once times etc a week`), register labels
+    // (`spirit week SCHOOL USA`) and number phrases
+    // (`a thirty-seven-and-a-half hour week`) into the pool. None is a
+    // reusable learner chunk; all three signatures are general, not
+    // token-specific. Genuine week chunks still survive.
+    expect(pickCollocations('week', [
+      { source: 'longman', text: 'once times etc a week' },
+      { source: 'longman', text: 'twice times etc a week' },
+      { source: 'pons', text: 'spirit week SCHOOL USA' },
+      { source: 'longman', text: 'a thirty-seven-and-a-half hour week' },
+    ])).toEqual([]);
+    expect(pickCollocations('week', [
+      { source: 'longman', text: 'working week' },
+      { source: 'oxfordLearners', text: 'working week' },
+    ])).toEqual(['working week']);
+    expect(pickCollocations('week', [
+      { source: 'longman', text: 'eventful week' },
+    ])).toEqual(['eventful week']);
+  });
+
   it('kills a pure argument template but keeps a chunk with one content word', () => {
     // Template-pattern guard, verified live 2026-09-09: the old blunt
     // something/somebody rule killed PONS (to hand) "give someone
@@ -585,6 +607,24 @@ describe('enrichment quality ranking', () => {
       { guide: 'to organize or be in charge of a business' },
       manageAnchor,
       'run',
+    )).toBe(true);
+    // Definition glue is generic too: `be`/`have`/`about` frame every
+    // dictionary gloss, so a group winning only on them proves nothing.
+    // Verified live 2026-09-09: the MW experience-sense of `know` beat the
+    // answer-sense on `someth` alone for "I do not know the answer."
+    expect(hasSubstantiveSenseOverlap(
+      { guide: 'to have direct experience of something' },
+      new Set(['answer', 'not', 'sure', 'about', 'someth', 'have']),
+      'know',
+    )).toBe(false);
+    expect(hasSubstantiveSenseOverlap(
+      {
+        guide: 'to be certain',
+        definition: 'to be sure about something',
+        example: 'I am certain of the answer.',
+      },
+      new Set(['answer', 'not', 'sure', 'about', 'someth', 'certain']),
+      'know',
     )).toBe(true);
     // No anchor (monosemous path) never earns it.
     expect(hasSubstantiveSenseOverlap(

@@ -679,6 +679,16 @@ function normalizeCollocation(raw: string, token: string, isTrustedSource = fals
   if (/^[a-z]+-[a-z]+$/i.test(text)) return null;
   if (/\b(?:limit|effect|his|more|most)\b/i.test(text) && text.split(/\s+/).length <= 4) return null;
   if (/[~:/…]|\bwith neg\b|\b(?:liter|person\/place)\b/i.test(text)) return null;
+  // Dictionary debris, verified live 2026-09-09 on `week` vip:
+  // `once times etc a week` (stray `etc` mid-chunk), `spirit week SCHOOL
+  // USA` (domain/register label in caps), `a thirty-seven-and-a-half
+  // hour week` (multi-hyphen number phrase, not a reusable chunk).
+  // A trailing `etc` is already dropped by expandSlashAlternatives
+  // before expansion; a MID-chunk `etc` means the row lists variants
+  // instead of naming one chunk.
+  if (/\betc\.?\b/i.test(text)) return null;
+  if (/\b[A-Z]{2,}(?:\s+[A-Z]{2,})+/.test(text)) return null;
+  if (/(?:[a-z]+-){2,}[a-z]+/i.test(text)) return null;
   if (/\([^)]*\)/.test(text)) return null;
   if (/\b(?:her|him|me|them|my|your|our)\b/i.test(text) && text.split(/\s+/).length > 3) return null;
   // Template-pattern guard: a chunk whose every non-headword word is a
@@ -1455,19 +1465,29 @@ function relationTerms(text: string, token: string): Set<string> {
 }
 
 // Indefinite / argument-structure words shared by every sense of a headword
-// (`give someone something` frames ALL senses of `give`). Overlap carried
-// only by these is not evidence the group matches the current sense: the
-// winning definition itself injects them into the anchor, so every
-// candidate group trivially overlaps. A closed grammatical class
-// (indefinite pronouns + light nouns), not a hand list — same rationale
-// as LOW_IMAGEABILITY_WORDS. Stored STEMMED: both sides pass through
-// relationTerms, so `things`/`thing` meet as `thing` and `something` as
-// `someth` (it ends in -ing); `somebody`/`someone` are untouched by the
-// stemmer and match literally.
+// (`give someone something` frames ALL senses of `give`), plus definition
+// glue: copulas, aspectuals and light nouns that frame EVERY dictionary
+// gloss (`to be sure about something`, `to have direct experience of
+// something`). Overlap carried only by these is not evidence the group
+// matches the current sense: the winning definition itself injects them
+// into the anchor, so every candidate group trivially overlaps. A closed
+// grammatical class (indefinite pronouns + light verbs/nouns), not a hand
+// list — same rationale as LOW_IMAGEABILITY_WORDS. Stored STEMMED: both
+// sides pass through relationTerms, so `things`/`thing` meet as `thing`
+// and `something` as `someth` (it ends in -ing); `somebody`/`someone` are
+// untouched by the stemmer and match literally.
 const GENERIC_SENSE_OVERLAP_WORDS = new Set(
   [
     'someone', 'somebody', 'something', 'anyone', 'anybody', 'anything',
     'everyone', 'everybody', 'everything', 'nothing', 'one', 'people', 'thing',
+    // Definition glue: copulas, aspectuals and light nouns that frame EVERY
+    // dictionary gloss ("to be sure about something", "to have direct
+    // experience of something"). A group winning only on these proves
+    // nothing about the sense — verified live 2026-09-09: the MW
+    // experience-sense of `know` beat the answer-sense on `someth` alone
+    // for "I do not know the answer." Stored stemmed: both sides pass
+    // through relationTerms.
+    'be', 'have', 'get', 'about', 'such',
   ].flatMap(relationStemVariants),
 );
 
