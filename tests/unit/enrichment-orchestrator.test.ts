@@ -82,6 +82,7 @@ const {
   pickLexicalTranslations,
   pickRelatedTerms,
   pickSenseRelationGroups,
+  hasSubstantiveSenseOverlap,
   runEnrichment,
 } = await import('../../src/background/enrichment/orchestrator');
 
@@ -515,6 +516,45 @@ describe('enrichment quality ranking', () => {
     ])).toEqual(['give advice']);
   });
 
+  it('lets a dictionary-attested adverb chunk through while corpus bigrams stay out', () => {
+    // `well run` lives in Longman's manage-sense COLLO block (run__3,
+    // verified live 2026-09-06) — lexicographer-attested, not a corpus
+    // accident. Datamuse -ly bigrams stay rejected even corroborated.
+    expect(pickCollocations('run', [
+      { source: 'longman', text: 'well run' },
+    ])).toEqual(['well run']);
+    expect(pickCollocations('give', [
+      { source: 'datamuse', text: 'freely give' },
+      { source: 'wiktionaryHtml', text: 'freely give' },
+    ])).toEqual([]);
+  });
+
+  it('rates a sense-group win substantive only on content-word overlap', () => {
+    // `give` group overlapping the anchor only via argument-structure
+    // words (`someone`/`something` frame EVERY sense) proves nothing —
+    // its chunks must still ride the flat anchor. Verified live
+    // 2026-09-06: Longman give__4 won on {someone, something} alone.
+    const anchor = new Set(['key', 'please', 'put', 'hand', 'someon', 'someth']);
+    expect(hasSubstantiveSenseOverlap(
+      { guide: 'to tell someone information or details about something' },
+      anchor,
+      'give',
+    )).toBe(false);
+    // A real content overlap (`business`/`organize`) earns the bypass:
+    // `well run` never appears in prose but belongs to the manage sense.
+    const manageAnchor = new Set(['busines', 'home', 'organiz', 'charg']);
+    expect(hasSubstantiveSenseOverlap(
+      { guide: 'to organize or be in charge of a business' },
+      manageAnchor,
+      'run',
+    )).toBe(true);
+    // No anchor (monosemous path) never earns it.
+    expect(hasSubstantiveSenseOverlap(
+      { guide: 'to organize or be in charge of a business' },
+      undefined,
+      'run',
+    )).toBe(false);
+  });
   it('rejects infinitive-marked chunks and bare corpus adverbs', () => {
     // "to run aground" (dictionary phrasal listing) and "clean forget"
     // (bare corpus adverb pair) were the observed 2026-08-30 residues after
@@ -524,10 +564,21 @@ describe('enrichment quality ranking', () => {
       { source: 'oxfordLearners', text: 'to run aground' },
     ])).toEqual([]);
 
+    // A bare adverb + verb pair from CORPUS-tier sources stays out even
+    // when corroborated — the noise replicates across corpus-based
+    // providers ("clean forget", verified 2026-08-30 as corpus residue).
     expect(pickCollocations('forget', [
-      { source: 'longman', text: 'clean forget' },
-      { source: 'oxfordLearners', text: 'clean forget' },
+      { source: 'datamuse', text: 'clean forget' },
+      { source: 'wiktionaryHtml', text: 'clean forget' },
     ])).toEqual([]);
+
+    // ...but a dictionary-attested adverb chunk is not corpus noise: it
+    // comes from a lexicographer's COLLO block, so the SOURCE decides, not
+    // the shape. Live 2026-09-06: Longman's manage-sense block (run__3 "to
+    // organize or be in charge of...") carries "well/badly run".
+    expect(pickCollocations('run', [
+      { source: 'longman', text: 'well run' },
+    ])).toEqual(['well run']);
 
     // The sense-correct chunk and plain learner pairs survive.
     expect(pickCollocations('run', [

@@ -68,13 +68,13 @@ export const oxfordLearnersSource: EnrichmentSource = {
       partial.examples = examples.slice(0, 4).map((text) => ({ text }));
     }
 
-    // Collocations: `<span class="cf">` (collocation flag).
-    const collocations = extractByClass(html, 'cf', 'span')
-      .map(stripHtml)
-      .filter((s) => s.split(/\s+/).length >= 2 && s.length < 60);
-    if (collocations.length) {
-      partial.collocations = Array.from(new Set(collocations)).slice(0, 10);
-    }
+    // NOTE: Oxford's `<span class="cf">` (collocation flag) spans carry
+    // GRAMMAR patterns (`give something to somebody`), not learner-ready
+    // chunks. They die downstream in normalizeCollocation (something/
+    // somebody rule) but cost pool noise, so we do not emit them at all.
+    // Real Oxford collocations live in the paywalled OCOLL dictionary
+    // (`free: false`), not on this page. Verified live 2026-09-06 on
+    // `give`/`run`: all cf spans are something/somebody templates.
 
     return partial;
   },

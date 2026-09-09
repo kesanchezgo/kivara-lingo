@@ -237,3 +237,50 @@ export function decodeEntities(s: string): string {
     .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
     .replace(/&[a-z][a-z0-9]+;/gi, (e) => ENTITIES[e.toLowerCase()] ?? e);
 }
+
+/**
+ * Expand dictionary slash-shorthand into one learner-ready chunk per
+ * alternative (`give orders/instructions` → `give orders` + `give
+ * instructions`; `well/badly run` → `well run` + `badly run`). Only safe
+ * when every alternative is a single word — multi-word alternatives (`six
+ * months/three years`) cannot be split without guessing the head boundary,
+ * so the whole chunk stays out. Trailing `etc` is dropped and a stranded
+ * `an` before a consonant is repaired (`give an description` → `give a
+ * description`). Shared by Longman (`COLLO` spans) and PONS (translation
+ * rows). Verified live 2026-09-06: Longman `give` ships 13 COLLO spans,
+ * almost all slash-compressed.
+ */
+export function expandSlashAlternatives(chunk: string): string[] {
+  const base = chunk.replace(/\s+etc\.?\s*$/i, '').replace(/\s+/g, ' ').trim();
+  if (!base) return [];
+  const fixArticle = (s: string): string =>
+    s.replace(/\ban ([b-df-hj-np-tv-z])/i, 'a $1');
+  if (!base.includes('/')) return [fixArticle(base)];
+  const parts = base.split('/').map((part) => part.trim()).filter(Boolean);
+  if (parts.length < 2) return [fixArticle(base)];
+  const single = (s: string) => !s.includes(' ');
+  // Suffix alternatives: `give orders/instructions` → prefix `give ` +
+  // each alt. Only safe when every trailing alternative is one word.
+  const head = parts[0];
+  const cut = head.lastIndexOf(' ');
+  if (cut > 0) {
+    const prefix = head.slice(0, cut + 1);
+    const first = head.slice(cut + 1);
+    if (first && single(first) && parts.slice(1).every(single)) {
+      return [first, ...parts.slice(1)].map((alt) => fixArticle(`${prefix}${alt}`));
+    }
+    return [];
+  }
+  // Prefix alternatives: `well/badly run` → each alt + suffix ` run`.
+  // Mirror of the suffix case; same single-word safety rule.
+  const tail = parts[parts.length - 1];
+  const tailCut = tail.indexOf(' ');
+  if (tailCut > 0) {
+    const suffix = tail.slice(tailCut);
+    const last = tail.slice(0, tailCut);
+    if (last && single(last) && parts.slice(0, -1).every(single)) {
+      return [...parts.slice(0, -1), last].map((alt) => fixArticle(`${alt}${suffix}`));
+    }
+  }
+  return [];
+}

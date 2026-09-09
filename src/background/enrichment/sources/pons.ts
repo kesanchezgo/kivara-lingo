@@ -8,7 +8,7 @@
  */
 
 import { fetchHtml } from '../fetcher';
-import { stripHtml } from '../html-utils';
+import { expandSlashAlternatives, stripHtml } from '../html-utils';
 import type { EnrichmentContext, EnrichmentSource, SourcePartial } from '../types';
 
 const BASE = 'https://en.pons.com';
@@ -87,17 +87,21 @@ function isUsefulExample(source: string, target: string, token: string): boolean
   return /[.!?¿¡]|\b(i|you|he|she|we|they|it|do|does|did|what|if|this|that|there)\b/i.test(source);
 }
 
-function normalizeCollocation(source: string, token: string): string | null {
+function normalizeCollocations(source: string, token: string): string[] {
   const clean = source
     .replace(/\s+/g, ' ')
     .replace(/\b(sb|sth)\b/gi, 'someone')
     .replace(/\s*,\s*/g, ' / ')
     .trim();
-  if (!sourceContainsToken(clean, token)) return null;
-  if (clean.toLowerCase() === token.toLowerCase()) return null;
-  if (isSourceSentence(clean)) return null;
-  if (clean.length > 70) return null;
-  return clean;
+  if (!sourceContainsToken(clean, token)) return [];
+  if (clean.toLowerCase() === token.toLowerCase()) return [];
+  if (isSourceSentence(clean)) return [];
+  if (clean.length > 70) return [];
+  // PONS packs variants with slashes ("give tip/money/alms"). Expand with
+  // the same single-word safety rule as Longman: multi-word alternatives
+  // stay out rather than publish a guessed split. Verified live 2026-09-06
+  // on `give` (slash-packed translation rows).
+  return expandSlashAlternatives(clean);
 }
 
 function uniquePush(arr: string[], value: string, max = 20): void {
@@ -144,8 +148,9 @@ export const ponsSource: EnrichmentSource = {
         continue;
       }
 
-      const collocation = normalizeCollocation(source, token);
-      if (collocation) uniquePush(collocations, collocation, 12);
+      for (const collocation of normalizeCollocations(source, token)) {
+        uniquePush(collocations, collocation, 12);
+      }
 
       // Main bilingual gloss: only compact source rows that refer to the
       // headword or a short headword phrase, never sentence examples.

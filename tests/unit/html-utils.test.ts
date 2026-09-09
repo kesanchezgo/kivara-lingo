@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { stripHtml, decodeJsUnicode, decodeEntities } from '../../src/background/enrichment/html-utils';
+import { stripHtml, decodeJsUnicode, decodeEntities, expandSlashAlternatives } from '../../src/background/enrichment/html-utils';
 
 describe('decodeJsUnicode', () => {
   it('decodes \\uXXXX escapes that leak from scraped JS literals', () => {
@@ -38,5 +38,52 @@ describe('stripHtml integrates unicode decoding', () => {
 describe('decodeEntities', () => {
   it('resolves named + numeric entities', () => {
     expect(decodeEntities('a &amp; b &#233;')).toBe('a & b é');
+  });
+});
+
+describe('expandSlashAlternatives', () => {
+  it('expands suffix alternatives sharing a head prefix', () => {
+    // Live 2026-09-06 Longman `give`: 13 COLLO spans, almost all compressed.
+    expect(expandSlashAlternatives('give orders/instructions')).toEqual([
+      'give orders',
+      'give instructions',
+    ]);
+    expect(
+      expandSlashAlternatives('give somebody control/authority/responsibility etc'),
+    ).toEqual([
+      'give somebody control',
+      'give somebody authority',
+      'give somebody responsibility',
+    ]);
+  });
+
+  it('expands prefix alternatives sharing a tail suffix', () => {
+    // `well/badly run` lives in Longman's manage-sense block (run__3).
+    expect(expandSlashAlternatives('well/badly run')).toEqual([
+      'well run',
+      'badly run',
+    ]);
+  });
+
+  it('repairs a stranded `an` before a consonant and drops trailing etc', () => {
+    expect(expandSlashAlternatives('give an account/description')).toEqual([
+      'give an account',
+      'give a description',
+    ]);
+  });
+
+  it('refuses multi-word alternatives rather than guessing the split', () => {
+    // `six months/three years` cannot be split without inventing a head.
+    expect(expandSlashAlternatives('give somebody six months/three years etc')).toEqual([]);
+    expect(expandSlashAlternatives('run on electricity/gas/petrol etc')).toEqual([
+      'run on electricity',
+      'run on gas',
+      'run on petrol',
+    ]);
+  });
+
+  it('passes plain chunks through unchanged', () => {
+    expect(expandSlashAlternatives('give a speech')).toEqual(['give a speech']);
+    expect(expandSlashAlternatives('')).toEqual([]);
   });
 });

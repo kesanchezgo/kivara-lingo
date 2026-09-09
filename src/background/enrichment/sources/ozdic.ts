@@ -73,6 +73,18 @@ interface OzdicResponse {
   collocations?: OzdicCollocation[];
 }
 
+// Single-word collocates that are grammar, not lexical pairings: auxiliaries
+// and modals (`have run`, `be run`), negations (`didn't give`), and
+// dictionary filler (`etc.`, `~`). They replicate across corpus-derived
+// blocks and would otherwise publish as learner chunks. Verified live
+// 2026-09-06 on `give`/`run`.
+const OZDIC_NOISE_WORDS = new Set([
+  'etc', 'have', 'has', 'had', 'having', 'be', 'is', 'are', 'was', 'were',
+  'been', 'being', 'do', 'does', 'did', 'will', 'would', 'can', 'could',
+  'may', 'might', 'must', 'shall', 'should', "didn't", "doesn't", "don't",
+  'didnt', 'doesnt', 'dont', 'gonna', 'wanna', 'gotta',
+]);
+
 export const ozdicSource: EnrichmentSource = {
   id: 'ozdic',
   label: 'Oxford Coll.',
@@ -123,6 +135,11 @@ export const ozdicSource: EnrichmentSource = {
     const verbAfter = new RegExp(`${HW}\\s*\\+\\s*VERB`);
     const relationGroups: SenseRelationGroup[] = [];
     for (const block of data.collocations ?? []) {
+      // No sense gloss → no anchor for the merger's contextual gate. The
+      // words are unverifiable corpus pairings (`give`: "better give",
+      // "didn't give"). A gloss-less block never publishes, flat or
+      // grouped. Verified live 2026-09-06: `give`'s only block lacks gloss.
+      if (!block.gloss?.trim()) continue;
       const groupCollocations = new Set<string>();
       const groupExample = block.groups?.[0]?.clusters?.[0]?.example?.trim();
       for (const group of block.groups ?? []) {
@@ -136,6 +153,14 @@ export const ozdicSource: EnrichmentSource = {
             // published collocation is a single clean phrase instead of
             // "long,winning run" (verified live 2026-08-30).
             for (const word of raw.split(',').map((part) => part.trim()).filter(Boolean)) {
+              // Grammar filler, not a collocate (`etc.`, auxiliaries,
+              // negations — see OZDIC_NOISE_WORDS). A `~` is ozdic's
+              // headword shorthand; the resolved phrase is ungrammatical
+              // (`run at a ~`) and unresolvable without guessing, so it
+              // stays out rather than teach a broken chunk.
+              if (word.includes('~')) continue;
+              const wl = word.toLowerCase().replace(/\.+$/, '');
+              if (!wl || OZDIC_NOISE_WORDS.has(wl) || /n['’]t$/.test(wl)) continue;
               let phrase: string;
               if (/^ADJ/.test(cat)) {
                 phrase = `${word} ${headword}`;

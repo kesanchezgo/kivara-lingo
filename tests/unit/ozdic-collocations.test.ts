@@ -106,6 +106,29 @@ describe('ozdic sense-bound collocations', () => {
     for (const phrase of flat) expect(fromGroups.has(phrase)).toBe(true);
   });
 
+  it('drops gloss-less blocks and grammar filler rather than publishing corpus pairings', async () => {
+    // Live 2026-09-06: `give`'s only ozdic block has NO gloss and its words
+    // are corpus pairings ("better give", "didn't give", "gonna give").
+    // Without a gloss there is no anchor for the contextual gate, so the
+    // block must never publish — flat or grouped.
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({
+      word: 'give',
+      definitions: [{ pos: 'verb', senses: [{ gloss: 'To hand something over.', examples: [] }] }],
+      collocations: [{
+        groups: [
+          { cat: 'ADJ.', clusters: [{ words: ['better,dogmatic,free'] }] },
+          { cat: 'VERB + GIVE', clusters: [{ words: ["didn't,doesn't,gonna,like,need"] }] },
+          { cat: 'GIVE + NOUN', clusters: [{ words: ['bucks,impression,money'] }] },
+        ],
+      }],
+    }));
+
+    const result = await ozdicSource.enrich('give', ctx);
+
+    expect(result.collocations ?? []).toEqual([]);
+    expect(result.relationGroups ?? []).toEqual([]);
+  });
+
   it('returns nothing for non-English lookups', async () => {
     const result = await ozdicSource.enrich('correr', { ...ctx, sourceLang: 'es' });
     expect(result).toEqual({});

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   extractLongmanCollocations,
   extractLongmanQuality,
+  extractLongmanSenseCollocationGroups,
 } from '../../src/background/enrichment/sources/longman';
 
 const QUALITY_FIXTURE = `
@@ -42,6 +43,22 @@ const LEGACY_COLLOCATION_FIXTURE = `
   <span class="COLLO">make a decision</span>
   <span class="COLLO">make a decision</span>
   <span class="COLLO">reach a decision</span>
+`;
+
+// COLLO spans nested inside dictionary Sense blocks, like Longman ships
+// them live: each collocation belongs to the sense whose DEF precedes it
+// (verified 2026-09-06 on `give`: give__3 → control/authority, give__4 →
+// orders/instructions).
+const SENSE_COLLOCATION_FIXTURE = `
+  <span class="Sense" id="give__3">
+    <span class="DEF">to allow or make it possible for someone to do something</span>
+    <span class="COLLO">give somebody control/authority/responsibility etc</span>
+  </span>
+  <span class="Sense" id="give__4">
+    <span class="DEF">to tell someone information or details about something</span>
+    <span class="COLLO">give orders/instructions</span>
+    <span class="COLLO">give an account/description</span>
+  </span>
 `;
 
 describe('Longman quality extraction', () => {
@@ -86,5 +103,29 @@ describe('Longman quality extraction', () => {
       'make a decision',
       'reach a decision',
     ]);
+  });
+
+  it('scopes each COLLO span to its own Sense block with the DEF as anchor', () => {
+    const groups = extractLongmanSenseCollocationGroups(SENSE_COLLOCATION_FIXTURE);
+
+    expect(groups).toHaveLength(2);
+    // Slash shorthand expands inside the sense scope.
+    expect(groups[0]).toMatchObject({
+      guide: 'to allow or make it possible for someone to do something',
+      collocations: ['give somebody control', 'give somebody authority', 'give somebody responsibility'],
+    });
+    expect(groups[1]).toMatchObject({
+      guide: 'to tell someone information or details about something',
+      collocations: ['give orders', 'give instructions', 'give an account', 'give a description'],
+    });
+  });
+
+  it('carries the sense groups into the quality payload beside the flat list', () => {
+    const result = extractLongmanQuality(SENSE_COLLOCATION_FIXTURE, 'give');
+
+    expect(result.collocations).toContain('give orders');
+    const scoped = (result.relationGroups ?? []).filter((group) => group.collocations?.length);
+    expect(scoped).toHaveLength(2);
+    expect(scoped[0].definition).toContain('make it possible');
   });
 });

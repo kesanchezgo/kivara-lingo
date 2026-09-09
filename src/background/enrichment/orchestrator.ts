@@ -644,7 +644,7 @@ const BAD_COLLOCATION_TAILS = new Set([
   'each', 'every', 'long', 'short', 'say', 'know', 'last', 'next', 'second', 'business', 'more', 'most', 'his', 'limit', 'effect',
 ]);
 
-function normalizeCollocation(raw: string, token: string): string | null {
+function normalizeCollocation(raw: string, token: string, isTrustedSource = false): string | null {
   const text = raw
     .replace(/\((?:your|someone's|somebody's)\)/gi, ' ')
     .replace(/\s+/g, ' ')
@@ -679,12 +679,19 @@ function normalizeCollocation(raw: string, token: string): string | null {
   // give") are frequency artifacts, not learner collocations. An -ly
   // adverb adjacent to a VERB headword is the signature of raw corpus
   // bigrams (Datamuse rel_bgb/rel_bga); editorial sources never emit
-  // them as headword collocations.
-  if (words.length === 2 && /^[a-z]+ly$/.test(words[0] === tok ? words[1] : words[0]) && words[0] !== 'only') return null;
+  // them as headword collocations. EXEMPTION: a dictionary-scraped COLLO
+  // span (`well/badly run` from Longman's manage-sense block) is
+  // lexicographer-attested, not a corpus accident — without this,
+  // `She runs the company` can never publish collocations because its
+  // only sense-scoped chunks are adverb pairs. Verified live 2026-09-06.
+  if (!isTrustedSource && words.length === 2 && /^[a-z]+ly$/.test(words[0] === tok ? words[1] : words[0]) && words[0] !== 'only') return null;
   // Plain corpus adverbs behave the same as -ly ones ("clean forget",
   // verified 2026-08-30): a bare adverb + verb headword is a frequency
-  // pair, not a chunk a learner should study.
-  if (words.length === 2 && words[1] === tok && CORPUS_ADVERB_HEADS.has(words[0])) return null;
+  // pair, not a chunk a learner should study. Same trusted-source
+  // exemption as above: a dictionary COLLO block is lexicographer-
+  // attested (`well run` lives in Longman's manage-sense block), while
+  // corpus bigrams arrive via datamuse and stay rejected.
+  if (!isTrustedSource && words.length === 2 && words[1] === tok && CORPUS_ADVERB_HEADS.has(words[0])) return null;
   // Infinitive-marked chunks ("to run aground") are dictionary usage
   // notes/phrasal listings, not learner collocations — a collocation is
   // a bare word pair the learner can reuse.
@@ -723,7 +730,14 @@ export function pickCollocations(
   const hasContextAnchor = Boolean(contextTerms && contextTerms.size > 0);
   const grouped = new Map<string, { value: string; sources: Set<string>; sourceRank: number }>();
   for (const candidate of candidates) {
-    const normalized = normalizeCollocation(candidate.text, token);
+    // Chunks scraped from a dictionary's own collocation block (Longman
+    // COLLO, Cambridge collocation page) are lexicographer-attested, not
+    // corpus accidents — corpus-noise shape rules (adverb bigrams) are
+    // relaxed for them inside normalizeCollocation.
+    const normalized = normalizeCollocation(
+      candidate.text, token,
+      DISPLAYABLE_COLLOCATION_SOURCES.has(candidate.source),
+    );
     if (!normalized) continue;
     // Sense anchor: the chunk's terms minus the headword must touch the
     // active sense's context. "run a company" -> {company} overlaps a
@@ -1354,6 +1368,46 @@ function relationTerms(text: string, token: string): Set<string> {
       .map(relationStem)
       .filter((word) => word.length > 2 && !RELATION_STOP_WORDS.has(word) && !tokenTerms.has(word)),
   );
+}
+
+// Indefinite / argument-structure words shared by every sense of a headword
+// (`give someone something` frames ALL senses of `give`). Overlap carried
+// only by these is not evidence the group matches the current sense: the
+// winning definition itself injects them into the anchor, so every
+// candidate group trivially overlaps. A closed grammatical class
+// (indefinite pronouns + light nouns), not a hand list — same rationale
+// as LOW_IMAGEABILITY_WORDS. Stored STEMMED: both sides pass through
+// relationTerms, so `things`/`thing` meet as `thing` and
+// `something`/`somebody` as `someth`/`somebodi`.
+const GENERIC_SENSE_OVERLAP_WORDS = new Set(
+  [
+    'someone', 'somebody', 'something', 'anyone', 'anybody', 'anything',
+    'everyone', 'everybody', 'everything', 'nothing', 'one', 'people', 'thing',
+  ].map(relationStem),
+);
+
+/**
+ * Whether a selected collocation group's win was substantive: at least one
+ * anchor term that is not a generic argument-structure word. A Longman
+ * manage-sense group overlapping {organize, charge, business} earned its
+ * chunks; a `give` group overlapping only {someone, something} did not —
+ * those words frame every sense of `give`, so the win proves nothing and
+ * its chunks must still ride the flat sense anchor.
+ */
+export function hasSubstantiveSenseOverlap(
+  group: { guide?: string; definition?: string; example?: string },
+  anchor: Set<string> | undefined,
+  token: string,
+): boolean {
+  if (!anchor || anchor.size === 0) return false;
+  const terms = relationTerms(
+    `${group.guide ?? ''} ${group.definition ?? ''} ${group.example ?? ''}`,
+    token,
+  );
+  for (const term of terms) {
+    if (anchor.has(term) && !GENERIC_SENSE_OVERLAP_WORDS.has(term)) return true;
+  }
+  return false;
 }
 
 export function pickSenseRelationGroups(
@@ -2338,14 +2392,20 @@ function mergeFields(
   if (rankedSynonyms.length) entry.synonyms = rankedSynonyms;
   if (rankedAntonyms.length) entry.antonyms = rankedAntonyms;
 
-  // Sense-bound collocations (ozdic blocks carry a per-sense gloss): the
-  // contextual gate in pickSenseRelationGroups selects the group whose
-  // gloss overlaps the sentence; ONLY that selected group's chunks may
-  // fill the field. Flat corpus lists can complement what the selected
-  // sense already endorses — mirroring the synonym gate. If no group
-  // cleared the gate, sense-bound chunks stay out entirely (a zero-overlap
-  // "winner" would be the wrong sense's collocations: "to run aground"
-  // for the manage sense, verified 2026-08-30).
+  // Sense-bound collocations (longman Sense blocks and ozdic blocks carry
+  // a per-sense gloss): the contextual gate in pickSenseRelationGroups
+  // selects the group whose gloss overlaps the sentence; ONLY that selected
+  // group's chunks may fill the field. Flat corpus lists can complement
+  // what the selected sense already endorses — mirroring the synonym gate.
+  // If no group cleared the gate, sense-bound chunks stay out entirely (a
+  // zero-overlap "winner" would be the wrong sense's collocations: "to run
+  // aground" for the manage sense, verified 2026-08-30).
+  //
+  // The selected group's chunks bypass the flat sense anchor below: the
+  // GROUP already won the contextual gate via its gloss, and re-anchoring
+  // each chunk would kill terms that never appear in prose (`well run`
+  // for the manage sense — verified live 2026-09-06, the anchor
+  // {company,home,organize} contains neither `well` nor `badly`).
   const senseBoundCollocations: Array<{ source: string; text: string }> = [];
   for (const group of selectedRelationGroups) {
     if (!group.collocations?.length) continue;
@@ -2354,6 +2414,16 @@ function mergeFields(
     }
   }
   let collocationPool = collocationCandidates;
+  // The group's gloss already earned the contextual gate; chunks ride free
+  // ONLY when that win was substantive (a real content-word overlap, not
+  // generic argument-structure words like `someone`/`something`). A
+  // generic-only win proves nothing about the sense, so its chunks still
+  // ride the flat anchor like any unscoped candidate.
+  const collocationsSenseScoped = selectedRelationGroups.some(
+    (group) =>
+      (group.collocations?.length ?? 0) > 0 &&
+      hasSubstantiveSenseOverlap(group, senseAnchorTerms, token),
+  );
   if (senseBoundCollocations.length) {
     const endorsed = new Set(senseBoundCollocations.map((c) => c.text.toLowerCase()));
     collocationPool = [
@@ -2403,7 +2473,15 @@ function mergeFields(
       return editorial.length >= 1 && chunk.sources.size >= 2;
     });
   }
-  const rankedCollocations = pickCollocations(token, collocationPool, senseAnchorTerms);
+  const rankedCollocations = pickCollocations(
+    token,
+    collocationPool,
+    // Chunks of a substantively-selected group already earned the
+    // contextual gate via their gloss; the flat anchor would kill
+    // sense-correct terms that never appear in prose (`well run`).
+    // Generic-only group wins and corpus flats still ride the anchor.
+    collocationsSenseScoped ? undefined : senseAnchorTerms,
+  );
   if (rankedCollocations.length) entry.collocations = rankedCollocations;
   if (rankedSynonyms.length) {
     pushProvenance({

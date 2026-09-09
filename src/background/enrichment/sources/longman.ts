@@ -14,7 +14,7 @@
  */
 
 import { fetchHtml, resolveUrl } from '../fetcher';
-import { extractByClass, stripHtml } from '../html-utils';
+import { extractByClass, expandSlashAlternatives, stripHtml } from '../html-utils';
 import type {
   EnrichmentSource,
   FrequencyEvidence,
@@ -101,16 +101,57 @@ export function extractLongmanRelationGroups(html: string, token = ''): SenseRel
 
 export function extractLongmanCollocations(html: string): string[] {
   const boxes = extractByClass(html, 'ColloBox');
-  if (boxes.length) {
-    return cleanUnique(
-      boxes.flatMap((box) => extractByClass(box, 'COLLOC', 'span')),
-      40,
-    ).filter((value) => value.length < 60).slice(0, 10);
+  const raw = boxes.length
+    ? boxes.flatMap((box) => extractByClass(box, 'COLLOC', 'span'))
+    : extractByClass(html, 'COLLO', 'span');
+  const expanded: string[] = [];
+  for (const value of cleanUnique(raw, 40)) {
+    if (value.length >= 60) continue;
+    expanded.push(...expandSlashAlternatives(value));
   }
+  const scoped = extractLongmanSenseCollocationGroups(html).flatMap(
+    (group) => group.collocations ?? [],
+  );
+  return Array.from(new Set([...expanded, ...scoped])).slice(0, 16);
+}
 
-  return cleanUnique(extractByClass(html, 'COLLO', 'span'), 40)
-    .filter((value) => value.length < 60)
-    .slice(0, 10);
+/**
+ * Longman nests each `COLLO` span inside its dictionary `Sense` block, so
+ * every collocation already carries its sense's `DEF` as an anchor
+ * (verified live 2026-09-06: `give__3` "to allow or make it possible…" →
+ * "give somebody control/authority/responsibility etc"). Publishing them
+ * as sense-scoped relationGroups lets the merger's contextual selector
+ * (`pickSenseRelationGroups`) pick the current sense's chunks instead of
+ * dumping every sense's phrases into one flat list. Senses without a DEF
+ * still publish (unguided) so their chunks are selectable by example
+ * overlap rather than invisible.
+ */
+export function extractLongmanSenseCollocationGroups(
+  html: string,
+): SenseRelationGroup[] {
+  const groups: SenseRelationGroup[] = [];
+  const seen = new Set<string>();
+  for (const senseHtml of extractByClass(html, 'Sense', 'span')) {
+    const guide = cleanUnique(extractByClass(senseHtml, 'DEF', 'span'), 1)
+      .map((value) => value.replace(/:\s*$/, ''))
+      .find((value) => value.length > 6);
+    const chunks: string[] = [];
+    for (const value of cleanUnique(extractByClass(senseHtml, 'COLLO', 'span'), 20)) {
+      if (value.length >= 60) continue;
+      chunks.push(...expandSlashAlternatives(value));
+    }
+    if (!chunks.length) continue;
+    const unique = Array.from(new Set(chunks)).slice(0, 8);
+    const key = `${guide ?? ''}\u0000${unique.join('\u0000')}`.toLocaleLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    groups.push({
+      ...(guide ? { guide, definition: guide } : { definition: 'collocations' }),
+      collocations: unique,
+    });
+    if (groups.length === 10) break;
+  }
+  return groups;
 }
 
 export function extractLongmanQuality(html: string, token = ''): Pick<
@@ -141,6 +182,12 @@ export function extractLongmanQuality(html: string, token = ''): Pick<
   if (frequencyEvidence.length) result.frequencyEvidence = frequencyEvidence;
 
   const relationGroups = extractLongmanRelationGroups(html, token);
+  // Sense-scoped collocation groups ride the same contextual gate as the
+  // thesaurus synonym groups: the merger picks the current sense's chunks
+  // instead of dumping every sense's phrases into one flat list.
+  for (const group of extractLongmanSenseCollocationGroups(html)) {
+    relationGroups.push(group);
+  }
   if (relationGroups.length) result.relationGroups = relationGroups;
 
   return result;
