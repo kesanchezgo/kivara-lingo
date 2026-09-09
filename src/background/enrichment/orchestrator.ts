@@ -1275,6 +1275,52 @@ const LIGHT_VERB_NON_SYNONYMS = new Set([
   'go', 'goes', 'went', 'take', 'takes', 'took', 'put', 'puts',
 ]);
 
+// Difficulty / ease words: the lexical bridge between a figurative
+// "very easy" idiom and its true antonyms. An antonym of an idiom
+// headword survives only when it shares one of these with the sense
+// anchor — `pain`/`labor`/`chore` meet `easy` through difficulty, while
+// `bear`/`beast`/`murder`/`stinker` meet nothing and die as literal-sense
+// noise. Closed semantic class for the easy/difficult axis, not a hand
+// list per idiom — same rationale as LOW_IMAGEABILITY_WORDS.
+const FIGURATIVE_ANTONYM_BRIDGE = new Set([
+  'easy', 'easily', 'difficult', 'difficulty', 'hard', 'hardship',
+  'simple', 'simplicity', 'effort', 'effortless', 'tough', 'rough',
+  'pain', 'painful', 'labor', 'labour', 'chore', 'trouble', 'struggle',
+  'challenge', 'demanding', 'tricky', 'awkward', 'complex', 'complicated',
+  // Body/mind strain words: `headache`, `nuisance`, `bother` name the
+  // felt difficulty itself. Without them the bridge keeps only abstract
+  // nouns and drops the most natural antonyms of "very easy".
+  'headache', 'nuisance', 'bother', 'strain', 'burden', 'ordeal',
+]);
+
+/**
+ * Whether a single-word antonym of a multiword idiom headword belongs to
+ * the figurative sense. The antonym must share a difficulty-axis word with
+ * the sense anchor (`pain` meets `easy` through difficulty); a term with
+ * no bridge (`bear`, `beast`, `murder`) is the literal sense leaking in.
+ * Multi-word antonyms are exempt — a phrase carries its own sense context.
+ */
+export function isFigurativeAntonym(text: string, anchor: Set<string> | undefined): boolean {
+  const words = text.toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length !== 1) return true;
+  if (!anchor || anchor.size === 0) return true;
+  const stems = new Set(words.flatMap(relationStemVariants));
+  for (const stem of stems) {
+    if (anchor.has(stem)) return true;
+  }
+  for (const word of FIGURATIVE_ANTONYM_BRIDGE) {
+    if (anchor.has(word)) {
+      // The anchor itself names the axis (easy/difficult/…): any
+      // difficulty word qualifies without needing the exact term.
+      if (stems.has(word)) return true;
+      for (const stem of stems) {
+        if (FIGURATIVE_ANTONYM_BRIDGE.has(stem)) return true;
+      }
+    }
+  }
+  return false;
+}
+
 // A "synonym" that is really a dictionary explanation, not a lexical
 // equivalent. Live 2026-09-06 corpus: `forget` VIP leaked "my mind goes
 // blank", "have no recollection of something", "don't remember/can't
@@ -1549,22 +1595,45 @@ export function pickSenseRelationGroups(
       .map((group, index) => {
         const terms = relationTerms(`${group.guide ?? ''} ${group.definition ?? ''} ${group.example ?? ''}`, token);
         let overlap = 0;
-        for (const term of terms) if (contextTerms.has(term)) overlap += 1;
+        let substantiveOverlap = 0;
+        for (const term of terms) {
+          if (!contextTerms.has(term)) continue;
+          overlap += 1;
+          // A generic-only overlap (glue words every gloss shares) proves
+          // nothing about the sense — verified live 2026-09-09: MW's
+          // experience-sense of `know` ("to come to a knowledge of
+          // (something) by living through it") beat the answer-sense on
+          // `someth` alone for "I do not know the answer."
+          if (!GENERIC_SENSE_OVERLAP_WORDS.has(term)) substantiveOverlap += 1;
+        }
         // Only demote for POS when a matching-POS group is actually
         // available in this source; otherwise the source has a single POS
         // and demoting all of it would just empty the field needlessly.
         const posMismatch = Boolean(sentencePos && posMatchExists && group.partOfSpeech && group.partOfSpeech !== sentencePos);
         const posBonus = sentencePos && group.partOfSpeech === sentencePos ? 1 : 0;
-        return { group, index, overlap, posMismatch, posBonus };
+        return { group, index, overlap, substantiveOverlap, posMismatch, posBonus, hasSubstantive: substantiveOverlap > 0 };
       })
       .filter((entry) => !entry.posMismatch)
-      .sort((a, b) => (b.overlap + b.posBonus) - (a.overlap + a.posBonus) || a.index - b.index);
+      // Substantive overlap first: a group matching on content words beats
+      // one matching only on definition glue (`someth`, `about`, `have`).
+      // Raw overlap breaks ties, then POS, then source order — so a fully
+      // generic match still prefers the provider's default sense over a
+      // zero-overlap group, preserving the old fallback.
+      .sort((a, b) => (b.substantiveOverlap + b.posBonus) - (a.substantiveOverlap + a.posBonus) || (b.overlap + b.posBonus) - (a.overlap + a.posBonus) || a.index - b.index);
     const best = ranked[0];
     if (!best) continue;
     // If context or a selected definition exists, no semantic match means the
     // group is unsafe even when it is the provider's first/default sense.
     if (best.overlap === 0 && contextTerms.size > 0) continue;
     if (best.overlap === 0 && best.index !== 0) continue;
+    // A generic-only win proves nothing about the sense — with one
+    // exception: when it is the provider's DEFAULT (first) sense, the
+    // provider itself ranks it first and there is no evidence against it.
+    // Skipping it would empty fields the provider answers correctly by
+    // default (Longman give__3 "to put something in someone's hand" for
+    // "Give me the keys" — verified live 2026-09-09). A generic-only win
+    // on a NON-default sense still skips (MW experience-sense of `know`).
+    if (!best.hasSubstantive && contextTerms.size > 0 && best.index !== 0) continue;
     selected.push(best.group);
   }
   return selected;
@@ -2513,7 +2582,24 @@ function mergeFields(
     synonymPool = synonymCandidates.filter((c) => endorsed.has(c.text.toLowerCase()));
     antonymPool = antonymCandidates.filter((c) => endorsedAnt.has(c.text.toLowerCase()));
     if (senseBoundSynonyms.length) synonymPool = [...senseBoundSynonyms, ...synonymPool];
-    if (senseBoundAntonyms.length) antonymPool = [...senseBoundAntonyms, ...antonymPool];
+    // Antonyms of a MULTIWORD idiom headword ride the figurative gate:
+    // MW's idiom block mixes true difficulty antonyms (pain, labor,
+    // chore) with literal-sense noise (bear, beast, murder, stinker —
+    // the cake/beast senses, not "very easy"). A single-word antonym
+    // with no lexical bridge to the figurative sense is the literal
+    // sense leaking in — the same contamination already rejected for
+    // synonyms by isTaxonomicOrPeriphrastic's literal-component rule.
+    // Verified live 2026-09-09: `piece of cake` vip published
+    // bear/beast/murder/stinker for "The exam was a piece of cake."
+    const isIdiomHeadword = token.trim().includes(' ');
+    if (senseBoundAntonyms.length) {
+      antonymPool = [
+        ...senseBoundAntonyms.filter((c) =>
+          !isIdiomHeadword || isFigurativeAntonym(c.text, senseAnchorTerms),
+        ),
+        ...antonymPool,
+      ];
+    }
   }
 
   // Synonyms / antonyms / collocations / audio go on entry directly so

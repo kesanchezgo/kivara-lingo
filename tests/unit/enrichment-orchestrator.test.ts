@@ -83,6 +83,7 @@ const {
   pickRelatedTerms,
   pickSenseRelationGroups,
   hasSubstantiveSenseOverlap,
+  isFigurativeAntonym,
   runEnrichment,
 } = await import('../../src/background/enrichment/orchestrator');
 
@@ -257,6 +258,27 @@ describe('enrichment quality ranking', () => {
     expect(r).not.toContain('cake');
   });
 
+  it('keeps figurative antonyms of an idiom but drops literal-sense noise', () => {
+    // Verified live 2026-09-09: MW's `piece of cake` block mixes true
+    // difficulty antonyms (pain, labor, chore) with literal-sense noise
+    // (bear, beast, murder, stinker — the cake/beast senses, not "very
+    // easy"). A single-word antonym survives only with a lexical bridge
+    // to the figurative axis; phrases carry their own sense context.
+    const anchor = new Set(['exam', 'easy', 'undertaking']);
+    expect(isFigurativeAntonym('pain', anchor)).toBe(true);
+    expect(isFigurativeAntonym('labor', anchor)).toBe(true);
+    expect(isFigurativeAntonym('chore', anchor)).toBe(true);
+    expect(isFigurativeAntonym('headache', anchor)).toBe(true);
+    expect(isFigurativeAntonym('bear', anchor)).toBe(false);
+    expect(isFigurativeAntonym('beast', anchor)).toBe(false);
+    expect(isFigurativeAntonym('murder', anchor)).toBe(false);
+    expect(isFigurativeAntonym('stinker', anchor)).toBe(false);
+    // Multi-word antonyms are exempt: the phrase carries its own sense.
+    expect(isFigurativeAntonym('horror show', anchor)).toBe(true);
+    // No anchor (monosemous path) never filters.
+    expect(isFigurativeAntonym('bear', undefined)).toBe(true);
+  });
+
   it('drops explanatory phrases and clauses posing as synonyms', () => {
     // Live 2026-09-06 corpus: `forget` VIP leaked glosses as synonyms —
     // "my mind goes blank", "have no recollection of something",
@@ -390,6 +412,68 @@ describe('enrichment quality ranking', () => {
     }], 'She runs the company from home.', [
       { source: 'longman', text: 'to organize or be in charge of a business' },
     ])).toEqual([]);
+  });
+
+  it('prefers a substantively-overlapping group over a glue-only match', () => {
+    // Verified live 2026-09-09: MW's experience-sense of `know` ("to come
+    // to a knowledge of (something) by living through it") beat the
+    // answer-sense on `someth` alone for "I do not know the answer." —
+    // glue every gloss shares. Substantive overlap (content words) now
+    // ranks first; raw overlap breaks ties so a fully generic match still
+    // prefers the provider's default sense over a zero-overlap group.
+    const selected = pickSenseRelationGroups('know', [
+      {
+        source: 'merriamWebsterThesaurus',
+        guide: 'to experience',
+        definition: 'to come to a knowledge of (something) by living through it',
+        synonyms: ['experience', 'undergo', 'endure'],
+      },
+      {
+        source: 'merriamWebsterThesaurus',
+        guide: 'to understand',
+        definition: 'to be sure about the answer',
+        synonyms: ['understand', 'comprehend'],
+      },
+    ], 'I do not know the answer.', [
+      { source: 'longman', text: 'to be sure about something' },
+    ]);
+
+    expect(selected).toHaveLength(1);
+    expect(selected[0]?.synonyms).toEqual(['understand', 'comprehend']);
+  });
+
+  it('skips a generic-only group win instead of publishing the wrong sense', () => {
+    // Verified live 2026-09-09 (second diag): MW's experience-sense of
+    // `know` won its source on `someth` alone — and since it WAS selected,
+    // its relations entered the pool and published. A generic-only win on a
+    // NON-default sense now skips like a zero-overlap win.
+    expect(pickSenseRelationGroups('know', [
+      {
+        source: 'merriamWebsterThesaurus',
+        guide: 'to see',
+        definition: 'to have a clear idea of',
+        synonyms: ['understand', 'see'],
+      },
+      {
+        source: 'merriamWebsterThesaurus',
+        guide: 'to experience',
+        definition: 'to come to a knowledge of (something) by living through it',
+        synonyms: ['experience', 'undergo', 'endure'],
+      },
+    ], 'I do not know the answer.', [
+      { source: 'longman', text: 'to be sure about something' },
+    ])).toEqual([]);
+    // A substantively-winning group still publishes on its own.
+    expect(pickSenseRelationGroups('know', [
+      {
+        source: 'merriamWebsterThesaurus',
+        guide: 'to understand',
+        definition: 'to be sure about the answer',
+        synonyms: ['understand', 'comprehend'],
+      },
+    ], 'I do not know the answer.', [
+      { source: 'longman', text: 'to be sure about something' },
+    ])).toHaveLength(1);
   });
 
   it('requires editorial or corroborated evidence for collocations', () => {
