@@ -263,9 +263,10 @@ describe('enrichment quality ranking', () => {
       { source: 'wordnet', text: 'any of' },
       { source: 'wordnet', text: 'a person' },
     ], 12);
-    expect(anybody).toContain('anyone');
-    expect(anybody).not.toContain('any of');
-    expect(anybody).not.toContain('a person');
+    // Indefinite-pronoun heads take no synonyms (closed-class slot, not
+    // a substitutable concept — verified live 2026-09-09 on `anything`):
+    // even the genuine "anyone" stays out, with the periphrases.
+    expect(anybody).toEqual([]);
 
     // A genuine hyphenated one-word synonym survives.
     expect(pickRelatedTerms('lit', [
@@ -946,6 +947,24 @@ describe('enrichment quality ranking', () => {
       { source: 'cambridge', text: 'any' },
       { source: 'cambridge', text: 'option' },
     ], 12)).toContain('any');
+  });
+
+  it('takes no synonyms for an indefinite-pronoun headword', () => {
+    // Verified live 2026-09-09: `anything` vip published syn
+    // whatever/something/whatnot/whichever/what all for "I do not need
+    // anything else." — nearby slot-fillers from another polarity, never
+    // learner-safe equivalents of the grammatical slot. The head is a
+    // closed-class quantifier (same class as LOW_IMAGEABILITY_WORDS), so
+    // the field stays EMPTY even for genuine-looking candidates.
+    expect(pickRelatedTerms('anything', [
+      { source: 'merriamWebsterThesaurus', text: 'whatever' },
+      { source: 'merriamWebsterThesaurus', text: 'something' },
+      { source: 'merriamWebsterThesaurus', text: 'whatnot' },
+    ], 12)).toEqual([]);
+    // A content headword is untouched by this gate.
+    expect(pickRelatedTerms('thing', [
+      { source: 'cambridge', text: 'object' },
+    ], 12)).toContain('object');
   });
 
   it('uses explicit etymology authority instead of provider completion order', () => {

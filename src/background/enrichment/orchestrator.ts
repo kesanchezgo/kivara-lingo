@@ -1205,6 +1205,23 @@ const DETERMINER_NON_SYNONYMS = new Set([
   'some', 'both', 'several', 'various', 'respective', 'particular', 'specific',
 ]);
 
+// Indefinite-pronoun heads are closed-class quantifiers, not content
+// words: `anything`/`anybody`/`anyone`/`something`/`nothing`/`whatever`
+// name a grammatical slot, not a substitutable concept. A thesaurus
+// "synonym" of such a head (whatever/something/whatnot/whichever for
+// `anything`) is a nearby slot-filler from another polarity or register,
+// never a learner-safe equivalent — the learner with "I do not need
+// anything else." (→ nada) needs no synonym list. Same class logic as
+// LOW_IMAGEABILITY_WORDS: closed grammatical class, not a hand list per
+// headword. Verified live 2026-09-09: `anything` vip syn
+// whatever/something/whatnot/whichever/what all. Standard already
+// publishes EMPTY here (no sense groups); this aligns VIP with it.
+const INDEFINITE_PRONOUN_HEADS = new Set([
+  'anything', 'anybody', 'anyone', 'something', 'somebody', 'someone',
+  'nothing', 'nobody', 'none', 'no one', 'everything', 'everybody',
+  'everyone', 'whatever', 'whichever', 'whoever', 'anywhere', 'somewhere',
+]);
+
 // A synonym candidate that is actually taxonomy or a definitional
 // paraphrase, not an equivalent term. WordNet/Wiktionary are displayable
 // sources, so their Latin binomials ("malus pumila"), hypernym glosses
@@ -1453,6 +1470,11 @@ export function pickRelatedTerms(
       DETERMINER_NON_SYNONYMS.has(normalized) &&
       DETERMINER_NON_SYNONYMS.has(normalizedToken)
     ) continue;
+    // Indefinite-pronoun heads take no synonyms at all: the head is a
+    // grammatical slot, and any "synonym" is a nearby slot-filler from
+    // another polarity or register. Verified live 2026-09-09: `anything`
+    // vip syn whatever/something/whatnot/whichever/what all.
+    if (INDEFINITE_PRONOUN_HEADS.has(normalizedToken)) continue;
     // Reject dictionary explanations / clauses masquerading as synonyms
     // ("my mind goes blank", "don't remember/can't remember"). Verified
     // 2026-09-06 live corpus on `forget`.
