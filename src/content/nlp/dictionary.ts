@@ -178,6 +178,20 @@ function isLearnerCollocation(phrase: string): boolean {
   return !/^[a-z]+ly$/.test(words[0]) && !/^[a-z]+ly$/.test(words[1]);
 }
 
+// An empty collocation list is the same as no list: never publish `[]`
+// on a bundled entry — a stale [] reads as "field resolved empty"
+// downstream instead of "field absent". Verified live 2026-09-09:
+// `give` standard shipped coll [].
+function nonEmptyCollocations(value: string[] | undefined): string[] | undefined {
+  return value?.length ? value : undefined;
+}
+
+// Scrub stale empty-list fields from generated-asset rows (`en.json` and
+// its overlays): a sparse row that carries `synonyms: []` / `antonyms:
+// []` / `collocations: []` / `examples: []` ships "field resolved
+// empty" downstream instead of "field absent". The scrub runs once at
+// module load over the merged map, so every overlay above benefits.
+// Verified live 2026-09-09: `give` standard shipped coll [].
 // Overlay the Academic Collocation List (Ackermann & Chen 2013) so every
 // entry the bundled dictionary already covers also gets up to ~12
 // curated academic collocations. The popover renders these under
@@ -188,13 +202,14 @@ for (const [key, value] of Object.entries(
   if (!Array.isArray(value)) continue;
   const existing = enMerged[key];
   if (existing) {
+    const merged = [
+      ...(existing.collocations ?? []),
+      ...value.filter((v) =>
+        !existing.collocations?.includes(v) && isLearnerCollocation(v)),
+    ].slice(0, 12);
     enMerged[key] = {
       ...existing,
-      collocations: [
-        ...(existing.collocations ?? []),
-        ...value.filter((v) =>
-          !existing.collocations?.includes(v) && isLearnerCollocation(v)),
-      ].slice(0, 12),
+      collocations: nonEmptyCollocations(merged) ?? existing.collocations,
     };
   } else {
     // Words present only in the collocation list (no full bundled entry)
@@ -204,8 +219,29 @@ for (const [key, value] of Object.entries(
       token: key,
       type: 'word',
       translation: '\u2014',
-      collocations: value.filter(isLearnerCollocation).slice(0, 12),
+      collocations: nonEmptyCollocations(value.filter(isLearnerCollocation).slice(0, 12)),
     };
+  }
+}
+
+// Scrub stale empty-list fields from generated-asset rows (`en.json` and
+// its overlays): a sparse row that carries `synonyms: []` / `antonyms:
+// []` / `collocations: []` / `examples: []` ships "field resolved
+// empty" downstream instead of "field absent". Runs AFTER every
+// overlay above so nothing reintroduces a []. Verified live 2026-09-09:
+// `give` standard shipped coll [].
+for (const entry of Object.values(enMerged)) {
+  if (Array.isArray(entry.collocations) && entry.collocations.length === 0) {
+    delete entry.collocations;
+  }
+  if (Array.isArray(entry.synonyms) && entry.synonyms.length === 0) {
+    delete entry.synonyms;
+  }
+  if (Array.isArray(entry.antonyms) && entry.antonyms.length === 0) {
+    delete entry.antonyms;
+  }
+  if (Array.isArray(entry.examples) && entry.examples.length === 0) {
+    delete entry.examples;
   }
 }
 

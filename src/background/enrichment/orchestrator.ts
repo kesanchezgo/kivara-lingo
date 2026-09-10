@@ -2917,8 +2917,14 @@ function mergeFields(
   // the popover and the Anki mapper don't have to dig into vip.*
   const rankedSynonyms = pickRelatedTerms(token, synonymPool, 12, senseAnchorTerms);
   const rankedAntonyms = pickRelatedTerms(token, antonymPool, 8, senseAnchorTerms);
+  // Explicit delete (not just skip): the entry object is reused across
+  // merge paths, and a stale [] from a previous tier/purpose run reads
+  // as "field resolved empty" instead of "field absent". Verified
+  // live 2026-09-09: `give` standard shipped coll [].
   if (rankedSynonyms.length) entry.synonyms = rankedSynonyms;
+  else delete entry.synonyms;
   if (rankedAntonyms.length) entry.antonyms = rankedAntonyms;
+  else delete entry.antonyms;
 
   // Sense-bound collocations (longman Sense blocks and ozdic blocks carry
   // a per-sense gloss): the contextual gate in pickSenseRelationGroups
@@ -3011,6 +3017,7 @@ function mergeFields(
     collocationsSenseScoped ? undefined : senseAnchorTerms,
   );
   if (rankedCollocations.length) entry.collocations = rankedCollocations;
+  else delete entry.collocations;
   if (rankedSynonyms.length) {
     pushProvenance({
       field: 'synonyms',
