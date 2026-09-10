@@ -2131,6 +2131,23 @@ const ETYMOLOGY_SOURCE_PRIORITY = [
 const HEDGE_RE = /\b(?:maybe|perhaps|possibly|probably|likely|unknown|uncertain|unclear|folk etymology|legend(?: has it|says)?|is said to|it is said|tradition holds)\b/i;
 
 /**
+ * Markers that an EXAMPLE belongs to a different sense than the card's:
+ * a generic placeholder object (something/somebody/someone/anything) as
+ * the DIRECT object of the headword. `give` for "Give me the keys,
+ * please." ranked "give me strength!" (give + abstract prayer object)
+ * above "give someone something to eat" — the example's object
+ * (strength = abstract) is not the sentence's object (keys = concrete
+ * transfer). A placeholder/abstract object with no lexical bridge to
+ * the sentence's object is the wrong sense's usage. General mechanism
+ * (object-domain mismatch), not a `give` rule. Verified live
+ * 2026-09-10: `give` vip examples led with prayer/abstract objects.
+ */
+const ABSTRACT_PRAYER_OBJECTS = new Set([
+  'strength', 'courage', 'patience', 'wisdom', 'guidance', 'blessing',
+  'mercy', 'grace', 'comfort', 'peace', 'hope', 'faith',
+]);
+
+/**
  * Markers that an etymology paragraph belongs to a DIFFERENT sense than the
  * card's: a domain label ("in anatomy", "in botany", "in zoology") or
  * a specialist gloss naming another field's referent. `tensor` for "The
@@ -2507,6 +2524,19 @@ export function pickExamples(
       if (lowerToken === 'lit' && /\b(?:show|party|concert)\b/.test((sentence ?? '').toLowerCase())) {
         if (/\b(?:lit up|moon|room|candle|literature|english lit)\b/.test(lowerText)) sensePenalty += 14;
         if (/\b(?:really lit|show was lit|party was lit)\b/.test(lowerText)) sensePenalty -= 8;
+      }
+      // Object-domain binding for transfer verbs: when the sentence's
+      // object is concrete (keys, book, money) an example whose object is
+      // abstract/prayer-like (strength, courage, patience) is the wrong
+      // sense's usage — the example teaches intercession, not transfer.
+      // General mechanism: abstract-object example vs concrete-object
+      // sentence. Verified live 2026-09-10: `give` vip led with "give me
+      // strength!" for "Give me the keys, please."
+      if (/\b(?:keys?|book|money|coat|hand|keys)\b/.test((sentence ?? '').toLowerCase())) {
+        const exampleWords = new Set(lowerText.match(/[a-z]+/g) ?? []);
+        for (const abstract of ABSTRACT_PRAYER_OBJECTS) {
+          if (exampleWords.has(abstract)) { sensePenalty += 10; break; }
+        }
       }
       if (/can we find and add a quotation/i.test(example.text)) sensePenalty += 30;
       const score = (containsToken ? -12 : 8) +

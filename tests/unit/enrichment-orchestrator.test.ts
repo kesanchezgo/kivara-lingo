@@ -1356,6 +1356,18 @@ describe('enrichment quality ranking', () => {
     expect(ranked[0].text.toLowerCase()).toContain('forget');
     expect(ranked.every((example) => example.translation)).toBe(true);
   });
+
+  it('prefers a concrete-object example for a concrete-object sentence', () => {
+    // Verified live 2026-09-10: `give` vip led with "give me strength!"
+    // (prayer object) for "Give me the keys, please." (concrete
+    // transfer). An abstract/prayer-object example is the wrong sense's
+    // usage when the sentence's object is concrete.
+    const ranked = pickExamples('give', [
+      { source: 'pons', text: 'give me strength!', translation: '¡dame fuerzas!' },
+      { source: 'pons', text: 'Give me the keys.', translation: 'Dame las llaves.' },
+    ], 'Give me the keys, please.', 2);
+    expect(ranked[0].text).toBe('Give me the keys.');
+  });
 });
 
 describe('enrichment field provenance', () => {
