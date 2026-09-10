@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-10T00:43:05.366Z",
+  "generatedAt": "2026-09-10T01:32:01.027Z",
   "runtime": "Playwright persistent Chromium with unpacked MV3 extension, full source set per tier",
   "extensionId": "pkafehpbjfkkfnjaeombdemckeoohhpb",
   "corpus": [
@@ -74,7 +74,7 @@
       "tier": "standard",
       "token": "apple",
       "sentence": "She ate a ripe apple.",
-      "ms": 15138,
+      "ms": 15154,
       "error": null,
       "card": {
         "entry": {
@@ -515,7 +515,7 @@
       "tier": "standard",
       "token": "run",
       "sentence": "She ran home.",
-      "ms": 13336,
+      "ms": 13300,
       "error": null,
       "card": {
         "entry": {
@@ -1027,7 +1027,7 @@
       "tier": "standard",
       "token": "run",
       "sentence": "She runs the company from home.",
-      "ms": 12776,
+      "ms": 12785,
       "error": null,
       "card": {
         "entry": {
@@ -1547,7 +1547,7 @@
       "tier": "standard",
       "token": "anything",
       "sentence": "I do not need anything else.",
-      "ms": 13257,
+      "ms": 13221,
       "error": null,
       "card": {
         "entry": {
@@ -1969,7 +1969,7 @@
       "tier": "standard",
       "token": "anybody",
       "sentence": "I did not see anybody at the park.",
-      "ms": 14320,
+      "ms": 14275,
       "error": null,
       "card": {
         "entry": {
@@ -2351,7 +2351,7 @@
       "tier": "standard",
       "token": "each",
       "sentence": "Each student has a book.",
-      "ms": 13313,
+      "ms": 13318,
       "error": null,
       "card": {
         "entry": {
@@ -2825,7 +2825,7 @@
       "tier": "standard",
       "token": "tensor",
       "sentence": "The model uses a tensor.",
-      "ms": 14051,
+      "ms": 14059,
       "error": null,
       "card": {
         "entry": {
@@ -2971,7 +2971,7 @@
               "field": "image",
               "winner": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Covariance_and_contravariance_of_vectors.jpg?utm_source=commons.wiki",
               "source": "wikimediaCommons",
-              "candidates": 25,
+              "candidates": 17,
               "reasons": [
                 "ok-primary-source",
                 "ok-exact-match"
@@ -3017,7 +3017,7 @@
             }
           ],
           "imageSource": "wikimediaCommons",
-          "imageCandidates": 25
+          "imageCandidates": 17
         },
         "successfulSources": [
           "datamuse",
@@ -3032,7 +3032,6 @@
           "bingImages",
           "openverse",
           "wikimediaCommons",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet"
@@ -3185,11 +3184,8 @@
         {
           "source": "duckduckgoImages",
           "token": "tensor",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -3222,7 +3218,7 @@
       "tier": "standard",
       "token": "lit",
       "sentence": "The show was lit.",
-      "ms": 22797,
+      "ms": 19444,
       "error": null,
       "card": {
         "entry": {
@@ -3232,7 +3228,7 @@
           "phonetic": "/ˈlɪt/",
           "examples": [
             "The show was lit. — El espectáculo estaba iluminado.",
-            "He lit the fuse. — Encendió el fusible.",
+            "He lit the fuse. — Encendió la mecha.",
             "Tom lit a cigarette. — Tom prendió un cigarrillo.",
             "He walked down the lit corridor. — Caminó por el pasillo iluminado."
           ]
@@ -3328,7 +3324,7 @@
             {
               "source": "tatoeba",
               "text": "He lit the fuse.",
-              "translation": "Encendió el fusible."
+              "translation": "Encendió la mecha."
             },
             {
               "source": "tatoeba",
@@ -3475,7 +3471,7 @@
               ]
             }
           ],
-          "imageCandidates": 21
+          "imageCandidates": 13
         },
         "successfulSources": [
           "datamuse",
@@ -3492,7 +3488,6 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet"
@@ -3656,11 +3651,8 @@
         {
           "source": "duckduckgoImages",
           "token": "lit",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -3695,7 +3687,7 @@
       "tier": "standard",
       "token": "break up",
       "sentence": "They decided to break up after college because their relationship was over.",
-      "ms": 13323,
+      "ms": 13338,
       "error": null,
       "card": {
         "entry": {
@@ -3913,7 +3905,7 @@
               ]
             }
           ],
-          "imageCandidates": 21
+          "imageCandidates": 13
         },
         "successfulSources": [
           "datamuse",
@@ -3928,7 +3920,6 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
-          "duckduckgoImages",
           "youglish",
           "wordnet"
         ],
@@ -4078,11 +4069,8 @@
         {
           "source": "duckduckgoImages",
           "token": "break up",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -4115,7 +4103,7 @@
       "tier": "standard",
       "token": "piece of cake",
       "sentence": "The exam was a piece of cake.",
-      "ms": 13223,
+      "ms": 13232,
       "error": null,
       "card": {
         "entry": {
@@ -4287,7 +4275,7 @@
               ]
             }
           ],
-          "imageCandidates": 21
+          "imageCandidates": 13
         },
         "successfulSources": [
           "wiktionary",
@@ -4301,7 +4289,6 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
-          "duckduckgoImages",
           "youglish",
           "wordnet"
         ],
@@ -4449,11 +4436,8 @@
         {
           "source": "duckduckgoImages",
           "token": "piece of cake",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -4486,7 +4470,7 @@
       "tier": "standard",
       "token": "forget",
       "sentence": "Do not forget your keys.",
-      "ms": 14026,
+      "ms": 13253,
       "error": null,
       "card": {
         "entry": {
@@ -4771,7 +4755,7 @@
               ]
             }
           ],
-          "imageCandidates": 21
+          "imageCandidates": 13
         },
         "successfulSources": [
           "datamuse",
@@ -4788,7 +4772,6 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet"
@@ -4954,11 +4937,8 @@
         {
           "source": "duckduckgoImages",
           "token": "forget",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -4993,7 +4973,7 @@
       "tier": "standard",
       "token": "support",
       "sentence": "Her family supported her decision.",
-      "ms": 13397,
+      "ms": 13297,
       "error": null,
       "card": {
         "entry": {
@@ -5308,7 +5288,7 @@
               ]
             }
           ],
-          "imageCandidates": 22
+          "imageCandidates": 14
         },
         "successfulSources": [
           "datamuse",
@@ -5326,7 +5306,6 @@
           "bingImages",
           "openverse",
           "wikimediaCommons",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet"
@@ -5498,11 +5477,8 @@
         {
           "source": "duckduckgoImages",
           "token": "support",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -5537,7 +5513,7 @@
       "tier": "standard",
       "token": "give",
       "sentence": "Give me the keys, please.",
-      "ms": 12021,
+      "ms": 2111,
       "error": null,
       "card": {
         "entry": {
@@ -5559,8 +5535,8 @@
           "examples": [
             "Give up. — Rendirse",
             "Give tea. — Dé té.",
-            "I'd give it a 95% chance of success. — Le daría un 95% de posibilidades de éxito.",
-            "I'll give their marriage six months. — Le daré a su matrimonio seis meses."
+            "I give it a 95% chance of success. — Le doy un 95% de posibilidades de éxito.",
+            "I'd give it a 95% chance of success. — Le daría un 95% de posibilidades de éxito."
           ]
         },
         "vip": {
@@ -5587,10 +5563,6 @@
               "text": "(transitive) To provide, as, a service or a broadcast."
             },
             {
-              "source": "wiktionaryApi",
-              "text": "(ditransitive) To move, shift, provide something abstract or concrete to someone or something or somewhere."
-            },
-            {
               "source": "wiktionary",
               "text": "To provide (something) to (someone), to allow or afford ."
             },
@@ -5603,16 +5575,20 @@
               "text": "To move , shift , provide something abstract or concrete to someone or something or somewhere. To transfer one's possession or holding of (something) to (someone)."
             },
             {
+              "source": "freeDictionary",
+              "text": "To provide, as, a service or a broadcast."
+            },
+            {
+              "source": "freeDictionary",
+              "text": "(ditransitive) To move, shift, provide something abstract or concrete to someone or something or somewhere."
+            },
+            {
               "source": "wordnet",
               "text": "dedicate"
             },
             {
               "source": "wordnet",
               "text": "bring about"
-            },
-            {
-              "source": "wordnet",
-              "text": "emit or utter"
             }
           ],
           "translations": [
@@ -5657,6 +5633,11 @@
               "translation": "Dé té."
             },
             {
+              "source": "freeDictionary",
+              "text": "I give it a 95% chance of success.",
+              "translation": "Le doy un 95% de posibilidades de éxito."
+            },
+            {
               "source": "wiktionaryApi",
               "text": "I'd give it a 95% chance of success.",
               "translation": "Le daría un 95% de posibilidades de éxito."
@@ -5665,6 +5646,11 @@
               "source": "wiktionaryApi",
               "text": "I'll give their marriage six months.",
               "translation": "Le daré a su matrimonio seis meses."
+            },
+            {
+              "source": "freeDictionary",
+              "text": "The master bedroom gives onto a spacious balcony.",
+              "translation": "El dormitorio principal da a un amplio balcón."
             },
             {
               "source": "wiktionary",
@@ -5729,8 +5715,8 @@
             {
               "field": "phonetic",
               "winner": "/ɡɪv/",
-              "source": "wiktApi",
-              "candidates": 3,
+              "source": "freeDictionary",
+              "candidates": 4,
               "reasons": [
                 "ok-source-priority"
               ],
@@ -5740,8 +5726,8 @@
                   "text": "/ɡɪv/"
                 },
                 {
-                  "source": "bundled",
-                  "text": "/ˈɡɪv/"
+                  "source": "wiktApi",
+                  "text": "/ɡɪv/"
                 }
               ]
             },
@@ -5776,7 +5762,7 @@
               "reasons": [
                 "ok-give-transfer-sense"
               ],
-              "candidates": 38,
+              "candidates": 44,
               "runnerUps": [
                 {
                   "source": "wiktApi",
@@ -5799,7 +5785,7 @@
               "field": "examples",
               "winner": "Give up.",
               "source": "tatoeba",
-              "candidates": 28,
+              "candidates": 33,
               "reasons": [
                 "ok-contextual-alignment"
               ],
@@ -5809,19 +5795,20 @@
                   "text": "Give tea."
                 },
                 {
-                  "source": "wiktionaryApi",
-                  "text": "I'd give it a 95% chance of success."
+                  "source": "freeDictionary",
+                  "text": "I give it a 95% chance of success."
                 },
                 {
                   "source": "wiktionaryApi",
-                  "text": "I'll give their marriage six months."
+                  "text": "I'd give it a 95% chance of success."
                 }
               ]
             }
           ],
-          "imageCandidates": 21
+          "imageCandidates": 13
         },
         "successfulSources": [
+          "freeDictionary",
           "datamuse",
           "wiktionary",
           "wiktionaryHtml",
@@ -5836,7 +5823,6 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet"
@@ -5847,8 +5833,15 @@
         {
           "source": "freeDictionary",
           "token": "give",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "definitions",
+            "examples",
+            "synonyms",
+            "antonyms",
+            "audio",
+            "phonetic"
+          ]
         },
         {
           "source": "datamuse",
@@ -6003,11 +5996,8 @@
         {
           "source": "duckduckgoImages",
           "token": "give",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -6042,7 +6032,7 @@
       "tier": "standard",
       "token": "know",
       "sentence": "I do not know the answer.",
-      "ms": 10888,
+      "ms": 13272,
       "error": null,
       "card": {
         "entry": {
@@ -6307,7 +6297,7 @@
               ]
             }
           ],
-          "imageCandidates": 21
+          "imageCandidates": 13
         },
         "successfulSources": [
           "datamuse",
@@ -6324,7 +6314,6 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet"
@@ -6488,11 +6477,8 @@
         {
           "source": "duckduckgoImages",
           "token": "know",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -6527,7 +6513,7 @@
       "tier": "standard",
       "token": "week",
       "sentence": "Oh, yeah, last week you had a wonderful cake.",
-      "ms": 13170,
+      "ms": 13196,
       "error": null,
       "card": {
         "entry": {
@@ -6752,7 +6738,7 @@
               ]
             }
           ],
-          "imageCandidates": 21
+          "imageCandidates": 13
         },
         "successfulSources": [
           "datamuse",
@@ -6768,7 +6754,6 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet"
@@ -6930,11 +6915,8 @@
         {
           "source": "duckduckgoImages",
           "token": "week",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -6969,7 +6951,7 @@
       "tier": "vip",
       "token": "apple",
       "sentence": "She ate a ripe apple.",
-      "ms": 12736,
+      "ms": 12743,
       "error": null,
       "card": {
         "entry": {
@@ -7235,7 +7217,7 @@
               "field": "image",
               "winner": "https://live.staticflickr.com/6117/6284756738_c53e17e6bc_b.jpg",
               "source": "openverse",
-              "candidates": 26,
+              "candidates": 18,
               "reasons": [
                 "ok-primary-source",
                 "ok-exact-match",
@@ -7303,7 +7285,7 @@
             }
           ],
           "imageSource": "openverse",
-          "imageCandidates": 26
+          "imageCandidates": 18
         },
         "successfulSources": [
           "datamuse",
@@ -7321,7 +7303,6 @@
           "bingImages",
           "openverse",
           "wikimediaCommons",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet",
@@ -7502,11 +7483,8 @@
         {
           "source": "duckduckgoImages",
           "token": "apple",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -7717,7 +7695,7 @@
       "tier": "vip",
       "token": "run",
       "sentence": "She ran home.",
-      "ms": 12876,
+      "ms": 12817,
       "error": null,
       "card": {
         "entry": {
@@ -8011,7 +7989,7 @@
               "field": "image",
               "winner": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
               "source": "openverse",
-              "candidates": 22,
+              "candidates": 14,
               "reasons": [
                 "ok-primary-source",
                 "ok-exact-match",
@@ -8093,7 +8071,7 @@
             }
           ],
           "imageSource": "openverse",
-          "imageCandidates": 22
+          "imageCandidates": 14
         },
         "successfulSources": [
           "datamuse",
@@ -8110,7 +8088,6 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet",
@@ -8293,11 +8270,8 @@
         {
           "source": "duckduckgoImages",
           "token": "run",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -8512,7 +8486,7 @@
       "tier": "vip",
       "token": "run",
       "sentence": "She runs the company from home.",
-      "ms": 12551,
+      "ms": 12592,
       "error": null,
       "card": {
         "entry": {
@@ -8805,7 +8779,7 @@
               "field": "image",
               "winner": "https://live.staticflickr.com/2044/2429061604_84789fe473_b.jpg",
               "source": "openverse",
-              "candidates": 22,
+              "candidates": 14,
               "reasons": [
                 "ok-primary-source",
                 "ok-exact-match",
@@ -8898,7 +8872,7 @@
             }
           ],
           "imageSource": "openverse",
-          "imageCandidates": 22
+          "imageCandidates": 14
         },
         "successfulSources": [
           "datamuse",
@@ -8915,7 +8889,6 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "wordnet",
@@ -9099,11 +9072,8 @@
         {
           "source": "duckduckgoImages",
           "token": "run",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -9321,7 +9291,7 @@
       "tier": "vip",
       "token": "anything",
       "sentence": "I do not need anything else.",
-      "ms": 12543,
+      "ms": 12528,
       "error": null,
       "card": {
         "entry": {
@@ -9638,7 +9608,7 @@
               ]
             }
           ],
-          "imageCandidates": 22
+          "imageCandidates": 14
         },
         "successfulSources": [
           "datamuse",
@@ -9655,7 +9625,6 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "britannicaDictionary",
@@ -9832,11 +9801,8 @@
         {
           "source": "duckduckgoImages",
           "token": "anything",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -10038,7 +10004,7 @@
       "tier": "vip",
       "token": "anybody",
       "sentence": "I did not see anybody at the park.",
-      "ms": 13947,
+      "ms": 12500,
       "error": null,
       "card": {
         "entry": {
@@ -10355,7 +10321,7 @@
               ]
             }
           ],
-          "imageCandidates": 22
+          "imageCandidates": 14
         },
         "successfulSources": [
           "datamuse",
@@ -10371,7 +10337,6 @@
           "googleTtsFallback",
           "bingImages",
           "openverse",
-          "duckduckgoImages",
           "youglish",
           "etymonline",
           "britannicaDictionary",
@@ -10545,11 +10510,8 @@
         {
           "source": "duckduckgoImages",
           "token": "anybody",
-          "hasData": true,
-          "fields": [
-            "imageUrl",
-            "imageCandidates"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "youglish",
@@ -10751,7 +10713,7 @@
       "tier": "vip",
       "token": "each",
       "sentence": "Each student has a book.",
-      "ms": 12505,
+      "ms": 12818,
       "error": null,
       "card": {
         "entry": {
@@ -10766,7 +10728,7 @@
             "Each student has a book. — Cada estudiante tiene un libro.",
             "Each person is a world. — Cada persona es un mundo.",
             "They each received a present. — Cada quien recibió un regalo.",
-            "Each country has its own culture. — Cada pa�s tiene su propia cultura."
+            "Saving a portion of each paycheck is essential for financial security. — Ahorrar una parte de cada nómina es esencial para la seguridad financiera."
           ]
         },
         "vip": {
@@ -10888,16 +10850,6 @@
               "translation": "Cada quien recibió un regalo."
             },
             {
-              "source": "linguee",
-              "text": "Each country has its own culture.",
-              "translation": "Cada pa�s tiene su propia cultura."
-            },
-            {
-              "source": "linguee",
-              "text": "Each of us is a member of society.",
-              "translation": "Cada uno de nosotros es un miembro de la sociedad."
-            },
-            {
               "source": "reverso",
               "text": "Saving a portion of each paycheck is essential for financial security.",
               "translation": "Ahorrar una parte de cada nómina es esencial para la seguridad financiera."
@@ -10931,6 +10883,16 @@
               "source": "merriamWebster",
               "text": "Each student had a different explanation.",
               "translation": "Cada estudiante tenía una explicación diferente."
+            },
+            {
+              "source": "britannicaDictionary",
+              "text": "Each student has done his best. = Each student has done his or her best. = ( informal ) Each student has done their best.",
+              "translation": "Cada estudiante ha dado lo mejor de sí. = Cada estudiante ha dado lo mejor de sí. = ( informal ) Cada estudiante ha dado lo mejor de sí."
+            },
+            {
+              "source": "merriamWebster",
+              "text": "cost a dollar each",
+              "translation": "cuestan un dólar cada uno"
             }
           ],
           "videoLinks": [
@@ -11000,10 +10962,10 @@
             {
               "field": "translation",
               "winner": "cada",
-              "source": "wiktApi+bundled+pons+babla+dictCc+linguee+wordReference",
+              "source": "wiktApi+bundled+pons+babla+dictCc+wordReference",
               "score": 0,
               "reasons": [],
-              "candidates": 40,
+              "candidates": 34,
               "runnerUps": [
                 {
                   "source": "wiktApi",
@@ -11058,7 +11020,7 @@
               "field": "examples",
               "winner": "Each student has a book.",
               "source": "bundled",
-              "candidates": 83,
+              "candidates": 80,
               "reasons": [
                 "ok-contextual-alignment"
               ],
@@ -11072,8 +11034,8 @@
                   "text": "They each received a present."
                 },
                 {
-                  "source": "linguee",
-                  "text": "Each country has its own culture."
+                  "source": "reverso",
+                  "text": "Saving a portion of each paycheck is essential for financial security."
                 }
               ]
             }
@@ -11110,7 +11072,6 @@
           "babla",
           "dictCc",
           "reverso",
-          "linguee",
           "promtContext",
           "wordReference",
           "spanishDict",
@@ -11432,11 +11393,8 @@
         {
           "source": "linguee",
           "token": "each",
-          "hasData": true,
-          "fields": [
-            "translations",
-            "examples"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "promtContext",
@@ -11490,7 +11448,7 @@
       "tier": "vip",
       "token": "tensor",
       "sentence": "The model uses a tensor.",
-      "ms": 12766,
+      "ms": 12822,
       "error": null,
       "card": {
         "entry": {
@@ -11584,12 +11542,28 @@
               "text": "tensorial"
             },
             {
-              "source": "wordReference",
-              "text": "músculo tensor"
+              "source": "linguee",
+              "text": "tensor"
             },
             {
-              "source": "wordReference",
-              "text": "tensor"
+              "source": "linguee",
+              "text": "tensioner"
+            },
+            {
+              "source": "linguee",
+              "text": "tightener"
+            },
+            {
+              "source": "linguee",
+              "text": "turnbuckle"
+            },
+            {
+              "source": "linguee",
+              "text": "tensing"
+            },
+            {
+              "source": "linguee",
+              "text": "efecto tensor"
             }
           ],
           "examples": [
@@ -11684,10 +11658,10 @@
             {
               "field": "translation",
               "winner": "tensor",
-              "source": "bundled+pons+babla+wordReference",
+              "source": "bundled+pons+babla+linguee+wordReference",
               "score": 0,
               "reasons": [],
-              "candidates": 8,
+              "candidates": 14,
               "runnerUps": [
                 {
                   "source": "cambridge",
@@ -11805,6 +11779,7 @@
           "babla",
           "dictCc",
           "reverso",
+          "linguee",
           "wordReference",
           "forvo",
           "pixabay"
@@ -12091,8 +12066,10 @@
         {
           "source": "linguee",
           "token": "tensor",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "translations"
+          ]
         },
         {
           "source": "promtContext",
@@ -12142,12 +12119,12 @@
       "tier": "vip",
       "token": "lit",
       "sentence": "The show was lit.",
-      "ms": 12726,
+      "ms": 17858,
       "error": null,
       "card": {
         "entry": {
           "translation": "genial",
-          "bilingual": "genial · iluminado · prendido · encendido · literatura · alumbrado",
+          "bilingual": "genial · iluminado · encendido · literatura · prendido · alumbrado",
           "monolingual": "Slang. amazing ; awesome ; cool (used as a general term of approval).",
           "phonetic": "/lɪt/",
           "examples": [
@@ -12282,7 +12259,7 @@
             {
               "source": "tatoeba",
               "text": "He lit the fuse.",
-              "translation": "Encendió el fusible."
+              "translation": "Encendió la mecha."
             },
             {
               "source": "pons",
@@ -12378,7 +12355,7 @@
               "source": "bundled",
               "score": 0,
               "reasons": [],
-              "candidates": 33,
+              "candidates": 27,
               "runnerUps": [
                 {
                   "source": "wiktApi",
@@ -12386,13 +12363,13 @@
                   "score": 0
                 },
                 {
-                  "source": "reverso",
-                  "text": "prendido",
+                  "source": "wiktApi",
+                  "text": "encendido",
                   "score": 0
                 },
                 {
-                  "source": "wiktApi",
-                  "text": "encendido",
+                  "source": "cambridge",
+                  "text": "literatura",
                   "score": 0
                 }
               ]
@@ -12447,7 +12424,7 @@
               "field": "examples",
               "winner": "The show was lit.",
               "source": "bundled",
-              "candidates": 62,
+              "candidates": 61,
               "reasons": [
                 "ok-contextual-alignment"
               ],
@@ -12498,7 +12475,6 @@
           "pons",
           "babla",
           "reverso",
-          "linguee",
           "promtContext",
           "wordReference",
           "spanishDict",
@@ -12812,11 +12788,8 @@
         {
           "source": "linguee",
           "token": "lit",
-          "hasData": true,
-          "fields": [
-            "translations",
-            "examples"
-          ]
+          "hasData": false,
+          "fields": []
         },
         {
           "source": "promtContext",
@@ -12870,7 +12843,7 @@
       "tier": "vip",
       "token": "break up",
       "sentence": "They decided to break up after college because their relationship was over.",
-      "ms": 12794,
+      "ms": 12808,
       "error": null,
       "card": {
         "entry": {
@@ -12996,12 +12969,12 @@
               "text": "separar"
             },
             {
-              "source": "wordReference",
-              "text": "deshacerse ⇒ v prnl"
+              "source": "linguee",
+              "text": "break"
             },
             {
-              "source": "wordReference",
-              "text": "desintegrarse ⇒ v prnl"
+              "source": "linguee",
+              "text": "up"
             }
           ],
           "examples": [
@@ -13098,7 +13071,7 @@
               "reasons": [
                 "ok-breakup-relationship"
               ],
-              "candidates": 16,
+              "candidates": 22,
               "runnerUps": [
                 {
                   "source": null,
@@ -13173,7 +13146,7 @@
               "field": "examples",
               "winner": "He finally brought himself to break up , knowing the relationship was already over.",
               "source": "reverso",
-              "candidates": 66,
+              "candidates": 69,
               "reasons": [
                 "ok-contextual-alignment"
               ],
@@ -13220,6 +13193,7 @@
           "pons",
           "dictCc",
           "reverso",
+          "linguee",
           "promtContext",
           "wordReference",
           "pixabay"
@@ -13510,8 +13484,11 @@
         {
           "source": "linguee",
           "token": "break up",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "translations",
+            "examples"
+          ]
         },
         {
           "source": "promtContext",
@@ -13561,7 +13538,7 @@
       "tier": "vip",
       "token": "piece of cake",
       "sentence": "The exam was a piece of cake.",
-      "ms": 12850,
+      "ms": 12891,
       "error": null,
       "card": {
         "entry": {
@@ -13569,18 +13546,18 @@
           "bilingual": "pan comido",
           "monolingual": "any undertaking that is easy to do",
           "synonyms": [
-            "breeze",
             "cinch",
+            "breeze",
             "duck soup",
             "child's play",
+            "snap",
             "picnic",
             "pushover",
             "walkover",
             "cakewalk",
             "walk in the park",
-            "snap",
-            "roses",
-            "nothing"
+            "kid stuff",
+            "cream puff"
           ],
           "antonyms": [
             "pain",
@@ -13795,7 +13772,7 @@
             },
             {
               "field": "synonyms",
-              "winner": "breeze",
+              "winner": "cinch",
               "source": "wordnet",
               "candidates": 32,
               "reasons": [
@@ -13804,7 +13781,7 @@
               "runnerUps": [
                 {
                   "source": "wordnet",
-                  "text": "cinch"
+                  "text": "breeze"
                 },
                 {
                   "source": "wordnet",
@@ -14187,7 +14164,7 @@
       "tier": "vip",
       "token": "forget",
       "sentence": "Do not forget your keys.",
-      "ms": 12491,
+      "ms": 12027,
       "error": null,
       "card": {
         "entry": {
@@ -14355,6 +14332,11 @@
               "translation": "No olvidaré eso."
             },
             {
+              "source": "linguee",
+              "text": "I will never forget the time we spent together.",
+              "translation": "El enfado con mi novio se me pas� r�pido."
+            },
+            {
               "source": "reverso",
               "text": "He couldn't forget all that he had seen during the war.",
               "translation": "No podía olvidar todo aquello que había visto durante la guerra."
@@ -14383,11 +14365,6 @@
               "source": "tatoeba",
               "text": "Forget it!",
               "translation": "¡Qué cosa!"
-            },
-            {
-              "source": "dictionaryCom",
-              "text": "to forget one's keys.",
-              "translation": "olvidarse de las llaves."
             }
           ],
           "videoLinks": [
@@ -14460,7 +14437,7 @@
               "source": "wiktApi+bundled+cambridge+pons+dictCc",
               "score": 0,
               "reasons": [],
-              "candidates": 36,
+              "candidates": 41,
               "runnerUps": [
                 {
                   "source": "wiktApi",
@@ -14533,7 +14510,7 @@
               "field": "examples",
               "winner": "Do not forget your keys.",
               "source": "bundled",
-              "candidates": 83,
+              "candidates": 85,
               "reasons": [
                 "ok-contextual-alignment"
               ],
@@ -14585,6 +14562,7 @@
           "babla",
           "dictCc",
           "reverso",
+          "linguee",
           "promtContext",
           "wordReference",
           "spanishDict",
@@ -14914,8 +14892,11 @@
         {
           "source": "linguee",
           "token": "forget",
-          "hasData": false,
-          "fields": []
+          "hasData": true,
+          "fields": [
+            "translations",
+            "examples"
+          ]
         },
         {
           "source": "promtContext",
@@ -14970,7 +14951,7 @@
       "tier": "vip",
       "token": "support",
       "sentence": "Her family supported her decision.",
-      "ms": 12800,
+      "ms": 12832,
       "error": null,
       "card": {
         "entry": {
@@ -15770,7 +15751,7 @@
       "tier": "vip",
       "token": "give",
       "sentence": "Give me the keys, please.",
-      "ms": 1815,
+      "ms": 2078,
       "error": null,
       "card": {
         "entry": {
@@ -16573,7 +16554,7 @@
       "tier": "vip",
       "token": "know",
       "sentence": "I do not know the answer.",
-      "ms": 12786,
+      "ms": 13565,
       "error": null,
       "card": {
         "entry": {
@@ -17332,7 +17313,7 @@
       "tier": "vip",
       "token": "week",
       "sentence": "Oh, yeah, last week you had a wonderful cake.",
-      "ms": 13258,
+      "ms": 13254,
       "error": null,
       "card": {
         "entry": {
@@ -18068,5 +18049,5 @@
       ]
     }
   ],
-  "finishedAt": "2026-09-10T00:50:39.541Z"
+  "finishedAt": "2026-09-10T01:39:28.283Z"
 }

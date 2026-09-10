@@ -101,6 +101,22 @@ describe('merriam-webster thesaurus source (real MV3 fixtures)', () => {
     }
   });
 
+  it('keeps the relevance head of the idiom list, not the drift tail', async () => {
+    // MW's raw order carries noise high (nothing #3, cake #5, roses #6)
+    // so the parser drops literal components + empty quantifiers up
+    // front. Verified live 2026-09-10: `piece of cake` vip syn ended
+    // with roses/nothing.
+    mockFixture(fixture('piece-of-cake.html'));
+    const result = await merriamWebsterThesaurusSource.enrich('piece of cake', ctx);
+
+    const group = result.relationGroups![0];
+    expect(group.synonyms).toContain('breeze');
+    expect(group.synonyms).toContain('duck soup');
+    expect(group.synonyms).not.toContain('cake');
+    expect(group.synonyms).not.toContain('roses');
+    expect(group.synonyms).not.toContain('nothing');
+  });
+
   it('caps published sense examples', async () => {
     mockFixture(fixture('run.html'));
     const result = await merriamWebsterThesaurusSource.enrich('run', ctx);

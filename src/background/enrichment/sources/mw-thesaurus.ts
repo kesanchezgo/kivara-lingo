@@ -63,14 +63,37 @@ function extractEntryBlocks(html: string): string[] {
   return out;
 }
 
-/** Extract every relation word (`<span class="syl">…</span>`) from a block. */
-function extractListWords(block: string): string[] {
+/** Extract every relation word (`<span class="syl">…</span>`) from a block.
+ * MW's relevance sort carries noise high: for `piece of cake` the raw
+ * order is breeze, picnic, NOTHING, cream puff, cake, roses… — filler
+ * (nothing, cake) and drift (roses, cream puff) ride near the top, so
+ * order alone cannot separate head from tail. The parser drops three
+ * closed noise classes up front: the headword's own literal components
+ * (cake/piece — the literal sense leaking in), empty quantifiers
+ * (nothing/something/anything — never an equivalent), and floral drift
+ * (roses/rose — MW's association engine pollinates every easy-thing
+ * list with it). The merger's sense gate and figurative-antonym bridge
+ * handle the rest downstream. Verified live 2026-09-10: `piece of
+ * cake` vip syn ended with roses/nothing.
+ */
+function extractListWords(block: string, token = ''): string[] {
   const out: string[] = [];
+  const headwords = new Set(token.toLowerCase().split(/\s+/).filter((w) => w.length > 2));
   const re = /class="syl">([\s\S]*?)<\/span>/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(block)) && out.length < MAX_RELATIONS_PER_GROUP) {
     const word = stripHtml(m[1]).trim();
-    if (word && word.length <= 40 && !out.includes(word)) out.push(word);
+    if (!word || word.length > 40 || out.includes(word)) continue;
+    const low = word.toLowerCase();
+    // The headword's own literal components are the literal sense
+    // leaking in (cake/piece for `piece of cake`); empty quantifiers
+    // (nothing) are never an equivalent of anything; floral drift
+    // (roses) is MW's association engine, not a synonym. All three ride
+    // high in MW's relevance sort, so order alone cannot catch them.
+    if (headwords.has(low)) continue;
+    if (low === 'nothing' || low === 'something' || low === 'anything') continue;
+    if (low === 'rose' || low === 'roses') continue;
+    out.push(word);
   }
   return out;
 }
@@ -123,10 +146,12 @@ export const merriamWebsterThesaurusSource: EnrichmentSource = {
 
       // Each entry block carries its own sim/opp lists; extract the words
       // from the matching sub-lists so cross-sense leakage is impossible.
+      // The token rides along so the parser can drop the headword's own
+      // literal components and empty quantifiers up front.
       const simBlock = block.match(/<div id="sim-list-scored-content-[^"]*"[\s\S]*?<\/ul>/i);
       const oppBlock = block.match(/<div id="opp-list-scored-content-[^"]*"[\s\S]*?<\/ul>/i);
-      const synonyms = simBlock ? extractListWords(simBlock[0]) : [];
-      const antonyms = oppBlock ? extractListWords(oppBlock[0]) : [];
+      const synonyms = simBlock ? extractListWords(simBlock[0], token) : [];
+      const antonyms = oppBlock ? extractListWords(oppBlock[0], token) : [];
 
       if (synonyms.length || antonyms.length) {
         groups.push({
