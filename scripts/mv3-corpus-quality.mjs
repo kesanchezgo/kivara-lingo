@@ -368,6 +368,13 @@ async function main() {
         const card = options.purpose === 'card'
           ? cardFromCreateResponse(messages, sourceLogs, tierConsole)
           : finalCard(messages, sourceLogs);
+        // Collocation-pool trace: the merger logs it per lookup; capture
+        // the LAST one for this token so partial runs still carry the
+        // recall evidence (pool size, sense-bound count, anchor, pool).
+        const collocEvent = [...tierConsole]
+          .reverse()
+          .map((event) => event.values.find((value) => value && typeof value === 'object' && value.poolSize !== undefined && value.token === token))
+          .find(Boolean);
 
         report.rows.push({
           tier,
@@ -376,6 +383,7 @@ async function main() {
           ms,
           error,
           card,
+          collocTrace: collocEvent ?? null,
           sourceLogs,
         });
         console.log(`[corpus] ${tier}/${token}: ${error ? `ERROR ${error}` : `${ms}ms, ${card?.successfulSources?.length ?? 0} sources`}`);

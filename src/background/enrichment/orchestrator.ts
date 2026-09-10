@@ -2978,6 +2978,18 @@ function mergeFields(
     }
   }
   let collocationPool: Array<{ source: string; text: string; senseBound?: boolean }> = collocationCandidates;
+  // Bundled curated chunks (offline verb-object pairs) are lexicographer-
+  // checked and sense-neutral: they publish ONLY when no sense-bound
+  // group won the gate. When a group DID win (run manage → well/badly
+  // run), the bundled flats would dilute the sense-scoped field with
+  // every sense's pairs (run a marathon on a manage card) — the same
+  // contamination the flat-anchor rule exists to prevent. Verified live
+  // 2026-09-10: run-manage vip published well/badly run (correct) and
+  // must keep publishing exactly that after the bundle overlay lands.
+  const hasSenseBoundWin = senseBoundCollocations.length > 0;
+  if (hasSenseBoundWin) {
+    collocationPool = collocationPool.filter((c) => c.source !== 'bundled');
+  }
   // The group's gloss already earned the contextual gate; chunks ride free
   // ONLY when that win was substantive (a real content-word overlap, not
   // generic argument-structure words like `someone`/`something`). A

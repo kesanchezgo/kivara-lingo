@@ -20,4 +20,19 @@ describe('ACL collocation overlay filters corpus adverb bigrams', () => {
       }
     }
   });
+
+  it('covers high-frequency verbs the ACL misses', () => {
+    // The ACL has 471 headwords but no run/forget/know/break entries —
+    // the hand-curated verb overlay fills exactly that gap (offline,
+    // zero-network). Verified against the 2026-09-10 corpus pools:
+    // these pairings appear in Longman/PONS/ozdic sense groups.
+    for (const [verb, chunk] of [
+      ['run', 'run a marathon'],
+      ['forget', 'forget your keys'],
+      ['know', 'know the answer'],
+      ['break', 'break a record'],
+    ] as Array<[string, string]>) {
+      expect(lookupDictionary(verb, 'en')?.collocations ?? []).toContain(chunk);
+    }
+  });
 });

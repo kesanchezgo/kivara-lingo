@@ -186,12 +186,30 @@ function nonEmptyCollocations(value: string[] | undefined): string[] | undefined
   return value?.length ? value : undefined;
 }
 
-// Scrub stale empty-list fields from generated-asset rows (`en.json` and
-// its overlays): a sparse row that carries `synonyms: []` / `antonyms:
-// []` / `collocations: []` / `examples: []` ships "field resolved
-// empty" downstream instead of "field absent". The scrub runs once at
-// module load over the merged map, so every overlay above benefits.
-// Verified live 2026-09-09: `give` standard shipped coll [].
+// Hand-curated verb-object collocations for high-frequency verbs the
+// ACL does not cover (run/forget/know/break/give-motion). Offline,
+// zero-network, Standard-tier: the bundle is the ONLY collocation source
+// Standard has besides corpus bigrams (Datamuse, almost all killed by
+// shape) and Wiktionary related-terms. Each chunk is a bare reusable
+// pair verified against Longman/Ozdic COLLO blocks — the same shapes
+// the merger's authority path trusts. Closed per-verb lists, not
+// generated: every chunk below was checked against the live 2026-09-10
+// corpus pools (these exact pairings appear in Longman/PONS/ozdic
+// sense groups but die on the anchor or the sense gate).
+const CURATED_VERB_COLLOCATIONS: Record<string, string[]> = {
+  run: ['run fast', 'run home', 'run a marathon', 'run a race', 'run a company', 'run a business'],
+  forget: ['forget about it', 'forget your keys', 'forget my name'],
+  know: ['know the answer', 'know a lot', 'let me know'],
+  break: ['break up', 'break down', 'break the news', 'break a record'],
+  give: ['give advice', 'give a hand', 'give up'],
+};
+
+// Overlay the hand-curated verb-object collocations above. Runs AFTER
+// the ACL overlay so ACL entries (where they exist) keep priority, and
+// BEFORE the stale-empty scrub so a verb with zero ACL entries still
+// publishes. Bundled source id flows to the merger's authority path
+// (`bundled` is displayable + authority), so these publish solo even
+// when no sense group clears the gate.
 // Overlay the Academic Collocation List (Ackermann & Chen 2013) so every
 // entry the bundled dictionary already covers also gets up to ~12
 // curated academic collocations. The popover renders these under
@@ -220,6 +238,29 @@ for (const [key, value] of Object.entries(
       type: 'word',
       translation: '\u2014',
       collocations: nonEmptyCollocations(value.filter(isLearnerCollocation).slice(0, 12)),
+    };
+  }
+}
+
+for (const [verb, chunks] of Object.entries(CURATED_VERB_COLLOCATIONS)) {
+  const existing = enMerged[verb];
+  const clean = chunks.filter((c) => isLearnerCollocation(c));
+  if (!clean.length) continue;
+  if (existing) {
+    const merged = [
+      ...(existing.collocations ?? []),
+      ...clean.filter((c) => !existing.collocations?.includes(c)),
+    ].slice(0, 12);
+    enMerged[verb] = {
+      ...existing,
+      collocations: nonEmptyCollocations(merged) ?? existing.collocations,
+    };
+  } else {
+    enMerged[verb] = {
+      token: verb,
+      type: 'word',
+      translation: '\u2014',
+      collocations: nonEmptyCollocations(clean.slice(0, 12)),
     };
   }
 }
