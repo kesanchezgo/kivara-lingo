@@ -2986,9 +2986,14 @@ function mergeFields(
   // contamination the flat-anchor rule exists to prevent. Verified live
   // 2026-09-10: run-manage vip published well/badly run (correct) and
   // must keep publishing exactly that after the bundle overlay lands.
+  // NOTE: the bundled sense-bound chunk (run a company/business, whose
+  // group won the same gate) is NOT a flat — it rides with the winners
+  // below, so the manage card keeps company/business ALONGSIDE
+  // well/badly run instead of losing them.
   const hasSenseBoundWin = senseBoundCollocations.length > 0;
   if (hasSenseBoundWin) {
-    collocationPool = collocationPool.filter((c) => c.source !== 'bundled');
+    const senseBoundTexts = new Set(senseBoundCollocations.map((c) => c.text.toLowerCase()));
+    collocationPool = collocationPool.filter((c) => c.source !== 'bundled' || senseBoundTexts.has(c.text.toLowerCase()));
   }
   // The group's gloss already earned the contextual gate; chunks ride free
   // ONLY when that win was substantive (a real content-word overlap, not

@@ -34,5 +34,9 @@ describe('ACL collocation overlay filters corpus adverb bigrams', () => {
     ] as Array<[string, string]>) {
       expect(lookupDictionary(verb, 'en')?.collocations ?? []).toContain(chunk);
     }
+    // Sense-scoped pairs live in the bundled SOURCE (relationGroups),
+    // not in the flat map — `run a company` must NOT leak flat onto a
+    // motion card. Verified live 2026-09-10.
+    expect(lookupDictionary('run', 'en')?.collocations ?? []).not.toContain('run a company');
   });
 });

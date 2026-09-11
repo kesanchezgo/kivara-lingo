@@ -14,7 +14,22 @@
  */
 
 import { lookupDictionary } from '../../../content/nlp/dictionary';
-import type { EnrichmentSource, SourcePartial } from '../types';
+import type { EnrichmentSource, SenseRelationGroup, SourcePartial } from '../types';
+
+/** Sense-scoped curated collocation groups the bundle publishes alongside
+ * its flat verb-object pairs. Mirrors the Longman Sense-block contract:
+ * the merger's contextual gate (`pickSenseRelationGroups`) picks the
+ * CURRENT sense's chunks instead of dumping every sense flat. Only
+ * `run` needs one today (manage vs motion); more verbs grow here only
+ * with live-pool evidence, never by guessing. */
+const BUNDLED_SENSE_COLLOCATION_GROUPS: Array<{ token: string } & SenseRelationGroup> = [
+  {
+    token: 'run',
+    guide: 'to organize or be in charge of a business',
+    definition: 'to organize or be in charge of a business',
+    collocations: ['run a company', 'run a business'],
+  },
+];
 
 export const bundledSource: EnrichmentSource = {
   id: 'bundled',
@@ -38,6 +53,10 @@ export const bundledSource: EnrichmentSource = {
     if (entry.synonyms?.length) partial.synonyms = entry.synonyms;
     if (entry.antonyms?.length) partial.antonyms = entry.antonyms;
     if (entry.collocations?.length) partial.collocations = entry.collocations;
+    const senseGroups = BUNDLED_SENSE_COLLOCATION_GROUPS.filter(
+      (group) => group.token === token.trim().toLowerCase(),
+    ).map(({ token: _token, ...group }) => group);
+    if (senseGroups.length) partial.relationGroups = senseGroups;
     if (entry.frequencyRank) partial.frequencyRank = entry.frequencyRank;
     return partial;
   },

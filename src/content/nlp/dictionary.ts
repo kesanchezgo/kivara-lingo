@@ -197,12 +197,19 @@ function nonEmptyCollocations(value: string[] | undefined): string[] | undefined
 // corpus pools (these exact pairings appear in Longman/PONS/ozdic
 // sense groups but die on the anchor or the sense gate).
 const CURATED_VERB_COLLOCATIONS: Record<string, string[]> = {
-  run: ['run fast', 'run home', 'run a marathon', 'run a race', 'run a company', 'run a business'],
+  run: ['run fast', 'run home', 'run a marathon', 'run a race'],
   forget: ['forget about it', 'forget your keys', 'forget my name'],
   know: ['know the answer', 'know a lot', 'let me know'],
   break: ['break up', 'break down', 'break the news', 'break a record'],
   give: ['give advice', 'give a hand', 'give up'],
+  support: ['moral support', 'strong support', 'broad support', 'lend support'],
+  week: ['working week', 'eventful week', 'last week', 'next week'],
 };
+
+// Sense-scoped curated chunks live in the bundled SOURCE as
+// relationGroups (same contract as Longman Sense blocks) — the
+// dictionary map below carries only sense-neutral flats, so there is
+// no second copy to drift.
 
 // Overlay the hand-curated verb-object collocations above. Runs AFTER
 // the ACL overlay so ACL entries (where they exist) keep priority, and
