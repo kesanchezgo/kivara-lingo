@@ -34,7 +34,7 @@ interface SourceMeta {
 const STD_DICT_SOURCES: SourceMeta[] = [
   { key: 'bundled', label: 'Bundled (offline)', hint: 'Diccionario curado + extensiones + CEFR + thesaurus + collocations académicas. ~10 893 entradas, ~250 KB. Funciona offline.' },
   { key: 'wordnet', label: 'WordNet (OEWN 2025, offline)', hint: 'Open English WordNet local (CC BY 4.0): grupos de sinónimos/antónimos por acepción, definiciones y ejemplos con selección de sentido. Sin red; carga sólo el fragmento de la inicial consultada.' },
-  { key: 'yomitanPacks', label: 'Yomitan packs', hint: 'Packs Wiktionary instalados (kty-en-es: 67k entradas, kty-en-en: 500k, kty-en-ipa: 200k). Cubren phrasals, idioms, MWE y slang.' },
+  { key: 'yomitanPacks', label: 'Yomitan packs', hint: 'Packs Wiktionary instalados (kty-en-es: 61k términos, kty-en-ipa: 140k filas IPA, kty-en-en: 500k). Cubren phrasals, idioms, MWE y slang.' },
   { key: 'wiktionary', label: 'Wiktionary REST', hint: 'API oficial Wikimedia (en.wiktionary.org/api/rest_v1). Cubre phrasal verbs, idioms y MWE multi-palabra que otros diccionarios no indexan. Sin token.' },
   { key: 'wiktionaryHtml', label: 'Wiktionary HTML', hint: 'Parser de la página HTML completa de Wiktionary: etimología + sinónimos + antónimos + términos relacionados que el endpoint JSON no expone. Crucial para frases multi-palabra (kick the bucket, piece of cake, turn off). Sin token.' },
   { key: 'wiktionaryApi', label: 'WiktionaryAPI', hint: 'freedictionaryapi.com — mirror Wiktionary con datos completos para frases multi-palabra (kick the bucket → 18+ sinónimos, big deal → 2 senses). Sin token.' },

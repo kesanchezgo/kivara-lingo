@@ -515,7 +515,7 @@ export interface VipSettings {
    * Yomitan packs installed by the user (kty-en-es / kty-en-en /
    * kty-en-ipa / etc.). Queries the IndexedDB-backed `dict_terms`
    * table. Most powerful Standard source for phrasal verbs, idioms,
-   * MWEs and slang — `kty-en-es` alone has ~67k headwords. Default true.
+   * MWEs and slang — `kty-en-es` has ~61k terms. Default true.
    */
   yomitanPacks: boolean;
 

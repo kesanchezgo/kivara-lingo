@@ -8,10 +8,12 @@
  *
  *  1. Wiktionary EN→ES   — default ON. Bilingual translations + examples.
  *                          Without this, every hover falls through to the
- *                          remote translator chain.
+ *                          remote translator chain. ~61k terms (~51k unique
+ *                          headwords), verified 2026-10-07 from the shipped ZIP.
  *  2. Wiktionary EN IPA  — default ON. Fills the `phonetic` field on
  *                          ~95% of cards (the bundled dictionary only
- *                          covers ~10%).
+ *                          covers ~10%). ~140k meta rows (~138k unique
+ *                          expressions), verified 2026-10-07.
  *  3. Wiktionary EN→EN   — default OFF. Monolingual definitions for B2+
  *                          immersion. 127 MB so we never opt people in
  *                          automatically.
@@ -51,7 +53,7 @@ export const CURATED_DICT_PACKS: OnboardingDictPack[] = [
   {
     url: `${PACKS_BASE_URL}/kty-en-es.zip`,
     title: 'Wiktionary EN→ES',
-    description: 'Traducciones al español, ejemplos y categoría gramatical para ~250 000 palabras.',
+    description: 'Traducciones al español, ejemplos y categoría gramatical para ~61 000 términos.',
     size: '≈1.5 MB',
     defaultSelected: true,
     tier: 'core',
@@ -60,7 +62,7 @@ export const CURATED_DICT_PACKS: OnboardingDictPack[] = [
   {
     url: `${PACKS_BASE_URL}/kty-en-ipa.zip`,
     title: 'Wiktionary EN IPA',
-    description: 'Transcripción fonética IPA real para ~200 000 palabras.',
+    description: 'Transcripción fonética IPA real para ~140 000 entradas.',
     size: '≈5 MB',
     defaultSelected: true,
     tier: 'recommended',

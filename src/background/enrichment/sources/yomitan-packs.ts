@@ -4,9 +4,9 @@
  * Queries the IndexedDB-backed Yomitan dictionary cache (filled by
  * `src/content/nlp/yomitan.ts`'s `importYomitanPack*`) for the user's
  * installed kty-* packs. This is the most powerful Standard-tier
- * resource — `kty-en-es` alone has ~67k headwords and `kty-en-en`
- * ~500k, covering phrasal verbs, idioms, MWEs and slang that no
- * other free source ships.
+ * resource — `kty-en-es` has ~61k terms and `kty-en-ipa` ~140k IPA rows
+ * (verified 2026-10-07 from the shipped ZIPs), covering phrasal verbs,
+ * idioms, MWEs and slang that no other free source ships.
  *
  * Output shape:
  *   - `definitions`        — from monolingual packs (kty-en-en, kty-es-es)

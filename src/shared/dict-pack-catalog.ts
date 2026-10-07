@@ -85,7 +85,7 @@ export const RECOMMENDED_PACKS: RecommendedPack[] = [
   // ── IPA (pronunciación) ────────────────────────────────────────────────
   {
     title: 'Wiktionary EN IPA',
-    description: 'Transcripción IPA real para ~200 000 palabras inglesas.',
+    description: 'Transcripción fonética IPA real para ~140 000 entradas inglesas.',
     url: `${PACKS_BASE_URL}/kty-en-ipa.zip`,
     size: '≈5 MB',
     tier: 'recommended',
