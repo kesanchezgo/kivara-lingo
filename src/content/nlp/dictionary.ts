@@ -82,6 +82,12 @@ const enMerged: Record<string, DictionaryEntry> = {
   // `zaghloul404/englishidioms` dataset (NTC, 1996). Covers gaps in
   // Wiktionary / Free Dictionary for multi-word expressions like
   // "kick the bucket", "piece of cake", "get a kick out of".
+  //
+  // WEIGHT: this file is 3.8MB source (~65% of the dictionary chunk).
+  // Only ~40 of its 14k phrases ever appear in learner subtitles; the
+  // rest is dead weight shipped to every user. Candidate for lazy-load
+  // (own JSON asset + fetch-on-demand like WordNet shards) or for
+  // trimming to subtitle-frequent phrases. See weight audit 2026-09-11.
   ...(Object.fromEntries(
     Object.entries(enIdiomsEntries as Record<string, { monolingual?: string; examples?: string[] }>).map(
       ([key, value]) => [
