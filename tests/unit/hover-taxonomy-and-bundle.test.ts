@@ -119,8 +119,12 @@ describe('offline bundle and first-hover taxonomy', () => {
     const realTranslations = entries.filter(
       (entry) => (entry.translation ?? '').trim() !== '' && entry.translation !== '—',
     );
-    expect(entries.length).toBeGreaterThan(30_000);
-    expect(phrases.length).toBeGreaterThan(20_000);
+    // Baseline after the 2026-10-07 en-idioms trim (14 318 → 1 614 HOT
+    // entries shared with the MWE index): the bundle stays above 20k
+    // entries / 14k phrases. The COLD 12.7k NTC phrases live in
+    // `.audit/en-idioms-cold.json` as lazy-load candidates, not in RAM.
+    expect(entries.length).toBeGreaterThan(20_000);
+    expect(phrases.length).toBeGreaterThan(14_000);
     expect(realTranslations.length).toBeGreaterThan(3_000);
     expect(entries.some((entry) => !!entry.monolingual)).toBe(true);
     expect(entries.some((entry) => !!entry.examples?.length)).toBe(true);
