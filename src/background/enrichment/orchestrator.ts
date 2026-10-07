@@ -621,6 +621,7 @@ function sourcePriority(source: string, priority: string[]): number {
 }
 
 const COLLOCATION_SOURCE_PRIORITY = [
+  'bundled',
   'ozdic',
   'longman',
   'oxfordLearners',
@@ -803,6 +804,30 @@ function normalizeCollocation(raw: string, token: string, isTrustedSource = fals
   // a bare word pair the learner can reuse.
   if (words[0] === 'to' && words[1] === tok) return null;
   if (/\b(?:not|will|would|can|could|may|might|must|should|they|you|we|he|she|it)\b/.test(low) && words.length <= 3) return null;
+  // Discourse/emphasis routines are pragmatic frames, not lexical
+  // pairings the learner can reuse with the headword: they teach
+  // discourse management or emphasis, not the word's combinatorics.
+  // Closed frame-word classes, not per-token rules (verified live
+  // 2026-10-07: `know` vip published 7 discourse chunks from
+  // Longman/ozdic sense groups — "know exactly/precisely", "for
+  // certain/full/very/perfectly well know", "if you know what I
+  // mean" — once the flat anchor stopped killing bundled flats and
+  // the shape gate became the only defense):
+  //   - precision adverbs beside the headword (exactly/precisely);
+  //   - certainty/intensifier frames (certain/well/full/perfectly/very
+  //     + know — pragmatic emphasis, while `well/badly run` is a
+  //     predicative pairing and keeps its trusted-source exemption);
+  //   - discourse frames naming the speech act (what I mean, you know).
+  // Applies to EVERY source including trusted COLLO blocks: Longman's
+  // block carries these frames, but they teach emphasis, not the
+  // headword. `well/badly run` survive via the adverb-bigram exemption
+  // above (predicative, not emphasis).
+  if (words.includes(tok)) {
+    const rest = words.filter((w) => w !== tok);
+    if (rest.some((w) => /^(?:exactly|precisely)$/.test(w))) return null;
+    if (rest.some((w) => /^(?:certain|full|perfectly|very|really|quite)$/.test(w))) return null;
+    if (/\bwhat i mean\b/.test(low)) return null;
+  }
   return text;
 }
 
@@ -851,10 +876,20 @@ export function pickCollocations(
       DISPLAYABLE_COLLOCATION_SOURCES.has(candidate.source),
     );
     if (!normalized) continue;
-    // Sense anchor: the chunk's terms minus the headword must touch the
-    // active sense's context. "run a company" -> {company} overlaps a
-    // management context; "run a marathon" -> {marathon} does not.
-    if (hasContextAnchor) {
+    // Sense anchor: a NON-sense-bound chunk's terms minus the headword
+    // must touch the active sense's context ("run a company" →
+    // {company} overlaps a management context; "run a marathon" →
+    // {marathon} does not). Sense-bound chunks bypass: their GROUP
+    // already won the contextual gate via its gloss, and re-anchoring
+    // each chunk would kill terms that never appear in prose
+    // (`well run` for the manage sense). The offline bundle's curated
+    // flats also bypass: they are lexicographer-checked pairs with no
+    // sense ambiguity to resolve (verified live 2026-10-07: with
+    // Yomitan packs installed, Standard collocations collapsed 1→5
+    // only after the anchor stopped killing bundled flats).
+    // Shape rules above still apply to every path.
+    const isBundledFlat = candidate.source === 'bundled' && !(candidate.senseBound ?? false);
+    if (hasContextAnchor && !(candidate.senseBound ?? false) && !isBundledFlat) {
       const chunkTerms = relationTerms(normalized, token);
       let overlaps = false;
       for (const term of chunkTerms) {
@@ -3030,13 +3065,18 @@ function mergeFields(
     // publish hand-built collocation blocks that survive the strict
     // normalizeCollocation cleaning. A single clean chunk from one of these
     // is trustworthy enough to publish alone (they are already displayable
-    // at the pickCollocations layer). This lifts coverage for polysemous
-    // verbs whose ozdic sense group did not clear the contextual gate
-    // (`run`, `give` returned empty on 2026-09-06 despite 5-7 collocation
-    // sources). Ozdic stays corroboration-required by deliberate contract
-    // (sense-aware but corpus-derived); Datamuse/PONS/dictCc/wiktionary too.
+    // at the pickCollocations layer). The offline bundle joins them: its
+    // curated verb-object pairs are lexicographer-checked flats that need
+    // no second source (verified live 2026-09-11: with Yomitan packs
+    // installed, Standard collocations collapsed 7→1 because bundled
+    // flats required corroboration no offline source could give). This
+    // lifts coverage for polysemous verbs whose ozdic sense group did not
+    // clear the contextual gate (`run`, `give` returned empty on
+    // 2026-09-06 despite 5-7 collocation sources). Ozdic stays
+    // corroboration-required by deliberate contract (sense-aware but
+    // corpus-derived); Datamuse/PONS/dictCc/wiktionary too.
     const collocationAuthorities = new Set([
-      'longman', 'oxfordLearners', 'cambridge',
+      'longman', 'oxfordLearners', 'cambridge', 'bundled',
     ]);
     const byChunk = new Map<string, { sources: Set<string> }>();
     for (const candidate of collocationCandidates) {

@@ -773,6 +773,33 @@ describe('enrichment quality ranking', () => {
     ])).toEqual([]);
   });
 
+  it('kills discourse and emphasis routines from any source', () => {
+    // Verified live 2026-10-07: `know` vip published 7 discourse chunks
+    // from Longman/ozdic sense groups ("know exactly/precisely", "for
+    // certain/full/very/perfectly well know", "if you know what I
+    // mean"). Pragmatic frames teach emphasis/discourse, not the
+    // headword's combinatorics — rejected by shape even from trusted
+    // COLLO blocks. `well/badly run` survive (predicative pairing).
+    expect(pickCollocations('know', [
+      { source: 'longman', text: 'know exactly' },
+      { source: 'ozdic', text: 'know exactly' },
+    ])).toEqual([]);
+    expect(pickCollocations('know', [
+      { source: 'ozdic', text: 'for certain know' },
+      { source: 'longman', text: 'full well know' },
+    ])).toEqual([]);
+    expect(pickCollocations('know', [
+      { source: 'longman', text: 'if you know what I mean' },
+    ])).toEqual([]);
+    // Genuine pairings are untouched.
+    expect(pickCollocations('know', [
+      { source: 'bundled', text: 'know the answer' },
+    ])).toEqual(['know the answer']);
+    expect(pickCollocations('run', [
+      { source: 'longman', text: 'well run' },
+    ])).toEqual(['well run']);
+  });
+
   it('kills light-verb gesture collocations for a transfer sentence', () => {
     // Verified live 2026-09-09: `give` vip published "give a grin/yawn/
     // wave/smile/laugh/frown" for "Give me the keys, please." — the
