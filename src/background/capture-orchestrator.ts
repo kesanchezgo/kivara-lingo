@@ -301,6 +301,23 @@ async function resolveAudio(
  * Returns {ok:true, noteId} when the card already exists, null when we
  * must create it. Never throws: a failed check falls through to addNote.
  */
+/** Normalize a note field for identity comparison: Anki stores HTML
+ * (`<b>`, `<br>`, `&nbsp;`) so a raw string compare would never match the
+ * plain cue the content script sent. Strip tags/entities, collapse
+ * whitespace, case-fold. */
+function normalizeFieldForCompare(raw: string): string {
+  return String(raw ?? '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&#\d+;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 async function findExistingCard(
   request: CreateCardRequest,
   mapping: AnkiMapping,
@@ -326,21 +343,46 @@ async function findExistingCard(
     });
     if (!query) return null;
     const found = await ankiConnect.findNotes(query, mapping.ankiUrl, mapping.apiKey);
-    if (found.length > 0) {
-      try {
-        await getDB().saved_notes.put({
-          token: request.token,
-          language: request.language ?? 'en',
-          sentence: request.sentence,
-          deckName: mapping.deckName,
-          ankiNoteId: found[0],
-          createdAt: Date.now(),
-        });
-      } catch {
-        // best-effort
-      }
-      return { ok: true, noteId: found[0], warnings: [] };
+    if (found.length === 0) return null;
+
+    // WORD MATCH IS NOT ENOUGH: another card of the same word in a
+    // different sentence must be created, not silently reported as this
+    // one. Verify the cue field when the model maps one — via notesInfo,
+    // because Anki search can't reliably match the sentence against HTML
+    // field content (`<b>`, `&nbsp;`, `<br>`).
+    const cueField = Object.entries(mapping.fieldSources ?? {}).find(
+      ([, s]) => s === 'cue',
+    )?.[0];
+    let matchedId: number | null = null;
+    if (cueField) {
+      const infos = await ankiConnect.notesInfo(found.slice(0, 20), mapping.ankiUrl, mapping.apiKey);
+      const want = normalizeFieldForCompare(request.sentence);
+      matchedId =
+        infos.find((n) => normalizeFieldForCompare(n.fields[cueField]?.value ?? '') === want)
+          ?.noteId ?? null;
+      // No verified match → this is a DIFFERENT card of the same word:
+      // do NOT touch the ledger, fall through to addNote.
+      if (matchedId === null) return null;
+    } else {
+      // Model maps no cue field — sentence identity can't be checked, so
+      // a word match is the strongest evidence available. Documented
+      // best-effort, not a silent claim.
+      matchedId = found[0];
     }
+
+    try {
+      await getDB().saved_notes.put({
+        token: request.token,
+        language: request.language ?? 'en',
+        sentence: request.sentence,
+        deckName: mapping.deckName,
+        ankiNoteId: matchedId,
+        createdAt: Date.now(),
+      });
+    } catch {
+      // best-effort
+    }
+    return { ok: true, noteId: matchedId, warnings: [] };
   } catch {
     // Anki unreachable for the check — proceed with the add
   }
@@ -766,7 +808,21 @@ export async function createCardFromRequest(
       }
     }
   } else if (sentenceAudioField && options.fromRetry) {
-    const carried = options.carriedAudio ?? null;
+    // Three sources for the retry's clip, best first:
+    //  1. carriedAudio — the first attempt resolved it from the ring buffer
+    //     and stashed it on the pending row.
+    //  2. request.audio — the CONTENT SCRIPT supplied the clip itself, so it
+    //     rides along with the stored request. Skipping this (previous bug)
+    //     dropped the human clip and fell back to TTS with a false warning.
+    //  3. neither → deterministic TTS fallback, announced visibly.
+    const carried =
+      options.carriedAudio ??
+      (request.audio
+        ? {
+            dataUrl: request.audio,
+            mime: /data:([^;]+)/.exec(request.audio)?.[1] ?? 'audio/webm',
+          }
+        : null);
     if (carried) {
       try {
         const filename = safeFilename(request.token, extForMime(carried.mime));

@@ -52,6 +52,12 @@ export function SecretKeyInput({
   const [show, setShow] = useState(false);
   /** Last value this component pushed to the store — write-through echo. */
   const lastEmittedRef = useRef<string | null>(null);
+  /** Refs mirroring state so commit can read them outside React events
+   * (unmount cleanup / pagehide) where state setters are already gone. */
+  const draftRef = useRef('');
+  const dirtyRef = useRef(false);
+  draftRef.current = draft;
+  dirtyRef.current = dirty;
 
   // Reset only when `stored` changed from OUTSIDE (another context, a
   // clear, an unreadable-cipher switch). An echo of our own emission
@@ -71,12 +77,36 @@ export function SecretKeyInput({
   }, [stored]);
 
   const commit = () => {
-    if (dirty) {
-      lastEmittedRef.current = draft;
-      onChange(draft);
+    // Empty/whitespace draft NEVER clears the key: typing a letter,
+    // deleting it and blurring would otherwise silently wipe a saved
+    // key. Deletion happens exclusively through the Quitar action.
+    if (!dirtyRef.current) return;
+    const next = draftRef.current;
+    if (!next.trim()) {
+      dirtyRef.current = false;
       setDirty(false);
+      return;
     }
+    // Clear the ref IMMEDIATELY (state updates are async) so a second
+    // commit — pagehide followed by unmount cleanup — can't emit twice.
+    dirtyRef.current = false;
+    lastEmittedRef.current = next;
+    onChange(next);
+    setDirty(false);
   };
+
+  // Commit on unmount: closing the panel/popup (React unmount) fires no
+  // blur, so a typed-but-uncommitted key would be lost. Reads the REFS,
+  // not state, because state is frozen by the time cleanup runs.
+  useEffect(() => {
+    const commitRef = () => commit();
+    window.addEventListener('pagehide', commitRef);
+    return () => {
+      window.removeEventListener('pagehide', commitRef);
+      commitRef();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const effectivePlaceholder = hasStored && !dirty
     ? '•••••••• (guardada — escribe para reemplazar)'

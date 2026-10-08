@@ -115,6 +115,43 @@ describe('SecretKeyInput', () => {
     cleanup();
   });
 
+  it('empty draft on blur does NOT clear a saved key', async () => {
+    const seen: string[] = [];
+    const { container } = render(
+      React.createElement(SecretKeyInput, {
+        stored: 'sk-already-saved',
+        onChange: (v: string) => seen.push(v),
+      }),
+    );
+    const input = inputOf(container);
+    // Type one char, delete it, blur — the dirty-but-empty draft must not
+    // emit '', which would silently wipe the stored key.
+    fireEvent.change(input, { target: { value: 'x' } });
+    fireEvent.change(input, { target: { value: '' } });
+    fireEvent.blur(input);
+    await Promise.resolve();
+    expect(seen).toEqual([]);
+    cleanup();
+  });
+
+  it('commits a typed key on unmount (panel/popup closes without blur)', async () => {
+    const seen: string[] = [];
+    const { container, unmount } = render(
+      React.createElement(SecretKeyInput, {
+        stored: '',
+        onChange: (v: string) => seen.push(v),
+      }),
+    );
+    const input = inputOf(container);
+    fireEvent.change(input, { target: { value: 'sk-typed-no-blur' } });
+    await Promise.resolve();
+    expect(seen).toEqual([]); // not committed yet
+    unmount();
+    await Promise.resolve();
+    expect(seen).toEqual(['sk-typed-no-blur']);
+    cleanup();
+  });
+
   it('shows the re-enter hint for ciphertext unreadable on this device', () => {
     const { container } = render(
       React.createElement(SecretKeyInput, {

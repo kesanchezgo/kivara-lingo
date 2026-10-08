@@ -5,6 +5,7 @@ import { App } from './ui/App';
 import type { SubtitleSource } from './platform-adapters/types';
 import { useKivaraStore } from '../shared/store';
 import { clearBus, reprocessLastDashManifest } from './platform-adapters/intercepted-bus';
+import { bumpMountGen, enqueueMount, readMountGen } from './mount-queue';
 import { setYomitanHeadwords } from './nlp/yomitan-headwords';
 
 console.log('[Kivara Lingo] content script injected on', window.location.hostname);
@@ -186,24 +187,17 @@ function unmount() {
 }
 
 /**
- * Mount serialization (race fix).
+ * Mount serialization (race fix) — implementation lives in
+ * `mount-queue.ts` (extracted so its generation invariant is unit-testable
+ * without importing this entry point, which starts a 15 s video poll).
  *
  * `init()` awaits `waitForVideo()` for up to 15 s before its first mount,
- * while `handleNavigation()` can fire from popstate / yt-navigate / the
- * pushState patch during that window. Two concurrent `mountFor()` calls
- * interleave unmount → createRoot → assign `mount`, orphaning React roots
- * (a later unmount nulls a `mount` the earlier call is about to overwrite,
- * leaving a live root nobody unmounts, or vice versa).
- *
- * Every mount/unmount now runs strictly one-at-a-time through this chain:
- * a second caller WAITS for the first to finish instead of racing it.
- * Failures don't poison the chain (both handlers are passed as fallbacks).
+ * while `handleNavigation()` can fire from popstate / yt-navigate during
+ * that window. Without serialization, two concurrent `mountFor()` calls
+ * interleave unmount → createRoot → assign `mount`, orphaning React roots.
+ * Without the generation guard, a stale `init()` could mount the OLD video
+ * after a navigation already mounted the new one.
  */
-let mountQueue: Promise<void> = Promise.resolve();
-function enqueueMount(task: () => Promise<void>): Promise<void> {
-  mountQueue = mountQueue.then(task, task);
-  return mountQueue;
-}
 
 async function mountFor(video: HTMLVideoElement, container: HTMLElement, adapter: SubtitleSource | null) {
   unmount();
@@ -240,6 +234,9 @@ async function mountFor(video: HTMLVideoElement, container: HTMLElement, adapter
 }
 
 async function init() {
+  // Read the generation BEFORE waiting: a navigation during the wait
+  // bumps it and this task must then be dropped, not mount the old video.
+  const gen = readMountGen();
   const result = await waitForVideo();
   if (!result) {
     console.log('[Kivara Lingo] no <video> element on this page yet — staying idle');
@@ -249,7 +246,7 @@ async function init() {
   const adapter = await detectPlatform();
   // Enqueued: a navigation that fires while we waited for the video must
   // not mount in parallel (see enqueueMount).
-  await enqueueMount(() => mountFor(video, container, adapter));
+  await enqueueMount(gen, () => mountFor(video, container, adapter));
 }
 
 function observeNavigation() {
@@ -276,20 +273,26 @@ function observeNavigation() {
 }
 
 async function handleNavigation() {
+  const gen = bumpMountGen(); // invalidate every pending queued mount
   const { video, container } = findVideoContainer();
   if (!video || !container) {
-    await enqueueMount(async () => unmount());
+    await enqueueMount(gen, async () => unmount());
     return;
   }
-  if (video === lastVideoElement && container === lastVideoContainer && mount) return;
-  // SPA navigated to a different video — drop any subtitle tracks the bus
-  // cached from the previous one. Without this, the dual-caption lookup
-  // would happily return cues from video A while we're watching video B
-  // (timestamps may overlap by coincidence).
-  clearBus();
   const adapter = await detectPlatform();
-  await enqueueMount(() => mountFor(video, container, adapter));
+  await enqueueMount(gen, async () => {
+    // Re-checked INSIDE the queue: `lastVideoElement` / `mount` may have
+    // changed while earlier queued tasks ran, so the decision can only be
+    // made once it is this task's turn.
+    if (video === lastVideoElement && container === lastVideoContainer && mount) return;
+    // SPA navigated to a different video — drop any subtitle tracks the bus
+    // cached from the previous one. Without this, the dual-caption lookup
+    // would happily return cues from video A while we're watching video B
+    // (timestamps may overlap by coincidence).
+    clearBus();
+    await mountFor(video, container, adapter);
+  });
 }
 
 observeNavigation();
-void init();
+void init().catch((err) => console.warn('[Kivara Lingo] init failed', err));

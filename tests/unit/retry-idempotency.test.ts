@@ -1,11 +1,12 @@
 /**
- * Regression tests for the e2af3d3 review:
- *  - escapeAnkiSearchTerm escapes backslash, quote and Anki wildcards so a
- *    deck like `My "Best" Deck` produces a valid, exact query.
- *  - retry idempotency: a retry whose card already exists in Anki (TIMEOUT
- *    after a successful server-side add) must NOT call addNote again.
- *  - retry carries the first attempt's audio: the retry path resolves the
- *    sentence-audio field from the stored clip, never from the live buffer.
+ * Regression tests for the review chain (e2af3d3 → cd498fe → …):
+ *  - shared anki-search escape + exact query shape.
+ *  - retry idempotency: a retry whose card already exists (TIMEOUT after
+ *    a successful server-side add) must NOT call addNote again.
+ *  - ORDER: the check runs before any provider call or media upload.
+ *  - SAME WORD, DIFFERENT SENTENCE: must be a NEW card, never a dedup hit.
+ *  - HTML cue fields are compared after normalization, not raw.
+ *  - retry carries request.audio (content-script clip) instead of TTS.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { escapeAnkiSearchTerm, buildExactNoteQuery } from '../../src/shared/anki-search';
@@ -34,6 +35,80 @@ describe('shared anki-search helpers', () => {
   });
 });
 
+/** Wire all module mocks the orchestrator pulls in. Returns the spies. */
+function setupMocks(opts: {
+  findNotesIds?: number[];
+  notesInfos?: Array<{ noteId: number; fields: Record<string, { value: string }> }>;
+  addNoteImpl?: () => Promise<number>;
+} = {}) {
+  const addNote = vi.fn(opts.addNoteImpl ?? (async () => 123));
+  const findNotes = vi.fn(async () => opts.findNotesIds ?? []);
+  const notesInfo = vi.fn(async () => opts.notesInfos ?? []);
+  const storeMediaFile = vi.fn(async (filename: string) => filename);
+  const ledgerPut: unknown[][] = [];
+  const translateCalls = { n: 0 };
+
+  vi.doMock('../../src/background/anki-connect', () => ({
+    ankiConnect: { addNote, findNotes, notesInfo, storeMediaFile },
+    dataUrlToBase64: (s: string) => s,
+    AnkiConnectError: class extends Error {},
+  }));
+  vi.doMock('../../src/shared/db', async (importOriginal) => {
+    const actual = (await importOriginal()) as Record<string, unknown>;
+    const throwingCache = {
+      get: async () => {
+        throw new Error('no db in test');
+      },
+      put: async () => {},
+    };
+    return {
+      ...(actual as object),
+      getDB: () => ({
+        saved_notes: {
+          where: () => ({ equals: () => ({ first: async () => null }) }),
+          put: async (row: unknown) => ledgerPut.push(row as never),
+        },
+        pending_notes: { add: async () => {}, update: async () => {}, delete: async () => {} },
+        translation_cache: throwingCache,
+        media_cache: throwingCache,
+        ai_cache: throwingCache,
+      }),
+    };
+  });
+  vi.doMock('../../src/background/translate', async (importOriginal) => {
+    const actual = (await importOriginal()) as Record<string, unknown>;
+    return {
+      ...(actual as object),
+      translateToken: async (token: string) => {
+        translateCalls.n += 1;
+        return { token, type: 'word', translation: 'hola' };
+      },
+      translateText: async () => ({ ok: false, error: 'no network in test' }),
+    };
+  });
+  vi.doMock('../../src/background/ai-enrich', async (importOriginal) => {
+    const actual = (await importOriginal()) as Record<string, unknown>;
+    return {
+      ...(actual as object),
+      getAiSettings: async () => ({ provider: 'disabled', enrichOnSave: false }),
+      getResolvedNativeLang: async () => 'es',
+      enrichWithAi: async () => ({ ok: false, error: 'disabled in test' }),
+    };
+  });
+  vi.doMock('../../src/background/enrichment/orchestrator', () => ({
+    runEnrichment: async () => ({ entry: null }),
+  }));
+  vi.doMock('../../src/background/tts', () => ({
+    generateTtsAudio: async () => ({ ok: false, error: 'disabled in test' }),
+  }));
+  vi.doMock('../../src/background/audio-capture-manager', () => ({
+    getAudioCaptureStatus: async () => ({ active: false }),
+    extractAudioClip: async () => ({ ok: false, error: 'disabled in test' }),
+  }));
+
+  return { addNote, findNotes, notesInfo, storeMediaFile, ledgerPut, translateCalls };
+}
+
 describe('retry idempotency', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -41,91 +116,20 @@ describe('retry idempotency', () => {
   });
 
   it('skips addNote when Anki already has the card (timeout-after-create)', async () => {
-    const addNote = vi.fn(async () => {
+    const m = setupMocks({ findNotesIds: [98765] });
+    m.addNote.mockImplementation(async () => {
       throw new Error('should not be called');
     });
-    const findNotes = vi.fn(async () => [98765]);
-    const storeMediaFile = vi.fn(async (filename: string) => filename);
-    vi.doMock('../../src/background/anki-connect', () => ({
-      ankiConnect: { addNote, findNotes, storeMediaFile },
-      dataUrlToBase64: (s: string) => s,
-      AnkiConnectError: class extends Error {},
-    }));
-    // Dexie-free path: stub getDB to throw (ledger unreadable → falls
-    // through to the live findNotes check, which is the point). Keep the
-    // rest of the db module intact via importOriginal. translation_cache
-    // needs a stub too (translateToken reads it before the orchestrator
-    // reaches the idempotency check) — a throwing .get forces the
-    // already-handled fallback path without network.
-    vi.doMock('../../src/shared/db', async (importOriginal) => {
-      const actual = (await importOriginal()) as Record<string, unknown>;
-      const throwingCache = { get: async () => { throw new Error('no db in test'); }, put: async () => {} };
-      return {
-        ...(actual as object),
-        getDB: () => ({
-          saved_notes: {
-            where: () => ({ equals: () => ({ first: async () => null }) }),
-            put: async () => {},
-          },
-          pending_notes: { add: async () => {}, update: async () => {}, delete: async () => {} },
-          translation_cache: throwingCache,
-          media_cache: throwingCache,
-          ai_cache: throwingCache,
-        }),
-      };
-    });
-    // No network in this test: translateToken must resolve from the
-    // bundled dictionary path. Stub the whole translate module to skip
-    // the MT chain (its absence is unrelated to retry idempotency).
-    // The counter proves the dedup check runs BEFORE any provider call.
-    const translateCalls = { n: 0 };
-    vi.doMock('../../src/background/translate', async (importOriginal) => {
-      const actual = (await importOriginal()) as Record<string, unknown>;
-      return {
-        ...(actual as object),
-        translateToken: async (token: string) => {
-          translateCalls.n += 1;
-          return {
-            token,
-            type: 'word',
-            translation: 'hola',
-          };
-        },
-        translateText: async () => ({ ok: false, error: 'no network in test' }),
-      };
-    });
-    // Skip AI + enrichment + TTS: unrelated to retry idempotency, and
-    // each would hit network/storage under test.
-    vi.doMock('../../src/background/ai-enrich', async (importOriginal) => {
-      const actual = (await importOriginal()) as Record<string, unknown>;
-      return {
-        ...(actual as object),
-        getAiSettings: async () => ({ provider: 'disabled', enrichOnSave: false }),
-        getResolvedNativeLang: async () => 'es',
-        enrichWithAi: async () => ({ ok: false, error: 'disabled in test' }),
-      };
-    });
-    vi.doMock('../../src/background/enrichment/orchestrator', () => ({
-      runEnrichment: async () => ({ entry: null }),
-    }));
-    vi.doMock('../../src/background/tts', () => ({
-      generateTtsAudio: async () => ({ ok: false, error: 'disabled in test' }),
-    }));
+    // cue field mapped so the sentence check runs; notesInfo must MATCH.
+    m.notesInfo.mockResolvedValue([
+      { noteId: 98765, fields: { Front: { value: 'hola' }, Sentence: { value: 'Hola mundo.' } } },
+    ]);
 
-    const { createCardFromRequest } = await import(
-      '../../src/background/capture-orchestrator'
-    );
+    const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
     const mapping = {
       deckName: 'My "Best" Deck',
       modelName: 'Basic',
-      // frame + sentence-audio mapped ON PURPOSE: on the first attempt
-      // these WOULD trigger storeMediaFile. The retry must find the note
-      // BEFORE reaching them, so the zero-call assertion is meaningful.
-      fieldSources: {
-        Front: 'selection',
-        Picture: 'frame',
-        'Sentence audio': 'sentence-audio',
-      },
+      fieldSources: { Front: 'selection', Sentence: 'cue', 'Sentence audio': 'sentence-audio' },
     };
     const request = {
       token: 'hola',
@@ -142,17 +146,108 @@ describe('retry idempotency', () => {
     });
     expect(res.ok).toBe(true);
     expect(res.noteId).toBe(98765);
-    expect(addNote).not.toHaveBeenCalled();
-    // ORDER: the duplicate check must run BEFORE any media upload — a retry
-    // that finds the note can't leave orphaned files in Anki.
-    expect(storeMediaFile).not.toHaveBeenCalled();
-    // The query is the shared, fully-quoted exact form: deck escaped,
-    // note type pinned, field:value quoted as a whole.
-    const q = findNotes.mock.calls[0][0] as string;
+    expect(m.addNote).not.toHaveBeenCalled();
+    // ORDER: the duplicate check runs BEFORE any media upload.
+    expect(m.storeMediaFile).not.toHaveBeenCalled();
+    const q = m.findNotes.mock.calls[0][0] as string;
     expect(q).toContain('\\"Best\\"');
     expect(q).toContain('note:"Basic"');
     expect(q).toContain('"Front:hola"');
-    // No provider hit either: the check runs before translate/enrichment.
-    expect(translateCalls.n).toBe(0);
+    // No provider hit either.
+    expect(m.translateCalls.n).toBe(0);
+    // The verified match IS written to the ledger for the next retry.
+    expect(m.ledgerPut).toHaveLength(1);
+  });
+
+  it('same word + DIFFERENT sentence → creates a NEW card (no false dedup)', async () => {
+    const m = setupMocks({ findNotesIds: [555] });
+    // Anki finds the word, but the note's cue is a different sentence —
+    // and the field carries HTML, so only the normalized compare works.
+    m.notesInfo.mockResolvedValue([
+      {
+        noteId: 555,
+        fields: {
+          Front: { value: 'hola' },
+          Sentence: { value: '<b>Otra frase</b> del mismo&nbsp;token.' },
+        },
+      },
+    ]);
+
+    const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+    const mapping = {
+      deckName: 'Deck',
+      modelName: 'Basic',
+      fieldSources: { Front: 'selection', Sentence: 'cue' },
+    };
+    const request = { token: 'hola', sentence: 'Esta es la frase original.', language: 'es' };
+    const res = await createCardFromRequest(request as never, mapping as never, undefined as never, {
+      fromRetry: true,
+      retryRowId: 1,
+    });
+    // Proceeded to create → addNote was reached, ledger untouched by dedup.
+    expect(m.addNote).toHaveBeenCalledTimes(1);
+    expect(res.ok).toBe(true);
+    expect(res.noteId).toBe(123);
+    // Only the SUCCESS write below — no false-positive dedup ledger row.
+    expect(m.ledgerPut).toHaveLength(1);
+    expect(m.ledgerPut[0]).toMatchObject({ ankiNoteId: 123 });
+  });
+
+  it('matches a cue stored with HTML after normalization', async () => {
+    const m = setupMocks({ findNotesIds: [777] });
+    m.notesInfo.mockResolvedValue([
+      {
+        noteId: 777,
+        fields: {
+          Front: { value: 'hola' },
+          Sentence: { value: 'Hola&nbsp;mundo.<!-- editorial -->' },
+        },
+      },
+    ]);
+    m.addNote.mockImplementation(async () => {
+      throw new Error('dedup should have matched');
+    });
+
+    const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+    const mapping = {
+      deckName: 'Deck',
+      modelName: 'Basic',
+      fieldSources: { Front: 'selection', Sentence: 'cue' },
+    };
+    const request = { token: 'hola', sentence: 'Hola mundo.', language: 'es' };
+    const res = await createCardFromRequest(request as never, mapping as never, undefined as never, {
+      fromRetry: true,
+      retryRowId: 1,
+    });
+    expect(res.ok).toBe(true);
+    expect(res.noteId).toBe(777);
+    expect(m.addNote).not.toHaveBeenCalled();
+  });
+
+  it('retry reuses request.audio (content-script clip) instead of falling back to TTS', async () => {
+    const m = setupMocks({ findNotesIds: [] }); // no existing note
+    const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+    const mapping = {
+      deckName: 'Deck',
+      modelName: 'Basic',
+      fieldSources: { Front: 'selection', 'Sentence audio': 'sentence-audio' },
+    };
+    const request = {
+      token: 'hola',
+      sentence: 'Hola mundo.',
+      language: 'es',
+      audio: 'data:audio/webm;base64,AAAA',
+    };
+    const res = await createCardFromRequest(request as never, mapping as never, undefined as never, {
+      fromRetry: true,
+      retryRowId: 1,
+      carriedAudio: null, // first attempt stashed nothing — request.audio must cover it
+    });
+    expect(res.ok).toBe(true);
+    // The human clip was uploaded, not a TTS fallback.
+    expect(m.storeMediaFile).toHaveBeenCalledTimes(1);
+    expect(m.storeMediaFile.mock.calls[0][0]).toContain('hola');
+    const fields = m.addNote.mock.calls[0][0] as { fields: Record<string, string> };
+    expect(Object.values(fields.fields).join(' ')).toContain('[sound:');
   });
 });

@@ -60,11 +60,12 @@ const OFFSCREEN_KEEPALIVE_ALARM = 'kivara-lingo-offscreen-keepalive';
 async function ensureOffscreenKeepalive(): Promise<void> {
   const status = await getAudioCaptureStatus();
   if (status.active) {
-    // ~20 s. Deliberately NOT 0.5 min (30 s): Chrome closes an offscreen
-    // document after 30 s of inactivity, so a 30 s ping lands exactly on
-    // the auto-close boundary and can lose the capture. 20 s keeps a safe
-    // margin without meaningfully raising wake-up cost.
-    await chrome.alarms.create(OFFSCREEN_KEEPALIVE_ALARM, { periodInMinutes: 0.33 }); // ~20s
+    // 0.5 min. This alarm keeps the SERVICE WORKER alive during capture,
+    // NOT the offscreen document: since Chrome 120 packed extensions clamp
+    // any period < 0.5 min up to 30 s anyway (0.33 behaved as 0.5 in
+    // production), and the offscreen doc uses USER_MEDIA + WORKERS with a
+    // live stream, which is exempt from the 30 s playback-idle auto-close.
+    await chrome.alarms.create(OFFSCREEN_KEEPALIVE_ALARM, { periodInMinutes: 0.5 });
   } else {
     await chrome.alarms.clear(OFFSCREEN_KEEPALIVE_ALARM);
   }
@@ -106,12 +107,6 @@ async function ankiOriginRules(hosts: string[]): Promise<chrome.declarativeNetRe
     },
   }));
 }
-async function installAnkiOriginRule(): Promise<void> {
-  // Legacy entry point — kept for the onInstalled path. Delegates to the
-  // serialized refresh so the two never compete for the same rule IDs.
-  await refreshAnkiOriginRules();
-  console.log('[Kivara Lingo] AnkiConnect Origin rewrite rule installed');
-}
 /** Rebuild the Origin-rewrite rules for the user's ACTUAL Anki URL
  * (custom port or remote host). Serialized through a single-flight lock so
  * concurrent callers (startup + CREATE_CARD + ANKI_PING) can't interleave
@@ -127,18 +122,20 @@ export async function refreshAnkiOriginRules(ankiUrl?: string): Promise<void> {
   // port the user configured, and the single-flight lock would swallow it.
   pendingDnrUrl = ankiUrl ?? pendingDnrUrl;
   if (dnrRefreshPromise) return dnrRefreshPromise;
-  dnrRefreshPromise = (async () => {
+  const run = async () => {
     do {
       const url = pendingDnrUrl ?? undefined;
       pendingDnrUrl = null;
       await applyDnrRules(url);
+      // Release the lock HERE (same microtask as the drain check): a
+      // caller arriving between the last apply and a later `finally`
+      // would have been swallowed by the still-set promise.
+      if (pendingDnrUrl === null) dnrRefreshPromise = null;
     } while (typeof pendingDnrUrl === 'string');
-  })();
-  try {
-    await dnrRefreshPromise;
-  } finally {
     dnrRefreshPromise = null;
-  }
+  };
+  dnrRefreshPromise = run();
+  await dnrRefreshPromise;
 }
 
 async function applyDnrRules(ankiUrl?: string): Promise<void> {
@@ -171,8 +168,14 @@ chrome.runtime.onInstalled.addListener(() => {
   );
 });
 // First boot of the SW after a module reload — onStartup doesn't fire on
-// unpacked extensions, so refresh here too, plus the alarm:
-void refreshAnkiOriginRules();
+// unpacked extensions, so refresh here too, plus the alarm. CRITICAL: pass
+// the SAVED url; refreshing with no argument would install the 8765 default
+// on every wake-up and break a configured custom port (first addNote after
+// idle → CORS).
+void loadMapping().then(
+  (m) => refreshAnkiOriginRules(m.ankiUrl),
+  () => refreshAnkiOriginRules(),
+);
 void chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 }).catch(() => {});
 
 async function loadMapping(): Promise<AnkiMapping> {
@@ -230,10 +233,13 @@ function asJson<T>(value: T): any {
 onMessage('CREATE_CARD', async ({ data }) => {
   const request = data as unknown as CreateCardRequest;
   const [mapping, capture] = await Promise.all([loadMapping(), loadCaptureSettings()]);
+
   // Keep the Origin-rewrite rules in sync with the user's actual Anki URL
   // (custom port / remote host) so a non-default setup isn't rejected by
-  // AnkiConnect's webCorsOriginList.
-  void refreshAnkiOriginRules(mapping.ankiUrl);
+  // AnkiConnect's webCorsOriginList. AWAITED: the first save after the SW
+  // wakes must not race the rule install — a void'd refresh meant the first
+  // addNote could still hit CORS.
+  await refreshAnkiOriginRules(mapping.ankiUrl);
   const response: CreateCardResponse = await createCardFromRequest(request, mapping, capture);
   if (response.ok) {
     // A new word just landed — drop the saved-words cache for this deck so
@@ -310,9 +316,10 @@ async function resolveAnkiAuth(
 
 onMessage('ANKI_PING', async ({ data }) => {
   const { url, apiKey } = await resolveAnkiAuth(data);
-  // A successful ping/contact means the URL works — keep the DNR rules in
-  // sync even when the user only pressed "Probar" and never saved a card.
-  if (url) void refreshAnkiOriginRules(url);
+  // Sync the rules BEFORE pinging: the ping itself is an http request that
+  // needs the Origin rewrite on a custom port. Awaited for the same reason
+  // as CREATE_CARD.
+  if (url) await refreshAnkiOriginRules(url);
   const result = await ankiConnect.ping(url, apiKey);
   const out: AnkiPingResponse = result.ok
     ? { ok: true, version: result.version }
@@ -322,7 +329,7 @@ onMessage('ANKI_PING', async ({ data }) => {
 
 onMessage('ANKI_DECKS', async ({ data }) => {
   const { url, apiKey } = await resolveAnkiAuth(data);
-  if (url) void refreshAnkiOriginRules(url);
+  if (url) await refreshAnkiOriginRules(url);
   try {
     const [decks, models] = await Promise.all([
       ankiConnect.deckNames(url, apiKey),
