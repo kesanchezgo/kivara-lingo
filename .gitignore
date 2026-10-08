@@ -50,6 +50,19 @@ node_modules/.vite/
 # Test coverage & output
 coverage/
 .audit/
+.audit-bak/
+
+# Local pack downloads + seeded Chromium profiles (regenerable via scripts/seed-yomitan-packs.mjs)
+.audit/packs/
+.audit/mv3-yomitan-profile/
+.audit/mv3-corpus-profile/
+.audit/mv3-image-profile/
+.audit/mv3-profile/
+.audit/mv3-quality-fix-profile/
+
+# Split-audit scratch files (HOT/COLD subsets regenerable from source assets)
+.audit/en-idioms-*.json
+.audit/en-idioms-full-backup.json
 
 # Playwright E2E output (regenerable run artifacts, traces, screenshots)
 test-results/
