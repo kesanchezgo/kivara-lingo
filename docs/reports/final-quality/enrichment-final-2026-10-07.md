@@ -1,4 +1,4 @@
-# Reporte final limpio — calidad A/B + packs offline — 2026-10-07
+# Reporte final limpio — calidad A/B + packs offline + dieta — 2026-10-07
 
 Corpus contextual completo: 15 tokens × 2 tiers = 30 tarjetas, 0 errores,
 `tsc` limpio, 399 verdes, `vite build` verde. Dos perfiles: fresco (sin packs)
@@ -31,12 +31,22 @@ y yomitan (`kty-en-es` 61.076 + `kty-en-ipa` 139.674, instalados vía
 
 ## Veredicto packs
 
-- **Ganan:** IPA total (12-13→15) + traducción rica + offline <1ms.
+- **Ganan:** IPA total (13→15) + traducción rica + offline <1ms.
 - **No dan:** syn/ant/coll (el pack no los trae: 3-4 menciones en 61k
   términos, contado a mano del ZIP). Su valor es first-paint, no relaciones.
 - **Recomendados:** `kty-en-es` CORE auto + `kty-en-ipa` RECOMENDADO auto.
   `kty-en-en` 127MB solo galería premium (definición 15/15 ya cubierta).
 - Copy de tamaños corregido con conteos reales del ZIP (commit `cc639f5`).
+
+## Dieta del bundle (commit `ccac158`)
+
+- `en-idioms.json` 14.318 → 1.614 entradas HOT (intersección con el índice
+  MWE del tokenizer: `piece of cake`, `break up`, `kick the bucket`
+  sobreviven). 3.8MB → 417KB fuente.
+- Chunk dictionary 5.9MB → 2.3MB (-60%). COLD 12.7k en
+  `.audit/en-idioms-cold.json` como candidatas lazy-load (requiere
+  `lookupDictionary` async — crumb aparte, no movido a propósito).
+- Misma cobertura A/B tras el trim, cero regresiones, corpus vivo 30/30.
 
 ## Cobertura por token (VIP, referencia)
 
@@ -54,7 +64,8 @@ y yomitan (`kty-en-es` 61.076 + `kty-en-ipa` 139.674, instalados vía
 ## Pendiente (fuera del código)
 
 1. `kty-en-en` 127MB sin medir (costo sin ganancia esperada: definición 15/15).
-2. `en-idioms.json` 3.8MB = 65% del chunk dictionary, solo 2/14 tokens lo
-   tocan. Lazy-load requiere `lookupDictionary` async (crumb aparte).
+2. COLD 12.7k `en-idioms` a lazy-load: requiere `lookupDictionary` async
+   (tokenizer + popover + SW lo usan sync). Crumb arquitectónico aparte.
 3. Frame/audio vivo en streaming: sin sesión real no hay prueba.
+   El flujo en código está amarrado (ver `docs/reports/final-quality/enrichment-capture-flow-2026-10-07.md`).
 4. BYOK sin claves: Unsplash/Pixabay dormidas, correcto.
