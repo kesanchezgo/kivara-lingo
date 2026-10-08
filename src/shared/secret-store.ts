@@ -238,3 +238,220 @@ export function maskSecret(value: string | undefined | null): string {
 export function unreadableSecret(value: string | undefined | null): boolean {
   return isEncrypted(value ?? '');
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * LOCAL SECRET SLOTS — secrets live in chrome.storage.local, NOT in sync.
+ *
+ * Why: `chrome.storage.sync` replicates across devices while the AES salt
+ * lives only in `storage.local`. A ciphertext synced to a second device
+ * could never be decrypted there; the old path then injected '' on failure
+ * and the NEXT persist wrote '' over the ciphertext — permanently
+ * destroying the key on every device. Moving the values to `local` fixes
+ * the root cause: the ciphertext never leaves the machine that made it.
+ *
+ * Contract:
+ *  - SAVE: each secret field is written to its own local slot (encrypted
+ *    with the local salt) and BLANKED in the sync JSON. Sync carries no
+ *    secret material at all (also shrinks the 8 KB/item sync quota).
+ *  - LOAD: slot values are injected back as plaintext. A still-encrypted
+ *    slot result is injected as-is (ciphertext) so `unreadableSecret()`
+ *    can show the re-enter hint instead of lying with ''.
+ *  - MIGRATION: a legacy value sitting in the sync blob (older builds
+ *    stored ciphertext — or plaintext — inline) is moved to a slot on the
+ *    first load and blanked from sync on the first save.
+ *  - FAILURE: if the local write fails on save, we fall back to the old
+ *    inline-encryption behavior instead of blanking (never destroy the
+ *    only copy).
+ * ────────────────────────────────────────────────────────────────────────── */
+
+export const SECRET_FIELDS: Array<{
+  section: 'translate' | 'ai' | 'ankiMapping' | 'tts' | 'vip';
+  field: string;
+}> = [
+  { section: 'translate', field: 'deeplToken' },
+  { section: 'translate', field: 'googleToken' },
+  { section: 'translate', field: 'libreTranslateToken' },
+  { section: 'ai', field: 'apiKey' },
+  { section: 'ankiMapping', field: 'apiKey' },
+  { section: 'tts', field: 'elevenLabsApiKey' },
+  { section: 'vip', field: 'unsplashAccessKey' },
+  { section: 'vip', field: 'pixabayApiKey' },
+];
+
+export function secretSlotKey(section: string, field: string): string {
+  return `kivara-secret:v1:${section}.${field}`;
+}
+
+export interface SecretSlotIO {
+  get(keys: string[]): Promise<Record<string, unknown>>;
+  set(items: Record<string, unknown>): Promise<void>;
+}
+
+/** chrome.storage.local-backed IO; in-memory fallback for tests / no chrome. */
+const memorySlots = new Map<string, unknown>();
+export const defaultSlotIO: SecretSlotIO = {
+  async get(keys) {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      const found = await chrome.storage.local.get(keys);
+      const out: Record<string, unknown> = {};
+      for (const k of keys) out[k] = found[k];
+      return out;
+    }
+    const out: Record<string, unknown> = {};
+    for (const k of keys) if (memorySlots.has(k)) out[k] = memorySlots.get(k);
+    return out;
+  },
+  async set(items) {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      await chrome.storage.local.set(items);
+      return;
+    }
+    for (const [k, v] of Object.entries(items)) memorySlots.set(k, v);
+  },
+};
+
+async function saveSecrets(
+  state: Record<string, Record<string, unknown>> | undefined,
+  io: SecretSlotIO,
+): Promise<boolean> {
+  if (!state) return false;
+  const toLocal: Record<string, unknown> = {};
+  for (const { section, field } of SECRET_FIELDS) {
+    const node = state[section];
+    if (!node || typeof node !== 'object') continue;
+    const rec = node as Record<string, unknown>;
+    const value = rec[field];
+    if (typeof value !== 'string') continue;
+    if (value === '') {
+      // Explicit clear → drop the slot too (the "Quitar" action).
+      toLocal[secretSlotKey(section, field)] = '';
+      continue;
+    }
+    if (!value) continue;
+    toLocal[secretSlotKey(section, field)] = isEncrypted(value)
+      ? value // legacy ciphertext already in sync — move as-is
+      : await encryptSecret(value);
+  }
+  if (Object.keys(toLocal).length === 0) return true;
+  try {
+    await io.set(toLocal); // MUST succeed before we blank sync — never
+    // destroy the only copy of a key because local storage hiccuped.
+  } catch (err) {
+    console.warn('[Kivara secret-store] local slot write failed, falling back to inline encryption', err);
+    // Fallback = the OLD behavior: encrypt in place in the sync blob.
+    // State stays safe to persist: never plaintext, never blanked.
+    for (const { section, field } of SECRET_FIELDS) {
+      const node = state[section];
+      if (!node || typeof node !== 'object') continue;
+      const rec = node as Record<string, unknown>;
+      const v = rec[field];
+      if (typeof v === 'string' && v && !isEncrypted(v)) {
+        rec[field] = await encryptSecret(v);
+      }
+    }
+    return false;
+  }
+  for (const { section, field } of SECRET_FIELDS) {
+    const node = state[section];
+    if (!node || typeof node !== 'object') continue;
+    const rec = node as Record<string, unknown>;
+    if (typeof rec[field] === 'string') rec[field] = '';
+  }
+  return true;
+}
+
+async function loadSecrets(
+  state: Record<string, Record<string, unknown>> | undefined,
+  io: SecretSlotIO,
+): Promise<void> {
+  if (!state) return;
+  const keys = SECRET_FIELDS.map((f) => secretSlotKey(f.section, f.field));
+  let local: Record<string, unknown> = {};
+  try {
+    local = await io.get(keys);
+  } catch (err) {
+    console.warn('[Kivara secret-store] local slot read failed', err);
+  }
+  const migrate: Record<string, unknown> = {};
+  for (const { section, field } of SECRET_FIELDS) {
+    const node = state[section];
+    if (!node || typeof node !== 'object') continue;
+    const rec = node as Record<string, unknown>;
+    const slotVal = local[secretSlotKey(section, field)];
+    const legacy = rec[field];
+    if (typeof slotVal === 'string' && slotVal !== '') {
+      // Slot wins. decryptSecret PRESERVES ciphertext on failure → the UI
+      // shows the re-enter hint instead of a false "empty".
+      rec[field] = await decryptSecret(slotVal);
+      continue;
+    }
+    if (typeof legacy === 'string' && legacy !== '') {
+      // Legacy value still in the sync blob (older build): decrypt it for
+      // this session AND migrate it to a local slot. If the salt changed
+      // (fresh device), decryptSecret hands back the ciphertext — we still
+      // migrate it so the next save blanks it from sync.
+      const plain = await decryptSecret(legacy);
+      rec[field] = plain;
+      migrate[secretSlotKey(section, field)] = isEncrypted(plain)
+        ? legacy
+        : await encryptSecret(plain);
+      continue;
+    }
+    rec[field] = '';
+  }
+  if (Object.keys(migrate).length > 0) {
+    try {
+      await io.set(migrate); // best-effort — sync copy is blanked on save
+    } catch (err) {
+      console.warn('[Kivara secret-store] migration write failed', err);
+    }
+  }
+}
+
+/** SAVE path: move secrets out of the sync JSON into local slots.
+ * Returns false when the local write failed — callers must then fall back
+ * to inline encryption instead of blanking the sync blob. */
+export async function pushSecretsToLocal(
+  state: Record<string, Record<string, unknown>> | undefined,
+  io: SecretSlotIO = defaultSlotIO,
+): Promise<boolean> {
+  return saveSecrets(state, io);
+}
+
+/** LOAD path: inject local-slot secrets into the store JSON (+ migrate
+ * legacy inline values on their way out of sync). */
+export async function pullSecretsFromLocal(
+  state: Record<string, Record<string, unknown>> | undefined,
+  io: SecretSlotIO = defaultSlotIO,
+): Promise<void> {
+  await loadSecrets(state, io);
+}
+
+/** Background readers (SW / offscreen) call this instead of decrypting the
+ * sync blob, which no longer carries secret material.
+ * Returns plaintext, '' when missing, or '' when the slot ciphertext is
+ * unreadable on this device (never hands `enc:v1:` to a provider). */
+export async function resolveSecret(
+  section: string,
+  field: string,
+  legacyBlobValue?: string,
+): Promise<string> {
+  const key = secretSlotKey(section, field);
+  try {
+    const found = await (typeof chrome !== 'undefined' && chrome.storage?.local
+      ? chrome.storage.local.get(key)
+      : defaultSlotIO.get([key]));
+    const slot = found[key];
+    if (typeof slot === 'string' && slot !== '') {
+      const plain = await decryptSecret(slot);
+      return isEncrypted(plain) ? '' : plain;
+    }
+  } catch {
+    // fall through to legacy blob value
+  }
+  if (legacyBlobValue) {
+    const plain = await decryptSecret(legacyBlobValue);
+    return isEncrypted(plain) ? '' : plain;
+  }
+  return '';
+}

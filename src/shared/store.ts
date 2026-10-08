@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
-import { encryptSecret, decryptSecret, isEncrypted } from './secret-store';
+import { pushSecretsToLocal, pullSecretsFromLocal } from './secret-store';
 import type {
   SubtitleStyles,
   AnkiMapping,
@@ -290,25 +290,23 @@ export interface KivaraState {
  * and must be cipher-text at rest. Anything else is stored plaintext.
  *
  * The persist middleware sees only the JSON string we hand it from
- * `setItem`, so we transform the JSON in place — encrypt these fields on
- * write, decrypt them on read — keeping the in-memory store plaintext for
- * the React components.
+ * `setItem`, so we transform the JSON in place — but the SECRETS THEMSELVES
+ * no longer live in this blob: `pushSecretsToLocal` moves each one into its
+ * own `chrome.storage.local` slot and blanks it here (sync carries zero
+ * secret material, see secret-store.ts for why ciphertext-in-sync was
+ * destroying keys cross-device). If the local write fails we fall back to
+ * the old inline-encryption behavior so a storage hiccup can never lose a
+ * key. On read, `pullSecretsFromLocal` injects them back as plaintext for
+ * the React store.
  */
-const SECRET_FIELDS: Array<{ section: 'translate' | 'ai' | 'ankiMapping' | 'tts' | 'vip'; field: string }> = [
-  { section: 'translate', field: 'deeplToken' },
-  { section: 'translate', field: 'googleToken' },
-  { section: 'translate', field: 'libreTranslateToken' },
-  { section: 'ai', field: 'apiKey' },
-  { section: 'ankiMapping', field: 'apiKey' },
-  { section: 'tts', field: 'elevenLabsApiKey' },
-  { section: 'vip', field: 'unsplashAccessKey' },
-  { section: 'vip', field: 'pixabayApiKey' },
-];
 
-async function transformSecrets(
-  raw: string,
-  direction: 'encrypt' | 'decrypt',
-): Promise<string> {
+const fallbackStorage = new Map<string, string>();
+
+/** SAVE: extract secrets into local slots. `pushSecretsToLocal` handles
+ * both outcomes internally — slots written (state blanked) or local write
+ * failed (state inline-encrypted as a fallback). Either way the JSON is
+ * safe to persist: never plaintext, never a lost key. */
+async function sealForSync(raw: string): Promise<string> {
   let parsed: { state?: Record<string, Record<string, unknown>> };
   try {
     parsed = JSON.parse(raw);
@@ -318,35 +316,7 @@ async function transformSecrets(
   const state = parsed?.state;
   if (!state || typeof state !== 'object') return raw;
 
-  let mutated = false;
-  for (const { section, field } of SECRET_FIELDS) {
-    const node = state[section];
-    if (!node || typeof node !== 'object') continue;
-    const value = (node as Record<string, unknown>)[field];
-    if (typeof value !== 'string' || !value) continue;
-
-    if (direction === 'encrypt') {
-      // Already encrypted (idempotent on persist tick) — leave alone.
-      if (isEncrypted(value)) continue;
-      const cipher = await encryptSecret(value);
-      (node as Record<string, unknown>)[field] = cipher;
-      // OR, not assign: a prior field that DID mutate must survive this
-      // iteration's no-op, or one plaintext-free pass would discard every
-      // other field's encryption and persist the raw blob.
-      mutated = mutated || cipher !== value;
-    } else {
-      if (!isEncrypted(value)) continue; // legacy plaintext, pass through
-      const plain = await decryptSecret(value);
-      // decryptSecret preserves ciphertext on failure — only overwrite when
-      // we actually got plaintext back. Otherwise the unreadable-but-valid
-      // ciphertext stays in memory AND in storage (persist writes it back
-      // unchanged since isEncrypted values are skipped on encrypt).
-      if (isEncrypted(plain)) continue;
-      (node as Record<string, unknown>)[field] = plain;
-      mutated = true;
-    }
-  }
-  if (!mutated) return raw;
+  await pushSecretsToLocal(state);
   try {
     return JSON.stringify(parsed);
   } catch {
@@ -354,7 +324,24 @@ async function transformSecrets(
   }
 }
 
-const fallbackStorage = new Map<string, string>();
+/** LOAD: inject local-slot secrets (migrating legacy inline values out). */
+async function openFromSync(raw: string): Promise<string> {
+  let parsed: { state?: Record<string, Record<string, unknown>> };
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+  const state = parsed?.state;
+  if (!state || typeof state !== 'object') return raw;
+
+  await pullSecretsFromLocal(state);
+  try {
+    return JSON.stringify(parsed);
+  } catch {
+    return raw;
+  }
+}
 
 /**
  * chrome.storage adapter for zustand's persist middleware. Falls back to
@@ -381,7 +368,7 @@ function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage {
       }
       if (raw == null) return null;
       try {
-        return await transformSecrets(raw, 'decrypt');
+        return await openFromSync(raw);
       } catch {
         return raw;
       }
@@ -389,7 +376,7 @@ function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage {
     async setItem(name: string, value: string): Promise<void> {
       let toStore = value;
       try {
-        toStore = await transformSecrets(value, 'encrypt');
+        toStore = await sealForSync(value);
       } catch {
         toStore = value;
       }

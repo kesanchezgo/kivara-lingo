@@ -12,7 +12,7 @@ import { DEFAULT_TRANSLATE, PERSIST_STORE_KEY as STORE_KEY } from '../shared/sto
 import { callChain, callChainRaced, callOne } from './translate-providers';
 import type { ChainStep } from './translate-providers';
 import { getDB, translationCacheKey } from '../shared/db';
-import { decryptSecret, isEncrypted } from '../shared/secret-store';
+import { resolveSecret } from '../shared/secret-store';
 
 let lastCallAt = 0;
 const DEBOUNCE_MS = 200;
@@ -60,24 +60,17 @@ async function loadSettings(): Promise<TranslateSettings> {
       if (!Array.isArray(merged.premiumChain))
         merged.premiumChain = DEFAULT_TRANSLATE.premiumChain;
 
-      // Transparent decryption of premium provider tokens. Cleartext
-      // values are passed through unchanged so legacy installs and
-      // self-hosted LibreTranslate without a key keep working.
-      // Still-encrypted after decrypt = unreadable here (cross-device
-      // salt mismatch) — treat as missing so we never send a ciphertext
-      // blob to the provider as if it were a key.
-      if (merged.deeplToken) {
-        const plain = await decryptSecret(merged.deeplToken);
-        merged.deeplToken = isEncrypted(plain) ? '' : plain;
-      }
-      if (merged.googleToken) {
-        const plain = await decryptSecret(merged.googleToken);
-        merged.googleToken = isEncrypted(plain) ? '' : plain;
-      }
-      if (merged.libreTranslateToken) {
-        const plain = await decryptSecret(merged.libreTranslateToken);
-        merged.libreTranslateToken = isEncrypted(plain) ? '' : plain;
-      }
+      // Secrets live in local slots (see secret-store.ts). resolveSecret
+      // reads+decrypts the slot, falls back to the legacy sync blob value
+      // (pre-migration builds) and returns '' when unreadable — never
+      // `enc:v1:` in a provider request.
+      merged.deeplToken = await resolveSecret('translate', 'deeplToken', merged.deeplToken);
+      merged.googleToken = await resolveSecret('translate', 'googleToken', merged.googleToken);
+      merged.libreTranslateToken = await resolveSecret(
+        'translate',
+        'libreTranslateToken',
+        merged.libreTranslateToken,
+      );
       return merged;
     }
   } catch (err) {

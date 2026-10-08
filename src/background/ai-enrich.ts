@@ -9,7 +9,7 @@ import type {
   AiSettings,
 } from '../shared/types';
 import { callAiProvider } from './ai-providers';
-import { decryptSecret, isEncrypted } from '../shared/secret-store';
+import { resolveSecret } from '../shared/secret-store';
 
 const DEBOUNCE_MS = 300;
 let lastCallAt = 0;
@@ -25,17 +25,10 @@ async function loadAiSettings(): Promise<AiSettings> {
     const ai = parsed?.state?.ai ?? parsed?.ai;
     if (ai && typeof ai === 'object') {
       const merged: AiSettings = { ...DEFAULT_AI, ...ai };
-      // Transparent decryption — ciphertext stored in chrome.storage,
-      // plaintext returned to the caller. See secret-store.ts for the
-      // threat model. `decryptSecret` passes plaintext through unchanged
-      // so legacy installs without encrypted keys keep working, and
-      // preserves ciphertext on failure (cross-device salt mismatch) —
-      // treat still-encrypted as "no usable key" so we never send a
-      // ciphertext blob to the provider as if it were a key.
-      if (merged.apiKey) {
-        const plain = await decryptSecret(merged.apiKey);
-        merged.apiKey = isEncrypted(plain) ? '' : plain;
-      }
+      // Secrets live in local slots now (see secret-store.ts): resolveSecret
+      // reads + decrypts the slot, falls back to the legacy blob value, and
+      // returns '' when unreadable so we never send `enc:v1:` to a provider.
+      merged.apiKey = await resolveSecret('ai', 'apiKey', merged.apiKey);
       return merged;
     }
   } catch (err) {

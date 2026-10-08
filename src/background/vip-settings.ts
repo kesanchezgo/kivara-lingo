@@ -10,7 +10,7 @@
  */
 
 import { DEFAULT_VIP, DEFAULT_TRANSLATE, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
-import { decryptSecret, isEncrypted } from '../shared/secret-store';
+import { resolveSecret } from '../shared/secret-store';
 import type { VipSettings } from '../shared/types';
 
 export async function getVipSettings(): Promise<VipSettings> {
@@ -22,20 +22,14 @@ export async function getVipSettings(): Promise<VipSettings> {
     const vip = parsed?.state?.vip ?? parsed?.vip;
     if (vip && typeof vip === 'object') {
       const merged: VipSettings = { ...DEFAULT_VIP, ...vip };
-      // Transparent decryption — the BYOK image keys are stored as
-      // ciphertext in chrome.storage (see secret-store.ts) but the
-      // enrichment sources expect plaintext. `decryptSecret` passes
-      // plaintext through unchanged, so legacy installs without
-      // encrypted keys keep working. Still-encrypted after decrypt =
-      // unreadable here — treat as missing.
-      if (merged.unsplashAccessKey) {
-        const plain = await decryptSecret(merged.unsplashAccessKey);
-        merged.unsplashAccessKey = isEncrypted(plain) ? '' : plain;
-      }
-      if (merged.pixabayApiKey) {
-        const plain = await decryptSecret(merged.pixabayApiKey);
-        merged.pixabayApiKey = isEncrypted(plain) ? '' : plain;
-      }
+      // BYOK image keys live in local slots (see secret-store.ts) —
+      // resolveSecret handles decrypt + legacy fallback + unreadable.
+      merged.unsplashAccessKey = await resolveSecret(
+        'vip',
+        'unsplashAccessKey',
+        merged.unsplashAccessKey,
+      );
+      merged.pixabayApiKey = await resolveSecret('vip', 'pixabayApiKey', merged.pixabayApiKey);
       return merged;
     }
   } catch (err) {

@@ -31,7 +31,7 @@ import type {
 import { ankiConnect } from './anki-connect';
 import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator';
 import { DEFAULT_ANKI_MAPPING, DEFAULT_CAPTURE, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
-import { decryptSecret, isEncrypted } from '../shared/secret-store';
+import { resolveSecret } from '../shared/secret-store';
 import { escapeAnkiSearchTerm } from '../shared/anki-search';
 import {
   startAudioCapture,
@@ -187,15 +187,10 @@ async function loadMapping(): Promise<AnkiMapping> {
     const mapping = parsed?.state?.ankiMapping ?? parsed?.ankiMapping;
     if (mapping && typeof mapping === 'object') {
       const merged: AnkiMapping = { ...DEFAULT_ANKI_MAPPING, ...mapping };
-      // The apiKey is stored as ciphertext (see secret-store.ts) but
-      // AnkiConnect expects plaintext. Decrypt transparently; a still-
-      // encrypted result means unreadable-here (cross-device salt
-      // mismatch) — treat as missing rather than sending `enc:v1:`
-      // to Anki as if it were a key (which always fails auth).
-      if (merged.apiKey) {
-        const plain = await decryptSecret(merged.apiKey);
-        merged.apiKey = isEncrypted(plain) ? '' : plain;
-      }
+      // The apiKey lives in a local slot (see secret-store.ts); resolveSecret
+      // decrypts it (with legacy blob fallback) and returns '' when
+      // unreadable — never `enc:v1:` in a request to Anki.
+      merged.apiKey = await resolveSecret('ankiMapping', 'apiKey', merged.apiKey);
       return merged;
     }
   } catch (err) {
