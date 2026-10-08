@@ -21,6 +21,7 @@ import { runEnrichment } from './enrichment/orchestrator';
 import { formatFrequencyBand, pickFrequencyWinner } from '../shared/frequency';
 import { getVipSettings, loadTranslateTargetLang } from './vip-settings';
 import { computeCueWindow, shouldFallbackToTts, waitForCueTailMs } from './cue-window';
+import { t } from '../shared/i18n';
 
 interface ResolveContext {
   request: CreateCardRequest;
@@ -410,10 +411,10 @@ export async function createCardFromRequest(
   void options.retryRowId;
   // Validate required mapping fields before attempting any work.
   if (!mapping.deckName) {
-    return { ok: false, error: 'No se ha configurado un mazo de Anki (deckName vacío).' };
+    return { ok: false, error: t('capture.noDeck') };
   }
   if (!mapping.modelName) {
-    return { ok: false, error: 'No se ha configurado un modelo de nota Anki (modelName vacío).' };
+    return { ok: false, error: t('capture.noModel') };
   }
 
   const warnings: string[] = [];
@@ -788,7 +789,7 @@ export async function createCardFromRequest(
     } else {
       const status = await getAudioCaptureStatus();
       if (!status.active) {
-        warnings.push('La captura de audio no está activa — no se adjuntó audio.');
+        warnings.push(t('capture.audioInactive'));
       }
     }
     // If we couldn't grab tab audio, fall through and let TTS synthesise the
@@ -839,7 +840,7 @@ export async function createCardFromRequest(
         warnings.push(`No se pudo guardar el audio guardado: ${reason}`);
       }
     } else {
-      warnings.push('Reintento sin audio original: se usará TTS de la frase.');
+      warnings.push(t('capture.retryTts'));
       try {
         const tts = await generateTtsAudio(request.sentence, request.language ?? 'en');
         if (tts.ok) {

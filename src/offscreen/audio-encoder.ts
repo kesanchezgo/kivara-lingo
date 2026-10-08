@@ -1,3 +1,4 @@
+import { t } from '../shared/i18n';
 /**
  * Hand-rolled WAV/PCM encoder used by the offscreen audio processor.
  *
@@ -183,7 +184,7 @@ export async function encodeMp3Mono(
   const { default: lamejs } = await import('lamejs');
   const Mp3Encoder = (lamejs as unknown as { Mp3Encoder: new (ch: number, sr: number, br: number) => LameEncoder }).Mp3Encoder;
   if (typeof Mp3Encoder !== 'function') {
-    throw new Error('lamejs.Mp3Encoder no está disponible');
+    throw new Error(t('audio.encoderMissing'));
   }
 
   // Convert Float32 [-1, 1] to Int16.

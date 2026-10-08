@@ -41,16 +41,16 @@ const FALLBACK_FIELDS: Record<string, string[]> = {
 const detectSource = detectFieldSource;
 
 const SOURCE_META: Record<FieldSource, { label: string; color: string; description: string }> = {
-  selection:        { label: 'Palabra',        color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',     description: 'Palabra seleccionada (el headword)' },
-  cue:              { label: 'Frase',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: 'Frase completa del cue activo' },
-  phonetic:         { label: t('cards.phonetic'),       color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',     description: 'IPA del diccionario' },
+  selection:        { label: 'Palabra',        color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',     description: t('cards.srcDescSelectedWord') },
+  cue:              { label: 'Frase',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: t('cards.srcDescActiveCue') },
+  phonetic:         { label: t('cards.phonetic'),       color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',     description: t('cards.srcDescDictIpa') },
   translation:      { label: t('cards.translation'),     color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: t('cards.nativeTranslation') },
-  bilingual:        { label: 'Bilingüe',       color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: t('cards.bilingualGloss') },
-  monolingual:      { label: 'Monolingüe',     color: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300',     description: t('cards.definition') },
-  examples:         { label: 'Ejemplos',       color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300',     description: 'Ejemplos del diccionario' },
-  frame:            { label: 'Picture',        color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300',             description: 'Screenshot del frame del cue' },
+  bilingual:        { label: t('cards.srcLabelBilingual'),       color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: t('cards.bilingualGloss') },
+  monolingual:      { label: t('cards.srcLabelMonolingual'),     color: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300',     description: t('cards.definition') },
+  examples:         { label: 'Ejemplos',       color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300',     description: t('cards.srcDescDictExamples') },
+  frame:            { label: 'Picture',        color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300',             description: t('cards.srcDescCueScreenshot') },
   'sentence-audio': { label: 'Sentence audio', color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',             description: t('cards.tabAudio') },
-  'word-audio':     { label: 'Word audio',     color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300',             description: 'TTS solo de la palabra' },
+  'word-audio':     { label: 'Word audio',     color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300',             description: t('cards.srcDescWordTts') },
   'ai-definition':  { label: t('cards.aiDefinitionLabel'),    color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: t('cards.aiDefinitionHint') },
   'ai-synonyms':    { label: t('cards.aiSynonymsLabel'),     color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: t('cards.aiSynonymsHint') },
   'ai-collocations':{ label: 'IA · Colocaciones',  color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'Colocaciones comunes' },
@@ -60,14 +60,14 @@ const SOURCE_META: Record<FieldSource, { label: string; color: string; descripti
   synonyms:         { label: t('cards.synonyms'),           color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: t('cards.synonymsHint') },
   antonyms:         { label: t('cards.antonyms'),           color: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',             description: t('cards.antonymsHint') },
   collocations:     { label: 'Combinaciones',       color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',     description: 'Colocaciones editoriales o corroboradas' },
-  frequency:        { label: 'Frecuencia',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: 'Bandas de frecuencia preservando su escala original' },
+  frequency:        { label: 'Frecuencia',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: t('cards.srcDescFreqBands') },
   etymology:        { label: t('cards.etymology'),          color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: t('cards.etymologyHint') },
   mnemonic:         { label: t('cards.mnemonic'),        color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',     description: t('cards.mnemonicHint') },
   image:             { label: 'Imagen',             color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300',             description: 'Imagen Unsplash / Pixabay / Wikimedia / DDG' },
-  'video-link':     { label: 'Video link',          color: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',                 description: 'YouGlish: enlaces a videos con la palabra' },
+  'video-link':     { label: 'Video link',          color: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',                 description: t('cards.srcDescYouglish') },
   // Deprecated / backward-compatible labels.
-  dictionary:       { label: 'Diccionario',    color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: '(legacy) catch-all del diccionario' },
-  translate:        { label: 'Traducir',       color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: '(legacy) cadena de traductores' },
+  dictionary:       { label: 'Diccionario',    color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: t('cards.srcDescLegacyCatchall') },
+  translate:        { label: 'Traducir',       color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: t('cards.srcDescLegacyChain') },
   tabCapture:       { label: 'tabCapture',     color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',             description: t('cards.legacyTabAudio') },
   tts:              { label: 'TTS',            color: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300',                description: '(legacy) Text-to-speech' },
   manual:           { label: 'Manual',         color: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',                description: t('cards.writeItYourself') },
@@ -249,8 +249,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
           title={t('cards.connection')}
           hint={
             <>
-              Kivara envía las tarjetas a Anki mediante <strong>AnkiConnect</strong>, un add-on gratuito que expone Anki en <span className="font-mono">http://127.0.0.1:8765</span>. Necesitas tener Anki abierto en tu equipo y el add-on instalado (código <span className="font-mono">2055492159</span>). La <em>API key</em> solo es necesaria si la activaste manualmente en la configuración del add-on.
-            </>
+              {t('cards.ankiSendVia')}<strong>AnkiConnect</strong>{t('cards.ankiAddonFree')}<span className="font-mono">http://127.0.0.1:8765</span>{t('cards.ankiNeedOpen')}<span className="font-mono">2055492159</span>{t('cards.ankiApiKeyPre')}<em>API key</em> {t('cards.ankiApiKeyPost')}</>
           }
           collapsible
           open={setupOpen}
@@ -269,7 +268,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
               <span className="flex-1 min-w-0">
                 {conn === 'error' && <>{connError}</>}
                 {conn === 'connecting' && <>Comprobando AnkiConnect…</>}
-                {conn === 'idle' && <>Pulsa <strong>Probar</strong> para conectar con AnkiConnect.</>}
+                {conn === 'idle' && <>Pulsa <strong>Probar</strong> {t('cards.testConnectPost')}</>}
               </span>
             </div>
           )}
@@ -301,7 +300,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
             <SecretKeyInput
               stored={mapping.apiKey ?? ''}
               onChange={(v) => setMapping({ ...mapping, apiKey: v })}
-              placeholder="Solo si AnkiConnect tiene apiKey (opcional)"
+              placeholder={t('cards.apiKeyPlaceholder')}
             />
           </Row>
 
@@ -318,7 +317,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
             </select>
           </Row>
 
-          <Row label={<span className="flex items-center gap-1"><FileText size={10} className="text-zinc-400" />Tipo de nota</span>}>
+          <Row label={<span className="flex items-center gap-1"><FileText size={10} className="text-zinc-400" />{t('cards.noteType')}</span>}>
             <select
               value={mapping.modelName}
               onChange={(e) => setMapping({ ...mapping, modelName: e.target.value, fieldSources: {} })}
@@ -338,8 +337,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
           title={<>Mapeo · <span className="font-mono normal-case">{mapping.modelName}</span></>}
           hint={
             <>
-              Cada campo del <em>note type</em> se rellena con una <strong>fuente</strong> (palabra, frase, traducción, audio, frame…). Kivara auto-detecta la fuente a partir del nombre del campo (p. ej. <span className="font-mono">word</span> → Palabra, <span className="font-mono">sentence audio</span> → audio del cue). Si el nombre no coincide con ningún patrón conocido queda como <em>Manual</em> y puedes asignarlo tú mismo desde el desplegable.
-            </>
+              {t('cards.fieldEachStart')}<em>note type</em> {t('cards.fieldFillWith')}<strong>fuente</strong> {t('cards.fieldAutoDetect')}<span className="font-mono">word</span> → Palabra, <span className="font-mono">sentence audio</span> {t('cards.fieldNoMatch')}<em>Manual</em> {t('cards.fieldAssignSelf')}</>
           }
           headerRight={
             <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-500">
@@ -359,7 +357,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
           {conn === 'connected' && ankiFields.length > 0 && allAuto && (
             <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 dark:text-zinc-500 px-1">
               <Wand2 size={10} className="text-indigo-400" />
-              <span>Auto-mapeo activo · detectado por nombre</span>
+              <span>{t('cards.autoMapActive')}</span>
             </div>
           )}
 
@@ -368,7 +366,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
           )}
 
           {conn === 'connected' && ankiFields.length === 0 && (
-            <EmptyState icon={<AlertCircle size={13} />} text="Este note type no tiene campos." />
+            <EmptyState icon={<AlertCircle size={13} />} text={t('cards.noFields')} />
           )}
 
           {conn === 'connected' && ankiFields.length > 3 && (
@@ -390,7 +388,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
                     ? 'border-indigo-300 dark:border-indigo-500/40 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'
                     : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
                 }`}
-                title="Mostrar solo campos sin mapear (Manual)"
+                title={t('cards.showUnmappedTitle')}
               >
                 Solo no mapeados
               </button>

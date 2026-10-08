@@ -17,6 +17,7 @@
  * stats accumulated before they toggled it off.
  */
 import { getDB, type PackStatsRow } from './db';
+import { t } from './i18n';
 
 export const BUNDLE_PACK_ID = 'bundle';
 export const REMOTE_PACK_ID = 'remote';
@@ -303,7 +304,7 @@ export async function importCoverage(
 
 function parseSnapshot(raw: unknown): CoverageSnapshot {
   if (!raw || typeof raw !== 'object') {
-    throw new Error('Snapshot inválido: el archivo no es un objeto JSON.');
+    throw new Error(t('telem.invalidNotObject'));
   }
   const obj = raw as Record<string, unknown>;
   if (obj.version !== CURRENT_SNAPSHOT_VERSION) {
@@ -312,7 +313,7 @@ function parseSnapshot(raw: unknown): CoverageSnapshot {
     );
   }
   if (!Array.isArray(obj.rows)) {
-    throw new Error('Snapshot inválido: falta el array `rows`.');
+    throw new Error(t('telem.missingRows'));
   }
   const rows: PackStatsRow[] = [];
   for (const r of obj.rows) {
@@ -326,7 +327,7 @@ function parseSnapshot(raw: unknown): CoverageSnapshot {
       !Number.isFinite(row.hits) ||
       row.hits < 0
     ) {
-      throw new Error('Snapshot inválido: una fila tiene campos faltantes o con tipo incorrecto.');
+      throw new Error(t('telem.invalidRow'));
     }
     rows.push({
       packId: row.packId,

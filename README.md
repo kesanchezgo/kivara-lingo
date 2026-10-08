@@ -31,7 +31,7 @@ pnpm install
 # Build de producción → dist/
 pnpm build
 
-# Tests (399/399 passing)
+# Tests (441/441 passing)
 pnpm vitest run
 
 # Build del diccionario bundled (si modificas data/)
@@ -157,7 +157,7 @@ Abre el panel → **Settings → Enriquecimiento (VIP)**:
 - **Unsplash**: requiere clave gratuita de [unsplash.com/developers](https://unsplash.com/developers) (50 req/h Demo).
 - **Pixabay**: clave opcional de [pixabay.com/api/docs](https://pixabay.com/api/docs) (100 req/min). Sin clave usa scraping.
 
-Las claves se almacenan cifradas (AES-GCM) en `chrome.storage.sync`.
+Las claves se almacenan cifradas (AES-GCM) en `chrome.storage.local` (slots `kivara-secret:v1:*`).
 
 ### IA
 
@@ -214,7 +214,7 @@ Scaffolding para Whisper.cpp WASM. No se descarga nada hasta que el usuario acti
 ## Tests
 
 ```bash
-pnpm vitest run   # 399/399 tests passing
+pnpm vitest run   # 441/441 tests passing
 ```
 
 Los tests cubren: tokenizador, MWE, lematización, parsers de fuentes de enriquecimiento, ranking por acepción, cadena de traducción, VAD, encoder WAV, utilidades compartidas y contrato de provenance por campo.

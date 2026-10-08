@@ -1,3 +1,4 @@
+import { t } from './i18n';
 /**
  * Curated catalogue of high-quality Wiktionary-derived packs published weekly
  * by the kaikki-to-yomitan project.
@@ -43,7 +44,7 @@ export const RECOMMENDED_PACKS: RecommendedPack[] = [
   // ── Bilingüe (traducción) ──────────────────────────────────────────────
   {
     title: 'Wiktionary EN→ES',
-    description: 'Diccionario bilingüe inglés→español derivado de Wiktionary.',
+    description: t('dictpack.enEsDesc'),
     url: `${PACKS_BASE_URL}/kty-en-es.zip`,
     size: '≈1.5 MB',
     tier: 'core',
@@ -53,7 +54,7 @@ export const RECOMMENDED_PACKS: RecommendedPack[] = [
   },
   {
     title: 'Wiktionary ES→EN',
-    description: 'Bilingüe inverso para usuarios que quieren mirar palabras en español.',
+    description: t('dictpack.esEnDesc'),
     url: `${PACKS_BASE_URL}/kty-es-en.zip`,
     size: '≈22 MB',
     tier: 'recommended',
@@ -64,7 +65,7 @@ export const RECOMMENDED_PACKS: RecommendedPack[] = [
   // ── Monolingüe (inmersión) ─────────────────────────────────────────────
   {
     title: 'Wiktionary EN→EN',
-    description: 'Definiciones monolingües en inglés (B2+). Útil para inmersión.',
+    description: t('dictpack.enEnDesc'),
     url: `${PACKS_BASE_URL}/kty-en-en.zip`,
     size: '≈127 MB',
     tier: 'premium',
@@ -74,7 +75,7 @@ export const RECOMMENDED_PACKS: RecommendedPack[] = [
   },
   {
     title: 'Wiktionary ES→ES',
-    description: 'Definiciones monolingües en español (RAE-style).',
+    description: t('dictpack.esEsDesc'),
     url: `${PACKS_BASE_URL}/kty-es-es.zip`,
     size: '≈38 MB',
     tier: 'recommended',
@@ -85,7 +86,7 @@ export const RECOMMENDED_PACKS: RecommendedPack[] = [
   // ── IPA (pronunciación) ────────────────────────────────────────────────
   {
     title: 'Wiktionary EN IPA',
-    description: 'Transcripción fonética IPA real para ~140 000 entradas inglesas.',
+    description: t('dictpack.enIpaDesc'),
     url: `${PACKS_BASE_URL}/kty-en-ipa.zip`,
     size: '≈5 MB',
     tier: 'recommended',
@@ -96,9 +97,9 @@ export const RECOMMENDED_PACKS: RecommendedPack[] = [
 ];
 
 export const GROUP_LABELS: Record<RecommendedPack['group'], string> = {
-  bilingual:   'Bilingüe',
-  monolingual: 'Monolingüe',
-  phonetic:    'Fonética / IPA',
+  bilingual:   t('dictpack.groupBilingual'),
+  monolingual: t('dictpack.groupMonolingual'),
+  phonetic:    t('onb.fieldPhonetic'),
   frequency:   'Frecuencia y nivel',
-  examples:    'Oraciones de ejemplo',
+  examples:    t('dictpack.groupExamples'),
 };

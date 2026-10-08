@@ -46,6 +46,7 @@ import { enrichWithAi } from './ai-enrich';
 import { resolveWordStreaming } from './resolve-word';
 import { getCacheStats, clearCaches } from './cache-admin';
 import { listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';
+import { t } from '../shared/i18n';
 
 console.log('[Kivara Lingo] service worker booting');
 
@@ -265,7 +266,7 @@ onMessage('UPDATE_NOTE_FRAME', async ({ data }) => {
   if (!fieldName) {
     const out: UpdateNoteFrameResponse = {
       ok: false,
-      error: 'No hay un campo de Anki mapeado a "frame"',
+      error: t('sw.noFrameField'),
     };
     return asJson(out);
   }

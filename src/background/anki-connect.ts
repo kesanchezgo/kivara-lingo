@@ -1,3 +1,4 @@
+import { t } from '../shared/i18n';
 /// <reference types="chrome" />
 
 const DEFAULT_URL = 'http://127.0.0.1:8765';
@@ -114,7 +115,7 @@ async function invokeOnce<T = unknown>(
     const msg = json.error;
     if (/api ?key|valid key/i.test(msg)) {
       throw new AnkiConnectError(
-        'AnkiConnect requiere una API key. Configúrala en la tab Cards → Conexión.',
+        t('anki.apiKeyRequired'),
         'API_KEY',
       );
     }

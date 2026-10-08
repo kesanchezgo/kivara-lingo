@@ -61,8 +61,7 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
         {/* Header bar with global reset */}
         <div className="flex items-center justify-between px-0.5">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-500">
-            Estilo del subtítulo
-          </span>
+            {t('subs.styleTitle')}</span>
           <button
             onClick={() => setStyles(DEFAULT_STYLES)}
             disabled={isDefault}
@@ -71,7 +70,7 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
                 ? 'border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-600 cursor-not-allowed'
                 : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10'
             }`}
-            title="Restablecer todos los valores"
+            title={t('subs.resetAllTitle')}
           >
             <RotateCcw size={10} className="transition-transform duration-500 group-hover:-rotate-180" />
             Restablecer
@@ -335,7 +334,7 @@ function Row({
           {onReset && (
             <button
               onClick={onReset}
-              title="Restablecer este valor"
+              title={t('subs.resetValueTitle')}
               className="opacity-0 group-hover/row:opacity-100 focus:opacity-100 transition-opacity p-0.5 rounded text-zinc-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
               type="button"
             >
@@ -377,7 +376,7 @@ function ToggleRow({
         {onReset && (
           <button
             onClick={onReset}
-            title="Restablecer este valor"
+            title={t('subs.resetValueTitle')}
             className="opacity-0 group-hover/row:opacity-100 focus:opacity-100 transition-opacity p-0.5 rounded text-zinc-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
             type="button"
           >

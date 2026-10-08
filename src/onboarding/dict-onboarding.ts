@@ -1,3 +1,4 @@
+import { t } from '../shared/i18n';
 /**
  * Curated dictionary catalogue surfaced in the onboarding wizard.
  *
@@ -53,7 +54,7 @@ export const CURATED_DICT_PACKS: OnboardingDictPack[] = [
   {
     url: `${PACKS_BASE_URL}/kty-en-es.zip`,
     title: 'Wiktionary EN→ES',
-    description: 'Traducciones al español, ejemplos y categoría gramatical para ~61 000 términos.',
+    description: t('dictob.enEsDesc'),
     size: '≈1.5 MB',
     defaultSelected: true,
     tier: 'core',
@@ -62,22 +63,22 @@ export const CURATED_DICT_PACKS: OnboardingDictPack[] = [
   {
     url: `${PACKS_BASE_URL}/kty-en-ipa.zip`,
     title: 'Wiktionary EN IPA',
-    description: 'Transcripción fonética IPA real para ~140 000 entradas.',
+    description: t('dictob.enIpaDesc'),
     size: '≈5 MB',
     defaultSelected: true,
     tier: 'recommended',
-    benefit: 'Pronunciación',
+    benefit: t('dictob.pronBenefit'),
   },
   {
     url: `${PACKS_BASE_URL}/kty-en-en.zip`,
     title: 'Wiktionary EN→EN',
-    description: 'Definiciones monolingües en inglés. Recomendado para nivel B2+.',
+    description: t('dictob.enEnDesc'),
     size: '≈127 MB',
     defaultSelected: false,
     tier: 'premium',
-    benefit: 'Inmersión avanzada',
+    benefit: t('dictob.advancedImmersion'),
     disabledInOnboarding: true,
-    disabledReason: 'Muy grande para instalar aquí (127 MB). Instálalo desde Settings → Diccionarios offline.',
+    disabledReason: t('dictob.tooLarge'),
   },
 ];
 

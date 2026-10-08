@@ -696,14 +696,14 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       const ref = lastSavedNoteRef.current;
       if (!videoElement || !ref) {
         toast.message(
-          'No hay tarjeta reciente que actualizar',
+          t('app.noRecentCard'),
           { duration: 1800 },
         );
         return;
       }
       void captureFrame(videoElement).then(async (frameDataUrl) => {
         if (!frameDataUrl) {
-          toast.error('No se pudo capturar el frame');
+          toast.error(t('app.frameCaptureFailed'));
           return;
         }
         try {
@@ -850,7 +850,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     if (!tokenValue) return;
 
     const saveToastId = toast.loading('Guardando tarjeta…', {
-      description: 'Preparando frame, audio y campos de Anki.',
+      description: t('app.preparingSave'),
     });
 
     let frameDataUrl: string | null = null;

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { RotateCcw, AlertTriangle, Keyboard as KeyboardIcon } from 'lucide-react';
 import { useShortcuts } from '../hooks/useShortcuts';
 import { SHORTCUT_DEFS, comboFromEvent, parseCombo } from '../../shared/shortcuts';
+import { t } from '../../shared/i18n';
 
 interface ShortcutEditorProps {
   /** When true, renders the compact variant used inside accordions. */
@@ -29,13 +30,13 @@ export function ShortcutEditor({ compact = false }: ShortcutEditorProps) {
       {!compact && (
         <div className="flex items-center justify-between px-1 pb-1">
           <span className="text-[10px] text-zinc-500 dark:text-zinc-500">
-            Clic en un combo para grabar uno nuevo · <kbd className="font-sans text-[9px] px-1 rounded bg-zinc-100 dark:bg-zinc-800">Esc</kbd> cancela
+            {t('sc.clickToRecord')}<kbd className="font-sans text-[9px] px-1 rounded bg-zinc-100 dark:bg-zinc-800">Esc</kbd> cancela
           </span>
           <button
             type="button"
             onClick={() => { resetAll(); setWarning(null); }}
             className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 inline-flex items-center gap-1 transition-colors"
-            title="Restaurar todos los atajos a sus valores por defecto"
+            title={t('key.resetAllTitle')}
           >
             <RotateCcw size={10} /> Reset
           </button>
@@ -142,10 +143,9 @@ function KeyCaptureButton({
     >
       {capturing ? (
         <span className="inline-flex items-center gap-1 text-[10px]">
-          <KeyboardIcon size={10} /> Pulsa una combinación…
-        </span>
+          <KeyboardIcon size={10} /> {t('sc.pressCombo')}</span>
       ) : keys.length === 0 ? (
-        <span className="text-zinc-400 dark:text-zinc-500 italic">sin asignar</span>
+        <span className="text-zinc-400 dark:text-zinc-500 italic">{t('sc.unassigned')}</span>
       ) : (
         keys.map((k, i) => (
           <React.Fragment key={`${k}-${i}`}>

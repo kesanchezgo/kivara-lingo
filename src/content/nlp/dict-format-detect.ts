@@ -125,7 +125,7 @@ export function detectDictFormat(
     if (hasIfo) return { format: 'stardict' };
     return {
       format: 'unknown',
-      reason: 'ZIP sin index.json (Yomitan) ni .ifo (StarDict).',
+      reason: t('dict.invalidZipFormat'),
     };
   }
   if (looksLikeText(buffer)) {
@@ -163,6 +163,7 @@ import type { DictPackRow } from '../../shared/db';
 import { importYomitanPack } from './yomitan';
 import { importStarDictPack } from './stardict';
 import { importCsvList } from './csv-importer';
+import { t } from '../../shared/i18n';
 
 export interface AutoImportResult {
   ok: true;

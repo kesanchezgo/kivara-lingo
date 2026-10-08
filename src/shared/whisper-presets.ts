@@ -1,3 +1,4 @@
+import { t } from './i18n';
 /**
  * Whisper.cpp ggml model presets.
  *
@@ -20,7 +21,7 @@
  */
 export const WHISPER_MODEL_PRESETS = {
   tiny: {
-    label: 'Tiny (75 MB · más rápido)',
+    label: t('whisper.tinyLabel'),
     sizeBytes: 78_000_000,
     url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin',
   },

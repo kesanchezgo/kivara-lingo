@@ -21,6 +21,7 @@
  * contract.
  */
 import type React from 'react';
+import { t } from './i18n';
 
 export interface ShortcutDef {
   id: string;
@@ -30,7 +31,7 @@ export interface ShortcutDef {
 
 export const SHORTCUT_DEFS: ShortcutDef[] = [
   { id: 'save',    label: 'Guardar tarjeta',      defaultCombo: 'Ctrl+S' },
-  { id: 'toggle',  label: 'Toggle subtítulos',    defaultCombo: 'Alt+C' },
+  { id: 'toggle',  label: t('shortcut.toggleSubs'),    defaultCombo: 'Alt+C' },
   { id: 'replay',  label: 'Repetir frase',        defaultCombo: 'Alt+R' },
   { id: 'recap',   label: 'Re-capturar frame',    defaultCombo: 'Alt+V' },
   { id: 'panel',   label: 'Abrir / cerrar panel', defaultCombo: 'Alt+K' },

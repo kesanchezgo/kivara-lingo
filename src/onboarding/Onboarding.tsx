@@ -53,8 +53,8 @@ const SOURCE_BADGE: Partial<Record<FieldSource, { label: string; color: string }
   cue:              { label: 'Frase',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300' },
   phonetic:         { label: t('cards.phonetic'),       color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300' },
   translation:      { label: t('cards.translation'),     color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' },
-  bilingual:        { label: 'Bilingüe',       color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300' },
-  monolingual:      { label: 'Monolingüe',     color: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300' },
+  bilingual:        { label: t('onb.modeBilingual'),       color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300' },
+  monolingual:      { label: t('onb.modeMonolingual'),     color: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300' },
   examples:         { label: 'Ejemplos',       color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300' },
   frame:            { label: 'Picture',        color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-300' },
   'sentence-audio': { label: 'Sentence audio', color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300' },
@@ -67,7 +67,7 @@ const SOURCE_BADGE: Partial<Record<FieldSource, { label: string; color: string }
   image:            { label: 'Imagen',         color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-300' },
   'video-link':     { label: 'Video link',     color: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300' },
   'ai-definition':  { label: 'IA def.',        color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-300' },
-  'ai-synonyms':    { label: 'IA sin.',        color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-300' },
+  'ai-synonyms':    { label: t('onb.aiOffShort'),        color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-300' },
   'ai-collocations':{ label: 'IA coloc.',      color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-300' },
   'ai-nuance':      { label: 'IA matiz',       color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-300' },
   'ai-register':    { label: 'IA registro',    color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-300' },
@@ -385,13 +385,11 @@ export function Onboarding() {
           <div className="flex items-center gap-3">
             {step === 'anki' && ping.status !== 'ok' && (
               <span className="text-[11px] text-zinc-400 dark:text-zinc-500 hidden sm:block">
-                Necesitamos confirmar la conexión con AnkiConnect
-              </span>
+                {t('onb.confirmAnki')}</span>
             )}
             {step === 'mapping' && !canAdvance && (
               <span className="text-[11px] text-zinc-400 dark:text-zinc-500 hidden sm:block">
-                Elige un mazo y un modelo de notas
-              </span>
+                {t('onb.pickDeckModel')}</span>
             )}
             {(step === 'dict' || step === 'ai') && (
               <span className="text-[11px] text-zinc-400 dark:text-zinc-500 hidden sm:block">
@@ -431,7 +429,7 @@ function WelcomeStep() {
       icon: <LayoutGrid size={18} />,
       iconBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 ring-1 ring-emerald-500/20',
       title: 'Tarjetas Anki al instante',
-      desc: 'Guarda palabra + frase + frame + audio directamente en tu mazo, sin copiar nada.',
+      desc: t('onb.saveDirectDesc'),
     },
     {
       icon: <Sparkles size={18} />,
@@ -451,14 +449,12 @@ function WelcomeStep() {
 
         <div className="relative space-y-3">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/70 dark:bg-zinc-900/60 ring-1 ring-zinc-200/80 dark:ring-zinc-700/60 text-[10.5px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-300">
-            <Rocket size={10} /> Configuración ≈ 1 min · 7 pasos
-          </div>
+            <Rocket size={10} /> {t('onb.setupMeta')}</div>
           <h2 className="text-[26px] sm:text-[28px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 leading-tight">
             Bienvenido a <span className="text-indigo-600 dark:text-indigo-300">Kivara Lingo</span>
           </h2>
           <p className="text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-300 max-w-xl">
-            Aprende idiomas mientras ves Netflix, HBO, Disney+, Prime o YouTube. Tokeniza los subtítulos en vivo, guarda tarjetas Anki en un clic y sigue tu progreso.
-          </p>
+            {t('onb.heroDesc')}</p>
 
           {/* Subtitle preview — non-interactive mock */}
           <div className="mt-4 pt-2">
@@ -502,14 +498,13 @@ function WelcomeStep() {
           <BookText size={16} />
         </div>
         <div className="min-w-0">
-          <p className="text-[12.5px] font-semibold text-zinc-800 dark:text-zinc-100 leading-snug">¿Sin Anki instalado?</p>
+          <p className="text-[12.5px] font-semibold text-zinc-800 dark:text-zinc-100 leading-snug">{t('onb.noAnkiTitle')}</p>
           <p className="text-[12px] text-zinc-500 dark:text-zinc-400 leading-relaxed mt-1">
-            Descárgalo en{' '}
+            {t('onb.dlAt')}{' '}
             <a className="text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 hover:underline font-medium" href="https://apps.ankiweb.net" target="_blank" rel="noreferrer">
               apps.ankiweb.net
             </a>{' '}
-            e instala el complemento <span className="font-semibold text-zinc-700 dark:text-zinc-300">AnkiConnect</span> (código <span className="font-mono text-[11px] bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-300">2055492159</span>). Luego vuelve aquí.
-          </p>
+            {t('onb.installAddonPre')}<span className="font-semibold text-zinc-700 dark:text-zinc-300">AnkiConnect</span> {t('onb.codePre')}<span className="font-mono text-[11px] bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-300">2055492159</span>{t('onb.backHerePost')}</p>
         </div>
       </div>
     </section>
@@ -572,7 +567,7 @@ function AnkiStep({ mapping, setMapping, ping, onRunPing }: AnkiStepProps) {
               {isOk ? `Conectado · AnkiConnect v${ping.version}`
                 : isErr ? (ping.error || 'No responde')
                   : isBusy ? t('onb.testingConnection')
-                    : 'Pendiente de prueba'}
+                    : t('onb.pendingTest')}
             </span>
           </div>
         </div>
@@ -582,8 +577,7 @@ function AnkiStep({ mapping, setMapping, ping, onRunPing }: AnkiStepProps) {
       <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3">
         <div className="space-y-1.5">
           <label className="flex items-center gap-1.5 text-[12px] font-semibold text-zinc-700 dark:text-zinc-300">
-            <Plug size={12} className="text-zinc-400" /> URL de AnkiConnect
-          </label>
+            <Plug size={12} className="text-zinc-400" /> {t('onb.ankiUrlLabel')}</label>
           <div className="flex gap-2">
             <input
               type="text"
@@ -606,7 +600,7 @@ function AnkiStep({ mapping, setMapping, ping, onRunPing }: AnkiStepProps) {
       <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-3 flex gap-2.5">
         <AlertTriangle size={13} className="text-zinc-400 mt-0.5 shrink-0" />
         <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
-          Si no responde: abre Anki, ve a <span className="font-medium text-zinc-700 dark:text-zinc-300">Tools → Add-ons → AnkiConnect → Config</span> y comprueba que{' '}
+          Si no responde: abre Anki, ve a <span className="font-medium text-zinc-700 dark:text-zinc-300">Tools → Add-ons → AnkiConnect → Config</span> {t('onb.checkThat')}{' '}
           <span className="font-mono text-[10px] bg-white dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300">webBindAddress</span> es{' '}
           <span className="font-mono text-[10px] bg-white dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300">127.0.0.1</span>.
         </p>
@@ -699,7 +693,7 @@ function MappingStep({
                   autoFocus
                   value={mapping.deckName}
                   onChange={(e) => setMapping({ ...mapping, deckName: e.target.value })}
-                  placeholder="Nombre del nuevo mazo"
+                  placeholder={t('onb.newDeckPlaceholder')}
                   className="sl-input sl-lg flex-1"
                 />
               ) : (
@@ -733,7 +727,7 @@ function MappingStep({
               }}
               className="text-[11.5px] text-indigo-600 dark:text-indigo-400 hover:underline"
             >
-              {deckCreateMode ? '← Elegir mazo existente' : '+ Crear nuevo mazo'}
+              {deckCreateMode ? '← Elegir mazo existente' : t('onb.createDeck')}
             </button>
           </div>
         </div>
@@ -744,7 +738,7 @@ function MappingStep({
             <div className="w-6 h-6 rounded-md bg-emerald-500/10 ring-1 ring-emerald-500/20 text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
               <ListChecks size={12} />
             </div>
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Modelo de nota</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">{t('onb.noteModelTitle')}</span>
             {mapping.modelName && !modelCreateMode && (
               <CheckCircle2 size={12} className="ml-auto text-emerald-500" />
             )}
@@ -756,7 +750,7 @@ function MappingStep({
                 autoFocus
                 value={mapping.modelName}
                 onChange={(e) => setMapping({ ...mapping, modelName: e.target.value })}
-                placeholder="Nombre del nuevo modelo"
+                placeholder={t('onb.newModelPlaceholder')}
                 className="sl-input sl-lg w-full"
               />
             ) : (
@@ -789,7 +783,7 @@ function MappingStep({
                 }}
                 className="text-[11.5px] text-indigo-600 dark:text-indigo-400 hover:underline"
               >
-                {modelCreateMode ? '← Elegir existente' : '+ Modelo nuevo'}
+                {modelCreateMode ? '← Elegir existente' : t('onb.createModel')}
               </button>
               {busy && (
                 <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-500">
@@ -811,7 +805,7 @@ function MappingStep({
               <div className="w-6 h-6 rounded-md bg-violet-500/10 ring-1 ring-violet-500/20 text-violet-600 dark:text-violet-300 flex items-center justify-center">
                 <Wand2 size={12} />
               </div>
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Mapeo de campos</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">{t('onb.fieldMapTitle')}</span>
               <span className="text-[10px] text-zinc-400 dark:text-zinc-500">·</span>
               <span className="text-[10.5px] text-zinc-500 dark:text-zinc-400">
                 {totalMapped}/{fields.length} mapeados
@@ -857,8 +851,8 @@ function MappingStep({
                       <option value="cue">Frase completa</option>
                       <option value="phonetic">{t('onb.fieldPhonetic')}</option>
                       <option value="translation">{t('cards.translation')}</option>
-                      <option value="bilingual">Bilingüe</option>
-                      <option value="monolingual">Monolingüe</option>
+                      <option value="bilingual">{t('onb.bilingualOpt')}</option>
+                      <option value="monolingual">{t('onb.monolingualOpt')}</option>
                       <option value="examples">Ejemplos</option>
                       <option value="frame">Picture (frame)</option>
                       <option value="sentence-audio">Sentence audio</option>
@@ -882,8 +876,7 @@ function MappingStep({
             </div>
             <div className="px-4 py-2.5 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/40 dark:bg-zinc-900/40">
               <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                Cada campo se detectó automáticamente por su nombre. Cambia cualquier asignación con el selector de la derecha.
-              </p>
+                {t('onb.autoDetectedNote')}</p>
             </div>
           </div>
         );
@@ -921,7 +914,7 @@ function AIStep({
     defaultModel?: string;
   };
   const providers: ProviderTile[] = [
-    { value: 'disabled',  label: 'Sin IA',          tag: 'Solo diccionarios',   icon: <Ban size={18} />,      tone: 'zinc' },
+    { value: 'disabled',  label: t('onb.noAi'),          tag: 'Solo diccionarios',   icon: <Ban size={18} />,      tone: 'zinc' },
     { value: 'openai',    label: 'OpenAI',          tag: 'GPT-4o mini',         icon: <Sparkles size={18} />, tone: 'emerald', defaultModel: 'gpt-4o-mini' },
     { value: 'anthropic', label: 'Anthropic',       tag: 'Claude Haiku',        icon: <Brain size={18} />,    tone: 'amber',   defaultModel: 'claude-haiku-4-5' },
     { value: 'google-ai', label: 'Google Gemini',   tag: 'Gemini 1.5 Flash',    icon: <Zap size={18} />,      tone: 'sky',     defaultModel: 'gemini-1.5-flash' },
@@ -993,8 +986,7 @@ function AIStep({
             {!aiApiKey && (
               <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                 <AlertTriangle size={11} />
-                Sin API key las llamadas IA se omitirán (no bloquea el flujo).
-              </p>
+                {t('onb.noKeyNote')}</p>
             )}
           </div>
           <div className="p-4 space-y-1.5">
@@ -1028,7 +1020,7 @@ function AIStep({
           <div className="p-4">
             <ToggleRow
               label="Enriquecer al guardar"
-              description="Llama a la IA cada vez que guardas una tarjeta en Anki."
+              description={t('onb.enrichOnSaveDesc')}
               on={aiEnrichOnSave}
               onChange={setAiEnrichOnSave}
               isDarkMode={isDarkMode}
@@ -1047,8 +1039,7 @@ function AIStep({
       )}
 
       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed px-0.5">
-        Las respuestas se cachean en IndexedDB con TTL configurable para no hacer llamadas duplicadas. Puedes cambiar el proveedor en <span className="font-medium text-zinc-700 dark:text-zinc-300">Settings → IA premium</span> cuando quieras.
-      </p>
+        {t('onb.cacheTtlNote')}<span className="font-medium text-zinc-700 dark:text-zinc-300">Settings → IA premium</span> {t('onb.wheneverPost')}</p>
     </StepSection>
   );
 }
@@ -1059,8 +1050,8 @@ function DemoStep() {
   const items = [
     { icon: <Subtitles size={16} />,         text: t('onb.styledSubs'),                tone: 'indigo' as const },
     { icon: <MousePointerClick size={16} />, text: t('onb.hoverPopover'),       tone: 'sky' as const },
-    { icon: <Save size={16} />,              text: 'Clic en "Guardar" → nota en Anki con frame + audio capturado.',            tone: 'emerald' as const },
-    { icon: <LayoutGrid size={16} />,        text: 'Panel lateral listo con el mapeo de campos que acabas de configurar.',     tone: 'amber' as const },
+    { icon: <Save size={16} />,              text: t('onb.saveToAnkiHint'),            tone: 'emerald' as const },
+    { icon: <LayoutGrid size={16} />,        text: t('onb.sidePanelReady'),     tone: 'amber' as const },
   ];
   const toneMap = {
     indigo:  'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 ring-indigo-500/20',
@@ -1077,8 +1068,7 @@ function DemoStep() {
         <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 flex items-center gap-2">
           <Rocket size={13} className="text-indigo-500" />
           <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-            Qué verás
-          </p>
+            {t('onb.whatYouSee')}</p>
         </div>
         <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
           {items.map((item, i) => (
@@ -1097,7 +1087,7 @@ function DemoStep() {
       <div className="rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/25 p-4 flex gap-3">
         <Mic size={16} className="text-indigo-500 shrink-0 mt-0.5" />
         <p className="text-[12px] text-indigo-700 dark:text-indigo-300 leading-relaxed">
-          Para activar la captura de audio del tab (necesaria para "Sentence audio" en las tarjetas), haz clic en el icono de la extensión en la barra del navegador → <span className="font-semibold">Activar captura de audio</span>.
+          {t('onb.enableCapturePre')}<span className="font-semibold">{t('popup.capture.off')}</span>.
         </p>
       </div>
     </StepSection>
@@ -1113,8 +1103,7 @@ function ShortcutsPreview() {
       <div className="px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 flex items-center gap-2">
         <Keyboard size={12} className="text-zinc-500 dark:text-zinc-400" />
         <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex-1">
-          Atajos de teclado
-        </p>
+          {t('onb.shortcutsTitle')}</p>
         <button
           type="button"
           onClick={() => setCustomize((v) => !v)}
@@ -1176,12 +1165,12 @@ function DoneStep({ completedAt, onComplete }: { completedAt: number | null; onC
         <div className="text-center space-y-2 max-w-sm">
           <p className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">{t('onb.readyTitle')}</p>
           <p className="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
-            Para volver a este asistente ve a{' '}
+            {t('onb.reopenWizardPre')}{' '}
             <span className="font-medium text-zinc-700 dark:text-zinc-300">{t('onb.repeatInit')}</span>.
           </p>
           {completedAt && (
             <p className="text-[10px] text-zinc-400 dark:text-zinc-600">
-              Completado el {new Date(completedAt).toLocaleString()}
+              {t('onb.completedOn')}{new Date(completedAt).toLocaleString()}
             </p>
           )}
         </div>
@@ -1251,7 +1240,7 @@ function LangStep({
   return (
     <StepSection
       title={t('onb.whatLanguage')}
-      subtitle="Configura el par de idiomas. Puedes cambiarlo en cualquier momento desde Settings → Idioma."
+      subtitle={t('onb.langPairSubtitle')}
     >
       {/* Pair display: Aprendo ↔ Nativo */}
       <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
@@ -1283,7 +1272,7 @@ function LangStep({
 
       {/* Helper line: which slot is being edited */}
       <div className="flex items-center justify-center gap-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
-        <span>Selecciona el idioma que</span>
+        <span>{t('onb.selectLangPre')}</span>
         <span className={`font-semibold ${activeSlot === 'source' ? 'text-indigo-600 dark:text-indigo-300' : 'text-emerald-600 dark:text-emerald-300'}`}>
           {activeSlot === 'source' ? 'aprendes' : 'ya hablas'}
         </span>
@@ -1336,15 +1325,13 @@ function LangStep({
         <div className="rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/25 p-3 flex items-start gap-2">
           <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
           <p className="text-[12px] text-amber-800 dark:text-amber-300 leading-relaxed">
-            El idioma de aprendizaje y el nativo son el mismo. Elige idiomas distintos para que las traducciones funcionen correctamente.
-          </p>
+            {t('onb.sameLangWarn')}</p>
         </div>
       )}
 
       <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-3">
         <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
-          Este par controla la dirección de las traducciones en los subtítulos, las tarjetas Anki y el enriquecimiento con IA.
-        </p>
+          {t('onb.pairControls')}</p>
       </div>
     </StepSection>
   );
@@ -1525,11 +1512,9 @@ function DictStep() {
         </div>
         <div className="text-[12px] text-indigo-900 dark:text-indigo-100 leading-relaxed space-y-1 min-w-0">
           <p className="text-[12.5px]">
-            <strong className="font-semibold">Cobertura local ~98%</strong> con los packs Wiktionary, frente a ~4 100 palabras CEFR del diccionario incluido.
-          </p>
+            <strong className="font-semibold">Cobertura local ~98%</strong> {t('onb.coverageVs')}</p>
           <p className="text-[11.5px] text-indigo-700/80 dark:text-indigo-200/70">
-            Todo se guarda en tu navegador (IndexedDB). Puedes modificar la selección luego desde Settings → Diccionarios offline.
-          </p>
+            {t('onb.storedLocalNote')}</p>
         </div>
       </div>
 
@@ -1627,11 +1612,11 @@ function DictStep() {
             {running
               ? 'Instalando packs seleccionados…'
               : toInstall.length === 0
-                ? allDone ? t('onb.allPacksInstalled') : 'Selecciona al menos un pack para continuar'
+                ? allDone ? t('onb.allPacksInstalled') : t('onb.selectPack')
                 : `${toInstall.length} ${toInstall.length === 1 ? 'pack listo' : 'packs listos'} para instalar`}
           </p>
           <p className="text-[10.5px] text-zinc-500 dark:text-zinc-400 leading-tight mt-0.5">
-            {running ? 'Se ejecuta secuencialmente para evitar saturar el navegador.' : 'Puedes saltarte este paso e instalarlos luego desde Settings.'}
+            {running ? t('onb.sequentialNote') : t('onb.skipPacks')}
           </p>
         </div>
         <button
@@ -1659,8 +1644,7 @@ function DictStep() {
       )}
 
       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed px-0.5">
-        Compatible con cualquier diccionario en formato Yomitan o StarDict.
-        Encuentra más packs y opciones avanzadas en{' '}
+        {t('onb.compatiblePre')}{' '}
         <span className="font-medium text-zinc-600 dark:text-zinc-300">Settings → Diccionarios offline</span>.
       </p>
     </StepSection>
@@ -1678,8 +1662,7 @@ function DictStepRowStatus({ isInstalled, installedTermCount, status }: DictStep
     return (
       <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 inline-flex items-center gap-1">
         <CheckCircle2 size={12} />
-        Instalado · {(status.termsImported ?? 0).toLocaleString()} términos
-      </p>
+        Instalado · {(status.termsImported ?? 0).toLocaleString()} {t('onb.termsCount')}</p>
     );
   }
   if (status?.status === 'downloading') {

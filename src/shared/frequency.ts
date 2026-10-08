@@ -1,3 +1,4 @@
+import { t } from './i18n';
 /**
  * Single learner-facing frequency band shared by the popover and the Anki
  * card writer. The three evidence scales are not comparable (Longman spoken
@@ -28,10 +29,10 @@ export function formatFrequencyBand(scale: string, value: number | string): stri
   }
   if (scale === 'books-band') {
     const band = Number(value);
-    if (band === 1) return 'Muy frecuente';
+    if (band === 1) return t('freq.veryFrequent');
     if (band === 2) return 'Frecuente';
-    if (band === 3) return 'Común';
-    if (band === 4) return 'Poco común';
+    if (band === 3) return t('freq.common');
+    if (band === 4) return t('freq.uncommon');
   }
   return `${scale}: ${value}`;
 }

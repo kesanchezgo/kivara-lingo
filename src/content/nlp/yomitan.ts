@@ -31,6 +31,7 @@ import type { DictPackRow, DictTermRow } from '../../shared/db';
 import type { DictionaryEntry } from '../../shared/types';
 import { lemmaCandidates } from './lemma';
 import { deletePackStats, recordPackInstall } from '../../shared/telemetry';
+import { t } from '../../shared/i18n';
 
 /** Yomitan term_bank entry tuple. */
 export type YomitanTermTuple = [
@@ -129,7 +130,7 @@ export async function importYomitanPack(
     .sort();
 
   if (termBankFiles.length === 0 && metaBankFiles.length === 0) {
-    return { ok: false, error: 'No se encontraron archivos term_bank ni term_meta_bank en el pack' };
+    return { ok: false, error: t('yomitan.noTermBanks') };
   }
 
   const termRows: DictTermRow[] = [];
@@ -329,7 +330,7 @@ export async function importYomitanPackStreaming(
   }
 
   if (pending.length === 0) {
-    return { ok: false, error: 'El ZIP no contiene archivos.' };
+    return { ok: false, error: t('yomitan.emptyZip') };
   }
 
   // Find index.json — same lookup as the non-streaming path. Wait only
@@ -341,7 +342,7 @@ export async function importYomitanPackStreaming(
   }
   await indexSlot.done;
   if (!indexSlot.bytes) {
-    return { ok: false, error: 'index.json tiene cero bytes' };
+    return { ok: false, error: t('yomitan.emptyIndex') };
   }
   let index: YomitanIndex;
   try {
@@ -371,7 +372,7 @@ export async function importYomitanPackStreaming(
     .sort((a, b) => a.name.localeCompare(b.name));
 
   if (termBankSlots.length === 0 && metaBankSlots.length === 0) {
-    return { ok: false, error: 'No se encontraron archivos term_bank ni term_meta_bank en el pack' };
+    return { ok: false, error: t('yomitan.noTermBanks') };
   }
 
   const filesTotal = termBankSlots.length + metaBankSlots.length;

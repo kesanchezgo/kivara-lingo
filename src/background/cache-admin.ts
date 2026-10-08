@@ -18,6 +18,7 @@
 
 import { getDB } from '../shared/db';
 import { clearMemEnrichmentCache } from './enrichment/orchestrator';
+import { t } from '../shared/i18n';
 
 export interface CacheBucketStats {
   /** Stable id used by the clear API. */
@@ -67,9 +68,9 @@ export async function getCacheStats(): Promise<CacheStatsResult> {
   ]);
   const buckets: CacheBucketStats[] = [
     { id: 'enrichment', label: 'Enriquecimiento (palabras/hover)', ...enrichment },
-    { id: 'translation', label: 'Traducciones (subtítulos)', ...translation },
-    { id: 'ai', label: 'IA (mnemonics/etimología)', ...ai },
-    { id: 'media', label: 'Multimedia (dedup audio/imágenes)', ...media },
+    { id: 'translation', label: t('cache.bucketTranslations'), ...translation },
+    { id: 'ai', label: t('cache.bucketAi'), ...ai },
+    { id: 'media', label: t('cache.bucketMedia'), ...media },
   ];
   return {
     buckets,

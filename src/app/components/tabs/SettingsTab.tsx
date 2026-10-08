@@ -111,14 +111,13 @@ export function SettingsTab() {
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
           <div className="px-2.5 py-1.5 border-b border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/60 dark:bg-zinc-900/60">
             <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              <Zap size={9} /> Acceso rápido
-            </span>
+              <Zap size={9} /> {t('set.quickAccess')}</span>
           </div>
           <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
             <QuickRow label={t('set.autoCapture')} info={t('set.autoCaptureDesc')} hint={autoMode ? 'VAD · 30s' : 'manual'}>
               <Toggle on={autoMode} onChange={setAutoMode} />
             </QuickRow>
-            <QuickRow label="Modo lectura" info={t('set.hideHoverDesc')} hint={readingMode ? 'sin popovers' : 'aprendizaje'}>
+            <QuickRow label="Modo lectura" info={t('set.hideHoverDesc')} hint={readingMode ? t('set.noPopovers') : 'aprendizaje'}>
               <Toggle on={readingMode} onChange={setReadingMode} />
             </QuickRow>
             <QuickRow label={t('set.bilingualSub')} info={t('set.bilingualSubDesc')} hint={translate.showDualSubtitle ? 'visible' : 'oculto'}>
@@ -140,7 +139,7 @@ export function SettingsTab() {
             onToggle={() => toggle('capture')}
             description={t('set.captureDesc')}
           >
-            <Row label="Fuente audio" hint={audioSource === 'tab' ? 'Graba el audio del navegador (Netflix, YouTube…). Requiere activar la captura del tab.' : t('set.micDesc')}>
+            <Row label="Fuente audio" hint={audioSource === 'tab' ? t('set.tabAudioHint') : t('set.micDesc')}>
               <SegmentedControl
                 options={[{ v: 'tab', l: t('set.tab') }, { v: 'mic', l: 'Mic' }]}
                 value={audioSource}
@@ -154,14 +153,14 @@ export function SettingsTab() {
                 className="sl-range w-full"
               />
             </Row>
-            <Row label="Fin de frase" hint={endDetect === 'vad' ? t('set.vadModeDesc') : t('set.exactModeDesc')}>
+            <Row label={t('set.sentenceEndLabel')} hint={endDetect === 'vad' ? t('set.vadModeDesc') : t('set.exactModeDesc')}>
               <SegmentedControl
                 options={[{ v: 'vad', l: 'VAD' }, { v: 'cue', l: 'Cue exacto' }]}
                 value={endDetect}
                 onChange={setEndDetect}
               />
             </Row>
-            <Row label="Momento del frame" hint={t('set.frameDesc')}>
+            <Row label={t('set.frameMomentLabel')} hint={t('set.frameDesc')}>
               <SegmentedControl
                 options={[
                   { v: 'start', l: 'Inicio' },
@@ -206,8 +205,8 @@ export function SettingsTab() {
             </div>
           </div>
           <QuickRow
-            label="Audio en idioma de aprendizaje"
-            info={<>{t('set.autoTrackDesc')}<br /><br />En YouTube no aplica (un solo audio por video). En Netflix no funciona porque su reproductor no expone la API de audioTracks.</>}
+            label={t('set.learningAudioLabel')}
+            info={<>{t('set.autoTrackDesc')}<br /><br />{t('set.trackLimitsNote')}</>}
             hint={translate.autoSelectSourceAudio ? 'activo' : 'manual'}
           >
             <Toggle
@@ -283,7 +282,7 @@ export function SettingsTab() {
 
           {/* Nested API tokens accordion */}
           <NestedAccordion
-            title="Tokens de API"
+            title={t('set.apiTokensTitle')}
             open={isOpen('translate-tokens')}
             onToggle={() => toggle('translate-tokens')}
           >
@@ -505,8 +504,7 @@ export function SettingsTab() {
             </>
           )}
           <p className="text-[10px] text-zinc-500 dark:text-zinc-500 leading-snug">
-            Whisper.cpp vía WebAssembly (sin GPU). <strong>Tiny</strong> recomendado para portátiles; <strong>Base</strong> para escritorios.
-          </p>
+            {t('set.whisperWasm')}<strong>Tiny</strong> {t('set.tinyLaptops')}<strong>Base</strong> {t('set.baseDesktops')}</p>
         </Accordion>
 
         {/* ── Limpieza visual ────────────────────────────────────────── */}
@@ -516,12 +514,12 @@ export function SettingsTab() {
           summary={`UI ${hideUI ? 'off' : 'on'} · sombras ${hideShadows ? 'off' : 'on'}`}
           open={isOpen('cleanup')}
           onToggle={() => toggle('cleanup')}
-          description="Oculta elementos del reproductor para que la captura de frame quede limpia y sin distracciones."
+          description={t('set.cleanupDesc')}
         >
-          <Row label="Ocultar UI del player" hint={t('set.hideProgressDesc')}>
+          <Row label={t('set.hidePlayerUiLabel')} hint={t('set.hideProgressDesc')}>
             <Toggle on={hideUI} onChange={setHideUI} />
           </Row>
-          <Row label="Sin sombras / gradientes" hint={t('set.hideGradientsDesc')}>
+          <Row label={t('set.noShadowsLabel')} hint={t('set.hideGradientsDesc')}>
             <Toggle on={hideShadows} onChange={setHideShadows} />
           </Row>
         </Accordion>
@@ -543,7 +541,7 @@ export function SettingsTab() {
         {/* ── Atajos ─────────────────────────────────────────────────── */}
         <Accordion
           icon={<Keyboard size={10} />}
-          title="Atajos de teclado"
+          title={t('set.keyboardShortcutsTitle')}
           summary={keysSummary}
           open={isOpen('keys')}
           onToggle={() => toggle('keys')}
@@ -580,8 +578,7 @@ export function SettingsTab() {
             onClick={reopenOnboarding}
             className="w-full flex items-center justify-center gap-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/60 dark:hover:bg-indigo-500/10 py-1.5 rounded-md transition-colors"
           >
-            Repetir configuración inicial
-          </button>
+            {t('set.repeatInit')}</button>
         </div>
       </div>
     </div>
@@ -719,9 +716,7 @@ function AiByokSection() {
   return (
     <div className="space-y-3">
       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug">
-        Trae tu propia API key para enriquecer las tarjetas con definiciones contextuales,
-        sinónimos, colocaciones y registro. <span className="font-medium text-zinc-700 dark:text-zinc-300">Tu key vive solo en tu navegador</span> — nunca se sube a un servidor nuestro.
-      </p>
+        {t('set.byokIntro')}<span className="font-medium text-zinc-700 dark:text-zinc-300">Tu key vive solo en tu navegador</span> {t('set.byokNeverUpload')}</p>
 
       <ul className="grid grid-cols-1 gap-1.5">
         {AI_PRESETS.map((preset) => {
@@ -818,7 +813,7 @@ function AiByokSection() {
           </Row>
           <Row
             label="Modelo"
-            hint="Selecciona uno de los presets o escribe el nombre exacto del modelo que quieras usar (modo personalizado)."
+            hint={t('set.modelPresetHint')}
           >
             {(() => {
               const presets = MODELS_BY_PROVIDER[activePreset.provider] ?? [];
@@ -888,8 +883,7 @@ function AiByokSection() {
             </button>
             {test.state === 'idle' && ai.apiKey.trim() && (
               <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
-                Se valida automáticamente al pegar la key.
-              </span>
+                {t('set.keyAutoValidate')}</span>
             )}
             {test.state === 'ok' && (
               <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
@@ -919,7 +913,7 @@ function AiByokSection() {
               <Toggle on={ai.preferAiEtymology !== false} onChange={(v) => setAi({ ...ai, preferAiEtymology: v })} />
             </Row>
             {ai.provider === 'openai' && (
-              <Row label="DALL-E 3 si no hay foto (~$0.04)">
+              <Row label={t('set.dalleFallbackLabel')}>
                 <Toggle on={ai.enableDalleFallback === true} onChange={(v) => setAi({ ...ai, enableDalleFallback: v })} />
               </Row>
             )}
@@ -947,15 +941,12 @@ function AiByokSection() {
 
           {!ai.apiKey.trim() && (
             <p className="text-[10px] text-rose-600 dark:text-rose-400 leading-snug">
-              Falta la API key — las llamadas IA se omitirán hasta que la añadas.
-            </p>
+              {t('set.missingKeyWarn')}</p>
           )}
         </div>
       ) : (
         <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug">
-          Elige un proveedor arriba para comenzar. Si no quieres usar IA, las traducciones
-          siguen funcionando con el diccionario offline + el traductor remoto gratuito.
-        </p>
+          {t('set.pickProviderFirst')}</p>
       )}
     </div>
   );

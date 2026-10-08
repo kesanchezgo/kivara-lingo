@@ -9,6 +9,7 @@
  * picker UX. The custom-text input below the select handles the long tail.
  */
 import type { AiProvider } from './types';
+import { t } from './i18n';
 
 export interface AiModelOption {
   /** Exact model id sent to the provider. */
@@ -24,24 +25,24 @@ export const MODELS_BY_PROVIDER: Record<
   AiModelOption[]
 > = {
   openai: [
-    { value: 'gpt-4o-mini',  label: 'GPT-4o mini',  tag: 'Rápido · económico' },
+    { value: 'gpt-4o-mini',  label: 'GPT-4o mini',  tag: t('aimodel.fastCheap') },
     { value: 'gpt-4o',       label: 'GPT-4o',       tag: 'Balance calidad/coste' },
-    { value: 'gpt-4.1-mini', label: 'GPT-4.1 mini', tag: 'Última gen · ligero' },
-    { value: 'gpt-4.1',      label: 'GPT-4.1',      tag: 'Máxima calidad' },
+    { value: 'gpt-4.1-mini', label: 'GPT-4.1 mini', tag: t('aimodel.latestLight') },
+    { value: 'gpt-4.1',      label: 'GPT-4.1',      tag: t('aimodel.topQuality') },
     { value: 'o4-mini',      label: 'o4 mini',      tag: 'Razonamiento' },
   ],
   anthropic: [
-    { value: 'claude-3-5-haiku-latest',  label: 'Claude 3.5 Haiku',  tag: 'Rápido · estable' },
+    { value: 'claude-3-5-haiku-latest',  label: 'Claude 3.5 Haiku',  tag: t('aimodel.fastStable') },
     { value: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet', tag: 'Equilibrado · estable' },
-    { value: 'claude-haiku-4-5',         label: 'Claude Haiku 4.5',  tag: 'Rápido · económico' },
+    { value: 'claude-haiku-4-5',         label: 'Claude Haiku 4.5',  tag: t('aimodel.fastCheap') },
     { value: 'claude-sonnet-4-6',        label: 'Claude Sonnet 4.6', tag: 'Recomendado' },
-    { value: 'claude-opus-4-7',          label: 'Claude Opus 4.7',   tag: 'Máxima calidad' },
+    { value: 'claude-opus-4-7',          label: 'Claude Opus 4.7',   tag: t('aimodel.topQuality') },
   ],
   'google-ai': [
-    { value: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash',      tag: 'Recomendado · 1500/día' },
+    { value: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash',      tag: t('aimodel.recommended1500') },
     { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite', tag: 'Ultra ligero' },
-    { value: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro',        tag: 'Máxima calidad' },
-    { value: 'gemini-flash-latest',   label: 'Gemini Flash latest',   tag: 'Última gen (rolling)' },
+    { value: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro',        tag: t('aimodel.topQuality') },
+    { value: 'gemini-flash-latest',   label: 'Gemini Flash latest',   tag: t('aimodel.latestRolling') },
     { value: 'gemini-2.0-flash',      label: 'Gemini 2.0 Flash',      tag: 'Estable · multimodal' },
   ],
 };

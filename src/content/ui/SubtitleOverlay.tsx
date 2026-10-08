@@ -485,7 +485,7 @@ export function SubtitleOverlay({
             onMouseDown={(e) => e.preventDefault()}
             onClick={rejoinAllMWEs}
             className="bg-amber-500/15 backdrop-blur-md text-amber-200 text-[11px] font-medium px-2 py-1 rounded-full shadow-lg flex items-center gap-1 hover:bg-amber-500/25 transition-colors border border-amber-400/30"
-            title="Volver a juntar todas las expresiones"
+            title={t('overlay.rejoinAllTitle')}
           >
             <Link2 size={11} /> Unir expresiones
           </button>
@@ -495,7 +495,7 @@ export function SubtitleOverlay({
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => setMode(isReading ? 'learning' : 'reading')}
           className="group/badge w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md ring-1 ring-white/10 hover:ring-white/20 flex items-center justify-center transition-all"
-          title={!isReading ? 'Kivara Lingo · Aprendizaje (clic para Lectura)' : 'Kivara Lingo · Lectura (clic para Aprendizaje)'}
+          title={!isReading ? t('subs.modeLearning') : t('subs.modeReading')}
         >
           {!isReading ? (
             <span className="relative flex items-center justify-center">
@@ -517,8 +517,7 @@ export function SubtitleOverlay({
           className="absolute top-8 left-1/2 -translate-x-1/2 bg-zinc-900/70 backdrop-blur-md border border-white/10 text-white/85 text-xs px-3 py-1.5 rounded-full pointer-events-none shadow-lg animate-in fade-in slide-in-from-top-2 duration-500 z-30"
           style={{ fontFamily: 'var(--kvl-font-sans)' }}
         >
-          Pasa el ratón sobre los subtítulos para interactuar
-        </div>
+          {t('ovl.hoverToInteract')}</div>
       )}
 
       {/* Capture overlay — covers the full video area */}
@@ -606,8 +605,7 @@ export function SubtitleOverlay({
         {!isReading && selectionText && (
           <div className="absolute -top-12 z-20 flex items-center gap-1 bg-indigo-900/95 backdrop-blur-sm border border-indigo-400/60 p-1 rounded-lg shadow-xl transition-all duration-200">
             <span className="text-[9px] font-semibold uppercase tracking-wider text-indigo-200 px-2">
-              Selección
-            </span>
+              {t('ovl.selectionLabel')}</span>
             <div className="w-px h-3.5 bg-indigo-400/40" />
             <span
               className="text-[11px] text-indigo-100 px-2 max-w-[280px] truncate"
@@ -627,8 +625,7 @@ export function SubtitleOverlay({
               className="flex items-center gap-1 bg-indigo-500 hover:bg-indigo-400 text-white text-[11px] font-medium px-2 py-1 rounded transition-colors"
               title={t('overlay.saveSelection')}
             >
-              <Quote size={11} /> Guardar selección
-            </button>
+              <Quote size={11} /> {t('ovl.saveSelection')}</button>
             <button
               tabIndex={-1}
               onMouseDown={(e) => e.preventDefault()}
@@ -656,7 +653,7 @@ export function SubtitleOverlay({
               tabIndex={-1}
               onMouseDown={(e) => e.preventDefault()}
               className="p-1.5 text-zinc-300 hover:text-white hover:bg-zinc-700/50 rounded-md transition-colors"
-              title="Reproducir audio de la frase"
+              title={t('overlay.playSentenceTitle')}
             >
               <Volume1 size={14} />
             </button>
@@ -678,7 +675,7 @@ export function SubtitleOverlay({
                 handleSaveToken(targetSentence);
               }}
               className="flex items-center gap-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-medium px-2 py-1 rounded transition-colors"
-              title="Guardar la frase completa como tarjeta"
+              title={t('overlay.saveSentenceTitle')}
             >
               <Quote size={11} /> Guardar frase
             </button>
@@ -687,12 +684,12 @@ export function SubtitleOverlay({
               <kbd className="font-sans font-semibold text-[9px] text-zinc-400 bg-zinc-800 border border-zinc-700 rounded px-1 py-px">
                 Alt+Scroll
               </kbd>
-              <span>separa expresión</span>
+              <span>{t('ovl.splitExpr')}</span>
               <span className="text-zinc-600">·</span>
               <kbd className="font-sans font-semibold text-[9px] text-zinc-400 bg-zinc-800 border border-zinc-700 rounded px-1 py-px">
                 Shift+Click
               </kbd>
-              <span>selección libre</span>
+              <span>{t('ovl.freeSelect')}</span>
             </span>
           </div>
         )}

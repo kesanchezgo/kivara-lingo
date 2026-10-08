@@ -17,6 +17,7 @@
  * both consume the same source of truth.
  */
 import type { AiProvider } from './types';
+import { t } from './i18n';
 
 export type ConfigurableAiProvider = Exclude<AiProvider, 'disabled'>;
 
@@ -58,30 +59,30 @@ export const AI_PRESETS: AiPreset[] = [
   {
     provider: 'google-ai',
     label: 'Google Gemini',
-    tagline: 'Tier gratis amplio · ideal para empezar',
+    tagline: t('aipreset.geminiTagline'),
     defaultModel: 'gemini-2.5-flash',
     getKeyUrl: 'https://aistudio.google.com/apikey',
-    pricingNote: '1 500 requests/día gratis',
+    pricingNote: t('aipreset.geminiPricing'),
     hasFreeTier: true,
     recommended: true,
   },
   {
     provider: 'anthropic',
     label: 'Anthropic Claude',
-    tagline: 'Definiciones más matizadas · tier gratis acotado',
+    tagline: t('aipreset.claudeTagline'),
     defaultModel: 'claude-3-5-haiku-latest',
     getKeyUrl: 'https://console.anthropic.com/settings/keys',
-    pricingNote: 'Tier gratis con cuota mensual',
+    pricingNote: t('aipreset.claudePricing'),
     hasFreeTier: true,
     recommended: false,
   },
   {
     provider: 'openai',
     label: 'OpenAI',
-    tagline: 'Pago por uso · ~$5 USD cubre miles de hovers',
+    tagline: t('aipreset.openaiTagline'),
     defaultModel: 'gpt-4o-mini',
     getKeyUrl: 'https://platform.openai.com/api-keys',
-    pricingNote: 'Sin tier gratis · pay-as-you-go',
+    pricingNote: t('aipreset.openaiPricing'),
     hasFreeTier: false,
     recommended: false,
   },

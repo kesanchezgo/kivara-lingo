@@ -552,8 +552,7 @@ export function WordPopover({
               )}
               {isUnknown && !resolved.entry && (
                 <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 bg-zinc-700/40 ring-1 ring-zinc-600/40 px-1 py-px rounded shrink-0">
-                  Sin dicc.
-                </span>
+                  {t('popover.noDict')}</span>
               )}
               {isMastered && (
                 <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 bg-zinc-700/40 ring-1 ring-zinc-600/40 px-1 py-px rounded shrink-0">
@@ -644,8 +643,7 @@ export function WordPopover({
           {meta.synonyms && meta.synonyms.length > 0 && (
             <div className="mt-1.5 flex flex-wrap items-baseline gap-1">
               <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-semibold mr-1">
-                Sinónimos
-              </span>
+                {t('cards.synonyms')}</span>
               {meta.synonyms.slice(0, 8).map((s) => (
                 <span
                   key={s}
@@ -659,8 +657,7 @@ export function WordPopover({
           {meta.antonyms && meta.antonyms.length > 0 && (
             <div className="mt-1 flex flex-wrap items-baseline gap-1">
               <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-semibold mr-1">
-                Antónimos
-              </span>
+                {t('cards.antonyms')}</span>
               {meta.antonyms.slice(0, 6).map((s) => (
                 <span
                   key={s}
@@ -737,16 +734,14 @@ export function WordPopover({
           {meta.vip?.etymology && (
             <div className="mt-2 text-[10.5px] text-zinc-400 italic leading-snug normal-case border-l-2 border-amber-700/40 pl-2">
               <span className="text-[9px] uppercase tracking-wider text-amber-300/80 font-semibold not-italic mr-1">
-                Etimología
-              </span>
+                {t('cards.etymology')}</span>
               {meta.vip.etymology}
             </div>
           )}
           {meta.vip?.mnemonic && (
             <div className="mt-2 text-[10.5px] text-violet-200/90 italic leading-snug normal-case border-l-2 border-violet-700/40 pl-2 bg-violet-500/5 py-1 rounded-r">
               <span className="text-[9px] uppercase tracking-wider text-violet-300/90 font-semibold not-italic mr-1">
-                Mnemotécnico
-              </span>
+                {t('cards.mnemonic')}</span>
               {meta.vip.mnemonic}
             </div>
           )}
@@ -843,7 +838,7 @@ export function WordPopover({
             )}
             {resolved.aiError && !resolved.ai && (
               <div className="text-[10px] text-rose-300/80 normal-case">
-                IA falló: {resolved.aiError}
+                {t('popover.aiFailed')}{resolved.aiError}
               </div>
             )}
           </div>
@@ -858,7 +853,7 @@ export function WordPopover({
           >
             <span className="flex items-center gap-1.5">
               <ChevronsLeftRight size={10} />
-              <span className="normal-case">{isExpanded ? t('popover.joinPhrase') : 'Ver palabras por separado'}</span>
+              <span className="normal-case">{isExpanded ? t('popover.joinPhrase') : t('popover.splitWords')}</span>
             </span>
             <span className="flex items-center gap-1 text-[9px] text-zinc-500 normal-case">
               <span>o</span>
@@ -875,7 +870,7 @@ export function WordPopover({
             className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-[10px] font-medium text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/15 border-t border-amber-500/20 transition-colors"
           >
             <Link2 size={10} />
-            <span className="normal-case">Unir con "{parentMWE}"</span>
+            <span className="normal-case">{t('popover.joinWithPre')}{parentMWE}"</span>
           </button>
         )}
 
@@ -891,7 +886,7 @@ export function WordPopover({
             icon={<Search size={11} />}
             label="Buscar"
             href={searchUrl}
-            title="Buscar en Google con la frase"
+            title={t('popover.searchGoogleTitle')}
           />
           <PopoverDivider />
           {isSaved ? (

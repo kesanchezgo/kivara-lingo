@@ -6,6 +6,7 @@ import { CardsTab } from '../../app/components/tabs/CardsTab';
 import { SettingsTab } from '../../app/components/tabs/SettingsTab';
 import { SubtitleStyles, AnkiMapping } from '../../app/types';
 import { useKivaraStore, type PanelPosition } from '../../shared/store';
+import { t } from '../../shared/i18n';
 
 interface SidePanelProps {
   isPopupMode: boolean;
@@ -192,7 +193,7 @@ export function SidePanel({
           isPopupMode ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''
         }`}
         onMouseDown={handleDragStart}
-        title={isPopupMode ? 'Arrastra para mover el panel' : undefined}
+        title={isPopupMode ? t('panel.dragHint') : undefined}
       >
         <div className="flex items-center gap-2 min-w-0">
           {isPopupMode && (
@@ -215,7 +216,7 @@ export function SidePanel({
           <button 
             onClick={togglePopupMode}
             className="p-1.5 text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-md transition-colors"
-            title={isPopupMode ? 'Anclar al lateral' : 'Abrir como ventana flotante'}
+            title={isPopupMode ? 'Anclar al lateral' : t('panel.openFloating')}
           >
             {isPopupMode ? <LayoutGrid size={16} /> : <ExternalLink size={16} />}
           </button>

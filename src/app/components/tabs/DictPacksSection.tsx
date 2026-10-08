@@ -558,8 +558,7 @@ export function DictPacksSection() {
                           title={t('dict.unusedDisable')}
                           className="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
                         >
-                          30d+ sin usar
-                        </span>
+                          {t('dictpack.unused30d')}</span>
                       )}
                       {!pack.enabled && (
                         <span className="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">
@@ -568,7 +567,7 @@ export function DictPacksSection() {
                       )}
                     </div>
                     <div className="text-[9.5px] text-zinc-500 tabular-nums font-mono leading-tight mt-0.5">
-                      {pack.sourceLang} → {pack.targetLang} · {pack.termCount.toLocaleString()} términos · rev. {pack.revision}
+                      {pack.sourceLang} → {pack.targetLang} · {pack.termCount.toLocaleString()} {t('dictpack.termsRev')}{pack.revision}
                     </div>
                   </div>
                   <button
@@ -598,14 +597,13 @@ export function DictPacksSection() {
       <SubSection
         icon={<Upload size={10} />}
         title="Importar manualmente"
-        hint="ZIP de Yomitan/StarDict desde URL, archivo local o lista CSV/TSV. Todo se guarda en IndexedDB del navegador."
+        hint={t('dict.manualImportHint')}
       >
         <div className="space-y-2">
           <div className="space-y-1">
             <label className="flex items-center gap-1 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
               <Link2 size={10} className="text-zinc-400" />
-              Desde URL
-            </label>
+              {t('dictpack.fromUrl')}</label>
             <div className="flex gap-1.5">
               <input
                 type="url"
@@ -700,7 +698,7 @@ export function DictPacksSection() {
                 placeholder={'word, translation, phonetic, definition, example\nhello, hola, /heˈloʊ/, A greeting, Hello world!'}
                 rows={4}
                 className="sl-input sl-mono w-full"
-                title="Coma o tabulador como separador. Cabecera opcional."
+                title={t('dict.csvSeparatorTitle')}
               />
               <div className="flex items-center gap-1.5">
                 <button
@@ -744,12 +742,11 @@ export function DictPacksSection() {
         onToggle={() => setCoverageOpen((v) => !v)}
         hint={
           <>
-            Estadística <strong>100% local</strong> (no sale del navegador) de cómo se resuelven tus búsquedas: cuántas vinieron del <em>bundle</em> incluido, de un <em>pack</em> instalado, del traductor <em>remoto</em>, o no tuvieron resultado (<em>miss</em>). Útil para decidir qué packs instalar o desactivar. Puedes apagar la telemetría o exportar/borrar los datos en cualquier momento.
-          </>
+            {t('dictpack.statsTitle')}<strong>100% local</strong> {t('dictpack.statsLocalDesc')}<em>bundle</em> {t('dictpack.statsBundled')}<em>pack</em> {t('dictpack.statsInstalled')}<em>remoto</em>{t('dictpack.statsMissPre')}<em>miss</em>{t('dictpack.statsUseful')}</>
         }
         trailing={
           <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-500">
-            {totals.total > 0 ? `${totals.total.toLocaleString()} lookups` : 'sin datos'}
+            {totals.total > 0 ? `${totals.total.toLocaleString()} lookups` : t('dict.noData')}
           </span>
         }
       >
@@ -763,14 +760,13 @@ export function DictPacksSection() {
                 onChange={(e) => setTelemetry({ enabled: e.target.checked })}
                 className="accent-indigo-500"
               />
-              Telemetría local
-            </label>
+              {t('dictpack.localTelemetry')}</label>
             <button
               type="button"
               onClick={() => void onExportCoverage()}
               disabled={totals.total === 0}
               className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
-              title="Descargar un JSON con el snapshot actual."
+              title={t('dict.exportSnapshotTitle')}
             >
               Exportar
             </button>
@@ -778,7 +774,7 @@ export function DictPacksSection() {
               type="button"
               onClick={onPickCoverageImport}
               className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-              title="Cargar un snapshot exportado antes (se fusiona)."
+              title={t('dict.importSnapshotTitle')}
             >
               Importar
             </button>
@@ -787,7 +783,7 @@ export function DictPacksSection() {
               onClick={() => void onResetCoverage()}
               disabled={totals.total === 0}
               className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
-              title="Borrar todos los contadores."
+              title={t('dict.clearCountersTitle')}
             >
               Reiniciar
             </button>
@@ -869,7 +865,7 @@ const COVERAGE_META = [
     icon: <Library size={9} />,
     bar: 'bg-indigo-400 dark:bg-indigo-500',
     swatch: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10',
-    desc: 'Resuelto por un pack instalado.',
+    desc: t('dict.resolvedByPack'),
   },
   {
     key: 'remote' as const,
@@ -877,7 +873,7 @@ const COVERAGE_META = [
     icon: <Cloud size={9} />,
     bar: 'bg-amber-400 dark:bg-amber-500',
     swatch: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10',
-    desc: 'Resuelto por traductor remoto.',
+    desc: t('dict.resolvedByRemote'),
   },
   {
     key: 'miss' as const,
@@ -951,8 +947,7 @@ function CoverageStats({ totals }: { totals: CoverageTotals }) {
 
       {!hasData && (
         <div className="text-[9.5px] text-zinc-500 dark:text-zinc-500 italic leading-snug text-center pt-0.5">
-          Aún sin datos. Empieza a buscar palabras y verás de dónde salen tus definiciones.
-        </div>
+          {t('dictpack.noDataYet')}</div>
       )}
     </div>
   );
