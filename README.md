@@ -4,7 +4,7 @@
 
 **Kivara Lingo** es una extensión Chrome real (Manifest V3) que se monta sobre reproductores de streaming (Netflix, HBO Max, Disney+, YouTube, Prime Video) y convierte sus subtítulos en una herramienta de aprendizaje de vocabulario integrada con Anki. Al pasar el ratón sobre una palabra o expresión multi-palabra obtienes fonética, traducción, sinónimos, antónimos, colocaciones, etimología e imágenes; con un clic generas una tarjeta Anki con el audio exacto de la frase y el fotograma del momento (las imágenes web quedan como fallback).
 
-> **Nota:** la carpeta `mock/` contiene el prototipo de UI/UX original en React puro. La extensión real vive en `src/` y se construye con `pnpm build`.
+> **Nota:** la extensión real vive en `src/` y se construye con `pnpm build`. La carpeta `mock/` está ignorada por git y solo existe como referencia local de diseño.
 
 ---
 
@@ -19,6 +19,7 @@
 - **Modo Lectura**: oculta toda la UI de aprendizaje y deja solo subtítulos estilizados.
 - **Atajos de teclado**: `Ctrl+S` guardar, `Alt+C` toggle subtítulos, `Alt+R` repetir frase, `Alt+V` re-capturar frame, `Alt+K` toggle panel. Combos de página personalizables en Settings (los comandos Chrome se re-asignan en `chrome://extensions/shortcuts`).
 - **Tema claro y oscuro**, panel acoplado o flotante.
+- **UI bilingüe ES/EN**: `src/shared/i18n.ts` con 436 claves por idioma; el idioma se detecta vía `chrome.i18n.getUILanguage()` con fallback a español.
 
 ---
 
