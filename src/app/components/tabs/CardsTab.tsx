@@ -314,7 +314,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
             >
               {conn === 'connected'
                 ? (decks.length ? decks : FALLBACK_DECKS).map((d) => <option key={d}>{d}</option>)
-                : <option>Sin conexión</option>}
+                : <option>{t('cards.offline')}</option>}
             </select>
           </Row>
 
@@ -327,7 +327,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
             >
               {conn === 'connected'
                 ? (models.length ? models : FALLBACK_MODELS).map((n) => <option key={n}>{n}</option>)
-                : <option>Sin conexión</option>}
+                : <option>{t('cards.offline')}</option>}
             </select>
           </Row>
         </Section>

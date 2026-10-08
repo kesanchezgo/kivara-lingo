@@ -227,6 +227,24 @@ const es: Dict = {
   'onb.whatLanguage': '¿Qué idioma aprendes?',
   'onb.recommendedPacks': 'Recomendado — instala los packs marcados para que cada hover devuelva traducción, fonética y ejemplos sin depender de internet.',
   'onb.allPacksInstalled': 'Todos los packs marcados están instalados',
+
+  // jsx text nodes
+  'common.back': 'Atrás',
+  'onb.configInit': 'Configuración inicial',
+  'onb.fieldPhonetic': 'Fonética / IPA',
+  'onb.readyTitle': 'Kivara Lingo está listo',
+  'onb.repeatInit': 'Settings → Repetir configuración inicial',
+  'set.langDesc': 'Define el idioma de los subtítulos que estás aprendiendo y tu idioma nativo, al que se traducen palabras y frases.',
+  'set.autoTrackDesc': 'Cuando la plataforma ofrece varias pistas de audio (HBO Max, Disney+, etc.), Kivara cambia automáticamente al audio del idioma que estás aprendiendo. Útil si quieres escuchar Y leer el idioma. ',
+  'set.deactivatedTemplate': 'Desactivado (sólo template)',
+  'set.ttsModelCheap': 'eleven_turbo_v2_5 (más barato)',
+  'set.splitExpression': 'Separar expresión',
+  'set.supportProject': '¿Te resulta útil? Apoya el proyecto',
+  'vip.days': 'días',
+  'vip.cacheStored': 'Caché almacenada',
+  'vip.cacheEmpty': 'La caché está vacía.',
+  'popover.cacheTag': '(caché)',
+  'popover.synonymsPrefix': 'Sinónimos: ',
 };
 
 const en: Dict = {
@@ -436,6 +454,24 @@ const en: Dict = {
   'onb.whatLanguage': 'What language are you learning?',
   'onb.recommendedPacks': 'Recommended — install the marked packs so every hover returns translation, phonetics and examples without depending on the internet.',
   'onb.allPacksInstalled': 'All marked packs are installed',
+
+  // jsx text nodes
+  'common.back': 'Back',
+  'onb.configInit': 'Initial setup',
+  'onb.fieldPhonetic': 'Phonetics / IPA',
+  'onb.readyTitle': 'Kivara Lingo is ready',
+  'onb.repeatInit': 'Settings → Repeat initial setup',
+  'set.langDesc': 'Define the language of the subtitles you are learning and your native language, which words and phrases are translated into.',
+  'set.autoTrackDesc': 'When the platform offers several audio tracks (HBO Max, Disney+, etc.), Kivara automatically switches to the audio of the language you are learning. Useful if you want to listen AND read the language.',
+  'set.deactivatedTemplate': 'Deactivated (template only)',
+  'set.ttsModelCheap': 'eleven_turbo_v2_5 (cheaper)',
+  'set.splitExpression': 'Split expression',
+  'set.supportProject': 'Finding it useful? Support the project',
+  'vip.days': 'days',
+  'vip.cacheStored': 'Cache stored',
+  'vip.cacheEmpty': 'The cache is empty.',
+  'popover.cacheTag': '(cache)',
+  'popover.synonymsPrefix': 'Synonyms: ',
 };
 function detectLocale(): Locale {
   try {

@@ -238,7 +238,7 @@ export function Onboarding() {
             <div className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">
               Kivara <span className="text-indigo-500 dark:text-indigo-400">Lingo</span>
             </div>
-            <div className="text-[10px] text-zinc-500 leading-tight">Configuración inicial</div>
+            <div className="text-[10px] text-zinc-500 leading-tight">{t('onb.configInit')}</div>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -378,7 +378,7 @@ export function Onboarding() {
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-30 transition-all"
         >
           <ChevronLeft size={14} />
-          <span style={{ fontSize: 13 }}>Atrás</span>
+          <span style={{ fontSize: 13 }}>{t('common.back')}</span>
         </button>
 
         {step !== 'done' && (
@@ -855,23 +855,23 @@ function MappingStep({
                       <option value="manual">— No mapear —</option>
                       <option value="selection">Palabra</option>
                       <option value="cue">Frase completa</option>
-                      <option value="phonetic">Fonética / IPA</option>
-                      <option value="translation">Traducción</option>
+                      <option value="phonetic">{t('onb.fieldPhonetic')}</option>
+                      <option value="translation">{t('cards.translation')}</option>
                       <option value="bilingual">Bilingüe</option>
                       <option value="monolingual">Monolingüe</option>
                       <option value="examples">Ejemplos</option>
                       <option value="frame">Picture (frame)</option>
                       <option value="sentence-audio">Sentence audio</option>
                       <option value="word-audio">Word audio</option>
-                      <option value="synonyms">Sinónimos</option>
-                      <option value="antonyms">Antónimos</option>
+                      <option value="synonyms">{t('cards.synonyms')}</option>
+                      <option value="antonyms">{t('cards.antonyms')}</option>
                       <option value="collocations">Combinaciones</option>
-                      <option value="etymology">Etimología</option>
-                      <option value="mnemonic">Mnemotécnico</option>
+                      <option value="etymology">{t('cards.etymology')}</option>
+                      <option value="mnemonic">{t('cards.mnemonic')}</option>
                       <option value="image">Imagen enriquecida</option>
                       <option value="video-link">Video link</option>
-                      <option value="ai-definition">IA · Definición</option>
-                      <option value="ai-synonyms">IA · Sinónimos</option>
+                      <option value="ai-definition">{t('cards.aiDefinitionLabel')}</option>
+                      <option value="ai-synonyms">{t('cards.aiSynonymsLabel')}</option>
                       <option value="ai-collocations">IA · Colocaciones</option>
                       <option value="ai-nuance">IA · Matiz</option>
                       <option value="ai-register">IA · Registro</option>
@@ -1174,10 +1174,10 @@ function DoneStep({ completedAt, onComplete }: { completedAt: number | null; onC
         </div>
 
         <div className="text-center space-y-2 max-w-sm">
-          <p className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">Kivara Lingo está listo</p>
+          <p className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">{t('onb.readyTitle')}</p>
           <p className="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
             Para volver a este asistente ve a{' '}
-            <span className="font-medium text-zinc-700 dark:text-zinc-300">Settings → Repetir configuración inicial</span>.
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">{t('onb.repeatInit')}</span>.
           </p>
           {completedAt && (
             <p className="text-[10px] text-zinc-400 dark:text-zinc-600">

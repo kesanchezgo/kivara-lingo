@@ -180,7 +180,7 @@ export function SettingsTab() {
           <div className="px-2.5 py-1.5 border-b border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/60 dark:bg-zinc-900/60">
             <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               <Globe size={9} /> Idioma
-              <InfoHint text={<>Define el idioma de los subtítulos que estás aprendiendo y tu idioma nativo, al que se traducen palabras y frases.</>} />
+              <InfoHint text={<>{t('set.langDesc')}</>} />
             </span>
           </div>
           <div className="p-2.5 grid grid-cols-2 gap-2">
@@ -207,7 +207,7 @@ export function SettingsTab() {
           </div>
           <QuickRow
             label="Audio en idioma de aprendizaje"
-            info={<>Cuando la plataforma ofrece varias pistas de audio (HBO Max, Disney+, etc.), Kivara cambia automáticamente al audio del idioma que estás aprendiendo. Útil si quieres escuchar Y leer el idioma. <br /><br />En YouTube no aplica (un solo audio por video). En Netflix no funciona porque su reproductor no expone la API de audioTracks.</>}
+            info={<>{t('set.autoTrackDesc')}<br /><br />En YouTube no aplica (un solo audio por video). En Netflix no funciona porque su reproductor no expone la API de audioTracks.</>}
             hint={translate.autoSelectSourceAudio ? 'activo' : 'manual'}
           >
             <Toggle
@@ -411,7 +411,7 @@ export function SettingsTab() {
               <option value="auto">Auto (ElevenLabs ▸ OpenAI ▸ template)</option>
               <option value="elevenlabs">ElevenLabs</option>
               <option value="openai">OpenAI tts-1</option>
-              <option value="disabled">Desactivado (sólo template)</option>
+              <option value="disabled">{t('set.deactivatedTemplate')}</option>
             </select>
           </Row>
           {(tts.provider === 'auto' || tts.provider === 'elevenlabs') && (
@@ -439,7 +439,7 @@ export function SettingsTab() {
                   className="sl-select w-full"
                 >
                   <option value="eleven_multilingual_v2">eleven_multilingual_v2 (29 idiomas)</option>
-                  <option value="eleven_turbo_v2_5">eleven_turbo_v2_5 (más barato)</option>
+                  <option value="eleven_turbo_v2_5">{t('set.ttsModelCheap')}</option>
                   <option value="eleven_monolingual_v1">eleven_monolingual_v1 (solo EN)</option>
                 </select>
               </Row>
@@ -551,7 +551,7 @@ export function SettingsTab() {
         >
           <ShortcutEditor compact />
           <div className="mt-2 flex items-center justify-between py-1 text-[10.5px] text-zinc-500 dark:text-zinc-500 px-1">
-            <span>Separar expresión</span>
+            <span>{t('set.splitExpression')}</span>
             <span className="flex items-center gap-0.5">
               <kbd className="font-sans text-[10px] bg-zinc-50 dark:bg-zinc-800/70 border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-px text-zinc-600 dark:text-zinc-400">Scroll</kbd>
               <span className="text-zinc-400 dark:text-zinc-600 text-[9px] mx-0.5">+</span>
@@ -564,7 +564,7 @@ export function SettingsTab() {
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2.5 py-2 flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5 text-[10.5px] text-zinc-500 dark:text-zinc-400 min-w-0">
             <Heart size={10} className="text-zinc-400 dark:text-zinc-500 shrink-0" />
-            <span className="truncate">¿Te resulta útil? Apoya el proyecto</span>
+            <span className="truncate">{t('set.supportProject')}</span>
           </span>
           <span className="flex items-center gap-0.5 shrink-0">
             <DonateBtn href="https://ko-fi.com/kivara"            icon={<Coffee size={11} />}  label="Ko-fi" />

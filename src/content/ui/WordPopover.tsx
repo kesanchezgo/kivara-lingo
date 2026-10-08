@@ -791,7 +791,7 @@ export function WordPopover({
                 <span className="w-1 h-1 rounded-full bg-indigo-400/70 animate-pulse" style={{ animationDelay: '150ms' }} />
                 <span className="w-1 h-1 rounded-full bg-indigo-400/70 animate-pulse" style={{ animationDelay: '300ms' }} />
               </span>
-              <span>buscando más…</span>
+              <span>{t('popover.loadingMore')}</span>
             </div>
           )}
           </>
@@ -804,7 +804,7 @@ export function WordPopover({
             <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-fuchsia-300/90 font-semibold">
               <Sparkles size={9} /> IA
               {resolved.ai?.cached && (
-                <span className="text-[9px] text-zinc-500 normal-case">(caché)</span>
+                <span className="text-[9px] text-zinc-500 normal-case">{t('popover.cacheTag')}</span>
               )}
             </div>
             {resolved.aiLoading && !resolved.ai && (
@@ -817,7 +817,7 @@ export function WordPopover({
               <div className="space-y-1 text-[11px] text-zinc-300 normal-case">
                 {resolved.ai.synonyms.length > 0 && (
                   <div>
-                    <span className="text-zinc-500">Sinónimos: </span>
+                    <span className="text-zinc-500">{t('popover.synonymsPrefix')}</span>
                     {resolved.ai.synonyms.join(', ')}
                   </div>
                 )}

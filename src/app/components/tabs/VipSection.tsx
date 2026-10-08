@@ -254,7 +254,7 @@ export function VipSection() {
                   className="sl-input text-right tabular-nums"
                   style={{ width: 50 }}
                 />
-                <span className="text-[10px] text-zinc-500">días</span>
+                <span className="text-[10px] text-zinc-500">{t('vip.days')}</span>
               </span>
             </label>
           </div>
@@ -375,14 +375,14 @@ function CacheManager() {
   return (
     <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2.5 py-2 space-y-2">
       <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
-        <span>Caché almacenada</span>
+        <span>{t('vip.cacheStored')}</span>
         <InfoHint text={t('vip.cacheDesc')} />
       </div>
 
       {buckets === null ? (
         <div className="text-[10.5px] text-zinc-500 italic">Cargando…</div>
       ) : total === 0 ? (
-        <div className="text-[10.5px] text-zinc-500 italic">La caché está vacía.</div>
+        <div className="text-[10.5px] text-zinc-500 italic">{t('vip.cacheEmpty')}</div>
       ) : (
         <ul className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-snug space-y-0.5">
           {buckets.map((b) => (
