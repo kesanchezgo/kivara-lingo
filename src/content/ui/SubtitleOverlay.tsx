@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { t } from '../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
 import { Volume1, Copy, Check, Quote, AudioLines, Camera, Link2, GraduationCap, BookOpenCheck } from 'lucide-react';
 import type { SubtitleStyles, Mode, TranslateResponse } from '../../shared/types';
@@ -83,7 +84,7 @@ export function SubtitleOverlay({
 
   // Notify parent (App) so it can pause/resume the underlying <video>. We
   // pause whenever ANY part of the subtitle box is hovered — not just when a
-  // dictionary token gets focus — so "hover sobre el subtítulo" pauses the
+  // dictionary token gets focus — so t('overlay.hoverHint') pauses the
   // video even on platforms (e.g. YouTube) where most tokens are tagged
   // `unknown` and don't fire `handleTokenEnter`.
   useEffect(() => {
@@ -624,7 +625,7 @@ export function SubtitleOverlay({
                 setSelection(null);
               }}
               className="flex items-center gap-1 bg-indigo-500 hover:bg-indigo-400 text-white text-[11px] font-medium px-2 py-1 rounded transition-colors"
-              title="Guardar la selección como una sola tarjeta (Ctrl+S)"
+              title={t('overlay.saveSelection')}
             >
               <Quote size={11} /> Guardar selección
             </button>
@@ -636,7 +637,7 @@ export function SubtitleOverlay({
                 setSelection(null);
               }}
               className="p-1 text-indigo-200 hover:text-white hover:bg-indigo-700/60 rounded transition-colors"
-              title="Limpiar selección"
+              title={t('overlay.clearSelection')}
             >
               ✕
             </button>
@@ -866,7 +867,7 @@ export function SubtitleOverlay({
                           onWheel={handleWheel}
                           title={
                             wheelable
-                              ? 'Alt+Scroll para separar / unir esta expresión'
+                              ? t('overlay.altScrollHint')
                               : undefined
                           }
                           className={`relative rounded px-0.5 transition-all duration-150 ${cursorClass} ${colorClass} ${selectionClass}`}

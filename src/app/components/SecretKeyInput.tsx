@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { unreadableSecret } from '../../shared/secret-store';
+import { t } from '../../shared/i18n';
 
 interface SecretKeyInputProps {
   /** Raw stored value (plaintext legacy or ciphertext). NEVER rendered. */
@@ -122,7 +123,7 @@ export function SecretKeyInput({
   }, []);
 
   const effectivePlaceholder = hasStored && !dirty
-    ? '•••••••• (guardada — escribe para reemplazar)'
+    ? t('key.guarded')
     : (placeholder ?? '');
 
   return (
@@ -152,9 +153,9 @@ export function SecretKeyInput({
             type="button"
             onClick={() => setShow((v) => !v)}
             className="text-[10px] px-1.5 py-1 rounded border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 shrink-0"
-            title={show ? 'Ocultar' : 'Mostrar lo escrito'}
+            title={show ? t('key.hideTitle') : t('key.showTitle')}
           >
-            {show ? 'Ocultar' : 'Ver'}
+            {show ? t('key.hide') : t('key.show')}
           </button>
         )}
         {showClear && hasStored && (
@@ -167,15 +168,15 @@ export function SecretKeyInput({
               onChange('');
             }}
             className="text-[10px] px-1.5 py-1 rounded border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950 shrink-0"
-            title="Quitar la clave guardada"
+            title={t('key.clearTitle')}
           >
-            Quitar
+            {t('key.clear')}
           </button>
         )}
       </div>
       {unreadable && !dirty && (
         <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-snug mt-1">
-          {hintWhenUnreadable ?? 'Clave no legible en este dispositivo (cifrada en otro). Vuelve a introducirla aquí para usarla en este equipo.'}
+          {hintWhenUnreadable ?? t('key.unreadable')}
         </p>
       )}
     </div>

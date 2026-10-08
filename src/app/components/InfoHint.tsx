@@ -1,4 +1,5 @@
 import React, { useState, useRef, useLayoutEffect, useEffect, useCallback } from 'react';
+import { t } from '../../shared/i18n';
 import { createPortal } from 'react-dom';
 import { Info } from 'lucide-react';
 
@@ -152,7 +153,7 @@ export function InfoHint({ text, size = 10, maxWidth = 240, className = '' }: In
         <span
           tabIndex={0}
           role="button"
-          aria-label="Más información"
+          aria-label={t('info.more')}
           className="inline-flex items-center text-zinc-400 dark:text-zinc-600 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors cursor-help outline-none focus-visible:text-indigo-500 dark:focus-visible:text-indigo-400 focus-visible:ring-2 focus-visible:ring-indigo-500/30 rounded-full"
         >
           <Info size={size} strokeWidth={2.25} />

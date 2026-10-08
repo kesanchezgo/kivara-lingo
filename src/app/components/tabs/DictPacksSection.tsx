@@ -33,6 +33,7 @@
  * stacked inside the accordion body. All real wiring (Dexie, service-worker
  * messaging, telemetry, real importers) is preserved unchanged.
  */
+import { t } from '../../../shared/i18n';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Trash2, Upload, Power, PowerOff, Loader2,
@@ -321,7 +322,7 @@ export function DictPacksSection() {
                 // unchecked warning when the SW restarts mid-install.
                 const err = chrome.runtime.lastError;
                 if (err) {
-                  resolve({ ok: false, error: err.message ?? 'Service worker no respondió' });
+                  resolve({ ok: false, error: err.message ?? t('dict.swNoResponse') });
                   return;
                 }
                 resolve(response);
@@ -468,7 +469,7 @@ export function DictPacksSection() {
     <div className="p-2.5 space-y-3">
 
       {/* ── Catálogo recomendado ─────────────────────────────────────────── */}
-      <SubSection icon={<Library size={10} />} title="Catálogo recomendado">
+      <SubSection icon={<Library size={10} />} title={t('dict.recommendedCatalog')}>
         <div className="space-y-2">
           {groups.map((group) => {
             const cards = RECOMMENDED_PACKS.filter((p) => p.group === group);
@@ -539,7 +540,7 @@ export function DictPacksSection() {
         {loading ? (
           <div className="text-[10.5px] text-zinc-500 italic px-1">Cargando packs…</div>
         ) : packs.length === 0 ? (
-          <EmptySub text="Aún no has instalado packs. Elige uno del catálogo de arriba." />
+          <EmptySub text={t('dict.noneInstalled')} />
         ) : (
           <div className="space-y-1">
             {packs.map((pack) => {
@@ -554,7 +555,7 @@ export function DictPacksSection() {
                       <span className="text-[11.5px] font-medium text-zinc-800 dark:text-zinc-200 truncate leading-tight">{pack.title}</span>
                       {idle && (
                         <span
-                          title="Sin uso en los últimos 30 días — considera deshabilitarlo"
+                          title={t('dict.unusedDisable')}
                           className="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
                         >
                           30d+ sin usar
@@ -680,7 +681,7 @@ export function DictPacksSection() {
                   type="text"
                   value={csvTitle}
                   onChange={(e) => setCsvTitle(e.target.value)}
-                  placeholder="Título de la lista"
+                  placeholder={t('dict.listTitle')}
                   className="sl-input flex-1 min-w-0"
                 />
                 <button
@@ -884,7 +885,7 @@ const COVERAGE_META = [
     icon: <Ban size={9} />,
     bar: 'bg-rose-400 dark:bg-rose-500',
     swatch: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10',
-    desc: 'Sin definición encontrada.',
+    desc: t('dict.noDefinition'),
   },
 ];
 
@@ -1015,7 +1016,7 @@ function TopPacksSection({ stats, packs, idlePackIds }: TopPacksSectionProps) {
                   {langs && <span className="text-[9px] text-zinc-500 shrink-0 font-mono">{langs}</span>}
                   {isIdle && (
                     <span
-                      title="Sin uso en los últimos 30 días"
+                      title={t('dict.unused30')}
                       className="text-[9px] px-1 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 shrink-0"
                     >
                       30d+

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { SidePanel } from '../content/ui/SidePanel';
 import { useKivaraStore } from '../shared/store';
+import { buildPreviewData } from '../shared/preview-data';
 
 export function Options() {
   const {
@@ -16,15 +17,9 @@ export function Options() {
     document.documentElement.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
 
-  const mockData = {
-    targetSentence: "These days, Nicola doesn't travel much.",
-    nativeSentence: 'Estos días, Nicola no viaja mucho.',
-    word: 'these days',
-    translation: 'estos días',
-    phonetic: '/ðiːz deɪz/',
-    bilingual: '(noun) estos días',
-    monolingual: 'Used to refer to the present time period.',
-  };
+  // Single source of preview data (no local copy of the placeholder):
+  // Options has no live cue, so it renders the deterministic sample.
+  const mockData = buildPreviewData();
 
   return (
     <div

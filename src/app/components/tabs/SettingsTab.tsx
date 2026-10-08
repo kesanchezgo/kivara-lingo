@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { t } from '../../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
 import {
   Keyboard, EyeOff, ChevronDown, ChevronRight, Wand2,
@@ -30,7 +31,7 @@ import { VipSection } from './VipSection';
 /**
  * Settings tab — restructured per the design mock:
  *
- *  - "Acceso rápido" QuickRow strip at the top (autoMode, modo lectura,
+ *  - t('set.quickAccess') QuickRow strip at the top (autoMode, modo lectura,
  *    subtítulo bilingüe). These are the toggles users flip most often.
  *  - "Captura avanzada" only appears when autoMode is OFF.
  *  - Idioma is its own always-visible card (you can't translate without
@@ -84,9 +85,9 @@ export function SettingsTab() {
 
   /* ── Language label table ──────────────────────────────────────────── */
   const LANGS: Array<[string, string]> = [
-    ['en', 'Inglés'], ['es', 'Español'], ['fr', 'Francés'], ['de', 'Alemán'],
-    ['it', 'Italiano'], ['pt', 'Portugués'], ['ja', 'Japonés (日本語)'],
-    ['ko', 'Coreano (한국어)'], ['zh', 'Chino (中文)'],
+    ['en', t('lang.en')], ['es', t('lang.es')], ['fr', t('lang.fr')], ['de', t('lang.de')],
+    ['it', t('lang.it')], ['pt', t('lang.pt')], ['ja', t('lang.ja')],
+    ['ko', t('lang.ko')], ['zh', t('lang.zh')],
   ];
 
   function reopenOnboarding() {
@@ -114,13 +115,13 @@ export function SettingsTab() {
             </span>
           </div>
           <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
-            <QuickRow label="Captura automática" info="Cuando está activa, Kivara graba audio y captura frame al pulsar guardar, usando VAD para detectar el fin de frase. Desactívala para configurar a mano." hint={autoMode ? 'VAD · 30s' : 'manual'}>
+            <QuickRow label={t('set.autoCapture')} info={t('set.autoCaptureDesc')} hint={autoMode ? 'VAD · 30s' : 'manual'}>
               <Toggle on={autoMode} onChange={setAutoMode} />
             </QuickRow>
-            <QuickRow label="Modo lectura" info="Oculta los popovers de hover sobre subtítulos. Útil cuando solo quieres mirar la serie sin interrupciones." hint={readingMode ? 'sin popovers' : 'aprendizaje'}>
+            <QuickRow label="Modo lectura" info={t('set.hideHoverDesc')} hint={readingMode ? 'sin popovers' : 'aprendizaje'}>
               <Toggle on={readingMode} onChange={setReadingMode} />
             </QuickRow>
-            <QuickRow label="Subtítulo bilingüe" info="Muestra el subtítulo traducido a tu idioma debajo del original." hint={translate.showDualSubtitle ? 'visible' : 'oculto'}>
+            <QuickRow label={t('set.bilingualSub')} info={t('set.bilingualSubDesc')} hint={translate.showDualSubtitle ? 'visible' : 'oculto'}>
               <Toggle
                 on={translate.showDualSubtitle}
                 onChange={(v) => setTranslate({ ...translate, showDualSubtitle: v })}
@@ -137,30 +138,30 @@ export function SettingsTab() {
             summary={`${audioSource} · ${bufferSize}s`}
             open={isOpen('capture')}
             onToggle={() => toggle('capture')}
-            description="Controla cómo Kivara graba el audio y captura el frame al guardar una tarjeta."
+            description={t('set.captureDesc')}
           >
-            <Row label="Fuente audio" hint={audioSource === 'tab' ? 'Graba el audio del navegador (Netflix, YouTube…). Requiere activar la captura del tab.' : 'Usa el micrófono del sistema. Útil para clases en vivo o subtítulos externos.'}>
+            <Row label="Fuente audio" hint={audioSource === 'tab' ? 'Graba el audio del navegador (Netflix, YouTube…). Requiere activar la captura del tab.' : t('set.micDesc')}>
               <SegmentedControl
-                options={[{ v: 'tab', l: 'Pestaña' }, { v: 'mic', l: 'Mic' }]}
+                options={[{ v: 'tab', l: t('set.tab') }, { v: 'mic', l: 'Mic' }]}
                 value={audioSource}
                 onChange={setAudioSource}
               />
             </Row>
-            <Row label="Buffer rolling" value={`${bufferSize}s`} hint="Segundos de audio que se mantienen en memoria. Más buffer = más contexto pero más RAM.">
+            <Row label="Buffer rolling" value={`${bufferSize}s`} hint={t('set.bufferDesc')}>
               <input
                 type="range" min={10} max={60} step={5} value={bufferSize}
                 onChange={(e) => setBufferSize(Number(e.target.value))}
                 className="sl-range w-full"
               />
             </Row>
-            <Row label="Fin de frase" hint={endDetect === 'vad' ? 'VAD detecta silencios para cortar el audio (más natural).' : 'Corta exactamente cuando termina el cue del subtítulo (más preciso si los cues son buenos).'}>
+            <Row label="Fin de frase" hint={endDetect === 'vad' ? t('set.vadModeDesc') : t('set.exactModeDesc')}>
               <SegmentedControl
                 options={[{ v: 'vad', l: 'VAD' }, { v: 'cue', l: 'Cue exacto' }]}
                 value={endDetect}
                 onChange={setEndDetect}
               />
             </Row>
-            <Row label="Momento del frame" hint="Instante del que se toma la captura de pantalla dentro del cue del subtítulo.">
+            <Row label="Momento del frame" hint={t('set.frameDesc')}>
               <SegmentedControl
                 options={[
                   { v: 'start', l: 'Inicio' },
@@ -219,7 +220,7 @@ export function SettingsTab() {
         {/* ── Traducción ─────────────────────────────────────────────── */}
         <Accordion
           icon={<Languages size={10} />}
-          title="Traducción"
+          title={t('set.translate')}
           summary={
             translate.mode === 'chain'
               ? `cadena · ${translate.tiersEnabled.free ? 'free' : ''}${translate.tiersEnabled.free && translate.tiersEnabled.premium ? '+' : ''}${translate.tiersEnabled.premium ? 'premium' : ''}`
@@ -227,11 +228,11 @@ export function SettingsTab() {
           }
           open={isOpen('translate')}
           onToggle={() => toggle('translate')}
-          description="Define qué servicio traduce los subtítulos y palabras. La cadena prueba varios en orden hasta obtener respuesta; el modo único usa solo uno."
+          description={t('set.translateDesc')}
         >
-          <Row label="Modo" hint={translate.mode === 'chain' ? 'Prueba los proveedores activos en orden (free → premium) hasta lograr traducción.' : 'Usa exclusivamente un proveedor — más predecible, sin fallback.'}>
+          <Row label="Modo" hint={translate.mode === 'chain' ? t('set.chainHint') : t('set.singleHint')}>
             <SegmentedControl
-              options={[{ v: 'chain', l: 'Cadena' }, { v: 'single', l: 'Único' }]}
+              options={[{ v: 'chain', l: t('set.chain') }, { v: 'single', l: t('set.single') }]}
               value={translate.mode}
               onChange={(v) => setTranslate({ ...translate, mode: v as 'chain' | 'single' })}
             />
@@ -331,12 +332,12 @@ export function SettingsTab() {
               <SecretKeyInput
                 stored={translate.libreTranslateToken}
                 onChange={(v) => setTranslate({ ...translate, libreTranslateToken: v })}
-                placeholder="(vacío para instancias públicas)"
+                placeholder={t('set.ltKeyPlaceholder')}
               />
             </Row>
           </NestedAccordion>
 
-          <Row label="Caché" value={`${translate.cacheTtlDays}d`}>
+          <Row label={t('set.cache')} value={`${translate.cacheTtlDays}d`}>
             <input
               type="range" min={1} max={90} step={1} value={translate.cacheTtlDays}
               onChange={(e) => setTranslate({ ...translate, cacheTtlDays: Number(e.target.value) })}
@@ -353,7 +354,7 @@ export function SettingsTab() {
           open={isOpen('dict')}
           onToggle={() => toggle('dict')}
           noPadding
-          description="Diccionarios Yomitan/StarDict locales para hover instantáneo, sin internet ni cuotas de API."
+          description={t('set.dictDesc')}
         >
           <DictPacksSection />
         </Accordion>
@@ -367,7 +368,7 @@ export function SettingsTab() {
           open={isOpen('vip')}
           onToggle={() => toggle('vip')}
           noPadding
-          description="Datos locales bundleados, APIs gratuitas y fuentes VIP opcionales: Cambridge, Oxford, Longman, Dictionary.com, Merriam-Webster, Ozdic, Reverso, Linguee, PROMT.One Contexts, WordReference, SpanishDict, Tatoeba, Forvo, Lingua Libre, Etymonline, imágenes y Google TTS."
+          description={t('set.sourcesDesc')}
         >
           <VipSection />
         </Accordion>
@@ -386,7 +387,7 @@ export function SettingsTab() {
           summaryColor={ai.provider !== 'disabled' && ai.apiKey ? 'text-indigo-500 dark:text-indigo-400' : undefined}
           open={isOpen('ai')}
           onToggle={() => toggle('ai')}
-          description="Enriquecimiento opcional con definiciones contextuales, sinónimos y matices generados por un modelo de IA. Tu key se guarda solo en tu navegador."
+          description={t('set.aiDesc')}
         >
           <AiByokSection />
         </Accordion>
@@ -399,7 +400,7 @@ export function SettingsTab() {
           summaryColor={tts.provider !== 'disabled' ? 'text-indigo-500 dark:text-indigo-400' : undefined}
           open={isOpen('tts')}
           onToggle={() => toggle('tts')}
-          description="Voces premium para palabra y frase. Si está desactivado se usa la voz nativa del navegador (Web Speech API) sin coste."
+          description={t('set.ttsDesc')}
         >
           <Row label="Proveedor">
             <select
@@ -449,12 +450,12 @@ export function SettingsTab() {
         {/* ── Whisper ASR (on-device) ────────────────────────────────── */}
         <Accordion
           icon={<Volume2 size={10} />}
-          title="Transcripción on-device"
+          title={t('set.whisperTitle')}
           summary={asr.enabled ? asr.model : 'desactivada'}
           summaryColor={asr.enabled ? 'text-indigo-500 dark:text-indigo-400' : undefined}
           open={isOpen('asr')}
           onToggle={() => toggle('asr')}
-          description="Whisper.cpp local vía WebAssembly: transcribe el audio capturado en tu propio navegador, sin enviar nada a la nube."
+          description={t('set.whisperDesc')}
         >
           <Row label="Habilitar Whisper ASR">
             <Toggle on={asr.enabled} onChange={(v) => setAsr({ ...asr, enabled: v })} />
@@ -517,10 +518,10 @@ export function SettingsTab() {
           onToggle={() => toggle('cleanup')}
           description="Oculta elementos del reproductor para que la captura de frame quede limpia y sin distracciones."
         >
-          <Row label="Ocultar UI del player" hint="Quita barra de progreso, botones y overlays mientras Kivara está activa.">
+          <Row label="Ocultar UI del player" hint={t('set.hideProgressDesc')}>
             <Toggle on={hideUI} onChange={setHideUI} />
           </Row>
-          <Row label="Sin sombras / gradientes" hint="Elimina los degradados sobre los subtítulos para una imagen más nítida.">
+          <Row label="Sin sombras / gradientes" hint={t('set.hideGradientsDesc')}>
             <Toggle on={hideShadows} onChange={setHideShadows} />
           </Row>
         </Accordion>
@@ -528,15 +529,15 @@ export function SettingsTab() {
         {/* ── Sincronización fina ────────────────────────────────────── */}
         <Accordion
           icon={<SlidersHorizontal size={10} />}
-          title="Sincronización fina"
+          title={t('set.fineSync')}
           summary="pre/post roll"
           open={isOpen('sync')}
           onToggle={() => toggle('sync')}
-          description="Ajusta los milisegundos añadidos antes/después de cada cue al capturar audio. Útil si tus tarjetas cortan el inicio o el final de la frase."
+          description={t('set.fineSyncDesc')}
         >
           <CompactSlider label="Pre-roll"    defaultValue={300}  max={1500} unit="ms" />
           <CompactSlider label="Post-roll"   defaultValue={400}  max={1500} unit="ms" />
-          <CompactSlider label="Fusión cues" defaultValue={300}  max={1000} unit="ms" />
+          <CompactSlider label={t('set.cueMerge')} defaultValue={300}  max={1000} unit="ms" />
         </Accordion>
 
         {/* ── Atajos ─────────────────────────────────────────────────── */}
@@ -546,7 +547,7 @@ export function SettingsTab() {
           summary={keysSummary}
           open={isOpen('keys')}
           onToggle={() => toggle('keys')}
-          description="Personalízalos: clic en un combo para grabar uno nuevo. Esc cancela, Backspace lo deja sin asignar. Los atajos globales (Ctrl+S, Alt+C, …) se registran en chrome://extensions/shortcuts."
+          description={t('set.shortcutsDesc')}
         >
           <ShortcutEditor compact />
           <div className="mt-2 flex items-center justify-between py-1 text-[10.5px] text-zinc-500 dark:text-zinc-500 px-1">
@@ -601,7 +602,7 @@ type AiTestStatus =
  * Three-card layout that surfaces each supported provider as a clickable
  * preset (Gemini · Claude · OpenAI). Selecting a card switches
  * `ai.provider`, fills in the recommended model id, and reveals the key
- * input + a "Probar conexión" button that fires a real `AI_ENRICH` against
+ * input + a t('set.testConnection') button that fires a real `AI_ENRICH` against
  * the user's key. The kept-everywhere advanced toggles (hover / save /
  * cache) live below in a compact row so users who already configured the
  * provider can flip them without scrolling.
@@ -876,7 +877,7 @@ function AiByokSection() {
               ) : (
                 <Zap size={11} />
               )}
-              {test.state === 'testing' ? 'Probando…' : 'Probar conexión'}
+              {test.state === 'testing' ? 'Probando…' : t('set.testConnection')}
             </button>
             <button
               type="button"
@@ -893,7 +894,7 @@ function AiByokSection() {
             {test.state === 'ok' && (
               <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 size={11} />
-                {test.cached ? 'Cache hit (la key no se validó)' : `${test.provider} respondió en ${test.latencyMs} ms`}
+                {test.cached ? t('set.cacheHit') : `${test.provider} respondió en ${test.latencyMs} ms`}
               </span>
             )}
             {test.state === 'error' && (
@@ -911,10 +912,10 @@ function AiByokSection() {
             <Row label="Enriquecer en hover">
               <Toggle on={ai.enrichOnHover} onChange={(v) => setAi({ ...ai, enrichOnHover: v })} />
             </Row>
-            <Row label="IA escribe el mnemónico">
+            <Row label={t('set.aiMnemonic')}>
               <Toggle on={ai.preferAiMnemonic !== false} onChange={(v) => setAi({ ...ai, preferAiMnemonic: v })} />
             </Row>
-            <Row label="IA escribe la etimología">
+            <Row label={t('set.aiEtymology')}>
               <Toggle on={ai.preferAiEtymology !== false} onChange={(v) => setAi({ ...ai, preferAiEtymology: v })} />
             </Row>
             {ai.provider === 'openai' && (
@@ -931,7 +932,7 @@ function AiByokSection() {
                 className="sl-input w-full"
               />
             </Row>
-            <Row label="Caché" value={`${ai.cacheTtlDays}d`}>
+            <Row label={t('set.cache')} value={`${ai.cacheTtlDays}d`}>
               <input
                 type="range"
                 min={1}

@@ -4,6 +4,7 @@ import {
   Power, ExternalLink, Mic, MicOff, Settings, RefreshCw,
 } from 'lucide-react';
 import { useKivaraStore } from '../shared/store';
+import { t } from '../shared/i18n';
 import type { AnkiPingErrorCode, AnkiPingResponse, AudioCaptureStatus } from '../shared/types';
 
 type PingStatus = 'idle' | 'pinging' | 'ok' | 'error';
@@ -40,6 +41,10 @@ export function Popup() {
   } = useKivaraStore();
 
   const [ping, setPing] = useState<PingState>({ status: 'idle' });
+  // Capture errors live OUTSIDE the Anki ping state — mixing them made an
+  // audio failure look like a broken AnkiConnect (and the catch swallowed
+  // the reason entirely, so the user saw nothing).
+  const [captureError, setCaptureError] = useState<string | null>(null);
   const cancelledRef = useRef(false);
 
   useEffect(() => {
@@ -132,6 +137,7 @@ export function Popup() {
 
   async function toggleAudioCapture() {
     const next = !audioCaptureActive;
+    setCaptureError(null);
     try {
       if (next) {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -142,7 +148,7 @@ export function Popup() {
         )) as { ok: boolean; error?: string };
         setAudioCaptureActive(result.ok);
         if (!result.ok) {
-          setPing((p) => ({ ...p, error: result.error || 'No se pudo iniciar la captura.' }));
+          setCaptureError(result.error || t('popup.capture.failed'));
         }
       } else {
         await sendMessage('STOP_AUDIO_CAPTURE', {}, 'background');
@@ -150,6 +156,9 @@ export function Popup() {
       }
     } catch (err) {
       setAudioCaptureActive(false);
+      // Surface the reason instead of only logging it — otherwise a failed
+      // start/stop is invisible in the popup.
+      setCaptureError(err instanceof Error && err.message ? err.message : t('popup.capture.failed'));
       console.warn('[Kivara Lingo] toggleAudioCapture failed', err);
     }
   }
@@ -200,14 +209,14 @@ export function Popup() {
                 Kivara <span className="text-indigo-500 dark:text-indigo-400">Lingo</span>
               </div>
               <div className="text-[10px] text-zinc-400 dark:text-zinc-500 leading-tight">
-                v{__APP_VERSION__} · Fase 2
+                v{__APP_VERSION__} · {t('popup.phase')}
               </div>
             </div>
           </div>
           <button
             onClick={openOptions}
             className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-            title="Configuración"
+            title={t('popup.settings')}
           >
             <Settings size={15} />
           </button>
@@ -245,11 +254,11 @@ export function Popup() {
                       : 'text-zinc-600 dark:text-zinc-400'
                 }`}>
                   {ping.status === 'ok'
-                    ? `AnkiConnect v${ping.version} · activo`
+                    ? t('popup.anki.active', { v: ping.version ?? '' })
                     : ping.status === 'pinging'
-                      ? 'Comprobando AnkiConnect…'
+                      ? t('popup.anki.checking')
                       : ping.status === 'error'
-                        ? 'AnkiConnect no responde'
+                        ? t('popup.anki.down')
                         : '—'}
                 </span>
               </div>
@@ -257,7 +266,7 @@ export function Popup() {
                 onClick={() => void runPing()}
                 disabled={ping.status === 'pinging'}
                 className="p-1 rounded-md text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 disabled:opacity-40 transition-colors"
-                title="Reintentar"
+                title={t('popup.retry')}
               >
                 <RefreshCw size={11} className={ping.status === 'pinging' ? 'animate-spin' : ''} />
               </button>
@@ -265,10 +274,10 @@ export function Popup() {
             {ping.status === 'error' && (
               <p className="text-[10px] text-rose-600/80 dark:text-rose-400/80 mt-1.5 leading-snug">
                 {ping.code === 'API_KEY'
-                  ? 'AnkiConnect requiere API key — configúrala en Cards → Conexión.'
+                  ? t('popup.anki.errApiKey')
                   : ping.code === 'TIMEOUT'
-                    ? 'AnkiConnect tardó demasiado en responder. Verifica que Anki esté activo.'
-                    : 'Abre Anki y verifica que AnkiConnect esté instalado. Los subtítulos siguen funcionando sin conexión.'}
+                    ? t('popup.anki.errTimeout')
+                    : t('popup.anki.errGeneric')}
               </p>
             )}
           </div>
@@ -284,7 +293,7 @@ export function Popup() {
           >
             <Power size={14} />
             <span className="text-[12px] font-semibold flex-1 text-left">
-              {enabled ? 'Extensión activada' : 'Extensión desactivada'}
+              {enabled ? t('popup.enable.on') : t('popup.enable.off')}
             </span>
             <span className={`text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ${
               enabled ? 'bg-white/15 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500'
@@ -299,7 +308,7 @@ export function Popup() {
             className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 transition-colors"
           >
             <ExternalLink size={13} className="text-zinc-400 shrink-0" />
-            <span className="text-[12px] font-medium flex-1 text-left">Abrir panel en la pestaña</span>
+            <span className="text-[12px] font-medium flex-1 text-left">{t('popup.openPanel')}</span>
           </button>
 
           {/* Audio capture toggle */}
@@ -310,18 +319,23 @@ export function Popup() {
                 ? 'bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/25 text-rose-700 dark:text-rose-300'
                 : 'bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300'
             }`}
-            title="Captura el audio de la pestaña para anexar a las tarjetas Anki"
+            title={t('popup.capture.title')}
           >
             {audioCaptureActive
               ? <Mic size={13} className="text-rose-500 shrink-0" />
               : <MicOff size={13} className="text-zinc-400 shrink-0" />}
             <span className="text-[12px] font-medium flex-1 text-left">
-              {audioCaptureActive ? 'Captura de audio activa' : 'Activar captura de audio'}
+              {audioCaptureActive ? t('popup.capture.active') : t('popup.capture.off')}
             </span>
             <span className="text-[9px] text-zinc-400 dark:text-zinc-600 font-mono shrink-0">
               tabCapture
             </span>
           </button>
+          {captureError && (
+            <p className="text-[10px] text-rose-600/80 dark:text-rose-400/80 px-1 leading-snug">
+              {captureError}
+            </p>
+          )}
         </div>
 
         {/* Footer — theme switch + ©Kivara */}
@@ -330,7 +344,7 @@ export function Popup() {
             onClick={() => setIsDarkMode(!isDarkMode)}
             className="text-[11px] text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
           >
-            Tema {isDarkMode ? 'claro' : 'oscuro'}
+            {t('popup.theme', { mode: isDarkMode ? t('popup.theme.light') : t('popup.theme.dark') })}
           </button>
           <span className="text-[10px] text-zinc-200 dark:text-zinc-800">©Kivara 2026</span>
         </div>

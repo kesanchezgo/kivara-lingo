@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { t } from '../../shared/i18n';
 import { createPortal } from 'react-dom';
 import { Toaster, toast } from 'sonner';
 import { sendMessage } from 'webext-bridge/content-script';
@@ -15,6 +16,7 @@ import type {
 } from '../../shared/types';
 import type { SubtitleSource } from '../platform-adapters/types';
 import { getActiveTrackCues, getTrackByLanguage, onTrack } from '../platform-adapters/intercepted-bus';
+import { buildPreviewData } from '../../shared/preview-data';
 
 /**
  * Find the Anki field name (key in fieldSources) currently mapped to the
@@ -749,7 +751,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
             const next = !useKivaraStore.getState().subtitlesVisible;
             setSubtitlesVisible(next);
             toast.message(
-              next ? 'Subtítulos visibles' : 'Subtítulos ocultos',
+              next ? t('app.subtitlesVisible') : t('app.subtitlesHidden'),
               { duration: 1400 },
             );
             break;
@@ -975,21 +977,12 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
             setStyles={setSubtitleStyles}
             mapping={ankiMapping}
             setMapping={setAnkiMapping}
-            mockData={{
-              // Until Phase 3 wires dictionary/translation lookup to the live
-              // cue, the preview falls back to a deterministic placeholder so
-              // FRENTE / REVERSO actually render something (instead of an
-              // empty dark card). The live cue text still feeds
-              // `targetSentence` when present so the user sees their current
-              // line in REVERSO.
-              targetSentence: activeCue?.text || "These days, Nicola doesn't travel much.",
-              nativeSentence: 'Estos días, Nicola no viaja mucho.',
-              word: 'these days',
-              translation: 'estos días',
-              phonetic: '/ðiːz deɪz/',
-              bilingual: '(noun) estos días',
-              monolingual: 'Used to refer to the present time period.',
-            }}
+            // Until Phase 3 wires dictionary/translation lookup to the live
+            // cue, the preview falls back to a deterministic sample so
+            // FRENTE / REVERSO render something. The live cue drives
+            // `targetSentence` when present (shared builder — Options.tsx
+            // uses the same source with no cue).
+            mockData={buildPreviewData(activeCue?.text)}
           />
         </div>
       )}

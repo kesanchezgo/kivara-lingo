@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { t } from '../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
 import {
   Volume2, ChevronsLeftRight, Link2, Search, Plus, Eye, BookOpen, Check, Sparkles,
@@ -365,7 +366,7 @@ export function WordPopover({
   // ESSENTIAL fold (translation / definition / IPA) is known — typically
   // <1 s, or instant for bundled words. After that the essential fields
   // paint and the slower extras (synonyms / antonyms / collocations /
-  // examples / etymology) stream in under a subtle "buscando más…" footer
+  // examples / etymology) stream in under a subtle t('popover.loadingMore') footer
   // (driven by `resolved.enriching`) instead of blocking the whole card.
   const isResolving = resolved.resolving;
 
@@ -533,7 +534,7 @@ export function WordPopover({
               onMouseDown={blockFocusSteal}
               onClick={handleSpeak}
               className="w-6 h-6 rounded-full bg-indigo-500/15 hover:bg-indigo-500/25 ring-1 ring-indigo-400/30 text-indigo-300 flex items-center justify-center shrink-0 transition-colors"
-              title="Reproducir pronunciación"
+              title={t('popover.playPronunciation')}
             >
               <Volume2 size={11} />
             </button>
@@ -782,7 +783,7 @@ export function WordPopover({
           {/* Streaming affordance — once the essential fold is painted but
               the slower extras (synonyms / antonyms / collocations /
               examples / etymology) are still arriving, show a subtle
-              inline "buscando más" row instead of blocking the card. */}
+              inline t('popover.loadingMoreShort') row instead of blocking the card. */}
           {resolved.enriching && (
             <div className="flex items-center gap-1.5 pt-1 text-[10px] text-zinc-500 normal-case">
               <span className="inline-flex gap-0.5" aria-hidden="true">
@@ -857,7 +858,7 @@ export function WordPopover({
           >
             <span className="flex items-center gap-1.5">
               <ChevronsLeftRight size={10} />
-              <span className="normal-case">{isExpanded ? 'Unir como expresión' : 'Ver palabras por separado'}</span>
+              <span className="normal-case">{isExpanded ? t('popover.joinPhrase') : 'Ver palabras por separado'}</span>
             </span>
             <span className="flex items-center gap-1 text-[9px] text-zinc-500 normal-case">
               <span>o</span>
@@ -899,7 +900,7 @@ export function WordPopover({
               onMouseDown={blockFocusSteal}
               onClick={(e) => { e.stopPropagation(); releaseFocus(e); }}
               className="flex-1 flex items-center justify-center gap-1 px-2 py-2 text-[11px] font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/15 transition-colors normal-case"
-              title="Esta tarjeta ya está en tu mazo"
+              title={t('popover.alreadySaved')}
             >
               <Eye size={12} /> Ver en Anki
             </button>
@@ -1076,7 +1077,7 @@ function formatSource(source: string | null): string {
     case 'dictionary':
       return 'Diccionario offline';
     case 'cache':
-      return 'Caché';
+      return t('popover.cache');
     case 'mymemory':
       return 'MyMemory (free)';
     case 'lingva':

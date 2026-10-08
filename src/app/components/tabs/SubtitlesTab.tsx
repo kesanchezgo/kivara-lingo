@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { t } from '../../../shared/i18n';
 import { SubtitleStyles } from '../../types';
 import {
   Type, Palette, AlignVerticalSpaceBetween, RotateCcw, AlignLeft, ChevronDown,
@@ -78,8 +79,8 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
         </div>
 
         {/* Tipografía */}
-        <Section icon={<Type size={10} />} title="Tipografía">
-          <Row label="Tamaño" value={`${styles.fontSize}px`} onReset={resetOf('fontSize')}>
+        <Section icon={<Type size={10} />} title={t('subs.typography')}>
+          <Row label={t('subs.size')} value={`${styles.fontSize}px`} onReset={resetOf('fontSize')}>
             <input
               type="range"
               min="16" max="64"
@@ -187,7 +188,7 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
         </Section>
 
         {/* Posición */}
-        <Section icon={<AlignVerticalSpaceBetween size={10} />} title="Posición">
+        <Section icon={<AlignVerticalSpaceBetween size={10} />} title={t('subs.position')}>
           <Row label="Preset" onReset={resetOf('position')}>
             <SegmentedControl
               options={[
@@ -236,19 +237,19 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
             toggle behind a chevron so the tab feels lighter). */}
         <Section
           icon={<AlignLeft size={10} />}
-          title="Formato nativo"
-          hint="Respeta los saltos de línea y la alineación originales del archivo de subtítulos (SRT/VTT/ASS). Desactivado, Kivara reconstruye la línea para que ocupe el ancho disponible."
+          title={t('subs.nativeFormat')}
+          hint={t('subs.keepWrapHint')}
           collapsible
           open={nativeFormatOpen}
           onToggle={() => setNativeFormatOpen(!nativeFormatOpen)}
         >
           <ToggleRow
-            label="Mantener saltos de línea"
+            label={t('subs.keepLineBreaks')}
             checked={styles.keepNativeLineBreaks}
             onChange={(v) => updateStyle('keepNativeLineBreaks', v)}
           />
           <ToggleRow
-            label="Mantener alineación"
+            label={t('subs.keepAlignment')}
             checked={styles.keepNativeAlignment}
             onChange={(v) => updateStyle('keepNativeAlignment', v)}
           />

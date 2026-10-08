@@ -167,34 +167,70 @@ declare global {
     return /<MPD\b[^>]*xmlns\s*=\s*"urn:mpeg:dash:schema:mpd/i.test(body);
   }
 
+  // ── Nonce ACK gate ──────────────────────────────────────────────────────
+  // The MAIN script runs at document_start while the ISOLATED bus publishes
+  // its nonce at document_idle. Any cue fetched in that window would carry an
+  // empty nonce and be dropped by the bus's validation — so we QUEUE the
+  // post and flush it as soon as the attribute appears (this is the ACK).
+  // Bounded: stop polling after NONCE_WAIT_MAX_TRIES so a page where the bus
+  // never loads can't leave an interval running forever, and cap the queue so
+  // a burst can't grow without limit.
+  const NONCE_WAIT_MAX_TRIES = 200; // ~10 s at 50 ms
+  const NONCE_QUEUE_MAX = 20;
+  let nonceWaiters: Array<() => void> = [];
+  let noncePoll: number | null = null;
+  let nonceTries = 0;
+
+  function currentNonce(): string {
+    return document.documentElement.getAttribute('data-kivara-nonce') ?? '';
+  }
+
+  function withNonce(action: () => void): void {
+    if (currentNonce()) {
+      action();
+      return;
+    }
+    nonceWaiters.push(action);
+    if (nonceWaiters.length > NONCE_QUEUE_MAX) nonceWaiters.shift();
+    if (noncePoll !== null) return;
+    noncePoll = window.setInterval(() => {
+      nonceTries += 1;
+      const ready = currentNonce();
+      if (!ready && nonceTries < NONCE_WAIT_MAX_TRIES) return;
+      // Either the bus published its nonce (flush) or we timed out (drop
+      // the queue — same as before the ACK existed) — stop polling either way.
+      const poll = noncePoll;
+      if (poll !== null) window.clearInterval(poll);
+      noncePoll = null;
+      nonceTries = 0;
+      if (!ready) {
+        nonceWaiters = [];
+        return;
+      }
+      const queued = nonceWaiters;
+      nonceWaiters = [];
+      for (const fn of queued) fn();
+    }, 50);
+  }
+
   function postCues(url: string, body: string) {
     try {
-      // Shared nonce published by the ISOLATED-world bus on the
-      // documentElement before it attaches its listener — required so a
-      // page script can't forge cue/MPD messages (see intercepted-bus.ts).
-      const nonce = document.documentElement.getAttribute('data-kivara-nonce') ?? '';
       // DASH manifest — has its own dispatch path so the bus can pull the
       // user's target-language subtitle track in parallel with playback.
       // (HBO Max / Disney+ ship this, YouTube does not.)
       if (looksLikeDashManifest(body, url)) {
-        window.postMessage(
-          { source: MPD_EVENT, url, body, nonce },
-          '*',
+        withNonce(() =>
+          window.postMessage({ source: MPD_EVENT, url, body, nonce: currentNonce() }, '*'),
         );
         return;
       }
       const cues = parseAny(url, body);
       if (!cues.length) return;
       const language = detectTrackLanguage(url, body);
-      window.postMessage(
-        {
-          source: EVENT,
-          url,
-          language,
-          cues,
-          nonce,
-        },
-        '*',
+      // Nonce read INSIDE the action (at flush time) — that's the moment the
+      // ISOLATED bus can actually validate it.
+      withNonce(() =>
+        window.postMessage({ source: EVENT, url, language, cues, nonce: currentNonce() }, '*'),
       );
     } catch (err) {
       console.warn(TAG, 'parse failed for', url, err);
