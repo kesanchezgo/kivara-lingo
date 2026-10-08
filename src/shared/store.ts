@@ -584,21 +584,35 @@ export const useKivaraStore = create<KivaraState>()(
   ),
 );
 
-// Cross-context state sync: when another extension context (popup / options /
-// background) writes to chrome.storage.sync, rehydrate this store so the
-// content script picks up the change without a full reload.
+// Cross-context state sync. TWO signals now:
+//  • area 'sync' + our STORE_KEY → a non-secret setting changed elsewhere.
+//  • area 'local' + a `kivara-secret:v1:*` key → a SECRET changed elsewhere.
+//    Secrets no longer ride in sync (see secret-store.ts), so changing only
+//    a key produces an IDENTICAL sync blob and Chrome fires no 'sync' event.
+//    Without this branch the popup/content would keep the OLD key in memory
+//    and their next persist could overwrite the new one.
 // Debounced (250 ms): a burst of writes (slider drag, rapid toggles) used
 // to trigger one full rehydrate + decrypt pass per write.
 let rehydrateTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleRehydrate() {
+  if (rehydrateTimer) clearTimeout(rehydrateTimer);
+  rehydrateTimer = setTimeout(() => {
+    rehydrateTimer = null;
+    void useKivaraStore.persist.rehydrate();
+  }, 250);
+}
 try {
   if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'sync' && Object.prototype.hasOwnProperty.call(changes, STORE_KEY)) {
-        if (rehydrateTimer) clearTimeout(rehydrateTimer);
-        rehydrateTimer = setTimeout(() => {
-          rehydrateTimer = null;
-          void useKivaraStore.persist.rehydrate();
-        }, 250);
+        scheduleRehydrate();
+        return;
+      }
+      if (area === 'local') {
+        const touchedSecret = Object.keys(changes).some((k) =>
+          k.startsWith('kivara-secret:v1:'),
+        );
+        if (touchedSecret) scheduleRehydrate();
       }
     });
   }

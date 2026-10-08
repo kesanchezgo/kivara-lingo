@@ -36,6 +36,11 @@ export function enqueueMount(genAtSchedule: number, task: () => Promise<void>): 
     await task();
   };
   queue = queue.then(run, run);
+  // Attach a no-op catch so a caller that voids the chain (`void
+  // enqueueMount(...)`) can't leave an UNHANDLED rejection. The SAME
+  // promise is still returned, so a caller that awaits it still sees the
+  // error (and the test asserting propagation keeps working).
+  queue.catch(() => {});
   return queue;
 }
 

@@ -58,6 +58,10 @@ export function SecretKeyInput({
   const dirtyRef = useRef(false);
   draftRef.current = draft;
   dirtyRef.current = dirty;
+  /** Latest onChange — the commit effect runs ONCE (empty deps), so a stale
+   * closure would call a parent setter captured at first mount. */
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   // Reset only when `stored` changed from OUTSIDE (another context, a
   // clear, an unreadable-cipher switch). An echo of our own emission
@@ -91,18 +95,27 @@ export function SecretKeyInput({
     // commit — pagehide followed by unmount cleanup — can't emit twice.
     dirtyRef.current = false;
     lastEmittedRef.current = next;
-    onChange(next);
+    onChangeRef.current(next);
     setDirty(false);
   };
 
-  // Commit on unmount: closing the panel/popup (React unmount) fires no
-  // blur, so a typed-but-uncommitted key would be lost. Reads the REFS,
-  // not state, because state is frozen by the time cleanup runs.
+  // Commit before the page goes away:
+  //  • visibilitychange → hidden fires EARLIER than pagehide (the popup is
+  //    hidden but not yet unloaded), giving the async encrypt +
+  //    chrome.storage.local.set chain time to complete.
+  //  • pagehide stays as the last resort; because commit clears dirtyRef,
+  //    it cannot emit a second time.
+  // Reads the REFS, not state — state is frozen by the time cleanup runs.
   useEffect(() => {
     const commitRef = () => commit();
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') commitRef();
+    };
     window.addEventListener('pagehide', commitRef);
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
       window.removeEventListener('pagehide', commitRef);
+      document.removeEventListener('visibilitychange', onVisibility);
       commitRef();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

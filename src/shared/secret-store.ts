@@ -152,6 +152,13 @@ export function isEncrypted(value: string | undefined | null): boolean {
  * plaintext (it's still safer than crashing the whole settings save —
  * the worst case is a key that wasn't encrypted, not a key that was
  * lost).
+ *
+ * MARKING: an unencrypted result is self-identifying — it does NOT carry
+ * the `enc:v1:` prefix, so `isEncrypted()` (and therefore every reader)
+ * can tell "stored plaintext because crypto was unavailable" from real
+ * ciphertext. The failure is also warned on the console above. We do NOT
+ * invent a fake prefix here because callers treat prefixed values as
+ * ciphertext and would try to decrypt garbage.
  */
 export async function encryptSecret(plaintext: string): Promise<string> {
   if (!plaintext) return '';
@@ -282,6 +289,30 @@ export function secretSlotKey(section: string, field: string): string {
   return `kivara-secret:v1:${section}.${field}`;
 }
 
+/**
+ * Tombstone written by "Quitar". An EMPTY slot ('') must not be confused
+ * with "no slot": legacy builds left ciphertext in the sync blob, and a
+ * cleared-but-present slot must win over that legacy value forever —
+ * otherwise every load would re-migrate the key the user just deleted.
+ */
+export const SECRET_CLEARED = '__cleared__';
+
+/**
+ * Per-context baseline: slotKey → the plaintext THIS context last loaded or
+ * wrote. Used to (a) skip no-op re-encrypts (fresh IV per call used to spam
+ * onChanged(local)) and (b) — critically — stop a STALE context from
+ * overwriting a key another context just changed: its value still matches
+ * its own baseline, so the write is skipped.
+ */
+const lastPersisted = new Map<string, string>();
+
+/** Test-only: clear the per-context baseline (and the in-memory slot
+ * fallback) so cases start from a clean slate. */
+export function __resetSecretSlotsForTests(): void {
+  lastPersisted.clear();
+  memorySlots.clear();
+}
+
 export interface SecretSlotIO {
   get(keys: string[]): Promise<Record<string, unknown>>;
   set(items: Record<string, unknown>): Promise<void>;
@@ -316,41 +347,49 @@ async function saveSecrets(
 ): Promise<boolean> {
   if (!state) return false;
   const toLocal: Record<string, unknown> = {};
+  const written: Array<{ section: string; field: string; plain: string }> = [];
   for (const { section, field } of SECRET_FIELDS) {
     const node = state[section];
     if (!node || typeof node !== 'object') continue;
     const rec = node as Record<string, unknown>;
     const value = rec[field];
     if (typeof value !== 'string') continue;
-    if (value === '') {
-      // Explicit clear → drop the slot too (the "Quitar" action).
-      toLocal[secretSlotKey(section, field)] = '';
-      continue;
-    }
-    if (!value) continue;
-    toLocal[secretSlotKey(section, field)] = isEncrypted(value)
-      ? value // legacy ciphertext already in sync — move as-is
-      : await encryptSecret(value);
+    const key = secretSlotKey(section, field);
+    // DIFF, don't blind-write. Two jobs in one:
+    //  • no change in THIS context → skip (no fresh-IV churn in local);
+    //  • value equal to our baseline while ANOTHER context updated the slot
+    //    (we haven't rehydrated yet) → skip, so a stale context can't
+    //    clobber the newer key or resurrect one cleared elsewhere.
+    if (lastPersisted.get(key) === value) continue;
+    toLocal[key] =
+      value === ''
+        ? SECRET_CLEARED
+        : isEncrypted(value)
+          ? value // legacy ciphertext already in sync — move as-is
+          : await encryptSecret(value);
+    written.push({ section, field, plain: value });
   }
-  if (Object.keys(toLocal).length === 0) return true;
-  try {
-    await io.set(toLocal); // MUST succeed before we blank sync — never
-    // destroy the only copy of a key because local storage hiccuped.
-  } catch (err) {
-    console.warn('[Kivara secret-store] local slot write failed, falling back to inline encryption', err);
-    // Fallback = the OLD behavior: encrypt in place in the sync blob.
-    // State stays safe to persist: never plaintext, never blanked.
-    for (const { section, field } of SECRET_FIELDS) {
-      const node = state[section];
-      if (!node || typeof node !== 'object') continue;
-      const rec = node as Record<string, unknown>;
-      const v = rec[field];
-      if (typeof v === 'string' && v && !isEncrypted(v)) {
-        rec[field] = await encryptSecret(v);
+  if (Object.keys(toLocal).length > 0) {
+    try {
+      await io.set(toLocal); // MUST succeed before we blank sync — never
+      // destroy the only copy of a key because local storage hiccuped.
+    } catch (err) {
+      console.warn('[Kivara secret-store] local slot write failed, falling back to inline encryption', err);
+      // Fallback = the OLD behavior: encrypt in place in the sync blob.
+      // State stays safe to persist: never plaintext, never blanked.
+      for (const { section, field, plain } of written) {
+        if (!plain || isEncrypted(plain)) continue;
+        const node = state[section];
+        if (!node || typeof node !== 'object') continue;
+        (node as Record<string, unknown>)[field] = await encryptSecret(plain);
       }
+      return false;
     }
-    return false;
+    for (const { section, field, plain } of written) {
+      lastPersisted.set(secretSlotKey(section, field), plain);
+    }
   }
+  // Sync carries zero secret material regardless — blank them all.
   for (const { section, field } of SECRET_FIELDS) {
     const node = state[section];
     if (!node || typeof node !== 'object') continue;
@@ -377,12 +416,19 @@ async function loadSecrets(
     const node = state[section];
     if (!node || typeof node !== 'object') continue;
     const rec = node as Record<string, unknown>;
-    const slotVal = local[secretSlotKey(section, field)];
+    const key = secretSlotKey(section, field);
+    const slotVal = local[key];
     const legacy = rec[field];
-    if (typeof slotVal === 'string' && slotVal !== '') {
-      // Slot wins. decryptSecret PRESERVES ciphertext on failure → the UI
-      // shows the re-enter hint instead of a false "empty".
-      rec[field] = await decryptSecret(slotVal);
+    // SLOT PRESENT (even '' or the tombstone) → it is authoritative and the
+    // legacy sync value is NEVER consulted — that's what makes "Quitar"
+    // survive a stale ciphertext still sitting in an old sync blob.
+    if (typeof slotVal === 'string') {
+      const injected =
+        slotVal === '' || slotVal === SECRET_CLEARED
+          ? ''
+          : await decryptSecret(slotVal); // preserves ciphertext on failure
+      rec[field] = injected;
+      lastPersisted.set(key, injected);
       continue;
     }
     if (typeof legacy === 'string' && legacy !== '') {
@@ -392,12 +438,13 @@ async function loadSecrets(
       // migrate it so the next save blanks it from sync.
       const plain = await decryptSecret(legacy);
       rec[field] = plain;
-      migrate[secretSlotKey(section, field)] = isEncrypted(plain)
-        ? legacy
-        : await encryptSecret(plain);
+      migrate[key] = isEncrypted(plain) ? legacy : await encryptSecret(plain);
+      lastPersisted.set(key, plain);
       continue;
     }
     rec[field] = '';
+    lastPersisted.set(key, ''); // baseline: nothing stored → an empty save
+    // below is a no-op, so a stale context can't clear another's fresh key
   }
   if (Object.keys(migrate).length > 0) {
     try {
@@ -442,13 +489,18 @@ export async function resolveSecret(
       ? chrome.storage.local.get(key)
       : defaultSlotIO.get([key]));
     const slot = found[key];
-    if (typeof slot === 'string' && slot !== '') {
+    // SLOT PRESENT (even '' or the tombstone) is authoritative — never fall
+    // back to the legacy sync value, or a cleared key would be re-migrated
+    // from stale ciphertext.
+    if (typeof slot === 'string') {
+      if (slot === '' || slot === SECRET_CLEARED) return '';
       const plain = await decryptSecret(slot);
       return isEncrypted(plain) ? '' : plain;
     }
   } catch {
     // fall through to legacy blob value
   }
+  // No slot at all (undefined) → consult the legacy sync value.
   if (legacyBlobValue) {
     const plain = await decryptSecret(legacyBlobValue);
     return isEncrypted(plain) ? '' : plain;
