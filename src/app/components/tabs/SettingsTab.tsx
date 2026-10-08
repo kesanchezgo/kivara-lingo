@@ -20,6 +20,7 @@ import {
   type WhisperModelKey,
 } from '../../../shared/whisper-presets';
 import { SHORTCUT_DEFS } from '../../../shared/shortcuts';
+import { maskSecret, unreadableSecret } from '../../../shared/secret-store';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { ShortcutEditor } from '../ShortcutEditor';
 import { InfoHint } from '../InfoHint';
@@ -306,20 +307,26 @@ export function SettingsTab() {
             <Row label="DeepL API key">
               <input
                 type="password"
-                value={translate.deeplToken}
+                value={maskSecret(translate.deeplToken)}
                 onChange={(e) => setTranslate({ ...translate, deeplToken: e.target.value })}
                 placeholder="xxxxxxxx:fx"
                 className="sl-input sl-mono w-full"
               />
+              {unreadableSecret(translate.deeplToken) && (
+                <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-snug mt-1">Clave no legible en este dispositivo. Vuelve a introducirla.</p>
+              )}
             </Row>
             <Row label="Google Cloud API key">
               <input
                 type="password"
-                value={translate.googleToken}
+                value={maskSecret(translate.googleToken)}
                 onChange={(e) => setTranslate({ ...translate, googleToken: e.target.value })}
                 placeholder="AIza..."
                 className="sl-input sl-mono w-full"
               />
+              {unreadableSecret(translate.googleToken) && (
+                <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-snug mt-1">Clave no legible en este dispositivo. Vuelve a introducirla.</p>
+              )}
             </Row>
             <Row label="LibreTranslate URL">
               <input
@@ -333,11 +340,14 @@ export function SettingsTab() {
             <Row label="LibreTranslate key">
               <input
                 type="password"
-                value={translate.libreTranslateToken}
+                value={maskSecret(translate.libreTranslateToken)}
                 onChange={(e) => setTranslate({ ...translate, libreTranslateToken: e.target.value })}
                 placeholder="(vacío para instancias públicas)"
                 className="sl-input w-full"
               />
+              {unreadableSecret(translate.libreTranslateToken) && (
+                <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-snug mt-1">Clave no legible en este dispositivo. Vuelve a introducirla.</p>
+              )}
             </Row>
           </NestedAccordion>
 
@@ -423,11 +433,14 @@ export function SettingsTab() {
               <Row label="ElevenLabs · API key">
                 <input
                   type="password"
-                  value={tts.elevenLabsApiKey}
+                  value={maskSecret(tts.elevenLabsApiKey)}
                   onChange={(e) => setTts({ ...tts, elevenLabsApiKey: e.target.value })}
                   placeholder="xi-..."
                   className="sl-input w-full"
                 />
+                {unreadableSecret(tts.elevenLabsApiKey) && (
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-snug mt-1">Clave no legible en este dispositivo. Vuelve a introducirla.</p>
+                )}
               </Row>
               <Row label="ElevenLabs · Voice ID">
                 <input
@@ -809,7 +822,7 @@ function AiByokSection() {
             <div className="flex items-center gap-1.5">
               <input
                 type={showKey ? 'text' : 'password'}
-                value={ai.apiKey}
+                value={showKey ? ai.apiKey : maskSecret(ai.apiKey)}
                 onChange={(e) => setAi({ ...ai, apiKey: e.target.value })}
                 placeholder={
                   activePreset.provider === 'openai'

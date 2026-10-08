@@ -286,6 +286,14 @@ export async function createCardFromRequest(
   capture: CaptureSettings = DEFAULT_CAPTURE,
   options: { fromRetry?: boolean; retryRowId?: number } = {},
 ): Promise<CreateCardResponse> {
+  // Retry path skips live-audio re-extraction: resolveAudio slices the
+  // CURRENT ring-buffer window, but the cue played minutes ago — re-slicing
+  // now captures whatever is playing instead of the phrase. A retry reuses
+  // the stored frame + request fields and only re-attempts addNote; TTS
+  // fallback was already attached on the first attempt when capture was
+  // impossible. (retryRowId is accepted for forward-compat logging; the
+  // row update happens in retryPendingNotes.)
+  void options.retryRowId;
   // Validate required mapping fields before attempting any work.
   if (!mapping.deckName) {
     return { ok: false, error: 'No se ha configurado un mazo de Anki (deckName vacío).' };
@@ -621,8 +629,11 @@ export async function createCardFromRequest(
     fieldMapping.find(([, s]) => s === 'word-audio')?.[0] ??
     fieldMapping.find(([, s]) => s === 'tts')?.[0];
   let sentenceAudioAttached = false;
-  // 1) Sentence audio: prefer the live tab-capture slice.
-  if (sentenceAudioField) {
+  // 1) Sentence audio: prefer the live tab-capture slice — EXCEPT on retry
+  // (fromRetry), where the ring buffer no longer holds the cue's audio and
+  // re-slicing would capture whatever plays NOW instead of the phrase.
+  // Retries go straight to the TTS fallback below, which is deterministic.
+  if (sentenceAudioField && !options.fromRetry) {
     const resolved = await resolveAudio(request, capture);
     if (resolved) {
       const filename = safeFilename(request.token, extForMime(resolved.mime));
@@ -728,6 +739,22 @@ export async function createCardFromRequest(
   }
 
   try {
+    // Idempotency pre-check: a TIMEOUT after the server already created
+    // the note used to duplicate it on retry (addNote has no client-side
+    // idempotency key). The saved_notes ledger records (token+language+
+    // sentence) on every success — if this exact card already landed,
+    // skip the add and report success with the existing note id.
+    try {
+      const existing = await getDB().saved_notes
+        .where('[token+language+sentence]')
+        .equals([request.token, request.language ?? 'en', request.sentence])
+        .first();
+      if (existing) {
+        return { ok: true, noteId: existing.ankiNoteId, warnings };
+      }
+    } catch {
+      // ledger unreadable — proceed with the add
+    }
     const noteId = await ankiConnect.addNote(
       {
         deckName: mapping.deckName,
@@ -826,6 +853,12 @@ export async function retryPendingNotes(
       continue;
     }
     retried += 1;
+    // Skip the live-audio re-extraction on retry: resolveAudio slices the
+    // CURRENT ring-buffer window, but the cue's audio played minutes ago —
+    // re-slicing now captures whatever is playing instead of the phrase.
+    // The pending row stores the request as-is; TTS was already attached
+    // as fallback on the first attempt when capture was impossible, so a
+    // retry reuses the stored frame + fields and only re-attempts addNote.
     const result = await createCardFromRequest(row.request, mapping, capture, {
       fromRetry: true,
       retryRowId: row.id,

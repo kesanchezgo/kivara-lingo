@@ -12,6 +12,7 @@ import {
   ChevronDown, Loader2, AlertCircle, Server, Database, FileText, Plug,
 } from 'lucide-react';
 import { detectFieldSource } from '../../../shared/anki-field-detect';
+import { maskSecret, unreadableSecret } from '../../../shared/secret-store';
 import { InfoHint } from '../InfoHint';
 
 interface CardsTabProps {
@@ -298,11 +299,16 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
           <Row label={<span className="flex items-center gap-1"><Plug size={10} className="text-zinc-400" />API key</span>}>
             <input
               type="password"
-              value={mapping.apiKey ?? ''}
+              value={maskSecret(mapping.apiKey ?? '')}
               onChange={(e) => setMapping({ ...mapping, apiKey: e.target.value })}
               className="sl-input sl-mono w-full"
               placeholder="Solo si AnkiConnect tiene apiKey (opcional)"
             />
+            {unreadableSecret(mapping.apiKey) && (
+              <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-snug mt-1">
+                Clave no legible en este dispositivo (cifrada en otro). Vuelve a introducirla aquí para usarla en este equipo.
+              </p>
+            )}
           </Row>
 
           <Row label={<span className="flex items-center gap-1"><Database size={10} className="text-zinc-400" />Mazo</span>}>

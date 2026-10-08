@@ -206,11 +206,15 @@ export const ankiConnect = {
   },
 
   async addNote(note: AnkiNote, url?: string, apiKey?: string): Promise<number> {
-    // Media uploads (audio clip + frame JPEG) routinely exceed the 4 s
-    // default on a cold Anki: without the longer budget a slow-but-created
-    // note reads as TIMEOUT and the 127.0.0.1↔localhost fallback creates
-    // it a SECOND time. 15 s keeps the duplicate path shut in practice.
-    const hasMedia = (note.audio?.length ?? 0) > 0 || (note.picture?.length ?? 0) > 0;
+    // Media travels as [sound:]/<img> field references after storeMediaFile
+    // (single-upload rule — note.audio/picture are always empty now), so the
+    // old `hasMedia` gate on those arrays never fires. Detect media from the
+    // FIELD TEXT instead: a note carrying audio or an image routinely exceeds
+    // the 4 s default on a cold Anki, and a slow-but-created note reads as
+    // TIMEOUT — then the 127.0.0.1↔localhost fallback creates it a SECOND
+    // time. 15 s keeps the duplicate path shut in practice.
+    const fieldText = Object.values(note.fields ?? {}).join(' ');
+    const hasMedia = /\[sound:|\<img/i.test(fieldText);
     return invoke<number>('addNote', { note }, { url, apiKey, timeoutMs: hasMedia ? 15000 : undefined });
   },
 

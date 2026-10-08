@@ -165,11 +165,16 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   cambridge: cambridgeSource,
   oxfordLearners: oxfordLearnersSource,
   longman: longmanSource,
-  // Keep the legacy settings key so existing user preferences migrate without
-  // unexpectedly re-enabling the Collins replacement.
+  // Legacy `collins` toggle now serves Dictionary.com: Collins pages are
+  // Cloudflare-gated from MV3 workers, Dictionary.com ships comparable
+  // editorial definitions/IPA/audio. The key name is kept so existing
+  // user preferences migrate without unexpectedly re-enabling anything.
   collins: dictionaryComSource,
   merriamWebster: merriamWebsterSource,
   merriamWebsterThesaurus: merriamWebsterThesaurusSource,
+  // `oxfordCollocations` is a local-pack slot, not a network source:
+  // the real OCD data arrives via the `ozdic` mirror above. Null keeps
+  // the settings key (and its default-on) without running a phantom source.
   oxfordCollocations: null, // pack-based, handled separately
   ozdic: ozdicSource,
   pons: ponsSource,

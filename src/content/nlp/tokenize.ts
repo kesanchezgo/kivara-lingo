@@ -95,14 +95,15 @@ export function tokenizeSentence(
   // self-aware) are kept as a single token so the dictionary lookup has a
   // chance to hit. Apostrophe-internal words (don't, John's, won't — ASCII
   // and typographic U+2019) are also single tokens. Unicode-aware via
-  // `\p{L}`/`\p{N}` so accented words (niño, café, naïve) tokenize whole
-  // instead of splitting at the accent. Pure punctuation runs and
-  // whitespace runs are emitted as their own tokens.
-  const WORD = "[\\p{L}\\p{N}'\u2019]+(?:-[\\p{L}\\p{N}'\u2019]+)*";
-  const raw = sentence.match(new RegExp(`${WORD}|[^\\p{L}\\p{N}\\s-]+|-+|\\s+`, 'gu')) ?? [];
+  // `\p{L}`/`\p{N}`/`\p{M}` so accented words tokenize whole — including
+  // decomposed forms (e + U+0301 combining acute) and Indic/Thai scripts
+  // where vowels are combining marks — instead of splitting at the accent.
+  // Pure punctuation runs and whitespace runs are emitted as their own tokens.
+  const WORD = "[\\p{L}\\p{N}\\p{M}'\u2019]+(?:-[\\p{L}\\p{N}\\p{M}'\u2019]+)*";
+  const raw = sentence.match(new RegExp(`${WORD}|[^\\p{L}\\p{N}\\p{M}\\s-]+|-+|\\s+`, 'gu')) ?? [];
   const words: { text: string; idx: number }[] = [];
   raw.forEach((t, idx) => {
-    if (/[\p{L}\p{N}'\u2019]/u.test(t)) words.push({ text: t, idx });
+    if (/[\p{L}\p{N}\p{M}'\u2019]/u.test(t)) words.push({ text: t, idx });
   });
 
   const dict = getDictionary(lang);
@@ -231,7 +232,7 @@ export function tokenizeSentence(
   const tokens: Token[] = [];
   raw.forEach((t, idx) => {
     if (/^\s+$/u.test(t)) tokens.push({ text: t, key: `_sp${idx}`, kind: 'punct' });
-    else if (/^[^\p{L}\p{N}\s]+$/u.test(t)) tokens.push({ text: t, key: `_p${idx}`, kind: 'punct' });
+    else if (/^[^\p{L}\p{N}\p{M}\s]+$/u.test(t)) tokens.push({ text: t, key: `_p${idx}`, kind: 'punct' });
     else {
       const tok = wordKey.get(idx);
       if (tok && tok.text) tokens.push(tok);

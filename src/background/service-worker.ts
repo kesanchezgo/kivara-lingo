@@ -31,6 +31,7 @@ import type {
 import { ankiConnect } from './anki-connect';
 import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator';
 import { DEFAULT_ANKI_MAPPING, DEFAULT_CAPTURE, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
+import { decryptSecret, isEncrypted } from '../shared/secret-store';
 import {
   startAudioCapture,
   stopAudioCapture,
@@ -142,12 +143,29 @@ export async function refreshAnkiOriginRules(ankiUrl?: string): Promise<void> {
 chrome.runtime.onInstalled.addListener(() => {
   void installAnkiOriginRule();
 });
-chrome.runtime.onStartup.addListener(() => {
-  void installAnkiOriginRule();
+chrome.runtime.onStartup.addListener(async () => {
+  await chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 });
+  // Refresh the Origin-rewrite rules for the user's saved Anki URL at
+  // every wake-up (custom port / remote host), not just on CREATE_CARD.
+  try {
+    const mapping = await loadMapping();
+    await refreshAnkiOriginRules(mapping.ankiUrl);
+  } catch {
+    // ignore — CREATE_CARD refreshes again on demand
+  }
 });
 // First boot of the SW after a module reload — onStartup doesn't fire on
-// unpacked extensions, so install immediately too.
+// unpacked extensions, so install immediately too, then refresh for the
+// user's saved URL (custom port / remote host).
 void installAnkiOriginRule();
+void (async () => {
+  try {
+    const mapping = await loadMapping();
+    await refreshAnkiOriginRules(mapping.ankiUrl);
+  } catch {
+    // ignore — CREATE_CARD refreshes again on demand
+  }
+})();
 
 async function loadMapping(): Promise<AnkiMapping> {
   try {
@@ -157,7 +175,17 @@ async function loadMapping(): Promise<AnkiMapping> {
     const parsed = JSON.parse(value);
     const mapping = parsed?.state?.ankiMapping ?? parsed?.ankiMapping;
     if (mapping && typeof mapping === 'object') {
-      return { ...DEFAULT_ANKI_MAPPING, ...mapping };
+      const merged: AnkiMapping = { ...DEFAULT_ANKI_MAPPING, ...mapping };
+      // The apiKey is stored as ciphertext (see secret-store.ts) but
+      // AnkiConnect expects plaintext. Decrypt transparently; a still-
+      // encrypted result means unreadable-here (cross-device salt
+      // mismatch) — treat as missing rather than sending `enc:v1:`
+      // to Anki as if it were a key (which always fails auth).
+      if (merged.apiKey) {
+        const plain = await decryptSecret(merged.apiKey);
+        merged.apiKey = isEncrypted(plain) ? '' : plain;
+      }
+      return merged;
     }
   } catch (err) {
     console.warn('[Kivara Lingo] could not read mapping', err);
@@ -350,7 +378,11 @@ onMessage('ANKI_SAVED_WORDS', async ({ data }) => {
     const words = infos
       .map((n) => {
         const field = n.fields[fieldName] ?? Object.values(n.fields)[0];
-        return field?.value?.toLowerCase().trim() ?? '';
+        // Strip HTML (<img>, <b>, [sound:]) — Anki fields carry markup and
+        // the overlay compares plain lowercase tokens.
+        const raw = field?.value ?? '';
+        const text = raw.replace(/<[^>]*>/g, ' ').replace(/\[sound:[^\]]*\]/gi, ' ');
+        return text.toLowerCase().trim();
       })
       .filter(Boolean);
     return asJson({ words });
@@ -633,6 +665,14 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 // but `onInstalled` only fires once.
 chrome.runtime.onStartup.addListener(async () => {
   await chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 });
+  // Refresh the Origin-rewrite rules for the user's saved Anki URL at
+  // every wake-up (custom port / remote host), not just on CREATE_CARD.
+  try {
+    const mapping = await loadMapping();
+    await refreshAnkiOriginRules(mapping.ankiUrl);
+  } catch {
+    // ignore — CREATE_CARD refreshes again on demand
+  }
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
@@ -683,8 +723,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   // Content script requests opening a URL in a new tab (Definir / Buscar
   // buttons). Using chrome.tabs.create ensures it opens a real new tab
   // instead of navigating within the YouTube/HBO SPA, which would kill
-  // the video playback.
+  // the video playback. Allowlist: only http(s) — never javascript:, file:,
+  // data: or chrome: URLs from a compromised/companion page message.
   if (message?.type === 'OPEN_URL' && typeof message.url === 'string') {
+    if (!/^https?:\/\//i.test(message.url)) {
+      sendResponse({ ok: false, error: 'URL must be http(s)://' });
+      return true;
+    }
     void chrome.tabs.create({ url: message.url });
     sendResponse({ ok: true });
     return true;
@@ -778,32 +823,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     sendResponse({ ok: true });
     return true;
   }
-  // UI requests downloading a dictionary pack from a URL. The SW carries the
-  // extension's host_permissions so this works for hosts the content script
-  // couldn't reach directly under page CORS (e.g. Cloudflare R2, GitHub
-  // raw). We stream into an ArrayBuffer and reply with a number[] copy so
-  // the bytes survive the structured-clone round-trip across processes.
-  if (message?.type === 'FETCH_PACK_URL' && typeof message.url === 'string') {
-    void (async () => {
-      try {
-        const url: string = message.url;
-        if (!/^https?:\/\//i.test(url)) {
-          sendResponse({ ok: false, error: 'URL must be http(s)://' });
-          return;
-        }
-        const res = await fetch(url, { redirect: 'follow' });
-        if (!res.ok) {
-          sendResponse({ ok: false, error: `HTTP ${res.status} ${res.statusText}` });
-          return;
-        }
-        const buf = await res.arrayBuffer();
-        sendResponse({ ok: true, bytes: Array.from(new Uint8Array(buf)) });
-      } catch (err) {
-        sendResponse({ ok: false, error: (err as Error).message });
-      }
-    })();
-    return true;
-  }
+  // REMOVED: FETCH_PACK_URL (deleted 2026-10-08). It downloaded the whole
+  // pack into an ArrayBuffer and replied with Array.from(Uint8Array) — a
+  // 2× memory blowup that OOM-killed the renderer on the 127 MB EN→EN
+  // pack — and no caller used it anymore (DictPacksSection + onboarding
+  // both go through INSTALL_DICT_PACK_FROM_URL with streaming import).
   // UI requests downloading + installing a dictionary pack end-to-end in
   // the SW. The previous flow shipped the bytes back to the side-panel
   // page, which then called `unzipSync` — that crashed the renderer for

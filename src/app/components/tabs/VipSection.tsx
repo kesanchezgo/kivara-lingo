@@ -19,6 +19,7 @@
 
 import React from 'react';
 import { useKivaraStore } from '../../../shared/store';
+import { maskSecret, unreadableSecret } from '../../../shared/secret-store';
 import { InfoHint } from '../InfoHint';
 import type { VipSettings } from '../../../shared/types';
 type VipKey = keyof VipSettings;
@@ -199,13 +200,16 @@ export function VipSection() {
               </span>
               <input
                 type="password"
-                value={vip.unsplashAccessKey || ''}
+                value={maskSecret(vip.unsplashAccessKey || '')}
                 onChange={(e) => setKey('unsplashAccessKey', e.target.value)}
                 placeholder="(opcional)"
                 className="sl-input"
                 spellCheck={false}
                 autoComplete="off"
               />
+              {unreadableSecret(vip.unsplashAccessKey) && (
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 leading-snug">Clave no legible en este dispositivo. Vuelve a introducirla.</span>
+              )}
             </label>
             <label className="flex flex-col gap-1 text-[11px] text-zinc-700 dark:text-zinc-300">
               <span className="flex items-center justify-between gap-1">
@@ -214,13 +218,16 @@ export function VipSection() {
               </span>
               <input
                 type="password"
-                value={vip.pixabayApiKey || ''}
+                value={maskSecret(vip.pixabayApiKey || '')}
                 onChange={(e) => setKey('pixabayApiKey', e.target.value)}
                 placeholder="(opcional, scrape activo sin clave)"
                 className="sl-input"
                 spellCheck={false}
                 autoComplete="off"
               />
+              {unreadableSecret(vip.pixabayApiKey) && (
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 leading-snug">Clave no legible en este dispositivo. Vuelve a introducirla.</span>
+              )}
             </label>
           </div>
 

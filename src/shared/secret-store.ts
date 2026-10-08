@@ -196,10 +196,26 @@ export async function decryptSecret(value: string | undefined | null): Promise<s
  * for empties, and a generic mask for plaintext leftovers. Used by
  * the SettingsTab inputs so we never re-show the user a key they
  * already entered.
+ *
+ * IMPORTANT for controlled inputs: when the stored value is still-encrypted
+ * (unreadable on this device — cross-device salt mismatch), render '' so
+ * the `<input type="password" value={...}>` doesn't display the `enc:v1:`
+ * blob. The caller must treat '' as "no usable key here" and show the
+ * re-enter hint (see `unreadableSecret` below), not as "user cleared it".
  */
 export function maskSecret(value: string | undefined | null): string {
   if (!value) return '';
-  if (isEncrypted(value)) return '••••••••';
+  if (isEncrypted(value)) return '';
   // Plaintext leftover from older builds or from a manual import.
   return value.length > 6 ? value.slice(0, 2) + '••••••••' : '••••••';
+}
+
+/** True when the stored value is ciphertext this device cannot read
+ * (wrong salt after reinstall, salt mismatch across synced devices).
+ * The UI should show "clave no disponible en este dispositivo, vuelve a
+ * introducirla" instead of the raw `enc:v1:` blob, and must NOT let the
+ * user edit-and-save the blob as if it were plaintext (that would store
+ * garbage). */
+export function unreadableSecret(value: string | undefined | null): boolean {
+  return isEncrypted(value ?? '');
 }

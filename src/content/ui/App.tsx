@@ -89,21 +89,43 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   // Words already saved to the user's Anki deck — pre-fetched once per
   // video mount via the ANKI_SAVED_WORDS handler so subtitles show the
   // green "saved" highlight from the first frame (previously the prop
-  // was never passed and every word started unsaved).
+  // was never passed and every word started unsaved). Waits for the
+  // persisted store to rehydrate first: reading deckName from a fresh
+  // default would query the wrong (empty) deck. Results are cached per
+  // deck so remounts on SPA navigation don't refetch 5000 notes.
   const [initialSavedWords, setInitialSavedWords] = useState<Set<string>>(new Set());
+  const savedWordsCacheRef = useRef<Map<string, Set<string>>>(new Map());
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
+        // Wait for zustand-persist rehydration: before it completes the
+        // store holds defaults (empty deckName) even when the user has
+        // a deck configured.
+        try {
+          await (useKivaraStore.persist as unknown as { rehydrate?: () => Promise<void> }).rehydrate?.();
+        } catch {
+          // ignore — fall through with whatever state we have
+        }
         const { ankiMapping } = useKivaraStore.getState();
         if (!ankiMapping.deckName) return;
+        const cached = savedWordsCacheRef.current.get(ankiMapping.deckName);
+        if (cached) {
+          if (!cancelled) setInitialSavedWords(cached);
+          return;
+        }
+        const fieldName = Object.entries(ankiMapping.fieldSources ?? {}).find(
+          ([, s]) => s === 'selection',
+        )?.[0] ?? 'Front';
         const response = (await sendMessage(
           'ANKI_SAVED_WORDS',
-          { deckName: ankiMapping.deckName },
+          { deckName: ankiMapping.deckName, fieldName },
           'background',
         )) as { words?: string[] } | undefined;
         if (!cancelled && Array.isArray(response?.words)) {
-          setInitialSavedWords(new Set(response.words.map((w) => String(w).toLowerCase())));
+          const next = new Set(response.words.map((w) => String(w).toLowerCase()));
+          savedWordsCacheRef.current.set(ankiMapping.deckName, next);
+          setInitialSavedWords(next);
         }
       } catch {
         // Anki unreachable — overlay simply starts with no highlights.
@@ -559,20 +581,20 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   // User-customisable in-page hotkeys. The chrome.commands API can't be
   // re-bound programmatically, so the combos the user edits in SettingsTab
   // live in `store.shortcuts` and are honoured HERE via a capture-phase
-  // keydown listener. Manifest commands (Ctrl+S / Alt+C / Alt+R / Alt+K /
-  // Alt+V) still arrive as RUN_COMMAND messages below; this listener only
-  // fires for combos whose CURRENT user mapping differs from the manifest
-  // default (e.g. the user rebound recapture to Alt+G) — otherwise the
-  // same keypress would trigger twice (once here, once via chrome.commands).
-  // Chrome-managed defaults are therefore SKIPPED here; only custom
-  // (non-default) combos are handled in-page.
+  // keydown listener. Manifest commands (Ctrl+S / Alt+C / Alt+R / Alt+K)
+  // still arrive as RUN_COMMAND messages below; this listener handles the
+  // `recap` action, which has NO manifest suggested_key (Chrome caps
+  // suggested shortcuts at 4 — see manifest.json) and therefore can ONLY
+  // fire from this in-page listener. Non-default custom combos for the
+  // other actions are also honoured here; manifest defaults are skipped
+  // so the same keypress never triggers twice.
   useEffect(() => {
-    const DEFAULTS = new Set(['Ctrl+S', 'Alt+C', 'Alt+R', 'Alt+V', 'Alt+K']);
+    const MANIFEST_DEFAULTS = new Set(['Ctrl+S', 'Command+S', 'Alt+C', 'Alt+R', 'Alt+K']);
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
       const combo = comboFromEvent(e);
-      if (!combo || DEFAULTS.has(combo)) return;
+      if (!combo || MANIFEST_DEFAULTS.has(combo)) return;
       const map = useKivaraStore.getState().shortcuts;
       if (map.recap && combo === map.recap) {
         e.preventDefault();
@@ -582,13 +604,29 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
         e.preventDefault();
         e.stopPropagation();
         setPanelOpen(!useKivaraStore.getState().panelOpen);
+      } else if (map.save && combo === map.save) {
+        e.preventDefault();
+        e.stopPropagation();
+        setSaveTick(Date.now());
+      } else if (map.toggle && combo === map.toggle) {
+        e.preventDefault();
+        e.stopPropagation();
+        const next = !useKivaraStore.getState().subtitlesVisible;
+        setSubtitlesVisible(next);
+      } else if (map.replay && combo === map.replay) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (videoElement && activeCue?.start != null) {
+          videoElement.currentTime = activeCue.start / 1000;
+          void videoElement.play().catch(() => {});
+        }
       }
     };
     window.addEventListener('keydown', onKeyDown, true);
     return () => {
       window.removeEventListener('keydown', onKeyDown, true);
     };
-  }, [setPanelOpen]);
+  }, [setPanelOpen, setSubtitlesVisible, videoElement, activeCue?.start]);
 
   // Bridge runtime messages (from background) → local actions.
   // Also listens for the in-page `kivara-recapture-frame` event fired by

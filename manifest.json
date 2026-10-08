@@ -208,11 +208,7 @@
       "description": "Repeat current subtitle phrase"
     },
     "recapture_frame": {
-      "suggested_key": {
-        "default": "Alt+V",
-        "mac": "Alt+V"
-      },
-      "description": "Re-capturar frame y actualizar la última tarjeta Anki"
+      "description": "Re-capturar frame y actualizar la última tarjeta Anki (por defecto Alt+V, configurable en la página)"
     },
     "toggle_panel": {
       "suggested_key": {

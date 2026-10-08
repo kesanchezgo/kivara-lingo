@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { encryptSecret, decryptSecret, isEncrypted, maskSecret } from '../../src/shared/secret-store';
+import { encryptSecret, decryptSecret, isEncrypted, maskSecret, unreadableSecret } from '../../src/shared/secret-store';
 
 describe('secret-store', () => {
   it('isEncrypted detects encrypted values', () => {
@@ -37,8 +37,13 @@ describe('secret-store', () => {
     expect(result).toBe(plain);
   });
 
-  it('maskSecret masks encrypted values', () => {
-    expect(maskSecret('enc:v1:abc123')).toBe('••••••••');
+  it('maskSecret blanks still-encrypted values for controlled inputs', () => {
+    // Controlled <input value={...}> must never display the enc:v1: blob —
+    // blank it and let the UI show the re-enter hint (unreadableSecret).
+    expect(maskSecret('enc:v1:abc123')).toBe('');
+    expect(unreadableSecret('enc:v1:abc123')).toBe(true);
+    expect(unreadableSecret('sk-plain')).toBe(false);
+    expect(unreadableSecret('')).toBe(false);
   });
 
   it('maskSecret masks plaintext partially', () => {
