@@ -46,12 +46,44 @@ const seenUrls = new Set<string>();
 const tracksByLang = new Map<string, InterceptedTrack>();
 let lastTrack: InterceptedTrack | null = null;
 
+/**
+ * Cross-world nonce (MAIN ↔ ISOLATED).
+ *
+ * The MAIN-world interceptor posts cues over `window.postMessage`, which
+ * ANY page script can forge (`{source: EVENT, url, cues}` is public shape
+ * knowledge). We publish an unpredictable nonce on the documentElement and
+ * require it on every message:
+ *  - set here, synchronously, BEFORE the listener is attached, so every
+ *    message that can reach this listener was posted while the attr existed;
+ *  - the MAIN script reads the attr at post time (it runs at document_start
+ *    but only posts after network responses, i.e. after ISOLATED load);
+ *  - a forged message without / with a wrong nonce is dropped.
+ * The page CAN read the attribute, so this is a bar-raiser against casual
+ * spoofing, not a cryptographic boundary between page and extension.
+ */
+const BUS_NONCE = `kv${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+try {
+  document.documentElement.setAttribute('data-kivara-nonce', BUS_NONCE);
+} catch {
+  // detached document — nothing to publish to
+}
+
+function nonceOk(payload: unknown): boolean {
+  const n = (payload as { nonce?: unknown } | null)?.nonce;
+  return typeof n === 'string' && n === BUS_NONCE;
+}
+
 function isOurMessage(
   payload: unknown,
 ): payload is { source: string; url: string; cues: RawCue[]; language?: unknown } {
   if (!payload || typeof payload !== 'object') return false;
   const p = payload as { source?: unknown; url?: unknown; cues?: unknown };
-  return p.source === EVENT && typeof p.url === 'string' && Array.isArray(p.cues);
+  return (
+    p.source === EVENT &&
+    typeof p.url === 'string' &&
+    Array.isArray(p.cues) &&
+    nonceOk(payload)
+  );
 }
 
 window.addEventListener('message', (event) => {
@@ -67,7 +99,10 @@ window.addEventListener('message', (event) => {
     typeof data === 'object' &&
     (data as { source?: unknown }).source === MPD_EVENT
   ) {
-    const m = data as { url?: unknown; body?: unknown };
+    const m = data as { url?: unknown; body?: unknown; nonce?: unknown };
+    // Same nonce gate as cue messages — a page script could otherwise feed
+    // us a forged MPD and hijack the dual-subtitle track.
+    if (m.nonce !== BUS_NONCE) return;
     if (typeof m.url === 'string' && typeof m.body === 'string') {
       void handleDashManifest(m.url, m.body);
     }

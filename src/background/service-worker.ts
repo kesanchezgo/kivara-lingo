@@ -32,6 +32,7 @@ import { ankiConnect } from './anki-connect';
 import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator';
 import { DEFAULT_ANKI_MAPPING, DEFAULT_CAPTURE, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
 import { decryptSecret, isEncrypted } from '../shared/secret-store';
+import { escapeAnkiSearchTerm } from '../shared/anki-search';
 import {
   startAudioCapture,
   stopAudioCapture,
@@ -59,6 +60,10 @@ const OFFSCREEN_KEEPALIVE_ALARM = 'kivara-lingo-offscreen-keepalive';
 async function ensureOffscreenKeepalive(): Promise<void> {
   const status = await getAudioCaptureStatus();
   if (status.active) {
+    // ~20 s. Deliberately NOT 0.5 min (30 s): Chrome closes an offscreen
+    // document after 30 s of inactivity, so a 30 s ping lands exactly on
+    // the auto-close boundary and can lose the capture. 20 s keeps a safe
+    // margin without meaningfully raising wake-up cost.
     await chrome.alarms.create(OFFSCREEN_KEEPALIVE_ALARM, { periodInMinutes: 0.33 }); // ~20s
   } else {
     await chrome.alarms.clear(OFFSCREEN_KEEPALIVE_ALARM);
@@ -113,29 +118,21 @@ async function installAnkiOriginRule(): Promise<void> {
  * removeRuleIds/addRules batches and clobber each other. No-op when the
  * hosts already match. */
 let dnrRefreshPromise: Promise<void> | null = null;
+/** Most recent url asked for; consumed by the next queued run. */
+let pendingDnrUrl: string | null = null;
 export async function refreshAnkiOriginRules(ankiUrl?: string): Promise<void> {
+  // Queue semantics: remember the LAST url asked for. When a run finishes,
+  // if a newer url arrived while it was in flight we run once more with it
+  // — otherwise the boot-time default (empty) would overwrite the custom
+  // port the user configured, and the single-flight lock would swallow it.
+  pendingDnrUrl = ankiUrl ?? pendingDnrUrl;
   if (dnrRefreshPromise) return dnrRefreshPromise;
   dnrRefreshPromise = (async () => {
-    if (!chrome.declarativeNetRequest?.updateSessionRules) return;
-    try {
-      const raw = (ankiUrl ?? '').trim() || 'http://127.0.0.1:8765';
-      const withoutScheme = raw.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-      const host = withoutScheme.split('/')[0] || '127.0.0.1:8765';
-      const hosts = host.includes('127.0.0.1')
-        ? [host, host.replace('127.0.0.1', 'localhost')]
-        : host.includes('localhost')
-          ? [host, host.replace('localhost', '127.0.0.1')]
-          : [host];
-      if (ankiDnrHosts && ankiDnrHosts.join('|') === hosts.join('|')) return;
-      const rules = await ankiOriginRules(hosts);
-      await chrome.declarativeNetRequest.updateSessionRules({
-        removeRuleIds: Array.from({ length: 10 }, (_, i) => ANKI_DNR_RULE_ID + i),
-        addRules: rules,
-      });
-      ankiDnrHosts = hosts;
-    } catch (err) {
-      console.warn('[Kivara Lingo] could not refresh AnkiConnect DNR rule', err);
-    }
+    do {
+      const url = pendingDnrUrl ?? undefined;
+      pendingDnrUrl = null;
+      await applyDnrRules(url);
+    } while (typeof pendingDnrUrl === 'string');
   })();
   try {
     await dnrRefreshPromise;
@@ -144,32 +141,39 @@ export async function refreshAnkiOriginRules(ankiUrl?: string): Promise<void> {
   }
 }
 
-chrome.runtime.onInstalled.addListener(() => {
-  void refreshAnkiOriginRules();
-});
-chrome.runtime.onStartup.addListener(async () => {
-  await chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 });
-  // Refresh the Origin-rewrite rules for the user's saved Anki URL at
-  // every wake-up (custom port / remote host), not just on CREATE_CARD.
+async function applyDnrRules(ankiUrl?: string): Promise<void> {
+  if (!chrome.declarativeNetRequest?.updateSessionRules) return;
   try {
-    const mapping = await loadMapping();
-    await refreshAnkiOriginRules(mapping.ankiUrl);
-  } catch {
-    // ignore — CREATE_CARD refreshes again on demand
+    const raw = (ankiUrl ?? '').trim() || 'http://127.0.0.1:8765';
+    const withoutScheme = raw.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+    const host = withoutScheme.split('/')[0] || '127.0.0.1:8765';
+    const hosts = host.includes('127.0.0.1')
+      ? [host, host.replace('127.0.0.1', 'localhost')]
+      : host.includes('localhost')
+        ? [host, host.replace('localhost', '127.0.0.1')]
+        : [host];
+    if (ankiDnrHosts && ankiDnrHosts.join('|') === hosts.join('|')) return;
+    const rules = await ankiOriginRules(hosts);
+    await chrome.declarativeNetRequest.updateSessionRules({
+      removeRuleIds: Array.from({ length: 10 }, (_, i) => ANKI_DNR_RULE_ID + i),
+      addRules: rules,
+    });
+    ankiDnrHosts = hosts;
+  } catch (err) {
+    console.warn('[Kivara Lingo] could not refresh AnkiConnect DNR rule', err);
   }
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  void loadMapping().then(
+    (m) => refreshAnkiOriginRules(m.ankiUrl),
+    () => refreshAnkiOriginRules(),
+  );
 });
 // First boot of the SW after a module reload — onStartup doesn't fire on
-// unpacked extensions, so install immediately too, then refresh for the
-// user's saved URL (custom port / remote host).
-void installAnkiOriginRule();
-void (async () => {
-  try {
-    const mapping = await loadMapping();
-    await refreshAnkiOriginRules(mapping.ankiUrl);
-  } catch {
-    // ignore — CREATE_CARD refreshes again on demand
-  }
-})();
+// unpacked extensions, so refresh here too, plus the alarm:
+void refreshAnkiOriginRules();
+void chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 }).catch(() => {});
 
 async function loadMapping(): Promise<AnkiMapping> {
   try {
@@ -384,27 +388,22 @@ const savedWordsCache = new Map<string, { words: string[]; at: number }>();
 const SAVED_WORDS_TTL_MS = 60_000;
 export function invalidateSavedWordsCache(deckName?: string): void {
   if (!deckName) { savedWordsCache.clear(); return; }
+  const needle = JSON.stringify(deckName);
   for (const key of Array.from(savedWordsCache.keys())) {
-    if (key.startsWith(deckName + '|')) savedWordsCache.delete(key);
+    // key = ["<url>","<deck>","<field>"] (JSON) — match any url/field for
+    // this deck regardless of '|' or quotes inside the name.
+    if (key.includes(needle)) savedWordsCache.delete(key);
   }
-}
-/** Escape an Anki search term: backslash, quote and wildcards * and _.
- * An unescaped deck like 'My "Best" Deck' used to break the query or
- * match decks it should not. */
-export function escapeAnkiSearchTerm(term: string): string {
-  let e = String(term ?? "");
-  e = e.split(String.fromCharCode(92)).join(String.fromCharCode(92,92));
-  e = e.split(String.fromCharCode(34)).join(String.fromCharCode(92,34));
-  e = e.split("*").join(String.fromCharCode(92)+"*");
-  e = e.split("_").join(String.fromCharCode(92)+"_");
-  return e;
 }
 onMessage('ANKI_SAVED_WORDS', async ({ data }) => {
   const { url, apiKey } = await resolveAnkiAuth(data);
   const deckName = (data as { deckName?: string } | undefined)?.deckName;
   const fieldName = (data as { fieldName?: string } | undefined)?.fieldName || 'Front';
   if (!deckName) return asJson({ words: [] as string[] });
-  const cacheKey = deckName + "|" + fieldName;
+  // JSON key: deck names may contain "|" — prefix invalidation breaks on
+  // plain concatenation. URL joins the key so two Anki profiles never
+  // share a cache entry.
+  const cacheKey = JSON.stringify([url ?? "", deckName, fieldName]);
   const cached = savedWordsCache.get(cacheKey) as { words: string[]; at: number } | undefined;
   if (cached && Date.now() - cached.at < SAVED_WORDS_TTL_MS) {
     return asJson({ words: cached.words });
@@ -763,6 +762,28 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === 'TOGGLE_PANEL_FROM_POPUP') {
     void broadcastToActive({ type: 'TOGGLE_PANEL' });
     sendResponse({ ok: true });
+    return true;
+  }
+  // Content script asks for the LIVE manifest command bindings.
+  // `chrome.commands` does not exist in content-script context, so the
+  // in-page shortcut guard proxies through here — otherwise it would
+  // silently fall back to hardcoded defaults and double-fire a combo the
+  // user remapped in chrome://extensions.
+  if (message?.type === 'GET_COMMANDS') {
+    try {
+      const api = chrome.commands as unknown as {
+        getAll?: (cb: (cmds: Array<{ name?: string; shortcut?: string }>) => void) => void;
+      };
+      if (typeof api.getAll !== 'function') {
+        sendResponse({ ok: false, commands: [] });
+        return true;
+      }
+      api.getAll((cmds) => {
+        sendResponse({ ok: true, commands: Array.isArray(cmds) ? cmds : [] });
+      });
+    } catch {
+      sendResponse({ ok: false, commands: [] });
+    }
     return true;
   }
   // Content script requests opening a URL in a new tab (Definir / Buscar

@@ -10,6 +10,7 @@ import type {
 } from '../shared/types';
 import { DEFAULT_CAPTURE } from '../shared/store';
 import { ankiConnect, dataUrlToBase64, AnkiConnectError } from './anki-connect';
+import { buildExactNoteQuery } from '../shared/anki-search';
 import { translateText, translateToken } from './translate';
 import { extractAudioClip, getAudioCaptureStatus } from './audio-capture-manager';
 import { getDB, type PendingNoteRow } from '../shared/db';
@@ -285,6 +286,67 @@ async function resolveAudio(
   return { dataUrl: clip.dataUrl, mime: clip.mimeType || 'audio/mpeg' };
 }
 
+/**
+ * Retry idempotency: has this exact card already landed?
+ *
+ * Two checks, in order, BOTH run before any media is uploaded (a retry
+ * that finds the note must not leave orphaned files in Anki):
+ *  1. Local saved_notes ledger (token+language+sentence+deck) — cheap,
+ *     but only records SUCCESSES, so a timeout-after-create misses it.
+ *  2. Live findNotes with the shared exact query (deck + note type +
+ *     quoted field:value) — catches the note the server created even
+ *     though our response timed out. A ledger row is written so the
+ *     next retry skips the network too.
+ *
+ * Returns {ok:true, noteId} when the card already exists, null when we
+ * must create it. Never throws: a failed check falls through to addNote.
+ */
+async function findExistingCard(
+  request: CreateCardRequest,
+  mapping: AnkiMapping,
+): Promise<CreateCardResponse | null> {
+  try {
+    const existing = await getDB().saved_notes
+      .where('[token+language+sentence+deckName]')
+      .equals([request.token, request.language ?? 'en', request.sentence, mapping.deckName])
+      .first();
+    if (existing) return { ok: true, noteId: existing.ankiNoteId, warnings: [] };
+  } catch {
+    // ledger unreadable — fall through to the live check
+  }
+  try {
+    const wordField = Object.entries(mapping.fieldSources ?? {}).find(
+      ([, s]) => s === 'selection',
+    )?.[0] ?? 'Front';
+    const query = buildExactNoteQuery({
+      deckName: mapping.deckName,
+      modelName: mapping.modelName,
+      fieldName: wordField,
+      value: request.token,
+    });
+    if (!query) return null;
+    const found = await ankiConnect.findNotes(query, mapping.ankiUrl, mapping.apiKey);
+    if (found.length > 0) {
+      try {
+        await getDB().saved_notes.put({
+          token: request.token,
+          language: request.language ?? 'en',
+          sentence: request.sentence,
+          deckName: mapping.deckName,
+          ankiNoteId: found[0],
+          createdAt: Date.now(),
+        });
+      } catch {
+        // best-effort
+      }
+      return { ok: true, noteId: found[0], warnings: [] };
+    }
+  } catch {
+    // Anki unreachable for the check — proceed with the add
+  }
+  return null;
+}
+
 export async function createCardFromRequest(
   request: CreateCardRequest,
   mapping: AnkiMapping,
@@ -313,6 +375,18 @@ export async function createCardFromRequest(
   }
 
   const warnings: string[] = [];
+
+  // RETRY IDEMPOTENCY — first thing, before ANY work: no provider call,
+  // no storeMediaFile, no frame download. A retry whose card already
+  // exists (timeout-after-create) returns here, so it can't leave orphaned
+  // media in Anki. First attempts skip this: the ledger can't contain the
+  // card yet, and a stale row must never veto a fresh add after the user
+  // deleted the note in Anki.
+  if (options.fromRetry) {
+    const existing = await findExistingCard(request, mapping);
+    if (existing) return existing;
+  }
+
   const dictionaryHit = await translateToken(request.token, request.language ?? 'en');
 
   // Optional AI enrichment — gated by the user's premium settings.
@@ -646,9 +720,15 @@ export async function createCardFromRequest(
   // pending row (options.carriedAudio); when the first attempt never
   // resolved one, fall through to the deterministic TTS fallback below —
   // and warn visibly so the user knows the card carries TTS, not the cue.
+  // Clip the FIRST attempt resolved from the live buffer. Stashed here
+  // (while the ring buffer still covers the cue) and written onto the
+  // pending row if addNote fails — re-calling resolveAudio in the catch
+  // would slice audio that plays MINUTES later, not the phrase.
+  let firstAttemptClip: { dataUrl: string; mime: string } | null = null;
   if (sentenceAudioField && !options.fromRetry) {
     const resolved = await resolveAudio(request, capture);
     if (resolved) {
+      firstAttemptClip = resolved;
       const filename = safeFilename(request.token, extForMime(resolved.mime));
       try {
         await ankiConnect.storeMediaFile(
@@ -784,59 +864,6 @@ export async function createCardFromRequest(
   }
 
   try {
-    // Idempotency pre-check (retry path only): a TIMEOUT after the server
-    // already created the note used to duplicate it on retry (addNote has
-    // no client-side idempotency key). The saved_notes ledger records
-    // (token+language+sentence+deckName) on every success — if this exact
-    // card already landed in THIS deck, skip the add and report success
-    // with the existing note id. First attempts skip the check: the ledger
-    // can't contain the card yet, and if the user deleted it in Anki we
-    // must create it again (a stale ledger row must never veto a fresh add).
-    if (options.fromRetry) {
-      try {
-        const existing = await getDB().saved_notes
-          .where('[token+language+sentence+deckName]')
-          .equals([request.token, request.language ?? 'en', request.sentence, mapping.deckName])
-          .first();
-        if (existing) {
-          return { ok: true, noteId: existing.ankiNoteId, warnings };
-        }
-      } catch {
-        // ledger unreadable — proceed with the add
-      }
-      // Live Anki check: the ledger only records SUCCESSES, but a TIMEOUT
-      // means "maybe created". Ask Anki for this exact card in this deck
-      // before uploading media — otherwise the retry duplicates it and the
-      // re-uploaded files become orphans. Query the mapped word field
-      // (falls back to Front) with Anki's quoted-phrase syntax.
-      try {
-        const wordField = Object.entries(mapping.fieldSources ?? {}).find(
-          ([, s]) => s === 'selection',
-        )?.[0] ?? 'Front';
-        const esc = (s: string) => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
-        const query = `deck:${esc(mapping.deckName)} ${wordField}:${esc(request.token)}`;
-        const found = await ankiConnect.findNotes(query, mapping.ankiUrl, mapping.apiKey);
-        if (found.length > 0) {
-          // Record it in the ledger so the next retry skips the network too.
-          try {
-            await getDB().saved_notes.put({
-              token: request.token,
-              language: request.language ?? 'en',
-              sentence: request.sentence,
-              deckName: mapping.deckName,
-              ankiNoteId: found[0],
-              createdAt: Date.now(),
-            });
-          } catch {
-            // best-effort
-          }
-          return { ok: true, noteId: found[0], warnings };
-        }
-      } catch {
-        // Anki unreachable for the check — proceed with the add; the worst
-        // case is the pre-existing duplicate the check was meant to avoid.
-      }
-    }
     const noteId = await ankiConnect.addNote(
       {
         deckName: mapping.deckName,
@@ -892,12 +919,12 @@ export async function createCardFromRequest(
       // against the CURRENT buffer only when the failure happened at
       // addNote time (media already uploaded, buffer still warm). If that
       // fails, resolvedAudio stays null and the retry warns visibly.
-      let resolvedAudio: { dataUrl: string; mime: string } | null = null;
-      try {
-        resolvedAudio = await resolveAudio(request, capture);
-      } catch {
-        resolvedAudio = null;
-      }
+      // Carry the clip the first attempt actually resolved. No re-slice:
+      // resolveAudio would read the CURRENT buffer (wrong phrase by now).
+      // Skip when the caller supplied the clip on the request itself —
+      // request.audio already rides along, storing it twice wastes space.
+      const resolvedAudio =
+        !request.audio && firstAttemptClip ? firstAttemptClip : null;
       try {
         await getDB().pending_notes.add({
           request,

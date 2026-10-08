@@ -169,12 +169,16 @@ declare global {
 
   function postCues(url: string, body: string) {
     try {
+      // Shared nonce published by the ISOLATED-world bus on the
+      // documentElement before it attaches its listener — required so a
+      // page script can't forge cue/MPD messages (see intercepted-bus.ts).
+      const nonce = document.documentElement.getAttribute('data-kivara-nonce') ?? '';
       // DASH manifest — has its own dispatch path so the bus can pull the
       // user's target-language subtitle track in parallel with playback.
       // (HBO Max / Disney+ ship this, YouTube does not.)
       if (looksLikeDashManifest(body, url)) {
         window.postMessage(
-          { source: MPD_EVENT, url, body },
+          { source: MPD_EVENT, url, body, nonce },
           '*',
         );
         return;
@@ -188,6 +192,7 @@ declare global {
           url,
           language,
           cues,
+          nonce,
         },
         '*',
       );

@@ -599,12 +599,21 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   const manifestCombosRef = useRef<Set<string>>(new Set(['Ctrl+S', 'Command+S', 'Alt+C', 'Alt+R', 'Alt+K']));
   useEffect(() => {
     let cancelled = false;
+    let lastFetch = 0;
     const refresh = () => {
+      // focus + visibilitychange fire together — coalesce.
+      const now = Date.now();
+      if (now - lastFetch < 1000) return;
+      lastFetch = now;
       try {
-        const api = chrome?.commands as unknown as { getAll?: (cb: (cmds: Array<{ shortcut?: string }>) => void) => void } | undefined;
-        if (typeof api?.getAll !== 'function') return;
-        api.getAll((cmds) => {
-          if (cancelled || !Array.isArray(cmds)) return;
+        // `chrome.commands` does NOT exist in a content-script context —
+        // proxy through the SW (GET_COMMANDS) or the guard silently reverts
+        // to hardcoded defaults and double-fires remapped combos.
+        chrome.runtime.sendMessage({ type: 'GET_COMMANDS' }, (res) => {
+          void chrome.runtime.lastError;
+          if (cancelled) return;
+          const cmds = (res as { ok?: boolean; commands?: Array<{ shortcut?: string }> } | undefined)?.commands;
+          if (!res?.ok || !Array.isArray(cmds)) return;
           const next = new Set<string>();
           for (const c of cmds) {
             if (c.shortcut) next.add(normalizeCombo(c.shortcut));

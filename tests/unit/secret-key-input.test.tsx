@@ -1,18 +1,38 @@
 /**
- * Regression tests for the e2af3d3 review — SecretKeyInput contract.
+ * Regression tests for the 39dc790 review — SecretKeyInput contract.
  *
- * The masked-value approach (`value={maskSecret(stored)}`) corrupted keys:
- * the store holds plaintext in memory, so the input rendered `sk••••••`
- * and any keystroke (even Backspace on an untouched field) sent the MASKED
- * text to onChange, which encrypted and saved the mask itself.
- *
- * SecretKeyInput's contract: the draft starts EMPTY, the stored value is
- * never rendered, and onChange fires only with fresh user-typed text.
+ * Two bugs pinned here:
+ *  1. Masked-value corruption: `value={maskSecret(stored)}` rendered the
+ *     mask and any keystroke saved it (`sk••••••`). The stored secret must
+ *     never be rendered.
+ *  2. Write-through reset: the first fix reset `draft` in
+ *     `useEffect([stored])`, so every keystroke (which wrote through to
+ *     `stored`) wiped the draft — typing saved only the LAST character.
+ *     The harness below re-injects emitted values as `stored`, exactly
+ *     like the real store does.
  */
 import { describe, it, expect } from 'vitest';
-import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
+import React, { useState } from 'react';
+import { render, fireEvent, cleanup } from '@testing-library/react';
 import { SecretKeyInput } from '../../src/app/components/SecretKeyInput';
+
+/** Mirrors the real store: emit → stored updates → component re-renders. */
+function Harness({ onStore }: { onStore?: (v: string) => void }) {
+  const [stored, setStored] = useState('');
+  return (
+    <SecretKeyInput
+      stored={stored}
+      onChange={(v) => {
+        setStored(v);
+        onStore?.(v);
+      }}
+    />
+  );
+}
+
+function inputOf(container: HTMLElement): HTMLInputElement {
+  return container.querySelector('input') as HTMLInputElement;
+}
 
 describe('SecretKeyInput', () => {
   it('never renders the stored secret, masked or otherwise', () => {
@@ -22,15 +42,43 @@ describe('SecretKeyInput', () => {
         onChange: () => {},
       }),
     );
-    const input = container.querySelector('input') as HTMLInputElement;
+    const input = inputOf(container);
     expect(input.value).toBe('');
     expect(input.placeholder).toContain('guardada');
-    // The stored key must not appear anywhere in the DOM.
     expect(container.innerHTML).not.toContain('sk-abc123-secret');
     expect(container.innerHTML).not.toContain('sk••');
+    cleanup();
   });
 
-  it('calls onChange only with fresh user text', () => {
+  it('typing character-by-character saves the FULL key (write-through reset)', async () => {
+    const seen: string[] = [];
+    const { container } = render(React.createElement(Harness, { onStore: (v) => seen.push(v) }));
+    const input = inputOf(container);
+    for (const ch of 'sk-abc') {
+      fireEvent.change(input, { target: { value: input.value + ch } });
+      await Promise.resolve();
+    }
+    fireEvent.blur(input);
+    await Promise.resolve();
+    // Before the fix this was ['s','k','-','a','b','c'] with store === 'c'.
+    expect(seen[seen.length - 1]).toBe('sk-abc');
+    cleanup();
+  });
+
+  it('commits on blur, not per keystroke', async () => {
+    const seen: string[] = [];
+    const { container } = render(React.createElement(Harness, { onStore: (v) => seen.push(v) }));
+    const input = inputOf(container);
+    fireEvent.change(input, { target: { value: 'sk-one' } });
+    await Promise.resolve();
+    expect(seen).toEqual([]); // no per-keystroke writes
+    fireEvent.blur(input);
+    await Promise.resolve();
+    expect(seen).toEqual(['sk-one']);
+    cleanup();
+  });
+
+  it('leaves the store untouched while the field is never focused', async () => {
     const seen: string[] = [];
     const { container } = render(
       React.createElement(SecretKeyInput, {
@@ -38,18 +86,33 @@ describe('SecretKeyInput', () => {
         onChange: (v: string) => seen.push(v),
       }),
     );
-    const input = container.querySelector('input') as HTMLInputElement;
-    fireEvent.change(input, { target: { value: 'sk-brand-new-key' } });
-    expect(seen).toEqual(['sk-brand-new-key']);
-    // Untouched field = zero writes (the stored key survives).
-    const seen2: string[] = [];
-    render(
+    expect(seen).toEqual([]);
+    cleanup();
+  });
+
+  it('clears the key via the Quitar action (empty draft alone never deletes)', async () => {
+    const seen: string[] = [];
+    const { container, rerender } = render(
       React.createElement(SecretKeyInput, {
         stored: 'sk-abc123-secret',
-        onChange: (v: string) => seen2.push(v),
+        onChange: (v: string) => seen.push(v),
       }),
     );
-    expect(seen2).toEqual([]);
+    const clearBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Quitar'),
+    );
+    expect(clearBtn).toBeDefined();
+    fireEvent.click(clearBtn!);
+    expect(seen).toEqual(['']);
+    // Re-render with the cleared value: no hint, no stored text.
+    rerender(
+      React.createElement(SecretKeyInput, {
+        stored: '',
+        onChange: (v: string) => seen.push(v),
+      }),
+    );
+    expect(container.textContent).not.toContain('guardada');
+    cleanup();
   });
 
   it('shows the re-enter hint for ciphertext unreadable on this device', () => {
@@ -61,5 +124,6 @@ describe('SecretKeyInput', () => {
     );
     expect(container.textContent).toContain('Vuelve a introducirla');
     expect(container.innerHTML).not.toContain('enc:v1:');
+    cleanup();
   });
 });

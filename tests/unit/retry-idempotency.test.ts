@@ -8,24 +8,29 @@
  *    sentence-audio field from the stored clip, never from the live buffer.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { escapeAnkiSearchTerm, buildExactNoteQuery } from '../../src/shared/anki-search';
 
-describe('escapeAnkiSearchTerm', () => {
-  // Pure string transform — duplicated here (3 lines) instead of importing
-  // service-worker.ts, which pulls webext-bridge/chrome at module scope
-  // and cannot load under vitest. The SW imports the same helper from
-  // `shared/anki-search.ts` semantics; this pins the contract.
-  function escapeAnkiSearchTerm(term: string): string {
-    let e = String(term ?? '');
-    e = e.split('\\').join('\\\\');
-    e = e.split('"').join('\\"');
-    e = e.split('*').join('\\*');
-    e = e.split('_').join('\\_');
-    return e;
-  }
+describe('shared anki-search helpers', () => {
   it('escapes quotes, backslashes and wildcards', () => {
     expect(escapeAnkiSearchTerm('My "Best" Deck')).toBe('My \\"Best\\" Deck');
     expect(escapeAnkiSearchTerm('a*b_c')).toBe('a\\*b\\_c');
     expect(escapeAnkiSearchTerm('plain')).toBe('plain');
+  });
+
+  it('builds an exact, fully-quoted query (deck + note type + field:value)', () => {
+    const q = buildExactNoteQuery({
+      deckName: 'My "Best" Deck',
+      modelName: 'Basic',
+      fieldName: 'Word',
+      value: 'hola',
+    });
+    expect(q).toBe('deck:"My \\"Best\\" Deck" note:"Basic" "Word:hola"');
+  });
+
+  it('returns null when deck or value is missing (never an over-broad query)', () => {
+    expect(buildExactNoteQuery({ deckName: '', value: 'x' })).toBeNull();
+    expect(buildExactNoteQuery({ deckName: 'D', value: '' })).toBeNull();
+    expect(buildExactNoteQuery({})).toBeNull();
   });
 });
 
@@ -72,15 +77,20 @@ describe('retry idempotency', () => {
     // No network in this test: translateToken must resolve from the
     // bundled dictionary path. Stub the whole translate module to skip
     // the MT chain (its absence is unrelated to retry idempotency).
+    // The counter proves the dedup check runs BEFORE any provider call.
+    const translateCalls = { n: 0 };
     vi.doMock('../../src/background/translate', async (importOriginal) => {
       const actual = (await importOriginal()) as Record<string, unknown>;
       return {
         ...(actual as object),
-        translateToken: async (token: string) => ({
-          token,
-          type: 'word',
-          translation: 'hola',
-        }),
+        translateToken: async (token: string) => {
+          translateCalls.n += 1;
+          return {
+            token,
+            type: 'word',
+            translation: 'hola',
+          };
+        },
         translateText: async () => ({ ok: false, error: 'no network in test' }),
       };
     });
@@ -108,12 +118,22 @@ describe('retry idempotency', () => {
     const mapping = {
       deckName: 'My "Best" Deck',
       modelName: 'Basic',
-      fieldSources: { Front: 'selection' },
+      // frame + sentence-audio mapped ON PURPOSE: on the first attempt
+      // these WOULD trigger storeMediaFile. The retry must find the note
+      // BEFORE reaching them, so the zero-call assertion is meaningful.
+      fieldSources: {
+        Front: 'selection',
+        Picture: 'frame',
+        'Sentence audio': 'sentence-audio',
+      },
     };
     const request = {
       token: 'hola',
       sentence: 'Hola mundo.',
       language: 'es',
+      frame: 'data:image/jpeg;base64,AAAA',
+      cueStart: 1000,
+      cueEnd: 2000,
     };
     const res = await createCardFromRequest(request as never, mapping as never, undefined as never, {
       fromRetry: true,
@@ -123,7 +143,16 @@ describe('retry idempotency', () => {
     expect(res.ok).toBe(true);
     expect(res.noteId).toBe(98765);
     expect(addNote).not.toHaveBeenCalled();
-    // The deck query must be escaped.
-    expect(findNotes.mock.calls[0][0]).toContain('\\"Best\\"');
+    // ORDER: the duplicate check must run BEFORE any media upload — a retry
+    // that finds the note can't leave orphaned files in Anki.
+    expect(storeMediaFile).not.toHaveBeenCalled();
+    // The query is the shared, fully-quoted exact form: deck escaped,
+    // note type pinned, field:value quoted as a whole.
+    const q = findNotes.mock.calls[0][0] as string;
+    expect(q).toContain('\\"Best\\"');
+    expect(q).toContain('note:"Basic"');
+    expect(q).toContain('"Front:hola"');
+    // No provider hit either: the check runs before translate/enrichment.
+    expect(translateCalls.n).toBe(0);
   });
 });

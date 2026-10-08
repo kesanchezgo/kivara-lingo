@@ -185,6 +185,26 @@ function unmount() {
   mount = null;
 }
 
+/**
+ * Mount serialization (race fix).
+ *
+ * `init()` awaits `waitForVideo()` for up to 15 s before its first mount,
+ * while `handleNavigation()` can fire from popstate / yt-navigate / the
+ * pushState patch during that window. Two concurrent `mountFor()` calls
+ * interleave unmount → createRoot → assign `mount`, orphaning React roots
+ * (a later unmount nulls a `mount` the earlier call is about to overwrite,
+ * leaving a live root nobody unmounts, or vice versa).
+ *
+ * Every mount/unmount now runs strictly one-at-a-time through this chain:
+ * a second caller WAITS for the first to finish instead of racing it.
+ * Failures don't poison the chain (both handlers are passed as fallbacks).
+ */
+let mountQueue: Promise<void> = Promise.resolve();
+function enqueueMount(task: () => Promise<void>): Promise<void> {
+  mountQueue = mountQueue.then(task, task);
+  return mountQueue;
+}
+
 async function mountFor(video: HTMLVideoElement, container: HTMLElement, adapter: SubtitleSource | null) {
   unmount();
 
@@ -227,7 +247,9 @@ async function init() {
   }
   const { video, container } = result;
   const adapter = await detectPlatform();
-  await mountFor(video, container, adapter);
+  // Enqueued: a navigation that fires while we waited for the video must
+  // not mount in parallel (see enqueueMount).
+  await enqueueMount(() => mountFor(video, container, adapter));
 }
 
 function observeNavigation() {
@@ -256,7 +278,7 @@ function observeNavigation() {
 async function handleNavigation() {
   const { video, container } = findVideoContainer();
   if (!video || !container) {
-    unmount();
+    await enqueueMount(async () => unmount());
     return;
   }
   if (video === lastVideoElement && container === lastVideoContainer && mount) return;
@@ -266,7 +288,7 @@ async function handleNavigation() {
   // (timestamps may overlap by coincidence).
   clearBus();
   const adapter = await detectPlatform();
-  await mountFor(video, container, adapter);
+  await enqueueMount(() => mountFor(video, container, adapter));
 }
 
 observeNavigation();

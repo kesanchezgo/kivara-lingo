@@ -79,7 +79,15 @@ export function parseCombo(combo: string): string[] {
  * `Meta`, `MacCtrl` → `Ctrl`, single letters uppercased, modifiers in
  * MOD_ORDER. Unknown tokens pass through so we never crash the guard. */
 export function normalizeCombo(combo: string): string {
-  const parts = parseCombo(combo);
+  // chrome.commands on macOS returns glued symbol runs ("⌘⇧Y", "⌃⌥A")
+  // with no '+' — map each Mac modifier symbol to its canonical name and
+  // split so the rest of the pipeline sees a normal token list.
+  const withNamedMods = combo
+    .replace(/⌘|cmd/gi, ' Meta+')
+    .replace(/⌥|option/gi, ' Alt+')
+    .replace(/⇧|shift/gi, ' Shift+')
+    .replace(/⌃|control/gi, ' Ctrl+');
+  const parts = parseCombo(withNamedMods);
   if (!parts.length) return combo;
   const key = parts[parts.length - 1];
   const mods = parts.slice(0, -1).map((m) => {

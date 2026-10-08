@@ -330,7 +330,10 @@ async function transformSecrets(
       if (isEncrypted(value)) continue;
       const cipher = await encryptSecret(value);
       (node as Record<string, unknown>)[field] = cipher;
-      mutated = cipher !== value;
+      // OR, not assign: a prior field that DID mutate must survive this
+      // iteration's no-op, or one plaintext-free pass would discard every
+      // other field's encryption and persist the raw blob.
+      mutated = mutated || cipher !== value;
     } else {
       if (!isEncrypted(value)) continue; // legacy plaintext, pass through
       const plain = await decryptSecret(value);

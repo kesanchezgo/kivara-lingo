@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { unreadableSecret } from '../../shared/secret-store';
 
 interface SecretKeyInputProps {
@@ -10,25 +10,30 @@ interface SecretKeyInputProps {
   autoCompleteOff?: boolean;
   showToggle?: boolean;
   hintWhenUnreadable?: string;
+  /** Show a "Quitar clave" action when a value exists (default true). */
+  showClear?: boolean;
 }
 
 /**
  * Password input that NEVER displays the stored secret — not even masked.
  *
- * The previous approach (`value={maskSecret(stored)}`) corrupted keys: the
- * store holds plaintext in memory, so the input rendered `sk••••••` and any
- * keystroke sent that masked text to onChange, which encrypted and saved
- * the mask itself. One Backspace turned `sk-abc123` into `sk•••••••`.
+ * History (two bugs fixed):
+ *  1. `value={maskSecret(stored)}` rendered `sk••••••` (plaintext in
+ *     memory) and any keystroke saved the MASKED text. One Backspace
+ *     turned `sk-abc123` into `sk•••••••`.
+ *  2. First fix reset `draft` in `useEffect([stored])`. Since each
+ *     keystroke wrote through to `stored`, every keypress reset the draft
+ *     to '' — typing saved only the LAST character (paste worked).
  *
  * Contract:
- *  - Local draft starts EMPTY; placeholder shows "•••••••• (guardada)" when
- *    a value exists, so the user knows a key is set without seeing it.
- *  - onChange fires ONLY with fresh user-typed text (dirty). Untouched =
- *    no write, the stored key survives re-renders and saves.
- *  - Clearing the draft explicitly (select-all + delete + blur with empty
- *    draft after having typed) clears the key; simply focusing does nothing.
- *  - Still-encrypted values (unreadable on this device) show the re-enter
- *    hint instead of the raw `enc:v1:` blob.
+ *  - Draft is local state, never seeded from `stored`. The stored value
+ *    is never rendered (placeholder shows "•••••••• (guardada)").
+ *  - The reset effect ignores write-through: it tracks `lastEmitted` and
+ *    only resets when `stored` changed OUTSIDE this component.
+ *  - Commit on blur or Enter (not per keystroke) so the store is not
+ *    hammered and the identity is stable while typing.
+ *  - "Quitar clave" explicitly clears (draft-empty alone never deletes).
+ *  - Still-encrypted values show the re-enter hint, not `enc:v1:`.
  */
 export function SecretKeyInput({
   stored,
@@ -38,19 +43,40 @@ export function SecretKeyInput({
   autoCompleteOff = true,
   showToggle = false,
   hintWhenUnreadable,
+  showClear = true,
 }: SecretKeyInputProps) {
   const hasStored = !!stored;
   const unreadable = unreadableSecret(stored);
   const [draft, setDraft] = useState('');
   const [dirty, setDirty] = useState(false);
   const [show, setShow] = useState(false);
+  /** Last value this component pushed to the store — write-through echo. */
+  const lastEmittedRef = useRef<string | null>(null);
 
-  // A new stored identity (different ciphertext / cleared elsewhere) resets
-  // the draft so a stale in-progress edit can't leak across keys.
+  // Reset only when `stored` changed from OUTSIDE (another context, a
+  // clear, an unreadable-cipher switch). An echo of our own emission
+  // (lastEmitted) must NOT reset the draft mid-typing.
   useEffect(() => {
+    if (lastEmittedRef.current !== null && stored === lastEmittedRef.current) {
+      // Our own write reflected back — keep draft/dirty as-is.
+      lastEmittedRef.current = null;
+      return;
+    }
+    if (lastEmittedRef.current !== null && stored !== lastEmittedRef.current) {
+      // External change raced our write — trust the store, start clean.
+      lastEmittedRef.current = null;
+    }
     setDraft('');
     setDirty(false);
   }, [stored]);
+
+  const commit = () => {
+    if (dirty) {
+      lastEmittedRef.current = draft;
+      onChange(draft);
+      setDirty(false);
+    }
+  };
 
   const effectivePlaceholder = hasStored && !dirty
     ? '•••••••• (guardada — escribe para reemplazar)'
@@ -65,7 +91,13 @@ export function SecretKeyInput({
           onChange={(e) => {
             setDraft(e.target.value);
             setDirty(true);
-            onChange(e.target.value);
+          }}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commit();
+            }
           }}
           placeholder={effectivePlaceholder}
           className={className ?? 'sl-input sl-mono w-full'}
@@ -80,6 +112,21 @@ export function SecretKeyInput({
             title={show ? 'Ocultar' : 'Mostrar lo escrito'}
           >
             {show ? 'Ocultar' : 'Ver'}
+          </button>
+        )}
+        {showClear && hasStored && (
+          <button
+            type="button"
+            onClick={() => {
+              lastEmittedRef.current = '';
+              setDraft('');
+              setDirty(false);
+              onChange('');
+            }}
+            className="text-[10px] px-1.5 py-1 rounded border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950 shrink-0"
+            title="Quitar la clave guardada"
+          >
+            Quitar
           </button>
         )}
       </div>
