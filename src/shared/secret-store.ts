@@ -28,6 +28,9 @@ const STORAGE_KEY = 'kivara-secret-store-salt-v1';
 const PREFIX = 'enc:v1:'; // versioned so we can rotate the schema later
 
 let cachedKey: CryptoKey | null = null;
+/** Salt the cachedKey was derived from — when the stored salt changes
+ * under us (cross-context first-run race) the cached key is dropped. */
+let cachedSalt: string | null = null;
 // Single-flight lock so concurrent first-run callers (SW + content script)
 // don't generate divergent salts. Module-level per context; combined with
 // re-read-after-write below it converges across contexts too.
@@ -73,7 +76,22 @@ async function getOrCreateSalt(): Promise<string> {
 }
 
 async function deriveKey(): Promise<CryptoKey> {
-  if (cachedKey) return cachedKey;
+  if (cachedKey) {
+    // The salt may have been replaced under us (another context won the
+    // first-run race and overwrote it). Re-read cheaply and drop the
+    // cached key when it changed — otherwise we'd keep encrypting with a
+    // key nobody else can derive.
+    try {
+      const found = await chrome.storage.local.get(STORAGE_KEY);
+      const stored = found[STORAGE_KEY];
+      if (typeof stored === 'string' && stored.length >= 32 && stored !== cachedSalt) {
+        cachedKey = null;
+      }
+    } catch {
+      // storage unreadable — keep the cached key, best effort
+    }
+    if (cachedKey) return cachedKey;
+  }
 
   const salt = await getOrCreateSalt();
   // Anchor the master password on chrome.runtime.id so a copy of the
@@ -100,6 +118,7 @@ async function deriveKey(): Promise<CryptoKey> {
     false,
     ['encrypt', 'decrypt'],
   );
+  cachedSalt = salt;
   return cachedKey;
 }
 

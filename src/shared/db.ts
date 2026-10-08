@@ -19,6 +19,9 @@ export interface SavedNoteRow {
   language: string;
   /** Full sentence (cue text) when the card was made — helps dedup near-misses */
   sentence: string;
+  /** Deck the note landed in — the idempotency check is per-deck: the
+   * same card saved to a different deck is a different card. */
+  deckName: string;
   /** AnkiConnect-assigned note id */
   ankiNoteId: number;
   createdAt: number;
@@ -31,6 +34,13 @@ export interface PendingNoteRow {
   lastError: string | null;
   createdAt: number;
   nextAttemptAt: number;
+  /** Resolved sentence-audio captured on the FIRST attempt (data URL +
+   * mime). The ring buffer no longer holds the cue on retry, so the row
+   * carries the original clip forward instead of re-slicing live audio.
+   * Absent when the first attempt never got that far (TTS fallback text
+   * is deterministic and regenerates identically, so it needs no slot).
+   * Cap: one cue clip, small enough for a Dexie row. */
+  resolvedAudio?: { dataUrl: string; mime: string } | null;
 }
 
 export interface TranslationRow {
@@ -223,6 +233,29 @@ class KivaraDB extends Dexie {
         // future cleanup pass can prune oldest rows.
         vip_cache: '&key, storedAt',
       });
+    // v6: idempotency is per-deck (same card in another deck is another
+    // card) and pending rows carry the first-attempt audio forward.
+    // Dexie `upgrade` backfills deckName for pre-v6 ledger rows so the
+    // compound index never sees undefined.
+    this.version(6)
+      .stores({
+        saved_notes: '++id, &[token+language+sentence+deckName], ankiNoteId, createdAt',
+        pending_notes: '++id, nextAttemptAt, createdAt',
+        translation_cache: '&key, [provider+sourceLang+targetLang], expiresAt',
+        media_cache: '&hash, kind, createdAt',
+        ai_cache: '&key, [provider+sourceLang+nativeLang], expiresAt',
+        dict_packs: '&id, enabled, sourceLang, targetLang, createdAt',
+        dict_terms: '++id, [packId+expression], expression, packId',
+        pack_stats: '&packId, lastUsedAt, createdAt',
+        vip_cache: '&key, storedAt',
+      })
+      .upgrade((tx) =>
+        (tx.table('saved_notes') as Dexie.Table<SavedNoteRow, number>)
+          .toCollection()
+          .modify((row) => {
+            if (typeof row.deckName !== 'string') row.deckName = '';
+          }),
+      );
   }
 }
 

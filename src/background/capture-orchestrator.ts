@@ -210,6 +210,9 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
 async function resolveAudio(
   request: CreateCardRequest,
   capture: CaptureSettings,
+  /** Pre-resolved clip carried by a pending retry row — the ring buffer
+   * no longer holds the cue, so reuse the first attempt's audio verbatim. */
+  carriedAudio?: { dataUrl: string; mime: string } | null,
 ): Promise<{ dataUrl: string; mime: string } | null> {
   // Prefer the explicit audio attached by the caller (e.g. content script
   // already extracted via VAD).
@@ -217,6 +220,8 @@ async function resolveAudio(
     const mime = /data:([^;]+)/.exec(request.audio)?.[1] ?? 'audio/webm';
     return { dataUrl: request.audio, mime };
   }
+  // Retry path: the pending row stored the first attempt's resolved clip.
+  if (carriedAudio) return carriedAudio;
 
   // Otherwise, ask the offscreen recorder for a slice covering the cue range.
   const status = await getAudioCaptureStatus();
@@ -284,7 +289,12 @@ export async function createCardFromRequest(
   request: CreateCardRequest,
   mapping: AnkiMapping,
   capture: CaptureSettings = DEFAULT_CAPTURE,
-  options: { fromRetry?: boolean; retryRowId?: number } = {},
+  options: {
+    fromRetry?: boolean;
+    retryRowId?: number;
+    /** Clip resolved on the first attempt, carried by the pending row. */
+    carriedAudio?: { dataUrl: string; mime: string } | null;
+  } = {},
 ): Promise<CreateCardResponse> {
   // Retry path skips live-audio re-extraction: resolveAudio slices the
   // CURRENT ring-buffer window, but the cue played minutes ago — re-slicing
@@ -632,7 +642,10 @@ export async function createCardFromRequest(
   // 1) Sentence audio: prefer the live tab-capture slice — EXCEPT on retry
   // (fromRetry), where the ring buffer no longer holds the cue's audio and
   // re-slicing would capture whatever plays NOW instead of the phrase.
-  // Retries go straight to the TTS fallback below, which is deterministic.
+  // Retries reuse the clip the first attempt resolved and stored on the
+  // pending row (options.carriedAudio); when the first attempt never
+  // resolved one, fall through to the deterministic TTS fallback below —
+  // and warn visibly so the user knows the card carries TTS, not the cue.
   if (sentenceAudioField && !options.fromRetry) {
     const resolved = await resolveAudio(request, capture);
     if (resolved) {
@@ -659,6 +672,38 @@ export async function createCardFromRequest(
     // If we couldn't grab tab audio, fall through and let TTS synthesise the
     // sentence — Anki will still play it on review.
     if (!sentenceAudioAttached) {
+      try {
+        const tts = await generateTtsAudio(request.sentence, request.language ?? 'en');
+        if (tts.ok) {
+          const filename = safeFilename(`${request.token}_sentence`, extForMime(tts.mime));
+          const data = dataUrlToBase64(tts.dataUrl);
+          await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
+          fields[sentenceAudioField] = withSound(fields[sentenceAudioField], filename);
+          sentenceAudioAttached = true;
+        }
+      } catch {
+        /* swallow — TTS is best-effort */
+      }
+    }
+  } else if (sentenceAudioField && options.fromRetry) {
+    const carried = options.carriedAudio ?? null;
+    if (carried) {
+      try {
+        const filename = safeFilename(request.token, extForMime(carried.mime));
+        await ankiConnect.storeMediaFile(
+          filename,
+          dataUrlToBase64(carried.dataUrl),
+          mapping.ankiUrl,
+          mapping.apiKey,
+        );
+        fields[sentenceAudioField] = withSound(fields[sentenceAudioField], filename);
+        sentenceAudioAttached = true;
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : 'audio';
+        warnings.push(`No se pudo guardar el audio guardado: ${reason}`);
+      }
+    } else {
+      warnings.push('Reintento sin audio original: se usará TTS de la frase.');
       try {
         const tts = await generateTtsAudio(request.sentence, request.language ?? 'en');
         if (tts.ok) {
@@ -739,21 +784,58 @@ export async function createCardFromRequest(
   }
 
   try {
-    // Idempotency pre-check: a TIMEOUT after the server already created
-    // the note used to duplicate it on retry (addNote has no client-side
-    // idempotency key). The saved_notes ledger records (token+language+
-    // sentence) on every success — if this exact card already landed,
-    // skip the add and report success with the existing note id.
-    try {
-      const existing = await getDB().saved_notes
-        .where('[token+language+sentence]')
-        .equals([request.token, request.language ?? 'en', request.sentence])
-        .first();
-      if (existing) {
-        return { ok: true, noteId: existing.ankiNoteId, warnings };
+    // Idempotency pre-check (retry path only): a TIMEOUT after the server
+    // already created the note used to duplicate it on retry (addNote has
+    // no client-side idempotency key). The saved_notes ledger records
+    // (token+language+sentence+deckName) on every success — if this exact
+    // card already landed in THIS deck, skip the add and report success
+    // with the existing note id. First attempts skip the check: the ledger
+    // can't contain the card yet, and if the user deleted it in Anki we
+    // must create it again (a stale ledger row must never veto a fresh add).
+    if (options.fromRetry) {
+      try {
+        const existing = await getDB().saved_notes
+          .where('[token+language+sentence+deckName]')
+          .equals([request.token, request.language ?? 'en', request.sentence, mapping.deckName])
+          .first();
+        if (existing) {
+          return { ok: true, noteId: existing.ankiNoteId, warnings };
+        }
+      } catch {
+        // ledger unreadable — proceed with the add
       }
-    } catch {
-      // ledger unreadable — proceed with the add
+      // Live Anki check: the ledger only records SUCCESSES, but a TIMEOUT
+      // means "maybe created". Ask Anki for this exact card in this deck
+      // before uploading media — otherwise the retry duplicates it and the
+      // re-uploaded files become orphans. Query the mapped word field
+      // (falls back to Front) with Anki's quoted-phrase syntax.
+      try {
+        const wordField = Object.entries(mapping.fieldSources ?? {}).find(
+          ([, s]) => s === 'selection',
+        )?.[0] ?? 'Front';
+        const esc = (s: string) => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+        const query = `deck:${esc(mapping.deckName)} ${wordField}:${esc(request.token)}`;
+        const found = await ankiConnect.findNotes(query, mapping.ankiUrl, mapping.apiKey);
+        if (found.length > 0) {
+          // Record it in the ledger so the next retry skips the network too.
+          try {
+            await getDB().saved_notes.put({
+              token: request.token,
+              language: request.language ?? 'en',
+              sentence: request.sentence,
+              deckName: mapping.deckName,
+              ankiNoteId: found[0],
+              createdAt: Date.now(),
+            });
+          } catch {
+            // best-effort
+          }
+          return { ok: true, noteId: found[0], warnings };
+        }
+      } catch {
+        // Anki unreachable for the check — proceed with the add; the worst
+        // case is the pre-existing duplicate the check was meant to avoid.
+      }
     }
     const noteId = await ankiConnect.addNote(
       {
@@ -769,18 +851,21 @@ export async function createCardFromRequest(
       mapping.ankiUrl,
       mapping.apiKey,
     );
-    // Record success in dedup ledger.
+    // Record success in dedup ledger (per-deck — see pre-check above).
     try {
       await getDB().saved_notes.put({
         token: request.token,
         language: request.language ?? 'en',
         sentence: request.sentence,
+        deckName: mapping.deckName,
         ankiNoteId: noteId,
         createdAt: Date.now(),
       });
     } catch {
       // best-effort — ignore IndexedDB errors
     }
+    // If this success resolves a pending retry row, drop the row's stored
+    // audio with it (the delete below handles the row itself).
     return { ok: true, noteId, warnings };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'addNote failed';
@@ -797,6 +882,22 @@ export async function createCardFromRequest(
       err instanceof AnkiConnectError &&
       (err.code === 'NETWORK' || err.code === 'TIMEOUT');
     if (!options.fromRetry && retryable) {
+      // Stash the resolved live-audio clip on the pending row when we have
+      // one: the retry runs minutes later when the ring buffer no longer
+      // holds the cue. Without this the retry would either re-slice live
+      // audio (wrong phrase) or fall back to TTS silently. resolveAudio was
+      // already called above for the sentence-audio field — re-resolve it
+      // cheaply here is wrong (buffer may have moved); instead we capture
+      // the clip the FIRST attempt resolved by re-running resolveAudio
+      // against the CURRENT buffer only when the failure happened at
+      // addNote time (media already uploaded, buffer still warm). If that
+      // fails, resolvedAudio stays null and the retry warns visibly.
+      let resolvedAudio: { dataUrl: string; mime: string } | null = null;
+      try {
+        resolvedAudio = await resolveAudio(request, capture);
+      } catch {
+        resolvedAudio = null;
+      }
       try {
         await getDB().pending_notes.add({
           request,
@@ -804,6 +905,7 @@ export async function createCardFromRequest(
           lastError: message,
           createdAt: Date.now(),
           nextAttemptAt: Date.now() + 60_000,
+          resolvedAudio,
         });
       } catch {
         // ignore
@@ -856,12 +958,13 @@ export async function retryPendingNotes(
     // Skip the live-audio re-extraction on retry: resolveAudio slices the
     // CURRENT ring-buffer window, but the cue's audio played minutes ago —
     // re-slicing now captures whatever is playing instead of the phrase.
-    // The pending row stores the request as-is; TTS was already attached
-    // as fallback on the first attempt when capture was impossible, so a
-    // retry reuses the stored frame + fields and only re-attempts addNote.
+    // The pending row carries the first attempt's resolved clip forward
+    // (resolvedAudio); without it we fall back to deterministic TTS with
+    // a visible warning (see the fromRetry branch in the audio section).
     const result = await createCardFromRequest(row.request, mapping, capture, {
       fromRetry: true,
       retryRowId: row.id,
+      carriedAudio: row.resolvedAudio ?? null,
     });
     if (result.ok) {
       try {

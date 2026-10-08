@@ -102,46 +102,50 @@ async function ankiOriginRules(hosts: string[]): Promise<chrome.declarativeNetRe
   }));
 }
 async function installAnkiOriginRule(): Promise<void> {
-  if (!chrome.declarativeNetRequest?.updateSessionRules) return;
-  try {
-    const rules = await ankiOriginRules(['127.0.0.1:8765', 'localhost:8765']);
-    await chrome.declarativeNetRequest.updateSessionRules({
-      removeRuleIds: Array.from({ length: 10 }, (_, i) => ANKI_DNR_RULE_ID + i),
-      addRules: rules,
-    });
-    ankiDnrHosts = ['127.0.0.1:8765', 'localhost:8765'];
-    console.log('[Kivara Lingo] AnkiConnect Origin rewrite rule installed');
-  } catch (err) {
-    console.warn('[Kivara Lingo] could not install AnkiConnect DNR rule', err);
-  }
+  // Legacy entry point — kept for the onInstalled path. Delegates to the
+  // serialized refresh so the two never compete for the same rule IDs.
+  await refreshAnkiOriginRules();
+  console.log('[Kivara Lingo] AnkiConnect Origin rewrite rule installed');
 }
 /** Rebuild the Origin-rewrite rules for the user's ACTUAL Anki URL
- * (custom port or remote host). No-op when the hosts already match. */
+ * (custom port or remote host). Serialized through a single-flight lock so
+ * concurrent callers (startup + CREATE_CARD + ANKI_PING) can't interleave
+ * removeRuleIds/addRules batches and clobber each other. No-op when the
+ * hosts already match. */
+let dnrRefreshPromise: Promise<void> | null = null;
 export async function refreshAnkiOriginRules(ankiUrl?: string): Promise<void> {
-  if (!chrome.declarativeNetRequest?.updateSessionRules) return;
+  if (dnrRefreshPromise) return dnrRefreshPromise;
+  dnrRefreshPromise = (async () => {
+    if (!chrome.declarativeNetRequest?.updateSessionRules) return;
+    try {
+      const raw = (ankiUrl ?? '').trim() || 'http://127.0.0.1:8765';
+      const withoutScheme = raw.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+      const host = withoutScheme.split('/')[0] || '127.0.0.1:8765';
+      const hosts = host.includes('127.0.0.1')
+        ? [host, host.replace('127.0.0.1', 'localhost')]
+        : host.includes('localhost')
+          ? [host, host.replace('localhost', '127.0.0.1')]
+          : [host];
+      if (ankiDnrHosts && ankiDnrHosts.join('|') === hosts.join('|')) return;
+      const rules = await ankiOriginRules(hosts);
+      await chrome.declarativeNetRequest.updateSessionRules({
+        removeRuleIds: Array.from({ length: 10 }, (_, i) => ANKI_DNR_RULE_ID + i),
+        addRules: rules,
+      });
+      ankiDnrHosts = hosts;
+    } catch (err) {
+      console.warn('[Kivara Lingo] could not refresh AnkiConnect DNR rule', err);
+    }
+  })();
   try {
-    const raw = (ankiUrl ?? '').trim() || 'http://127.0.0.1:8765';
-    const withoutScheme = raw.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-    const host = withoutScheme.split('/')[0] || '127.0.0.1:8765';
-    const hosts = host.includes('127.0.0.1')
-      ? [host, host.replace('127.0.0.1', 'localhost')]
-      : host.includes('localhost')
-        ? [host, host.replace('localhost', '127.0.0.1')]
-        : [host];
-    if (ankiDnrHosts && ankiDnrHosts.join('|') === hosts.join('|')) return;
-    const rules = await ankiOriginRules(hosts);
-    await chrome.declarativeNetRequest.updateSessionRules({
-      removeRuleIds: Array.from({ length: 10 }, (_, i) => ANKI_DNR_RULE_ID + i),
-      addRules: rules,
-    });
-    ankiDnrHosts = hosts;
-  } catch (err) {
-    console.warn('[Kivara Lingo] could not refresh AnkiConnect DNR rule', err);
+    await dnrRefreshPromise;
+  } finally {
+    dnrRefreshPromise = null;
   }
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-  void installAnkiOriginRule();
+  void refreshAnkiOriginRules();
 });
 chrome.runtime.onStartup.addListener(async () => {
   await chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 });
@@ -228,6 +232,9 @@ onMessage('CREATE_CARD', async ({ data }) => {
   void refreshAnkiOriginRules(mapping.ankiUrl);
   const response: CreateCardResponse = await createCardFromRequest(request, mapping, capture);
   if (response.ok) {
+    // A new word just landed — drop the saved-words cache for this deck so
+    // the green highlight picks it up without waiting for the 60 s TTL.
+    invalidateSavedWordsCache(mapping.deckName);
     console.log('[Kivara Lingo] note created:', response.noteId);
   } else {
     console.warn('[Kivara Lingo] note failed:', response.error);
@@ -299,6 +306,9 @@ async function resolveAnkiAuth(
 
 onMessage('ANKI_PING', async ({ data }) => {
   const { url, apiKey } = await resolveAnkiAuth(data);
+  // A successful ping/contact means the URL works — keep the DNR rules in
+  // sync even when the user only pressed "Probar" and never saved a card.
+  if (url) void refreshAnkiOriginRules(url);
   const result = await ankiConnect.ping(url, apiKey);
   const out: AnkiPingResponse = result.ok
     ? { ok: true, version: result.version }
@@ -308,6 +318,7 @@ onMessage('ANKI_PING', async ({ data }) => {
 
 onMessage('ANKI_DECKS', async ({ data }) => {
   const { url, apiKey } = await resolveAnkiAuth(data);
+  if (url) void refreshAnkiOriginRules(url);
   try {
     const [decks, models] = await Promise.all([
       ankiConnect.deckNames(url, apiKey),
@@ -363,14 +374,43 @@ onMessage('ANKI_CREATE_DECK', async ({ data }) => {
  * Fetch words the user already has in their configured deck. Used by the
  * content script to mark tokens as "saved" (green highlight) from the first
  * frame, without requiring the user to hover each word first.
+ *
+ * Cached in the SW (module-level, keyed deck+field, 60 s TTL) because the
+ * content-side useRef cache died on every SPA remount and re-pulled 5000
+ * notes per navigation. Invalidated on every successful CREATE_CARD so a
+ * freshly saved word lights up without waiting for the TTL.
  */
+const savedWordsCache = new Map<string, { words: string[]; at: number }>();
+const SAVED_WORDS_TTL_MS = 60_000;
+export function invalidateSavedWordsCache(deckName?: string): void {
+  if (!deckName) { savedWordsCache.clear(); return; }
+  for (const key of Array.from(savedWordsCache.keys())) {
+    if (key.startsWith(deckName + '|')) savedWordsCache.delete(key);
+  }
+}
+/** Escape an Anki search term: backslash, quote and wildcards * and _.
+ * An unescaped deck like 'My "Best" Deck' used to break the query or
+ * match decks it should not. */
+export function escapeAnkiSearchTerm(term: string): string {
+  let e = String(term ?? "");
+  e = e.split(String.fromCharCode(92)).join(String.fromCharCode(92,92));
+  e = e.split(String.fromCharCode(34)).join(String.fromCharCode(92,34));
+  e = e.split("*").join(String.fromCharCode(92)+"*");
+  e = e.split("_").join(String.fromCharCode(92)+"_");
+  return e;
+}
 onMessage('ANKI_SAVED_WORDS', async ({ data }) => {
   const { url, apiKey } = await resolveAnkiAuth(data);
   const deckName = (data as { deckName?: string } | undefined)?.deckName;
   const fieldName = (data as { fieldName?: string } | undefined)?.fieldName || 'Front';
   if (!deckName) return asJson({ words: [] as string[] });
+  const cacheKey = deckName + "|" + fieldName;
+  const cached = savedWordsCache.get(cacheKey) as { words: string[]; at: number } | undefined;
+  if (cached && Date.now() - cached.at < SAVED_WORDS_TTL_MS) {
+    return asJson({ words: cached.words });
+  }
   try {
-    const noteIds = await ankiConnect.findNotes(`deck:"${deckName}"`, url, apiKey);
+    const noteIds = await ankiConnect.findNotes(`deck:"${escapeAnkiSearchTerm(deckName)}"`, url, apiKey);
     if (!noteIds.length) return asJson({ words: [] as string[] });
     // Limit to last 5000 notes to avoid huge IPC payloads.
     const subset = noteIds.slice(-5000);
@@ -385,6 +425,7 @@ onMessage('ANKI_SAVED_WORDS', async ({ data }) => {
         return text.toLowerCase().trim();
       })
       .filter(Boolean);
+    savedWordsCache.set(cacheKey, { words, at: Date.now() });
     return asJson({ words });
   } catch (err) {
     console.warn('[Kivara Lingo] ANKI_SAVED_WORDS failed', err);
@@ -662,7 +703,11 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 });
 
 // Re-create the alarm on every SW wake-up — alarms persist across SW restarts
-// but `onInstalled` only fires once.
+// but `onInstalled` only fires once. Single onStartup listener (the boot
+// block near the top of this file only installs DNR rules + one-shot
+// refresh; the alarm lives HERE so the ordering is obvious in one place).
+// NOTE: do not add a second chrome.runtime.onStartup listener elsewhere in
+// this file — the DNR refresh races itself across listeners.
 chrome.runtime.onStartup.addListener(async () => {
   await chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 });
   // Refresh the Origin-rewrite rules for the user's saved Anki URL at

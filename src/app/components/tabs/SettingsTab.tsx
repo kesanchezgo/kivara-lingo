@@ -20,7 +20,7 @@ import {
   type WhisperModelKey,
 } from '../../../shared/whisper-presets';
 import { SHORTCUT_DEFS } from '../../../shared/shortcuts';
-import { maskSecret, unreadableSecret } from '../../../shared/secret-store';
+import { SecretKeyInput } from '../SecretKeyInput';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { ShortcutEditor } from '../ShortcutEditor';
 import { InfoHint } from '../InfoHint';
@@ -305,28 +305,18 @@ export function SettingsTab() {
               />
             </Row>
             <Row label="DeepL API key">
-              <input
-                type="password"
-                value={maskSecret(translate.deeplToken)}
-                onChange={(e) => setTranslate({ ...translate, deeplToken: e.target.value })}
+              <SecretKeyInput
+                stored={translate.deeplToken}
+                onChange={(v) => setTranslate({ ...translate, deeplToken: v })}
                 placeholder="xxxxxxxx:fx"
-                className="sl-input sl-mono w-full"
               />
-              {unreadableSecret(translate.deeplToken) && (
-                <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-snug mt-1">Clave no legible en este dispositivo. Vuelve a introducirla.</p>
-              )}
             </Row>
             <Row label="Google Cloud API key">
-              <input
-                type="password"
-                value={maskSecret(translate.googleToken)}
-                onChange={(e) => setTranslate({ ...translate, googleToken: e.target.value })}
+              <SecretKeyInput
+                stored={translate.googleToken}
+                onChange={(v) => setTranslate({ ...translate, googleToken: v })}
                 placeholder="AIza..."
-                className="sl-input sl-mono w-full"
               />
-              {unreadableSecret(translate.googleToken) && (
-                <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-snug mt-1">Clave no legible en este dispositivo. Vuelve a introducirla.</p>
-              )}
             </Row>
             <Row label="LibreTranslate URL">
               <input
@@ -338,16 +328,11 @@ export function SettingsTab() {
               />
             </Row>
             <Row label="LibreTranslate key">
-              <input
-                type="password"
-                value={maskSecret(translate.libreTranslateToken)}
-                onChange={(e) => setTranslate({ ...translate, libreTranslateToken: e.target.value })}
+              <SecretKeyInput
+                stored={translate.libreTranslateToken}
+                onChange={(v) => setTranslate({ ...translate, libreTranslateToken: v })}
                 placeholder="(vacío para instancias públicas)"
-                className="sl-input w-full"
               />
-              {unreadableSecret(translate.libreTranslateToken) && (
-                <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-snug mt-1">Clave no legible en este dispositivo. Vuelve a introducirla.</p>
-              )}
             </Row>
           </NestedAccordion>
 
@@ -431,16 +416,11 @@ export function SettingsTab() {
           {(tts.provider === 'auto' || tts.provider === 'elevenlabs') && (
             <>
               <Row label="ElevenLabs · API key">
-                <input
-                  type="password"
-                  value={maskSecret(tts.elevenLabsApiKey)}
-                  onChange={(e) => setTts({ ...tts, elevenLabsApiKey: e.target.value })}
+                <SecretKeyInput
+                  stored={tts.elevenLabsApiKey}
+                  onChange={(v) => setTts({ ...tts, elevenLabsApiKey: v })}
                   placeholder="xi-..."
-                  className="sl-input w-full"
                 />
-                {unreadableSecret(tts.elevenLabsApiKey) && (
-                  <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-snug mt-1">Clave no legible en este dispositivo. Vuelve a introducirla.</p>
-                )}
               </Row>
               <Row label="ElevenLabs · Voice ID">
                 <input
@@ -631,7 +611,6 @@ function AiByokSection() {
   const setAi = useKivaraStore((s) => s.setAi);
   const translate = useKivaraStore((s) => s.translate);
 
-  const [showKey, setShowKey] = useState(false);
   const [test, setTest] = useState<AiTestStatus>({ state: 'idle' });
   const activePreset = useMemo(() => getAiPreset(ai.provider), [ai.provider]);
 
@@ -820,30 +799,20 @@ function AiByokSection() {
             }
           >
             <div className="flex items-center gap-1.5">
-              <input
-                type={showKey ? 'text' : 'password'}
-                value={showKey ? ai.apiKey : maskSecret(ai.apiKey)}
-                onChange={(e) => setAi({ ...ai, apiKey: e.target.value })}
-                placeholder={
-                  activePreset.provider === 'openai'
-                    ? 'sk-...'
-                    : activePreset.provider === 'anthropic'
-                      ? 'sk-ant-...'
-                      : 'AIza...'
-                }
-                className="sl-input flex-1"
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <button
-                type="button"
-                onClick={() => setShowKey((v) => !v)}
-                className="p-1.5 rounded border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                title={showKey ? 'Ocultar' : 'Mostrar'}
-                aria-label={showKey ? 'Ocultar API key' : 'Mostrar API key'}
-              >
-                {showKey ? <EyeOff size={11} /> : <Eye size={11} />}
-              </button>
+              <div className="flex-1">
+                <SecretKeyInput
+                  stored={ai.apiKey}
+                  onChange={(v) => setAi({ ...ai, apiKey: v })}
+                  placeholder={
+                    activePreset.provider === 'openai'
+                      ? 'sk-...'
+                      : activePreset.provider === 'anthropic'
+                        ? 'sk-ant-...'
+                        : 'AIza...'
+                  }
+                  showToggle
+                />
+              </div>
             </div>
           </Row>
           <Row

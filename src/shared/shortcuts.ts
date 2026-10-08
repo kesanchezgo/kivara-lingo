@@ -72,3 +72,26 @@ export function comboFromEvent(
 export function parseCombo(combo: string): string[] {
   return combo.split('+').map((k) => k.trim()).filter(Boolean);
 }
+
+/** Normalize a combo string to the canonical form `comboFromEvent`
+ * produces, so live `chrome.commands.getAll()` shortcuts ("MacCtrl", raw
+ * "ctrl+s", …) compare equal to our stored map. `Command`/`Cmd` →
+ * `Meta`, `MacCtrl` → `Ctrl`, single letters uppercased, modifiers in
+ * MOD_ORDER. Unknown tokens pass through so we never crash the guard. */
+export function normalizeCombo(combo: string): string {
+  const parts = parseCombo(combo);
+  if (!parts.length) return combo;
+  const key = parts[parts.length - 1];
+  const mods = parts.slice(0, -1).map((m) => {
+    const low = m.toLowerCase();
+    if (low === 'command' || low === 'cmd' || low === 'meta') return 'Meta';
+    if (low === 'macctrl' || low === 'ctrl' || low === 'control') return 'Ctrl';
+    if (low === 'alt' || low === 'option') return 'Alt';
+    if (low === 'shift') return 'Shift';
+    return m;
+  });
+  const normKey = key === ' ' ? 'Space' : key.length === 1 ? key.toUpperCase() : key;
+  const ordered = MOD_ORDER.filter((m) => mods.includes(m));
+  const extra = mods.filter((m) => !(MOD_ORDER as readonly string[]).includes(m));
+  return [...ordered, ...extra, normKey].join('+');
+}

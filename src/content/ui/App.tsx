@@ -7,7 +7,7 @@ import { SubtitleOverlay } from './SubtitleOverlay';
 import { applyCleanupCss } from './cleanup-css';
 import { useKivaraStore } from '../../shared/store';
 import { captureFrame, captureBestFrame } from '../capture/frame';
-import { comboFromEvent } from '../../shared/shortcuts';
+import { comboFromEvent, normalizeCombo } from '../../shared/shortcuts';
 import type {
   CreateCardRequest,
   CreateCardResponse,
@@ -582,20 +582,60 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   // re-bound programmatically, so the combos the user edits in SettingsTab
   // live in `store.shortcuts` and are honoured HERE via a capture-phase
   // keydown listener. Manifest commands (Ctrl+S / Alt+C / Alt+R / Alt+K)
-  // still arrive as RUN_COMMAND messages below; this listener handles the
-  // `recap` action, which has NO manifest suggested_key (Chrome caps
-  // suggested shortcuts at 4 — see manifest.json) and therefore can ONLY
-  // fire from this in-page listener. Non-default custom combos for the
-  // other actions are also honoured here; manifest defaults are skipped
-  // so the same keypress never triggers twice.
+  // still arrive as RUN_COMMAND messages below.
+  //
+  // Double-fire guard: we compare against the LIVE bindings from
+  // chrome.commands.getAll() (cached, refreshed on focus/visibilitychange),
+  // not a hardcoded default list — otherwise a user who remaps a manifest
+  // command in chrome://extensions to the same combo as their custom action
+  // gets both actions at once, and Mac Command+S vs Ctrl+S drift breaks the
+  // skip. The listener effect itself is registered ONCE (empty deps):
+  // activeCue/videoElement flow through refs so rebinding on every cue
+  // change can't stack duplicate listeners.
+  const activeCueRef = useRef(activeCue);
+  activeCueRef.current = activeCue;
+  const videoElementRef = useRef(videoElement);
+  videoElementRef.current = videoElement;
+  const manifestCombosRef = useRef<Set<string>>(new Set(['Ctrl+S', 'Command+S', 'Alt+C', 'Alt+R', 'Alt+K']));
   useEffect(() => {
-    const MANIFEST_DEFAULTS = new Set(['Ctrl+S', 'Command+S', 'Alt+C', 'Alt+R', 'Alt+K']);
+    let cancelled = false;
+    const refresh = () => {
+      try {
+        const api = chrome?.commands as unknown as { getAll?: (cb: (cmds: Array<{ shortcut?: string }>) => void) => void } | undefined;
+        if (typeof api?.getAll !== 'function') return;
+        api.getAll((cmds) => {
+          if (cancelled || !Array.isArray(cmds)) return;
+          const next = new Set<string>();
+          for (const c of cmds) {
+            if (c.shortcut) next.add(normalizeCombo(c.shortcut));
+          }
+          if (next.size) manifestCombosRef.current = next;
+        });
+      } catch {
+        // ignore — fall back to the static defaults above
+      }
+    };
+    refresh();
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, []);
+  useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
       const combo = comboFromEvent(e);
-      if (!combo || MANIFEST_DEFAULTS.has(combo)) return;
+      if (!combo) return;
+      // A combo currently owned by a manifest command fires via
+      // chrome.commands → RUN_COMMAND; handling it here too would double-fire.
+      if (manifestCombosRef.current.has(normalizeCombo(combo))) return;
       const map = useKivaraStore.getState().shortcuts;
+      const video = videoElementRef.current;
+      const cue = activeCueRef.current;
       if (map.recap && combo === map.recap) {
         e.preventDefault();
         e.stopPropagation();
@@ -616,17 +656,22 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       } else if (map.replay && combo === map.replay) {
         e.preventDefault();
         e.stopPropagation();
-        if (videoElement && activeCue?.start != null) {
-          videoElement.currentTime = activeCue.start / 1000;
-          void videoElement.play().catch(() => {});
+        if (video && cue?.start != null) {
+          video.currentTime = cue.start / 1000;
+          void video.play().catch(() => {});
         }
+      } else if (combo && !Object.values(map).includes(combo)) {
+        // Custom combo that matches NO configured action (e.g. it equals
+        // another action's default the user moved away from): ignore loudly
+        // in dev instead of silently swallowing the keypress.
+        console.debug('[Kivara Lingo] unmapped custom combo:', combo);
       }
     };
     window.addEventListener('keydown', onKeyDown, true);
     return () => {
       window.removeEventListener('keydown', onKeyDown, true);
     };
-  }, [setPanelOpen, setSubtitlesVisible, videoElement, activeCue?.start]);
+  }, [setPanelOpen, setSubtitlesVisible]);
 
   // Bridge runtime messages (from background) → local actions.
   // Also listens for the in-page `kivara-recapture-frame` event fired by
