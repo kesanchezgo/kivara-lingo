@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { t } from '../shared/i18n';
 import { sendMessage } from 'webext-bridge/options';
 import {
   CheckCircle2, AlertTriangle, Loader2, Play, ChevronRight, ChevronLeft,
@@ -50,19 +51,19 @@ const DEMO_URL = 'https://www.youtube.com/watch?v=arj7oStGLkU';
 const SOURCE_BADGE: Partial<Record<FieldSource, { label: string; color: string }>> = {
   selection:        { label: 'Palabra',        color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300' },
   cue:              { label: 'Frase',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300' },
-  phonetic:         { label: 'Fonética',       color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300' },
-  translation:      { label: 'Traducción',     color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' },
+  phonetic:         { label: t('cards.phonetic'),       color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300' },
+  translation:      { label: t('cards.translation'),     color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' },
   bilingual:        { label: 'Bilingüe',       color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300' },
   monolingual:      { label: 'Monolingüe',     color: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300' },
   examples:         { label: 'Ejemplos',       color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300' },
   frame:            { label: 'Picture',        color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-300' },
   'sentence-audio': { label: 'Sentence audio', color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300' },
   'word-audio':     { label: 'Word audio',     color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300' },
-  synonyms:         { label: 'Sinónimos',      color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' },
-  antonyms:         { label: 'Antónimos',      color: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300' },
+  synonyms:         { label: t('cards.synonyms'),      color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' },
+  antonyms:         { label: t('cards.antonyms'),      color: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300' },
   collocations:     { label: 'Combinaciones',  color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300' },
-  etymology:        { label: 'Etimología',     color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300' },
-  mnemonic:         { label: 'Mnemotécnico',   color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300' },
+  etymology:        { label: t('cards.etymology'),     color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300' },
+  mnemonic:         { label: t('cards.mnemonic'),   color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300' },
   image:            { label: 'Imagen',         color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-300' },
   'video-link':     { label: 'Video link',     color: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300' },
   'ai-definition':  { label: 'IA def.',        color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-300' },
@@ -395,8 +396,8 @@ export function Onboarding() {
             {(step === 'dict' || step === 'ai') && (
               <span className="text-[11px] text-zinc-400 dark:text-zinc-500 hidden sm:block">
                 {step === 'dict'
-                  ? 'Recomendado — puedes instalar más desde Settings'
-                  : 'Paso opcional — puedes configurarlo después en Settings'}
+                  ? t('onb.recommendedLater')
+                  : t('onb.optionalStep')}
               </span>
             )}
             <button
@@ -423,8 +424,8 @@ function WelcomeStep() {
     {
       icon: <Subtitles size={18} />,
       iconBg: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 ring-1 ring-indigo-500/20',
-      title: 'Subtítulos interactivos',
-      desc: 'Hover sobre cualquier palabra: traducción, fonética y definición en un clic.',
+      title: t('onb.interactiveSubs'),
+      desc: t('onb.interactiveSubsDesc'),
     },
     {
       icon: <LayoutGrid size={18} />,
@@ -436,7 +437,7 @@ function WelcomeStep() {
       icon: <Sparkles size={18} />,
       iconBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-300 ring-1 ring-amber-500/20',
       title: 'IA opcional',
-      desc: 'Enriquece las tarjetas con definiciones contextuales, sinónimos y colocaciones.',
+      desc: t('onb.enrichDesc'),
     },
   ];
 
@@ -546,15 +547,15 @@ function AnkiStep({ mapping, setMapping, ping, onRunPing }: AnkiStepProps) {
 
   return (
     <StepSection
-      title="Conexión con Anki"
-      subtitle="AnkiConnect crea una pequeña API local cuando Anki está abierto. La dirección por defecto ya está configurada."
+      title={t('onb.ankiConnection')}
+      subtitle={t('onb.ankiConnectionDesc')}
     >
       {/* Connection diagram */}
       <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-          <ConnNode icon={<Globe size={20} />} label="Kivara Lingo" sub="Extensión del navegador" tone="indigo" />
+          <ConnNode icon={<Globe size={20} />} label="Kivara Lingo" sub={t('onb.browserExtension')} tone="indigo" />
           <ConnLink busy={isBusy} ok={isOk} err={isErr} accentLine={a.line} />
-          <ConnNode icon={<BookText size={20} />} label="Anki Desktop" sub="vía AnkiConnect" tone="amber" />
+          <ConnNode icon={<BookText size={20} />} label="Anki Desktop" sub={t('onb.viaAnkiConnect')} tone="amber" />
         </div>
         <div className="mt-4 flex items-center justify-center gap-2">
           <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${a.bg}`}>
@@ -570,7 +571,7 @@ function AnkiStep({ mapping, setMapping, ping, onRunPing }: AnkiStepProps) {
             <span className={`text-[11px] font-semibold ${a.text}`}>
               {isOk ? `Conectado · AnkiConnect v${ping.version}`
                 : isErr ? (ping.error || 'No responde')
-                  : isBusy ? 'Probando conexión…'
+                  : isBusy ? t('onb.testingConnection')
                     : 'Pendiente de prueba'}
             </span>
           </div>
@@ -675,7 +676,7 @@ function MappingStep({
   return (
     <StepSection
       title="Mazo, modelo y campos"
-      subtitle="Elegimos dónde guardar tus tarjetas y cómo Kivara Lingo mapea la información capturada a cada campo."
+      subtitle={t('onb.deckStepDesc')}
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
@@ -939,7 +940,7 @@ function AIStep({
   return (
     <StepSection
       title="Enriquecimiento IA (opcional)"
-      subtitle="Si quieres definiciones contextuales, sinónimos y matices generados por IA al guardar tarjetas. Puedes activarlo después en Settings."
+      subtitle={t('onb.aiStepDesc')}
     >
       {/* Provider tiles */}
       <div className="grid grid-cols-2 gap-2.5">
@@ -1035,8 +1036,8 @@ function AIStep({
           </div>
           <div className="p-4">
             <ToggleRow
-              label="Sinónimos en hover"
-              description="Muestra colocaciones y sinónimos al hacer hover sobre una palabra."
+              label={t('onb.synonymsOnHover')}
+              description={t('onb.synonymsOnHoverDesc')}
               on={aiEnrichOnHover}
               onChange={setAiEnrichOnHover}
               isDarkMode={isDarkMode}
@@ -1056,8 +1057,8 @@ function AIStep({
 
 function DemoStep() {
   const items = [
-    { icon: <Subtitles size={16} />,         text: 'Subtítulos estilizados superpuestos sobre el reproductor.',                tone: 'indigo' as const },
-    { icon: <MousePointerClick size={16} />, text: 'Hover sobre cualquier palabra → popover con traducción y fonética.',       tone: 'sky' as const },
+    { icon: <Subtitles size={16} />,         text: t('onb.styledSubs'),                tone: 'indigo' as const },
+    { icon: <MousePointerClick size={16} />, text: t('onb.hoverPopover'),       tone: 'sky' as const },
     { icon: <Save size={16} />,              text: 'Clic en "Guardar" → nota en Anki con frame + audio capturado.',            tone: 'emerald' as const },
     { icon: <LayoutGrid size={16} />,        text: 'Panel lateral listo con el mapeo de campos que acabas de configurar.',     tone: 'amber' as const },
   ];
@@ -1069,8 +1070,8 @@ function DemoStep() {
   };
   return (
     <StepSection
-      title="¡Todo listo para probar!"
-      subtitle="Al pulsar Empezar abriremos un video corto en YouTube para que veas la extensión en acción."
+      title={t('onb.allSetToTry')}
+      subtitle={t('onb.allSetToTryDesc')}
     >
       <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
         <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 flex items-center gap-2">
@@ -1160,7 +1161,7 @@ function ShortcutsPreview() {
 
 function DoneStep({ completedAt, onComplete }: { completedAt: number | null; onComplete: () => void }) {
   return (
-    <StepSection title="¡Todo listo!" subtitle="">
+    <StepSection title={t('onb.allSet')} subtitle="">
       <div className="flex flex-col items-center gap-8 py-8">
         <div className="relative">
           <div
@@ -1202,15 +1203,15 @@ function DoneStep({ completedAt, onComplete }: { completedAt: number | null; onC
 type LangMeta = { code: string; name: string; native: string; flag: string };
 
 const ONBOARDING_LANGS: LangMeta[] = [
-  { code: 'en', name: 'Inglés',     native: 'English',    flag: '🇬🇧' },
-  { code: 'es', name: 'Español',    native: 'Español',    flag: '🇪🇸' },
-  { code: 'fr', name: 'Francés',    native: 'Français',   flag: '🇫🇷' },
-  { code: 'de', name: 'Alemán',     native: 'Deutsch',    flag: '🇩🇪' },
-  { code: 'it', name: 'Italiano',   native: 'Italiano',   flag: '🇮🇹' },
-  { code: 'pt', name: 'Portugués',  native: 'Português',  flag: '🇵🇹' },
-  { code: 'ja', name: 'Japonés',    native: '日本語',      flag: '🇯🇵' },
-  { code: 'ko', name: 'Coreano',    native: '한국어',       flag: '🇰🇷' },
-  { code: 'zh', name: 'Chino',      native: '中文',        flag: '🇨🇳' },
+  { code: 'en', name: t('lang.en'),     native: 'English',    flag: '🇬🇧' },
+  { code: 'es', name: t('lang.es'),    native: 'Español',    flag: '🇪🇸' },
+  { code: 'fr', name: t('lang.fr'),    native: 'Français',   flag: '🇫🇷' },
+  { code: 'de', name: t('lang.de'),     native: 'Deutsch',    flag: '🇩🇪' },
+  { code: 'it', name: t('lang.it'),   native: 'Italiano',   flag: '🇮🇹' },
+  { code: 'pt', name: t('lang.pt'),  native: 'Português',  flag: '🇵🇹' },
+  { code: 'ja', name: t('lang.ja'),    native: '日本語',      flag: '🇯🇵' },
+  { code: 'ko', name: t('lang.ko'),    native: '한국어',       flag: '🇰🇷' },
+  { code: 'zh', name: t('lang.zh'),      native: '中文',        flag: '🇨🇳' },
 ];
 
 function getLang(code: string): LangMeta {
@@ -1249,7 +1250,7 @@ function LangStep({
 
   return (
     <StepSection
-      title="¿Qué idioma aprendes?"
+      title={t('onb.whatLanguage')}
       subtitle="Configura el par de idiomas. Puedes cambiarlo en cualquier momento desde Settings → Idioma."
     >
       {/* Pair display: Aprendo ↔ Nativo */}
@@ -1467,7 +1468,7 @@ function DictStep() {
               (response) => {
                 const err = chrome.runtime.lastError;
                 if (err) {
-                  resolve({ ok: false, error: err.message ?? 'Service worker no respondió' });
+                  resolve({ ok: false, error: err.message ?? t('dict.swNoResponse') });
                   return;
                 }
                 resolve(response);
@@ -1516,7 +1517,7 @@ function DictStep() {
   return (
     <StepSection
       title="Diccionarios offline"
-      subtitle="Recomendado — instala los packs marcados para que cada hover devuelva traducción, fonética y ejemplos sin depender de internet."
+      subtitle={t('onb.recommendedPacks')}
     >
       <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/25 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-500/10 dark:to-zinc-900 p-4 flex gap-3">
         <div className="w-10 h-10 rounded-xl bg-indigo-500/15 ring-1 ring-indigo-500/25 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
@@ -1626,7 +1627,7 @@ function DictStep() {
             {running
               ? 'Instalando packs seleccionados…'
               : toInstall.length === 0
-                ? allDone ? 'Todos los packs marcados están instalados' : 'Selecciona al menos un pack para continuar'
+                ? allDone ? t('onb.allPacksInstalled') : 'Selecciona al menos un pack para continuar'
                 : `${toInstall.length} ${toInstall.length === 1 ? 'pack listo' : 'packs listos'} para instalar`}
           </p>
           <p className="text-[10.5px] text-zinc-500 dark:text-zinc-400 leading-tight mt-0.5">

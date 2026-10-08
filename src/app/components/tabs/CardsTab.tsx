@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { t } from '../../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
 import { AnkiMapping, FieldSource } from '../../types';
 import type {
@@ -29,7 +30,7 @@ interface CardsTabProps {
   };
 }
 
-const FALLBACK_DECKS = ['Vocabulario Inglés', 'Default'];
+const FALLBACK_DECKS = [t('cards.wordField'), 'Default'];
 const FALLBACK_MODELS = ['KivaraLingo', 'Basic'];
 const FALLBACK_FIELDS: Record<string, string[]> = {
   'KivaraLingo': ['word', 'phonetic', 'sentence', 'translation', 'bilingual', 'monolingual', 'picture', 'sentence audio', 'word audio'],
@@ -42,34 +43,34 @@ const detectSource = detectFieldSource;
 const SOURCE_META: Record<FieldSource, { label: string; color: string; description: string }> = {
   selection:        { label: 'Palabra',        color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',     description: 'Palabra seleccionada (el headword)' },
   cue:              { label: 'Frase',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: 'Frase completa del cue activo' },
-  phonetic:         { label: 'Fonética',       color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',     description: 'IPA del diccionario' },
-  translation:      { label: 'Traducción',     color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: 'Traducción nativa de la frase/subtítulo' },
-  bilingual:        { label: 'Bilingüe',       color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: 'Traducción/definición bilingüe de la palabra' },
-  monolingual:      { label: 'Monolingüe',     color: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300',     description: 'Definición en idioma fuente' },
+  phonetic:         { label: t('cards.phonetic'),       color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',     description: 'IPA del diccionario' },
+  translation:      { label: t('cards.translation'),     color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: t('cards.nativeTranslation') },
+  bilingual:        { label: 'Bilingüe',       color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: t('cards.bilingualGloss') },
+  monolingual:      { label: 'Monolingüe',     color: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300',     description: t('cards.definition') },
   examples:         { label: 'Ejemplos',       color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300',     description: 'Ejemplos del diccionario' },
   frame:            { label: 'Picture',        color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300',             description: 'Screenshot del frame del cue' },
-  'sentence-audio': { label: 'Sentence audio', color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',             description: 'Audio capturado de la pestaña (cue)' },
+  'sentence-audio': { label: 'Sentence audio', color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',             description: t('cards.tabAudio') },
   'word-audio':     { label: 'Word audio',     color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300',             description: 'TTS solo de la palabra' },
-  'ai-definition':  { label: 'IA · Definición',    color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'Definición contextual generada por IA' },
-  'ai-synonyms':    { label: 'IA · Sinónimos',     color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'Sinónimos sugeridos por IA' },
+  'ai-definition':  { label: t('cards.aiDefinitionLabel'),    color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: t('cards.aiDefinitionHint') },
+  'ai-synonyms':    { label: t('cards.aiSynonymsLabel'),     color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: t('cards.aiSynonymsHint') },
   'ai-collocations':{ label: 'IA · Colocaciones',  color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'Colocaciones comunes' },
-  'ai-nuance':      { label: 'IA · Matiz',        color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'Traducción matizada' },
+  'ai-nuance':      { label: 'IA · Matiz',        color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: t('cards.nuancedTranslation') },
   'ai-register':    { label: 'IA · Registro',     color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'Registro (formal / informal / slang)' },
   // Multi-source enrichment chain (Standard + VIP).
-  synonyms:         { label: 'Sinónimos',           color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: 'Sinónimos del corpus + WordNet + scrape' },
-  antonyms:         { label: 'Antónimos',           color: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',             description: 'Antónimos del corpus + WordNet' },
+  synonyms:         { label: t('cards.synonyms'),           color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: t('cards.synonymsHint') },
+  antonyms:         { label: t('cards.antonyms'),           color: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',             description: t('cards.antonymsHint') },
   collocations:     { label: 'Combinaciones',       color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',     description: 'Colocaciones editoriales o corroboradas' },
   frequency:        { label: 'Frecuencia',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: 'Bandas de frecuencia preservando su escala original' },
-  etymology:        { label: 'Etimología',          color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: 'Etimología (Etymonline + M-W)' },
-  mnemonic:         { label: 'Mnemotécnico',        color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',     description: 'Mnemotécnico generado por IA' },
+  etymology:        { label: t('cards.etymology'),          color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: t('cards.etymologyHint') },
+  mnemonic:         { label: t('cards.mnemonic'),        color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',     description: t('cards.mnemonicHint') },
   image:             { label: 'Imagen',             color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300',             description: 'Imagen Unsplash / Pixabay / Wikimedia / DDG' },
   'video-link':     { label: 'Video link',          color: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',                 description: 'YouGlish: enlaces a videos con la palabra' },
   // Deprecated / backward-compatible labels.
   dictionary:       { label: 'Diccionario',    color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: '(legacy) catch-all del diccionario' },
   translate:        { label: 'Traducir',       color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: '(legacy) cadena de traductores' },
-  tabCapture:       { label: 'tabCapture',     color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',             description: '(legacy) Audio de pestaña' },
+  tabCapture:       { label: 'tabCapture',     color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',             description: t('cards.legacyTabAudio') },
   tts:              { label: 'TTS',            color: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300',                description: '(legacy) Text-to-speech' },
-  manual:           { label: 'Manual',         color: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',                description: 'Lo escribes tú' },
+  manual:           { label: 'Manual',         color: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',                description: t('cards.writeItYourself') },
 };
 
 /**
@@ -108,11 +109,11 @@ type ConnectionState = 'idle' | 'connecting' | 'connected' | 'error';
  * string.
  */
 const PING_ERROR_LABEL: Record<AnkiPingErrorCode, string> = {
-  NETWORK:  'Anki no responde — comprueba que la app esté abierta.',
-  CORS:     'AnkiConnect bloqueó la petición. Revisa el `webCorsOriginList` del add-on.',
-  TIMEOUT:  'Anki tardó demasiado. ¿Está la app activa?',
-  HTTP:     'AnkiConnect respondió con un error HTTP. Actualiza el add-on si es antiguo.',
-  ANKI:     'Anki devolvió un error interno. Reinicia la app y vuelve a intentar.',
+  NETWORK:  t('cards.ankiDown'),
+  CORS:     t('cards.ankiCors'),
+  TIMEOUT:  t('cards.ankiTimeout'),
+  HTTP:     t('cards.ankiHttp'),
+  ANKI:     t('cards.ankiInternal'),
   API_KEY:  'API key incorrecta o caducada.',
 };
 
@@ -245,7 +246,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
         {/* Conexión */}
         <Section
           icon={<Plug size={10} />}
-          title="Conexión"
+          title={t('cards.connection')}
           hint={
             <>
               Kivara envía las tarjetas a Anki mediante <strong>AnkiConnect</strong>, un add-on gratuito que expone Anki en <span className="font-mono">http://127.0.0.1:8765</span>. Necesitas tener Anki abierto en tu equipo y el add-on instalado (código <span className="font-mono">2055492159</span>). La <em>API key</em> solo es necesaria si la activaste manualmente en la configuración del add-on.
@@ -363,7 +364,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
           )}
 
           {conn !== 'connected' && (
-            <EmptyState icon={<AlertCircle size={13} />} text="Conéctate a AnkiConnect para ver los campos." />
+            <EmptyState icon={<AlertCircle size={13} />} text={t('cards.connectToSee')} />
           )}
 
           {conn === 'connected' && ankiFields.length === 0 && (
@@ -397,7 +398,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
           )}
 
           {conn === 'connected' && ankiFields.length > 0 && visibleFields.length === 0 && (
-            <EmptyState icon={<AlertCircle size={13} />} text="Ningún campo coincide con el filtro." />
+            <EmptyState icon={<AlertCircle size={13} />} text={t('cards.noFieldMatch')} />
           )}
 
           {conn === 'connected' && visibleFields.map((field, i) => {
@@ -594,7 +595,7 @@ function ConnPill({ state }: { state: ConnectionState }) {
   const meta =
     state === 'connected'  ? { label: 'activo',       pill: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' } :
     state === 'connecting' ? { label: 'conectando…',  pill: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300' } :
-    state === 'error'      ? { label: 'sin conexión', pill: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300' } :
+    state === 'error'      ? { label: t('cards.offline'), pill: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300' } :
                              { label: 'inactivo',     pill: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400' };
   return (
     <span className={`inline-flex items-center gap-1 text-[10px] font-semibold normal-case tracking-normal px-1.5 py-0.5 rounded ${meta.pill}`}>
@@ -692,7 +693,7 @@ function BackTemplate({ mockData }: { mockData: CardsTabProps['mockData'] }) {
 
       {/* Monolingual definition */}
       <div className="text-[10px] text-zinc-600 dark:text-zinc-400 italic px-1 leading-snug">
-        {mockData.monolingual ?? 'Definición monolingüe de la palabra en el idioma de origen.'}
+        {mockData.monolingual ?? t('cards.defaultMonolingual')}
       </div>
 
       {/* Sentence pair (target + native) with a per-row audio button */}
@@ -704,7 +705,7 @@ function BackTemplate({ mockData }: { mockData: CardsTabProps['mockData'] }) {
         <button
           className="rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-colors bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/25"
           style={{ width: 22, height: 22 }}
-          title="Reproducir oración"
+          title={t('cards.playSentence')}
         >
           <Volume2 size={9} />
         </button>

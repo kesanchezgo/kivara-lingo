@@ -17,6 +17,7 @@
  * to keep on.
  */
 
+import { t } from '../../../shared/i18n';
 import React from 'react';
 import { useKivaraStore } from '../../../shared/store';
 import { SecretKeyInput } from '../SecretKeyInput';
@@ -33,19 +34,19 @@ interface SourceMeta {
 /* ── Standard tier: public/free sources, run regardless of VIP master switch ── */
 
 const STD_DICT_SOURCES: SourceMeta[] = [
-  { key: 'bundled', label: 'Bundled (offline)', hint: 'Diccionario curado + extensiones + CEFR + thesaurus + collocations académicas. ~10 893 entradas, ~250 KB. Funciona offline.' },
-  { key: 'wordnet', label: 'WordNet (OEWN 2025, offline)', hint: 'Open English WordNet local (CC BY 4.0): grupos de sinónimos/antónimos por acepción, definiciones y ejemplos con selección de sentido. Sin red; carga sólo el fragmento de la inicial consultada.' },
-  { key: 'yomitanPacks', label: 'Yomitan packs', hint: 'Packs Wiktionary instalados (kty-en-es: 61k términos, kty-en-ipa: 140k filas IPA, kty-en-en: 500k). Cubren phrasals, idioms, MWE y slang.' },
+  { key: 'bundled', label: 'Bundled (offline)', hint: t('vip.wordnetDesc') },
+  { key: 'wordnet', label: 'WordNet (OEWN 2025, offline)', hint: t('vip.wordnetLocalDesc') },
+  { key: 'yomitanPacks', label: 'Yomitan packs', hint: t('vip.ktyPacksDesc') },
   { key: 'wiktionary', label: 'Wiktionary REST', hint: 'API oficial Wikimedia (en.wiktionary.org/api/rest_v1). Cubre phrasal verbs, idioms y MWE multi-palabra que otros diccionarios no indexan. Sin token.' },
-  { key: 'wiktionaryHtml', label: 'Wiktionary HTML', hint: 'Parser de la página HTML completa de Wiktionary: etimología + sinónimos + antónimos + términos relacionados que el endpoint JSON no expone. Crucial para frases multi-palabra (kick the bucket, piece of cake, turn off). Sin token.' },
-  { key: 'wiktionaryApi', label: 'WiktionaryAPI', hint: 'freedictionaryapi.com — mirror Wiktionary con datos completos para frases multi-palabra (kick the bucket → 18+ sinónimos, big deal → 2 senses). Sin token.' },
+  { key: 'wiktionaryHtml', label: 'Wiktionary HTML', hint: t('vip.wiktionaryHtmlDesc') },
+  { key: 'wiktionaryApi', label: 'WiktionaryAPI', hint: t('vip.freeDictApiDesc') },
   { key: 'wiktApi', label: 'WiktApi / Kaikki', hint: 'wiktapi.dev — JSON estructurado de Wiktionary/Kaikki: traducciones ES, sentidos, ejemplos, formas, IPA y audio para palabras simples. Sin token.' },
 
-  { key: 'mobyThesaurus', label: 'Moby Thesaurus', hint: 'Señal débil del tesauro público de Grady Ward. Nunca publica una relación por sí solo.' },
-  { key: 'thesaurusCom', label: 'Thesaurus.com', hint: 'Antónimos profesionales para sustantivos abstractos / técnicos (algorithm → deviation, idleness; apple → 66 antónimos; house → 157). Solo palabra simple. Sin token.' },
-  { key: 'wordHippo', label: 'WordHippo', hint: 'Antónimos de phrasals, idioms, MWE y sustantivos concretos (kick the bucket → bring back to life, big deal → small potatoes, apple → country) que ningún otro tesauro free cubre. Sin token.' },
-  { key: 'theIdioms', label: 'TheIdioms', hint: 'Señal secundaria para detectar idioms. Sus etimologías y definiciones no se publican como autoridad.' },
-  { key: 'freeDictionary', label: 'Free Dictionary API', hint: 'IPA + audio MP3 de Wikimedia + sinónimos. Gratis sin token (api.dictionaryapi.dev).' },
+  { key: 'mobyThesaurus', label: 'Moby Thesaurus', hint: t('vip.mobyDesc') },
+  { key: 'thesaurusCom', label: 'Thesaurus.com', hint: t('vip.thesaurusAntonymsDesc') },
+  { key: 'wordHippo', label: 'WordHippo', hint: t('vip.wordhippoDesc') },
+  { key: 'theIdioms', label: 'TheIdioms', hint: t('vip.theIdiomsDesc') },
+  { key: 'freeDictionary', label: 'Free Dictionary API', hint: t('vip.freeDictionaryDesc') },
   { key: 'datamuse', label: 'Datamuse', hint: 'Collocations corpus-based + relaciones. Gratis sin token (api.datamuse.com).' },
 ];
 
@@ -55,18 +56,18 @@ const STD_BILINGUAL_SOURCES: SourceMeta[] = [
 
 const STD_AUDIO_SOURCES: SourceMeta[] = [
   { key: 'linguaLibre', label: 'Lingua Libre', hint: 'Wikimedia: pronunciaciones CC-BY de hablantes nativos. Sin token.' },
-  { key: 'googleTtsFallback', label: 'Google TTS fallback', hint: 'Síntesis sintética cuando ninguna grabación humana respondió. Sin token.' },
+  { key: 'googleTtsFallback', label: 'Google TTS fallback', hint: t('vip.ttsSynthDesc') },
 ];
 
 const STD_IMAGE_SOURCES: SourceMeta[] = [
-  { key: 'bingImages', label: 'Bing Images', hint: 'Señal visual de último recurso. Sus resultados no se publican directamente sin respaldo de una fuente abierta.' },
-  { key: 'openverse', label: 'Openverse', hint: 'Imágenes CC-BY / CC0 (Flickr + Wikimedia + museos) vía API pública sin token.' },
-  { key: 'wikimediaCommons', label: 'Wikimedia Commons', hint: 'Imágenes CC con metadata, ideal para términos nicho.' },
-  { key: 'duckduckgoImages', label: 'DuckDuckGo Images', hint: 'Señal visual de último recurso; no puede ganar directamente el ranking.' },
+  { key: 'bingImages', label: 'Bing Images', hint: t('vip.ddgImagesDesc') },
+  { key: 'openverse', label: 'Openverse', hint: t('vip.openverseDesc') },
+  { key: 'wikimediaCommons', label: 'Wikimedia Commons', hint: t('vip.commonsDesc') },
+  { key: 'duckduckgoImages', label: 'DuckDuckGo Images', hint: t('vip.bingImagesDesc') },
 ];
 
 const STD_ETY_VIDEO: SourceMeta[] = [
-  { key: 'etymonline', label: 'Etymonline', hint: 'Etimología profesional (etymonline.com): origen + evolución histórica. Sin token.' },
+  { key: 'etymonline', label: 'Etymonline', hint: t('vip.etymonlineDesc') },
   { key: 'youglish', label: 'YouGlish', hint: 'Enlaces a videos de YouTube con la palabra pronunciada. URL only, sin fetch.' },
 ];
 
@@ -78,31 +79,31 @@ const VIP_DICT_SOURCES: SourceMeta[] = [
   { key: 'oxfordLearners', label: 'Oxford Learner\u2019s', hint: 'Definiciones learner-grade y ejemplos curados.' },
   { key: 'longman', label: 'Longman LDOCE', hint: 'Definiciones simples, thesaurus, colocaciones editoriales y bandas S1–S3/W1–W3.' },
   { key: 'collins', label: 'Dictionary.com', hint: 'Sustituto de Collins: definiciones editoriales, IPA, audio, ejemplos y excelente cobertura de phrasal verbs.' },
-  { key: 'merriamWebster', label: 'Merriam-Webster', hint: 'American English authority, etimología detallada.' },
-  { key: 'merriamWebsterThesaurus', label: 'M-W Thesaurus', hint: 'Segunda autoridad editorial de thesaurus: grupos de sinónimos Y antónimos por acepción con glosa y ejemplo propio. Corrobora a Cambridge.' },
+  { key: 'merriamWebster', label: 'Merriam-Webster', hint: t('vip.merriamDesc') },
+  { key: 'merriamWebsterThesaurus', label: 'M-W Thesaurus', hint: t('vip.editorialThesaurusDesc') },
   { key: 'ozdic', label: 'Oxford Collocations', hint: 'Mirror de OCD (ozdic.com): 250 000 collocations curadas Oxford con patrones gramaticales (ADJ, VERB, PREP).' },
 ];
 
 const VIP_BILINGUAL_SOURCES: SourceMeta[] = [
   { key: 'pons', label: 'PONS', hint: 'Diccionario EN-ES reconocido con grupos de sentido, glosas, ejemplos alineados y frases de uso. Sin token.' },
-  { key: 'babla', label: 'bab.la', hint: 'Diccionario EN-ES con glosas, ejemplos, idioms y phrasals. Usa HTML estático validado por auditoría. Sin token.' },
+  { key: 'babla', label: 'bab.la', hint: t('vip.dictionaryEnEsDesc') },
   { key: 'dictCc', label: 'dict.cc', hint: 'Diccionario EN-ES secundario con glosas compactas y frases. Sin token; menor prioridad que PONS/bab.la.' },
-  { key: 'reverso', label: 'Reverso Context', hint: 'Frases EN-ES de subtítulos / libros / prensa.' },
-  { key: 'linguee', label: 'Linguee', hint: 'Traducciones y ejemplos curados de la web; protegido con límites y cooldown persistente.' },
-  { key: 'promtContext', label: 'PROMT.One Contexts', hint: 'Fallback tipo Linguee con hasta 20 pares bilingües por consulta; límites y cooldown propios para evitar bloqueos.' },
+  { key: 'reverso', label: 'Reverso Context', hint: t('vip.bilingualCorpusDesc') },
+  { key: 'linguee', label: 'Linguee', hint: t('vip.lingueeDesc') },
+  { key: 'promtContext', label: 'PROMT.One Contexts', hint: t('vip.promtDesc') },
   { key: 'wordReference', label: 'WordReference', hint: 'Equivalencias EN-ES naturales.' },
-  { key: 'spanishDict', label: 'SpanishDict', hint: 'Conjugación + ejemplos paralelos.' },
+  { key: 'spanishDict', label: 'SpanishDict', hint: t('vip.conjugationDesc') },
 ];
 
 const VIP_AUDIO_SOURCES: SourceMeta[] = [
-  { key: 'cambridgeAudio', label: 'Cambridge audio', hint: 'MP3 oficial UK + US, extraído por la fuente Cambridge.' },
-  { key: 'oxfordAudio', label: 'Oxford audio', hint: 'MP3 oficial UK + US, extraído por la fuente Oxford.' },
-  { key: 'forvo', label: 'Forvo', hint: 'Pronunciación humana de hablantes nativos.' },
+  { key: 'cambridgeAudio', label: 'Cambridge audio', hint: t('vip.cambridgeAudioDesc') },
+  { key: 'oxfordAudio', label: 'Oxford audio', hint: t('vip.oxfordAudioDesc') },
+  { key: 'forvo', label: 'Forvo', hint: t('vip.forvoDesc') },
 ];
 
 const VIP_IMAGE_SOURCES: SourceMeta[] = [
   { key: 'unsplash', label: 'Unsplash (BYOK)', hint: 'Fotos profesionales con licencia Unsplash. Necesita clave gratuita (input abajo). Sin clave queda inactivo.' },
-  { key: 'pixabay', label: 'Pixabay', hint: 'Stock variado, licencia libre. Funciona sin clave por scraping; con clave (input abajo) usa la API oficial (más estable).' },
+  { key: 'pixabay', label: 'Pixabay', hint: t('vip.unsplashDesc') },
 ];
 
 export function VipSection() {
@@ -121,7 +122,7 @@ export function VipSection() {
       <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2.5 py-2 space-y-1.5">
         <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
           <span>Datos locales (siempre activos)</span>
-          <InfoHint text="Bundled con la extensión. Suman ~250 KB y se cargan a memoria al instante. No requieren internet." />
+          <InfoHint text={t('vip.bundledDesc')} />
         </div>
         <ul className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-snug space-y-0.5 ml-1">
           <li>• Dict. curado (4 151 entradas) + extensiones</li>
@@ -143,11 +144,11 @@ export function VipSection() {
         </div>
       </div>
 
-      <SubGroup title="Standard · diccionario y relaciones" hint="APIs JSON públicas." sources={STD_DICT_SOURCES} vip={vip} setKey={setKey} />
+      <SubGroup title="Standard · diccionario y relaciones" hint={t('vip.apisJson')} sources={STD_DICT_SOURCES} vip={vip} setKey={setKey} />
       <SubGroup title="Standard · ejemplos bilingües" hint="Corpus paralelo CC-BY de Tatoeba." sources={STD_BILINGUAL_SOURCES} vip={vip} setKey={setKey} />
-      <SubGroup title="Standard · audio" hint="Pronunciación nativa (Lingua Libre Wikimedia) + síntesis de fallback." sources={STD_AUDIO_SOURCES} vip={vip} setKey={setKey} />
-      <SubGroup title="Standard · imágenes" hint="Búsquedas web sin token." sources={STD_IMAGE_SOURCES} vip={vip} setKey={setKey} />
-      <SubGroup title="Standard · etimología y video" hint="Etymonline (origen) + YouGlish (videos con la palabra hablada)." sources={STD_ETY_VIDEO} vip={vip} setKey={setKey} />
+      <SubGroup title="Standard · audio" hint={t('vip.pronunciation')} sources={STD_AUDIO_SOURCES} vip={vip} setKey={setKey} />
+      <SubGroup title={t('vip.standardImagesLabel')} hint={t('vip.standardImagesHint')} sources={STD_IMAGE_SOURCES} vip={vip} setKey={setKey} />
+      <SubGroup title={t('vip.standardEtymVideoLabel')} hint="Etymonline (origen) + YouGlish (videos con la palabra hablada)." sources={STD_ETY_VIDEO} vip={vip} setKey={setKey} />
 
       {/* VIP master switch */}
       <div className="rounded-md bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200/40 dark:border-amber-900/40 px-2.5 py-2">
@@ -181,7 +182,7 @@ export function VipSection() {
           <SubGroup title="VIP · diccionarios comerciales" hint="Scrapes de los grandes learner's dictionaries." sources={VIP_DICT_SOURCES} vip={vip} setKey={setKey} />
           <SubGroup title="VIP · bilingüe (premium)" hint="Reverso/Linguee/PROMT/WordRef/SpanishDict — equivalencias y pares EN-ES." sources={VIP_BILINGUAL_SOURCES} vip={vip} setKey={setKey} />
           <SubGroup title="VIP · audio (premium)" hint="MP3 oficiales de Cambridge/Oxford + Forvo (hablantes nativos)." sources={VIP_AUDIO_SOURCES} vip={vip} setKey={setKey} />
-          <SubGroup title="VIP · imágenes (BYOK opcional)" hint="Unsplash y Pixabay con clave gratis. Sin VIP, las imágenes Standard cubren bien." sources={VIP_IMAGE_SOURCES} vip={vip} setKey={setKey} />
+          <SubGroup title={t('vip.vipImagesLabel')} hint={t('vip.vipImagesHint')} sources={VIP_IMAGE_SOURCES} vip={vip} setKey={setKey} />
 
           {/* Optional API keys for Unsplash + Pixabay — both are free
               with no credit card required, but require a one-time
@@ -222,7 +223,7 @@ export function VipSection() {
             <label className="flex items-center justify-between gap-2 text-[11px] text-zinc-700 dark:text-zinc-300">
               <span className="flex items-center gap-1">
                 Timeout por fuente
-                <InfoHint text="Si una fuente tarda más de este tiempo, se cancela y el resto continúa." />
+                <InfoHint text={t('vip.timeoutHint')} />
               </span>
               <span className="flex items-center gap-1.5">
                 <input
@@ -375,7 +376,7 @@ function CacheManager() {
     <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2.5 py-2 space-y-2">
       <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
         <span>Caché almacenada</span>
-        <InfoHint text="Resultados guardados localmente (IndexedDB) para que re-consultar la misma palabra/subtítulo sea instantáneo. No incluye tus diccionarios instalados ni tus tarjetas guardadas." />
+        <InfoHint text={t('vip.cacheDesc')} />
       </div>
 
       {buckets === null ? (
@@ -422,7 +423,7 @@ function CacheManager() {
               onClick={clearAll}
               className="flex-1 text-[11px] rounded-md bg-red-600 text-white px-2 py-1.5 hover:bg-red-700 disabled:opacity-50 transition-colors"
             >
-              {busy ? 'Limpiando…' : 'Sí, limpiar todo'}
+              {busy ? 'Limpiando…' : t('vip.clearAllYes')}
             </button>
             <button
               type="button"
