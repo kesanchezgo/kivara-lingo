@@ -1685,16 +1685,16 @@ function DictStepRowStatus({ isInstalled, installedTermCount, status }: DictStep
     return (
       <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 inline-flex items-center gap-1">
         <AlertTriangle size={12} />
-        {status.error || 'Error inesperado'}
+        {status.error || t('common.unexpectedError')}
       </p>
     );
   }
   if (isInstalled) {
-    const count = installedTermCount ? ` · ${installedTermCount.toLocaleString()} términos` : '';
+    const count = installedTermCount ? t('dict.packTermsCount', { count: installedTermCount.toLocaleString() }) : '';
     return (
       <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 inline-flex items-center gap-1">
         <CheckCircle2 size={12} />
-        Ya instalado{count}
+        {t('onb.installedDone')}{count}
       </p>
     );
   }

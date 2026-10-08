@@ -244,10 +244,15 @@ export function DictPacksSection() {
             stardict: 'StarDict',
             csv: 'CSV',
           };
-          const skipNote = result.skipped ? ` (${result.skipped} saltados)` : '';
+          const skipNote = result.skipped ? t('dict.skippedNote', { count: result.skipped }) : '';
           setFeedback({
             kind: 'ok',
-            message: `${result.pack.title} · ${result.termsImported.toLocaleString()} términos (${formatLabel[result.format]})${skipNote}`,
+            message: t('dict.importOkFmt', {
+              title: result.pack.title,
+              count: result.termsImported.toLocaleString(),
+              format: formatLabel[result.format],
+              skip: skipNote,
+            }),
           });
           // Tell every tab to re-pull its in-memory headword cache so
           // the tokenizer sees the new pack right away.
@@ -263,7 +268,7 @@ export function DictPacksSection() {
       } catch (err) {
         setFeedback({
           kind: 'err',
-          message: `Error inesperado: ${(err as Error).message}`,
+          message: t('dict.unexpectedError', { msg: (err as Error).message }),
         });
       } finally {
         setImporting(false);
@@ -336,7 +341,11 @@ export function DictPacksSection() {
         if (result.ok) {
           setFeedback({
             kind: 'ok',
-            message: `${result.pack.title} · ${result.termsImported.toLocaleString()} términos importados`,
+            message: t('dict.importedOkFmt', {
+              title: result.pack.title,
+              count: result.termsImported.toLocaleString(),
+              skip: '',
+            }),
           });
           setUrlInput('');
         } else {
@@ -346,7 +355,7 @@ export function DictPacksSection() {
       } catch (err) {
         setFeedback({
           kind: 'err',
-          message: `Error inesperado: ${(err as Error).message}`,
+          message: t('dict.unexpectedError', { msg: (err as Error).message }),
         });
       } finally {
         try {
@@ -368,9 +377,11 @@ export function DictPacksSection() {
       if (result.ok) {
         setFeedback({
           kind: 'ok',
-          message: `${result.pack.title} · ${result.termsImported.toLocaleString()} términos importados${
-            result.skipped > 0 ? ` (${result.skipped} saltados)` : ''
-          }`,
+          message: t('dict.importedOkFmt', {
+            title: result.pack.title,
+            count: result.termsImported.toLocaleString(),
+            skip: result.skipped > 0 ? t('dict.skippedNote', { count: result.skipped }) : '',
+          }),
         });
         setCsvText('');
         setCsvOpen(false);
@@ -381,7 +392,7 @@ export function DictPacksSection() {
     } catch (err) {
       setFeedback({
         kind: 'err',
-        message: `Error inesperado: ${(err as Error).message}`,
+        message: t('dict.unexpectedError', { msg: (err as Error).message }),
       });
     } finally {
       setImportingCsv(false);
@@ -438,7 +449,7 @@ export function DictPacksSection() {
   const onDelete = useCallback(
     async (pack: DictPackRow) => {
       if (
-        !window.confirm(`¿Eliminar "${pack.title}" y sus ${pack.termCount.toLocaleString()} términos?`)
+        !window.confirm(t('dict.confirmDeletePack', { title: pack.title, count: pack.termCount.toLocaleString() }))
       ) {
         return;
       }
@@ -504,7 +515,7 @@ export function DictPacksSection() {
                         {installed ? (
                           <span className="shrink-0 text-[10px] font-medium px-1.5 py-1 rounded inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/70 dark:border-emerald-500/20">
                             <CheckCircle2 size={10} />
-                            Instalado
+                            {t('dict.installed')}
                           </span>
                         ) : (
                           <button
@@ -514,7 +525,7 @@ export function DictPacksSection() {
                             className="shrink-0 text-[10px] font-semibold px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1 transition-colors"
                           >
                             {loading ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
-                            {loading ? 'Descargando' : 'Instalar'}
+                            {loading ? t('dict.downloading') : t('dict.install')}
                           </button>
                         )}
                       </div>
@@ -530,7 +541,7 @@ export function DictPacksSection() {
       {/* ── Instalados ────────────────────────────────────────────────────── */}
       <SubSection
         icon={<CheckCircle2 size={10} />}
-        title="Instalados"
+        title={t('dict.installedSection')}
         trailing={
           <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-500">
             {loading ? '…' : packs.length}
@@ -538,7 +549,7 @@ export function DictPacksSection() {
         }
       >
         {loading ? (
-          <div className="text-[10.5px] text-zinc-500 italic px-1">Cargando packs…</div>
+          <div className="text-[10.5px] text-zinc-500 italic px-1">{t('dict.loadingPacks')}</div>
         ) : packs.length === 0 ? (
           <EmptySub text={t('dict.noneInstalled')} />
         ) : (
@@ -708,14 +719,14 @@ export function DictPacksSection() {
                   className="text-[10px] font-semibold px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1 transition-colors"
                 >
                   {importingCsv ? <Loader2 size={10} className="animate-spin" /> : <Upload size={10} />}
-                  Importar
+                  {t('dict.import')}
                 </button>
                 <button
                   type="button"
                   onClick={() => { setCsvOpen(false); setCsvText(''); }}
                   className="text-[10px] font-medium px-2 py-1 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                 >
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>
@@ -1020,7 +1031,7 @@ function TopPacksSection({ stats, packs, idlePackIds }: TopPacksSectionProps) {
                 </div>
                 <div className="text-[9px] text-zinc-500 dark:text-zinc-500 tabular-nums">
                   {row.hits.toLocaleString()} hits · {share}%
-                  {pack ? ` · ${pack.termCount.toLocaleString()} términos` : ' · pack borrado'}
+                  {pack ? t('dict.packTermsCount', { count: pack.termCount.toLocaleString() }) : t('dict.packDeleted')}
                 </div>
               </div>
               <div className="w-16 h-1 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden shrink-0">

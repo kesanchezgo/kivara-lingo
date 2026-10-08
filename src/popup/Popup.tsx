@@ -157,8 +157,10 @@ export function Popup() {
     } catch (err) {
       setAudioCaptureActive(false);
       // Surface the reason instead of only logging it — otherwise a failed
-      // start/stop is invisible in the popup.
-      setCaptureError(err instanceof Error && err.message ? err.message : t('popup.capture.failed'));
+      // start/stop is invisible in the popup. A STOP failure (next === false)
+      // must show the "detener" text, not the "iniciar" one.
+      const fallback = next ? t('popup.capture.failed') : t('popup.capture.stopped');
+      setCaptureError(err instanceof Error && err.message ? err.message : fallback);
       console.warn('[Kivara Lingo] toggleAudioCapture failed', err);
     }
   }

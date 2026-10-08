@@ -348,6 +348,28 @@ async function saveSecrets(
   if (!state) return false;
   const toLocal: Record<string, unknown> = {};
   const written: Array<{ section: string; field: string; plain: string }> = [];
+  // Probe current slots ONCE for empty values without a baseline (first save
+  // in a context where loadSecrets never ran). An empty in-memory value
+  // then proves nothing: the slot may hold a real key we never injected,
+  // and writing SECRET_CLEARED would destroy it (e.g. an unrelated toggle
+  // with sync wiped/disabled). Only skip when the slot actually holds a
+  // real secret; otherwise proceed so explicit clears still land.
+  const probeKeys = SECRET_FIELDS.filter(({ section, field }) => {
+    const node = state[section];
+    if (!node || typeof node !== 'object') return false;
+    const rec = node as Record<string, unknown>;
+    return rec[field] === '' && !lastPersisted.has(secretSlotKey(section, field));
+  }).map(({ section, field }) => secretSlotKey(section, field));
+  let probed: Record<string, unknown> = {};
+  let probeFailed = false;
+  if (probeKeys.length > 0) {
+    try {
+      probed = await io.get(probeKeys);
+    } catch {
+      probed = {};
+      probeFailed = true; // unreadable → conservative skip below
+    }
+  }
   for (const { section, field } of SECRET_FIELDS) {
     const node = state[section];
     if (!node || typeof node !== 'object') continue;
@@ -355,6 +377,17 @@ async function saveSecrets(
     const value = rec[field];
     if (typeof value !== 'string') continue;
     const key = secretSlotKey(section, field);
+    if (value === '' && !lastPersisted.has(key)) {
+      // Probe unreadable → conservative skip: we cannot tell a real key
+      // from nothing, so never destroy on an unloaded empty value.
+      if (probeFailed) continue;
+      const slotVal = probed[key];
+      // Real secret sitting in the slot → never destroy it on the basis
+      // of an empty value we never loaded.
+      if (typeof slotVal === 'string' && slotVal !== '' && slotVal !== SECRET_CLEARED) continue;
+      // Slot missing/empty/cleared → explicit clear or harmless no-op;
+      // fall through so the tombstone still lands.
+    }
     // DIFF, don't blind-write. Two jobs in one:
     //  • no change in THIS context → skip (no fresh-IV churn in local);
     //  • value equal to our baseline while ANOTHER context updated the slot
@@ -412,6 +445,7 @@ async function loadSecrets(
     console.warn('[Kivara secret-store] local slot read failed', err);
   }
   const migrate: Record<string, unknown> = {};
+  const migratedBaselines: Array<{ key: string; plain: string }> = [];
   for (const { section, field } of SECRET_FIELDS) {
     const node = state[section];
     if (!node || typeof node !== 'object') continue;
@@ -439,7 +473,13 @@ async function loadSecrets(
       const plain = await decryptSecret(legacy);
       rec[field] = plain;
       migrate[key] = isEncrypted(plain) ? legacy : await encryptSecret(plain);
-      lastPersisted.set(key, plain);
+      // Baseline is registered ONLY after the migration write below
+      // succeeds. If io.set fails and we had already recorded `plain`, the
+      // next save would see value === baseline, skip the slot write, and
+      // then blank the sync copy — destroying the only copy of a legacy
+      // key. Deferring keeps the retry path alive (no baseline → non-empty
+      // values still write).
+      migratedBaselines.push({ key, plain });
       continue;
     }
     rec[field] = '';
@@ -449,6 +489,7 @@ async function loadSecrets(
   if (Object.keys(migrate).length > 0) {
     try {
       await io.set(migrate); // best-effort — sync copy is blanked on save
+      for (const { key, plain } of migratedBaselines) lastPersisted.set(key, plain);
     } catch (err) {
       console.warn('[Kivara secret-store] migration write failed', err);
     }

@@ -888,7 +888,7 @@ function AiByokSection() {
             {test.state === 'ok' && (
               <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 size={11} />
-                {test.cached ? t('set.cacheHit') : `${test.provider} respondió en ${test.latencyMs} ms`}
+                {test.cached ? t('set.cacheHit') : t('set.providerLatency', { provider: test.provider, ms: test.latencyMs })}
               </span>
             )}
             {test.state === 'error' && (
@@ -1254,8 +1254,8 @@ function DonateBtn({ href, icon, label }: { href: string; icon: React.ReactNode;
       target="_blank"
       rel="noopener noreferrer"
       className="p-1.5 rounded-md text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/60 dark:hover:bg-indigo-500/10 transition-colors"
-      title={`Donar vía ${label}`}
-      aria-label={`Donar vía ${label}`}
+      title={t('common.donateVia', { label })}
+      aria-label={t('common.donateVia', { label })}
     >
       {icon}
     </a>

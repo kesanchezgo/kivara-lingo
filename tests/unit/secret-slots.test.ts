@@ -294,6 +294,58 @@ describe('secret slots', () => {
     }
   });
 
+  it('first save without a baseline never destroys a slot it never loaded', async () => {
+    // The exact 🟠 scenario: no sync blob (getItem → null), so
+    // loadSecrets/pullSecretsFromLocal never ran in this context → no
+    // baseline. A real key sits in the local slot from another context.
+    // NOTE: stubLocalSlots shares the salt across fresh module instances
+    // (the default setup.ts mock is a no-op, so each freshContext would
+    // otherwise mint its own salt and decrypt would preserve ciphertext).
+    const stub = stubLocalSlots();
+    try {
+      const key = secretSlotKey('ai', 'apiKey');
+      const seed = await freshContext();
+      const io = makeIO();
+      await seed.pushSecretsToLocal(stateWith({ ai: { apiKey: 'sk-survivor' } }), io);
+      const before = io.data.get(key);
+      expect(typeof before).toBe('string');
+      expect(before).not.toBe('');
+
+      // Fresh context WITHOUT pullSecretsFromLocal: baseline is empty, the
+      // in-memory value is ''. An unrelated toggle triggers this save.
+      const mod = await freshContext();
+      const ok = await mod.pushSecretsToLocal(stateWith({}), io);
+      expect(ok).toBe(true);
+      expect(io.data.get(key)).toBe(before); // untouched, no tombstone
+      // And the surviving key still decrypts.
+      expect(await mod.decryptSecret(io.data.get(key) as string)).toBe('sk-survivor');
+    } finally {
+      stub.restore();
+    }
+  });
+
+  it('deferred migration baseline survives a failed slot write', async () => {
+    // loadSecrets must NOT record the baseline when io.set throws: the
+    // next save would otherwise see value === baseline, skip the slot
+    // write and blank the sync copy — losing the only copy of the key.
+    const cipher = await encryptSecret('legacy-retry');
+    const io = makeIO();
+    io.failWrites = true;
+    const state = stateWith({ ankiMapping: { apiKey: cipher } });
+    await pullSecretsFromLocal(state, io);
+    expect(state.ankiMapping.apiKey).toBe('legacy-retry');
+    // Slot write failed → nothing parked, and crucially NO baseline, so
+    // the retry still writes.
+    expect(io.data.has(secretSlotKey('ankiMapping', 'apiKey'))).toBe(false);
+
+    io.failWrites = false;
+    const ok = await pushSecretsToLocal(state, io);
+    expect(ok).toBe(true);
+    const slot = io.data.get(secretSlotKey('ankiMapping', 'apiKey')) as string;
+    expect(isEncrypted(slot)).toBe(true);
+    expect(await decryptSecret(slot)).toBe('legacy-retry');
+  });
+
   it('covers every declared secret field with a unique slot key', () => {
     const keys = SECRET_FIELDS.map((f) => secretSlotKey(f.section, f.field));
     expect(new Set(keys).size).toBe(SECRET_FIELDS.length);

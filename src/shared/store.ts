@@ -301,6 +301,10 @@ export interface KivaraState {
  */
 
 const fallbackStorage = new Map<string, string>();
+/** Last blob THIS context wrote per storage key — used to recognise our own
+ * onChanged echo (skip the pointless rehydrate) and to invalidate the
+ * write-through fallback only on genuine REMOTE changes. */
+const lastSyncWrite = new Map<string, string>();
 
 /** SAVE: extract secrets into local slots. `pushSecretsToLocal` handles
  * both outcomes internally — slots written (state blanked) or local write
@@ -353,6 +357,20 @@ async function openFromSync(raw: string): Promise<string> {
 function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage {
   return {
     async getItem(name: string): Promise<string | null> {
+      // Write-through fallback FIRST: it holds this context's latest write.
+      // It is deleted on genuine remote onChanged events (see below), so a
+      // present entry is always fresher than chrome.storage — which matters
+      // when our own chrome write was slow or failed silently: without this
+      // preference a debounced rehydrate would read the stale blob and
+      // overwrite the adjustments made in the meantime.
+      const fb = fallbackStorage.get(name);
+      if (fb != null) {
+        try {
+          return await openFromSync(fb);
+        } catch {
+          return fb;
+        }
+      }
       let raw: string | null = null;
       try {
         if (typeof chrome !== 'undefined' && chrome.storage?.[area]) {
@@ -362,9 +380,6 @@ function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage {
         }
       } catch {
         // fall through
-      }
-      if (raw == null) {
-        raw = fallbackStorage.get(name) ?? null;
       }
       if (raw == null) return null;
       try {
@@ -380,18 +395,25 @@ function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage {
       } catch {
         toStore = value;
       }
+      // Write-through: the fallback always mirrors our latest write so a
+      // later rehydrate in THIS context reads our value even if the chrome
+      // write is still in flight or failed silently.
+      try {
+        fallbackStorage.set(name, toStore);
+      } catch {
+        // ignore
+      }
+      lastSyncWrite.set(`${area}:${name}`, toStore);
       try {
         if (typeof chrome !== 'undefined' && chrome.storage?.[area]) {
           await chrome.storage[area].set({ [name]: toStore });
           return;
         }
-      } catch {
-        // fall through
-      }
-      try {
-        fallbackStorage.set(name, toStore);
-      } catch {
-        // ignore
+      } catch (err) {
+        // VISIBLE failure — the old code swallowed this, so a quota/
+        // disabled-sync failure silently left chrome.storage stale while
+        // memory moved on; the next rehydrate then "reverted" the UI.
+        console.warn('[Kivara store] chrome.storage.set failed, using in-memory fallback', err);
       }
     },
     async removeItem(name: string): Promise<void> {
@@ -605,6 +627,17 @@ try {
   if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'sync' && Object.prototype.hasOwnProperty.call(changes, STORE_KEY)) {
+        const incoming = (changes as Record<string, { newValue?: unknown }>)[STORE_KEY]?.newValue;
+        // Own echo — our write-through fallback already has this value;
+        // rehydrating would only waste a full decrypt pass.
+        if (typeof incoming === 'string' && incoming === lastSyncWrite.get(`sync:${STORE_KEY}`)) return;
+        // Genuine REMOTE change: drop our write-through copy so the
+        // rehydrate reads the fresh chrome.storage blob.
+        try {
+          fallbackStorage.delete(STORE_KEY);
+        } catch {
+          // ignore
+        }
         scheduleRehydrate();
         return;
       }

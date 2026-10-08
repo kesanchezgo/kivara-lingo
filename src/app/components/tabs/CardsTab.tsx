@@ -591,10 +591,10 @@ function ConnDot({ state }: { state: ConnectionState }) {
 
 function ConnPill({ state }: { state: ConnectionState }) {
   const meta =
-    state === 'connected'  ? { label: 'activo',       pill: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' } :
-    state === 'connecting' ? { label: 'conectando…',  pill: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300' } :
+    state === 'connected'  ? { label: t('cards.connActive'),     pill: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' } :
+    state === 'connecting' ? { label: t('cards.connConnecting'),  pill: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300' } :
     state === 'error'      ? { label: t('cards.offline'), pill: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300' } :
-                             { label: 'inactivo',     pill: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400' };
+                             { label: t('cards.connInactive'),   pill: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400' };
   return (
     <span className={`inline-flex items-center gap-1 text-[10px] font-semibold normal-case tracking-normal px-1.5 py-0.5 rounded ${meta.pill}`}>
       <ConnDot state={state} />
