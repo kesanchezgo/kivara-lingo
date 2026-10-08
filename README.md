@@ -1,6 +1,6 @@
 # Kivara Lingo
 
-> Aprende idiomas mientras ves tu serie favorita. Subtítulos personalizables, popover enriquecido con 36 fuentes de red + diccionarios offline, tarjetas Anki en un clic con frame y audio exacto de la frase.
+> Aprende idiomas mientras ves tu serie favorita. Subtítulos personalizables, popover enriquecido con 41 fuentes de red + diccionarios offline, tarjetas Anki en un clic con frame y audio exacto de la frase.
 
 **Kivara Lingo** es una extensión Chrome real (Manifest V3) que se monta sobre reproductores de streaming (Netflix, HBO Max, Disney+, YouTube, Prime Video) y convierte sus subtítulos en una herramienta de aprendizaje de vocabulario integrada con Anki. Al pasar el ratón sobre una palabra o expresión multi-palabra obtienes fonética, traducción, sinónimos, antónimos, colocaciones, etimología e imágenes; con un clic generas una tarjeta Anki con el audio exacto de la frase y el fotograma del momento (las imágenes web quedan como fallback).
 
@@ -13,11 +13,11 @@
 - **Subtítulos personalizables**: tamaño, color, peso, sombra, fondo, opacidad y posición (arriba / medio / abajo).
 - **Tokenización inteligente con MWE**: detecta expresiones multi-palabra (*these days*, *kick the bucket*, *look up*) usando un índice de 13 501 frases de Wiktionary + lematización de inflexiones (*kicked the bucket* → *kick the bucket*).
 - **Popover con resolución en streaming**: la información esencial aparece en < 1 s (datos locales + traducción); el resto llega en fases mientras ves la serie. Un footer "buscando más…" indica que el enriquecimiento sigue en curso.
-- **Enriquecimiento multi-fuente**: 20 fuentes Standard de red (siempre activas, sin clave) + 16 fuentes VIP (toggle) + capa de IA opcional. Palabra polisémica resuelta por acepción de la frase (`run` empresa → `dirigir`, no `correr`).
+- **Enriquecimiento multi-fuente**: 24 fuentes Standard de red (siempre activas, sin clave) + 17 fuentes VIP (toggle) + capa de IA opcional. Palabra polisémica resuelta por acepción de la frase (`run` empresa → `dirigir`, no `correr`).
 - **Tarjetas Anki en un clic**: vía AnkiConnect, con mapeo configurable de campos. Incluye el audio exacto de la frase (ring buffer + VAD, fallback TTS avisado) y el mejor fotograma del cue (con fallback a imagen web). `Alt+V` re-captura el frame.
 - **Caché inteligente**: LRU en memoria (300 entradas) + IndexedDB con TTL configurable. Re-hover = ~0 ms.
 - **Modo Lectura**: oculta toda la UI de aprendizaje y deja solo subtítulos estilizados.
-- **Atajos de teclado**: `Ctrl+S` guardar, `Alt+C` toggle subtítulos, `Alt+R` repetir frase, `Alt+K` toggle panel.
+- **Atajos de teclado**: `Ctrl+S` guardar, `Alt+C` toggle subtítulos, `Alt+R` repetir frase, `Alt+V` re-capturar frame, `Alt+K` toggle panel. Combos de página personalizables en Settings (los comandos Chrome se re-asignan en `chrome://extensions/shortcuts`).
 - **Tema claro y oscuro**, panel acoplado o flotante.
 
 ---
@@ -69,7 +69,7 @@ El build usa **Vite + `@crxjs/vite-plugin`** y produce la carpeta `dist/` lista 
 │  Service Worker (src/background/)                           │
 │  ├── resolve-word.ts      fases: local→translation→         │
 │  │                        enrichment→ai→done (streaming)    │
-│  ├── enrichment/          orquestador + hasta 36 fuentes    │
+│  ├── enrichment/          orquestador + 41 fuentes             │
 │  ├── translate-providers  MyMemory ∥ Lingva (raced)         │
 │  ├── anki-connect.ts      proxy CORS-free a AnkiConnect     │
 │  ├── ai-providers.ts      OpenAI / Anthropic / Gemini       │
@@ -93,7 +93,7 @@ El content script abre un puerto al service worker y recibe fases a medida que e
 |---|---|---|
 | `local` | datos bundled + Yomitan packs | < 1 ms |
 | `translation` | traducción (MyMemory ∥ Lingva) | ~200–500 ms |
-| `enrichment` | 20–36 fuentes en paralelo | ~300–2000 ms |
+| `enrichment` | 41 fuentes en paralelo | ~300–2000 ms |
 | `ai` | mnemónico, etimología, registro | ~1–3 s (si activo) |
 | `done` | señal de fin | — |
 
@@ -120,15 +120,17 @@ Datos bundled que viajan con la extensión (chunk dictionary ~2.3 MB tras el tri
 | `en-mwe-index.json` | 13 501 | Índice de frases Wiktionary (idioms + phrasals + proverbs) |
 | Curado propio | 7 verbos | Pares verbo-objeto offline (`run fast`, `forget your keys`, `know the answer`…) |
 
-### Standard (20 fuentes, siempre activo, sin clave)
+### Standard (24 fuentes, siempre activo, sin clave)
 
-Free Dictionary API · Datamuse · Wiktionary REST · **Wiktionary HTML** (etimología + sinónimos + antónimos + términos relacionados, con fallback phrasal) · WiktionaryAPI (freedictionaryapi.com) · Moby Thesaurus · **Thesaurus.com** (antónimos para sustantivos técnicos/abstractos) · **WordHippo** (antónimos para MWEs/phrasals/idioms) · **The Idioms** (etimología de idioms) · Etymonline · Tatoeba · Lingua Libre · Google TTS · Bing Images · Openverse · Wikimedia Commons · DuckDuckGo Images · YouGlish · MyMemory · Lingva
+Free Dictionary API · Datamuse · Wiktionary REST · **Wiktionary HTML** (etimología + sinónimos + antónimos + términos relacionados, con fallback phrasal) · WiktionaryAPI (freedictionaryapi.com) · WiktAPI · Britannica Dictionary · Moby Thesaurus · **Thesaurus.com** (antónimos para sustantivos técnicos/abstractos) · **WordHippo** (antónimos para MWEs/phrasals/idioms) · **The Idioms** (etimología de idioms) · Etymonline · Tatoeba · Lingua Libre · Google TTS · Bing Images · Openverse · Wikimedia Commons · DuckDuckGo Images · YouGlish · MyMemory · Lingva · Bundled · Yomitan packs · WordNet
 
 **Cobertura medida (corpus 15 tokens × 2 tiers, 30 tarjetas, 0 errores, 2026-10-07):** Standard traducción/definición/ejemplos 15/15, IPA 13/15 (15/15 con packs), syn 9/15, coll 7/15; VIP syn 10/15, coll 8/15, ant 7/15. Vacío controlado donde toca (slang, determinantes, técnico sin antónimo). Ver `docs/reports/final-quality/enrichment-final-2026-10-07.md`.
 
-### VIP (17 fuentes, toggle en Settings)
+### VIP (17 fuentes + 1 reserva, toggle en Settings)
 
-Cambridge · Oxford Learner's · Longman · Dictionary.com · Merriam-Webster · Ozdic (Oxford Collocations) · PONS · bab.la · dict.cc · Reverso · Linguee · PROMT.One Contexts · WordReference · SpanishDict · Forvo · **Unsplash (BYOK)** · **Pixabay (BYOK opcional)**
+Cambridge · Oxford Learner's · Longman · Dictionary.com (reemplaza al toggle legacy `collins`) · Merriam-Webster · Merriam-Webster Thesaurus · Ozdic (Oxford Collocations) · PONS · bab.la · dict.cc · Reverso · Linguee · PROMT.One Contexts · WordReference · SpanishDict · Forvo · **Unsplash (BYOK)** · **Pixabay (BYOK opcional)**
+
+> Nota: el toggle `oxfordCollocations` es un pack local (no fuente de red) y hoy resuelve a `null` — queda como reserva para un futuro pack dedicado.
 
 **Cobertura medida (mismo corpus):** VIP traducción/definición/ejemplos 15/15, IPA 13/15 (15/15 con packs), syn 10/15, coll 8/15, ant 7/15. Ver `docs/reports/final-quality/enrichment-final-2026-10-07.md`.
 
@@ -150,7 +152,7 @@ OpenAI / Anthropic / Google Gemini — genera definición contextual, sinónimos
 
 Abre el panel → **Settings → Enriquecimiento (VIP)**:
 
-- Activa el master toggle para habilitar las 16 fuentes VIP.
+- Activa el master toggle para habilitar las 17 fuentes VIP.
 - Cada fuente tiene su propio checkbox.
 - **Unsplash**: requiere clave gratuita de [unsplash.com/developers](https://unsplash.com/developers) (50 req/h Demo).
 - **Pixabay**: clave opcional de [pixabay.com/api/docs](https://pixabay.com/api/docs) (100 req/min). Sin clave usa scraping.

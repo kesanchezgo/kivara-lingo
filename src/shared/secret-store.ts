@@ -28,25 +28,48 @@ const STORAGE_KEY = 'kivara-secret-store-salt-v1';
 const PREFIX = 'enc:v1:'; // versioned so we can rotate the schema later
 
 let cachedKey: CryptoKey | null = null;
+// Single-flight lock so concurrent first-run callers (SW + content script)
+// don't generate divergent salts. Module-level per context; combined with
+// re-read-after-write below it converges across contexts too.
+let saltPromise: Promise<string> | null = null;
 
 async function getOrCreateSalt(): Promise<string> {
-  try {
-    const found = await chrome.storage.local.get(STORAGE_KEY);
-    const existing = found[STORAGE_KEY];
-    if (typeof existing === 'string' && existing.length >= 32) return existing;
-  } catch {
-    /* fall through */
-  }
+  if (saltPromise) return saltPromise;
+  saltPromise = (async () => {
+    try {
+      const found = await chrome.storage.local.get(STORAGE_KEY);
+      const existing = found[STORAGE_KEY];
+      if (typeof existing === 'string' && existing.length >= 32) return existing;
+    } catch {
+      /* fall through */
+    }
 
-  const random = new Uint8Array(32);
-  crypto.getRandomValues(random);
-  const salt = Array.from(random, (b) => b.toString(16).padStart(2, '0')).join('');
+    const random = new Uint8Array(32);
+    crypto.getRandomValues(random);
+    const salt = Array.from(random, (b) => b.toString(16).padStart(2, '0')).join('');
+    try {
+      await chrome.storage.local.set({ [STORAGE_KEY]: salt });
+    } catch (err) {
+      console.warn('[Kivara secret-store] could not persist salt', err);
+      return salt;
+    }
+    // Re-read after write: if another context won the race and wrote its
+    // own salt first/last, converge on the stored value instead of our
+    // local candidate so all callers derive the same key going forward.
+    try {
+      const check = await chrome.storage.local.get(STORAGE_KEY);
+      const stored = check[STORAGE_KEY];
+      if (typeof stored === 'string' && stored.length >= 32) return stored;
+    } catch {
+      /* fall through, use local candidate */
+    }
+    return salt;
+  })();
   try {
-    await chrome.storage.local.set({ [STORAGE_KEY]: salt });
-  } catch (err) {
-    console.warn('[Kivara secret-store] could not persist salt', err);
+    return await saltPromise;
+  } finally {
+    saltPromise = null;
   }
-  return salt;
 }
 
 async function deriveKey(): Promise<CryptoKey> {
@@ -137,7 +160,13 @@ export async function encryptSecret(plaintext: string): Promise<string> {
 /**
  * Decrypt a value previously emitted by `encryptSecret`. If the input is
  * already plaintext (legacy data, migration in progress, …) it's
- * returned unchanged.
+ * returned unchanged. On crypto failure (wrong salt after reinstall, salt
+ * mismatch across devices, corrupt blob) the ORIGINAL CIPHERTEXT is
+ * returned unchanged — never ''. Returning '' would poison the in-memory
+ * store and, on the next persist tick, overwrite the stored ciphertext
+ * with an empty string, permanently deleting the user's key.
+ * Callers that need usable plaintext must check `isEncrypted(result)`:
+ * still-encrypted after decrypt means "unreadable here, but preserved".
  */
 export async function decryptSecret(value: string | undefined | null): Promise<string> {
   if (!value) return '';
@@ -146,7 +175,7 @@ export async function decryptSecret(value: string | undefined | null): Promise<s
   try {
     const key = await deriveKey();
     const blob = fromBase64(value.slice(PREFIX.length));
-    if (blob.length < 13) return '';
+    if (blob.length < 13) return value;
     const iv = blob.slice(0, 12);
     const cipher = blob.slice(12);
     const plain = await crypto.subtle.decrypt(
@@ -156,8 +185,8 @@ export async function decryptSecret(value: string | undefined | null): Promise<s
     );
     return new TextDecoder().decode(plain);
   } catch (err) {
-    console.warn('[Kivara secret-store] decrypt failed', err);
-    return '';
+    console.warn('[Kivara secret-store] decrypt failed, preserving ciphertext', err);
+    return value;
   }
 }
 

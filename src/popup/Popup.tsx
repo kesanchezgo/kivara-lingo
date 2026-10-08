@@ -200,7 +200,7 @@ export function Popup() {
                 Kivara <span className="text-indigo-500 dark:text-indigo-400">Lingo</span>
               </div>
               <div className="text-[10px] text-zinc-400 dark:text-zinc-500 leading-tight">
-                v0.2 · Fase 2
+                v{__APP_VERSION__} · Fase 2
               </div>
             </div>
           </div>

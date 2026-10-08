@@ -1,6 +1,6 @@
 /// <reference types="chrome" />
 
-import { DEFAULT_AI, DEFAULT_TRANSLATE } from '../shared/store';
+import { DEFAULT_AI, DEFAULT_TRANSLATE, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
 import { aiCacheKey, getDB } from '../shared/db';
 import type {
   AiEnrichRequest,
@@ -9,9 +9,7 @@ import type {
   AiSettings,
 } from '../shared/types';
 import { callAiProvider } from './ai-providers';
-import { decryptSecret } from '../shared/secret-store';
-
-const STORE_KEY = 'kivara-lingo-state';
+import { decryptSecret, isEncrypted } from '../shared/secret-store';
 
 const DEBOUNCE_MS = 300;
 let lastCallAt = 0;
@@ -30,9 +28,13 @@ async function loadAiSettings(): Promise<AiSettings> {
       // Transparent decryption — ciphertext stored in chrome.storage,
       // plaintext returned to the caller. See secret-store.ts for the
       // threat model. `decryptSecret` passes plaintext through unchanged
-      // so legacy installs without encrypted keys keep working.
+      // so legacy installs without encrypted keys keep working, and
+      // preserves ciphertext on failure (cross-device salt mismatch) —
+      // treat still-encrypted as "no usable key" so we never send a
+      // ciphertext blob to the provider as if it were a key.
       if (merged.apiKey) {
-        merged.apiKey = await decryptSecret(merged.apiKey);
+        const plain = await decryptSecret(merged.apiKey);
+        merged.apiKey = isEncrypted(plain) ? '' : plain;
       }
       return merged;
     }

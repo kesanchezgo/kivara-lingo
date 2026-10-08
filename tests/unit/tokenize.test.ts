@@ -64,5 +64,21 @@ describe('tokenizeSentence', () => {
     const mwe = tokens.find((t) => t.kind === 'mwe' && t.key === 'look up');
     expect(mwe).toBeDefined();
   });
+
+  it('keeps accented words whole (niño, café, naïve)', () => {
+    // Regression: the ASCII [\w'] regex split "niño" into "ni" + "ño".
+    // The Unicode \\p{L} class keeps accented words as single tokens.
+    for (const word of ['niño', 'café', 'naïve', 'über']) {
+      const tokens = tokenizeSentence(`el ${word} corre`, new Set());
+      const hit = tokens.find((t) => t.text.toLowerCase() === word);
+      expect(hit, `expected whole token "${word}"`).toBeDefined();
+    }
+  });
+
+  it('keeps typographic apostrophes inside words (l’amour, don’t)', () => {
+    const tokens = tokenizeSentence('l’amour don’t stop', new Set());
+    expect(tokens.find((t) => t.text.toLowerCase() === 'l’amour')).toBeDefined();
+    expect(tokens.find((t) => t.text.toLowerCase() === 'don’t')).toBeDefined();
+  });
 });
 

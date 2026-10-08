@@ -534,12 +534,16 @@ chrome.runtime.onMessage.addListener((rawMsg: unknown, _sender, sendResponse) =>
   if (msg.type === 'OFFSCREEN_START_AUDIO_CAPTURE' && msg.streamId) {
     void startCapture(msg.streamId, msg.bufferSizeSec ?? 30).then((result) => {
       sendResponse(result);
+    }, (err) => {
+      sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
     });
     return true;
   }
 
   if (msg.type === 'OFFSCREEN_STOP_AUDIO_CAPTURE') {
-    void stopCapture().then(() => sendResponse({ ok: true }));
+    void stopCapture().then(() => sendResponse({ ok: true }), (err) => {
+      sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    });
     return true;
   }
 
@@ -563,6 +567,8 @@ chrome.runtime.onMessage.addListener((rawMsg: unknown, _sender, sendResponse) =>
       void _pcm;
       void _rate;
       sendResponse(response);
+    }, (err) => {
+      sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
     });
     return true;
   }
@@ -585,6 +591,11 @@ chrome.runtime.onMessage.addListener((rawMsg: unknown, _sender, sendResponse) =>
       void _pcm;
       void _rate;
       sendResponse({ clip: clipOut, transcription });
+    }, (err) => {
+      sendResponse({
+        clip: { ok: false, error: err instanceof Error ? err.message : String(err) },
+        transcription: { ok: false, error: err instanceof Error ? err.message : String(err) },
+      });
     });
     return true;
   }
@@ -595,7 +606,9 @@ chrome.runtime.onMessage.addListener((rawMsg: unknown, _sender, sendResponse) =>
       lang: msg.lang ?? 'en',
       rate: msg.rate,
       pitch: msg.pitch,
-    }).then((result) => sendResponse(result));
+    }).then((result) => sendResponse(result), (err) => {
+      sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    });
     return true;
   }
 

@@ -30,7 +30,7 @@ import type {
 } from '../shared/types';
 import { ankiConnect } from './anki-connect';
 import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator';
-import { DEFAULT_ANKI_MAPPING, DEFAULT_CAPTURE } from '../shared/store';
+import { DEFAULT_ANKI_MAPPING, DEFAULT_CAPTURE, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
 import {
   startAudioCapture,
   stopAudioCapture,
@@ -47,7 +47,6 @@ import { listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackS
 
 console.log('[Kivara Lingo] service worker booting');
 
-const STORE_KEY = 'kivara-lingo-state';
 const RETRY_ALARM = 'kivara-lingo-retry-pending';
 const OFFSCREEN_KEEPALIVE_ALARM = 'kivara-lingo-offscreen-keepalive';
 
@@ -74,57 +73,69 @@ async function ensureOffscreenKeepalive(): Promise<void> {
  * AnkiConnect config by hand.
  */
 const ANKI_DNR_RULE_ID = 9981;
+// Hosts that need the Origin rewrite. Rebuilt by refreshAnkiOriginRules()
+// whenever the user changes their Anki URL — the static manifest rule only
+// covers the 8765 default, and a custom port/remote host would otherwise get
+// rejected by AnkiConnect's webCorsOriginList.
+let ankiDnrHosts: string[] | null = null;
+async function ankiOriginRules(hosts: string[]): Promise<chrome.declarativeNetRequest.Rule[]> {
+  return hosts.slice(0, 8).map((host, i) => ({
+    id: ANKI_DNR_RULE_ID + i,
+    priority: 1,
+    action: {
+      type: 'modifyHeaders' as chrome.declarativeNetRequest.RuleActionType,
+      requestHeaders: [
+        {
+          header: 'Origin',
+          operation: 'set' as chrome.declarativeNetRequest.HeaderOperation,
+          value: 'http://localhost',
+        },
+      ],
+    },
+    condition: {
+      urlFilter: `|http*://${host}/*`,
+      resourceTypes: [
+        'xmlhttprequest' as chrome.declarativeNetRequest.ResourceType,
+      ],
+    },
+  }));
+}
 async function installAnkiOriginRule(): Promise<void> {
   if (!chrome.declarativeNetRequest?.updateSessionRules) return;
   try {
+    const rules = await ankiOriginRules(['127.0.0.1:8765', 'localhost:8765']);
     await chrome.declarativeNetRequest.updateSessionRules({
-      removeRuleIds: [ANKI_DNR_RULE_ID, ANKI_DNR_RULE_ID + 1],
-      addRules: [
-        {
-          id: ANKI_DNR_RULE_ID,
-          priority: 1,
-          action: {
-            type: 'modifyHeaders' as chrome.declarativeNetRequest.RuleActionType,
-            requestHeaders: [
-              {
-                header: 'Origin',
-                operation: 'set' as chrome.declarativeNetRequest.HeaderOperation,
-                value: 'http://localhost',
-              },
-            ],
-          },
-          condition: {
-            urlFilter: '|http*://127.0.0.1:8765/*',
-            resourceTypes: [
-              'xmlhttprequest' as chrome.declarativeNetRequest.ResourceType,
-            ],
-          },
-        },
-        {
-          id: ANKI_DNR_RULE_ID + 1,
-          priority: 1,
-          action: {
-            type: 'modifyHeaders' as chrome.declarativeNetRequest.RuleActionType,
-            requestHeaders: [
-              {
-                header: 'Origin',
-                operation: 'set' as chrome.declarativeNetRequest.HeaderOperation,
-                value: 'http://localhost',
-              },
-            ],
-          },
-          condition: {
-            urlFilter: '|http*://localhost:8765/*',
-            resourceTypes: [
-              'xmlhttprequest' as chrome.declarativeNetRequest.ResourceType,
-            ],
-          },
-        },
-      ],
+      removeRuleIds: Array.from({ length: 10 }, (_, i) => ANKI_DNR_RULE_ID + i),
+      addRules: rules,
     });
+    ankiDnrHosts = ['127.0.0.1:8765', 'localhost:8765'];
     console.log('[Kivara Lingo] AnkiConnect Origin rewrite rule installed');
   } catch (err) {
     console.warn('[Kivara Lingo] could not install AnkiConnect DNR rule', err);
+  }
+}
+/** Rebuild the Origin-rewrite rules for the user's ACTUAL Anki URL
+ * (custom port or remote host). No-op when the hosts already match. */
+export async function refreshAnkiOriginRules(ankiUrl?: string): Promise<void> {
+  if (!chrome.declarativeNetRequest?.updateSessionRules) return;
+  try {
+    const raw = (ankiUrl ?? '').trim() || 'http://127.0.0.1:8765';
+    const withoutScheme = raw.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+    const host = withoutScheme.split('/')[0] || '127.0.0.1:8765';
+    const hosts = host.includes('127.0.0.1')
+      ? [host, host.replace('127.0.0.1', 'localhost')]
+      : host.includes('localhost')
+        ? [host, host.replace('localhost', '127.0.0.1')]
+        : [host];
+    if (ankiDnrHosts && ankiDnrHosts.join('|') === hosts.join('|')) return;
+    const rules = await ankiOriginRules(hosts);
+    await chrome.declarativeNetRequest.updateSessionRules({
+      removeRuleIds: Array.from({ length: 10 }, (_, i) => ANKI_DNR_RULE_ID + i),
+      addRules: rules,
+    });
+    ankiDnrHosts = hosts;
+  } catch (err) {
+    console.warn('[Kivara Lingo] could not refresh AnkiConnect DNR rule', err);
   }
 }
 
@@ -183,6 +194,10 @@ function asJson<T>(value: T): any {
 onMessage('CREATE_CARD', async ({ data }) => {
   const request = data as unknown as CreateCardRequest;
   const [mapping, capture] = await Promise.all([loadMapping(), loadCaptureSettings()]);
+  // Keep the Origin-rewrite rules in sync with the user's actual Anki URL
+  // (custom port / remote host) so a non-default setup isn't rejected by
+  // AnkiConnect's webCorsOriginList.
+  void refreshAnkiOriginRules(mapping.ankiUrl);
   const response: CreateCardResponse = await createCardFromRequest(request, mapping, capture);
   if (response.ok) {
     console.log('[Kivara Lingo] note created:', response.noteId);

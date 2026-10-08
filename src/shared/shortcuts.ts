@@ -8,7 +8,10 @@
  *  - `save`    — `save_word` chrome command (manifest.json), default Ctrl+S.
  *  - `toggle`  — `toggle_subtitles`, default Alt+C.
  *  - `replay`  — `repeat_cue`, default Alt+R.
- *  - `recap`   — content-script-only hotkey (Alt+V) wired in `src/content/ui/App.tsx`.
+ *  - `recap`   — `recapture_frame` chrome command (manifest.json),
+ *    default Alt+V. Also honoured by the in-page keydown listener so a
+ *    user-customised combo keeps working even though chrome.commands
+ *    itself can't be re-bound programmatically.
  *  - `panel`   — `toggle_panel`, default Alt+K.
  *
  * The chrome.commands API can only be re-bound by the user via

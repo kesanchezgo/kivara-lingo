@@ -7,6 +7,7 @@ import { SubtitleOverlay } from './SubtitleOverlay';
 import { applyCleanupCss } from './cleanup-css';
 import { useKivaraStore } from '../../shared/store';
 import { captureFrame, captureBestFrame } from '../capture/frame';
+import { comboFromEvent } from '../../shared/shortcuts';
 import type {
   CreateCardRequest,
   CreateCardResponse,
@@ -85,6 +86,33 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   } = useKivaraStore();
 
   const [activeCue, setActiveCue] = useState<ActiveCue | null>(null);
+  // Words already saved to the user's Anki deck — pre-fetched once per
+  // video mount via the ANKI_SAVED_WORDS handler so subtitles show the
+  // green "saved" highlight from the first frame (previously the prop
+  // was never passed and every word started unsaved).
+  const [initialSavedWords, setInitialSavedWords] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { ankiMapping } = useKivaraStore.getState();
+        if (!ankiMapping.deckName) return;
+        const response = (await sendMessage(
+          'ANKI_SAVED_WORDS',
+          { deckName: ankiMapping.deckName },
+          'background',
+        )) as { words?: string[] } | undefined;
+        if (!cancelled && Array.isArray(response?.words)) {
+          setInitialSavedWords(new Set(response.words.map((w) => String(w).toLowerCase())));
+        }
+      } catch {
+        // Anki unreachable — overlay simply starts with no highlights.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [videoElement]);
   // Tier 1.2: tracks the most recently saved Anki note so the
   // `recapture_frame` hotkey can patch its frame field in-place.
   const lastSavedNoteRef = useRef<{
@@ -528,8 +556,83 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     };
   }, [videoElement]);
 
-  // Bridge runtime messages (from background) → local actions.
+  // User-customisable in-page hotkeys. The chrome.commands API can't be
+  // re-bound programmatically, so the combos the user edits in SettingsTab
+  // live in `store.shortcuts` and are honoured HERE via a capture-phase
+  // keydown listener. Manifest commands (Ctrl+S / Alt+C / Alt+R / Alt+K /
+  // Alt+V) still arrive as RUN_COMMAND messages below; this listener only
+  // fires for combos whose CURRENT user mapping differs from the manifest
+  // default (e.g. the user rebound recapture to Alt+G) — otherwise the
+  // same keypress would trigger twice (once here, once via chrome.commands).
+  // Chrome-managed defaults are therefore SKIPPED here; only custom
+  // (non-default) combos are handled in-page.
   useEffect(() => {
+    const DEFAULTS = new Set(['Ctrl+S', 'Alt+C', 'Alt+R', 'Alt+V', 'Alt+K']);
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      const combo = comboFromEvent(e);
+      if (!combo || DEFAULTS.has(combo)) return;
+      const map = useKivaraStore.getState().shortcuts;
+      if (map.recap && combo === map.recap) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.dispatchEvent(new CustomEvent('kivara-recapture-frame'));
+      } else if (map.panel && combo === map.panel) {
+        e.preventDefault();
+        e.stopPropagation();
+        setPanelOpen(!useKivaraStore.getState().panelOpen);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [setPanelOpen]);
+
+  // Bridge runtime messages (from background) → local actions.
+  // Also listens for the in-page `kivara-recapture-frame` event fired by
+  // the user-shortcut listener above when the user rebound recapture to
+  // a non-manifest combo (manifest Alt+V arrives as RUN_COMMAND instead).
+  useEffect(() => {
+    const doRecaptureFrame = () => {
+      // Tier 1.2: re-capture the current video frame and patch the
+      // most recently saved Anki note. Useful when the auto-captured
+      // frame caught a transition / fade / loading spinner.
+      const ref = lastSavedNoteRef.current;
+      if (!videoElement || !ref) {
+        toast.message(
+          'No hay tarjeta reciente que actualizar',
+          { duration: 1800 },
+        );
+        return;
+      }
+      void captureFrame(videoElement).then(async (frameDataUrl) => {
+        if (!frameDataUrl) {
+          toast.error('No se pudo capturar el frame');
+          return;
+        }
+        try {
+          const response = (await sendMessage(
+            'UPDATE_NOTE_FRAME',
+            {
+              noteId: ref.noteId,
+              fieldName: ref.fieldName,
+              frame: frameDataUrl,
+            },
+            'background',
+          )) as { ok: boolean; error?: string };
+          if (response?.ok) {
+            toast.success('Frame actualizado', { duration: 1600 });
+          } else {
+            toast.error(response?.error ?? 'Error actualizando frame');
+          }
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : 'desconocido';
+          toast.error(`Error actualizando frame: ${reason}`);
+        }
+      });
+    };
     const handler = (msg: { type?: string; command?: string }) => {
       if (msg?.type === 'TOGGLE_PANEL') {
         setPanelOpen(!useKivaraStore.getState().panelOpen);
@@ -569,45 +672,9 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
               void videoElement.play().catch(() => {});
             }
             break;
-          case 'recapture_frame': {
-            // Tier 1.2: re-capture the current video frame and patch the
-            // most recently saved Anki note. Useful when the auto-captured
-            // frame caught a transition / fade / loading spinner.
-            const ref = lastSavedNoteRef.current;
-            if (!videoElement || !ref) {
-              toast.message(
-                'No hay tarjeta reciente que actualizar',
-                { duration: 1800 },
-              );
-              break;
-            }
-            void captureFrame(videoElement).then(async (frameDataUrl) => {
-              if (!frameDataUrl) {
-                toast.error('No se pudo capturar el frame');
-                return;
-              }
-              try {
-                const response = (await sendMessage(
-                  'UPDATE_NOTE_FRAME',
-                  {
-                    noteId: ref.noteId,
-                    fieldName: ref.fieldName,
-                    frame: frameDataUrl,
-                  },
-                  'background',
-                )) as { ok: boolean; error?: string };
-                if (response?.ok) {
-                  toast.success('Frame actualizado', { duration: 1600 });
-                } else {
-                  toast.error(response?.error ?? 'Error actualizando frame');
-                }
-              } catch (err) {
-                const reason = err instanceof Error ? err.message : 'desconocido';
-                toast.error(`Error actualizando frame: ${reason}`);
-              }
-            });
+          case 'recapture_frame':
+            doRecaptureFrame();
             break;
-          }
           case 'show_translation':
             // Translation is already shown automatically on hover. Kept here
             // so unknown commands don't fall through to the default warning,
@@ -619,8 +686,13 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
         }
       }
     };
+    const onRecaptureEvent = () => doRecaptureFrame();
     chrome.runtime.onMessage.addListener(handler);
-    return () => chrome.runtime.onMessage.removeListener(handler);
+    window.addEventListener('kivara-recapture-frame', onRecaptureEvent);
+    return () => {
+      chrome.runtime.onMessage.removeListener(handler);
+      window.removeEventListener('kivara-recapture-frame', onRecaptureEvent);
+    };
   }, [activeCue, setPanelOpen, videoElement]);
 
   const ensureSubtitleAudioReady = useCallback(async (): Promise<SubtitleAudioAnchor> => {
@@ -756,6 +828,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
           saveRequestKey={saveTick}
           onSaveCard={handleSaveCard}
           onTokenHoverChange={handleTokenHoverChange}
+          initialSavedWords={initialSavedWords}
         />
       </div>,
       videoOverlayRoot,

@@ -63,22 +63,41 @@ async function hasOffscreenDocument(): Promise<boolean> {
   return false;
 }
 
+let ensureOffscreenPromise: Promise<void> | null = null;
+
 async function ensureOffscreen(): Promise<void> {
-  if (await hasOffscreenDocument()) return;
-  // We list every reason we use across the whole app so a single offscreen
-  // document can serve capture (USER_MEDIA), TTS fallback (AUDIO_PLAYBACK)
-  // and Whisper.cpp WASM transcription (WORKERS-friendly compute).
-  const reasons = [
-    'USER_MEDIA',
-    'AUDIO_PLAYBACK',
-    'WORKERS',
-  ] as chrome.offscreen.Reason[];
-  await chrome.offscreen.createDocument({
-    url: OFFSCREEN_URL,
-    reasons,
-    justification:
-      'Tab audio capture, on-device speech synthesis (TTS fallback) and Whisper.cpp transcription for language learning cards.',
-  });
+  // Single-flight lock: concurrent callers (capture start + TTS fallback +
+  // transcription) used to race hasDocument → createDocument, and the loser
+  // threw when the document already existed.
+  if (ensureOffscreenPromise) return ensureOffscreenPromise;
+  ensureOffscreenPromise = (async () => {
+    if (await hasOffscreenDocument()) return;
+    // We list every reason we use across the whole app so a single offscreen
+    // document can serve capture (USER_MEDIA), TTS fallback (AUDIO_PLAYBACK)
+    // and Whisper.cpp WASM transcription (WORKERS-friendly compute).
+    const reasons = [
+      'USER_MEDIA',
+      'AUDIO_PLAYBACK',
+      'WORKERS',
+    ] as chrome.offscreen.Reason[];
+    try {
+      await chrome.offscreen.createDocument({
+        url: OFFSCREEN_URL,
+        reasons,
+        justification:
+          'Tab audio capture, on-device speech synthesis (TTS fallback) and Whisper.cpp transcription for language learning cards.',
+      });
+    } catch (err) {
+      // Lost the race with another context that created it first — not fatal.
+      if (await hasOffscreenDocument()) return;
+      throw err;
+    }
+  })();
+  try {
+    await ensureOffscreenPromise;
+  } finally {
+    ensureOffscreenPromise = null;
+  }
 }
 
 async function loadStoredSession(): Promise<AudioCaptureSession | null> {

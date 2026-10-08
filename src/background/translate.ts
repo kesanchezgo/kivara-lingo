@@ -8,13 +8,11 @@ import type {
   TranslateResponse,
   TranslateSettings,
 } from '../shared/types';
-import { DEFAULT_TRANSLATE } from '../shared/store';
+import { DEFAULT_TRANSLATE, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
 import { callChain, callChainRaced, callOne } from './translate-providers';
 import type { ChainStep } from './translate-providers';
 import { getDB, translationCacheKey } from '../shared/db';
-import { decryptSecret } from '../shared/secret-store';
-
-const STORE_KEY = 'kivara-lingo-state';
+import { decryptSecret, isEncrypted } from '../shared/secret-store';
 
 let lastCallAt = 0;
 const DEBOUNCE_MS = 200;
@@ -65,10 +63,20 @@ async function loadSettings(): Promise<TranslateSettings> {
       // Transparent decryption of premium provider tokens. Cleartext
       // values are passed through unchanged so legacy installs and
       // self-hosted LibreTranslate without a key keep working.
-      if (merged.deeplToken) merged.deeplToken = await decryptSecret(merged.deeplToken);
-      if (merged.googleToken) merged.googleToken = await decryptSecret(merged.googleToken);
+      // Still-encrypted after decrypt = unreadable here (cross-device
+      // salt mismatch) — treat as missing so we never send a ciphertext
+      // blob to the provider as if it were a key.
+      if (merged.deeplToken) {
+        const plain = await decryptSecret(merged.deeplToken);
+        merged.deeplToken = isEncrypted(plain) ? '' : plain;
+      }
+      if (merged.googleToken) {
+        const plain = await decryptSecret(merged.googleToken);
+        merged.googleToken = isEncrypted(plain) ? '' : plain;
+      }
       if (merged.libreTranslateToken) {
-        merged.libreTranslateToken = await decryptSecret(merged.libreTranslateToken);
+        const plain = await decryptSecret(merged.libreTranslateToken);
+        merged.libreTranslateToken = isEncrypted(plain) ? '' : plain;
       }
       return merged;
     }

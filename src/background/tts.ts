@@ -3,10 +3,8 @@
 import type { TtsResponse, TtsSettings } from '../shared/types';
 import { speakViaOffscreen } from './audio-capture-manager';
 import { getAiSettings } from './ai-enrich';
-import { DEFAULT_TTS } from '../shared/store';
-import { decryptSecret } from '../shared/secret-store';
-
-const STORE_KEY = 'kivara-lingo-state';
+import { DEFAULT_TTS, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
+import { decryptSecret, isEncrypted } from '../shared/secret-store';
 
 /** Read the persisted TTS settings from chrome.storage.sync. Decrypts
  *  the ElevenLabs API key transparently. */
@@ -20,7 +18,8 @@ async function getTtsSettings(): Promise<TtsSettings> {
     if (tts && typeof tts === 'object') {
       const merged: TtsSettings = { ...DEFAULT_TTS, ...tts };
       if (merged.elevenLabsApiKey) {
-        merged.elevenLabsApiKey = await decryptSecret(merged.elevenLabsApiKey);
+        const plain = await decryptSecret(merged.elevenLabsApiKey);
+        merged.elevenLabsApiKey = isEncrypted(plain) ? '' : plain;
       }
       return merged;
     }

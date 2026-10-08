@@ -51,6 +51,11 @@ interface InvokeOptions {
   url?: string;
   apiKey?: string;
   timeoutMs?: number;
+  /** Media-heavy calls (addNote with audio+picture) need a longer budget
+   * than the 4 s default — a slow Anki that created the note but answered
+   * late used to read as TIMEOUT, and the localhost fallback then created
+   * the SAME note a second time. Callers carrying media pass a higher
+   * timeout instead of risking a duplicate. */
 }
 
 async function invokeOnce<T = unknown>(
@@ -201,7 +206,12 @@ export const ankiConnect = {
   },
 
   async addNote(note: AnkiNote, url?: string, apiKey?: string): Promise<number> {
-    return invoke<number>('addNote', { note }, { url, apiKey });
+    // Media uploads (audio clip + frame JPEG) routinely exceed the 4 s
+    // default on a cold Anki: without the longer budget a slow-but-created
+    // note reads as TIMEOUT and the 127.0.0.1↔localhost fallback creates
+    // it a SECOND time. 15 s keeps the duplicate path shut in practice.
+    const hasMedia = (note.audio?.length ?? 0) > 0 || (note.picture?.length ?? 0) > 0;
+    return invoke<number>('addNote', { note }, { url, apiKey, timeoutMs: hasMedia ? 15000 : undefined });
   },
 
   /**

@@ -51,4 +51,20 @@ describe('secret-store', () => {
     expect(maskSecret('')).toBe('');
     expect(maskSecret(null)).toBe('');
   });
+
+  it('decrypt failure preserves ciphertext instead of returning empty', async () => {
+    // Regression: decryptSecret used to return '' on failure (wrong salt
+    // after reinstall / cross-device salt mismatch). The store then wrote
+    // '' back over the ciphertext on the next persist tick, permanently
+    // deleting the user's key. Now the ciphertext survives.
+    const garbage = 'enc:v1:' + btoa('not-a-real-iv+cipher-blob-0123456789');
+    const result = await decryptSecret(garbage);
+    expect(result).toBe(garbage);
+    expect(isEncrypted(result)).toBe(true);
+  });
+
+  it('short blobs are preserved, not blanked', async () => {
+    const short = 'enc:v1:AAAA';
+    expect(await decryptSecret(short)).toBe(short);
+  });
 });

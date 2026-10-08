@@ -18,6 +18,11 @@ function figmaAssetResolver() {
 }
 
 export default defineConfig({
+  define: {
+    // Single version source: manifest.json. Popup/options read it at build
+    // time instead of hardcoding "v0.2", so the three can never drift.
+    __APP_VERSION__: JSON.stringify(manifest.version),
+  },
   plugins: [
     figmaAssetResolver(),
     react(),

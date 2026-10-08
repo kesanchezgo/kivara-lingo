@@ -9,7 +9,7 @@ import type {
   FieldSource,
 } from '../shared/types';
 import { DEFAULT_CAPTURE } from '../shared/store';
-import { ankiConnect, dataUrlToBase64, type AnkiMedia } from './anki-connect';
+import { ankiConnect, dataUrlToBase64, AnkiConnectError } from './anki-connect';
 import { translateText, translateToken } from './translate';
 import { extractAudioClip, getAudioCaptureStatus } from './audio-capture-manager';
 import { getDB, type PendingNoteRow } from '../shared/db';
@@ -178,9 +178,9 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
     case 'mnemonic':
       return usable(ctx.mnemonic);
     case 'image':
-      // The wrapper below downloads the URL and attaches it as an
-      // AnkiConnect `pictures[]` entry. We leave the field text empty
-      // so the binary attachment is the only content for this field.
+      // The wrapper below downloads the URL and attaches it via
+      // storeMediaFile + <img> field reference. We leave the field text
+      // empty so the binary attachment is the only content for this field.
       // (When the download fails the warning surfaces and the field
       // stays empty — a legible failure mode.)
       return '';
@@ -284,6 +284,7 @@ export async function createCardFromRequest(
   request: CreateCardRequest,
   mapping: AnkiMapping,
   capture: CaptureSettings = DEFAULT_CAPTURE,
+  options: { fromRetry?: boolean; retryRowId?: number } = {},
 ): Promise<CreateCardResponse> {
   // Validate required mapping fields before attempting any work.
   if (!mapping.deckName) {
@@ -546,7 +547,12 @@ export async function createCardFromRequest(
   // fallback: when a `frame` field is mapped but the live capture
   // failed (e.g. the user saved from a screen with no `<video>`), we
   // fall back to the VIP image so the card still has a picture.
-  const pictures: AnkiMedia[] = [];
+  //
+  // Single-upload rule: every file goes through storeMediaFile EXACTLY
+  // once and `addNote` receives only field references ([sound:] /
+  // <img> tags) — the `picture[]`/`audio[]` arrays stay empty. Passing
+  // both would upload the same blob twice (once via storeMediaFile, once
+  // via addNote's inline media).
   const frameField = fieldMapping.find(([, s]) => s === 'frame')?.[0];
   const imageField = fieldMapping.find(([, s]) => s === 'image')?.[0];
 
@@ -555,7 +561,9 @@ export async function createCardFromRequest(
     try {
       const data = dataUrlToBase64(request.frame);
       await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
-      pictures.push({ filename, data, fields: [frameField] });
+      fields[frameField] = fields[frameField]
+        ? `${fields[frameField]}<img src="${filename}">`
+        : `<img src="${filename}">`;
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'frame';
       warnings.push(`No se pudo guardar el frame: ${reason}`);
@@ -581,7 +589,11 @@ export async function createCardFromRequest(
         const filename = safeFilename(`${request.token}_img`, ext);
         const data = arrayBufferToBase64(buf);
         await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
-        pictures.push({ filename, data, fields: imageTargets });
+        for (const target of imageTargets) {
+          fields[target] = fields[target]
+            ? `${fields[target]}<img src="${filename}">`
+            : `<img src="${filename}">`;
+        }
       } else {
         warnings.push(`Imagen VIP no descargable: HTTP ${res.status}`);
       }
@@ -601,8 +613,7 @@ export async function createCardFromRequest(
   // as a fallback / separate field when present. Audio fields are written
   // explicitly as [sound:...] after storeMediaFile for maximum template
   // compatibility; the AnkiConnect `audio[]` array is intentionally left
-  // empty for these new sources.
-  const audios: AnkiMedia[] = [];
+  // empty for these new sources (single-upload rule — see frame section).
   const sentenceAudioField =
     fieldMapping.find(([, s]) => s === 'sentence-audio')?.[0] ??
     fieldMapping.find(([, s]) => s === 'tabCapture')?.[0];
@@ -723,8 +734,9 @@ export async function createCardFromRequest(
         modelName: mapping.modelName,
         fields,
         tags: ['kivara-lingo', request.platform ?? 'web'].filter(Boolean) as string[],
-        picture: pictures.length ? pictures : undefined,
-        audio: audios.length ? audios : undefined,
+        // Single-upload rule: media already lives on the Anki side via
+        // storeMediaFile + [sound:]/<img> field references above. Passing
+        // picture[]/audio[] here would re-upload every blob.
         options: { allowDuplicate: false, duplicateScope: 'deck' },
       },
       mapping.ankiUrl,
@@ -745,23 +757,44 @@ export async function createCardFromRequest(
     return { ok: true, noteId, warnings };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'addNote failed';
-    // Queue for retry by the alarm.
-    try {
-      await getDB().pending_notes.add({
-        request,
-        retries: 0,
-        lastError: message,
-        createdAt: Date.now(),
-        nextAttemptAt: Date.now() + 60_000,
-      });
-    } catch {
-      // ignore
+    // Queue for retry by the alarm — but NOT when this call already IS a
+    // retry: createCardFromRequest would otherwise add a second row on
+    // every failed attempt (row N fails → retry creates row N+1 → both
+    // retry → exponential row growth). The retry loop updates the
+    // existing row in place instead (see retryPendingNotes).
+    // Permanent errors (bad API key, Anki validation, HTTP 4xx/5xx) are
+    // never queued: retrying them burns the alarm budget for nothing.
+    // Only transport-level failures (NETWORK / TIMEOUT — Anki closed,
+    // sleeping, unreachable) earn a queue slot.
+    const retryable =
+      err instanceof AnkiConnectError &&
+      (err.code === 'NETWORK' || err.code === 'TIMEOUT');
+    if (!options.fromRetry && retryable) {
+      try {
+        await getDB().pending_notes.add({
+          request,
+          retries: 0,
+          lastError: message,
+          createdAt: Date.now(),
+          nextAttemptAt: Date.now() + 60_000,
+        });
+      } catch {
+        // ignore
+      }
     }
     return { ok: false, error: message, warnings };
   }
 }
 
-/** Drain the pending queue. Called by `chrome.alarms`. */
+/** Drain the pending queue. Called by `chrome.alarms`.
+ *
+ * Hard cap: a row that fails MAX_RETRIES times is dropped with its last
+ * error preserved in the console — otherwise a permanently-dead Anki
+ * (wrong URL forever, revoked key) retries once a minute forever and the
+ * queue grows without bound. Transport-only retry (the queue only ever
+ * holds NETWORK/TIMEOUT rows — see createCardFromRequest).
+ */
+const MAX_RETRIES = 10;
 export async function retryPendingNotes(
   mapping: AnkiMapping,
   capture: CaptureSettings = DEFAULT_CAPTURE,
@@ -778,8 +811,25 @@ export async function retryPendingNotes(
   }
   for (const row of rows) {
     if (!row.id) continue;
+    // Dead row: too many attempts. Drop it so the queue can't grow
+    // forever against a permanently-dead Anki endpoint.
+    if (row.retries >= MAX_RETRIES) {
+      try {
+        await db.pending_notes.delete(row.id);
+        console.warn('[Kivara Lingo] dropping pending note after max retries', {
+          token: row.request?.token,
+          lastError: row.lastError,
+        });
+      } catch {
+        // ignore
+      }
+      continue;
+    }
     retried += 1;
-    const result = await createCardFromRequest(row.request, mapping, capture);
+    const result = await createCardFromRequest(row.request, mapping, capture, {
+      fromRetry: true,
+      retryRowId: row.id,
+    });
     if (result.ok) {
       try {
         await db.pending_notes.delete(row.id);

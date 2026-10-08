@@ -334,6 +334,11 @@ async function transformSecrets(
     } else {
       if (!isEncrypted(value)) continue; // legacy plaintext, pass through
       const plain = await decryptSecret(value);
+      // decryptSecret preserves ciphertext on failure — only overwrite when
+      // we actually got plaintext back. Otherwise the unreadable-but-valid
+      // ciphertext stays in memory AND in storage (persist writes it back
+      // unchanged since isEncrypted values are skipped on encrypt).
+      if (isEncrypted(plain)) continue;
       (node as Record<string, unknown>)[field] = plain;
       mutated = true;
     }
@@ -418,6 +423,10 @@ function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage {
 }
 
 const STORE_KEY = 'kivara-lingo-state';
+/** Single source of truth for the chrome.storage key. Background
+ * readers import this instead of re-declaring the literal (six copies
+ * used to drift independently). */
+export const PERSIST_STORE_KEY = STORE_KEY;
 
 /**
  * Defensive merge for persisted state. Zustand's default shallow merge only
@@ -558,8 +567,9 @@ export const useKivaraStore = create<KivaraState>()(
       partialize: (state) => ({
         enabled: state.enabled,
         subtitlesVisible: state.subtitlesVisible,
-        panelOpen: state.panelOpen,
-        isPopupMode: state.isPopupMode,
+        // panelOpen / isPopupMode / audioCaptureActive are per-tab, per-
+        // instant UI state — persisting them to sync opened the panel on
+        // every tab and every device on rehydrate. They stay in memory only.
         isDarkMode: state.isDarkMode,
         mode: state.mode,
         subtitleStyles: state.subtitleStyles,
@@ -587,11 +597,18 @@ export const useKivaraStore = create<KivaraState>()(
 // Cross-context state sync: when another extension context (popup / options /
 // background) writes to chrome.storage.sync, rehydrate this store so the
 // content script picks up the change without a full reload.
+// Debounced (250 ms): a burst of writes (slider drag, rapid toggles) used
+// to trigger one full rehydrate + decrypt pass per write.
+let rehydrateTimer: ReturnType<typeof setTimeout> | null = null;
 try {
   if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'sync' && Object.prototype.hasOwnProperty.call(changes, STORE_KEY)) {
-        void useKivaraStore.persist.rehydrate();
+        if (rehydrateTimer) clearTimeout(rehydrateTimer);
+        rehydrateTimer = setTimeout(() => {
+          rehydrateTimer = null;
+          void useKivaraStore.persist.rehydrate();
+        }, 250);
       }
     });
   }

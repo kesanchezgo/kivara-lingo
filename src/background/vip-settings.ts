@@ -9,11 +9,9 @@
  * without any explicit messaging.
  */
 
-import { DEFAULT_VIP, DEFAULT_TRANSLATE } from '../shared/store';
-import { decryptSecret } from '../shared/secret-store';
+import { DEFAULT_VIP, DEFAULT_TRANSLATE, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
+import { decryptSecret, isEncrypted } from '../shared/secret-store';
 import type { VipSettings } from '../shared/types';
-
-const STORE_KEY = 'kivara-lingo-state';
 
 export async function getVipSettings(): Promise<VipSettings> {
   try {
@@ -28,12 +26,15 @@ export async function getVipSettings(): Promise<VipSettings> {
       // ciphertext in chrome.storage (see secret-store.ts) but the
       // enrichment sources expect plaintext. `decryptSecret` passes
       // plaintext through unchanged, so legacy installs without
-      // encrypted keys keep working.
+      // encrypted keys keep working. Still-encrypted after decrypt =
+      // unreadable here — treat as missing.
       if (merged.unsplashAccessKey) {
-        merged.unsplashAccessKey = await decryptSecret(merged.unsplashAccessKey);
+        const plain = await decryptSecret(merged.unsplashAccessKey);
+        merged.unsplashAccessKey = isEncrypted(plain) ? '' : plain;
       }
       if (merged.pixabayApiKey) {
-        merged.pixabayApiKey = await decryptSecret(merged.pixabayApiKey);
+        const plain = await decryptSecret(merged.pixabayApiKey);
+        merged.pixabayApiKey = isEncrypted(plain) ? '' : plain;
       }
       return merged;
     }
