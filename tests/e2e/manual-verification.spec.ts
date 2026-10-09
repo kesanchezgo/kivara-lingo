@@ -63,7 +63,10 @@ const SLOT = 'kivara-secret:v1:ai.apiKey';
  * "Settings") — they are not routed through `t()` — while everything below
  * them comes from the i18n dictionaries. */
 async function openSettingsAiKey(page: Page): Promise<ReturnType<Page['locator']>> {
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  // `tab`, not `button`: the panel's section switch is an ARIA tab bar now
+  // (role="tablist"/"tab"/"tabpanel"), which is what makes the panel legible
+  // to assistive tech — the test has to speak the same language.
+  await page.getByRole('tab', { name: 'Settings', exact: true }).click();
   await page.getByRole('button', { name: /IA premium/ }).click();
   await page.locator('ul li button').first().click();
   return page.locator('xpath=//button[@title="Mostrar lo escrito"]/preceding-sibling::input');

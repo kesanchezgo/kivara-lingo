@@ -180,6 +180,17 @@ export function SidePanel({
 
   return (
     <div
+      // Accessibility: the panel is a popup-style surface (draggable card in
+      // popup mode, slide-in in side-panel mode), so it is exposed as a
+      // dialog and Escape hands control back to the page — matching what
+      // `Alt+K` and the ✕ button do.
+      role="dialog"
+      aria-label={t('panel.title')}
+      onKeyDown={(e) => {
+        if (e.key !== 'Escape') return;
+        e.stopPropagation();
+        onClose();
+      }}
       className={`flex flex-col bg-white dark:bg-zinc-950 shadow-2xl overflow-hidden ${
         isPopupMode
           ? 'rounded-xl fixed z-50 border border-zinc-200 dark:border-zinc-800'
@@ -232,7 +243,11 @@ export function SidePanel({
       </div>
 
       {/* Tabs Nav — sliding indicator with smooth ease-out animation */}
-      <div className="relative flex border-b border-zinc-200 dark:border-zinc-800/60 bg-white dark:bg-zinc-950">
+      <div
+        role="tablist"
+        aria-label={t('a11y.panelTabs')}
+        className="relative flex border-b border-zinc-200 dark:border-zinc-800/60 bg-white dark:bg-zinc-950"
+      >
         {(() => {
           const TABS = [
             { id: 'subtitles', label: 'Subtitles', icon: Subtitles },
@@ -249,14 +264,34 @@ export function SidePanel({
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
+                  role="tab"
+                  type="button"
+                  aria-selected={activeTab === tab.id}
+                  aria-controls={`kivara-panel-body-${tab.id}`}
+                  id={`kivara-panel-tab-${tab.id}`}
+                  tabIndex={activeTab === tab.id ? 0 : -1}
                   onClick={() => setActiveTab(tab.id as any)}
+                  onKeyDown={(e) => {
+                    // Roving tabindex + arrow keys: the documented widget
+                    // pattern for tab bars. Without it a screen reader reads
+                    // three buttons and nothing about which one is active.
+                    const dir =
+                      e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+                    if (dir === 0) return;
+                    e.preventDefault();
+                    const next = (tabIndex + dir + TABS.length) % TABS.length;
+                    setActiveTab(TABS[next].id as any);
+                    requestAnimationFrame(() =>
+                      document.getElementById(`kivara-panel-tab-${TABS[next].id}`)?.focus(),
+                    );
+                  }}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors relative ${
                     activeTab === tab.id
                       ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-500/5'
                       : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-900/50'
                   }`}
                 >
-                  <tab.icon size={16} />
+                  <tab.icon size={16} aria-hidden="true" />
                   {tab.label}
                 </button>
               ))}
@@ -272,6 +307,10 @@ export function SidePanel({
           the user switches tabs (matches the design mock). */}
       <div
         key={activeTab}
+        id={`kivara-panel-body-${activeTab}`}
+        role="tabpanel"
+        aria-labelledby={`kivara-panel-tab-${activeTab}`}
+        tabIndex={0}
         className="flex-1 min-h-0 overflow-hidden sl-animate-fade-up"
         style={{ animationDuration: '220ms' }}
       >

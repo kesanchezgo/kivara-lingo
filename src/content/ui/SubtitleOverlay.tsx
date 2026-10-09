@@ -894,6 +894,12 @@ export function SubtitleOverlay({
                             isExpanded={expandedMWEs.has(tok.key)}
                             isSaved={isSaved}
                             parentMWE={tok.kind !== 'mwe' ? findParentMWE(tok.key) : null}
+                            onClose={() => {
+                              // Escape: the keyboard way out. Dragging the
+                              // hovered id to null makes the card unmount.
+                              setHoveredId(null);
+                              (document.activeElement as HTMLElement | null)?.blur?.();
+                            }}
                             onToggleExpand={() => toggleExpandMWE(tok.key)}
                             onRejoinParent={(parent) => {
                               setExpandedMWEs((prev) => {

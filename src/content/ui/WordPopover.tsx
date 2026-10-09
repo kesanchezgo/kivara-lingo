@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { t } from '../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
 import {
@@ -36,6 +36,8 @@ interface WordPopoverProps {
   isExpanded: boolean;
   isSaved: boolean;
   parentMWE: string | null;
+  /** Called when the user dismisses the card (Escape). The parent hides it. */
+  onClose?: () => void;
   onToggleExpand: () => void;
   onRejoinParent: (parent: string) => void;
   onSave: (e: React.MouseEvent, token: string) => void;
@@ -288,6 +290,7 @@ export function WordPopover({
   isExpanded,
   isSaved,
   parentMWE,
+  onClose,
   onToggleExpand,
   onRejoinParent,
   onSave,
@@ -321,32 +324,96 @@ export function WordPopover({
     if (!el || !parent) return;
     const boundary = el.closest('[data-popover-boundary]') as HTMLElement | null;
     if (!boundary) return;
-    const pad = 8;
-    const halfW = el.offsetWidth / 2 || 170; // width 340 / 2
-    const pr = parent.getBoundingClientRect();
-    const b = boundary.getBoundingClientRect();
-    const centerX = pr.left + pr.width / 2;
-    const popoverLeft = centerX - halfW;
-    const popoverRight = centerX + halfW;
-    let dx = 0;
-    if (popoverRight > b.right - pad) dx = b.right - pad - popoverRight;
-    else if (popoverLeft < b.left + pad) dx = b.left + pad - popoverLeft;
-    el.style.marginLeft = `${dx}px`;
-    if (arrowRef.current) arrowRef.current.style.marginLeft = `${-dx}px`;
 
-    // Vertical: the popover is anchored `bottom-full` (grows upward from
-    // the token). Cap the scrollable body to the room available between
-    // the boundary top and the token, minus the header/footer chrome and
-    // the 12px arrow gap, so a tall card scrolls instead of being clipped
-    // off the top of the video.
-    const spaceAbove = pr.top - b.top - pad - 12;
-    // Reserve ~150px for the fixed header + action row + arrow so only the
-    // middle body scrolls. Clamp to a sane min so it never collapses.
-    const chrome = 150;
-    const avail = Math.max(120, Math.floor(spaceAbove - chrome));
-    // Never grow taller than a comfortable reading height.
-    setBodyMaxHeight(Math.min(avail, 460));
+    const place = () => {
+      const pad = 8;
+      const halfW = el.offsetWidth / 2 || 170; // width 340 / 2
+      const pr = parent.getBoundingClientRect();
+      const b = boundary.getBoundingClientRect();
+      const centerX = pr.left + pr.width / 2;
+      const popoverLeft = centerX - halfW;
+      const popoverRight = centerX + halfW;
+      let dx = 0;
+      if (popoverRight > b.right - pad) dx = b.right - pad - popoverRight;
+      else if (popoverLeft < b.left + pad) dx = b.left + pad - popoverLeft;
+      el.style.marginLeft = `${dx}px`;
+      if (arrowRef.current) arrowRef.current.style.marginLeft = `${-dx}px`;
+
+      // Vertical: the popover is anchored `bottom-full` (grows upward from
+      // the token). Cap the scrollable body to the room available between
+      // the boundary top and the token, minus the header/footer chrome and
+      // the 12px arrow gap, so a tall card scrolls instead of being clipped
+      // off the top of the video.
+      const spaceAbove = pr.top - b.top - pad - 12;
+      // Reserve ~150px for the fixed header + action row + arrow so only the
+      // middle body scrolls. Clamp to a sane min so it never collapses.
+      const chrome = 150;
+      const avail = Math.max(120, Math.floor(spaceAbove - chrome));
+      // Never grow taller than a comfortable reading height.
+      setBodyMaxHeight(Math.min(avail, 460));
+    };
+
+    place();
+    // Re-place when the card's own content changes size (an image arriving,
+    // a definition expanding) or when the window does — `place()` only ran on
+    // mount, so a late image used to push the popover off-screen until the
+    // next hover, and a window resize never re-clamped it at all.
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver === 'function') {
+      ro = new ResizeObserver(() => place());
+      ro.observe(el);
+      ro.observe(parent);
+      if (el.firstElementChild) ro.observe(el.firstElementChild as HTMLElement);
+    }
+    window.addEventListener('resize', place);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', place);
+    };
   }, [visible, token, canonicalToken]);
+
+  /**
+   * Accessibility: Escape closes, Tab stays inside.
+   *
+   * The popover is hover-driven, so keyboard users had NO way out — the only
+   * acknowledged exit was moving the mouse. Escape calls the same close the
+   * parent uses for a mouse-out; Tab cycles within the card so focus cannot
+   * wander into the page behind it (a shadow root makes the page's own tab
+   * order reachable, which is how focus used to land invisibly inside the
+   * platform's UI).
+   */
+  const handlePopoverKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        onClose?.();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const root = rootRef.current;
+      if (!root) return;
+      const focusables = Array.from(
+        root.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+      if (focusables.length === 0) {
+        event.preventDefault();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (event.shiftKey && (active === first || !root.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (active === last || !root.contains(active))) {
+        event.preventDefault();
+        first.focus();
+      }
+    },
+    [onClose],
+  );
 
   if (!visible) return null;
 
@@ -495,7 +562,14 @@ export function WordPopover({
       ref={rootRef}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      onKeyDown={handlePopoverKeyDown}
       data-kivara-hover-zone="true"
+      // Accessibility (audit item): the popover is a modal-ish surface that
+      // steals hover for a card, so expose it as a dialog, give Escape a
+      // documented way out, and trap Tab inside until it closes.
+      role="dialog"
+      aria-label={`${t('popover.dictionary')} — ${token}`}
+      aria-modal="false"
       className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 z-30 animate-in fade-in zoom-in-95 slide-in-from-bottom-1 duration-150"
       style={{
         pointerEvents: 'auto',

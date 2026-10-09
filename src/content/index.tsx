@@ -261,6 +261,48 @@ async function mountFor(video: HTMLVideoElement, container: HTMLElement, adapter
   lastVideoElement = video;
   lastVideoContainer = container;
   lastMediaId = currentMediaId();
+  updateOverlayParentForFullscreen();
+}
+
+/**
+ * Fullscreen (medium finding): the overlay host is mounted on `<body>`, and in
+ * native fullscreen only the element that requested it (usually the `<video>`'s
+ * wrapper) is visible — so the panel and the subtitles disappeared exactly when
+ * the user was using them. Moving the host INSIDE the fullscreen element keeps
+ * everything on screen, and moving it back out restores the normal layout.
+ *
+ * The fullscreen element is a site element, so the host is re-parented, not
+ * re-created: remounting React would cost the panel's state (the whole point
+ * of watching in fullscreen).
+ */
+function updateOverlayParentForFullscreen(): void {
+  if (!mount) return;
+  const fullscreen = document.fullscreenElement ?? (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement ?? null;
+  const target = fullscreen ?? document.body;
+  // Already in the right parent — leave it alone (re-appending resets layout).
+  if (mount.hostElement.parentElement === target) return;
+  try {
+    const hadPanel = mount.hostElement.contains(document.activeElement);
+    target.appendChild(mount.hostElement);
+    // Fullscreen containers are frequently `display: flex` with no positioning;
+    // the overlay is absolutely positioned, so make sure it can anchor.
+    const parentStyle = window.getComputedStyle(target as HTMLElement);
+    if (parentStyle.position === 'static') {
+      (target as HTMLElement).style.position = 'relative';
+    }
+    // Focus does not survive a re-parent (the element is detached and
+    // re-attached): Windows drops it silently, so restore what the user had.
+    if (hadPanel) {
+      mount.hostElement.querySelector<HTMLElement>('input, button, [tabindex]')?.focus();
+    }
+  } catch (err) {
+    console.warn('[Kivara Lingo] could not re-parent the overlay for fullscreen', err);
+  }
+}
+
+function observeFullscreen(): void {
+  document.addEventListener('fullscreenchange', updateOverlayParentForFullscreen);
+  document.addEventListener('webkitfullscreenchange', updateOverlayParentForFullscreen);
 }
 
 async function init() {
@@ -371,4 +413,5 @@ async function handleNavigation() {
 }
 
 observeNavigation();
+observeFullscreen();
 void init().catch((err) => console.warn('[Kivara Lingo] init failed', err));
