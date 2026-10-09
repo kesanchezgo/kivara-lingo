@@ -19,6 +19,12 @@ export class AnkiConnectError extends Error {
  * `http://127.0.0.1:8765` by default; we accept several common shapes
  * (`localhost`, missing port, missing scheme, trailing slash) so that
  * the user never sees "sin conexión" because of a tiny typo.
+ *
+ * SCOPE, on purpose: the manifest's host_permissions only cover localhost
+ * (`http://127.0.0.1/*`, `http://localhost/*`) — any local PORT is allowed, an
+ * Anki on another machine is not, and its fetch would hit CORS from the
+ * service worker. A remote Anki needs `optional_host_permissions` plus
+ * `chrome.permissions.request()`; see IMPLEMENTATION.md §11.0.
  */
 function normalizeUrl(raw?: string): string {
   let url = (raw ?? '').trim();

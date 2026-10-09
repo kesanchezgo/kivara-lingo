@@ -165,8 +165,7 @@ Extensión de navegador que se monta sobre reproductores de streaming y conviert
 | Storage de settings | `chrome.storage.sync` (≤100KB) | Para preferencias del usuario. Sincroniza entre dispositivos. |
 | Storage de caché | `chrome.storage.local` o **IndexedDB** | Para diccionarios, audio cacheado, screenshots. IndexedDB para >5MB. |
 | Atajos | `commands` en manifest | `Ctrl+S`, `Alt+C`, etc. Configurables por el usuario en `chrome://extensions/shortcuts`. |
-| Comunicación con AnkiConnect | `fetch('http://127.0.0.1:8765')` desde service worker | Localhost no requiere CORS desde una extensión con el host permission correcto. |
-| Offscreen audio decoding | `chrome.offscreen.createDocument()` | MV3 service workers no tienen DOM ni Audio API; usar offscreen document para procesar audio. |
+| Comunicación con AnkiConnect | `fetch('http://127.0.0.1:8765')` desde service worker | Localhost no requiere CORS desde una extensión con el host permission correcto. || Offscreen audio decoding | `chrome.offscreen.createDocument()` | MV3 service workers no tienen DOM ni Audio API; usar offscreen document para procesar audio. |
 
 ### 3.4 Servicios externos (todos opcionales, con fallback)
 
@@ -738,6 +737,27 @@ Las interacciones del prototipo se mapean 1:1:
 
 ## 11. Integración con Anki (AnkiConnect)
 
+### 11.0 Alcance: dónde puede vivir Anki (límite deliberado)
+
+El manifest declara `http://127.0.0.1/*` y `http://localhost/*`, así que
+**cualquier puerto local** funciona (la suite e2e lo verifica con un AnkiConnect
+de prueba en `18765`, después de dejar el service worker inactivo 35 s).
+
+Un Anki en **otra máquina** (LAN, otra IP, contenedor) queda fuera de alcance a
+propósito: esos orígenes no están en `host_permissions`, así que el `fetch` del
+service worker chocaría con CORS. Soportarlo exigiría:
+
+1. `optional_host_permissions` en el manifest (por ejemplo `http://*/`) y
+   `chrome.permissions.request()` cuando el usuario guarde una URL que no sea
+   local.
+2. Reintentar cada write de `host_permissions` que falle por CORS, o pedir el
+   permiso antes de la llamada.
+3. Y aceptar el coste en la revisión de Chrome Web Store: un permiso opcional
+   «acceder a todos los sitios» asusta y se pide justificación.
+
+Hasta que eso se asuma, `anki-connect.ts` normaliza la URL a localhost y las
+opciones siguen mostrando la pista de que Anki corre en el mismo equipo.
+
 ### 11.1 Cliente
 
 ```ts
@@ -978,11 +998,12 @@ automatizados en `tests/e2e/manual-verification.spec.ts` (correr con
    mover un slider, recargar → la clave sigue ahí y el aviso apareció.
 2. **Anki en un puerto propio** (`18765`, servidor de prueba local) con el
    service worker idle más de 30 s → sin errores de CORS ni de red.
+   Un Anki en otra máquina queda fuera de alcance (§11.0).
 3. **dos pestañas**: «Quitar» en una y un cambio de ajuste en la otra → la
    clave sigue borrada.
 
-Las aserciones de texto aceptan es y en: el Chromium del runner y el Chrome
-del desarrollador pueden reportar idiomas distintos a `chrome.i18n`.
+Las aserciones van en español porque el runner arranca Chromium con
+`--lang=es` (fixtures.ts): el locale está fijado, no adivinado.
 
 ---
 

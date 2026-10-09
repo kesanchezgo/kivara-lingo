@@ -11,9 +11,10 @@
  *  3. Two open tabs: "Quitar" in one, a setting change in the other → the
  *     key stays cleared.
  *
- * Locale note: the bundled Chromium reports a Spanish UI language here, so
- * every text assertion accepts both dictionaries (es/en) rather than pinning
- * one. The accordion titles are hardcoded strings and safe to match directly.
+ * Locale note: fixtures.ts launches Chromium with `--lang=es`, so the UI
+ * strings are pinned to the Spanish dictionary instead of inheriting the
+ * machine's language. A regression in that pin shows up as a failing locator
+ * here, which is the point.
  */
 import { test, expect, type Page } from './fixtures';
 import http from 'node:http';
@@ -56,18 +57,20 @@ const SLOT = 'kivara-secret:v1:ai.apiKey';
  * The AI key input only exists once a provider preset is selected (a fresh
  * install ships `provider: 'disabled'`), so the first preset is picked — and
  * the AI provider key is the only secret input rendered with the visibility
- * toggle, which identifies its sibling input unambiguously. */
+ * toggle, which identifies its sibling input unambiguously.
+ *
+ * Note the tab bar labels are hardcoded English ("Subtitles" / "Cards" /
+ * "Settings") — they are not routed through `t()` — while everything below
+ * them comes from the i18n dictionaries. */
 async function openSettingsAiKey(page: Page): Promise<ReturnType<Page['locator']>> {
-  await page.getByRole('button', { name: /^(Settings|Ajustes|Configuración)$/ }).click();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('button', { name: /IA premium/ }).click();
   await page.locator('ul li button').first().click();
-  return page.locator(
-    'xpath=//button[@title="Show what is typed" or @title="Mostrar lo escrito"]/preceding-sibling::input',
-  );
+  return page.locator('xpath=//button[@title="Mostrar lo escrito"]/preceding-sibling::input');
 }
 
-const SAVED_PLACEHOLDER = /guardada|saved/;
-const CLEAR_TITLE = /Quitar la clave guardada|Remove the saved key/;
+const SAVED_PLACEHOLDER = /guardada/;
+const CLEAR_TITLE = 'Quitar la clave guardada';
 
 test('1 · keys survive an unusable chrome.storage.sync', async ({ context, extensionId }) => {
   const page = await context.newPage();
@@ -102,7 +105,6 @@ test('1 · keys survive an unusable chrome.storage.sync', async ({ context, exte
 
   // …and the UI says so instead of pretending the setting saved.
   await expect(page.getByRole('status').filter({ hasText: 'chrome.storage.sync' })).toBeVisible();
-
   // ── Reload: sync still holds the last good blob, the key comes back from
   // its local slot. The input must read as "saved", not "empty".
   await page.reload();

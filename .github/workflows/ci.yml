@@ -1,0 +1,46 @@
+name: CI
+
+# Unit suite on every push, and the browser suite that loads the built
+# extension (the three "manual" checks: keys with sync down, Anki on a custom
+# port after an idle service worker, and Quitar across two open tabs).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm exec tsc --noEmit
+
+  e2e:
+    runs-on: ubuntu-latest
+    # The manual-verification suite waits for the service worker to be torn
+    # down (35s) before asking it for Anki again.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Extensions need a real Chromium from Playwright, plus the system
+      # libraries for it; xvfb covers any legacy-headless fallback.
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm build
+      - run: xvfb-run --auto-servernum -- pnpm exec playwright test
