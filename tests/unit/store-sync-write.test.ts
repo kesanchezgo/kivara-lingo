@@ -304,9 +304,9 @@ describe('chrome.storage.sync persist adapter', () => {
   });
 
   it('an out-of-order rejection after a newer write is not pending', async () => {
-    // 🟡-medio: write A in flight, write B lands, then A rejects. sync holds B
-    // (newer), so A is not pending — flagging it would raise a warning whose
-    // Retry can only re-send B, and a remote change arriving first would
+    // Ordering hazard: write A in flight, write B lands, then A rejects. sync
+    // holds B (newer), so A is not pending — flagging it would raise a warning
+    // whose Retry can only re-send B, and a remote change arriving first would
     // announce deleted edits that were never lost.
     const originalSet = (globalThis as unknown as { chrome: { storage: { sync: { set: unknown } } } })
       .chrome.storage.sync.set;

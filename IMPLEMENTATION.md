@@ -970,6 +970,20 @@ El content script reacciona al mensaje y dispara la acción local (guardar la pa
 | E2E | **Playwright** con extensión cargada | sobre páginas estáticas que simulen Netflix/YouTube (no contra producción para no violar TOS). |
 | Manual | checklist por plataforma | hover, scroll, Alt, guardar, cambiar tema, dock/popup. |
 
+Los tres checks manuales que más se repetían en las revisiones ya están
+automatizados en `tests/e2e/manual-verification.spec.ts` (correr con
+`pnpm build && npx playwright test tests/e2e/manual-verification.spec.ts`):
+
+1. **sync inservible** (cuota llena / sesión cerrada): guardar una clave,
+   mover un slider, recargar → la clave sigue ahí y el aviso apareció.
+2. **Anki en un puerto propio** (`18765`, servidor de prueba local) con el
+   service worker idle más de 30 s → sin errores de CORS ni de red.
+3. **dos pestañas**: «Quitar» en una y un cambio de ajuste en la otra → la
+   clave sigue borrada.
+
+Las aserciones de texto aceptan es y en: el Chromium del runner y el Chrome
+del desarrollador pueden reportar idiomas distintos a `chrome.i18n`.
+
 ---
 
 ## 18. Build, empaquetado y publicación

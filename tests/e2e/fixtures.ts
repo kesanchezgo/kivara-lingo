@@ -26,6 +26,7 @@ export interface ExtensionFixtures {
   extensionId: string;
   serviceWorker: Worker;
 }
+export type { Page } from '@playwright/test';
 
 export const test = base.extend<ExtensionFixtures>({
   // eslint-disable-next-line no-empty-pattern
