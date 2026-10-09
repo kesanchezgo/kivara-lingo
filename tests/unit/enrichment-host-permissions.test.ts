@@ -5,10 +5,24 @@ import { describe, expect, it } from 'vitest';
 const root = process.cwd();
 const manifest = JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8')) as {
   host_permissions: string[];
+  optional_host_permissions?: string[];
 };
 
+/**
+ * Every host an enrichment source talks to must be DECLARED somewhere.
+ *
+ * Since the permissions overhaul most of them live in
+ * `optional_host_permissions` and are granted at runtime from Settings →
+ * "Acceso a sitios" (a Chrome Web Store reviewer reads ~96 granted hosts as a
+ * data-collection extension). The invariant this guards is the half that
+ * stays true either way: forgetting the declaration is what makes a source
+ * fail with an unreadable CORS error at runtime — the grant flow only covers
+ * what the manifest lists.
+ */
+const DECLARED = [...manifest.host_permissions, ...(manifest.optional_host_permissions ?? [])];
+
 function allowsHost(host: string): boolean {
-  return manifest.host_permissions.some((pattern) => {
+  return DECLARED.some((pattern) => {
     const match = /^(?:\*|https?):\/\/([^/]+)/.exec(pattern);
     if (!match) return false;
     const permitted = match[1].toLowerCase();

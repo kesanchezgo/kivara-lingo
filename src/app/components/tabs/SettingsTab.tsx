@@ -25,6 +25,8 @@ import type { AsrSettings } from '../../../shared/types';
 import { SHORTCUT_DEFS } from '../../../shared/shortcuts';
 import { SecretKeyInput } from '../SecretKeyInput';
 import { SyncWriteErrorBanner } from '../SyncWriteErrorBanner';
+import { HostPermissionsRow } from '../HostPermissionsRow';
+import { ensureProviderHosts } from '../../../shared/host-permissions';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { ShortcutEditor } from '../ShortcutEditor';
 import { InfoHint } from '../InfoHint';
@@ -462,6 +464,16 @@ export function SettingsTab() {
           )}
         </Accordion>
 
+        {/* ── Permisos de red (opcionales) ────────────────────────────── */}
+        <Accordion
+          icon={<KeyRound size={10} />}
+          title="Acceso a sitios"
+          open={isOpen('perm')}
+          onToggle={() => toggle('perm')}
+          description={t('perm.intro')}
+        >
+          <HostPermissionsRow />
+        </Accordion>
         {/* ── Whisper ASR (on-device) ────────────────────────────────── */}
         <Accordion
           icon={<Volume2 size={10} />}
@@ -601,6 +613,12 @@ function AiByokSection() {
       ...ai,
       provider,
       model: pickModelForProvider(provider, ai.model),
+    });
+    // Optional host permission: this runs INSIDE the click, which is the only
+    // place chrome will show a prompt (the service worker cannot, and the AI
+    // request would otherwise fail with a CORS/network error nobody can read).
+    void ensureProviderHosts(`ai:${provider}`).then((missing) => {
+      if (missing) setTest({ state: 'error', error: t('perm.needHost') });
     });
   }
 
