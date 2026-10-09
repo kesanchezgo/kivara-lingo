@@ -15,5 +15,3 @@
  * falling back to `@media (prefers-color-scheme: dark)`.
  */
 @custom-variant dark (&:where(.dark, .dark *));
-
-@import 'tw-animate-css';
