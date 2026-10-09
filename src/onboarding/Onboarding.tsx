@@ -285,10 +285,10 @@ export function Onboarding() {
                           : 'text-zinc-400 dark:text-zinc-600'
                     }`}>{s.label}</span>
                     {s.optional && (
-                      <span className="text-[9px] text-zinc-400 dark:text-zinc-600 leading-tight">opcional</span>
+                      <span className="text-[9px] text-zinc-400 dark:text-zinc-600 leading-tight">{t('onb.optionalTag')}</span>
                     )}
                     {s.recommended && (
-                      <span className="text-[9px] text-amber-500 dark:text-amber-400 leading-tight">recomendado</span>
+                      <span className="text-[9px] text-amber-500 dark:text-amber-400 leading-tight">{t('onb.recommendedTag')}</span>
                     )}
                   </div>
                 </div>
@@ -404,7 +404,7 @@ export function Onboarding() {
               className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md hover:shadow-indigo-500/20 transition-all"
             >
               <span style={{ fontSize: 13, fontWeight: 600 }}>
-                {step === 'demo' ? 'Empezar' : 'Siguiente'}
+                {step === 'demo' ? t('onb.startAction') : t('onb.nextAction')}
               </span>
               <ChevronRight size={14} />
             </button>
@@ -564,8 +564,8 @@ function AnkiStep({ mapping, setMapping, ping, onRunPing }: AnkiStepProps) {
             {isBusy && <Loader2 size={12} className={`${a.text} animate-spin`} />}
             {state === 'idle' && <PlugZap size={12} className={a.text} />}
             <span className={`text-[11px] font-semibold ${a.text}`}>
-              {isOk ? `Conectado · AnkiConnect v${ping.version}`
-                : isErr ? (ping.error || 'No responde')
+              {isOk ? t('onb.connectedFmt', { v: ping.version ?? '' })
+                : isErr ? (ping.error || t('onb.noResponse'))
                   : isBusy ? t('onb.testingConnection')
                     : t('onb.pendingTest')}
             </span>
@@ -591,7 +591,7 @@ function AnkiStep({ mapping, setMapping, ping, onRunPing }: AnkiStepProps) {
               className="inline-flex items-center gap-2 px-4 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 shadow-sm transition-all shrink-0"
             >
               {isBusy ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-              <span style={{ fontSize: 13, fontWeight: 600 }}>Probar</span>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>{t('onb.probeAction')}</span>
             </button>
           </div>
         </div>
@@ -600,8 +600,8 @@ function AnkiStep({ mapping, setMapping, ping, onRunPing }: AnkiStepProps) {
       <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-3 flex gap-2.5">
         <AlertTriangle size={13} className="text-zinc-400 mt-0.5 shrink-0" />
         <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
-          Si no responde: abre Anki, ve a <span className="font-medium text-zinc-700 dark:text-zinc-300">Tools → Add-ons → AnkiConnect → Config</span> {t('onb.checkThat')}{' '}
-          <span className="font-mono text-[10px] bg-white dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300">webBindAddress</span> es{' '}
+          {t('onb.ifNoResponse')} <span className="font-medium text-zinc-700 dark:text-zinc-300">Tools → Add-ons → AnkiConnect → Config</span> {t('onb.checkThat')}{' '}
+          <span className="font-mono text-[10px] bg-white dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300">webBindAddress</span> {t('onb.isWord')}{' '}
           <span className="font-mono text-[10px] bg-white dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300">127.0.0.1</span>.
         </p>
       </div>
@@ -680,7 +680,7 @@ function MappingStep({
             <div className="w-6 h-6 rounded-md bg-indigo-500/10 ring-1 ring-indigo-500/20 text-indigo-600 dark:text-indigo-300 flex items-center justify-center">
               <LayoutGrid size={12} />
             </div>
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Mazo destino</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">{t('onb.destDeck')}</span>
             {mapping.deckName && !deckCreateMode && (
               <CheckCircle2 size={12} className="ml-auto text-emerald-500" />
             )}
@@ -787,7 +787,7 @@ function MappingStep({
               </button>
               {busy && (
                 <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-500">
-                  <Loader2 size={11} className="animate-spin" /> cargando…
+                  <Loader2 size={11} className="animate-spin" /> {t('onb.loading')}
                 </span>
               )}
             </div>
@@ -808,10 +808,10 @@ function MappingStep({
               <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">{t('onb.fieldMapTitle')}</span>
               <span className="text-[10px] text-zinc-400 dark:text-zinc-500">·</span>
               <span className="text-[10.5px] text-zinc-500 dark:text-zinc-400">
-                {totalMapped}/{fields.length} mapeados
+                {t('onb.mappedFmt', { done: totalMapped, total: fields.length })}
               </span>
               <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-full ring-1 ring-indigo-500/15">
-                <Wand2 size={9} /> {autoCount} auto-detectados
+                <Wand2 size={9} /> {t('onb.autoDetectedFmt', { n: autoCount })}
               </span>
             </div>
             <div className="divide-y divide-zinc-100 dark:divide-zinc-800">

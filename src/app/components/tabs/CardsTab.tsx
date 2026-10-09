@@ -267,8 +267,8 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
               <AlertCircle size={11} className="shrink-0 mt-px" />
               <span className="flex-1 min-w-0">
                 {conn === 'error' && <>{connError}</>}
-                {conn === 'connecting' && <>Comprobando AnkiConnect…</>}
-                {conn === 'idle' && <>Pulsa <strong>Probar</strong> {t('cards.testConnectPost')}</>}
+                {conn === 'connecting' && <>{t('cards.testChecking')}</>}
+                {conn === 'idle' && <>{t('cards.testIdlePre')} <strong>{t('cards.testIdleAction')}</strong> {t('cards.testConnectPost')}</>}
               </span>
             </div>
           )}
@@ -291,7 +291,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
                 }`}
               >
                 {conn === 'connecting' ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
-                {conn === 'connected' ? 'Reconectar' : 'Probar'}
+                {conn === 'connected' ? t('cards.reconnect') : t('cards.test')}
               </button>
             </div>
           </Row>
@@ -301,6 +301,8 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
               stored={mapping.apiKey ?? ''}
               onChange={(v) => setMapping({ ...mapping, apiKey: v })}
               placeholder={t('cards.apiKeyPlaceholder')}
+              section="ankiMapping"
+              field="apiKey"
             />
           </Row>
 
@@ -334,7 +336,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
         {/* Mapeo de campos */}
         <Section
           icon={<Layers size={10} />}
-          title={<>Mapeo · <span className="font-mono normal-case">{mapping.modelName}</span></>}
+          title={<>{t('cards.mappingTitle')} · <span className="font-mono normal-case">{mapping.modelName}</span></>}
           hint={
             <>
               {t('cards.fieldEachStart')}<em>note type</em> {t('cards.fieldFillWith')}<strong>fuente</strong> {t('cards.fieldAutoDetect')}<span className="font-mono">word</span> → Palabra, <span className="font-mono">sentence audio</span> {t('cards.fieldNoMatch')}<em>Manual</em> {t('cards.fieldAssignSelf')}</>
@@ -350,7 +352,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
               onClick={applyAutoPreset}
               className="w-full flex items-center gap-1.5 text-[11px] font-medium text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/15 border border-indigo-200 dark:border-indigo-500/25 rounded-md px-2 py-1.5 transition-colors"
             >
-              <Wand2 size={11} /> Restaurar auto-mapeo
+              <Wand2 size={11} /> {t('cards.restoreAutoMap')}
             </button>
           )}
 
@@ -375,7 +377,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
                 type="text"
                 value={fieldFilter}
                 onChange={(e) => setFieldFilter(e.target.value)}
-                placeholder="Buscar campo…"
+                placeholder={t('cards.searchFieldPh')}
                 className="sl-input flex-1 min-w-0 text-[11px]"
                 spellCheck={false}
                 autoComplete="off"
@@ -390,7 +392,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
                 }`}
                 title={t('cards.showUnmappedTitle')}
               >
-                Solo no mapeados
+                {t('cards.onlyUnmapped')}
               </button>
             </div>
           )}

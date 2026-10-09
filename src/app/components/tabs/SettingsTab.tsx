@@ -117,10 +117,10 @@ export function SettingsTab() {
             <QuickRow label={t('set.autoCapture')} info={t('set.autoCaptureDesc')} hint={autoMode ? 'VAD · 30s' : 'manual'}>
               <Toggle on={autoMode} onChange={setAutoMode} />
             </QuickRow>
-            <QuickRow label="Modo lectura" info={t('set.hideHoverDesc')} hint={readingMode ? t('set.noPopovers') : 'aprendizaje'}>
+            <QuickRow label={t('set.readingMode')} info={t('set.hideHoverDesc')} hint={readingMode ? t('set.noPopovers') : t('set.learningHint')}>
               <Toggle on={readingMode} onChange={setReadingMode} />
             </QuickRow>
-            <QuickRow label={t('set.bilingualSub')} info={t('set.bilingualSubDesc')} hint={translate.showDualSubtitle ? 'visible' : 'oculto'}>
+            <QuickRow label={t('set.bilingualSub')} info={t('set.bilingualSubDesc')} hint={translate.showDualSubtitle ? t('set.visibleHint') : t('set.hiddenHint')}>
               <Toggle
                 on={translate.showDualSubtitle}
                 onChange={(v) => setTranslate({ ...translate, showDualSubtitle: v })}
@@ -178,13 +178,13 @@ export function SettingsTab() {
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
           <div className="px-2.5 py-1.5 border-b border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/60 dark:bg-zinc-900/60">
             <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              <Globe size={9} /> Idioma
+              <Globe size={9} /> {t('set.languageSection')}
               <InfoHint text={<>{t('set.langDesc')}</>} />
             </span>
           </div>
           <div className="p-2.5 grid grid-cols-2 gap-2">
             <div className="space-y-0.5">
-              <label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 block">Aprendo</label>
+              <label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 block">{t('set.learningLang')}</label>
               <select
                 value={translate.sourceLang || 'en'}
                 onChange={(e) => setTranslate({ ...translate, sourceLang: e.target.value })}
@@ -194,7 +194,7 @@ export function SettingsTab() {
               </select>
             </div>
             <div className="space-y-0.5">
-              <label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 block">Mi idioma</label>
+              <label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 block">{t('set.myLang')}</label>
               <select
                 value={translate.targetLanguage || 'es'}
                 onChange={(e) => setTranslate({ ...translate, targetLanguage: e.target.value })}
@@ -207,7 +207,7 @@ export function SettingsTab() {
           <QuickRow
             label={t('set.learningAudioLabel')}
             info={<>{t('set.autoTrackDesc')}<br /><br />{t('set.trackLimitsNote')}</>}
-            hint={translate.autoSelectSourceAudio ? 'activo' : 'manual'}
+            hint={translate.autoSelectSourceAudio ? t('set.activeHint') : t('set.manualHint')}
           >
             <Toggle
               on={translate.autoSelectSourceAudio}
@@ -309,6 +309,8 @@ export function SettingsTab() {
                 stored={translate.deeplToken}
                 onChange={(v) => setTranslate({ ...translate, deeplToken: v })}
                 placeholder="xxxxxxxx:fx"
+                section="translate"
+                field="deeplToken"
               />
             </Row>
             <Row label="Google Cloud API key">
@@ -316,6 +318,8 @@ export function SettingsTab() {
                 stored={translate.googleToken}
                 onChange={(v) => setTranslate({ ...translate, googleToken: v })}
                 placeholder="AIza..."
+                section="translate"
+                field="googleToken"
               />
             </Row>
             <Row label="LibreTranslate URL">
@@ -332,6 +336,8 @@ export function SettingsTab() {
                 stored={translate.libreTranslateToken}
                 onChange={(v) => setTranslate({ ...translate, libreTranslateToken: v })}
                 placeholder={t('set.ltKeyPlaceholder')}
+                section="translate"
+                field="libreTranslateToken"
               />
             </Row>
           </NestedAccordion>
@@ -420,6 +426,8 @@ export function SettingsTab() {
                   stored={tts.elevenLabsApiKey}
                   onChange={(v) => setTts({ ...tts, elevenLabsApiKey: v })}
                   placeholder="xi-..."
+                  section="tts"
+                  field="elevenLabsApiKey"
                 />
               </Row>
               <Row label="ElevenLabs · Voice ID">
@@ -510,7 +518,7 @@ export function SettingsTab() {
         {/* ── Limpieza visual ────────────────────────────────────────── */}
         <Accordion
           icon={<EyeOff size={10} />}
-          title="Limpieza visual"
+          title={t('set.cleanupVisual')}
           summary={`UI ${hideUI ? 'off' : 'on'} · sombras ${hideShadows ? 'off' : 'on'}`}
           open={isOpen('cleanup')}
           onToggle={() => toggle('cleanup')}
@@ -807,6 +815,8 @@ function AiByokSection() {
                         : 'AIza...'
                   }
                   showToggle
+                  section="ai"
+                  field="apiKey"
                 />
               </div>
             </div>

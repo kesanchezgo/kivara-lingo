@@ -107,10 +107,13 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
 
   it("a cleared key ('' via Quitar) survives a second context (no resurrection)", async () => {
     const modA = await import('../../src/shared/store');
+    const { markSecretExplicitClear } = await import('../../src/shared/secret-store');
     modA.useKivaraStore.setState({
       ai: { ...modA.useKivaraStore.getState().ai, apiKey: 'sk-to-clear' },
     });
     await flush();
+    // Quitar path: the UI marks an explicit clear before saving.
+    markSecretExplicitClear('ai', 'apiKey');
     modA.useKivaraStore.setState({
       ai: { ...modA.useKivaraStore.getState().ai, apiKey: '' },
     });

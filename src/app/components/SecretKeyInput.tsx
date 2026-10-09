@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { unreadableSecret } from '../../shared/secret-store';
+import { markSecretExplicitClear, unreadableSecret } from '../../shared/secret-store';
 import { t } from '../../shared/i18n';
 
 interface SecretKeyInputProps {
@@ -13,6 +13,11 @@ interface SecretKeyInputProps {
   hintWhenUnreadable?: string;
   /** Show a "Quitar clave" action when a value exists (default true). */
   showClear?: boolean;
+  /** Secret-store identity of this field — required for the Quitar action
+   * to register an explicit clear (without it a tombstone is never written
+   * from a context that never loaded the baseline). */
+  section?: string;
+  field?: string;
 }
 
 /**
@@ -45,6 +50,8 @@ export function SecretKeyInput({
   showToggle = false,
   hintWhenUnreadable,
   showClear = true,
+  section,
+  field,
 }: SecretKeyInputProps) {
   const hasStored = !!stored;
   const unreadable = unreadableSecret(stored);
@@ -165,6 +172,10 @@ export function SecretKeyInput({
               lastEmittedRef.current = '';
               setDraft('');
               setDirty(false);
+              // Register the explicit clear BEFORE onChange: the save path
+              // consults this flag to decide whether a tombstone may be
+              // written from a context without a baseline.
+              if (section && field) markSecretExplicitClear(section, field);
               onChange('');
             }}
             className="text-[10px] px-1.5 py-1 rounded border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950 shrink-0"

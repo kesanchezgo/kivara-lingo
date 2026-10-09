@@ -306,10 +306,34 @@ export const SECRET_CLEARED = '__cleared__';
  */
 const lastPersisted = new Map<string, string>();
 
+/** SlotKeys with an explicit user "Quitar" in THIS context. A tombstone
+ * (SECRET_CLEARED) is NEVER written without one — an empty in-memory value
+ * without a baseline proves nothing (loadSecrets never ran), so writing a
+ * tombstone there would destroy a real key another context stored. The UI
+ * sets the flag in SecretKeyInput's Quitar action (section+field wired per
+ * call site); tests set it directly. Consumed after a successful write. */
+const explicitClear = new Set<string>();
+
+export function markSecretExplicitClear(section: string, field: string): void {
+  explicitClear.add(secretSlotKey(section, field));
+}
+
+/** Last ciphertext/tombstone THIS context wrote per slot — used to recognise
+ * our own storage.local onChanged echo so the cross-context listener can
+ * skip a pointless rehydrate (and, with fresh IVs, never confuse it with a
+ * remote write, which always carries different bytes). */
+const lastLocalWrite = new Map<string, unknown>();
+
+export function isOwnLocalWrite(key: string, newValue: unknown): boolean {
+  return lastLocalWrite.has(key) && lastLocalWrite.get(key) === newValue;
+}
+
 /** Test-only: clear the per-context baseline (and the in-memory slot
  * fallback) so cases start from a clean slate. */
 export function __resetSecretSlotsForTests(): void {
   lastPersisted.clear();
+  explicitClear.clear();
+  lastLocalWrite.clear();
   memorySlots.clear();
 }
 
@@ -377,17 +401,16 @@ async function saveSecrets(
     const value = rec[field];
     if (typeof value !== 'string') continue;
     const key = secretSlotKey(section, field);
-    if (value === '' && !lastPersisted.has(key)) {
-      // Probe unreadable → conservative skip: we cannot tell a real key
-      // from nothing, so never destroy on an unloaded empty value.
-      if (probeFailed) continue;
-      const slotVal = probed[key];
-      // Real secret sitting in the slot → never destroy it on the basis
-      // of an empty value we never loaded.
-      if (typeof slotVal === 'string' && slotVal !== '' && slotVal !== SECRET_CLEARED) continue;
-      // Slot missing/empty/cleared → explicit clear or harmless no-op;
-      // fall through so the tombstone still lands.
-    }
+    // TOMBSTONE RULE — a tombstone (SECRET_CLEARED) is NEVER written on the
+    // basis of an empty value we never loaded:
+    //  • no baseline + NO explicit Quitar → skip, always. The empty value
+    //    proves nothing (loadSecrets never ran); the slot may hold a real
+    //    key. This covers probe failure, unreadable slots and missing slots
+    //    in a single rule — no probe result can reopen the path.
+    //  • no baseline + explicit Quitar → fall through, the tombstone lands
+    //    (the flag is authoritative even if the probe failed or the slot is
+    //    missing — the user asked for deletion).
+    if (value === '' && !lastPersisted.has(key) && !explicitClear.has(key)) continue;
     // DIFF, don't blind-write. Two jobs in one:
     //  • no change in THIS context → skip (no fresh-IV churn in local);
     //  • value equal to our baseline while ANOTHER context updated the slot
@@ -410,6 +433,8 @@ async function saveSecrets(
       console.warn('[Kivara secret-store] local slot write failed, falling back to inline encryption', err);
       // Fallback = the OLD behavior: encrypt in place in the sync blob.
       // State stays safe to persist: never plaintext, never blanked.
+      // The explicitClear flag is KEPT (not consumed): the tombstone never
+      // landed, so the next save must still honour the user's Quitar.
       for (const { section, field, plain } of written) {
         if (!plain || isEncrypted(plain)) continue;
         const node = state[section];
@@ -419,7 +444,10 @@ async function saveSecrets(
       return false;
     }
     for (const { section, field, plain } of written) {
-      lastPersisted.set(secretSlotKey(section, field), plain);
+      const key = secretSlotKey(section, field);
+      lastPersisted.set(key, plain);
+      lastLocalWrite.set(key, toLocal[key]); // own-echo recognition below
+      explicitClear.delete(key); // consumed — the tombstone landed
     }
   }
   // Sync carries zero secret material regardless — blank them all.

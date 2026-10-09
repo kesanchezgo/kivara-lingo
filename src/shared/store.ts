@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
-import { pushSecretsToLocal, pullSecretsFromLocal } from './secret-store';
+import { pushSecretsToLocal, pullSecretsFromLocal, isOwnLocalWrite } from './secret-store';
 import type {
   SubtitleStyles,
   AnkiMapping,
@@ -642,7 +642,16 @@ try {
         return;
       }
       if (area === 'local') {
-        const touchedSecret = Object.keys(changes).some((k) =>
+        const entries = Object.entries(changes);
+        // Own echo — every touched secret matches the ciphertext/tombstone
+        // THIS context just wrote: skip the pointless rehydrate (it would
+        // only re-run a full decrypt pass over identical bytes).
+        const allOwn = entries.length > 0 && entries.every(([k, c]) =>
+          k.startsWith('kivara-secret:v1:') &&
+          isOwnLocalWrite(k, (c as { newValue?: unknown })?.newValue),
+        );
+        if (allOwn) return;
+        const touchedSecret = entries.some(([k]) =>
           k.startsWith('kivara-secret:v1:'),
         );
         if (touchedSecret) scheduleRehydrate();

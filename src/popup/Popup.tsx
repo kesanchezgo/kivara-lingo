@@ -151,7 +151,14 @@ export function Popup() {
           setCaptureError(result.error || t('popup.capture.failed'));
         }
       } else {
-        await sendMessage('STOP_AUDIO_CAPTURE', {}, 'background');
+        const result = (await sendMessage('STOP_AUDIO_CAPTURE', {}, 'background')) as {
+          ok: boolean;
+          error?: string;
+        };
+        if (!result.ok) {
+          setCaptureError(result.error || t('popup.capture.stopped'));
+          return; // keep the toggle ON — the capture is still running
+        }
         setAudioCaptureActive(false);
       }
     } catch (err) {

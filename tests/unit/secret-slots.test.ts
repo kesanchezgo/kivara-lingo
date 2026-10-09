@@ -19,6 +19,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   SECRET_FIELDS,
   SECRET_CLEARED,
+  markSecretExplicitClear,
   secretSlotKey,
   pushSecretsToLocal,
   pullSecretsFromLocal,
@@ -190,6 +191,9 @@ describe('secret slots', () => {
     await pushSecretsToLocal(stateWith({ ai: { apiKey: 'sk-x' } }), io);
     expect(io.data.has(secretSlotKey('ai', 'apiKey'))).toBe(true);
 
+    // The UI marks an explicit clear (Quitar action) before saving — the
+    // test must do the same; a bare '' without baseline + flag is skipped.
+    markSecretExplicitClear('ai', 'apiKey');
     await pushSecretsToLocal(stateWith({ ai: { apiKey: '' } }), io);
     // Cleared slots carry the tombstone, not '' — so a later load can
     // distinguish "user deleted this" from "no slot here".
@@ -283,6 +287,10 @@ describe('secret slots', () => {
     try {
       const zombie = await encryptSecret('zombie-key');
       // Seed a CLEARED slot through the DEFAULT IO (now backed by the stub).
+      // The UI marks an explicit clear before saving (Quitar action) — the
+      // test must do the same, otherwise the tombstone rule skips the
+      // write (empty value, no baseline, no explicit flag).
+      markSecretExplicitClear('ai', 'apiKey');
       await pushSecretsToLocal(stateWith({ ai: { apiKey: '' } }));
       expect(stub.data.get(secretSlotKey('ai', 'apiKey'))).toBe(SECRET_CLEARED);
       // A legacy ciphertext still sits in the sync blob — resolveSecret must
@@ -344,6 +352,20 @@ describe('secret slots', () => {
     const slot = io.data.get(secretSlotKey('ankiMapping', 'apiKey')) as string;
     expect(isEncrypted(slot)).toBe(true);
     expect(await decryptSecret(slot)).toBe('legacy-retry');
+  });
+
+  it('tombstone needs an explicit clear when there is no baseline', async () => {
+    // No baseline (loadSecrets never ran). A bare '' — e.g. an unrelated
+    // toggle with sync wiped — must NOT write a tombstone: it would destroy
+    // a real key or block a later legacy migration.
+    const io = makeIO();
+    await pushSecretsToLocal(stateWith({ ai: { apiKey: '' } }), io);
+    expect(io.data.has(secretSlotKey('ai', 'apiKey'))).toBe(false);
+
+    // Same empty value, but with the Quitar flag the UI sets → tombstone.
+    markSecretExplicitClear('ai', 'apiKey');
+    await pushSecretsToLocal(stateWith({ ai: { apiKey: '' } }), io);
+    expect(io.data.get(secretSlotKey('ai', 'apiKey'))).toBe(SECRET_CLEARED);
   });
 
   it('covers every declared secret field with a unique slot key', () => {

@@ -196,6 +196,8 @@ export function VipSection() {
                 stored={vip.unsplashAccessKey}
                 onChange={(v) => setKey('unsplashAccessKey', v)}
                 placeholder="(opcional)"
+                section="vip"
+                field="unsplashAccessKey"
               />
             </label>
             <label className="flex flex-col gap-1 text-[11px] text-zinc-700 dark:text-zinc-300">
@@ -207,6 +209,8 @@ export function VipSection() {
                 stored={vip.pixabayApiKey}
                 onChange={(v) => setKey('pixabayApiKey', v)}
                 placeholder={t('vip.pixabayPlaceholder')}
+                section="vip"
+                field="pixabayApiKey"
               />
             </label>
           </div>
