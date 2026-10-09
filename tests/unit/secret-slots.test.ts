@@ -36,12 +36,18 @@ type State = Record<string, Record<string, unknown>>;
 function makeIO(initial: Record<string, unknown> = {}): SecretSlotIO & {
   data: Map<string, unknown>;
   failWrites: boolean;
+  failGets: boolean;
+  getCalls: number;
 } {
   const data = new Map<string, unknown>(Object.entries(initial));
   return {
     data,
     failWrites: false,
+    failGets: false,
+    getCalls: 0,
     async get(keys) {
+      this.getCalls++;
+      if (this.failGets) throw new Error('storage.local unreadable');
       const out: Record<string, unknown> = {};
       for (const k of keys) if (data.has(k)) out[k] = data.get(k);
       return out;
@@ -366,6 +372,131 @@ describe('secret slots', () => {
     markSecretExplicitClear('ai', 'apiKey');
     await pushSecretsToLocal(stateWith({ ai: { apiKey: '' } }), io);
     expect(io.data.get(secretSlotKey('ai', 'apiKey'))).toBe(SECRET_CLEARED);
+  });
+
+  it('Quitar lands even when the seeded baseline says "empty"', async () => {
+    // First save in a fresh context probes the empty slot and seeds the ''
+    // baseline — the diff would then call the tombstone a no-op. The
+    // explicit Quitar must still win, otherwise "Quitar" silently does
+    // nothing on a slot that was already empty (e.g. a cleared-elsewhere
+    // key the user is trying to remove for good).
+    const key = secretSlotKey('ai', 'apiKey');
+    const io = makeIO({ [key]: '' }); // slot present but empty
+
+    const mod = await freshContext();
+    const st = stateWith({});
+    const first = await mod.pushSecretsToLocal(st, io);
+    expect(first).toBe(true);
+    expect(io.data.get(key)).toBe(''); // still no tombstone yet
+
+    mod.markSecretExplicitClear('ai', 'apiKey');
+    const second = await mod.pushSecretsToLocal(stateWith({}), io);
+    expect(second).toBe(true);
+    expect(io.data.get(key)).toBe(SECRET_CLEARED);
+  });
+
+  it('Quitar lands on a real slot a fresh context never loaded', async () => {
+    // The 🟠 scenario end to end: no baseline (getItem never ran), the slot
+    // holds a key another context wrote, and the user presses Quitar in a
+    // freshly opened Settings. The slot must end cleared AND the call must
+    // report success — a `true` that left the key in place was the original
+    // silent-loss bug.
+    const stub = stubLocalSlots();
+    try {
+      const key = secretSlotKey('ai', 'apiKey');
+      const io = makeIO();
+      const seed = await freshContext();
+      await seed.pushSecretsToLocal(stateWith({ ai: { apiKey: 'sk-survivor' } }), io);
+
+      const mod = await freshContext();
+      mod.markSecretExplicitClear('ai', 'apiKey');
+      const ok = await mod.pushSecretsToLocal(stateWith({}), io);
+
+      expect(ok).toBe(true);
+      expect(io.data.get(key)).toBe(SECRET_CLEARED);
+      // A third context sees nothing, not the zombie key.
+      const reader = await freshContext();
+      const state = stateWith({});
+      await reader.pullSecretsFromLocal(state, io);
+      expect(state.ai.apiKey).toBe('');
+    } finally {
+      stub.restore();
+    }
+  });
+
+  it('the empty-slot probe runs once per context and seeds the baseline', async () => {
+    // The probe cannot change the write decision (the flag does that), so it
+    // exists only to seed '' baselines for genuinely empty slots. Seeding is
+    // what stops the NEXT save from reading storage.local again.
+    const key = secretSlotKey('ai', 'apiKey');
+    const io = makeIO();
+    const mod = await freshContext();
+
+    await mod.pushSecretsToLocal(stateWith({}), io);
+    const firstProbe = io.getCalls;
+    expect(firstProbe).toBe(1); // probed once…
+    expect(io.data.has(key)).toBe(false); // …and wrote nothing
+
+    await mod.pushSecretsToLocal(stateWith({}), io);
+    expect(io.getCalls).toBe(firstProbe); // never re-probed
+    expect(io.data.has(key)).toBe(false);
+  });
+
+  it('a slot holding a real secret is probed once, then left alone forever', async () => {
+    // Same fresh-context shape, but the slot holds a live key: the probe
+    // reads it, records that we already looked, and every later save skips
+    // the write AND the read.
+    const stub = stubLocalSlots();
+    try {
+      const key = secretSlotKey('ai', 'apiKey');
+      const io = makeIO();
+      const seed = await freshContext();
+      await seed.pushSecretsToLocal(stateWith({ ai: { apiKey: 'sk-survivor' } }), io);
+      const before = io.data.get(key);
+      io.getCalls = 0; // the seeding context probes its own empty fields
+
+      const mod = await freshContext();
+      await mod.pushSecretsToLocal(stateWith({}), io);
+      expect(io.getCalls).toBe(1);
+      expect(io.data.get(key)).toBe(before); // untouched
+
+      await mod.pushSecretsToLocal(stateWith({}), io);
+      await mod.pushSecretsToLocal(stateWith({}), io);
+      expect(io.getCalls).toBe(1); // no repeat reads
+      expect(io.data.get(key)).toBe(before); // and still no tombstone
+    } finally {
+      stub.restore();
+    }
+  });
+
+  it('a failed probe changes nothing — and is retried on the next save', async () => {
+    // Unreadable slots must not reopen the tombstone path: the write
+    // decision is flag-driven, so a dead read is just a dead read. It also
+    // must not be remembered as "probed", or the key would lose its only
+    // chance to be inspected later.
+    const stub = stubLocalSlots();
+    try {
+      const key = secretSlotKey('ai', 'apiKey');
+      const io = makeIO();
+      io.failGets = true;
+      const seed = await freshContext();
+      io.failGets = false;
+      await seed.pushSecretsToLocal(stateWith({ ai: { apiKey: 'sk-survivor' } }), io);
+      const before = io.data.get(key);
+      io.getCalls = 0;
+      io.failGets = true;
+
+      const mod = await freshContext();
+      const ok = await mod.pushSecretsToLocal(stateWith({}), io);
+      expect(ok).toBe(true);
+      expect(io.data.get(key)).toBe(before); // probe failure ≠ permission to clear
+      expect(io.getCalls).toBe(1);
+
+      await mod.pushSecretsToLocal(stateWith({}), io);
+      expect(io.getCalls).toBe(2); // retried, because nothing was learned
+    } finally {
+      stub.restore();
+    }
   });
 
   it('covers every declared secret field with a unique slot key', () => {

@@ -48,6 +48,10 @@ const es: Dict = {
   'key.showTitle': 'Mostrar lo escrito',
   'key.hideTitle': 'Ocultar',
 
+  // ── storage failures ─────────────────────────────────────────────────
+  'storage.syncWriteFailed': 'No se pudo guardar en chrome.storage.sync (cuota llena o sincronización desactivada). Los ajustes se conservan solo en este dispositivo: libera espacio o vuelve a activar la sincronización de Chrome.',
+  'storage.syncRetry': 'Reintentar guardado',
+
   // ── subtitle overlay / panel ──────────────────────────────────────────────
   'app.subtitlesVisible': 'Subtítulos visibles',
   'app.subtitlesHidden': 'Subtítulos ocultos',
@@ -557,6 +561,9 @@ const en: Dict = {
   'key.hide': 'Hide',
   'key.showTitle': 'Show what is typed',
   'key.hideTitle': 'Hide',
+
+  'storage.syncWriteFailed': 'Could not write to chrome.storage.sync (quota full or sync turned off). Settings are kept on this device only — free up space or turn Chrome sync back on.',
+  'storage.syncRetry': 'Retry save',
 
   'app.subtitlesVisible': 'Subtitles visible',
   'app.subtitlesHidden': 'Subtitles hidden',

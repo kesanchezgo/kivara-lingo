@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useKivaraStore } from '../shared/store';
 import { t } from '../shared/i18n';
+import { SyncWriteErrorBanner } from '../app/components/SyncWriteErrorBanner';
 import type { AnkiPingErrorCode, AnkiPingResponse, AudioCaptureStatus } from '../shared/types';
 
 type PingStatus = 'idle' | 'pinging' | 'ok' | 'error';
@@ -232,6 +233,10 @@ export function Popup() {
         </div>
 
         <div className="p-3 space-y-1.5">
+
+          {/* Sync write failure — a quota/disabled-sync failure would
+              otherwise leave the user thinking the setting saved. */}
+          <SyncWriteErrorBanner />
 
           {/* AnkiConnect status pill */}
           <div className={`rounded-xl border px-3 py-2.5 ${

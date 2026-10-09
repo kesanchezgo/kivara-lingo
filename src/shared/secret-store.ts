@@ -318,6 +318,11 @@ export function markSecretExplicitClear(section: string, field: string): void {
   explicitClear.add(secretSlotKey(section, field));
 }
 
+/** SlotKeys the empty-value probe has already inspected in THIS context.
+ * The probe answer is the same on every save until somebody writes the
+ * slot, so probing once per key is enough — see saveSecrets(). */
+const probedSlots = new Set<string>();
+
 /** Last ciphertext/tombstone THIS context wrote per slot — used to recognise
  * our own storage.local onChanged echo so the cross-context listener can
  * skip a pointless rehydrate (and, with fresh IVs, never confuse it with a
@@ -333,6 +338,7 @@ export function isOwnLocalWrite(key: string, newValue: unknown): boolean {
 export function __resetSecretSlotsForTests(): void {
   lastPersisted.clear();
   explicitClear.clear();
+  probedSlots.clear();
   lastLocalWrite.clear();
   memorySlots.clear();
 }
@@ -373,25 +379,53 @@ async function saveSecrets(
   const toLocal: Record<string, unknown> = {};
   const written: Array<{ section: string; field: string; plain: string }> = [];
   // Probe current slots ONCE for empty values without a baseline (first save
-  // in a context where loadSecrets never ran). An empty in-memory value
-  // then proves nothing: the slot may hold a real key we never injected,
-  // and writing SECRET_CLEARED would destroy it (e.g. an unrelated toggle
-  // with sync wiped/disabled). Only skip when the slot actually holds a
-  // real secret; otherwise proceed so explicit clears still land.
-  const probeKeys = SECRET_FIELDS.filter(({ section, field }) => {
+  // in a context where loadSecrets never ran). The probe NO LONGER decides
+  // whether a tombstone is written — `explicitClear` does that, and the
+  // "empty + no baseline + no flag → skip" rule below protects a real key
+  // whatever the slot holds. What the probe buys now is the BASELINE for the
+  // slots that are genuinely empty/tombstoned, so the next save doesn't have
+  // to read storage.local again. Keys already probed in this context are
+  // never re-read.
+  const probeCandidates = SECRET_FIELDS.filter(({ section, field }) => {
     const node = state[section];
     if (!node || typeof node !== 'object') return false;
-    const rec = node as Record<string, unknown>;
-    return rec[field] === '' && !lastPersisted.has(secretSlotKey(section, field));
-  }).map(({ section, field }) => secretSlotKey(section, field));
-  let probed: Record<string, unknown> = {};
-  let probeFailed = false;
-  if (probeKeys.length > 0) {
+    return (
+      (node as Record<string, unknown>)[field] === '' &&
+      !lastPersisted.has(secretSlotKey(section, field)) &&
+      !probedSlots.has(secretSlotKey(section, field)) &&
+      // A pending Quitar writes its tombstone whatever the slot holds, so
+      // there is nothing to learn from a read.
+      !explicitClear.has(secretSlotKey(section, field))
+    );
+  });
+  let probed: Record<string, unknown> | null = null;
+  if (probeCandidates.length > 0) {
     try {
-      probed = await io.get(probeKeys);
-    } catch {
-      probed = {};
-      probeFailed = true; // unreadable → conservative skip below
+      probed = await io.get(probeCandidates.map((f) => secretSlotKey(f.section, f.field)));
+    } catch (err) {
+      // Unreadable slots change NOTHING about the write decision: the skip
+      // rule below already refuses to tombstone an unknown slot. Leaving
+      // `probed` null AND `probedSlots` unmarked keeps the retry alive.
+      console.warn('[Kivara secret-store] slot probe failed', err);
+    }
+  }
+  if (probed) {
+    for (const { section, field } of probeCandidates) {
+      const key = secretSlotKey(section, field);
+      probedSlots.add(key);
+      const slot = probed[key];
+      if (typeof slot === 'string' && slot !== '' && slot !== SECRET_CLEARED) {
+        // A real secret sits in the slot and this context never loaded it. Do
+        // NOT seed a plaintext baseline here: the in-memory value is '' while
+        // the slot holds the key, so a seeded baseline would make the NEXT save
+        // diff '' against it and tombstone a key that is still alive. The skip
+        // rule keeps protecting it, and probedSlots stops the re-read.
+        continue;
+      }
+      // Missing slot, '' slot or tombstone — there is nothing to protect, so
+      // the baseline is "empty", exactly what loadSecrets records for a slot it
+      // never found. An empty save becomes a no-op.
+      lastPersisted.set(key, '');
     }
   }
   for (const { section, field } of SECRET_FIELDS) {
@@ -406,17 +440,21 @@ async function saveSecrets(
     //  • no baseline + NO explicit Quitar → skip, always. The empty value
     //    proves nothing (loadSecrets never ran); the slot may hold a real
     //    key. This covers probe failure, unreadable slots and missing slots
-    //    in a single rule — no probe result can reopen the path.
-    //  • no baseline + explicit Quitar → fall through, the tombstone lands
-    //    (the flag is authoritative even if the probe failed or the slot is
-    //    missing — the user asked for deletion).
+    //    in a single rule — the probe result is not consulted here.
+    //  • no baseline (or the empty baseline the probe seeded) + explicit
+    //    Quitar → fall through, the tombstone lands (the flag is
+    //    authoritative even if the probe failed or the slot is missing —
+    //    the user asked for deletion).
     if (value === '' && !lastPersisted.has(key) && !explicitClear.has(key)) continue;
     // DIFF, don't blind-write. Two jobs in one:
     //  • no change in THIS context → skip (no fresh-IV churn in local);
     //  • value equal to our baseline while ANOTHER context updated the slot
     //    (we haven't rehydrated yet) → skip, so a stale context can't
     //    clobber the newer key or resurrect one cleared elsewhere.
-    if (lastPersisted.get(key) === value) continue;
+    // An explicit Quitar overrides the "unchanged" shortcut: the seeded
+    // empty baseline means "nothing here", and the user just asked for the
+    // tombstone, so it has to land unchanged.
+    if (lastPersisted.get(key) === value && !explicitClear.has(key)) continue;
     toLocal[key] =
       value === ''
         ? SECRET_CLEARED

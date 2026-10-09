@@ -22,6 +22,7 @@ import {
 } from '../../../shared/whisper-presets';
 import { SHORTCUT_DEFS } from '../../../shared/shortcuts';
 import { SecretKeyInput } from '../SecretKeyInput';
+import { SyncWriteErrorBanner } from '../SyncWriteErrorBanner';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { ShortcutEditor } from '../ShortcutEditor';
 import { InfoHint } from '../InfoHint';
@@ -106,6 +107,11 @@ export function SettingsTab() {
   return (
     <div className="flex flex-col h-full min-h-0 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 overflow-y-auto">
       <div className="p-3 pb-6 space-y-2">
+
+        {/* Sync write failure — quota / sync disabled. Discreet, above the
+            quick bar, so a "saved" toggle that never reached sync is
+            explainable instead of looking like a revert. */}
+        <SyncWriteErrorBanner compact />
 
         {/* ── Quick bar — always visible ───────────────────────────────── */}
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">

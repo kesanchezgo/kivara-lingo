@@ -839,7 +839,25 @@ export interface KivaraStore {
 }
 ```
 
-### 12.2 IndexedDB (Dexie)
+### 12.2 Modo de fallo de `chrome.storage.sync`
+
+Una escritura puede fallar (cuota de 8 KB por ítem, sync desactivado o
+sesión cerrada). Cuando ocurre:
+
+- El blob queda en un **fallback write-through** en memoria: la sesión sigue
+  funcionando y la UI no "vuelve atrás".
+- `store.ts` marca el fallo y notifica a los suscriptores
+  (`getSyncWriteFailed` / `subscribeSyncWriteError`). Lo consume
+  `SyncWriteErrorBanner` (popup y Settings), con reintento vía
+  `retrySyncWrite`. No es un campo del store: `setItem` corre dentro de una
+  escritura del middleware y escribirlo ahí crearía un bucle.
+- Los **ecos propios** se reconocen con un anillo de las últimas N escrituras.
+  Con un solo valor recordado, el eco de una escritura A llegaba después de B
+  y se interpretaba como cambio remoto: se borraba el fallback y el
+  rehidratado leía A — la UI revertía B en silencio.
+- `removeItem` borra también el fallback y el anillo.
+
+### 12.3 IndexedDB (Dexie)
 
 ```ts
 // src/shared/db.ts
