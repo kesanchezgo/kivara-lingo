@@ -5,6 +5,7 @@ import { Volume1, Copy, Check, Quote, AudioLines, Camera, Link2, GraduationCap, 
 import type { SubtitleStyles, Mode, TranslateResponse } from '../../shared/types';
 import { tokenizeSentence } from '../nlp/tokenize';
 import { lookupDictionary } from '../nlp/dictionary';
+import { eventPathIsEditable } from '../utils/keyboard';
 import { useKivaraStore } from '../../shared/store';
 import { WordPopover } from './WordPopover';
 
@@ -98,6 +99,9 @@ export function SubtitleOverlay({
     // (Alt+Tab, browser menu activation, Alt+arrow seek shortcuts, etc.)
     // keeps working. Previously we blanket-prevented every Alt keypress.
     const down = (e: KeyboardEvent) => {
+      // Typing inside the panel (a shadow root, so `e.target` is the host)
+      // must never expand an MWE on Alt.
+      if (eventPathIsEditable(e)) return;
       if (e.key !== 'Alt') return;
       const hk = hoveredKeyRef.current;
       if (!hk) return;

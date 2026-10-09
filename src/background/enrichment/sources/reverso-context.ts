@@ -51,7 +51,9 @@ export const reversoSource: EnrichmentSource = {
     const html = await fetchHtml(url, {
       timeoutMs: ctx.timeoutMs,
       signal: ctx.signal,
-      credentials: 'include',
+      // Never send the user's browser cookies to a third-party dictionary: a
+      // leak of who is browsing what word is worse than a 403.
+      credentials: 'omit',
       headers: {
         Referer: 'https://context.reverso.net/',
       },

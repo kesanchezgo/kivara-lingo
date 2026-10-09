@@ -48,7 +48,14 @@ describe('browser-session protected scrapers', () => {
     expect(result.translations).toEqual(['dar']);
   });
 
-  it('includes existing browser credentials for Cloudflare-protected dictionaries', async () => {
+  it('never sends the browser session to a third-party dictionary', async () => {
+    // Policy change (audit): `credentials: 'include'` inside the service
+    // worker ships the user's REAL cookies to every dictionary we scrape.
+    // Knowing which word a session looked up on britannica.com /
+    // merriam-webster.com / linguee.com is user data that belongs to those
+    // sites and their logged-in user — not to us. A 403 costs a lookup; a
+    // cookie leak costs an account trail. WordReference is the exception
+    // and keeps 'include' because it sets its own gate cookie.
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response('<span class="def_text">to hand something to someone</span>', { status: 200 }),
     );
@@ -57,6 +64,19 @@ describe('browser-session protected scrapers', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://www.britannica.com/dictionary/give',
+      expect.objectContaining({ credentials: 'omit' }),
+    );
+  });
+
+  it('WordReference keeps its own credentials (it sets the gate cookie)', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('<table class="WRD"><td class="ToWrd">dar vt</td></table>', { status: 200 }),
+    );
+
+    await wordReferenceSource.enrich('give', ctx);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://www.wordreference.com/enes/give',
       expect.objectContaining({ credentials: 'include' }),
     );
   });
@@ -156,7 +176,7 @@ describe('browser-session protected scrapers', () => {
 describe('Linguee request protection', () => {
   const rateLimitKey = 'enrichment:linguee:rate-limit:v1';
 
-  it('includes the browser session and persists each permitted request', async () => {
+  it('omits the browser session and persists each permitted request', async () => {
     const now = 1_800_000_000_000;
     vi.spyOn(Date, 'now').mockReturnValue(now);
     (chrome.storage.local.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({});
@@ -168,7 +188,7 @@ describe('Linguee request protection', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://www.linguee.com/english-spanish/search?source=auto&query=give',
-      expect.objectContaining({ credentials: 'include' }),
+      expect.objectContaining({ credentials: 'omit' }),
     );
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       [rateLimitKey]: {
@@ -281,7 +301,7 @@ describe('same-provider endpoint updates', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://www.merriam-webster.com/dictionary/come%20out',
-      expect.objectContaining({ credentials: 'include' }),
+      expect.objectContaining({ credentials: 'omit' }),
     );
     expect(result.definitions).toEqual(['to become publicly known']);
   });
@@ -324,7 +344,7 @@ describe('same-provider endpoint updates', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       'https://pixabay.com/images/search/give/?pagi=1',
       expect.objectContaining({
-        credentials: 'include',
+        credentials: 'omit',
         headers: expect.objectContaining({
           Accept: 'application/json',
           'x-fetch-bootstrap': '1',

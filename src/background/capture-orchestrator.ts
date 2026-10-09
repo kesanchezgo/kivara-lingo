@@ -21,7 +21,14 @@ import { runEnrichment } from './enrichment/orchestrator';
 import { formatFrequencyBand, pickFrequencyWinner } from '../shared/frequency';
 import { getVipSettings, loadTranslateTargetLang } from './vip-settings';
 import { computeCueWindow, shouldFallbackToTts, waitForCueTailMs } from './cue-window';
+import { fetchBytesWithLimits } from '../shared/net-guard';
 import { t } from '../shared/i18n';
+
+/** Outbound media downloads come from scraped pages, so they are bounded:
+ * a hung CDN must not hold the card open, and a giant body must not be
+ * pulled into the worker's memory. See shared/net-guard.ts. */
+const IMAGE_DOWNLOAD_TIMEOUT_MS = 10_000;
+const AUDIO_DOWNLOAD_TIMEOUT_MS = 12_000;
 
 interface ResolveContext {
   request: CreateCardRequest;
@@ -76,6 +83,36 @@ function usable(value?: string | null): string {
   return text;
 }
 
+/**
+ * Anki renders field values as HTML and its reviewer executes them, so every
+ * piece of text bound for a field — subtitles, web-scraped definitions,
+ * model output, user input — is escaped here. Untrusted text therefore shows
+ * up literally instead of running.
+ *
+ * Intentional markup (`<br>`, `<img src="…">`, `[sound:…]`) is added AFTER
+ * escaping, from names Kivara generates itself (`safeFilename` /
+ * `storeMediaFile`), never as part of escaped text. Keep it that way: an
+ * escaped field plus our own tags is the only safe combination.
+ */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/** Trim to a usable value and escape it for an Anki field. */
+function escField(value?: string | null): string {
+  return escapeHtml(usable(value));
+}
+
+/** Escape text destined for an HTML/quoted attribute. */
+function escAttr(value: string): string {
+  return escapeHtml(value).replace(/`/g, '&#96;');
+}
+
 function isLexicalGloss(value?: string | null): boolean {
   const text = usable(value);
   if (!text) return false;
@@ -122,11 +159,11 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 function resolveField(field: string, source: FieldSource, ctx: ResolveContext): string {
   switch (source) {
     case 'selection':
-      return ctx.request.token;
+      return escField(ctx.request.token);
     case 'cue':
-      return ctx.request.sentence;
+      return escField(ctx.request.sentence);
     case 'phonetic':
-      return usable(ctx.phonetic);
+      return escField(ctx.phonetic);
     case 'translation':
     case 'translate':
       // In the default KivaraLingo model, `translation` is rendered below
@@ -134,51 +171,51 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
       // translation of that sentence. It intentionally does NOT fall back to
       // the word translation, otherwise the card shows values like
       // "cualquier cosa" under "Does anybody want anything else?".
-      return usable(ctx.sentenceTranslation);
+      return escField(ctx.sentenceTranslation);
     case 'bilingual':
       // Word/phrase-level bilingual definition shown near the top of the
       // card. This falls back to the short translation only when the richer
       // bilingual bucket is absent.
-      return usable(ctx.bilingual) || usable(ctx.translation);
+      return escField(ctx.bilingual) || escField(ctx.translation);
     case 'monolingual':
-      return usable(ctx.monolingual);
+      return escField(ctx.monolingual);
     case 'examples':
-      return ctx.examples.join('<br>');
+      return ctx.examples.map(escapeHtml).join('<br>');
     case 'dictionary': {
       // Legacy / deprecated catch-all kept for backward compatibility with
       // mappings persisted before phonetic/bilingual/monolingual got their
       // own explicit FieldSource. We sniff the destination field's name to
       // pick the most reasonable bucket.
       const f = field.toLowerCase();
-      if (/phon|ipa|pronun/.test(f)) return usable(ctx.phonetic);
-      if (/mono|definition|definición/.test(f)) return usable(ctx.monolingual);
-      if (/example|ejemplo|sample/.test(f)) return ctx.examples.join('<br>');
-      if (/bilingual|biling/.test(f)) return usable(ctx.bilingual) || usable(ctx.translation);
-      if (/translation|traduccion|traducción/.test(f)) return usable(ctx.sentenceTranslation);
-      return usable(ctx.bilingual) || usable(ctx.translation) || usable(ctx.sentenceTranslation);
+      if (/phon|ipa|pronun/.test(f)) return escField(ctx.phonetic);
+      if (/mono|definition|definición/.test(f)) return escField(ctx.monolingual);
+      if (/example|ejemplo|sample/.test(f)) return ctx.examples.map(escapeHtml).join('<br>');
+      if (/bilingual|biling/.test(f)) return escField(ctx.bilingual) || escField(ctx.translation);
+      if (/translation|traduccion|traducción/.test(f)) return escField(ctx.sentenceTranslation);
+      return escField(ctx.bilingual) || escField(ctx.translation) || escField(ctx.sentenceTranslation);
     }
     case 'ai-definition':
-      return ctx.ai?.contextualDefinition ?? '';
+      return escField(ctx.ai?.contextualDefinition);
     case 'ai-synonyms':
-      return ctx.ai?.synonyms.join(', ') ?? '';
+      return (ctx.ai?.synonyms ?? []).map(escapeHtml).join(', ');
     case 'ai-collocations':
-      return ctx.ai?.collocations.join(', ') ?? '';
+      return (ctx.ai?.collocations ?? []).map(escapeHtml).join(', ');
     case 'ai-nuance':
-      return ctx.ai?.nuancedTranslation ?? '';
+      return escField(ctx.ai?.nuancedTranslation);
     case 'ai-register':
-      return ctx.ai?.register ?? '';
+      return escField(ctx.ai?.register);
     case 'synonyms':
-      return ctx.synonyms.join(', ');
+      return ctx.synonyms.map(escapeHtml).join(', ');
     case 'antonyms':
-      return ctx.antonyms.join(', ');
+      return ctx.antonyms.map(escapeHtml).join(', ');
     case 'collocations':
-      return ctx.collocations.join(', ');
+      return ctx.collocations.map(escapeHtml).join(', ');
     case 'frequency':
-      return usable(ctx.frequency);
+      return escField(ctx.frequency);
     case 'etymology':
-      return usable(ctx.etymology);
+      return escField(ctx.etymology);
     case 'mnemonic':
-      return usable(ctx.mnemonic);
+      return escField(ctx.mnemonic);
     case 'image':
       // The wrapper below downloads the URL and attaches it via
       // storeMediaFile + <img> field reference. We leave the field text
@@ -187,7 +224,7 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
       // stays empty — a legible failure mode.)
       return '';
     case 'video-link':
-      return usable(ctx.videoLink) ? `<a href="${ctx.videoLink}">YouGlish</a>` : '';
+      return usable(ctx.videoLink) ? `<a href="${escAttr(ctx.videoLink!)}">YouGlish</a>` : '';
     case 'word-audio':
       // Audio-only field. The card already renders the headword elsewhere;
       // returning the token here makes Anki display "know ▶" instead of just
@@ -196,7 +233,7 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
     case 'tts':
       // Legacy text-to-speech alias keeps the old text fallback behavior for
       // mappings created before dedicated `sentence-audio` / `word-audio`.
-      return ctx.request.sentence;
+      return escField(ctx.request.sentence);
     case 'manual':
     case 'frame':
     case 'tabCapture':
@@ -665,8 +702,10 @@ export async function createCardFromRequest(
 
   if (fieldMapping.length === 0) {
     // No explicit mapping yet → fall back to common defaults to keep the card useful.
-    fields.Front = request.token;
-    fields.Back = [request.sentence, ctx.translation].filter(Boolean).join('<br><br>');
+    fields.Front = escField(request.token);
+    fields.Back = [escField(request.sentence), escField(ctx.translation)]
+      .filter(Boolean)
+      .join('<br><br>');
   } else {
     for (const [field, source] of fieldMapping) {
       fields[field] = resolveField(field, source, ctx);
@@ -716,21 +755,20 @@ export async function createCardFromRequest(
   }
   if (imageTargets.length > 0 && ctx.imageUrl) {
     try {
-      const res = await fetch(ctx.imageUrl, { credentials: 'omit' });
-      if (res.ok) {
-        const buf = await res.arrayBuffer();
-        const mime = res.headers.get('content-type') ?? 'image/jpeg';
-        const ext = /png/i.test(mime) ? 'png' : /webp/i.test(mime) ? 'webp' : 'jpg';
-        const filename = safeFilename(`${request.token}_img`, ext);
-        const data = arrayBufferToBase64(buf);
-        await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
-        for (const target of imageTargets) {
-          fields[target] = fields[target]
-            ? `${fields[target]}<img src="${filename}">`
-            : `<img src="${filename}">`;
-        }
-      } else {
-        warnings.push(`Imagen VIP no descargable: HTTP ${res.status}`);
+      const buf = await fetchBytesWithLimits(ctx.imageUrl, {
+        timeoutMs: IMAGE_DOWNLOAD_TIMEOUT_MS,
+        maxBytes: 8 * 1024 * 1024,
+        credentials: 'omit',
+      });
+      const mime = 'image/jpeg';
+      const ext = 'jpg';
+      const filename = safeFilename(`${request.token}_img`, ext);
+      const data = arrayBufferToBase64(buf.buffer as ArrayBuffer);
+      await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
+      for (const target of imageTargets) {
+        fields[target] = fields[target]
+          ? `${fields[target]}<img src="${filename}">`
+          : `<img src="${filename}">`;
       }
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'image';
@@ -865,16 +903,20 @@ export async function createCardFromRequest(
     let attached = false;
     if (ctx.wordAudioUrl) {
       try {
-        const res = await fetch(ctx.wordAudioUrl, { credentials: 'omit' });
-        if (res.ok) {
-          const buf = await res.arrayBuffer();
-          const mime = res.headers.get('content-type') ?? 'audio/mpeg';
-          const data = arrayBufferToBase64(buf);
-          const filename = safeFilename(headword, extForMime(mime));
-          await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
-          fields[wordAudioField] = withSound(fields[wordAudioField], filename);
-          attached = true;
-        }
+        // Bounded fetch: the URL comes out of a scraped page, so it gets the
+        // same public-HTTPS gate, timeout and size cap as anything else we
+        // download inside the service worker.
+        const buf = await fetchBytesWithLimits(ctx.wordAudioUrl, {
+          timeoutMs: AUDIO_DOWNLOAD_TIMEOUT_MS,
+          maxBytes: 16 * 1024 * 1024,
+          credentials: 'omit',
+        });
+        const mime = 'audio/mpeg';
+        const data = arrayBufferToBase64(buf.buffer as ArrayBuffer);
+        const filename = safeFilename(headword, extForMime(mime));
+        await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
+        fields[wordAudioField] = withSound(fields[wordAudioField], filename);
+        attached = true;
       } catch (err) {
         const reason = err instanceof Error ? err.message : 'word-audio-url';
         warnings.push(`Audio palabra (URL): ${reason}`);

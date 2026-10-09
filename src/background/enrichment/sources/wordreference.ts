@@ -61,6 +61,11 @@ export const wordReferenceSource: EnrichmentSource = {
     const html = await fetchHtml(url, {
       timeoutMs: ctx.timeoutMs,
       signal: ctx.signal,
+      // The ONLY source allowed to send cookies: `ensureHumanCookie` above
+      // sets WordReference's own `nginx_wr_human` marker, so the request has
+      // to carry it. Everything else in the chain uses 'omit' — a user's
+      // browser cookies belong to the sites they are signed into, not to
+      // whichever dictionary word they happened to look up.
       credentials: 'include',
     });
     if (!html) return {};

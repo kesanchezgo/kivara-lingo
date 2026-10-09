@@ -47,6 +47,7 @@ import { resolveWordStreaming } from './resolve-word';
 import { getCacheStats, clearCaches } from './cache-admin';
 import { listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';
 import { t } from '../shared/i18n';
+import { validateDictPackInstallRequest } from '../shared/net-guard';
 
 console.log('[Kivara Lingo] service worker booting');
 
@@ -904,6 +905,21 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   // pack is the obvious one). Doing the download AND the streaming
   // import here keeps the heavy memory work off the renderer entirely
   // and lets us report progress back via tab broadcast.
+  //
+  // Deliberate limits, all three:
+  //  • WHO may ask — `sender.id === chrome.runtime.id` only. A web page cannot
+  //    claim our id, so no site (and no content script it reached) can make
+  //    the service worker download a host of its choosing.
+  //  • WHERE we may go — public HTTPS only. The SW's host_permissions reach
+  //    far beyond any page, so an ungated download is a port scanner pointed
+  //    at the user's own machine and LAN.
+  //  • HOW LONG and HOW MUCH — an overall timeout plus a byte cap, enforced
+  //    against the ACTUAL stream and not just the declared length.
+  // The curated catalogue is one HTTPS CDN; the "importar manualmente" box
+  // accepts any public HTTPS URL that serves a Yomitan zip, self-hosted or
+  // not. Local files are NOT reachable here by design.
+  const DICT_PACK_TIMEOUT_MS = 120_000;
+  const DICT_PACK_MAX_BYTES = 512 * 1024 * 1024;
   if (message?.type === 'INSTALL_DICT_PACK_FROM_URL' && typeof message.url === 'string') {
     void (async () => {
       const url: string = message.url;
@@ -921,21 +937,38 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         }
       };
       try {
-        if (!/^https?:\/\//i.test(url)) {
-          sendResponse({ ok: false, error: 'URL must be http(s)://' });
+        // WHO may ask and WHERE we may go — see validateDictPackInstallRequest.
+        const reject = validateDictPackInstallRequest({
+          senderId: _sender.id,
+          runtimeId: chrome.runtime.id,
+          url,
+        });
+        if (reject) {
+          reportProgress({ stage: 'error', error: reject });
+          sendResponse({ ok: false, error: reject });
           return;
         }
         reportProgress({ stage: 'downloading', received: 0, total: 0 });
 
         // Streaming download with progress so the side-panel can render
         // a real ratio while the bytes come in.
-        const res = await fetch(url, { redirect: 'follow' });
+        const res = await fetch(url, {
+          redirect: 'follow',
+          signal: AbortSignal.timeout(DICT_PACK_TIMEOUT_MS),
+        });
         if (!res.ok) {
           sendResponse({ ok: false, error: `HTTP ${res.status} ${res.statusText}` });
           return;
         }
         const totalHeader = res.headers.get('content-length');
         const total = totalHeader ? parseInt(totalHeader, 10) || 0 : 0;
+        if (total > DICT_PACK_MAX_BYTES) {
+          sendResponse({
+            ok: false,
+            error: `Paquete demasiado grande (${total} bytes > ${DICT_PACK_MAX_BYTES})`,
+          });
+          return;
+        }
         const reader = res.body?.getReader();
         if (!reader) {
           // Fallback for environments without ReadableStream — single-shot.
@@ -955,8 +988,16 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           const { value, done } = await reader.read();
           if (done) break;
           if (value) {
-            chunks.push(value);
+            // Second bound: a server that omits or lies about
+            // Content-Length still stops here instead of streaming until the
+            // service worker is killed.
             received += value.length;
+            if (received > DICT_PACK_MAX_BYTES) {
+              await reader.cancel().catch(() => {});
+              sendResponse({ ok: false, error: 'Paquete demasiado grande' });
+              return;
+            }
+            chunks.push(value);
             reportProgress({ stage: 'downloading', received, total });
           }
         }

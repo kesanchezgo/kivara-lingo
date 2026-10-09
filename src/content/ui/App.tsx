@@ -9,6 +9,7 @@ import { applyCleanupCss } from './cleanup-css';
 import { useKivaraStore } from '../../shared/store';
 import { captureFrame, captureBestFrame } from '../capture/frame';
 import { comboFromEvent, normalizeCombo } from '../../shared/shortcuts';
+import { eventPathIsEditable } from '../utils/keyboard';
 import type {
   CreateCardRequest,
   CreateCardResponse,
@@ -637,8 +638,10 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   }, []);
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      // composedPath, not `e.target`: inside the panel's shadow root the
+      // reported target is the host element, so a tagName check would miss
+      // the input the user is typing in and fire shortcuts mid-sentence.
+      if (eventPathIsEditable(e)) return;
       const combo = comboFromEvent(e);
       if (!combo) return;
       // A combo currently owned by a manifest command fires via

@@ -40,6 +40,10 @@ function setupMocks(opts: {
   findNotesIds?: number[];
   notesInfos?: Array<{ noteId: number; fields: Record<string, { value: string }> }>;
   addNoteImpl?: () => Promise<number>;
+  /** What `translateToken` resolves to (dictionary bucket, examples, …). */
+  tokenResult?: Record<string, unknown>;
+  /** What `runEnrichment` resolves to (VIP media, video links, …). */
+  enriched?: { entry?: unknown };
 } = {}) {
   const addNote = vi.fn(opts.addNoteImpl ?? (async () => 123));
   const findNotes = vi.fn(async () => opts.findNotesIds ?? []);
@@ -79,10 +83,8 @@ function setupMocks(opts: {
     const actual = (await importOriginal()) as Record<string, unknown>;
     return {
       ...(actual as object),
-      translateToken: async (token: string) => {
-        translateCalls.n += 1;
-        return { token, type: 'word', translation: 'hola' };
-      },
+      translateToken: async (token: string) =>
+        opts.tokenResult ?? { token, type: 'word', translation: 'hola' },
       translateText: async () => ({ ok: false, error: 'no network in test' }),
     };
   });
@@ -96,7 +98,7 @@ function setupMocks(opts: {
     };
   });
   vi.doMock('../../src/background/enrichment/orchestrator', () => ({
-    runEnrichment: async () => ({ entry: null }),
+    runEnrichment: async () => opts.enriched ?? { entry: null },
   }));
   vi.doMock('../../src/background/tts', () => ({
     generateTtsAudio: async () => ({ ok: false, error: 'disabled in test' }),
@@ -104,6 +106,10 @@ function setupMocks(opts: {
   vi.doMock('../../src/background/audio-capture-manager', () => ({
     getAudioCaptureStatus: async () => ({ active: false }),
     extractAudioClip: async () => ({ ok: false, error: 'disabled in test' }),
+  }));
+  vi.doMock('../../src/background/vip-settings', () => ({
+    getVipSettings: async () => ({ enabled: true, youglish: true }),
+    loadTranslateTargetLang: async () => 'es',
   }));
 
   return { addNote, findNotes, notesInfo, storeMediaFile, ledgerPut, translateCalls };
@@ -222,6 +228,70 @@ describe('retry idempotency', () => {
     expect(res.ok).toBe(true);
     expect(res.noteId).toBe(777);
     expect(m.addNote).not.toHaveBeenCalled();
+  });
+
+  it('escapes HTML in every text field a card is built from', async () => {
+    // Anki renders field values as HTML and executes them, so subtitle text,
+    // scraped definitions and model output must arrive escaped. The audit
+    // scenario: a subtitle carrying an <img onerror> payload.
+    const m = setupMocks({
+      findNotesIds: [],
+      tokenResult: {
+        token: 'hola',
+        type: 'word',
+        examples: [
+          '<script>alert(3)</script>un ejemplo',
+          'otro <b>ejemplo</b> con &amp;',
+        ],
+      },
+      enriched: {
+        entry: {},
+        vip: { videoLinks: [{ url: 'https://youglish.com/x" onmouseover="alert(4)' }] },
+      },
+    });
+    const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+    const mapping = {
+      deckName: 'Deck',
+      modelName: 'Basic',
+      fieldSources: {
+        Front: 'selection',
+        Sentence: 'cue',
+        Examples: 'examples',
+        Video: 'video-link',
+      },
+    };
+    const request = {
+      token: 'hola<img src=x onerror="alert(1)">',
+      sentence: 'Me dijo: <img src=x onerror=alert(2)>',
+      language: 'es',
+    };
+
+    const res = await createCardFromRequest(request as never, mapping as never, undefined as never, {
+      fromRetry: true,
+      retryRowId: 1,
+    });
+    expect(res.ok).toBe(true);
+    expect(m.addNote).toHaveBeenCalledTimes(1);
+
+    const fields = m.addNote.mock.calls[0][0].fields as Record<string, string>;
+    // No live tag or attribute survive anywhere in the note.
+    const all = Object.values(fields).join('\n');
+    // Remove the markup Kivara adds on purpose, then demand that nothing
+    // else in the note is a tag at all.
+    const own = all
+      .replace(/<a href="[^"]*">YouGlish<\/a>/g, '')
+      .replace(/<br\s*\/?>/g, '')
+      .replace(/<img src="[^"]*">/g, '');
+    expect(own).not.toMatch(/<[a-z]/i);
+    expect(fields.Front).toContain('&lt;img src=x onerror=');
+    expect(fields.Sentence).toContain('&lt;img src=x onerror=');
+    expect(fields.Examples).toContain('&lt;script&gt;');
+    // Real line breaks are markup we add on purpose, after escaping.
+    expect(fields.Examples).toContain('<br>');
+    // The link text is ours; the URL is attribute-escaped, not trusted.
+    expect(fields.Video).toBe(
+      '<a href="https://youglish.com/x&quot; onmouseover=&quot;alert(4)">YouGlish</a>',
+    );
   });
 
   it('retry reuses request.audio (content-script clip) instead of falling back to TTS', async () => {

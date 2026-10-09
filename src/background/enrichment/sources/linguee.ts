@@ -132,7 +132,9 @@ export const lingueeSource: EnrichmentSource = {
       html = await fetchHtml(url, {
         timeoutMs: ctx.timeoutMs,
         signal: ctx.signal,
-        credentials: 'include',
+        // Never send the user's browser cookies to a third-party dictionary: a
+      // leak of who is browsing what word is worse than a 403.
+      credentials: 'omit',
         onResponse: (response) => {
           status = response.status;
         },

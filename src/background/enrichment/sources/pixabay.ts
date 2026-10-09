@@ -83,7 +83,9 @@ export const pixabaySource: EnrichmentSource = {
     const bootstrap = await fetchJson<PixabayBootstrapResponse>(url, {
       timeoutMs: ctx.timeoutMs,
       signal: ctx.signal,
-      credentials: 'include',
+      // Never send the user's browser cookies to a third-party dictionary: a
+      // leak of who is browsing what word is worse than a 403.
+      credentials: 'omit',
       headers: {
         Accept: 'application/json',
         'x-bootstrap-cache-miss': '1',
@@ -101,7 +103,9 @@ export const pixabaySource: EnrichmentSource = {
     const html = await fetchHtml(url, {
       timeoutMs: ctx.timeoutMs,
       signal: ctx.signal,
-      credentials: 'include',
+      // Never send the user's browser cookies to a third-party dictionary: a
+      // leak of who is browsing what word is worse than a 403.
+      credentials: 'omit',
     });
     if (!html) return {};
     const re = /https:\/\/cdn\.pixabay\.com\/photo\/[^"'\s)]+_(?:640|960|1280)\.(?:jpg|png|webp)/g;

@@ -145,7 +145,9 @@ export const britannicaDictionarySource: EnrichmentSource = {
     const html = await fetchHtml(`${BASE}/dictionary/${query}`, {
       timeoutMs: ctx.timeoutMs,
       signal: ctx.signal,
-      credentials: 'include',
+      // Never send the user's browser cookies to a third-party dictionary: a
+      // leak of who is browsing what word is worse than a 403.
+      credentials: 'omit',
       headers: {
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
