@@ -546,6 +546,25 @@ describe('secret slots', () => {
     expect(await hasHiddenSecret('ai', 'apiKey', io)).toBe(false);
   });
 
+  it('hasHiddenSecret trusts the slot, not the in-memory baseline', async () => {
+    // 🟡 flicker: trusting `lastPersisted` reported "hidden" for a value this
+    // context loaded and can show, so the input kept claiming a stored key
+    // after a local clear removed it.
+    const key = secretSlotKey('ai', 'apiKey');
+    const io = makeIO();
+    await pullSecretsFromLocal(stateWith({ ai: { apiKey: 'sk-loaded' } }), io);
+    expect(await hasHiddenSecret('ai', 'apiKey', io)).toBe(true);
+
+    // Another context clears the slot; this one hasn't rehydrated yet but the
+    // slot is the truth.
+    await io.set({ [key]: SECRET_CLEARED });
+    expect(await hasHiddenSecret('ai', 'apiKey', io)).toBe(false);
+
+    // Storage unreachable → the baseline is the only answer left.
+    io.failGets = true;
+    expect(await hasHiddenSecret('ai', 'apiKey', io)).toBe(true);
+  });
+
   it('covers every declared secret field with a unique slot key', () => {
     const keys = SECRET_FIELDS.map((f) => secretSlotKey(f.section, f.field));
     expect(new Set(keys).size).toBe(SECRET_FIELDS.length);

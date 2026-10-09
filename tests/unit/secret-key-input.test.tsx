@@ -203,6 +203,19 @@ describe('SecretKeyInput', () => {
       expect(clearBtn).toBeDefined();
       fireEvent.click(clearBtn!);
       expect(seen).toEqual(['']);
+
+      // The tombstone may not have landed (storage hiccup) and the store echo
+      // cannot tell ('stored' was already ''), so the component re-probes
+      // instead of clearing optimistically: the slot still holds the key, so
+      // the guarded state AND the Quitar button must stay.
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(
+        Array.from(container.querySelectorAll('button')).some((b) =>
+          b.textContent?.includes('Quitar'),
+        ),
+      ).toBe(true);
       cleanup();
     } finally {
       g.chrome.storage.local = original;

@@ -301,6 +301,14 @@ export interface KivaraState {
  */
 
 const fallbackStorage = new Map<string, string>();
+/** Sealed content (writer tag excluded) THIS context last wrote per storage
+ * key. Compared in `setItem` so an identical blob is not re-sent: writing the
+ * same state again costs a fresh writer id, fires `onChanged` in every tab,
+ * the popup and the SW, and forces a full rehydrate + decrypt pass in each —
+ * while chrome.storage.sync caps us at 120 writes per minute. Cleared on
+ * remove and on a genuine remote change, where "what storage holds" is no
+ * longer what we think it is. */
+const lastSealedContent = new Map<string, string>();
 /** Ring of the last blobs THIS context wrote per storage key — used to
  * recognise our own onChanged echo (skip the pointless rehydrate) and to
  * invalidate the write-through fallback only on genuine REMOTE changes.
@@ -326,44 +334,76 @@ function isOwnSyncWrite(storageId: string, incoming: unknown): boolean {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
- * SYNC WRITE FAILURE — visible, not just a console line.
+ * SYNC WRITE NOTICES — visible, not just a console line.
  *
  * chrome.storage.sync writes fail for one boring reason: the 8 KB per-item /
  * 100 KB total quota, or a user who turned sync off / is signed out. The old
  * code warned on the console and moved on, so the settings looked saved while
  * chrome.storage kept the stale blob — and the next rehydrate "reverted" the
- * UI with no explanation. The adapter now records the failure here and the
- * popup / settings render a discreet banner (i18n key
- * `storage.syncWriteFailed`).
+ * UI with no explanation. The adapter now records that here and the popup /
+ * settings render a discreet banner (i18n keys `storage.syncWriteFailed` and
+ * `storage.syncDiscarded`).
+ *
+ * The second notice exists because a failed write is only half the story: the
+ * blob stays in the write-through fallback, and a REMOTE change throws that
+ * fallback away to read the fresh state — silently replacing what this device
+ * said and lost. The user must be told their edits were dropped instead of
+ * watching the banner vanish by itself.
  *
  * Deliberately NOT a field of KivaraState: `setItem` runs INSIDE a persist
  * write, so writing the flag through the store would schedule another
  * persist write, which writes the flag again… A tiny external store breaks
- * that cycle and keeps the failure out of the persisted blob.
+ * that cycle and keeps the notice out of the persisted blob.
  * ────────────────────────────────────────────────────────────────────────── */
-let syncWriteFailed = false;
-const syncWriteErrorListeners = new Set<(failed: boolean) => void>();
-
-/** Current sync-write health. `false` = the last write reached sync. */
-export function getSyncWriteFailed(): boolean {
-  return syncWriteFailed;
+export interface SyncWriteStatus {
+  /** The last write could not reach chrome.storage.sync. */
+  failed: boolean;
+  /** Unsynchronised local edits were replaced by a remote change. */
+  discarded: boolean;
 }
 
-/** Subscribe to sync-write failures (useSyncExternalStore-friendly: the
- * snapshot is a stable boolean). Returns the unsubscribe function. */
-export function subscribeSyncWriteError(listener: (failed: boolean) => void): () => void {
-  syncWriteErrorListeners.add(listener);
+let syncWriteStatus: SyncWriteStatus = { failed: false, discarded: false };
+const syncWriteListeners = new Set<(status: SyncWriteStatus) => void>();
+
+/** Current sync-write status. The object identity changes ONLY when a flag
+ * changes, which is what useSyncExternalStore requires of a snapshot. */
+export function getSyncWriteStatus(): SyncWriteStatus {
+  return syncWriteStatus;
+}
+
+/** Subscribe to sync-write notices. Returns the unsubscribe function. */
+export function subscribeSyncWriteStatus(listener: (status: SyncWriteStatus) => void): () => void {
+  syncWriteListeners.add(listener);
   return () => {
-    syncWriteErrorListeners.delete(listener);
+    syncWriteListeners.delete(listener);
   };
 }
 
-function setSyncWriteError(failed: boolean): void {
-  if (syncWriteFailed === failed) return;
-  syncWriteFailed = failed;
-  for (const listener of syncWriteErrorListeners) {
+/** True when the last write could not reach chrome.storage.sync. */
+export function getSyncWriteFailed(): boolean {
+  return syncWriteStatus.failed;
+}
+
+/** True when this context's unsynchronised edits were just replaced by a
+ * remote change (only possible after a failed write left them pending). */
+export function getSyncWriteDiscarded(): boolean {
+  return syncWriteStatus.discarded;
+}
+
+/**
+ * Publish a new status. `failed` and `discarded` can't both be read as
+ * "pending": a remote change consumed the pending blob, so it reports the
+ * loss instead; a successful write clears both.
+ */
+function publishSyncWriteStatus(next: Partial<SyncWriteStatus>): void {
+  const merged: SyncWriteStatus = { ...syncWriteStatus, ...next };
+  if (merged.failed === syncWriteStatus.failed && merged.discarded === syncWriteStatus.discarded) {
+    return;
+  }
+  syncWriteStatus = merged;
+  for (const listener of syncWriteListeners) {
     try {
-      listener(failed);
+      listener(merged);
     } catch {
       // a broken subscriber must not break the storage write
     }
@@ -458,13 +498,29 @@ export function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage
       }
     },
     async setItem(name: string, value: string): Promise<void> {
-      let toStore = value;
+      let sealed = value;
       try {
-        toStore = await sealForSync(value);
+        sealed = await sealForSync(value);
       } catch {
-        toStore = value;
+        sealed = value;
       }
-      toStore = tagForSync(toStore);
+      // NO-OP GUARD: the state is byte-identical to what this context already
+      // sent. Most of those writes carry no app change at all — `partialize`
+      // keeps `panelOpen` / `isPopupMode` / `audioCaptureActive` out of the
+      // blob, so opening the panel used to re-serialize the SAME JSON and,
+      // since every send now stamps a fresh writer id, fire `onChanged` in
+      // every tab, the popup and the SW, forcing a full rehydrate + decrypt
+      // pass each — while sync caps us at 120 writes per minute. Skip it.
+      // The own-echo detection is unaffected: it compares writer ids, and no
+      // new id is being minted.
+      if (lastSealedContent.get(name) === sealed) return;
+      lastSealedContent.set(name, sealed);
+
+      const toStore = tagForSync(sealed);
+      // Remember the write BEFORE awaiting chrome: the echo arrives during
+      // the await, and a ring that still lacks this blob would read the echo
+      // as a remote change.
+      rememberOwnSyncWrite(`${area}:${name}`, toStore);
       // Write-through: the fallback always mirrors our latest write so a
       // later rehydrate in THIS context reads our value even if the chrome
       // write is still in flight or failed silently.
@@ -473,20 +529,19 @@ export function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage
       } catch {
         // ignore
       }
-      rememberOwnSyncWrite(`${area}:${name}`, toStore);
       try {
         if (typeof chrome !== 'undefined' && chrome.storage?.[area]) {
           await chrome.storage[area].set({ [name]: toStore });
-          setSyncWriteError(false); // the blob is durable in sync again
+          publishSyncWriteStatus({ failed: false, discarded: false }); // durable again
           return;
         }
       } catch (err) {
         // VISIBLE failure — the old code swallowed this, so a quota/
         // disabled-sync failure silently left chrome.storage stale while
         // memory moved on; the next rehydrate then "reverted" the UI. The
-        // flag drives the banner in the popup and in Settings.
+        // status drives the banner in the popup and in Settings.
         console.warn('[Kivara store] chrome.storage.set failed, using in-memory fallback', err);
-        setSyncWriteError(true);
+        publishSyncWriteStatus({ failed: true });
       }
     },
     async removeItem(name: string): Promise<void> {
@@ -496,15 +551,18 @@ export function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage
           // Drop the write-through copy too: keeping it would make every
           // later getItem in THIS context resurrect the removed state, and
           // the stale own-echo ring would then hide the removal from the
-          // cross-context listener.
+          // cross-context listener. Same for the no-op guard: whatever
+          // storage holds now is unknown, so the next identical-looking
+          // write must still go out.
           fallbackStorage.delete(name);
           ownSyncWrites.delete(`${area}:${name}`);
-          setSyncWriteError(false);
+          lastSealedContent.delete(name);
+          publishSyncWriteStatus({ failed: false });
           return;
         }
       } catch (err) {
         console.warn('[Kivara store] chrome.storage.remove failed', err);
-        setSyncWriteError(true);
+        publishSyncWriteStatus({ failed: true });
       }
       try {
         fallbackStorage.delete(name);
@@ -512,6 +570,7 @@ export function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage
         // ignore
       }
       ownSyncWrites.delete(`${area}:${name}`);
+      lastSealedContent.delete(name);
     },
   };
 }
@@ -584,16 +643,19 @@ export const syncStateStorage: StateStorage = makeChromeStorage('sync');
 export async function retrySyncWrite(): Promise<boolean> {
   const blob = fallbackStorage.get(STORE_KEY);
   if (typeof blob !== 'string') return false;
+  // Remember BEFORE awaiting: chrome echoes during the await, and a ring
+  // without this blob would read the echo as a remote change (dropping the
+  // fallback we just restored).
+  rememberOwnSyncWrite(`sync:${STORE_KEY}`, blob);
   try {
     if (typeof chrome === 'undefined' || !chrome.storage?.sync) return false;
     await chrome.storage.sync.set({ [STORE_KEY]: blob });
   } catch (err) {
     console.warn('[Kivara store] sync retry failed', err);
-    setSyncWriteError(true);
+    publishSyncWriteStatus({ failed: true });
     return false;
   }
-  rememberOwnSyncWrite(`sync:${STORE_KEY}`, blob);
-  setSyncWriteError(false);
+  publishSyncWriteStatus({ failed: false, discarded: false });
   return true;
 }
 
@@ -791,20 +853,23 @@ try {
         // waste a full decrypt pass — and on a burst it would read storage
         // while the last write was still in flight.
         if (isOwnSyncWrite(`sync:${STORE_KEY}`, incoming)) return;
-        // Genuine REMOTE change: drop our write-through copy AND the own-echo
-        // ring so the rehydrate reads the fresh chrome.storage blob, and so
-        // a subsequent echo of the blobs we just replaced is no longer
-        // mistaken for a remote change.
+        // Genuine REMOTE change: drop our write-through copy, the own-echo
+        // ring and the no-op guard so the rehydrate reads the fresh
+        // chrome.storage blob, and so a subsequent echo of the blobs we just
+        // replaced is no longer mistaken for a remote change.
         try {
           fallbackStorage.delete(STORE_KEY);
         } catch {
           // ignore
         }
         ownSyncWrites.delete(`sync:${STORE_KEY}`);
-        // The stale blob this context was carrying is gone, so a retry has
-        // nothing to send — clear the banner instead of leaving a warning
-        // the user cannot act on.
-        setSyncWriteError(false);
+        lastSealedContent.delete(STORE_KEY);
+        // If this context still had a blob that never reached sync, the
+        // rehydrate below throws it away — silently replacing what the user
+        // did here with another device's state. Tell them instead of letting
+        // the warning banner vanish on its own (it reads as "fixed now").
+        // Otherwise the previous notice is stale: there is nothing to retry.
+        publishSyncWriteStatus(syncWriteStatus.failed ? { failed: false, discarded: true } : { discarded: false });
         scheduleRehydrate();
         return;
       }

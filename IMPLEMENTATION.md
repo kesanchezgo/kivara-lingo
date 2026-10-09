@@ -855,7 +855,19 @@ sesión cerrada). Cuando ocurre:
   blob lleva `_w: <contextId>:<seq>` (se elimina al leer). El blob de ajustes
   es determinista sin los secretos, así que comparar por contenido confundía
   "otra contexto guardó lo mismo" con "mi propio eco".
-- `removeItem` borra también el fallback y el anillo.
+- **Sin cambios no hay escritura**: si el contenido sellado es idéntico al
+  último que envió este contexto, `setItem` sale sin tocar
+  `chrome.storage.sync`. `panelOpen` / `isPopupMode` / `audioCaptureActive`
+  están fuera de `partialize`, así que abrir el panel reserializaba el MISMO
+  json — y con un `_w` nuevo eso disparaba `onChanged` en cada pestaña, el
+  popup y el SW, con un rehidratado y descifrado completo por contexto contra
+  el límite de 120 escrituras/min.
+- **Avisos** (`storage.syncWriteFailed` / `storage.syncDiscarded`): la
+  escritura fallida es reintentable; si un cambio remoto consume el fallback
+  pendiente, la UI avisa que los cambios locales sin sincronizar se
+  reemplazaron, en lugar de dejar desaparecer el aviso como si se hubiera
+  arreglado.
+- `removeItem` borra también el fallback, el anillo y el guardia de no-op.
 - El reintento del banner reenvía el blob **tal cual** por
   `chrome.storage.sync.set`, sin volver a sellarlo: un segundo sellado
   comparaba los campos de secreto ya en blanco contra los baselines reales y

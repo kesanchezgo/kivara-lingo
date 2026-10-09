@@ -23,7 +23,7 @@ type ChangedListener = (changes: unknown, area: string) => void;
 
 const SYNC_KEY = 'kivara-lingo-state';
 
-function makeMapStorage(store: MapStore, failSets: () => boolean) {
+function makeMapStorage(store: MapStore, failSets?: () => boolean, onSet?: () => void) {
   return {
     get: async (key: string | string[]) => {
       const keys = Array.isArray(key) ? key : [key];
@@ -32,7 +32,8 @@ function makeMapStorage(store: MapStore, failSets: () => boolean) {
       return out;
     },
     set: async (items: Record<string, unknown>) => {
-      if (failSets()) throw new Error('QUOTA_BYTES_PER_ITEM quota exceeded');
+      if (failSets?.()) throw new Error('QUOTA_BYTES_PER_ITEM quota exceeded');
+      onSet?.();
       for (const [k, v] of Object.entries(items)) store.set(k, String(v));
     },
     remove: async (key: string | string[]) => {
@@ -46,6 +47,8 @@ interface Env {
   sync: MapStore;
   listeners: ChangedListener[];
   failSets: boolean;
+  /** Number of chrome.storage.sync.set calls so far. */
+  setCalls: number;
   fire: (changes: Record<string, unknown>, area: string) => void;
   restore: () => void;
 }
@@ -54,6 +57,7 @@ function installChrome(): Env {
   const sync = new Map<string, string>();
   const listeners: ChangedListener[] = [];
   const failSets = { on: false };
+  const counters = { setCalls: 0 };
   const g = globalThis as unknown as { chrome: Record<string, unknown> };
   const prev = g.chrome;
   g.chrome = {
@@ -66,7 +70,9 @@ function installChrome(): Env {
       getURL: (p: string) => `chrome-extension://test/${p}`,
     },
     storage: {
-      sync: makeMapStorage(sync, () => failSets.on),
+      sync: makeMapStorage(sync, () => failSets.on, () => {
+        counters.setCalls++;
+      }),
       local: makeMapStorage(new Map(), () => false),
       onChanged: { addListener: (l: ChangedListener) => listeners.push(l) },
     },
@@ -79,6 +85,9 @@ function installChrome(): Env {
     },
     set failSets(v: boolean) {
       failSets.on = v;
+    },
+    get setCalls() {
+      return counters.setCalls;
     },
     fire: (changes, area) => {
       for (const l of listeners) l(changes, area);
@@ -203,14 +212,14 @@ describe('chrome.storage.sync persist adapter', () => {
     const mod = await import('../../src/shared/store');
     const storage = mod.makeChromeStorage('sync');
 
-    expect(mod.getSyncWriteFailed()).toBe(false);
-    const seen: boolean[] = [];
-    const unsubscribe = mod.subscribeSyncWriteError((failed) => seen.push(failed));
+    expect(mod.getSyncWriteStatus()).toEqual({ failed: false, discarded: false });
+    const seen: Array<{ failed: boolean; discarded: boolean }> = [];
+    const unsubscribe = mod.subscribeSyncWriteStatus((status) => seen.push(status));
 
     env.failSets = true;
     await storage.setItem(SYNC_KEY, blob('A')); // chrome.storage rejects
     expect(mod.getSyncWriteFailed()).toBe(true);
-    expect(seen).toEqual([true]);
+    expect(seen).toEqual([{ failed: true, discarded: false }]);
     // The blob was still kept locally, so a retry is possible.
     expect(await markerOf(await storage.getItem(SYNC_KEY))).toBe('A');
 
@@ -218,7 +227,10 @@ describe('chrome.storage.sync persist adapter', () => {
     const retried = await mod.retrySyncWrite();
     expect(retried).toBe(true);
     expect(mod.getSyncWriteFailed()).toBe(false);
-    expect(seen).toEqual([true, false]);
+    expect(seen).toEqual([
+      { failed: true, discarded: false },
+      { failed: false, discarded: false },
+    ]);
     // The retry really wrote the sealed blob — tag intact (still ours, so its
     // echo is not mistaken for a remote change), secrets already blanked.
     expect(canon(env.sync.get(SYNC_KEY)!)).toBe(blob('A'));
@@ -226,8 +238,47 @@ describe('chrome.storage.sync persist adapter', () => {
 
     unsubscribe();
     // No notification for a no-op state after unsubscribing.
-    await storage.setItem(SYNC_KEY, blob('B')); // succeeds → already false
-    expect(seen).toEqual([true, false]);
+    await storage.setItem(SYNC_KEY, blob('B')); // succeeds → already clean
+    expect(seen).toHaveLength(2);
+  });
+
+  it('a pending failed write is reported as discarded when a remote change wins', async () => {
+    const mod = await import('../../src/shared/store');
+    const storage = mod.makeChromeStorage('sync');
+
+    env.failSets = true;
+    await storage.setItem(SYNC_KEY, blob('A'));
+    expect(mod.getSyncWriteFailed()).toBe(true);
+
+    // Another device lands a change: the write-through fallback (our only
+    // copy of the failed write) is dropped and the rehydrate reads remote.
+    // Silently clearing the warning there read as "fixed now".
+    env.failSets = false;
+    env.fire({ [SYNC_KEY]: { newValue: blob('remote') } }, 'sync');
+
+    expect(mod.getSyncWriteFailed()).toBe(false);
+    expect(mod.getSyncWriteDiscarded()).toBe(true);
+    await settle();
+  });
+
+  it('a remote change with nothing pending only clears the notice', async () => {
+    const mod = await import('../../src/shared/store');
+    const storage = mod.makeChromeStorage('sync');
+
+    await storage.setItem(SYNC_KEY, blob('A')); // reached sync — nothing lost
+    env.fire({ [SYNC_KEY]: { newValue: blob('remote') } }, 'sync');
+
+    expect(mod.getSyncWriteFailed()).toBe(false);
+    expect(mod.getSyncWriteDiscarded()).toBe(false);
+    await settle();
+  });
+
+  it('the snapshot object is stable while nothing changes', async () => {
+    const mod = await import('../../src/shared/store');
+    const first = mod.getSyncWriteStatus();
+    // Same identity across calls is what keeps useSyncExternalStore from
+    // looping through re-renders.
+    expect(mod.getSyncWriteStatus()).toBe(first);
   });
 
   it('retrySyncWrite reports false when nothing was ever written', async () => {
@@ -253,6 +304,53 @@ describe('chrome.storage.sync persist adapter', () => {
     env.sync.set(SYNC_KEY, blob('recreated'));
     expect(await markerOf(await storage.getItem(SYNC_KEY))).toBe('recreated');
     await settle();
+  });
+
+  it('an identical blob is never written twice (state partialize excludes)', async () => {
+    // 🟠 regression: every send stamps a fresh writer id, so an unchanged
+    // state still looked like a new value and reached chrome.storage — firing
+    // onChanged in every tab, the popup and the SW, and forcing a full
+    // rehydrate + decrypt pass in each, against a 120 writes/min quota.
+    // `panelOpen` / `isPopupMode` / `audioCaptureActive` are excluded from
+    // `partialize`, so toggling the panel serialises the SAME json.
+    const { makeChromeStorage } = await import('../../src/shared/store');
+    const storage = makeChromeStorage('sync');
+
+    await storage.setItem(SYNC_KEY, blob('A'));
+    const tagA = JSON.parse(env.sync.get(SYNC_KEY)!)._w as string;
+
+    // Three more saves of an identical state (three panel toggles).
+    const before = env.setCalls;
+    await storage.setItem(SYNC_KEY, blob('A'));
+    await storage.setItem(SYNC_KEY, blob('A'));
+    await storage.setItem(SYNC_KEY, blob('A'));
+    expect(env.setCalls - before).toBe(0);
+    // Storage still holds the FIRST write — untouched, no new writer id.
+    expect(JSON.parse(env.sync.get(SYNC_KEY)!)._w).toBe(tagA);
+
+    // A real change DOES go out, with a new writer id.
+    await storage.setItem(SYNC_KEY, blob('B'));
+    expect(env.setCalls - before).toBe(1);
+    expect(canon(env.sync.get(SYNC_KEY)!)).toBe(blob('B'));
+    expect(JSON.parse(env.sync.get(SYNC_KEY)!)._w).not.toBe(tagA);
+
+    // And the no-op guard is per-value: back to A, it goes out again.
+    await storage.setItem(SYNC_KEY, blob('A'));
+    expect(canon(env.sync.get(SYNC_KEY)!)).toBe(blob('A'));
+  });
+
+  it('a remote change resets the no-op guard', async () => {
+    // After a remote write, "what storage holds" is unknown — the next
+    // identical-looking save must still be sent, or this context could never
+    // restore its own value.
+    const mod = await import('../../src/shared/store');
+    const storage = mod.makeChromeStorage('sync');
+
+    await storage.setItem(SYNC_KEY, blob('A'));
+    env.fire({ [SYNC_KEY]: { newValue: blob('remote') } }, 'sync');
+
+    await storage.setItem(SYNC_KEY, blob('A'));
+    expect(canon(env.sync.get(SYNC_KEY)!)).toBe(blob('A'));
   });
 
   it('no chrome.storage at all: everything stays in the fallback', async () => {

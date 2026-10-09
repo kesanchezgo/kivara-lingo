@@ -10,20 +10,37 @@
  * State comes from the tiny external store in shared/store.ts (NOT from
  * KivaraState: `setItem` runs inside a persist write, so pushing the flag
  * through the store would schedule another write, which would push the flag
- * again).
+ * again). Two notices: a write that never reached sync (retryable) and local
+ * edits a remote change already replaced (not retryable — only explanatory).
  */
 import { useSyncExternalStore } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { t } from '../../shared/i18n';
-import { getSyncWriteFailed, subscribeSyncWriteError, retrySyncWrite } from '../../shared/store';
+import { getSyncWriteStatus, subscribeSyncWriteStatus, retrySyncWrite } from '../../shared/store';
 
 export function SyncWriteErrorBanner({ compact = false }: { compact?: boolean }) {
-  const failed = useSyncExternalStore(
-    subscribeSyncWriteError,
-    getSyncWriteFailed,
-    () => false,
+  const status = useSyncExternalStore(
+    subscribeSyncWriteStatus,
+    getSyncWriteStatus,
+    () => ({ failed: false, discarded: false }),
   );
-  if (!failed) return null;
+  // Discarded outranks failed: a remote change consumed the pending blob, so
+  // a retry would send nothing — only the explanation is left.
+  if (status.discarded) {
+    return (
+      <div
+        role="status"
+        className={
+          compact
+            ? 'rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/60 px-2.5 py-2 text-[10.5px] leading-snug text-zinc-600 dark:text-zinc-400'
+            : 'rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/60 px-3 py-2 text-[11px] leading-snug text-zinc-600 dark:text-zinc-400'
+        }
+      >
+        {t('storage.syncDiscarded')}
+      </div>
+    );
+  }
+  if (!status.failed) return null;
 
   return (
     <div

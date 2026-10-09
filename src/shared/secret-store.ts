@@ -271,6 +271,15 @@ export function unreadableSecret(value: string | undefined | null): boolean {
  *    only copy).
  * ────────────────────────────────────────────────────────────────────────── */
 
+/**
+ * Every credential field and its slot coordinates.
+ *
+ * FOR ANY "reset settings" FEATURE: restoring defaults for one of these
+ * sections writes '' into the store, and a bare '' is NEVER a tombstone (see
+ * saveSecrets) — the key would survive the reset. Reset actions must call
+ * `markSecretExplicitClear(section, field)` for each field they blank, the
+ * same way SecretKeyInput's Quitar does.
+ */
 export const SECRET_FIELDS: Array<{
   section: 'translate' | 'ai' | 'ankiMapping' | 'tts' | 'vip';
   field: string;
@@ -639,13 +648,14 @@ export async function hasHiddenSecret(
   io: SecretSlotIO = defaultSlotIO,
 ): Promise<boolean> {
   const key = secretSlotKey(section, field);
-  // This context loaded (or wrote) a non-empty value → nothing is hidden.
-  if (lastPersisted.has(key) && lastPersisted.get(key) !== '') return true;
+  // The slot is the truth, always: the baseline alone would report "hidden"
+  // for a value this context loaded and can perfectly well show.
   try {
     const found = await io.get([key]);
     const slot = found[key];
-    return typeof slot === 'string' && slot !== '' && slot !== SECRET_CLEARED;
+    if (typeof slot === 'string') return slot !== '' && slot !== SECRET_CLEARED;
   } catch {
-    return false;
+    // storage unreadable — fall back to what this context has in memory
   }
+  return lastPersisted.has(key) && lastPersisted.get(key) !== '';
 }

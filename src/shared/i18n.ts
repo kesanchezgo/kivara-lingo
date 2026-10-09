@@ -51,6 +51,7 @@ const es: Dict = {
   // ── storage failures ─────────────────────────────────────────────────
   'storage.syncWriteFailed': 'No se pudo guardar en chrome.storage.sync (cuota llena o sincronización desactivada). Los ajustes se conservan solo en este dispositivo: libera espacio o vuelve a activar la sincronización de Chrome.',
   'storage.syncRetry': 'Reintentar guardado',
+  'storage.syncDiscarded': 'Los cambios que no llegaron a sincronizarse en este dispositivo se reemplazaron por los de otro dispositivo.',
 
   // ── subtitle overlay / panel ──────────────────────────────────────────────
   'app.subtitlesVisible': 'Subtítulos visibles',
@@ -564,6 +565,7 @@ const en: Dict = {
 
   'storage.syncWriteFailed': 'Could not write to chrome.storage.sync (quota full or sync turned off). Settings are kept on this device only — free up space or turn Chrome sync back on.',
   'storage.syncRetry': 'Retry save',
+  'storage.syncDiscarded': 'Changes that never reached sync on this device were replaced by another device.',
 
   'app.subtitlesVisible': 'Subtitles visible',
   'app.subtitlesHidden': 'Subtitles hidden',

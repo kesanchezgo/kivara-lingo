@@ -58,6 +58,10 @@ export function SecretKeyInput({
    * already saved one. The input must still look "guarded" and offer
    * Quitar — otherwise the user cannot remove a key they are not shown. */
   const [hiddenStored, setHiddenStored] = useState(false);
+  /** Bumped by Quitar: the store echo cannot tell us whether the tombstone
+   * landed (the value was already ''), so the presence probe has to run
+   * again instead of clearing the state optimistically. */
+  const [probeNonce, setProbeNonce] = useState(0);
   const hasStored = !!stored || hiddenStored;
   const unreadable = unreadableSecret(stored);
   const [draft, setDraft] = useState('');
@@ -93,8 +97,10 @@ export function SecretKeyInput({
     setDirty(false);
   }, [stored]);
 
-  // Presence probe: only when this context has no value to show. Re-runs
-  // when `stored` empties (a clear elsewhere) so Quitar reappears.
+  // Presence probe: only when this context has no value to show. Re-runs when
+  // `stored` empties (a clear elsewhere) or after a Quitar attempt, so a
+  // tombstone that FAILED to write keeps the guarded state (and the Quitar
+  // button) instead of claiming the key is gone.
   useEffect(() => {
     if (stored || !section || !field) return;
     let cancelled = false;
@@ -104,7 +110,7 @@ export function SecretKeyInput({
     return () => {
       cancelled = true;
     };
-  }, [stored, section, field]);
+  }, [stored, section, field, probeNonce]);
 
   const commit = () => {
     // Empty/whitespace draft NEVER clears the key: typing a letter,
@@ -190,9 +196,10 @@ export function SecretKeyInput({
               lastEmittedRef.current = '';
               setDraft('');
               setDirty(false);
-              // The tombstone is on its way: stop showing the guarded state
-              // now instead of waiting for the store to echo '' back.
-              setHiddenStored(false);
+              // Do NOT clear the guarded state here: the tombstone may fail
+              // to land (quota, storage hiccup) and the key would still be
+              // there. Re-probe instead and let the slot answer.
+              setProbeNonce((n) => n + 1);
               // Register the explicit clear BEFORE onChange: the save path
               // consults this flag to decide whether a tombstone may be
               // written from a context without a baseline.
