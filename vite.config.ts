@@ -52,7 +52,7 @@ export default defineConfig({
         // that break when Vite splits it into a separate async chunk
         // because the global initialization runs in the wrong scope.
         manualChunks(id) {
-          if (id.includes('lamejs')) return 'offscreen';
+          if (id.includes('lamejs')) return 'offscreen'; // works for both the CJS and the ESM fork
         },
       },
     },

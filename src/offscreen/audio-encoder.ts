@@ -1,4 +1,9 @@
 import { t } from '../shared/i18n';
+// ESM build of lamejs. The published `lamejs` is CJS/UMD with internal
+// globals (`MPEGMode`, `Lame`…) that throw "MPEGMode is not defined" as soon
+// as a bundler splits it into its own chunk, which made every MP3 attempt
+// fall back to WAV. This fork is ESM and encodes normally.
+import lamejs from '@breezystack/lamejs';
 /**
  * Hand-rolled WAV/PCM encoder used by the offscreen audio processor.
  *
@@ -176,13 +181,14 @@ export async function encodeMp3Mono(
   sampleRate: number,
   bitrateKbps = 64,
 ): Promise<Blob> {
-  // lamejs must be imported at the top level because its internal globals
-  // (`MPEGMode`, `Lame`, etc.) break when loaded via dynamic import() in
-  // some bundlers (Vite treats it as a separate async chunk and the UMD
-  // globals don't initialise). We use a synchronous require-style import
-  // via the static `import` at the top of this file instead.
-  const { default: lamejs } = await import('lamejs');
-  const Mp3Encoder = (lamejs as unknown as { Mp3Encoder: new (ch: number, sr: number, br: number) => LameEncoder }).Mp3Encoder;
+  // STATIC import of lamejs. This used to be `await import('lamejs')`, and a
+  // dynamic import is exactly what breaks it: Vite splits the CJS/UMD module
+  // into its own async chunk and its internal globals (`MPEGMode`, `Lame`…)
+  // never initialise, so Mp3Encoder came back undefined and EVERY clip silently
+  // fell back to WAV — about ten times the bytes in the user's Anki media
+  // folder, for nothing. vite.config.ts also pins lamejs into the same chunk
+  // as this file; keep both halves of that arrangement.
+  const Mp3Encoder = lamejs?.Mp3Encoder;
   if (typeof Mp3Encoder !== 'function') {
     throw new Error(t('audio.encoderMissing'));
   }
@@ -209,11 +215,6 @@ export async function encodeMp3Mono(
   if (tail.length > 0) chunks.push(tail);
 
   return new Blob(chunks as BlobPart[], { type: 'audio/mpeg' });
-}
-
-interface LameEncoder {
-  encodeBuffer(input: Int16Array): Int8Array;
-  flush(): Int8Array;
 }
 
 /**

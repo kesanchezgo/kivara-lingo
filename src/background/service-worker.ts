@@ -47,7 +47,7 @@ import { resolveWordStreaming } from './resolve-word';
 import { getCacheStats, clearCaches } from './cache-admin';
 import { listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';
 import { t } from '../shared/i18n';
-import { validateDictPackInstallRequest } from '../shared/net-guard';
+import { fetchGuarded, validateDictPackInstallRequest } from '../shared/net-guard';
 
 console.log('[Kivara Lingo] service worker booting');
 
@@ -951,11 +951,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         reportProgress({ stage: 'downloading', received: 0, total: 0 });
 
         // Streaming download with progress so the side-panel can render
-        // a real ratio while the bytes come in.
-        const res = await fetch(url, {
-          redirect: 'follow',
-          signal: AbortSignal.timeout(DICT_PACK_TIMEOUT_MS),
-        });
+        // a real ratio while the bytes come in. `fetchGuarded` walks the
+        // redirect chain itself and refuses any hop that leaves the public
+        // internet — `redirect: 'follow'` would let a 302 to loopback through.
+        const res = await fetchGuarded(url, { timeoutMs: DICT_PACK_TIMEOUT_MS });
         if (!res.ok) {
           sendResponse({ ok: false, error: `HTTP ${res.status} ${res.statusText}` });
           return;

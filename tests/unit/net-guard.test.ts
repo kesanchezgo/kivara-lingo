@@ -109,6 +109,25 @@ describe('assertPublicHttpUrl', () => {
     expect(isPublicHttpUrl('https://user:pass@example.com/a.zip')).toBe(false);
   });
 
+  it('rejects the FQDN form of a blocked name', () => {
+    // A trailing dot is accepted by the URL parser and resolves to the same
+    // host, so `localhost.` (and `foo.localhost.`) are loopback too.
+    for (const url of ['https://localhost./', 'http://127.0.0.0./', 'https://printer.local./']) {
+      expect(isPublicHttpUrl(url), url).toBe(false);
+    }
+  });
+
+  it('rejects the benchmarking, multicast and reserved ranges', () => {
+    for (const url of [
+      'http://198.18.0.1/',
+      'http://198.19.255.255/',
+      'http://224.0.0.1/',
+      'http://240.0.0.1/',
+    ]) {
+      expect(isPublicHttpUrl(url), url).toBe(false);
+    }
+  });
+
   it('accepts anything between the private edges of 172/16', () => {
     expect(isPublicHttpUrl('https://172.15.0.1/')).toBe(true);
   });
@@ -124,8 +143,73 @@ describe('fetchBytesWithLimits', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it('refuses a body bigger than the declared length', async () => {
-    const body = new Uint8Array(64);
+  it('refuses a redirect that lands on loopback (follow would reach it)', async () => {
+    // `redirect: 'follow'` is not used precisely because the network stack
+    // would honour this 302 and the SW's host permissions would carry it.
+    const wrapped = new Response(null, {
+      status: 302,
+      headers: { location: 'http://127.0.0.1:8765/' },
+    });
+    vi.stubGlobal('fetch', vi.fn(async () => wrapped));
+
+    await expect(
+      fetchBytesWithLimits('https://cdn.example.com/a.bin', { timeoutMs: 1000 }),
+    ).rejects.toThrow(UrlNotAllowedError);
+  });
+
+  it('refuses a redirect to a private LAN address', async () => {
+    const wrapped = new Response(null, {
+      status: 302,
+      headers: { location: 'http://192.168.1.50/admin' },
+    });
+    vi.stubGlobal('fetch', vi.fn(async () => wrapped));
+    await expect(
+      fetchBytesWithLimits('https://cdn.example.com/a.bin', { timeoutMs: 1000 }),
+    ).rejects.toThrow(UrlNotAllowedError);
+  });
+
+  it('refuses a redirect to the cloud metadata endpoint', async () => {
+    const wrapped = new Response(null, {
+      status: 302,
+      headers: { location: 'http://169.254.169.254/latest/meta-data/' },
+    });
+    vi.stubGlobal('fetch', vi.fn(async () => wrapped));
+    await expect(
+      fetchBytesWithLimits('https://cdn.example.com/a.bin', { timeoutMs: 1000 }),
+    ).rejects.toThrow(UrlNotAllowedError);
+  });
+
+  it('walks a redirect to another PUBLIC host', async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        calls.push(url);
+        if (calls.length === 1) {
+          return new Response(null, {
+            status: 302,
+            headers: { location: '/mirrors/a.bin' },
+          });
+        }
+        return new Response(new TextEncoder().encode('mirrored'), { status: 200 });
+      }),
+    );
+    const out = await fetchBytesWithLimits('https://cdn.example.com/a.bin', { timeoutMs: 1000 });
+    expect(new TextDecoder().decode(out)).toBe('mirrored');
+    expect(calls).toEqual(['https://cdn.example.com/a.bin', 'https://cdn.example.com/mirrors/a.bin']);
+  });
+
+  it('gives up after too many hops', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(null, { status: 302, headers: { location: '/next.bin' } })),
+    );
+    await expect(
+      fetchBytesWithLimits('https://cdn.example.com/a.bin', { timeoutMs: 1000 }),
+    ).rejects.toThrow(/redirecciones/);
+  });
+
+  it('refuses a body bigger than the declared length', async () => {    const body = new Uint8Array(64);
     vi.stubGlobal('fetch', vi.fn(async () => new Response(body, { status: 200 })));
     await expect(
       fetchBytesWithLimits('https://cdn.example.com/a.bin', { timeoutMs: 1000, maxBytes: 16 }),

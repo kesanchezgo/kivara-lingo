@@ -271,8 +271,10 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     }
 
     // A rehydrated on the tombstone: its in-memory copy is gone, so nothing
-    // can resurrect the key it no longer has.
-    expect(modA.useKivaraStore.getState().ai.apiKey).toBe('');
+    // can resurrect the key it no longer has. The rehydrate is DEBOUNCED
+    // (250 ms), so poll instead of assuming the last flush covered it —
+    // under a loaded machine this assertion used to run before it landed.
+    await waitFor(() => modA.useKivaraStore.getState().ai.apiKey === '');
     expect(secretA.isOwnLocalWrite(SLOT_KEY, '__cleared__')).toBe(false);
   });
 });

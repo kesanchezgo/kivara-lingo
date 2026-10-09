@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../../shared/i18n';
+import { WHISPER_BUILD } from '../../../shared/whisper-flag';
 import { sendMessage } from 'webext-bridge/content-script';
 import {
   Keyboard, EyeOff, ChevronDown, ChevronRight, Wand2,
@@ -20,6 +21,7 @@ import {
   WHISPER_MODEL_PRESETS,
   type WhisperModelKey,
 } from '../../../shared/whisper-presets';
+import type { AsrSettings } from '../../../shared/types';
 import { SHORTCUT_DEFS } from '../../../shared/shortcuts';
 import { SecretKeyInput } from '../SecretKeyInput';
 import { SyncWriteErrorBanner } from '../SyncWriteErrorBanner';
@@ -470,57 +472,8 @@ export function SettingsTab() {
           onToggle={() => toggle('asr')}
           description={t('set.whisperDesc')}
         >
-          <Row label="Habilitar Whisper ASR">
-            <Toggle on={asr.enabled} onChange={(v) => setAsr({ ...asr, enabled: v })} />
-          </Row>
-          {asr.enabled && (
-            <>
-              <Row label="Modelo">
-                <select
-                  value={asr.model}
-                  onChange={(e) => {
-                    const next = e.target.value as WhisperModelKey;
-                    setAsr({
-                      ...asr,
-                      model: next,
-                      modelUrl: WHISPER_MODEL_PRESETS[next].url,
-                    });
-                  }}
-                  className="sl-select w-full"
-                >
-                  {(Object.entries(WHISPER_MODEL_PRESETS) as Array<[
-                    WhisperModelKey,
-                    (typeof WHISPER_MODEL_PRESETS)[WhisperModelKey],
-                  ]>).map(([key, preset]) => (
-                    <option key={key} value={key}>{preset.label}</option>
-                  ))}
-                </select>
-              </Row>
-              <Row label="Glue URL (whisper.js)">
-                <input
-                  type="text"
-                  value={asr.glueUrl ?? ''}
-                  onChange={(e) => setAsr({ ...asr, glueUrl: e.target.value.trim() || undefined })}
-                  placeholder="https://tu-cdn.com/whisper.js"
-                  className="sl-input sl-mono w-full"
-                />
-              </Row>
-              <Row label="Modelo URL (override)">
-                <input
-                  type="text"
-                  value={asr.modelUrl ?? ''}
-                  onChange={(e) => setAsr({ ...asr, modelUrl: e.target.value.trim() || undefined })}
-                  placeholder={WHISPER_MODEL_PRESETS[asr.model].url}
-                  className="sl-input sl-mono w-full"
-                />
-              </Row>
-              <WhisperModelProgress modelKey={asr.model} />
-            </>
-          )}
-          <p className="text-[10px] text-zinc-500 dark:text-zinc-500 leading-snug">
-            {t('set.whisperWasm')}<strong>Tiny</strong> {t('set.tinyLaptops')}<strong>Base</strong> {t('set.baseDesktops')}</p>
+          <WhisperAsrSection />
         </Accordion>
-
         {/* ── Limpieza visual ────────────────────────────────────────── */}
         <Accordion
           icon={<EyeOff size={10} />}
@@ -1058,6 +1011,106 @@ function NestedAccordion({
 }
 
 /* ─── QuickRow ───────────────────────────────────────────────────────── */
+
+
+function WhisperAsrSection() {
+  if (!WHISPER_BUILD) {
+    // Compile-time off, on purpose: see shared/whisper-flag.ts. The glue cannot
+    // load under MV3's CSP, so the whole section was a form that could only
+    // fail later; the code behind it stays for when it is packaged.
+    return (
+      <p className="text-[10.5px] leading-snug text-zinc-500 dark:text-zinc-400 px-2 py-1.5">
+        ASR local no disponible en esta compilación: Whisper necesita empaquetar
+        su glue y su WASM dentro de la extensión (la CSP de MV3 no permite
+        cargar el glue desde una URL remota).
+      </p>
+    );
+  }
+  const asr = useKivaraStore((s) => s.asr);
+  const setAsr = (next: Partial<AsrSettings>) =>
+    useKivaraStore.setState((s) => ({ asr: { ...s.asr, ...next } }));
+  return (
+    <>
+      <Row label="Habilitar Whisper ASR">
+        <Toggle on={asr.enabled} onChange={(v) => setAsr({ enabled: v })} />
+      </Row>
+      {asr.enabled && (
+        <>
+          <Row label="Modelo">
+            <select
+              value={asr.model}
+              onChange={(e) => {
+                const next = e.target.value as WhisperModelKey;
+                setAsr({
+                  model: next,
+                  modelUrl: WHISPER_MODEL_PRESETS[next].url,
+                });
+              }}
+              className="sl-select w-full"
+            >
+              {(Object.entries(WHISPER_MODEL_PRESETS) as Array<[
+                WhisperModelKey,
+                (typeof WHISPER_MODEL_PRESETS)[WhisperModelKey],
+              ]>).map(([key, preset]) => (
+                <option key={key} value={key}>{preset.label}</option>
+              ))}
+            </select>
+          </Row>
+          <Row label="Glue URL (whisper.js)">
+            <input
+              type="text"
+              value={asr.glueUrl ?? ''}
+              onChange={(e) => setAsr({ glueUrl: e.target.value.trim() || undefined })}
+              placeholder="https://tu-cdn.com/whisper.js"
+              className="sl-input sl-mono w-full"
+            />
+          </Row>
+          <WhisperModelUrlRow setAsr={setAsr} asr={asr} />
+        </>
+      )}
+    </>
+  );
+}
+
+function WhisperModelUrlRow({
+  asr,
+  setAsr,
+}: {
+  asr: AsrSettings;
+  setAsr: (next: Partial<AsrSettings>) => void;
+}) {
+  return (
+    <Row label="Modelo URL (override)">
+      <input
+        type="text"
+        value={asr.modelUrl ?? ''}
+        onChange={(e) => setAsr({ modelUrl: e.target.value.trim() || undefined })}
+        placeholder={WHISPER_MODEL_PRESETS[asr.model].url}
+        className="sl-input sl-mono w-full"
+      />
+    </Row>
+  );
+}
+
+function WhisperAsrSectionBody({
+  asr,
+  setAsr,
+}: {
+  asr: AsrSettings;
+  setAsr: (next: Partial<AsrSettings>) => void;
+}) {
+  return (
+    <>
+      <WhisperModelProgress modelKey={asr.model} />
+      <p className="text-[10px] text-zinc-500 dark:text-zinc-500 leading-snug">
+        {t('set.whisperWasm')}
+        <strong>Tiny</strong> {t('set.tinyLaptops')}
+        <strong>Base</strong> {t('set.baseDesktops')}
+      </p>
+      <WhisperModelUrlRow asr={asr} setAsr={setAsr} />
+    </>
+  );
+}
 
 function QuickRow({
   label, hint, info, children,

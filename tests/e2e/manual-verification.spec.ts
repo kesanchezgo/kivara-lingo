@@ -159,8 +159,11 @@ test('2 · Anki on a custom port, after the service worker went idle', async ({
       });
       page.on('pageerror', (err) => corsErrors.push(String(err)));
       await page.goto(`chrome-extension://${extensionId}/src/popup/index.html`);
-      // The popup pings on mount; success renders "AnkiConnect v25.02.manual".
-      await expect(page.getByText(/AnkiConnect v25\.02\.manual/)).toBeVisible();
+      // The popup pings on mount and the status pill shows the server version
+      // on success ("AnkiConnect v… · activo/active"). The version text itself
+      // is not what matters here — that the SW REACHES the custom port after
+      // going idle is, with no CORS/network error.
+      await expect(page.getByText(/AnkiConnect v[\d.]+ · (activo|active)/)).toBeVisible();
       return page;
     };
 

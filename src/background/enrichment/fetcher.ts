@@ -9,11 +9,16 @@
  *     `Mozilla/5.0` CSP-style header is missing in service-worker fetches.
  *   - Uses `cache: 'no-store'` so we don't accidentally pin a stale HTML
  *     blob in the HTTP cache for sites that frequently A/B test markup.
+ *   - Validates the URL AND every redirect hop (see shared/net-guard). The
+ *     URL comes from scraped pages and from user settings, so a redirect to
+ *     loopback/LAN must not be honoured.
  *
  * Sources that need the parsed HTML get `fetchHtml`. Sources that talk
  * to a JSON API use `fetchJson`. Both honour the same timeout / abort
  * semantics.
  */
+
+import { assertPublicHttpUrl } from '../../shared/net-guard';
 
 export const DEFAULT_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
@@ -58,32 +63,49 @@ export async function fetchWithTimeout(
   else opts.signal?.addEventListener('abort', onOuterAbort, { once: true });
   const startedAt = performance.now();
   try {
-    const res = await fetch(url, {
-      method: 'GET',
-      credentials: opts.credentials ?? 'omit',
-      cache: 'no-store',
-      redirect: 'follow',
-      headers: {
-        'User-Agent': DEFAULT_USER_AGENT,
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.9,*/*;q=0.5',
-        'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
-        ...(opts.headers ?? {}),
-      },
-      signal: ctrl.signal,
-    });
-    logFetchDiagnostic('response', {
-      url,
-      finalUrl: res.url,
-      status: res.status,
-      ok: res.ok,
-      redirected: res.redirected,
-      contentType: res.headers.get('content-type'),
-      contentLength: res.headers.get('content-length'),
-      elapsedMs: Math.round(performance.now() - startedAt),
-    });
-    opts.onResponse?.(res);
-    if (!res.ok) return null;
-    return res;
+    // `redirect: 'follow'` is NOT used here: a scraper URL that answers
+    // 302 → http://127.0.0.1/… (or the metadata endpoint) would be honoured
+    // by the network stack before this code could look at the response. Every
+    // hop is validated with assertPublicHttpUrl instead.
+    const allowHttp = /^http:/i.test(url);
+    let target = url;
+    for (let hop = 0; hop < 5; hop += 1) {
+      const candidate = assertPublicHttpUrl(target, { allowHttp });
+      const res = await fetch(candidate.toString(), {
+        method: 'GET',
+        credentials: opts.credentials ?? 'omit',
+        cache: 'no-store',
+        redirect: 'manual',
+        headers: {
+          'User-Agent': DEFAULT_USER_AGENT,
+          Accept:
+            'text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.9,*/*;q=0.5',
+          'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
+          ...(opts.headers ?? {}),
+        },
+        signal: ctrl.signal,
+      });
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get('location');
+        if (!location) return null;
+        target = new URL(location, candidate.toString()).toString();
+        continue;
+      }
+      logFetchDiagnostic('response', {
+        url: target,
+        finalUrl: res.url,
+        status: res.status,
+        ok: res.ok,
+        redirected: res.redirected,
+        contentType: res.headers.get('content-type'),
+        contentLength: res.headers.get('content-length'),
+        elapsedMs: Math.round(performance.now() - startedAt),
+      });
+      opts.onResponse?.(res);
+      if (!res.ok) return null;
+      return res;
+    }
+    return null;
   } catch (error) {
     logFetchDiagnostic('error', {
       url,

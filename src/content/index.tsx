@@ -126,10 +126,24 @@ interface Mount {
 let mount: Mount | null = null;
 let lastVideoElement: HTMLVideoElement | null = null;
 let lastVideoContainer: HTMLElement | null = null;
-/** URL whose media is currently mounted. YouTube reuses the SAME <video>
+/**
+ * Identity of the media currently mounted. YouTube reuses the SAME <video>
  * element across SPA navigation, so element identity alone cannot tell "same
- * video" from "next video in the playlist". */
-let lastMediaUrl: string | null = null;
+ * video" from "next video in the playlist" — and comparing the whole URL would
+ * remount on every `&t=` / `#t=` / `&pp=` tweak the platform makes (auto-skip
+ * alone changes the URL several times while a video plays). Only the bits that
+ * identify the asset are compared.
+ */
+let lastMediaId: string | null = null;
+
+/** Stable identifier for what is being played: the YouTube `v=` parameter,
+ * or the pathname plus `movieId`/`jbv` for the platforms that use those. */
+function currentMediaId(): string {
+  const url = new URL(window.location.href);
+  const v = url.searchParams.get('v') ?? url.searchParams.get('movieId') ?? url.searchParams.get('jbv');
+  if (v) return v;
+  return url.pathname;
+}
 
 function findVideoContainer(): { video: HTMLVideoElement | null; container: HTMLElement | null } {
   const host = window.location.hostname;
@@ -246,7 +260,7 @@ async function mountFor(video: HTMLVideoElement, container: HTMLElement, adapter
   };
   lastVideoElement = video;
   lastVideoContainer = container;
-  lastMediaUrl = window.location.href;
+  lastMediaId = currentMediaId();
 }
 
 async function init() {
@@ -292,20 +306,36 @@ function observeNavigation() {
   window.addEventListener('kivara-locationchange', () => setTimeout(handleNavigation, 600));
 }
 
-let locationChangeTimer: number | null = null;
-let locationChangePending = false;
+/**
+ * One dispatch per BURST of history calls.
+ *
+ * The previous version dispatched immediately on every call and scheduled an
+ * extra trailing one, so three pushState calls produced four `handleNavigation`
+ * runs (each of which waits for a video, re-detects the adapter and remounts).
+ * Now the FIRST change of a burst sets a 250 ms window and only a change
+ * arriving INSIDE that window produces exactly one more dispatch at the end —
+ * so N calls in a burst = 1 event, and a genuinely new navigation right after
+ * the window still gets its own leading dispatch.
+ */
+let bubbleWindow: number | null = null;
+let sawLatestChange = false;
 function scheduleLocationChange(): void {
-  if (locationChangeTimer == null) {
-    // Leading edge: react immediately.
-    locationChangeTimer = window.setTimeout(() => {
-      locationChangeTimer = null;
-      if (locationChangePending) {
-        locationChangePending = false;
-        window.dispatchEvent(new Event('kivara-locationchange'));
+  if (bubbleWindow == null) {
+    dispatchLocationChange();
+    bubbleWindow = window.setTimeout(() => {
+      bubbleWindow = null;
+      if (sawLatestChange) {
+        sawLatestChange = false;
+        dispatchLocationChange();
       }
     }, 250);
+    return;
   }
-  locationChangePending = true;
+  // Inside the window: replace the pending trailing dispatch.
+  sawLatestChange = true;
+}
+
+function dispatchLocationChange(): void {
   window.dispatchEvent(new Event('kivara-locationchange'));
 }
 
@@ -325,7 +355,7 @@ async function handleNavigation() {
     const sameMedia =
       video === lastVideoElement &&
       container === lastVideoContainer &&
-      lastMediaUrl === window.location.href &&
+      lastMediaId === currentMediaId() &&
       !!mount;
     // The check must also survive the await above: `lastVideoElement` /
     // `mount` may have changed while earlier queued tasks ran, so the

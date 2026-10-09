@@ -26,25 +26,56 @@ Solo cuando el usuario dispara una función concreta:
    Anthropic / Gemini). Apagado por defecto.
 4. **Anki** — las tarjetas a `http://127.0.0.1` / `http://localhost`
    (AnkiConnect), solo en el puerto configurado.
-5. **Imagen / audio** — las URLs que esas mismas respuestas devuelven.
-   Todo con `credentials: 'omit'`: las cookies del usuario NO viajan
-   (excepción: `wordreference.com`, que requiere poner su propia cookie de
-   paso para que responda).
+5. **Imagen / audio** — las URLs que esas mismas respuestas devuelven, para
+   incrustarlas en la tarjeta. Todo con `credentials: 'omit'`: las cookies
+   del usuario NO viajan (excepción: `wordreference.com`, que requiere poner
+   su propia cookie de paso para que responda).
+6. **TTS (opt-in)** — la frase a ElevenLabs o Google TTS.
+7. **ASR / Whisper (retirado salvo `KIVARA_WHISPER=1`)** — si se activara, el
+   PCM de la frase entraría en un modelo local. Hoy no puede cargar su glue en
+   MV3 (CSP), así que está fuera de la interfaz por defecto.
 
 ## Qué NO hace
 
-- Sin servidores propios. No existe backend de Kivara: nada se recopila ni
-  se envía a kivara.dev ni a ningún dominio del autor.
+- Sin servidores propios. No existe backend de Kivara: nada se recopila ni se envía a
+  kivara.dev ni a ningún dominio del autor.
 - Sin analítica de terceros, sin píxeles, sin reporte de errores remoto.
 - Sin `credentials: 'include'` generalizado (ver arriba).
-- Sin descargas remotas sin límites: todo `fetch` saliente exige HTTPS
-  público (nunca http, nunca loopback ni LAN) y va acotado en tiempo y
-  tamaño. El permiso de Anki cubre `127.0.0.1` y `localhost` en cualquier
-  puerto; **un Anki en otra máquina no está soportado** a propósito (ver
-  `IMPLEMENTATION.md` §11.0).
+- Sin descargas remotas sin límites donde importa: los medios que entran en
+  las tarjetas (imagen, audio de palabra) y los paquetes de diccionario se
+  descargan dentro del service worker con
+  - destino limitado a HTTPS público (nada de `http`, ni loopback, ni LAN, ni
+    `169.254.169.254`);
+  - validación de CADA redirección (un `302` hacia localhost se rechaza);
+  - tope de tiempo y de bytes, comprobado contra el `Content-Length` y contra
+    lo realmente leído.
+  Las APIs de traducción, IA, TTS y el modelo de Whisper usan HTTP directo con
+  timeout pero sin esa puerta de destinos, porque el host lo fija el usuario al
+  elegir proveedor (y el modelo de Whisper es de ~75 MB sin tope de tamaño —
+  motivo por el que el ASR está deshabilitado).
 - Sin inyección de scripts remotos en páginas de extensión: la CSP de MV3 lo
   prohíbe y eso mantiene el ASR (Whisper) deshabilitado hasta que se empaquete
   su glue dentro de la extensión.
+- **Anki remoto no soportado**: el permiso cubre `127.0.0.1` y `localhost` en
+  cualquier puerto; un Anki en otra máquina queda fuera a propósito (ver
+  `IMPLEMENTATION.md` §11.0).
+
+## Límites conocidos
+
+- **DNS rebinding**: la puerta de destinos mira el nombre de host escrito en
+  la URL. Un dominio propio del atacante que responde con una A record en
+  `127.0.0.1` o en la LAN — y cuyo TTL permite cambiarla entre la validación y
+  la conexión — no se puede detectar desde un service worker sin resolución
+  propia. Lo que sí queda cerrado: URLs privadas literales, redirecciones a
+  privado, y toda la ruta de paquetes de diccionario. Mitigarlo del todo
+  exigiría un proxy de resolución; no está en el alcance.
+- **Lista de hosts**: el manifest declara ~96 hosts (uno por diccionario /
+  API). Algunas entradas están muertas y a la espera de poda (`lexico.com`,
+  mirrors de `lingva`); moverlas a `optional_host_permissions` con petición
+  bajo demanda es el siguiente paso y reduce lo que la Web Store tiene que
+  justificar.
+- **Telemetría**: se contabiliza en local (porcentaje de enriquecimiento que
+  requirió red, fallos de proveedores). Nunca se envía fuera del dispositivo.
 
 ## Permisos que pide y por qué
 

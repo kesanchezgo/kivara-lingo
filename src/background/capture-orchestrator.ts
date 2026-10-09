@@ -21,7 +21,7 @@ import { runEnrichment } from './enrichment/orchestrator';
 import { formatFrequencyBand, pickFrequencyWinner } from '../shared/frequency';
 import { getVipSettings, loadTranslateTargetLang } from './vip-settings';
 import { computeCueWindow, shouldFallbackToTts, waitForCueTailMs } from './cue-window';
-import { fetchBytesWithLimits } from '../shared/net-guard';
+import { fetchMediaWithLimits, mediaExtFor } from '../shared/net-guard';
 import { t } from '../shared/i18n';
 
 /** Outbound media downloads come from scraped pages, so they are bounded:
@@ -75,6 +75,59 @@ function extForMime(mime: string): string {
   if (/ogg/.test(mime)) return 'ogg';
   if (/mp4|m4a|aac/.test(mime)) return 'm4a';
   return 'webm';
+}
+
+/**
+ * Download the first candidate that answers and store it in Anki's media
+ * folder, then run `body(filename)` so the caller can attach it.
+ *
+ * Handles the two things real media feeds do:
+ *  • hand out `http://` thumbnails — the fetch gate refuses cleartext, so the
+ *    https form of the same URL is tried first and the original last;
+ *  • 404 / block one candidate — the NEXT candidate is tried, instead of the
+ *    whole field failing (that regression is what the net-guard introduced).
+ *
+ * Returns the stored filename, or null when every candidate failed.
+ */
+async function attachMedia(
+  mapping: AnkiMapping,
+  candidates: Array<string | undefined | null>,
+  kind: 'image' | 'audio',
+  baseName: string,
+  body: (filename: string) => void,
+): Promise<string | null> {
+  const maxBytes = kind === 'image' ? 8 * 1024 * 1024 : 16 * 1024 * 1024;
+  const timeoutMs = kind === 'image' ? IMAGE_DOWNLOAD_TIMEOUT_MS : AUDIO_DOWNLOAD_TIMEOUT_MS;
+  const fallbackExt = kind === 'image' ? 'jpg' : 'mp3';
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const variants = /^http:\/\//i.test(candidate)
+      ? [candidate.replace(/^http:\/\//i, 'https://'), candidate]
+      : [candidate];
+    for (const url of variants) {
+      try {
+        const { bytes, contentType } = await fetchMediaWithLimits(url, {
+          timeoutMs,
+          maxBytes,
+          ...(/^http:\/\//i.test(url) ? { allowHttp: true } : {}),
+        });
+        const filename = safeFilename(baseName, mediaExtFor(contentType, url, fallbackExt));
+        await ankiConnect.storeMediaFile(
+          filename,
+          arrayBufferToBase64(bytes.buffer as ArrayBuffer),
+          mapping.ankiUrl,
+          mapping.apiKey,
+        );
+        body(filename);
+        return filename;
+      } catch {
+        // Try the next variant / candidate; the caller only learns the
+        // failure once every option is exhausted.
+      }
+    }
+  }
+  return null;
 }
 
 function usable(value?: string | null): string {
@@ -751,26 +804,20 @@ export async function createCardFromRequest(
     imageTargets.push(frameField);
   }
   if (imageTargets.length > 0 && ctx.imageUrl) {
-    try {
-      const buf = await fetchBytesWithLimits(ctx.imageUrl, {
-        timeoutMs: IMAGE_DOWNLOAD_TIMEOUT_MS,
-        maxBytes: 8 * 1024 * 1024,
-        credentials: 'omit',
-      });
-      const mime = 'image/jpeg';
-      const ext = 'jpg';
-      const filename = safeFilename(`${request.token}_img`, ext);
-      const data = arrayBufferToBase64(buf.buffer as ArrayBuffer);
-      await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
-      for (const target of imageTargets) {
-        fields[target] = fields[target]
-          ? `${fields[target]}<img src="${filename}">`
-          : `<img src="${filename}">`;
-      }
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : 'image';
-      warnings.push(`Imagen VIP: ${reason}`);
-    }
+    const stored = await attachMedia(
+      mapping,
+      [ctx.imageUrl],
+      'image',
+      `${request.token}_img`,
+      (filename) => {
+        for (const target of imageTargets) {
+          fields[target] = fields[target]
+            ? `${fields[target]}<img src="${filename}">`
+            : `<img src="${filename}">`;
+        }
+      },
+    );
+    if (!stored) warnings.push('Imagen VIP: no se pudo descargar');
   }
 
   // Audio — three flavours:
@@ -899,24 +946,24 @@ export async function createCardFromRequest(
     const headword = ctx.request.token;
     let attached = false;
     if (ctx.wordAudioUrl) {
-      try {
-        // Bounded fetch: the URL comes out of a scraped page, so it gets the
-        // same public-HTTPS gate, timeout and size cap as anything else we
-        // download inside the service worker.
-        const buf = await fetchBytesWithLimits(ctx.wordAudioUrl, {
-          timeoutMs: AUDIO_DOWNLOAD_TIMEOUT_MS,
-          maxBytes: 16 * 1024 * 1024,
-          credentials: 'omit',
-        });
-        const mime = 'audio/mpeg';
-        const data = arrayBufferToBase64(buf.buffer as ArrayBuffer);
-        const filename = safeFilename(headword, extForMime(mime));
-        await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
-        fields[wordAudioField] = withSound(fields[wordAudioField], filename);
-        attached = true;
-      } catch (err) {
-        const reason = err instanceof Error ? err.message : 'word-audio-url';
-        warnings.push(`Audio palabra (URL): ${reason}`);
+      // Bounded fetch through the guarded path: the URL comes out of a
+      // scraped page, so it gets the same public-https gate, per-hop
+      // redirect validation, timeout and size cap as anything else we
+      // download inside the service worker. The extension comes from the
+      // content-type (then the URL), so a Wikimedia `.ogg` no longer lands
+      // in Anki as `…​.mp3`.
+      const stored = await attachMedia(
+        mapping,
+        [ctx.wordAudioUrl],
+        'audio',
+        headword,
+        (filename) => {
+          fields[wordAudioField] = withSound(fields[wordAudioField], filename);
+          attached = true;
+        },
+      );
+      if (!stored) {
+        warnings.push('Audio palabra (URL): no descargable');
       }
     }
     if (!attached) {
