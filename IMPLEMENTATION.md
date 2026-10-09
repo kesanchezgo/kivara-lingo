@@ -861,12 +861,19 @@ sesión cerrada). Cuando ocurre:
   están fuera de `partialize`, así que abrir el panel reserializaba el MISMO
   json — y con un `_w` nuevo eso disparaba `onChanged` en cada pestaña, el
   popup y el SW, con un rehidratado y descifrado completo por contexto contra
-  el límite de 120 escrituras/min.
+  el límite de 120 escrituras/min. Si el envío falla, el guardia se descarta
+  (si nadie lo ha reemplazado mientras tanto): el siguiente guardado, aunque
+  sea idéntico, reintenta solo.
+- **Pendientes reales**: `pendingUnsynced` guarda los blobs que NO llegaron a
+  sync. No es lo mismo que "el fallback no está vacío" — el fallback también
+  contiene escrituras correctas, y un `removeItem` fallido no deja nada
+  pendiente — así que solo esa lista justifica el aviso de cambios
+  reemplazados.
 - **Avisos** (`storage.syncWriteFailed` / `storage.syncDiscarded`): la
-  escritura fallida es reintentable; si un cambio remoto consume el fallback
+  escritura fallida es reintentable; si un cambio remoto consume un blob
   pendiente, la UI avisa que los cambios locales sin sincronizar se
-  reemplazaron, en lugar de dejar desaparecer el aviso como si se hubiera
-  arreglado.
+  reemplazaron (con ✕ para descartarlo), en lugar de dejar desaparecer el
+  aviso como si se hubiera arreglado.
 - `removeItem` borra también el fallback, el anillo y el guardia de no-op.
 - El reintento del banner reenvía el blob **tal cual** por
   `chrome.storage.sync.set`, sin volver a sellarlo: un segundo sellado

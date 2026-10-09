@@ -333,6 +333,14 @@ function isOwnSyncWrite(storageId: string, incoming: unknown): boolean {
   return typeof incoming === 'string' && !!list && list.includes(incoming);
 }
 
+/** Blobs THIS context wrote that never reached chrome.storage, per storage
+ * key. Not the same thing as "the fallback is not empty": the fallback also
+ * holds successfully written blobs (that is its job). These are the only
+ * genuine pending edits, so a remote change that throws them away can say
+ * "your changes were replaced" instead of crying wolf — `failed` on its own
+ * does not qualify, it can come from an unrelated removeItem. */
+const pendingUnsynced = new Map<string, string>();
+
 /* ──────────────────────────────────────────────────────────────────────────
  * SYNC WRITE NOTICES — visible, not just a console line.
  *
@@ -388,6 +396,12 @@ export function getSyncWriteFailed(): boolean {
  * remote change (only possible after a failed write left them pending). */
 export function getSyncWriteDiscarded(): boolean {
   return syncWriteStatus.discarded;
+}
+
+/** Acknowledge the "your unsynced changes were replaced" notice — the user
+ * read it, there is nothing left to retry. */
+export function dismissSyncDiscarded(): void {
+  publishSyncWriteStatus({ discarded: false });
 }
 
 /**
@@ -532,6 +546,7 @@ export function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage
       try {
         if (typeof chrome !== 'undefined' && chrome.storage?.[area]) {
           await chrome.storage[area].set({ [name]: toStore });
+          pendingUnsynced.delete(`${area}:${name}`); // the blob is durable now
           publishSyncWriteStatus({ failed: false, discarded: false }); // durable again
           return;
         }
@@ -541,6 +556,13 @@ export function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage
         // memory moved on; the next rehydrate then "reverted" the UI. The
         // status drives the banner in the popup and in Settings.
         console.warn('[Kivara store] chrome.storage.set failed, using in-memory fallback', err);
+        pendingUnsynced.set(`${area}:${name}`, toStore);
+        // The no-op guard just claimed storage holds this blob and it does
+        // not. Drop it — but only if a concurrent write hasn't already
+        // replaced it with a newer value — so the NEXT save retries by itself,
+        // even an identical one (a panel toggle). Without this the failure
+        // could only be cleared by pressing Retry or by a real state change.
+        if (lastSealedContent.get(name) === sealed) lastSealedContent.delete(name);
         publishSyncWriteStatus({ failed: true });
       }
     },
@@ -557,11 +579,14 @@ export function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage
           fallbackStorage.delete(name);
           ownSyncWrites.delete(`${area}:${name}`);
           lastSealedContent.delete(name);
+          pendingUnsynced.delete(`${area}:${name}`);
           publishSyncWriteStatus({ failed: false });
           return;
         }
       } catch (err) {
         console.warn('[Kivara store] chrome.storage.remove failed', err);
+        // A failed REMOVE leaves no pending blob — nothing to publish as
+        // discarded later, only a warning the user can retry.
         publishSyncWriteStatus({ failed: true });
       }
       try {
@@ -571,6 +596,7 @@ export function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage
       }
       ownSyncWrites.delete(`${area}:${name}`);
       lastSealedContent.delete(name);
+      pendingUnsynced.delete(`${area}:${name}`);
     },
   };
 }
@@ -655,6 +681,7 @@ export async function retrySyncWrite(): Promise<boolean> {
     publishSyncWriteStatus({ failed: true });
     return false;
   }
+  pendingUnsynced.delete(`sync:${STORE_KEY}`);
   publishSyncWriteStatus({ failed: false, discarded: false });
   return true;
 }
@@ -857,6 +884,12 @@ try {
         // ring and the no-op guard so the rehydrate reads the fresh
         // chrome.storage blob, and so a subsequent echo of the blobs we just
         // replaced is no longer mistaken for a remote change.
+        // `hadPendingWrite` is read BEFORE the delete and comes from the map
+        // of blobs that actually failed to reach sync. The fallback is not a
+        // signal here: it also holds successfully written blobs, and `failed`
+        // on its own does not qualify either — it can come from an unrelated
+        // removeItem.
+        const hadPendingWrite = pendingUnsynced.has(`sync:${STORE_KEY}`);
         try {
           fallbackStorage.delete(STORE_KEY);
         } catch {
@@ -864,12 +897,15 @@ try {
         }
         ownSyncWrites.delete(`sync:${STORE_KEY}`);
         lastSealedContent.delete(STORE_KEY);
-        // If this context still had a blob that never reached sync, the
-        // rehydrate below throws it away — silently replacing what the user
-        // did here with another device's state. Tell them instead of letting
-        // the warning banner vanish on its own (it reads as "fixed now").
-        // Otherwise the previous notice is stale: there is nothing to retry.
-        publishSyncWriteStatus(syncWriteStatus.failed ? { failed: false, discarded: true } : { discarded: false });
+        pendingUnsynced.delete(`sync:${STORE_KEY}`);
+        // A blob that never reached sync is being thrown away — silently
+        // replacing what the user did here with another device's state. Tell
+        // them instead of letting the warning banner vanish on its own (it
+        // reads as "fixed now"). With nothing pending the old notice is just
+        // stale: there is nothing left to retry.
+        publishSyncWriteStatus(
+          hadPendingWrite ? { failed: false, discarded: true } : { failed: false, discarded: false },
+        );
         scheduleRehydrate();
         return;
       }

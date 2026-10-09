@@ -565,6 +565,23 @@ describe('secret slots', () => {
     expect(await hasHiddenSecret('ai', 'apiKey', io)).toBe(true);
   });
 
+  it('hasHiddenSecret reports false for a slot another context removed', async () => {
+    // 🟡 low: falling back to the baseline when the slot is merely ABSENT
+    // offered "Quitar" for a key that no longer exists anywhere.
+    const key = secretSlotKey('ai', 'apiKey');
+    const io = makeIO();
+    await pullSecretsFromLocal(stateWith({ ai: { apiKey: 'sk-gone' } }), io);
+    expect(await hasHiddenSecret('ai', 'apiKey', io)).toBe(true);
+
+    // Another context removes the slot entirely (not tombstoned, gone).
+    io.data.delete(key);
+    expect(await hasHiddenSecret('ai', 'apiKey', io)).toBe(false);
+
+    // Unreadable storage is the ONLY case where the baseline answers.
+    io.failGets = true;
+    expect(await hasHiddenSecret('ai', 'apiKey', io)).toBe(true);
+  });
+
   it('covers every declared secret field with a unique slot key', () => {
     const keys = SECRET_FIELDS.map((f) => secretSlotKey(f.section, f.field));
     expect(new Set(keys).size).toBe(SECRET_FIELDS.length);

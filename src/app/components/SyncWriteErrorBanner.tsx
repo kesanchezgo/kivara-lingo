@@ -14,9 +14,9 @@
  * edits a remote change already replaced (not retryable — only explanatory).
  */
 import { useSyncExternalStore } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, X } from 'lucide-react';
 import { t } from '../../shared/i18n';
-import { getSyncWriteStatus, subscribeSyncWriteStatus, retrySyncWrite } from '../../shared/store';
+import { getSyncWriteStatus, subscribeSyncWriteStatus, retrySyncWrite, dismissSyncDiscarded } from '../../shared/store';
 
 export function SyncWriteErrorBanner({ compact = false }: { compact?: boolean }) {
   const status = useSyncExternalStore(
@@ -32,11 +32,19 @@ export function SyncWriteErrorBanner({ compact = false }: { compact?: boolean })
         role="status"
         className={
           compact
-            ? 'rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/60 px-2.5 py-2 text-[10.5px] leading-snug text-zinc-600 dark:text-zinc-400'
-            : 'rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/60 px-3 py-2 text-[11px] leading-snug text-zinc-600 dark:text-zinc-400'
+            ? 'flex items-start gap-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/60 px-2.5 py-1.5 text-[10.5px] leading-snug text-zinc-600 dark:text-zinc-400'
+            : 'flex items-start gap-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/60 px-3 py-2 text-[11px] leading-snug text-zinc-600 dark:text-zinc-400'
         }
       >
-        {t('storage.syncDiscarded')}
+        <span className="flex-1 min-w-0">{t('storage.syncDiscarded')}</span>
+        <button
+          type="button"
+          onClick={() => dismissSyncDiscarded()}
+          title={t('storage.syncDismiss')}
+          className="shrink-0 p-1 rounded-md text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+        >
+          <X size={11} />
+        </button>
       </div>
     );
   }

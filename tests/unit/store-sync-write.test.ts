@@ -47,6 +47,7 @@ interface Env {
   sync: MapStore;
   listeners: ChangedListener[];
   failSets: boolean;
+  failRemoves: boolean;
   /** Number of chrome.storage.sync.set calls so far. */
   setCalls: number;
   fire: (changes: Record<string, unknown>, area: string) => void;
@@ -57,6 +58,7 @@ function installChrome(): Env {
   const sync = new Map<string, string>();
   const listeners: ChangedListener[] = [];
   const failSets = { on: false };
+  const failRemoves = { on: false };
   const counters = { setCalls: 0 };
   const g = globalThis as unknown as { chrome: Record<string, unknown> };
   const prev = g.chrome;
@@ -70,9 +72,16 @@ function installChrome(): Env {
       getURL: (p: string) => `chrome-extension://test/${p}`,
     },
     storage: {
-      sync: makeMapStorage(sync, () => failSets.on, () => {
-        counters.setCalls++;
-      }),
+      sync: {
+        ...makeMapStorage(sync, () => failSets.on, () => {
+          counters.setCalls++;
+        }),
+        remove: async (key: string | string[]) => {
+          if (failRemoves.on) throw new Error('chrome.storage.sync.remove failed');
+          const keys = Array.isArray(key) ? key : [key];
+          for (const k of keys) sync.delete(k);
+        },
+      },
       local: makeMapStorage(new Map(), () => false),
       onChanged: { addListener: (l: ChangedListener) => listeners.push(l) },
     },
@@ -85,6 +94,12 @@ function installChrome(): Env {
     },
     set failSets(v: boolean) {
       failSets.on = v;
+    },
+    get failRemoves() {
+      return failRemoves.on;
+    },
+    set failRemoves(v: boolean) {
+      failRemoves.on = v;
     },
     get setCalls() {
       return counters.setCalls;
@@ -261,7 +276,37 @@ describe('chrome.storage.sync persist adapter', () => {
     await settle();
   });
 
+  it('a failed write retries itself on the next identical save', async () => {
+    // 🟠 regression: the no-op guard was set before the await and never
+    // cleaned on failure, so the next identical save (a panel toggle) was
+    // skipped and the banner could only clear by pressing Retry or by a real
+    // state change.
+    const mod = await import('../../src/shared/store');
+    const storage = mod.makeChromeStorage('sync');
+
+    env.failSets = true;
+    await storage.setItem(SYNC_KEY, blob('A'));
+    expect(mod.getSyncWriteFailed()).toBe(true);
+
+    // Connectivity is back; the app saves the same state again.
+    env.failSets = false;
+    const before = env.setCalls;
+    await storage.setItem(SYNC_KEY, blob('A'));
+
+    expect(env.setCalls - before).toBe(1);          // it really retried
+    expect(mod.getSyncWriteFailed()).toBe(false);   // banner gone, no click
+    expect(mod.getSyncWriteDiscarded()).toBe(false);
+    expect(canon(env.sync.get(SYNC_KEY)!)).toBe(blob('A'));
+
+    // And no-ops are no-ops again once storage is aligned.
+    await storage.setItem(SYNC_KEY, blob('A'));
+    expect(env.setCalls - before).toBe(1);
+  });
+
   it('a remote change with nothing pending only clears the notice', async () => {
+    // A successful write leaves the fallback populated — that is its job — and
+    // that must NOT read as "unsynced edits lost". Only a blob that actually
+    // failed to reach sync qualifies.
     const mod = await import('../../src/shared/store');
     const storage = mod.makeChromeStorage('sync');
 
@@ -271,6 +316,37 @@ describe('chrome.storage.sync persist adapter', () => {
     expect(mod.getSyncWriteFailed()).toBe(false);
     expect(mod.getSyncWriteDiscarded()).toBe(false);
     await settle();
+  });
+
+  it('a failed removeItem alone never claims discarded edits', async () => {
+    const mod = await import('../../src/shared/store');
+    const storage = mod.makeChromeStorage('sync');
+
+    await storage.setItem(SYNC_KEY, blob('A'));
+    env.failRemoves = true;
+    await storage.removeItem(SYNC_KEY);
+    expect(mod.getSyncWriteFailed()).toBe(true);
+
+    env.failRemoves = false;
+    env.fire({ [SYNC_KEY]: { newValue: blob('remote') } }, 'sync');
+    expect(mod.getSyncWriteFailed()).toBe(false);
+    expect(mod.getSyncWriteDiscarded()).toBe(false); // nothing was pending
+    await settle();
+  });
+
+  it('the discarded notice can be dismissed', async () => {
+    const mod = await import('../../src/shared/store');
+    const storage = mod.makeChromeStorage('sync');
+
+    env.failSets = true;
+    await storage.setItem(SYNC_KEY, blob('A'));
+    env.failSets = false;
+    env.fire({ [SYNC_KEY]: { newValue: blob('remote') } }, 'sync');
+    expect(mod.getSyncWriteDiscarded()).toBe(true);
+
+    mod.dismissSyncDiscarded();
+    expect(mod.getSyncWriteDiscarded()).toBe(false);
+    expect(mod.getSyncWriteFailed()).toBe(false);
   });
 
   it('the snapshot object is stable while nothing changes', async () => {

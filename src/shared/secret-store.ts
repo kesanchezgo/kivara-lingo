@@ -648,14 +648,18 @@ export async function hasHiddenSecret(
   io: SecretSlotIO = defaultSlotIO,
 ): Promise<boolean> {
   const key = secretSlotKey(section, field);
-  // The slot is the truth, always: the baseline alone would report "hidden"
-  // for a value this context loaded and can perfectly well show.
+  // The slot is the truth, always — including when it is simply ABSENT: a
+  // key that never existed is "nothing configured", not "hidden key", so the
+  // input must not offer Quitar for a slot another context removed.
   try {
     const found = await io.get([key]);
-    const slot = found[key];
-    if (typeof slot === 'string') return slot !== '' && slot !== SECRET_CLEARED;
+    if (key in found) {
+      const slot = found[key];
+      return typeof slot === 'string' && slot !== '' && slot !== SECRET_CLEARED;
+    }
+    return false;
   } catch {
-    // storage unreadable — fall back to what this context has in memory
+    // storage unreadable — the in-memory baseline is the only answer left
   }
   return lastPersisted.has(key) && lastPersisted.get(key) !== '';
 }
