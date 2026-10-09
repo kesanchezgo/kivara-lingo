@@ -339,7 +339,7 @@ function isOwnSyncWrite(storageId: string, incoming: unknown): boolean {
  * genuine pending edits, so a remote change that throws them away can say
  * "your changes were replaced" instead of crying wolf — `failed` on its own
  * does not qualify, it can come from an unrelated removeItem. */
-const pendingUnsynced = new Map<string, string>();
+const pendingUnsynced = new Set<string>();
 
 /* ──────────────────────────────────────────────────────────────────────────
  * SYNC WRITE NOTICES — visible, not just a console line.
@@ -408,6 +408,16 @@ export function dismissSyncDiscarded(): void {
  * Publish a new status. `failed` and `discarded` can't both be read as
  * "pending": a remote change consumed the pending blob, so it reports the
  * loss instead; a successful write clears both.
+ *
+ * Two deliberate coarseness calls, documented so they read as decisions:
+ *  • the status is GLOBAL, not per adapter — the `local` adapter has nothing
+ *    worth throttling and its keys are cleared on remove, so a sync failure
+ *    is what the user needs to know about regardless of which area tripped.
+ *  • a remote sync change clears `failed`, even when the failure came from an
+ *    unrelated `removeItem`: there is no retryable state left in this context
+ *    after the rehydrate, so keeping the warning would offer a button that
+ *    cannot do anything. `discarded` is only raised when a SET actually left
+ *    a blob pending (see `pendingUnsynced`).
  */
 function publishSyncWriteStatus(next: Partial<SyncWriteStatus>): void {
   const merged: SyncWriteStatus = { ...syncWriteStatus, ...next };
@@ -556,7 +566,13 @@ export function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage
         // memory moved on; the next rehydrate then "reverted" the UI. The
         // status drives the banner in the popup and in Settings.
         console.warn('[Kivara store] chrome.storage.set failed, using in-memory fallback', err);
-        pendingUnsynced.set(`${area}:${name}`, toStore);
+        // OUT-OF-ORDER reject: write A can fail AFTER write B already
+        // succeeded, so sync holds B — newer than A. A is then not pending at
+        // all: "Reintentar" would only re-send B, and a remote change
+        // arriving first would raise a "your edits were replaced" notice
+        // about nothing. Only a blob that is still OUR latest qualifies.
+        if (fallbackStorage.get(name) !== toStore) return;
+        pendingUnsynced.add(`${area}:${name}`);
         // The no-op guard just claimed storage holds this blob and it does
         // not. Drop it — but only if a concurrent write hasn't already
         // replaced it with a newer value — so the NEXT save retries by itself,

@@ -303,6 +303,46 @@ describe('chrome.storage.sync persist adapter', () => {
     expect(env.setCalls - before).toBe(1);
   });
 
+  it('an out-of-order rejection after a newer write is not pending', async () => {
+    // 🟡-medio: write A in flight, write B lands, then A rejects. sync holds B
+    // (newer), so A is not pending — flagging it would raise a warning whose
+    // Retry can only re-send B, and a remote change arriving first would
+    // announce deleted edits that were never lost.
+    const originalSet = (globalThis as unknown as { chrome: { storage: { sync: { set: unknown } } } })
+      .chrome.storage.sync.set;
+    const releaseA = new Promise<void>((resolve) => setTimeout(resolve, 20));
+    let firstSeen = false;
+
+    (globalThis as unknown as { chrome: { storage: { sync: { set: (i: Record<string, unknown>) => Promise<void> } } } })
+      .chrome.storage.sync.set = async (items: Record<string, unknown>) => {
+        if (!firstSeen) {
+          firstSeen = true;
+          await releaseA;
+          throw new Error('QUOTA_BYTES quota exceeded');
+        }
+        for (const [k, v] of Object.entries(items)) env.sync.set(k, String(v));
+      };
+
+    try {
+      const mod = await import('../../src/shared/store');
+      const inFlightA = mod.makeChromeStorage('sync').setItem(SYNC_KEY, blob('A'));
+      await new Promise((r) => setTimeout(r, 0)); // A is parked in chrome.set
+      await mod.makeChromeStorage('sync').setItem(SYNC_KEY, blob('B')); // lands
+      expect(canon(env.sync.get(SYNC_KEY)!)).toBe(blob('B'));
+      await inFlightA; // A rejects now — too late, nothing is pending
+
+      expect(mod.getSyncWriteFailed()).toBe(false);
+      expect(mod.getSyncWriteDiscarded()).toBe(false);
+      // And a remote change must not claim discarded edits.
+      env.fire({ [SYNC_KEY]: { newValue: blob('remote') } }, 'sync');
+      expect(mod.getSyncWriteDiscarded()).toBe(false);
+      await settle();
+    } finally {
+      (globalThis as unknown as { chrome: { storage: { sync: { set: unknown } } } })
+        .chrome.storage.sync.set = originalSet;
+    }
+  });
+
   it('a remote change with nothing pending only clears the notice', async () => {
     // A successful write leaves the fallback populated — that is its job — and
     // that must NOT read as "unsynced edits lost". Only a blob that actually
