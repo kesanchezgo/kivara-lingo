@@ -103,6 +103,17 @@ function flush(ms = 60): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+/** Poll instead of sleeping a fixed delay. The persist path is async and a
+ * fixed sleep raced under a loaded machine (two CI jobs at once), flaking
+ * tests that used to pass in isolation. */
+async function waitFor(predicate: () => boolean, tries = 100): Promise<void> {
+  for (let i = 0; i < tries; i += 1) {
+    if (predicate()) return;
+    await flush(20);
+  }
+  throw new Error('waitFor timed out');
+}
+
 describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
   let env: ChromeEnv;
   let sync: MapStore;
@@ -126,8 +137,10 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     modA.useKivaraStore.setState({
       ai: { ...modA.useKivaraStore.getState().ai, apiKey: 'sk-e2e-roundtrip' },
     });
-    await flush();
-
+    // Wait for the write to actually land instead of sleeping a fixed 60 ms:
+    // the persist path is async and, on a loaded machine (two CI jobs at
+    // once), the assertion below used to run before the slot existed.
+    await waitFor(() => local.get(SLOT_KEY)?.startsWith('enc:v1:') === true);
     // SYNC must carry NO secret material — neither plaintext nor ciphertext.
     const syncRaw = sync.get(SYNC_KEY);
     expect(syncRaw).toBeDefined();
@@ -143,9 +156,8 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     // ---- Context B: fresh module (its own baseline), same sync + local.
     vi.resetModules();
     const modB = await import('../../src/shared/store');
-    // getItem runs during hydration — wait for it.
-    await flush();
-    expect(modB.useKivaraStore.getState().ai.apiKey).toBe('sk-e2e-roundtrip');
+    // getItem runs during hydration — wait for the value to appear.
+    await waitFor(() => modB.useKivaraStore.getState().ai.apiKey === 'sk-e2e-roundtrip');
   });
 
   it("a cleared key ('' via Quitar) survives a second context (no resurrection)", async () => {
@@ -154,19 +166,22 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     modA.useKivaraStore.setState({
       ai: { ...modA.useKivaraStore.getState().ai, apiKey: 'sk-to-clear' },
     });
-    await flush();
+    await waitFor(() => !!local.get(SLOT_KEY));
     // Quitar path: the UI marks an explicit clear before saving.
     markSecretExplicitClear('ai', 'apiKey');
     modA.useKivaraStore.setState({
       ai: { ...modA.useKivaraStore.getState().ai, apiKey: '' },
     });
-    await flush();
+    await waitFor(() => local.get(SLOT_KEY) === '__cleared__');
 
     expect(local.get(SLOT_KEY)).toBe('__cleared__');
 
     vi.resetModules();
     const modB = await import('../../src/shared/store');
-    await flush();
+    // '' is also the default, so waiting for it proves nothing: wait for
+    // hydration itself to have run (the store exposes it) and then assert the
+    // key was NOT resurrected from the tombstone.
+    await waitFor(() => modB.useKivaraStore.persist.hasHydrated?.() === true);
     expect(modB.useKivaraStore.getState().ai.apiKey).toBe('');
   });
 
@@ -212,8 +227,9 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
 
     vi.resetModules();
     const modC = await import('../../src/shared/store');
-    await flush();
-    expect(modC.useKivaraStore.getState().ai.apiKey).toBe('sk-retry-survivor');
+    // Poll for the hydrated value rather than sleeping a fixed delay — under
+    // a loaded machine this used to read the store before hydration finished.
+    await waitFor(() => modC.useKivaraStore.getState().ai.apiKey === 'sk-retry-survivor');
   });
 
   it('a Quitar from another context is not mistaken for our own tombstone', async () => {

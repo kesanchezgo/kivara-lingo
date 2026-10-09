@@ -183,7 +183,7 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
   // (legacy interceptors don't tag language). Tracks for other languages
   // (e.g. the native ES dual caption) live on the bus and are pulled via
   // `getAltCueAt(...)` without disturbing the active source caption.
-  onTrack((next) => {
+  const offTrack = onTrack((next) => {
     const nextLang = next.language?.split(/[-_]/)[0].toLowerCase() ?? null;
     if (nextLang && nextLang !== primaryLang) {
       // Track for a *different* language — keep the bus copy for the alt
@@ -258,6 +258,19 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
     },
     getAvailableAltLanguages() {
       return getKnownLanguages();
+    },
+    destroy() {
+      // Everything this context started, undone. Anything left running would
+      // survive a SPA navigation — see SubtitleSource.destroy.
+      stopPolling();
+      offTrack();
+      listeners.length = 0;
+      if (hideStyle) {
+        hideStyle.remove();
+        hideStyle = null;
+      }
+      track = null;
+      activeCue = null;
     },
   };
 }

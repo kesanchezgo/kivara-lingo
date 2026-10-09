@@ -17,7 +17,8 @@ interface SidePanelProps {
   styles: SubtitleStyles;
   setStyles: (styles: SubtitleStyles) => void;
   mapping: AnkiMapping;
-  setMapping: (mapping: AnkiMapping) => void;
+  /** Value or updater — see CardsTabProps.setMapping. */
+  setMapping: (mapping: AnkiMapping | ((prev: AnkiMapping) => AnkiMapping)) => void;
   mockData: any;
 }
 

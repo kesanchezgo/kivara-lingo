@@ -29,6 +29,23 @@ export interface SubtitleSource {
   showNativeSubtitles(): void;
 
   /**
+   * Release everything the adapter owns: polling intervals, bus
+   * subscriptions, listener arrays and injected styles.
+   *
+   * WHY: content scripts are re-created on every SPA navigation, and each
+   * navigation used to leave the previous adapter running. Its 50 ms interval
+   * kept firing, its `onTrack` subscription kept receiving, and its injected
+   * `<style>` stayed in the document — so after watching four videos the page
+   * was running four subtitle pollers and replying with cues from whichever
+   * one won the race.
+   *
+   * Called by the entry point on every unmount (and on re-mount). Optional so
+   * adapters written before this existed keep working; every adapter in this
+   * folder implements it. Safe to call twice.
+   */
+  destroy?(): void;
+
+  /**
    * Pick the matching cue from an *alternate* language track (e.g. the
    * native Spanish track running parallel to the active English captions).
    *

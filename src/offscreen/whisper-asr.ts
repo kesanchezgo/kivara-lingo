@@ -110,11 +110,17 @@ export type WhisperResult = WhisperTranscription | WhisperError;
  * Web Worker entry, not a `Module` factory, and would fail to `init()`).
  *
  * Instead, ASR is opt-in: the user must point `AsrSettings.glueUrl` at a
- * compatible build (e.g. https://whisper-cdn.example.com/whisper.js) and
- * `AsrSettings.modelUrl` at a `.bin` mirror. See `README.md → ASR` for
- * step-by-step instructions on building/hosting the glue. Until those URLs
- * are configured, `transcribePcm` will fail with a clear error and the
- * orchestrator will skip the ASR fallback.
+ * compatible build and `AsrSettings.modelUrl` at a `.bin` mirror. See
+ * `README.md → ASR`.
+ *
+ * STATUS (audit 2026-10-09), so nobody has to rediscover it: as long as the
+ * glue lives on a REMOTE URL, this cannot work in a Manifest V3 build — the
+ * extension-page CSP is `script-src 'self'`, so `<script src="https://…">` is
+ * refused before the request leaves. The path that WOULD work is shipping
+ * glue + WASM inside `dist/` (self-hosted), which is a packaging decision
+ * (zip size, wasm build) and deliberately not taken here. Until then the
+ * feature fails with that exact reason instead of a generic load error, and
+ * the orchestrator skips the ASR fallback.
  */
 const DEFAULT_CONFIG: WhisperConfig = {
   glueUrl: '',
@@ -126,10 +132,30 @@ let activeConfig: WhisperConfig = { ...DEFAULT_CONFIG };
 let modulePromise: Promise<WhisperModule> | null = null;
 let modelBufferPromise: Promise<ArrayBuffer> | null = null;
 
-export function setWhisperConfig(partial: Partial<WhisperConfig>): void {
-  activeConfig = { ...activeConfig, ...partial };
-  // Invalidate cached loaders if any URL changed
+/** Drop the loaded module, asking the glue to release its native memory. */
+function releaseModule(): void {
+  if (modulePromise) {
+    // `free()` exists only on the C++ glue builds; ignore the rest.
+    void modulePromise
+      .then((mod) => mod.free?.())
+      .catch(() => {});
+  }
   modulePromise = null;
+}
+
+export function setWhisperConfig(partial: Partial<WhisperConfig>): void {
+  const next: WhisperConfig = { ...activeConfig, ...partial };
+  // Only a change of URL (or cache namespace) can require re-reading the
+  // ~75 MB model. This setter used to invalidate on EVERY transcription,
+  // which is what a caller passing its config each time produced: a fresh
+  // fetch + parse per clip, and the native module reallocated with it.
+  const urlsChanged =
+    next.glueUrl !== activeConfig.glueUrl ||
+    next.modelUrl !== activeConfig.modelUrl ||
+    next.cacheName !== activeConfig.cacheName;
+  activeConfig = next;
+  if (!urlsChanged) return;
+  releaseModule();
   modelBufferPromise = null;
 }
 
@@ -139,10 +165,11 @@ export function getWhisperConfig(): WhisperConfig {
 
 /**
  * Tear down the cached module and model. Useful when the user toggles
- * ASR off so we release the ~75 MB ArrayBuffer.
+ * ASR off so we release the ~75 MB ArrayBuffer — and the native buffers the
+ * glue allocated inside it, which dropping the reference alone does not free.
  */
 export function unloadWhisper(): void {
-  modulePromise = null;
+  releaseModule();
   modelBufferPromise = null;
 }
 
@@ -345,7 +372,23 @@ function injectGlueScript(url: string): Promise<void> {
     script.async = true;
     script.dataset.klWhisper = url;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error(`Failed to load Whisper glue: ${url}`));
+    /**
+     * MV3 extension pages (including this offscreen document) run under
+     * `script-src 'self'`, so a REMOTE glue is refused by CSP before the
+     * request even leaves. That is not fixable from here: making local ASR
+     * work requires shipping the glue + WASM inside `dist/` and loading them
+     * from the extension's own origin. Saying so beats the generic
+     * "Failed to load" that used to appear.
+     */
+    script.onerror = () =>
+      reject(
+        new Error(
+          `No se pudo cargar el glue de Whisper: ${url}. ` +
+            'Las páginas de extensión MV3 solo permiten scripts propios ' +
+            `(script-src 'self'): el glue y el WASM deben empaquetarse ` +
+            'dentro de la extensión para que el ASR funcione sin conexión.',
+        ),
+      );
     document.head.appendChild(script);
   });
   injectedGlue.set(url, promise);

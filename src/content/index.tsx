@@ -119,11 +119,17 @@ interface Mount {
   reactRoot: Root;
   videoHostElement?: HTMLElement;
   videoReactRoot?: Root;
+  /** Kept so `unmount()` can release the adapter's timers and listeners. */
+  adapter: SubtitleSource | null;
 }
 
 let mount: Mount | null = null;
 let lastVideoElement: HTMLVideoElement | null = null;
 let lastVideoContainer: HTMLElement | null = null;
+/** URL whose media is currently mounted. YouTube reuses the SAME <video>
+ * element across SPA navigation, so element identity alone cannot tell "same
+ * video" from "next video in the playlist". */
+let lastMediaUrl: string | null = null;
 
 function findVideoContainer(): { video: HTMLVideoElement | null; container: HTMLElement | null } {
   const host = window.location.hostname;
@@ -181,6 +187,14 @@ function unmount() {
   } catch {
     // ignore
   }
+  // The adapter owns timers, bus subscriptions and injected styles that a
+  // React unmount does NOT touch. Without this, every SPA navigation left the
+  // previous adapter polling and answering with the previous video's cues.
+  try {
+    mount.adapter?.destroy?.();
+  } catch (err) {
+    console.warn('[Kivara Lingo] adapter destroy failed', err);
+  }
   mount.hostElement.remove();
   mount.videoHostElement?.remove();
   mount = null;
@@ -228,9 +242,11 @@ async function mountFor(video: HTMLVideoElement, container: HTMLElement, adapter
     hostElement: host.hostElement,
     reactRoot,
     videoHostElement: videoHost.hostElement,
+    adapter,
   };
   lastVideoElement = video;
   lastVideoContainer = container;
+  lastMediaUrl = window.location.href;
 }
 
 async function init() {
@@ -255,21 +271,42 @@ function observeNavigation() {
     setTimeout(handleNavigation, 600);
   });
 
-  // Generic SPA fallback: watch URL changes via popstate / pushState patching
+  // Generic SPA fallback: watch URL changes via popstate / pushState patching.
+  // The patch itself used to be dispatched per call — YouTube pushes a few
+  // times per navigation, so handleNavigation (which waits for a video, walks
+  // the adapter and remounts) ran several times in parallel per click. One
+  // leading-edge dispatch, plus a trailing one, keeps the invariant.
   const origPush = history.pushState;
   history.pushState = function (...args) {
     const result = origPush.apply(this, args);
-    window.dispatchEvent(new Event('kivara-locationchange'));
+    scheduleLocationChange();
     return result;
   };
   const origReplace = history.replaceState;
   history.replaceState = function (...args) {
     const result = origReplace.apply(this, args);
-    window.dispatchEvent(new Event('kivara-locationchange'));
+    scheduleLocationChange();
     return result;
   };
-  window.addEventListener('popstate', () => window.dispatchEvent(new Event('kivara-locationchange')));
+  window.addEventListener('popstate', scheduleLocationChange);
   window.addEventListener('kivara-locationchange', () => setTimeout(handleNavigation, 600));
+}
+
+let locationChangeTimer: number | null = null;
+let locationChangePending = false;
+function scheduleLocationChange(): void {
+  if (locationChangeTimer == null) {
+    // Leading edge: react immediately.
+    locationChangeTimer = window.setTimeout(() => {
+      locationChangeTimer = null;
+      if (locationChangePending) {
+        locationChangePending = false;
+        window.dispatchEvent(new Event('kivara-locationchange'));
+      }
+    }, 250);
+  }
+  locationChangePending = true;
+  window.dispatchEvent(new Event('kivara-locationchange'));
 }
 
 async function handleNavigation() {
@@ -281,10 +318,19 @@ async function handleNavigation() {
   }
   const adapter = await detectPlatform();
   await enqueueMount(gen, async () => {
-    // Re-checked INSIDE the queue: `lastVideoElement` / `mount` may have
-    // changed while earlier queued tasks ran, so the decision can only be
-    // made once it is this task's turn.
-    if (video === lastVideoElement && container === lastVideoContainer && mount) return;
+    // Identity of the MEDIA, not of the element. YouTube keeps one <video>
+    // per player and swaps its source on SPA navigation, so element identity
+    // says "same video" while the user has moved to the next one. The URL is
+    // what actually changed.
+    const sameMedia =
+      video === lastVideoElement &&
+      container === lastVideoContainer &&
+      lastMediaUrl === window.location.href &&
+      !!mount;
+    // The check must also survive the await above: `lastVideoElement` /
+    // `mount` may have changed while earlier queued tasks ran, so the
+    // decision is only final once it is this task's turn.
+    if (sameMedia) return;
     // SPA navigated to a different video — drop any subtitle tracks the bus
     // cached from the previous one. Without this, the dual-caption lookup
     // would happily return cues from video A while we're watching video B

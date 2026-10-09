@@ -10,6 +10,17 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+/** Poll instead of sleeping a fixed 20 ms: under a loaded machine (CI with two
+ * jobs running) the boot refresh can take longer, and a fixed sleep flaked.
+ * Budget matches the 20 s timeout declared on the tests that import the SW. */
+async function waitFor(predicate: () => boolean, tries = 50): Promise<void> {
+  for (let i = 0; i < tries; i += 1) {
+    if (predicate()) return;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  throw new Error('waitFor timed out');
+}
+
 type Rule = { condition: { urlFilter: string } };
 
 function makeChrome(opts: { ankiUrl?: string; dnr?: Array<{ updateSessionRules: unknown }> }) {
@@ -69,13 +80,16 @@ describe('SW boot applies the SAVED Anki URL to the DNR rules', () => {
     vi.unstubAllGlobals();
   });
 
-  it('installs Origin-rewrite rules for a custom port on module load', async () => {
-    const { chrome, sessionRulesCalls } = makeChrome({ ankiUrl: 'http://127.0.0.1:9999' });
-    vi.stubGlobal('chrome', chrome);
+  it('installs Origin-rewrite rules for a custom port on module load', { timeout: 20_000 }, async () => {
+      const { chrome, sessionRulesCalls } = makeChrome({ ankiUrl: 'http://127.0.0.1:9999' });
+      vi.stubGlobal('chrome', chrome);
 
-    await import('../../src/background/service-worker');
-    // The boot refresh is fire-and-forget — let its promise chain settle.
-    await new Promise((r) => setTimeout(r, 20));
+      // Importing the SW pulls in the enrichment chain and translate
+      // providers; on a loaded machine that alone is seconds.
+      await import('../../src/background/service-worker');
+      // The boot refresh is fire-and-forget — poll instead of assuming how
+      // long its promise chain needs.
+      await waitFor(() => sessionRulesCalls.length > 0);
 
     expect(sessionRulesCalls.length).toBeGreaterThan(0);
     const filters = sessionRulesCalls.flatMap((c) => c.addRules.map((r) => r.condition.urlFilter));
@@ -86,12 +100,12 @@ describe('SW boot applies the SAVED Anki URL to the DNR rules', () => {
     expect(joined).not.toContain('127.0.0.1:8765');
   });
 
-  it('falls back to the default port when no URL is saved', async () => {
+  it('falls back to the default port when no URL is saved', { timeout: 20_000 }, async () => {
     const { chrome, sessionRulesCalls } = makeChrome({ ankiUrl: '' });
     vi.stubGlobal('chrome', chrome);
 
     await import('../../src/background/service-worker');
-    await new Promise((r) => setTimeout(r, 20));
+    await waitFor(() => sessionRulesCalls.length > 0);
 
     expect(sessionRulesCalls.length).toBeGreaterThan(0);
     const joined = sessionRulesCalls

@@ -149,8 +149,22 @@ window.addEventListener('message', (event) => {
 /**
  * Per-tab guard so we don't re-process the same MPD manifest twice (DASH
  * players reload the manifest every few minutes for live edge updates).
+ *
+ * Bounded: a long live session without navigation used to push a new URL every
+ * manifest refresh for minutes at a time, and the Set grew without limit.
  */
+const MAX_DASH_MANIFESTS_SEEN = 200;
 const dashManifestsSeen = new Set<string>();
+
+function rememberDashManifest(mpdUrl: string): void {
+  dashManifestsSeen.add(mpdUrl);
+  // Sets iterate in insertion order, so the first entry is the oldest.
+  while (dashManifestsSeen.size > MAX_DASH_MANIFESTS_SEEN) {
+    const oldest = dashManifestsSeen.values().next().value;
+    if (oldest === undefined) break;
+    dashManifestsSeen.delete(oldest);
+  }
+}
 
 /**
  * Last MPD body we saw, kept so we can re-fire the language-track download
@@ -174,7 +188,7 @@ let lastMpdBody: { url: string; body: string } | null = null;
  */
 async function handleDashManifest(mpdUrl: string, body: string): Promise<void> {
   if (dashManifestsSeen.has(mpdUrl)) return;
-  dashManifestsSeen.add(mpdUrl);
+  rememberDashManifest(mpdUrl);
   lastMpdBody = { url: mpdUrl, body };
 
   const sourceLang = (

@@ -18,7 +18,9 @@ import { InfoHint } from '../InfoHint';
 
 interface CardsTabProps {
   mapping: AnkiMapping;
-  setMapping: (mapping: AnkiMapping) => void;
+  /** Accepts a value OR an updater, so effects can re-merge against the
+   * latest mapping instead of a possibly stale closure copy. */
+  setMapping: (mapping: AnkiMapping | ((prev: AnkiMapping) => AnkiMapping)) => void;
   mockData: {
     targetSentence: string;
     nativeSentence: string;
@@ -197,16 +199,20 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
 
   useEffect(() => {
     if (conn !== 'connected' || ankiFields.length === 0) return;
-    const next: Record<string, FieldSource> = {};
-    let changed = false;
-    ankiFields.forEach((f) => {
-      next[f] = mapping.fieldSources[f] ?? detectSource(f);
-      if (mapping.fieldSources[f] !== next[f]) changed = true;
+    // Functional update: the old form spread `mapping` captured by the effect
+    // closure, so a source the user changed between the reconnect and this run
+    // was silently reverted by the stale snapshot.
+    setMapping((prev) => {
+      const next: Record<string, FieldSource> = {};
+      let changed = false;
+      for (const f of ankiFields) {
+        next[f] = prev.fieldSources[f] ?? detectSource(f);
+        if (prev.fieldSources[f] !== next[f]) changed = true;
+      }
+      if (!changed && Object.keys(prev.fieldSources).length === ankiFields.length) return prev;
+      return { ...prev, fieldSources: next };
     });
-    if (changed || Object.keys(mapping.fieldSources).length !== ankiFields.length) {
-      setMapping({ ...mapping, fieldSources: next });
-    }
-  }, [mapping.modelName, conn]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mapping.modelName, conn, ankiFields, setMapping]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setSource = (field: string, src: FieldSource) => {
     setMapping({ ...mapping, fieldSources: { ...mapping.fieldSources, [field]: src } });

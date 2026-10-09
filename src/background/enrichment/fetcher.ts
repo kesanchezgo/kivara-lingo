@@ -19,11 +19,13 @@ export const DEFAULT_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
 /**
- * Temporary MV3-runtime diagnostics. Keep this observational only: it must not
- * change request headers, credentials, retries, parsing, or source selection.
- * Remove after all providers have been verified in Chrome's service worker.
+ * Temporary MV3-runtime diagnostics. DISABLED: it logged every URL the
+ * enrichment chain touched — i.e. the full list of words a user looked up —
+ * on each request, which is exactly the kind of trail that should not exist
+ * in a production build. Kept (and one-line to re-enable) because it is
+ * still the fastest way to see why a source stopped answering.
  */
-const ENRICHMENT_FETCH_DIAGNOSTICS = true;
+const ENRICHMENT_FETCH_DIAGNOSTICS = false;
 
 function logFetchDiagnostic(event: string, details: Record<string, unknown>): void {
   if (!ENRICHMENT_FETCH_DIAGNOSTICS) return;
@@ -46,13 +48,14 @@ export async function fetchWithTimeout(
   opts: FetchOptions,
 ): Promise<Response | null> {
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), opts.timeoutMs);
-  // Bridge an outer signal (e.g. orchestrator cancel) into our
-  // controller so the caller can cancel mid-flight.
-  if (opts.signal) {
-    if (opts.signal.aborted) ctrl.abort();
-    else opts.signal.addEventListener('abort', () => ctrl.abort(), { once: true });
-  }
+  const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs);
+  // Bridge the caller's signal (orchestrator cancel) into our controller so
+  // a cancel mid-flight stops the request too. The listener is REMOVED in
+  // `finally`: this used to attach one per call and never detach it, so a
+  // long-lived signal accumulated listeners for every request ever made.
+  const onOuterAbort = () => ctrl.abort();
+  if (opts.signal?.aborted) ctrl.abort();
+  else opts.signal?.addEventListener('abort', onOuterAbort, { once: true });
   const startedAt = performance.now();
   try {
     const res = await fetch(url, {
@@ -90,7 +93,8 @@ export async function fetchWithTimeout(
     });
     return null;
   } finally {
-    clearTimeout(t);
+    clearTimeout(timer);
+    opts.signal?.removeEventListener('abort', onOuterAbort);
   }
 }
 

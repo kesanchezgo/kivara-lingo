@@ -106,6 +106,12 @@ interface PcmChunkRecord {
 
 const TIMESLICE_MS = 250;
 const TARGET_SAMPLE_RATE = 16_000;
+/** Ceiling for the rolling buffer. The settings slider tops out at 30 s;
+ * anything larger would be a caller bug, and pinning memory for it is worse
+ * than truncating (a clip simply cannot be older than this). */
+const MAX_BUFFER_MS = 120_000;
+/** Guards the start path against a second START arriving mid-setup. */
+let startInFlight = false;
 
 let mediaRecorder: MediaRecorder | null = null;
 let stream: MediaStream | null = null;
@@ -142,8 +148,30 @@ async function startCapture(
   streamId: string,
   bufferSec: number,
 ): Promise<{ ok: boolean; mimeType?: string; error?: string }> {
-  if (mediaRecorder) await stopCapture();
-  bufferSizeMs = Math.max(5, bufferSec) * 1000;
+  // Serialized: two STARTs fired back to back (the SW sends one, a pending
+  // retry sends another) used to interleave `stopCapture` + `getUserMedia`
+  // and leave the second stream recording over the first. Serializing also
+  // makes the "already recording" case deterministic.
+  if (startInFlight) {
+    return { ok: false, error: 'Capture is already starting' };
+  }
+  startInFlight = true;
+  try {
+    if (mediaRecorder) await stopCapture();
+    // Floor AND ceiling: `Math.max(5, …)` clamped the value from below only,
+    // so a user (or a malformed message) could ask for an hour of audio and
+    // pin that much memory for the whole offscreen session.
+    bufferSizeMs = Math.min(MAX_BUFFER_MS, Math.max(5, bufferSec) * 1000);
+    return await beginCapture(streamId);
+  } finally {
+    startInFlight = false;
+  }
+}
+
+/** Capture setup proper, always under `startInFlight`. */
+async function beginCapture(
+  streamId: string,
+): Promise<{ ok: boolean; mimeType?: string; error?: string }> {
 
   try {
     stream = await (
@@ -206,7 +234,14 @@ async function startCapture(
       ? new MediaRecorder(stream, { mimeType })
       : new MediaRecorder(stream);
   } catch (err) {
+    // The stream, the AudioContext and the PCM pipeline are already open at
+    // this point. Returning without releasing them left the microphone
+    // recording forever (and a live Graph "recording" bubble) with no UI to
+    // stop it.
     const reason = err instanceof Error ? err.message : 'MediaRecorder failed';
+    console.warn('[Kivara Lingo] offscreen MediaRecorder failed', reason);
+    // Same teardown as a normal stop, without waiting on recorder.stop().
+    await teardownPipeline();
     return { ok: false, error: reason };
   }
 
@@ -249,7 +284,16 @@ function pruneOld() {
   }
 }
 
-async function stopCapture(): Promise<void> {
+/**
+ * Release every capture resource: the recording stream's tracks, the AudioContext
+ * graph (source → processor → silent gain) and the PCM ring buffer.
+ *
+ * Split out of `stopCapture` so a FAILED start can use it too: when
+ * MediaRecorder cannot be constructed the stream and graph are already open,
+ * and leaving them running keeps the microphone live with nothing in the UI
+ * that can stop it.
+ */
+async function teardownPipeline(): Promise<void> {
   try {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
   } catch (err) {
@@ -289,6 +333,17 @@ async function stopCapture(): Promise<void> {
   recordingStartedAt = 0;
   // Free the (potentially large) Whisper model when capture stops — we'll
   // reload it on the next request if needed.
+  unloadWhisper();
+}
+
+/** Full stop: release the pipeline AND reset the buffers it was filling. */
+async function stopCapture(): Promise<void> {
+  await teardownPipeline();
+  chunks = [];
+  pcmChunks = [];
+  recorderHeader = null;
+  recordedMime = '';
+  recordingStartedAt = 0;
   unloadWhisper();
 }
 
@@ -391,12 +446,34 @@ async function extractClip(opts: ExtractOptions): Promise<ExtractedClip> {
       usedVad = tightened.usedVad;
     }
     const finalPcm = trimPcm(pcmClip.samples, TARGET_SAMPLE_RATE, speechStartMs, speechEndMs);
-    const outputBlob = encodeWavMono(finalPcm, TARGET_SAMPLE_RATE);
+    // Anki path: MP3 by default (~10× smaller than WAV PCM), WAV only when
+    // the caller explicitly asks for PCM-friendly output (Whisper) or when
+    // lamejs fails to load — the card still gets audio, just larger.
+    const useMp3 = opts.format !== 'wav';
+    let outputBlob: Blob;
+    let outputMime: string;
+    if (useMp3) {
+      try {
+        outputBlob = await encodeMp3Mono(
+          finalPcm,
+          TARGET_SAMPLE_RATE,
+          opts.mp3BitrateKbps ?? 64,
+        );
+        outputMime = 'audio/mpeg';
+      } catch (mp3Err) {
+        console.warn('[Kivara Lingo] MP3 encode failed, falling back to WAV', mp3Err);
+        outputBlob = encodeWavMono(finalPcm, TARGET_SAMPLE_RATE);
+        outputMime = 'audio/wav';
+      }
+    } else {
+      outputBlob = encodeWavMono(finalPcm, TARGET_SAMPLE_RATE);
+      outputMime = 'audio/wav';
+    }
     const dataUrl = await blobToDataUrl(outputBlob);
     return {
       ok: true,
       dataUrl,
-      mimeType: 'audio/wav',
+      mimeType: outputMime,
       durationMs: Math.round((finalPcm.length / TARGET_SAMPLE_RATE) * 1000),
       speechStartMs: usedVad ? speechStartMs : undefined,
       speechEndMs: usedVad ? speechEndMs : undefined,

@@ -242,6 +242,27 @@ export function attachYouTube(): SubtitleSource | null {
       if (style) style.remove();
       if (activeTrack) activeTrack.mode = 'showing';
     },
+    destroy() {
+      // A YouTube SPA navigation reuses the SAME <video>, so without this the
+      // old adapter's 120 ms poll and its textTracks listeners keep running
+      // against the next video — and the previous video's captions keep
+      // answering as if they were current. See SubtitleSource.destroy.
+      if (pollHandle != null) {
+        window.clearInterval(pollHandle);
+        pollHandle = null;
+      }
+      if (activeTrack) {
+        activeTrack.oncuechange = null;
+        activeTrack = null;
+      }
+      if (video.textTracks?.removeEventListener) {
+        video.textTracks.removeEventListener('addtrack', tryAttach);
+        video.textTracks.removeEventListener('change', tryAttach);
+      }
+      document.getElementById(HIDE_STYLE_ID)?.remove();
+      listeners.length = 0;
+      currentActiveCue = null;
+    },
     /**
      * Native-language alternate cue lookup. YouTube does NOT expose the
      * parallel subtitle track via `video.textTracks` (only the active one

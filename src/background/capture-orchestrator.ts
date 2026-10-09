@@ -308,14 +308,11 @@ async function resolveAudio(
   // the same PCM is what Whisper.cpp will consume in the ASR fallback path.
   const useVad = capture.endDetect === 'vad';
   const clip = await extractAudioClip(start, end, {
-    // MP3 keeps Anki media folder small (~10× smaller than WAV PCM) and
-    // syncs faster with AnkiWeb. The offscreen processor falls back to
-    // WAV automatically if the MP3 encoder fails to load (e.g. CSP
-    // blocking the dynamic import).
-    // WAV is larger but stable. The MP3 encoder currently falls back because
-    // lamejs references an undefined MPEGMode in the MV3 bundle, so avoid the
-    // noisy failing path until the encoder is replaced/fixed.
-    format: 'wav',
+    // MP3 keeps Anki's media folder and AnkiWeb sync small (~10× smaller
+    // than WAV PCM) and is playable by every Anki client. The offscreen
+    // processor encodes MP3 and falls back to WAV by itself when lamejs
+    // cannot load, so the request does not need to know.
+    format: 'mp3',
     useVad,
     preRollMs: preRoll,
     postRollMs: postRoll,

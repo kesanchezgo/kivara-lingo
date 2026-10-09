@@ -54,12 +54,13 @@ export function attachGenericHtml5(video: HTMLVideoElement): SubtitleSource {
   }
 
   // Listen for added tracks
-  video.textTracks.addEventListener('addtrack', (e) => {
-    const track = e.track;
+  const onAddTrack = (e: Event) => {
+    const track = (e as { track?: TextTrack }).track;
     if (track && (track.kind === 'subtitles' || track.kind === 'captions')) {
       bindTrack(track);
     }
-  });
+  };
+  video.textTracks.addEventListener('addtrack', onAddTrack);
 
   return {
     platform: 'generic',
@@ -80,6 +81,19 @@ export function attachGenericHtml5(video: HTMLVideoElement): SubtitleSource {
     },
     showNativeSubtitles() {
       if (activeTrack) activeTrack.mode = 'showing';
+    },
+    destroy() {
+      // The generic adapter is used on any page with a <video>, and SPA
+      // navigation there replaces the element. Unbinding the track and
+      // dropping the addtrack listener stops the previous one from pushing
+      // cues into a React tree that no longer exists.
+      video.textTracks.removeEventListener('addtrack', onAddTrack);
+      if (activeTrack) {
+        activeTrack.oncuechange = null;
+        activeTrack = null;
+      }
+      listeners.length = 0;
+      currentActiveCue = null;
     }
   };
 }

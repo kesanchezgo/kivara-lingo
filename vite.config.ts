@@ -36,7 +36,11 @@ export default defineConfig({
     },
   },
   build: {
-    minify: false,
+    // Minified by default (Chrome Web Store reviewers look at the zip, and a
+    // 2.4 MB `frequency` chunk is silly to ship unminified). `KIVARA_NO_MINIFY=1`
+    // restores readable output for debugging a specific build; keep it out of
+    // CI.
+    minify: process.env.KIVARA_NO_MINIFY === '1' ? false : true,
     rollupOptions: {
       input: {
         offscreen: path.resolve(__dirname, 'src/offscreen/index.html'),

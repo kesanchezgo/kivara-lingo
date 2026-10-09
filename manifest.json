@@ -3,6 +3,7 @@
   "name": "Kivara Lingo",
   "version": "0.2.0",
   "description": "Learn languages while watching your favorite shows.",
+  "homepage_url": "https://github.com/kesanchezgo/kivara-lingo",
   "permissions": [
     "storage",
     "cookies",
@@ -33,9 +34,7 @@
     "https://libretranslate.com/*",
     "https://*.libretranslate.com/*",
     "https://api.mymemory.translated.net/*",
-    "https://lingva.ml/*",
     "https://lingva.thedaviddelta.com/*",
-    "https://*.lingva.ml/*",
     "https://lingva.pussthecat.org/*",
     "https://lingva.lunar.icu/*",
     "https://translate.plausibility.cloud/*",
@@ -76,7 +75,6 @@
     "https://www.britannica.com/*",
     "https://ozdic.com/*",
     "https://*.ozdic.com/*",
-    "https://www.lexico.com/*",
     "https://context.reverso.net/*",
     "https://en.pons.com/*",
     "https://en.bab.la/*",
@@ -155,8 +153,7 @@
     {
       "resources": [
         "src/assets/dictionaries/*",
-        "src/offscreen/*",
-        "src/onboarding/*"
+"src/onboarding/*"
       ],
       "matches": [
         "*://*.youtube.com/*",
@@ -185,13 +182,13 @@
   "commands": {
     "save_word": {
       "suggested_key": {
-        "default": "Ctrl+S",
-        "mac": "Command+S"
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
       },
       "description": "Guardar palabra / selección actual en Anki"
     },
     "save_word_alt": {
-      "description": "Atajo alternativo (sin colisión con \"Guardar página\"). Asígnalo en chrome://extensions/shortcuts si Ctrl+S no funciona en tu plataforma."
+      "description": "Atajo alternativo (sin colisión con \"Guardar página\"). Asígnalo en chrome://extensions/shortcuts si prefieres otro atajo."
     },
     "toggle_subtitles": {
       "suggested_key": {
