@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { markSecretExplicitClear, unreadableSecret } from '../../shared/secret-store';
+import { markSecretExplicitClear, unreadableSecret, hasHiddenSecret } from '../../shared/secret-store';
 import { t } from '../../shared/i18n';
 
 interface SecretKeyInputProps {
@@ -53,7 +53,12 @@ export function SecretKeyInput({
   section,
   field,
 }: SecretKeyInputProps) {
-  const hasStored = !!stored;
+  /** A slot holds a key this context cannot display: a fresh context (no
+   * sync blob, so loadSecrets never ran) sees '' while another tab/device
+   * already saved one. The input must still look "guarded" and offer
+   * Quitar — otherwise the user cannot remove a key they are not shown. */
+  const [hiddenStored, setHiddenStored] = useState(false);
+  const hasStored = !!stored || hiddenStored;
   const unreadable = unreadableSecret(stored);
   const [draft, setDraft] = useState('');
   const [dirty, setDirty] = useState(false);
@@ -87,6 +92,19 @@ export function SecretKeyInput({
     setDraft('');
     setDirty(false);
   }, [stored]);
+
+  // Presence probe: only when this context has no value to show. Re-runs
+  // when `stored` empties (a clear elsewhere) so Quitar reappears.
+  useEffect(() => {
+    if (stored || !section || !field) return;
+    let cancelled = false;
+    void hasHiddenSecret(section, field).then((hidden) => {
+      if (!cancelled) setHiddenStored(hidden);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [stored, section, field]);
 
   const commit = () => {
     // Empty/whitespace draft NEVER clears the key: typing a letter,
@@ -172,6 +190,9 @@ export function SecretKeyInput({
               lastEmittedRef.current = '';
               setDraft('');
               setDirty(false);
+              // The tombstone is on its way: stop showing the guarded state
+              // now instead of waiting for the store to echo '' back.
+              setHiddenStored(false);
               // Register the explicit clear BEFORE onChange: the save path
               // consults this flag to decide whether a tombstone may be
               // written from a context without a baseline.

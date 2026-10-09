@@ -90,9 +90,18 @@ function installChrome(): Env {
 }
 
 /** A sealed-shaped blob: `sealForSync`/`openFromSync` need `{ state: {} }`;
- * `marker` lets us tell two blobs apart after the JSON round trip. */
+ * `marker` lets us tell two blobs apart after the JSON round trip. The sync
+ * adapter stamps `_w` (writer id) on every write, so content comparisons go
+ * through `canon()` and the tagged values are read back from "chrome" when a
+ * test needs to replay a real echo. */
 function blob(marker: string): string {
   return JSON.stringify({ marker, state: {}, version: 1 });
+}
+
+function canon(raw: string): string {
+  const parsed = JSON.parse(raw) as Record<string, unknown>;
+  delete parsed._w;
+  return JSON.stringify(parsed);
 }
 
 /** A fired onChanged event schedules a debounced rehydrate (250 ms). Wait it
@@ -125,7 +134,9 @@ describe('chrome.storage.sync persist adapter', () => {
     const storage = makeChromeStorage('sync');
 
     await storage.setItem(SYNC_KEY, blob('A'));
-    expect(env.sync.get(SYNC_KEY)).toBe(blob('A'));
+    expect(canon(env.sync.get(SYNC_KEY)!)).toBe(blob('A'));
+    // Every write carries a writer id the reader never sees.
+    expect(JSON.parse(env.sync.get(SYNC_KEY)!)._w).toBeTruthy();
 
     // Someone else's write is still in flight / chrome is holding an older
     // blob: our fallback must answer, not the stale chrome value.
@@ -138,14 +149,34 @@ describe('chrome.storage.sync persist adapter', () => {
     const storage = makeChromeStorage('sync');
 
     await storage.setItem(SYNC_KEY, blob('A'));
+    const echoA = env.sync.get(SYNC_KEY)!;   // tagged — exactly what chrome echoes
     await storage.setItem(SYNC_KEY, blob('B'));
-    env.sync.set(SYNC_KEY, blob('stale')); // B's chrome write lags behind
+    env.sync.set(SYNC_KEY, blob('stale'));   // B's chrome write lags behind
 
     // Chrome delivers A's echo AFTER B was written. A belongs to the ring of
-    // our own writes → skip. The single-slot version dropped the fallback
-    // here and the debounced rehydrate reverted the UI to A.
-    env.fire({ [SYNC_KEY]: { newValue: blob('A') } }, 'sync');
+    // our own writes (matched by writer id, not by content) → skip. The
+    // single-slot version dropped the fallback here and the debounced
+    // rehydrate reverted the UI to A.
+    env.fire({ [SYNC_KEY]: { newValue: echoA } }, 'sync');
     expect(await markerOf(await storage.getItem(SYNC_KEY))).toBe('B');
+    await settle();
+  });
+
+  it("another context writing the SAME blob is not our echo", async () => {
+    // The settings blob is deterministic once the secrets are gone, so
+    // content-matching would call an identical remote write ours. Only the
+    // writer id separates the two.
+    const { makeChromeStorage } = await import('../../src/shared/store');
+    const storage = makeChromeStorage('sync');
+
+    await storage.setItem(SYNC_KEY, blob('X1'));
+    await storage.setItem(SYNC_KEY, blob('X2'));
+    const bWrote = blob('X1'); // context B saved the blob we already wrote
+
+    env.sync.set(SYNC_KEY, bWrote); // B's write landed in chrome
+    env.fire({ [SYNC_KEY]: { newValue: bWrote } }, 'sync');
+
+    expect(await markerOf(await storage.getItem(SYNC_KEY))).toBe('X1');
     await settle();
   });
 
@@ -188,7 +219,10 @@ describe('chrome.storage.sync persist adapter', () => {
     expect(retried).toBe(true);
     expect(mod.getSyncWriteFailed()).toBe(false);
     expect(seen).toEqual([true, false]);
-    expect(env.sync.get(SYNC_KEY)).toBe(blob('A')); // the retry really wrote it
+    // The retry really wrote the sealed blob — tag intact (still ours, so its
+    // echo is not mistaken for a remote change), secrets already blanked.
+    expect(canon(env.sync.get(SYNC_KEY)!)).toBe(blob('A'));
+    expect(JSON.parse(env.sync.get(SYNC_KEY)!)._w).toBeTruthy();
 
     unsubscribe();
     // No notification for a no-op state after unsubscribing.

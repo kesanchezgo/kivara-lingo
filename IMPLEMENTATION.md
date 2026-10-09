@@ -851,11 +851,15 @@ sesión cerrada). Cuando ocurre:
   `SyncWriteErrorBanner` (popup y Settings), con reintento vía
   `retrySyncWrite`. No es un campo del store: `setItem` corre dentro de una
   escritura del middleware y escribirlo ahí crearía un bucle.
-- Los **ecos propios** se reconocen con un anillo de las últimas N escrituras.
-  Con un solo valor recordado, el eco de una escritura A llegaba después de B
-  y se interpretaba como cambio remoto: se borraba el fallback y el
-  rehidratado leía A — la UI revertía B en silencio.
+- Los **ecos propios** se reconocen por identidad, no por contenido: cada
+  blob lleva `_w: <contextId>:<seq>` (se elimina al leer). El blob de ajustes
+  es determinista sin los secretos, así que comparar por contenido confundía
+  "otra contexto guardó lo mismo" con "mi propio eco".
 - `removeItem` borra también el fallback y el anillo.
+- El reintento del banner reenvía el blob **tal cual** por
+  `chrome.storage.sync.set`, sin volver a sellarlo: un segundo sellado
+  comparaba los campos de secreto ya en blanco contra los baselines reales y
+  escribía una tumba por slot, borrando todas las claves.
 
 ### 12.3 IndexedDB (Dexie)
 

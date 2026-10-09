@@ -13,7 +13,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import React, { useState } from 'react';
-import { render, fireEvent, cleanup } from '@testing-library/react';
+import { render, fireEvent, cleanup, act } from '@testing-library/react';
 import { SecretKeyInput } from '../../src/app/components/SecretKeyInput';
 
 /** Mirrors the real store: emit → stored updates → component re-renders. */
@@ -162,5 +162,50 @@ describe('SecretKeyInput', () => {
     expect(container.textContent).toContain('Vuelve a introducirla');
     expect(container.innerHTML).not.toContain('enc:v1:');
     cleanup();
+  });
+
+  it('offers Quitar for a key this context cannot display', async () => {
+    // Fresh context: no sync blob → loadSecrets never ran → the store shows
+    // '' while another tab already wrote the slot. The field must not look
+    // "unconfigured", otherwise the user cannot remove what they cannot see.
+    const slot = 'kivara-secret:v1:ai.apiKey';
+    const g = globalThis as unknown as {
+      chrome: { storage: { local: { get: (k: string | string[]) => Promise<Record<string, unknown>> } } };
+    };
+    const original = g.chrome.storage.local;
+    g.chrome.storage.local = {
+      get: async (keys: string | string[]) => {
+        const arr = Array.isArray(keys) ? keys : [keys];
+        const out: Record<string, unknown> = {};
+        if (arr.includes(slot)) out[slot] = 'enc:v1:c2VjcmV0LWJsb2I';
+        return out;
+      },
+    };
+
+    try {
+      const seen: string[] = [];
+      const { container } = render(
+        React.createElement(SecretKeyInput, {
+          stored: '',
+          section: 'ai',
+          field: 'apiKey',
+          onChange: (v: string) => seen.push(v),
+        }),
+      );
+      // Wait for the presence probe to resolve.
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(inputOf(container).placeholder).toContain('guardada');
+      const clearBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+        b.textContent?.includes('Quitar'),
+      );
+      expect(clearBtn).toBeDefined();
+      fireEvent.click(clearBtn!);
+      expect(seen).toEqual(['']);
+      cleanup();
+    } finally {
+      g.chrome.storage.local = original;
+    }
   });
 });

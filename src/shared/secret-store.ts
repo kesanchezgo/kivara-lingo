@@ -330,6 +330,13 @@ const probedSlots = new Set<string>();
 const lastLocalWrite = new Map<string, unknown>();
 
 export function isOwnLocalWrite(key: string, newValue: unknown): boolean {
+  // A tombstone is NEVER recognisable as ours: `__cleared__` is the same
+  // bytes whoever wrote it. Treating our own tombstone as an own-echo makes
+  // us skip the rehydrate when ANOTHER context clears the same field — we
+  // keep the dead key in memory and rewrite it verbatim on the next edit.
+  // Cross-context clears always rehydrate; the price is one extra pass on a
+  // deliberate local clear.
+  if (newValue === SECRET_CLEARED) return false;
   return lastLocalWrite.has(key) && lastLocalWrite.get(key) === newValue;
 }
 
@@ -435,17 +442,17 @@ async function saveSecrets(
     const value = rec[field];
     if (typeof value !== 'string') continue;
     const key = secretSlotKey(section, field);
-    // TOMBSTONE RULE — a tombstone (SECRET_CLEARED) is NEVER written on the
-    // basis of an empty value we never loaded:
-    //  • no baseline + NO explicit Quitar → skip, always. The empty value
-    //    proves nothing (loadSecrets never ran); the slot may hold a real
-    //    key. This covers probe failure, unreadable slots and missing slots
-    //    in a single rule — the probe result is not consulted here.
-    //  • no baseline (or the empty baseline the probe seeded) + explicit
-    //    Quitar → fall through, the tombstone lands (the flag is
-    //    authoritative even if the probe failed or the slot is missing —
-    //    the user asked for deletion).
-    if (value === '' && !lastPersisted.has(key) && !explicitClear.has(key)) continue;
+    // TOMBSTONE RULE — SECRET_CLEARED is written when and only when the user
+    // asked for it. An empty value NEVER implies deletion, baseline or not:
+    //  • no baseline, or a stale one, or the '' baseline the probe seeded —
+    //    all of them mean "this context cannot prove the slot is empty", so a
+    //    bare '' is skipped. `sealForSync` re-seals an already-sealed blob
+    //    (retrySyncWrite path) and its fields are '' by construction: without
+    //    this being flag-driven the retry would tombstone every saved key.
+    //  • explicit Quitar → fall through, the tombstone lands (the flag is
+    //    authoritative even if the probe failed or the slot is missing — the
+    //    user asked for deletion).
+    if (value === '' && !explicitClear.has(key)) continue;
     // DIFF, don't blind-write. Two jobs in one:
     //  • no change in THIS context → skip (no fresh-IV churn in local);
     //  • value equal to our baseline while ANOTHER context updated the slot
@@ -613,4 +620,32 @@ export async function resolveSecret(
     return isEncrypted(plain) ? '' : plain;
   }
   return '';
+}
+
+/**
+ * True when a slot holds a secret THIS context cannot show.
+ *
+ * A fresh context (no sync blob → getItem returns null → loadSecrets never
+ * ran) sees '' in the store while another tab or device already saved a key.
+ * The inputs would then render an empty field with no "Quitar" — it LOOKS
+ * like "nothing configured" and the user cannot remove the key they cannot
+ * see. This answers the presence question without disclosing the plaintext,
+ * so the UI can show the guarded placeholder and offer Quitar (which funnels
+ * through markSecretExplicitClear and lands a real tombstone).
+ */
+export async function hasHiddenSecret(
+  section: string,
+  field: string,
+  io: SecretSlotIO = defaultSlotIO,
+): Promise<boolean> {
+  const key = secretSlotKey(section, field);
+  // This context loaded (or wrote) a non-empty value → nothing is hidden.
+  if (lastPersisted.has(key) && lastPersisted.get(key) !== '') return true;
+  try {
+    const found = await io.get([key]);
+    const slot = found[key];
+    return typeof slot === 'string' && slot !== '' && slot !== SECRET_CLEARED;
+  } catch {
+    return false;
+  }
 }

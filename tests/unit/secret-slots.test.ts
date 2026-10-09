@@ -26,6 +26,7 @@ import {
   encryptSecret,
   decryptSecret,
   isEncrypted,
+  hasHiddenSecret,
   resolveSecret,
   __resetSecretSlotsForTests,
   type SecretSlotIO,
@@ -360,6 +361,25 @@ describe('secret slots', () => {
     expect(await decryptSecret(slot)).toBe('legacy-retry');
   });
 
+  it('an empty value never tombstones a slot, even with a real baseline', async () => {
+    // Defense-in-depth for the seal path: a blob that has ALREADY been sealed
+    // comes back with every secret field blanked. Re-sealing it (an earlier
+    // retrySyncWrite did exactly that) must not read those blanked fields as
+    // "the user cleared every key" and write a tombstone per slot.
+    const key = secretSlotKey('ai', 'apiKey');
+    const io = makeIO();
+    await pushSecretsToLocal(stateWith({ ai: { apiKey: 'sk-keep' } }), io);
+    const before = io.data.get(key);
+
+    // Same context, same in-memory value, now empty and WITHOUT the Quitar
+    // flag — e.g. the second pass over a sealed blob.
+    const ok = await pushSecretsToLocal(stateWith({ ai: { apiKey: '' } }), io);
+
+    expect(ok).toBe(true);
+    expect(io.data.get(key)).toBe(before); // no tombstone, key intact
+    expect(await decryptSecret(before as string)).toBe('sk-keep');
+  });
+
   it('tombstone needs an explicit clear when there is no baseline', async () => {
     // No baseline (loadSecrets never ran). A bare '' — e.g. an unrelated
     // toggle with sync wiped — must NOT write a tombstone: it would destroy
@@ -497,6 +517,33 @@ describe('secret slots', () => {
     } finally {
       stub.restore();
     }
+  });
+
+  it('hasHiddenSecret reports a slot this context cannot show', async () => {
+    const key = secretSlotKey('ai', 'apiKey');
+
+    // Nothing anywhere → nothing hidden.
+    expect(await hasHiddenSecret('ai', 'apiKey', makeIO())).toBe(false);
+    // Empty slot and tombstone are "no key", not "hidden key".
+    expect(await hasHiddenSecret('ai', 'apiKey', makeIO({ [key]: '' }))).toBe(false);
+    expect(await hasHiddenSecret('ai', 'apiKey', makeIO({ [key]: SECRET_CLEARED }))).toBe(false);
+    // A live slot → hidden (this context never loaded it).
+    expect(
+      await hasHiddenSecret('ai', 'apiKey', makeIO({ [key]: await encryptSecret('sk-hidden') })),
+    ).toBe(true);
+  });
+
+  it('hasHiddenSecret is true once this context holds the plaintext', async () => {
+    const io = makeIO();
+    const state = stateWith({ ai: { apiKey: 'sk-loaded' } });
+    await pullSecretsFromLocal(state, io);
+    expect(await hasHiddenSecret('ai', 'apiKey', io)).toBe(true);
+  });
+
+  it('hasHiddenSecret swallows an unreadable slot', async () => {
+    const io = makeIO();
+    io.failGets = true;
+    expect(await hasHiddenSecret('ai', 'apiKey', io)).toBe(false);
   });
 
   it('covers every declared secret field with a unique slot key', () => {

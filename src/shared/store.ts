@@ -424,13 +424,15 @@ async function openFromSync(raw: string): Promise<string> {
 export function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage {
   return {
     async getItem(name: string): Promise<string | null> {
-      // Write-through fallback FIRST: it holds this context's latest write.
-      // It is deleted on genuine remote onChanged events (see below), so a
-      // present entry is always fresher than chrome.storage — which matters
-      // when our own chrome write was slow or failed silently: without this
-      // preference a debounced rehydrate would read the stale blob and
-      // overwrite the adjustments made in the meantime.
-      const fb = fallbackStorage.get(name);
+      // Write-through fallback FIRST: it holds this context's latest write
+      // (tag included, so the ring stays comparable with onChanged). It is
+      // deleted on genuine remote onChanged events (see below), so a present
+      // entry is always fresher than chrome.storage — which matters when our
+      // own chrome write was slow or failed silently.
+      const stored = fallbackStorage.get(name);
+      // Writer tag stripped before the blob reaches zustand: `_w` is
+      // transport metadata, not app state.
+      const fb = typeof stored === 'string' ? untagForSync(stored) : null;
       if (fb != null) {
         try {
           return await openFromSync(fb);
@@ -450,9 +452,9 @@ export function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage
       }
       if (raw == null) return null;
       try {
-        return await openFromSync(raw);
+        return await openFromSync(untagForSync(raw));
       } catch {
-        return raw;
+        return untagForSync(raw);
       }
     },
     async setItem(name: string, value: string): Promise<void> {
@@ -462,6 +464,7 @@ export function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage
       } catch {
         toStore = value;
       }
+      toStore = tagForSync(toStore);
       // Write-through: the fallback always mirrors our latest write so a
       // later rehydrate in THIS context reads our value even if the chrome
       // write is still in flight or failed silently.
@@ -519,20 +522,79 @@ const STORE_KEY = 'kivara-lingo-state';
  * used to drift independently). */
 export const PERSIST_STORE_KEY = STORE_KEY;
 
-/** The one sync adapter the persist middleware uses. Exported so
- * `retrySyncWrite` can re-run a failed write through the same code path
- * (own-echo ring, failure flag, fallback update) instead of hand-rolling a
- * second chrome.storage call. */
+/* ──────────────────────────────────────────────────────────────────────────
+ * WRITER TAG — own-echo detection by IDENTITY, not by content.
+ *
+ * The persisted settings blob is almost deterministic: without the secrets
+ * (they live in local slots) two contexts that save the same settings produce
+ * byte-identical JSON. Comparing blobs therefore cannot tell "my own echo"
+ * from "another context wrote the same thing": if A saves X1 then X2 and B
+ * saves X1, A's ring matched its own X1, the echo was ignored and A stayed on
+ * X2 while storage held X1. Every write therefore carries `_w: <contextId>:<seq>`
+ * — unique per context and per write — and the tag is stripped on read so the
+ * app never sees it. Other contexts' tags can never match ours.
+ * ────────────────────────────────────────────────────────────────────────── */
+const WRITER_TAG = '_w';
+const CONTEXT_ID = `w${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+let writeSeq = 0;
+
+function tagForSync(raw: string): string {
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return raw;
+    (parsed as Record<string, unknown>)[WRITER_TAG] = `${CONTEXT_ID}:${++writeSeq}`;
+    return JSON.stringify(parsed);
+  } catch {
+    return raw; // not JSON (legacy blob) — store verbatim
+  }
+}
+
+function untagForSync(raw: string): string {
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return raw;
+    if (!(WRITER_TAG in parsed)) return raw;
+    delete (parsed as Record<string, unknown>)[WRITER_TAG];
+    return JSON.stringify(parsed);
+  } catch {
+    return raw;
+  }
+}
+
+/** The sync adapter instance the persist middleware uses. Exported so tests
+ * can drive getItem/setItem directly without waiting on zustand's debounce;
+ * `retrySyncWrite` deliberately does NOT reuse it (see its docblock — a
+ * re-seal there is what used to delete every key). */
 export const syncStateStorage: StateStorage = makeChromeStorage('sync');
 
 /** Re-send the blob this context already sealed. Called from the banner's
  * retry button once the user frees sync space or re-enables Chrome sync.
- * Returns false when there is nothing to retry yet. */
+ *
+ * Deliberately does NOT go back through `setItem`/`sealForSync`. The stored
+ * blob is ALREADY sealed — its secret fields are blanked by construction and
+ * the values live in local slots — so re-sealing compared those blanked ''
+ * fields against the real baselines, concluded "the user cleared every key"
+ * and wrote a tombstone per slot: the retry button deleted every credential
+ * on the device, then spread the deletion to the other contexts through
+ * onChanged(local). A raw chrome write cannot make that mistake, and the
+ * writer tag proves the replay is still ours.
+ *
+ * Returns false when there is nothing to retry — a remote change already
+ * dropped our fallback, or storage is unreachable. */
 export async function retrySyncWrite(): Promise<boolean> {
   const blob = fallbackStorage.get(STORE_KEY);
   if (typeof blob !== 'string') return false;
-  await syncStateStorage.setItem(STORE_KEY, blob);
-  return !getSyncWriteFailed();
+  try {
+    if (typeof chrome === 'undefined' || !chrome.storage?.sync) return false;
+    await chrome.storage.sync.set({ [STORE_KEY]: blob });
+  } catch (err) {
+    console.warn('[Kivara store] sync retry failed', err);
+    setSyncWriteError(true);
+    return false;
+  }
+  rememberOwnSyncWrite(`sync:${STORE_KEY}`, blob);
+  setSyncWriteError(false);
+  return true;
 }
 
 /**
@@ -739,6 +801,10 @@ try {
           // ignore
         }
         ownSyncWrites.delete(`sync:${STORE_KEY}`);
+        // The stale blob this context was carrying is gone, so a retry has
+        // nothing to send — clear the banner instead of leaving a warning
+        // the user cannot act on.
+        setSyncWriteError(false);
         scheduleRehydrate();
         return;
       }
