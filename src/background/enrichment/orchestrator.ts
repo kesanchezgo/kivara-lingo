@@ -268,6 +268,15 @@ const IMAGE_SOURCE_KEYS = new Set<keyof VipSettings>([
 
 /* ─── Cache key (module scope: the identity of an entry is decided once here,
  *  not rebuilt — and now testable — on every lookup) ───────────────────── */
+/**
+ * Schema version of the cached enrichment payload. It is a PREFIX of every
+ * cache key, so it MUST be bumped on ANY behavior change of the merge: a
+ * stale payload written by an older build looks structurally valid but holds
+ * the old rules' output (rankings, caps, dedup), and would be served until
+ * the TTL expired. The version, not time, is what invalidates it.
+ */
+export const ENRICHMENT_CACHE_VERSION = 2;
+
 export function makeCacheKey(
   token: string,
   ctx: EnrichmentContext,
@@ -282,7 +291,7 @@ export function makeCacheKey(
   // it must not satisfy a card lookup (which needs them) and vice-versa.
   const tier = vip.enabled ? 'vip' : 'std';
   const sentence = (ctx.sentence ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
-  return `${purpose}|${tier}|${activeSourceSignature(vip)}|${ctx.sourceLang}|${ctx.targetLang}|${token.trim().toLowerCase()}|${sentence}`;
+  return `v${ENRICHMENT_CACHE_VERSION}|${purpose}|${tier}|${activeSourceSignature(vip)}|${ctx.sourceLang}|${ctx.targetLang}|${token.trim().toLowerCase()}|${sentence}`;
 }
 
 /**

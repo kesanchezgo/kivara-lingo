@@ -34,7 +34,13 @@ export interface MergedFields {
   vip: VipEnrichment;
 }
 
+// Gloss cap for the learner lists (`bilingual`) AND the VIP block's
+// `translations`: both come from the same ranked and deduplicated pick,
+// pickLexicalTranslations. The VIP block used to slice the raw allTrans
+// list at 12 instead, which carried unranked and unduplicated glosses into the
+// card.
 const MAX_BILINGUAL_GLOSSES = 8;
+const MAX_VIP_TRANSLATIONS = 8;
 
 const TRANSLATION_SOURCE_PRIORITY = [
   'bundled',
@@ -2275,7 +2281,9 @@ export function mergeFields(
     // context can disambiguate the first item, but learners benefit from
     // seeing the main alternate senses too.
     entry.translation = lexicalTranslations[0];
-    entry.bilingual = lexicalTranslations.slice(0, MAX_BILINGUAL_GLOSSES).join(' · ');
+    // No second cap here: pickLexicalTranslations already returns at most
+    // MAX_BILINGUAL_GLOSSES ranked, deduplicated glosses.
+    entry.bilingual = lexicalTranslations.join(' · ');
     // Provenance: the primary gloss, ranked contextually. The winner's
     // score encodes the context rule that picked it (negative = contextual
     // bonus from the translation ranking).
@@ -2599,7 +2607,22 @@ export function mergeFields(
 
   // VIP block surfaces full source-attributed lists.
   if (rankedDefinitions.length) vip.definitions = rankedDefinitions.slice(0, 12);
-  if (allTrans.length) vip.translations = allTrans.slice(0, 12);
+  // The SAME ranked and deduplicated pick as the learner-facing `bilingual`
+  // string, capped at the VIP list size — not the raw allTrans slice: unranked
+  // duplicates used to leak into the VIP card. A gloss keeps every source that
+  // offered it, one row per source, like the definitions block above.
+  if (lexicalTranslations.length) {
+    const vipTranslations: Array<{ source: string; text: string }> = [];
+    for (const text of lexicalTranslations.slice(0, MAX_VIP_TRANSLATIONS)) {
+      const sources = new Set(
+        allTrans
+          .filter((candidate) => candidate.text.trim().toLowerCase() === text.toLowerCase())
+          .map((candidate) => candidate.source),
+      );
+      for (const source of sources) vipTranslations.push({ source, text });
+    }
+    if (vipTranslations.length) vip.translations = vipTranslations;
+  }
   if (rankedExamples.length) vip.examples = rankedExamples;
   if (videoLinks.length) vip.videoLinks = videoLinks;
   if (frequencyEvidence.length) vip.frequencyEvidence = frequencyEvidence;

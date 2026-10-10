@@ -155,10 +155,13 @@ describe('the merge, characterized', () => {
   });
 
   it('respects the ceiling on bilingual glosses', () => {
-    // CASO 6: Cambridge's ten translations survive whole; SpanishDict adds its
-    // non-duplicates. What this pins is the ORDER and the dedup, and that the
-    // cap is not reached at 12 (MAX_BILINGUAL_GLOSSES is 8 by name, yet more
-    // than 8 appear — the ceiling applies elsewhere, which is the finding).
+    // CASO 6: the VIP translation list is the SAME ranked and deduplicated
+    // pick as the learner-facing `bilingual` string — it used to slice the raw
+    // allTrans list at 12, which leaked unranked duplicates (spanishDict's
+    // 'correr' next to cambridge's, 'mantener' jumping the ranking) into the
+    // VIP card. What this pins: the vocabulary itself (ranked, multi-source
+    // glosses keep every source that offered them), and that a real cap — 8,
+    // MAX_VIP_TRANSLATIONS — now holds where nothing held before.
     const merged = mergeFields(
       'run',
       payloads([
@@ -176,21 +179,24 @@ describe('the merge, characterized', () => {
       JSON.stringify(
         [
           { source: 'cambridge', text: 'correr' },
-          { source: 'cambridge', text: 'funcionar' },
+          { source: 'spanishDict', text: 'correr' },
           { source: 'cambridge', text: 'operar' },
-          { source: 'cambridge', text: 'administrar' },
-          { source: 'cambridge', text: 'gestionar' },
+          { source: 'cambridge', text: 'verter' },
           { source: 'cambridge', text: 'dirigir' },
           { source: 'cambridge', text: 'marchar' },
-          { source: 'cambridge', text: 'continuar' },
-          { source: 'cambridge', text: 'verter' },
           { source: 'cambridge', text: 'escapar' },
-          { source: 'spanishDict', text: 'correr' },
-          { source: 'spanishDict', text: 'mantener' },
+          { source: 'cambridge', text: 'funcionar' },
+          { source: 'cambridge', text: 'gestionar' },
         ],
         null,
         2,
       ),
     );
+    // The cap and the ranking, stated as properties: 8 is the ceiling on the
+    // ranked vocabulary, and one gloss may repeat once per source that
+    // offered it — one row per source, like the definitions block.
+    const glosses = (merged.vip.translations ?? []).map((row) => row.text);
+    expect(glosses.length).toBeLessThanOrEqual(9); // 8 against the cap, +1 shared
+    expect(merged.entry?.bilingual).not.toContain('mantener'); // unranked tail is out
   });
 });
