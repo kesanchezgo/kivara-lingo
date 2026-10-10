@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import { t } from '../../../shared/i18n';
 import { WHISPER_BUILD } from '../../../shared/whisper-flag';
 import { sendMessage } from 'webext-bridge/content-script';
@@ -49,7 +56,15 @@ import { VipSection } from './VipSection';
  * All wiring still goes through `useKivaraStore` — this is purely a UI
  * reshuffle.
  */
-export function SettingsTab({ initialSection }: { initialSection?: string } = {}) {
+/** The `#section` part of the current URL, if any. */
+function readHashSection(): string | undefined {
+  return window.location.hash.replace('#', '').trim() || undefined;
+}
+
+export function SettingsTab({
+  initialSection,
+  initialNonce,
+}: { initialSection?: string; initialNonce?: number } = {}) {
   const {
     capture, setCapture, cleanup, setCleanup, mode, setMode,
     translate, setTranslate, asr, setAsr, ai, setAi, tts, setTts,
@@ -68,13 +83,25 @@ export function SettingsTab({ initialSection }: { initialSection?: string } = {}
   // (hash first, then the storage.session slot the OPEN_SETTINGS handler
   // writes) when picking its initial tab and forwards it here; the URL hash
   // also stands alone so a direct options.html#perm still works.
+  //
+  // `initialNonce` exists because the section ALONE is not an event: a second
+  // deep link while this tab is already mounted sends the same 'perm' again,
+  // the state is already 'perm', and React fires no change — nothing opened
+  // and nothing scrolled. One increment per click from SidePanel is what makes
+  // a repeat a repeat, and the number is meaningless on purpose.
   const [deepLinkSection, setDeepLinkSection] = useState<string | undefined>(
     () =>
-      initialSection ??
-      (typeof window !== 'undefined' && window.location.hash.replace('#', '')
-        ? window.location.hash.replace('#', '')
-        : undefined),
+      initialSection ?? (typeof window !== 'undefined' ? readHashSection() : undefined),
   );
+
+  // A new nonce re-runs the expand (and scroll) below even for the same section.
+  const lastNonce = useRef<number | undefined>(initialNonce);
+  const [expandTick, bumpExpandTick] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => {
+    if (initialNonce === undefined || initialNonce === lastNonce.current) return;
+    lastNonce.current = initialNonce;
+    bumpExpandTick();
+  }, [initialNonce]);
 
   // No panel forwarding (a direct navigation): read the slot once here too.
   // The panel path already consumed it on mount, so this normally finds none.
@@ -99,7 +126,7 @@ export function SettingsTab({ initialSection }: { initialSection?: string } = {}
         .getElementById(`kivara-section-${section}`)
         ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
-  }, [deepLinkSection]);
+  }, [deepLinkSection, expandTick]);
 
   // User-customisable shortcut combos (synced via the store, see useShortcuts).
   // We surface the first three combos in the accordion summary line so the

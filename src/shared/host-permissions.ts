@@ -38,15 +38,6 @@ function splitHostPort(hostAndPort: string): [string, string] {
   return [hostAndPort.slice(0, colon), hostAndPort.slice(colon + 1)];
 }
 
-/** True when the pattern was written with NO port at all — the one shape that
- *  still behaves as a wildcard for ports. Splitting the pattern keeps the
- *  default-port fill below from turning a portless pattern into `:443`. */
-function patternSchemeIsPortless(pattern: string): boolean {
-  const rest = pattern.split('://')[1] ?? '';
-  const authority = (rest.indexOf('/') < 0 ? rest : rest.slice(0, rest.indexOf('/')));
-  return splitHostPort(authority)[1] === '';
-}
-
 function matchesPattern(pattern: string, origin: string): boolean {
   const scheme = pattern.split('://')[0];
   const rest = pattern.split('://')[1] ?? '';
@@ -61,15 +52,14 @@ function matchesPattern(pattern: string, origin: string): boolean {
   // port 8765 would silently cover every port on that host. The Anki entries
   // in the manifest are the ones that use this.
   const [host, rawOriginPort] = splitHostPort(target.split('/')[0]);
-  const [patternHostName, rawPatternPort] = splitHostPort(patternHost);
-  // Both sides START with the scheme's DEFAULT port when they carry none: an
-  // origin written as `https://api.deepl.com` IS `…:443` for Chrome, so the two
-  // forms must compare equal. The default is filled AFTER deciding whether the
-  // PATTERN is portless, because a portless pattern stays a wildcard on purpose.
+  const [patternHostName, patternPort] = splitHostPort(patternHost);
+  // Only the ORIGIN gets a default port: an origin written `https://host` IS
+  // `https://host:443` for Chrome, so the two forms compare equal. The PATTERN
+  // side is left exactly as written — a portless pattern stays a wildcard on
+  // purpose, which is why `*://localhost/*` still covers `:8765`.
   const originScheme = origin.split('://')[0];
   const defaultPort = originScheme === 'https' || originScheme === 'wss' ? '443' : originScheme === 'http' || originScheme === 'ws' ? '80' : '';
   const originPort = rawOriginPort || defaultPort;
-  const patternPort = rawPatternPort || (patternSchemeIsPortless(pattern) ? '' : defaultPort);
   const path = target.split('/').slice(1).join('/');
   if (scheme !== '*' && scheme !== originScheme) return false;
   // Chrome's rule: only a PORTLESS pattern is the wildcard. A pattern with a

@@ -83,9 +83,21 @@ describe('match pattern semantics', () => {
     expect(await covered('http://localhost:9999/*', 'http://localhost:8765/*')).toBe(false);
   });
 
-  it('a portless pattern still covers any port (Chrome drops the port)', async () => {
+  it('a portless pattern still covers a non-default port', async () => {
+    // Chrome drops the port from scheme-host-only patterns: `http://localhost/*`
+    // is what covers AnkiConnect on 8765, and it must keep covering ANY port.
     expect(await covered('http://localhost:8765/*', 'http://localhost/*')).toBe(true);
-    expect(await covered('http://127.0.0.1:8765/*', 'http://127.0.0.1/*')).toBe(true);
+    expect(await covered('http://localhost:9999/*', 'http://localhost/*')).toBe(true);
+    expect(await covered('wss://ws.example/*', '*://ws.example/*')).toBe(true);
+  });
+
+  it('a ported pattern covers only that port (or the scheme default)', async () => {
+    expect(await covered('http://localhost:8765/*', 'http://localhost:8765/*')).toBe(true);
+    expect(await covered('http://localhost:8443/*', 'http://localhost:8765/*')).toBe(false);
+    // The scheme default IS that port.
+    expect(await covered('ws://ws.example/*', 'ws://ws.example:80/*')).toBe(true);
+    expect(await covered('wss://ws.example/*', 'wss://ws.example:443/*')).toBe(true);
+    expect(await covered('ws://ws.example/*', '*://ws.example:80/*')).toBe(true);
   });
 
   it('an IPv6 literal keeps its shape and compares its port', async () => {

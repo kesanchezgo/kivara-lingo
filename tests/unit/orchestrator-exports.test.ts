@@ -19,6 +19,7 @@ describe('orchestrator exports', () => {
     const mod = await import('../../src/background/enrichment/orchestrator');
     expect(Object.keys(mod).sort()).toMatchInlineSnapshot(`
       [
+        "activeSourceSignature",
         "clearEnrichmentCache",
         "clearMemEnrichmentCache",
         "contextTranslationReasons",
@@ -31,6 +32,7 @@ describe('orchestrator exports', () => {
         "hasSubstantiveSenseOverlap",
         "isFigurativeAntonym",
         "isSlangSenseDefinition",
+        "makeCacheKey",
         "pickCollocations",
         "pickDefinitions",
         "pickEtymology",

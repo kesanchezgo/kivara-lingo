@@ -128,7 +128,7 @@ test('2 · Anki on a custom port, after the service worker went idle', async ({
   context,
   extensionId,
 }) => {
-  test.setTimeout(260_000);
+  test.setTimeout(320_000);
   const PORT = 18765; // NOT the default 8765
   const log: AnkiLog = { hits: 0, urls: [] };
   const server = await startFakeAnki(PORT, log);

@@ -60,18 +60,17 @@ describe('consumeOpenSettingsSection', () => {
     expect(await consumeOpenSettingsSection()).toBeUndefined();
   });
 
-  it('returns the hash without touching storage', async () => {
-    let touched = false;
+  it('returns the hash without letting a stale slot leak to the next visit', async () => {
+    // A hash AND a slot at once: the hash wins on the URL, and the slot is
+    // still consumed here so the next plain open does not jump to it.
+    const removed: string[] = [];
     vi.stubGlobal('chrome', {
       storage: {
         session: {
-          get: async () => {
-            touched = true;
-            return {};
-          },
+          get: async () => ({ [OPEN_SETTINGS_SECTION_KEY]: 'tts' }),
           set: async () => {},
-          remove: async () => {
-            touched = true;
+          remove: async (key: string) => {
+            removed.push(key);
           },
         },
       },
@@ -79,9 +78,7 @@ describe('consumeOpenSettingsSection', () => {
     });
     window.location.hash = '#ia';
     expect(await consumeOpenSettingsSection()).toBe('ia');
-    // The hash survives on purpose (a reload must re-open the section); but the
-    // slot sweep still runs so a stale one cannot leak to a later visit.
-    expect(typeof touched).toBe('boolean');
+    expect(removed).toEqual([OPEN_SETTINGS_SECTION_KEY]);
   });
 
   it('a second deep link in the same page returns its OWN section', async () => {
@@ -93,13 +90,42 @@ describe('consumeOpenSettingsSection', () => {
     expect(await consumeOpenSettingsSection()).toBe('tts');
   });
 
-  it('two overlapping calls (StrictMode) agree and do not split the read', async () => {
-    // Same snapshot for both calls by construction: the assertion is that they
-    // resolve IDENTICALLY, which is only true if the remove() of one cannot
-    // land before the other's read.
-    installSession([{ [OPEN_SETTINGS_SECTION_KEY]: 'perm' }, { [OPEN_SETTINGS_SECTION_KEY]: 'perm' }]);
-    const [first, second] = await Promise.all([consumeOpenSettingsSection(), consumeOpenSettingsSection()]);
+  it('two overlapping calls (StrictMode) remove the slot exactly once', async () => {
+    // DIFFERENT snapshots per call on purpose: with one shared snapshot both
+    // calls read the same value even with no dedup, so the previous version of
+    // this test proved nothing. Distinct snapshots mean an un-deduplicated pair
+    // reads one value and gets it erased under the other.
+    const calls = [
+      { [OPEN_SETTINGS_SECTION_KEY]: 'perm' },
+      { [OPEN_SETTINGS_SECTION_KEY]: 'tts' },
+    ];
+    const removed: string[] = [];
+    let read = 0;
+    vi.stubGlobal('chrome', {
+      storage: {
+        session: {
+          get: async () => {
+            const snapshot = calls[read] ?? {};
+            read += 1;
+            return snapshot;
+          },
+          set: async () => {},
+          remove: async (key: string) => {
+            removed.push(key);
+          },
+        },
+      },
+      runtime: { getURL: (p: string) => `chrome-extension://test/${p}` },
+    });
+    const [first, second] = await Promise.all([
+      consumeOpenSettingsSection(),
+      consumeOpenSettingsSection(),
+    ]);
+    // Both callers get the SAME answer (the first snapshot), and the slot is
+    // erased once — not once per caller, which is what left a second read
+    // landing on an already-cleared key.
     expect(first).toBe('perm');
     expect(second).toBe('perm');
+    expect(removed).toEqual([OPEN_SETTINGS_SECTION_KEY]);
   });
 });

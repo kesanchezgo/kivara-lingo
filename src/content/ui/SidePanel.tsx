@@ -62,48 +62,55 @@ function clampPosition(pos: PanelPosition): PanelPosition {
  * second because that is what the OPEN_SETTINGS service-worker handler writes
  * just before `chrome.tabs.create`. Both sides consume the same shared module,
  * so a SettingsTab deep link and the panel's initial tab can never disagree.
+ *
+ * `nonce` is one counter per resolution delivered outside the state object: a
+ * SECOND deep link while Settings is already mounted sends the same section
+ * again, so the section alone cannot tell React that anything happened — the
+ * counter is what makes it an event (see SettingsTab).
  */
-function useDeepLinkSection(): { pending: boolean; section: string | undefined } {
-  const [resolved, setResolved] = useState<{ pending: boolean; section: string | undefined }>(
-    () => {
-      const hash =
-        typeof window !== 'undefined' && window.location.hash
-          ? window.location.hash.replace('#', '').trim()
-          : '';
-      // A session-slot-only deep link still has to be read, so stay pending
-      // rather than resolving early with `section: undefined`.
-      return { pending: !hash, section: hash || undefined };
-    },
-  );
+function useDeepLinkSection(): { pending: boolean; section: string | undefined; nonce: number } {
+  const [resolved, setResolved] = useState<{
+    pending: boolean;
+    section: string | undefined;
+    nonce: number;
+  }>(() => {
+    const hash = readHash();
+    return { pending: !hash, section: hash || undefined, nonce: hash ? 1 : 0 };
+  });
+  const deliver = useCallback((section: string | undefined) => {
+    setResolved((prev) => ({ pending: false, section, nonce: prev.nonce + 1 }));
+  }, []);
   useEffect(() => {
     if (!resolved.pending) return;
     let alive = true;
     void (async () => {
-      // Consume in ONE step: this panel mount is the deep link's target, and
-      // the slot must not outlive it — otherwise a later plain open of the
-      // panel jumps to the same section too.
       const section = await consumeOpenSettingsSection();
-      if (alive) setResolved({ pending: false, section });
+      if (alive) deliver(section);
     })();
     return () => {
       alive = false;
     };
-  }, [resolved.pending]);
+  }, [resolved.pending, deliver]);
 
   // A second deep link into the SAME page (the strip clicked again while
-  // Options stayed open) changes the hash: re-consume so the new section is
-  // followed instead of keeping whatever the first visit resolved to.
+  // Options stayed open) changes the hash: deliver again so the section is
+  // re-applied instead of keeping whatever the first visit resolved to.
   useEffect(() => {
     const onHashChange = () => {
       void (async () => {
-        const section = await consumeOpenSettingsSection();
-        setResolved({ pending: false, section });
+        deliver(await consumeOpenSettingsSection());
       })();
     };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
-  }, []);
+  }, [deliver]);
   return resolved;
+}
+
+function readHash(): string | undefined {
+  return typeof window !== 'undefined' && window.location.hash
+    ? window.location.hash.replace('#', '').trim() || undefined
+    : undefined;
 }
 
 export function SidePanel({
@@ -390,7 +397,9 @@ export function SidePanel({
         {activeTab === 'cards' && (
           <CardsTab mapping={mapping} setMapping={setMapping} mockData={mockData} />
         )}
-        {activeTab === 'settings' && <SettingsTab initialSection={deepLink.section} />}
+        {activeTab === 'settings' && (
+          <SettingsTab initialSection={deepLink.section} initialNonce={deepLink.nonce} />
+        )}
       </div>
     </div>
   );

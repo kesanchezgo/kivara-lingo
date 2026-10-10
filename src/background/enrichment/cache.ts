@@ -221,9 +221,11 @@ export async function clearEnrichmentCache(): Promise<number> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const table = (db as any).vip_cache;
     if (!table) return 0;
-    const rows = (await table.toArray()) as CacheRow[];
-    if (rows.length > 0) await table.bulkDelete(rows.map((r) => r.key));
-    return rows.length;
+    // count-then-clear on purpose: reading every payload just to know how many
+    // rows there were was a full table scan for a number the index can answer.
+    const rows = await table.count();
+    if (rows > 0) await table.clear();
+    return rows;
   } catch {
     return 0;
   }

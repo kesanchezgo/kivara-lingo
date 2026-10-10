@@ -309,32 +309,9 @@ const IMAGE_SOURCE_KEYS = new Set<keyof VipSettings>([
   'pixabay',
 ]);
 
-/**
- * Run the enrichment chain for `token`. Always returns a result,
- * even when every source failed — fields just stay empty.
- */
-export async function runEnrichment(
-  token: string,
-  opts: RunOptions,
-): Promise<EnrichmentResult> {
-  const purpose = opts.purpose ?? 'popover';
-  const ctx: EnrichmentContext = {
-    sourceLang: opts.sourceLang,
-    targetLang: opts.targetLang,
-    sentence: opts.sentence,
-    // The popover uses a tighter per-source timeout so one slow scrape
-    // can't hold the whole card hostage; the card flow keeps the full
-    // budget since the user has committed and wants the richest result.
-    timeoutMs:
-      purpose === 'popover'
-        ? Math.min(opts.vip.perSourceTimeoutMs ?? 4000, 2500)
-        : opts.vip.perSourceTimeoutMs ?? 4000,
-    signal: opts.signal,
-  };
-
 /* ─── Cache key (module scope: the identity of an entry is decided once here,
  *  not rebuilt — and now testable — on every lookup) ───────────────────── */
-function makeCacheKey(
+export function makeCacheKey(
   token: string,
   ctx: EnrichmentContext,
   vip: VipSettings,
@@ -358,7 +335,7 @@ function makeCacheKey(
  * Keep credentials out of the key; only their presence affects which
  * public endpoint can answer.
  */
-function activeSourceSignature(vip: VipSettings): string {
+export function activeSourceSignature(vip: VipSettings): string {
   const enabled = Object.entries(VIP_SOURCES)
     .filter(([flag, source]) => {
       if (!source) return false;
@@ -376,6 +353,31 @@ function activeSourceSignature(vip: VipSettings): string {
   return enabled.join(',');
 }
 
+/**
+ * Run the enrichment chain for `token`. Always returns a result,
+ * even when every source failed — fields just stay empty.
+ */
+export async function runEnrichment(
+  token: string,
+  opts: RunOptions,
+): Promise<EnrichmentResult> {
+  const purpose = opts.purpose ?? 'popover';
+  const ctx: EnrichmentContext = {
+    sourceLang: opts.sourceLang,
+    targetLang: opts.targetLang,
+    sentence: opts.sentence,
+    // The popover uses a tighter per-source timeout so one slow scrape
+    // can't hold the whole card hostage; the card flow keeps the full
+    // budget since the user has committed and wants the richest result.
+    timeoutMs:
+      purpose === 'popover'
+        ? Math.min(opts.vip.perSourceTimeoutMs ?? 4000, 2500)
+        : opts.vip.perSourceTimeoutMs ?? 4000,
+    signal: opts.signal,
+  };
+
+
+
   // Pass BYOK image-source credentials through the ctx — sources read
   // them off the ctx via type cast (see unsplash.ts / pixabay.ts).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -387,7 +389,7 @@ function activeSourceSignature(vip: VipSettings): string {
   // sources and least essential while hovering); they run for the card.
   const skipImages = purpose === 'popover';
 
-const cacheKey = makeCacheKey(token, ctx, opts.vip, purpose);
+  const cacheKey = makeCacheKey(token, ctx, opts.vip, purpose);
   if (!opts.bypassCache) {
     const cached = await readEnrichmentCache(cacheKey, opts.vip.cacheTtlDays ?? 14);
     if (cached) return cached;
