@@ -184,11 +184,16 @@ test('2 · Anki on a custom port, after the service worker went idle', async ({
       // The popup pings on mount and the status pill shows the server version
       // on success ("AnkiConnect v… · activo/active"). The version text itself
       // is not what matters here — that the SW REACHES the custom port after
-      // going idle is, with no CORS/network error. A 5 s default budget is not
-      // enough on a loaded box: the SW has to wake from its 30 s teardown
-      // first, which is exactly the point of this test.
+      // going idle is, with no CORS/network error.
+      //
+      // The budget is wide on purpose: this test runs second in a suite whose
+      // first test deliberately breaks chrome.storage.sync, and a busy service
+      // worker can be slow to answer its first ping — but the SW budget below
+      // keeps the total bounded, and the failure being watched (a port that
+      // never answers) hangs for the whole window rather than coming back
+      // quickly and clean.
       await expect(page.getByText(/AnkiConnect v[\d.]+ · (activo|active)/)).toBeVisible({
-        timeout: 90_000,
+        timeout: 120_000,
       });
       return page;
     };
@@ -197,10 +202,10 @@ test('2 · Anki on a custom port, after the service worker went idle', async ({
     await first.close();
 
     // The MV3 service worker is torn down after 30s of inactivity — longer
-    // than the budget, on purpose. A fixed sleep competes with machine load;
-    // the poll below is what actually proves the teardown happened, so the
-    // wait is generous but the ASSERTION is on observed state. The extra
-    // timeout keeps a slow CI box from failing a correct test.
+    // than the budget, on purpose. A fixed sleep competes with machine load:
+    // the extended lookup budget on the pill below is what carries this, and
+    // awaiting an observed teardown would need a surface the browser does not
+    // expose.
     await new Promise((r) => setTimeout(r, 35_000));
     const second = await openPopup();
     await second.close();

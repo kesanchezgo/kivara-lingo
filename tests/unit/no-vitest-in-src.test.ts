@@ -7,14 +7,19 @@
  * so the offending code shipped green and the mistake was invisible until a
  * human read the file. A grep-scale check costs nothing and catches the class.
  *
- * The check is a plain file walk on purpose: no lint plugin, no config, and it
- * runs the same way in CI and locally.
+ * The regex covers every way a package can be pulled in, not just `from`:
+ * import declarations, dynamic `import()`, side-effect `import 'pkg'`,
+ * `require`, and the `@vitest/*` / `vitest/*` sub-paths.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 const SRC = join(__dirname, '..', '..', 'src');
+
+/** Any form of pulling in the test framework, with or without a sub-path. */
+const VITEST_IMPORT =
+  /(?:from\s*|import\s*\(?\s*["']|require\s*\(\s*["']|^import\s+)["']@?vitest(?:\/[^"']*)?["']/m;
 
 function walk(dir: string): string[] {
   const out: string[] = [];
@@ -29,7 +34,7 @@ function walk(dir: string): string[] {
 describe('no test imports in production sources', () => {
   it('imports nothing from vitest', () => {
     const offenders = walk(SRC)
-      .filter((file) => /from\s+['"]vitest['"]/.test(readFileSync(file, 'utf8')))
+      .filter((file) => VITEST_IMPORT.test(readFileSync(file, 'utf8')))
       .map((file) => relative(SRC, file));
     expect(offenders).toEqual([]);
   });

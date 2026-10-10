@@ -89,6 +89,20 @@ function useDeepLinkSection(): { pending: boolean; section: string | undefined }
       alive = false;
     };
   }, [resolved.pending]);
+
+  // A second deep link into the SAME page (the strip clicked again while
+  // Options stayed open) changes the hash: re-consume so the new section is
+  // followed instead of keeping whatever the first visit resolved to.
+  useEffect(() => {
+    const onHashChange = () => {
+      void (async () => {
+        const section = await consumeOpenSettingsSection();
+        setResolved({ pending: false, section });
+      })();
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
   return resolved;
 }
 

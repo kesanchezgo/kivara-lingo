@@ -1,0 +1,59 @@
+/**
+ * The orchestrator's public surface.
+ *
+ * The module is being split file by file, and a botched move here is silent in
+ * every other way: the service worker and cache-admin import specific names
+ * through the orchestrator, so a symbol renamed, lost or re-routed breaks only
+ * at runtime, in the service worker, on a hover. This snapshot is the cheap
+ * tripwire — `vitest -u` updates it on a deliberate change, which is exactly
+ * what a real split is.
+ *
+ * The cache names MUST stay exported from the orchestrator even though they now
+ * live in ./cache: that re-export is what keeps the two consumers from having
+ * to learn about the split.
+ */
+import { describe, it, expect } from 'vitest';
+
+describe('orchestrator exports', () => {
+  it('exposes the names the service worker, cache-admin and tests import', async () => {
+    const mod = await import('../../src/background/enrichment/orchestrator');
+    expect(Object.keys(mod).sort()).toMatchInlineSnapshot(`
+      [
+        "clearEnrichmentCache",
+        "clearMemEnrichmentCache",
+        "contextTranslationReasons",
+        "contextTranslationScore",
+        "contextTranslationTrace",
+        "definitionContextReasons",
+        "etymologyDomainLabel",
+        "getEnrichmentCacheStats",
+        "glossPosShape",
+        "hasSubstantiveSenseOverlap",
+        "isFigurativeAntonym",
+        "isSlangSenseDefinition",
+        "pickCollocations",
+        "pickDefinitions",
+        "pickEtymology",
+        "pickExamples",
+        "pickImageCandidate",
+        "pickLexicalTranslations",
+        "pickRelatedTerms",
+        "pickSenseRelationGroups",
+        "rankImageCandidates",
+        "readEnrichmentCache",
+        "runEnrichment",
+        "scoreImageCandidate",
+        "sentencePosHint",
+        "writeEnrichmentCache",
+      ]
+    `);
+  });
+
+  it('clears the cache and reports how many rows went', async () => {
+    const mod = await import('../../src/background/enrichment/orchestrator');
+    // No IndexedDB under happy-dom, so the count is 0 — but the SHAPE is the
+    // contract: the panel prints this number.
+    const removed = await mod.clearEnrichmentCache();
+    expect(typeof removed).toBe('number');
+  });
+});

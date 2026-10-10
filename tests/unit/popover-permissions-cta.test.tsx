@@ -12,7 +12,7 @@
  * same bridge call the SW registers for, same payload, no second navigation.
  */
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { sendMessage } from 'webext-bridge/content-script';
 import { WordPopover } from '../../src/content/ui/WordPopover';
 
@@ -37,8 +37,6 @@ const BASE_PROPS = {
 };
 
 describe('the held-back strip', () => {
-  const strip = () => screen.getByTestId('kivara-needs-access');
-
   beforeEach(() => {
     vi.mocked(sendMessage).mockClear();
     vi.spyOn(window, 'open').mockImplementation(() => null);

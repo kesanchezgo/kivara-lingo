@@ -206,15 +206,26 @@ async function pruneVipCache(): Promise<void> {
   }
 }
 
-/** Wipe both layers (panel "limpiar cache" + the grant invalidation path). */
-export async function clearEnrichmentCache(): Promise<void> {
+/**
+ * Wipe both layers (panel "limpiar cache" + the grant invalidation path).
+ *
+ * Kept returning the number of rows dropped: the panel shows "N entradas
+ * eliminadas", and the count is the only feedback the user has that a wipe did
+ * anything. Memory is cleared too — its hot layer outlived the table wipe, so
+ * a re-hover served the very rows the panel just reported as deleted.
+ */
+export async function clearEnrichmentCache(): Promise<number> {
   clearMemEnrichmentCache();
   try {
     const db = getDB();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any).vip_cache?.clear();
+    const table = (db as any).vip_cache;
+    if (!table) return 0;
+    const rows = (await table.toArray()) as CacheRow[];
+    if (rows.length > 0) await table.bulkDelete(rows.map((r) => r.key));
+    return rows.length;
   } catch {
-    // ignore
+    return 0;
   }
 }
 
@@ -232,7 +243,10 @@ export async function getEnrichmentCacheStats(): Promise<{ count: number; bytes:
     let bytes = 0;
     for (const row of rows) {
       try {
-        bytes += JSON.stringify(row.payload).length;
+        // The key is part of what the extension stores too; dropping it made
+        // the panel under-report a table whose keys are as long as their
+        // payloads.
+        bytes += row.key.length + JSON.stringify(row.payload).length;
       } catch {
         // A circular cache payload is worth a skipped byte estimate, not a crash.
       }

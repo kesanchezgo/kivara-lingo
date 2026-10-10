@@ -331,18 +331,10 @@ export async function runEnrichment(
         : opts.vip.perSourceTimeoutMs ?? 4000,
     signal: opts.signal,
   };
-  // Pass BYOK image-source credentials through the ctx — sources read
-  // them off the ctx via type cast (see unsplash.ts / pixabay.ts).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (ctx as any).unsplashAccessKey = opts.vip.unsplashAccessKey;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (ctx as any).pixabayApiKey = opts.vip.pixabayApiKey;
 
-  // Images are excluded from the popover fan-out (they're the slowest
-  // sources and least essential while hovering); they run for the card.
-  const skipImages = purpose === 'popover';
-
-  function makeCacheKey(
+/* ─── Cache key (module scope: the identity of an entry is decided once here,
+ *  not rebuilt — and now testable — on every lookup) ───────────────────── */
+function makeCacheKey(
   token: string,
   ctx: EnrichmentContext,
   vip: VipSettings,
@@ -383,6 +375,17 @@ function activeSourceSignature(vip: VipSettings): string {
   enabled.push(`pixabayKey:${vip.pixabayApiKey ? '1' : '0'}`);
   return enabled.join(',');
 }
+
+  // Pass BYOK image-source credentials through the ctx — sources read
+  // them off the ctx via type cast (see unsplash.ts / pixabay.ts).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (ctx as any).unsplashAccessKey = opts.vip.unsplashAccessKey;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (ctx as any).pixabayApiKey = opts.vip.pixabayApiKey;
+
+  // Images are excluded from the popover fan-out (they're the slowest
+  // sources and least essential while hovering); they run for the card.
+  const skipImages = purpose === 'popover';
 
 const cacheKey = makeCacheKey(token, ctx, opts.vip, purpose);
   if (!opts.bypassCache) {
