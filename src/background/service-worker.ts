@@ -571,7 +571,7 @@ onMessage('AI_ENRICH', async ({ data }) => {
  * disappears when the profile does, unlike `local`.
  */
 onMessage(
-  'OPEN_SETTINGS' as never,
+  'OPEN_SETTINGS',
   async ({ data }) => {
     const section = String((data as { section?: string })?.section ?? '');
     if (section) {
@@ -586,7 +586,7 @@ onMessage(
     } catch (err) {
       console.warn('[Kivara Lingo] could not open settings', err);
     }
-    return { ok: true } as never;
+    return { ok: true };
   },
 );
 
@@ -1019,11 +1019,28 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         // opaque 'manual' response cannot be read at all — see net-guard) and
         // the DESTINATION is validated once they have resolved, so a 302 that
         // lands on loopback/LAN is refused before any byte is read.
-        const { response: res, done: downloadDone } = await fetchGuarded(url, {
-          timeoutMs: DICT_PACK_TIMEOUT_MS,
-          signal: downloadSignal,
-        });
+        //
+        // `stopDownloadTimer` belongs inside `finishDownload` AND around the
+        // fetch: the deadline must die the moment the last byte is in, and an
+        // armed timer that fires after a finished install aborts a controller
+        // nobody is listening to — and, in the reject case, arms a second
+        // deadline that keeps the SW alive for a minute for nothing.
+        let res: Response = new Response(null, { status: 0 });
+        let downloadDone: () => void = () => {};
+        try {
+          const guarded = await fetchGuarded(url, {
+            timeoutMs: DICT_PACK_TIMEOUT_MS,
+            signal: downloadSignal,
+          });
+          res = guarded.response;
+          downloadDone = guarded.done;
+        } finally {
+          // The deadline has done its job the moment the response resolves:
+          // the stream itself is bounded by `downloadGuarded`'s own aborters.
+          stopDownloadTimer();
+        }
         const finishDownload = () => {
+          stopDownloadTimer();
           try {
             downloadDone();
           } catch {

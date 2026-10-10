@@ -41,6 +41,7 @@ declare module 'webext-bridge' {
     TRANSLATE: ProtocolWithReturn<TranslateRequest, TranslateResponse>;
     TTS_SPEAK: ProtocolWithReturn<TtsSpeakRequest, TtsResponse>;
     AI_ENRICH: ProtocolWithReturn<AiEnrichRequest, AiEnrichResponse>;
+    OPEN_SETTINGS: ProtocolWithReturn<{ section?: string }, { ok: boolean }>;
     RESOLVE_WORD: ProtocolWithReturn<ResolveWordRequest, ResolveWordResponse>;
   }
 }

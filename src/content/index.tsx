@@ -300,12 +300,17 @@ function updateOverlayParentForFullscreen(): void {
   const entering = fullscreen !== null && (overlayRestore === null || movingToNewElement);
   const leaving = fullscreen === null || movingToNewElement;
 
+  if (entering) focusTrailFrozen = true;
   if (leaving) {
     const state = overlayRestore;
     overlayRestore = null;
     if (state?.positionHost?.isConnected) {
       state.positionHost.style.position = state.positionWas;
     }
+    // The restore call below focuses `previousFocus`, which fires `focusin`.
+    // Unfreeze the trail FIRST so that focus change is what the trail learns
+    // from, instead of the video we just left.
+    focusTrailFrozen = fullscreen === null;
   }
 
   const target = fullscreen ?? document.body;
@@ -348,16 +353,29 @@ let overlayRestore: OverlayRestoreState | null = null;
  * into the fullscreen element (or dropped on <body>), so reading
  * `document.activeElement` there records the wrong element and the "give the
  * focus back" step restores nothing the user chose. A passive `focusin`
- * listener keeps the last real target; the trail is stale-checked against
- * `isConnected` at restore time, because the video element is usually gone by
- * then anyway.
+ * listener keeps the last real target.
+ *
+ * The trail is FROZEN while fullscreen is active on purpose: the entry pulls
+ * focus into the player within the same frame, and a trail that kept updating
+ * would snapshot the video and "restore" focus to the very element the user
+ * left. What is recorded is the value at the last focus change BEFORE the
+ * transition.
  */
 let lastFocusedBeforeFullscreen: HTMLElement | null = null;
+
+/**
+ * Set while `fullscreenElement` is non-null. Kept as a flag rather than read
+ * from the DOM inside the handler because `document.exitFullscreen()` resolves
+ * AFTER our restore focus lands — checking the live DOM there would see the
+ * exiting state and drop the one focus change we actually want to learn.
+ */
+let focusTrailFrozen = false;
 
 function observeFocusTrail(): void {
   document.addEventListener(
     'focusin',
     (event) => {
+      if (focusTrailFrozen) return;
       const target = event.target as HTMLElement | null;
       if (target && target.isConnected && target !== document.body) {
         lastFocusedBeforeFullscreen = target;
@@ -480,5 +498,9 @@ async function handleNavigation() {
 }
 
 observeNavigation();
+// The trail must be attached BEFORE the fullscreen listener: an entry that
+// lands between the two would record nothing and the restore focus step would
+// have no element to hand back.
+observeFocusTrail();
 observeFullscreen();
 void init().catch((err) => console.warn('[Kivara Lingo] init failed', err));

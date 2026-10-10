@@ -20,14 +20,6 @@
 import { providerHosts } from './provider-hosts';
 import { refreshHostPermissions } from './host-permissions-store';
 
-/** The host part of `host[:port]`, keeping an IPv6 literal intact — the naive
- *  split on ':' would turn `[::1]:8765` into `[`. */
-function extractHost(hostAndPort: string): string {
-  const head = hostAndPort.split('/')[0];
-  if (head.startsWith('[')) return head.split(']:')[0] + ']';
-  return head.split(':')[0];
-}
-
 function matchesPattern(pattern: string, origin: string): boolean {
   const scheme = pattern.split('://')[0];
   const rest = pattern.split('://')[1] ?? '';
@@ -36,24 +28,45 @@ function matchesPattern(pattern: string, origin: string): boolean {
   const patternPath = slashAt < 0 ? '*' : rest.slice(slashAt + 1);
   const target = origin.split('://')[1] ?? '';
 
-  // Chrome match patterns carry NO PORT: `http://127.0.0.1:8765` is matched on
-  // host alone, so stripping the port from BOTH sides is what makes a
-  // port-specific origin comparable with a host pattern (and the Anki entries
-  // in the manifest, which are the ones that actually have a port, usable).
-  const host = extractHost(target.split('/')[0]);
-  const patternHostNoPort = patternHost.startsWith('[')
-    ? // IPv6 literal — `[::1]` must keep its shape, port comes after `]:`
-      patternHost.split(']:')[0] + ']'
-    : patternHost.split(':')[0];
+  // Chrome match patterns DO carry a port (`http://localhost:8080/*` is a
+  // valid, distinct pattern from `http://localhost/*`), so the port is only
+  // dropped from the SIDE that has none — otherwise a permission typed for
+  // port 8765 would silently cover every other port on that host. The Anki
+  // entries in the manifest are the ones that use this.
+  let host = target.split('/')[0];
+  let originPort = '';
+  if (host.startsWith('[')) {
+    host = host.split(']:')[0] + ']';
+    originPort = host.split(']:')[1] ?? '';
+  } else {
+    const colon = host.indexOf(':');
+    if (colon >= 0) {
+      originPort = host.slice(colon + 1);
+      host = host.slice(0, colon);
+    }
+  }
+  let patternHostWithPort = patternHost;
+  let patternPort = '';
+  if (patternHost.startsWith('[')) {
+    patternHostWithPort = patternHost.split(']:')[0] + ']';
+    patternPort = patternHost.split(']:')[1] ?? '';
+  } else {
+    const colon = patternHost.indexOf(':');
+    if (colon >= 0) {
+      patternPort = patternHost.slice(colon + 1);
+      patternHostWithPort = patternHost.slice(0, colon);
+    }
+  }
   const path = target.split('/').slice(1).join('/');
   if (scheme !== '*' && scheme !== origin.split('://')[0]) return false;
-  if (patternHostNoPort === '*') return true;
-  if (patternHostNoPort.startsWith('*.')) {
+  if (patternPort && originPort && patternPort !== originPort) return false;
+  if (patternHostWithPort.toLowerCase() === '*') return true;
+  if (patternHostWithPort.toLowerCase().startsWith('*.')) {
     // `*.example.com` matches any subdomain AND the apex.
-    const suffix = patternHostNoPort.slice(1);
-    const bare = patternHostNoPort.slice(2);
-    if (host !== bare && !host.endsWith(suffix)) return false;
-  } else if (patternHostNoPort.toLowerCase() !== host.toLowerCase()) {
+    const suffix = patternHostWithPort.slice(1);
+    const bare = patternHostWithPort.slice(2);
+    if (host.toLowerCase() !== bare.toLowerCase() && !host.toLowerCase().endsWith(suffix.toLowerCase())) return false;
+  } else if (patternHostWithPort.toLowerCase() !== host.toLowerCase()) {
     return false;
   }
   // Path: `*` inside a chrome pattern matches any run of characters, so treat

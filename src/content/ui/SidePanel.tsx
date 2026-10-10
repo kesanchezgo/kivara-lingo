@@ -7,6 +7,7 @@ import { SettingsTab } from '../../app/components/tabs/SettingsTab';
 import { SubtitleStyles, AnkiMapping } from '../../app/types';
 import { useKivaraStore, type PanelPosition } from '../../shared/store';
 import { t } from '../../shared/i18n';
+import { clearOpenSettingsSection, readOpenSettingsSection } from '../../shared/open-settings-section';
 
 interface SidePanelProps {
   isPopupMode: boolean;
@@ -54,7 +55,46 @@ function clampPosition(pos: PanelPosition): PanelPosition {
   };
 }
 
-export function SidePanel({ 
+/**
+ * Deep-link section for a panel that was opened to fix something.
+ *
+ * Hash first because it is on the URL and survives a reload; the session slot
+ * second because that is what the OPEN_SETTINGS service-worker handler writes
+ * just before `chrome.tabs.create`. Both sides consume the same shared module,
+ * so a SettingsTab deep link and the panel's initial tab can never disagree.
+ */
+function useDeepLinkSection(): { pending: boolean; section: string | undefined } {
+  const [resolved, setResolved] = useState<{ pending: boolean; section: string | undefined }>(
+    () => {
+      const hash =
+        typeof window !== 'undefined' && window.location.hash
+          ? window.location.hash.replace('#', '').trim()
+          : '';
+      // A session-slot-only deep link still has to be read, so stay pending
+      // rather than resolving early with `section: undefined`.
+      return { pending: !hash, section: hash || undefined };
+    },
+  );
+  useEffect(() => {
+    if (!resolved.pending) return;
+    let alive = true;
+    void (async () => {
+      const section = await readOpenSettingsSection();
+      if (!alive) return;
+      // Consume the slot here: this panel mount IS the deep link's target, and
+      // leaving it behind would make every later plain open of the panel jump
+      // back to the same section too.
+      await clearOpenSettingsSection();
+      setResolved({ pending: false, section });
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [resolved.pending]);
+  return resolved;
+}
+
+export function SidePanel({
   isPopupMode, 
   togglePopupMode,
   onClose,
@@ -66,7 +106,20 @@ export function SidePanel({
   setMapping,
   mockData
 }: SidePanelProps) {
-  const [activeTab, setActiveTab] = useState<'subtitles' | 'cards' | 'settings'>('cards');
+  /**
+   * Deep link, read ONCE before the tab content renders: the hash (reload-safe)
+   * synchronously, then the session slot the OPEN_SETTINGS handler writes.
+   * Without this the panels opened for a permission grant — cards and options
+   * alike — stayed on the Cards tab, which never mounts SettingsTab, so the
+   * accordion the user was sent to expand was unreachable.
+   *
+   * `pending` keeps the first paint blank instead of flashing the Cards tab;
+   * the resolve default is Settings when a section was on the URL.
+   */
+  const deepLink = useDeepLinkSection();
+  const [activeTab, setActiveTab] = useState<'subtitles' | 'cards' | 'settings'>(
+    deepLink.pending ? 'cards' : deepLink.section ? 'settings' : 'cards',
+  );
   const persistedPosition = useKivaraStore((s) => s.panelPosition);
   const setPersistedPosition = useKivaraStore((s) => s.setPanelPosition);
 
@@ -320,9 +373,7 @@ export function SidePanel({
         {activeTab === 'cards' && (
           <CardsTab mapping={mapping} setMapping={setMapping} mockData={mockData} />
         )}
-        {activeTab === 'settings' && (
-          <SettingsTab />
-        )}
+        {activeTab === 'settings' && <SettingsTab initialSection={deepLink.section} />}
       </div>
     </div>
   );

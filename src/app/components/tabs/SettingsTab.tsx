@@ -27,9 +27,7 @@ import { SecretKeyInput } from '../SecretKeyInput';
 import { SyncWriteErrorBanner } from '../SyncWriteErrorBanner';
 import { HostPermissionsRow } from '../HostPermissionsRow';
 import { ensureProviderHosts } from '../../../shared/host-permissions';
-/** Same key the OPEN_SETTINGS service-worker handler writes into
- *  `chrome.storage.session`; kept in sync by both sides of the deep link. */
-const OPEN_SETTINGS_SECTION_KEY = 'kivara:open-settings-section';
+import { readOpenSettingsSection } from '../../../shared/open-settings-section';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { ShortcutEditor } from '../ShortcutEditor';
 import { InfoHint } from '../InfoHint';
@@ -51,7 +49,7 @@ import { VipSection } from './VipSection';
  * All wiring still goes through `useKivaraStore` — this is purely a UI
  * reshuffle.
  */
-export function SettingsTab() {
+export function SettingsTab({ initialSection }: { initialSection?: string } = {}) {
   const {
     capture, setCapture, cleanup, setCleanup, mode, setMode,
     translate, setTranslate, asr, setAsr, ai, setAi, tts, setTts,
@@ -65,40 +63,51 @@ export function SettingsTab() {
   const toggle = (id: string) => setOpen((prev) => ({ ...prev, [id]: !prev[id] }));
   const isOpen = (id: string) => !!open[id];
 
-  // DEEP LINK. The popover's "held back" strip opens Settings for a reason,
-  // so the requested section is opened for it: `storage.session` is written
-  // by the OPEN_SETTINGS handler (it survives the navigation and dies with the
-  // profile), and the URL hash covers a reload. Reading only one of the two
-  // leaves the other path landing on a closed accordion.
-  const [pendingSection] = useState<string | undefined>(
+  // DEEP LINK. The popover's "held back" strip opens Settings for a reason, so
+  // the requested section is opened for it. The panel that renders this tab
+  // reads the deep link (hash, then the storage.session slot the
+  // OPEN_SETTINGS handler writes) so its INITIAL tab is Settings at all, and
+  // forwards it here; reading the session slot ourselves would race that.
+  //
+  // A remount (tab bar switch) re-expands the same section, which is what a
+  // user who switched away and back expects — the sticky-jump problem was the
+  // panel dropping them back into Settings, not this.
+  const [deepLinkSection, setDeepLinkSection] = useState<string | undefined>(
     () =>
-      (typeof window !== 'undefined' && window.location.hash.replace('#', '')) ||
-      undefined,
+      initialSection ??
+      (typeof window !== 'undefined' && window.location.hash.replace('#', '')
+        ? window.location.hash.replace('#', '')
+        : undefined),
   );
-  const sectionRef = useRef<string | undefined>(pendingSection);
+  const sectionRef = useRef<string | undefined>(deepLinkSection);
+
+  // Direct navigation to options.html#perm, with no panel to forward the
+  // section: read the session slot ONCE here and expand it. The cleanup flag
+  // keeps the `deepLinkSection` dependency from re-reading after it lands.
+  const sectionTried = useRef(false);
+  useEffect(() => {
+    if (initialSection || deepLinkSection || sectionTried.current) return;
+    sectionTried.current = true;
+    let alive = true;
+    void (async () => {
+      const fallback = await readOpenSettingsSection();
+      if (alive && fallback) setDeepLinkSection(fallback);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [initialSection, deepLinkSection]);
 
   useEffect(() => {
-    const wanted = sectionRef.current;
-    void (async () => {
-      if (!wanted) {
-        try {
-          const raw = await chrome.storage.session.get(OPEN_SETTINGS_SECTION_KEY);
-          sectionRef.current = raw[OPEN_SETTINGS_SECTION_KEY] as string | undefined;
-          await chrome.storage.session.remove(OPEN_SETTINGS_SECTION_KEY);
-        } catch {
-          // storage.session is only missing outside an extension context.
-        }
-      }
-      const section = sectionRef.current;
-      if (!section) return;
-      setOpen((prev) => ({ ...prev, [section]: true }));
-      requestAnimationFrame(() => {
-        document
-          .getElementById(`kivara-section-${section}`)
-          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    })();
-  }, []);
+    const section = deepLinkSection;
+    if (!section) return;
+    setOpen((prev) => ({ ...prev, [section]: true }));
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(`kivara-section-${section}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [deepLinkSection]);
 
   // User-customisable shortcut combos (synced via the store, see useShortcuts).
   // We surface the first three combos in the accordion summary line so the

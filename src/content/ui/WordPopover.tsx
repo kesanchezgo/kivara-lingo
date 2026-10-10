@@ -96,11 +96,13 @@ const INITIAL_STATE: ResolveState = {
   needsAccess: [],
 };
 
-/** True while the pointer is inside the hover card. Module scope because the
- *  overlay renders exactly one card, and the card never owns focus (its
- *  controls are `tabIndex={-1}` on purpose), which leaves the pointer as the
- *  only signal Escape's ownership test can use. */
-let pointerOverCard = false;
+/** True while the pointer is inside the hover card, for the Escape ownership
+ *  test. A ref, not module state: the overlay renders exactly one card and the
+ *  card never owns focus (its controls are `tabIndex={-1}` on purpose), so the
+ *  pointer is the only signal that key handler can use — and a value that
+ *  outlived the unmount would make the NEXT card swallow the page's Escape.
+ *  It never needs to trigger a render: nothing displayed depends on it. */
+const usePointerOverCard = () => useRef(false);
 
 function useResolveWord(
   token: string,
@@ -326,6 +328,7 @@ export function WordPopover({
   // video overlay root) and shift the bottom-arrow back so it still points
   // at the token center — same trick the Figma mock uses.
   const rootRef = useRef<HTMLDivElement>(null);
+  const pointerOverCard = usePointerOverCard();
   const arrowRef = useRef<HTMLDivElement>(null);
   // Max height for the scrollable body, computed from the space available
   // above the hovered token inside the video boundary. Long cards (VIP +
@@ -410,7 +413,6 @@ export function WordPopover({
         shadowRoot instanceof ShadowRoot ? shadowRoot.activeElement : null;
       return (scopedActive as HTMLElement | null) ?? null;
     };
-
     const onWindowKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       const root = rootRef.current;
@@ -422,7 +424,7 @@ export function WordPopover({
       const scopedActive =
         shadowRoot instanceof ShadowRoot ? shadowRoot.activeElement : null;
       const ownsEscape =
-        (root && scopedActive && root.contains(scopedActive)) || pointerOverCard;
+        (root && scopedActive && root.contains(scopedActive)) || pointerOverCard.current;
       // A key the page already consumed stays the page's.
       if (!ownsEscape || event.defaultPrevented) return;
       event.stopPropagation();
@@ -430,7 +432,13 @@ export function WordPopover({
       onClose?.();
     };
     window.addEventListener('keydown', onWindowKeyDown, true);
-    return () => window.removeEventListener('keydown', onWindowKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', onWindowKeyDown, true);
+      // A card that unmounts with the pointer still on it never sees
+      // `mouseleave`, so the flag has to be cleared here: left set, the NEXT
+      // card silently eats the page's own Escape.
+      pointerOverCard.current = false;
+    };
   }, [visible, onClose]);
 
   const handlePopoverKeyDown = useCallback(
@@ -613,11 +621,11 @@ export function WordPopover({
     <div
       ref={rootRef}
       onMouseEnter={() => {
-        pointerOverCard = true;
+        pointerOverCard.current = true;
         onMouseEnter();
       }}
       onMouseLeave={() => {
-        pointerOverCard = false;
+        pointerOverCard.current = false;
         onMouseLeave();
       }}
       onKeyDown={handlePopoverKeyDown}
@@ -985,16 +993,16 @@ export function WordPopover({
               // The Settings page is the only place a prompt can be raised.
               e.stopPropagation();
               releaseFocus(e);
-              void chrome.runtime.sendMessage({
-                type: 'OPEN_SETTINGS',
-                section: 'perm',
-              } as unknown as string).catch(() => {});
-              // Fall back to the tab URL when the SW cannot open it itself.
-              try {
-                window.open(chrome.runtime.getURL('src/options/index.html#perm'), '_blank');
-              } catch {
-                /* runtime may not be available in a content-script context */
-              }
+              // webext-bridge, not chrome.runtime.sendMessage: the SW only
+              // answers on the bridge (a raw message drops silently, which is
+              // how this strip went dead), and no window.open fallback — the
+              // options page is not web-accessible, so that call is blocked
+              // and would open a second tab once the bridge works.
+              void sendMessage(
+                'OPEN_SETTINGS',
+                { section: 'perm' },
+                'background',
+              ).catch(() => {});
             }}
             className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-[10px] font-medium text-amber-200 bg-amber-500/15 hover:bg-amber-500/20 border-t border-amber-500/25 transition-colors"
             title={resolved.needsAccess.map((n) => n.source).join(', ')}
