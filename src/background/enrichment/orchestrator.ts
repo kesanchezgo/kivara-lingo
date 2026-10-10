@@ -77,7 +77,22 @@ import { duckduckgoImagesSource } from './sources/duckduckgo-images';
 import { youglishSource } from './sources/youglish';
 import { etymonlineSource } from './sources/etymonline';
 import { wordnetSource } from './sources/wordnet';
-import { getDB } from '../../shared/db';
+import {
+  clearMemEnrichmentCache,
+  getEnrichmentCacheStats,
+  readEnrichmentCache,
+  writeEnrichmentCache,
+} from './cache';
+
+// Re-exported so cache-admin.ts and the SW keep importing the cache surface
+// from the orchestrator: a split must not ripple through every call site.
+export {
+  clearMemEnrichmentCache,
+  getEnrichmentCacheStats,
+  readEnrichmentCache,
+  writeEnrichmentCache,
+};
+export { clearEnrichmentCache } from './cache';
 import { translateText } from '../translate';
 
 /**
@@ -327,9 +342,51 @@ export async function runEnrichment(
   // sources and least essential while hovering); they run for the card.
   const skipImages = purpose === 'popover';
 
-  const cacheKey = makeCacheKey(token, ctx, opts.vip, purpose);
+  function makeCacheKey(
+  token: string,
+  ctx: EnrichmentContext,
+  vip: VipSettings,
+  purpose: 'popover' | 'card',
+): string {
+  // Tier is part of the key: a word looked up in Standard mode must NOT
+  // satisfy a later VIP lookup (the VIP result is a superset). Without
+  // this, flipping the VIP switch ON would keep serving the stale
+  // Standard-only payload from cache until the TTL expired.
+  // Purpose is also part of the key: the popover payload omits images, so
+  // it must not satisfy a card lookup (which needs them) and vice-versa.
+  const tier = vip.enabled ? 'vip' : 'std';
+  const sentence = (ctx.sentence ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+  return `${purpose}|${tier}|${activeSourceSignature(vip)}|${ctx.sourceLang}|${ctx.targetLang}|${token.trim().toLowerCase()}|${sentence}`;
+}
+
+/**
+ * Include the source selection in the cache identity. Previously the key
+ * carried only the master tier, so toggling an individual provider still
+ * served a result made with the old provider set until the TTL expired.
+ * Keep credentials out of the key; only their presence affects which
+ * public endpoint can answer.
+ */
+function activeSourceSignature(vip: VipSettings): string {
+  const enabled = Object.entries(VIP_SOURCES)
+    .filter(([flag, source]) => {
+      if (!source) return false;
+      const key = flag as keyof VipSettings;
+      return STANDARD_SOURCE_KEYS.has(key)
+        ? vip[key] === true
+        : vip.enabled && vip[key] === true;
+    })
+    .map(([flag]) => flag);
+  enabled.push(`cambridgeAudio:${vip.cambridgeAudio ? '1' : '0'}`);
+  enabled.push(`oxfordAudio:${vip.oxfordAudio ? '1' : '0'}`);
+  enabled.push(`timeout:${vip.perSourceTimeoutMs}`);
+  enabled.push(`unsplashKey:${vip.unsplashAccessKey ? '1' : '0'}`);
+  enabled.push(`pixabayKey:${vip.pixabayApiKey ? '1' : '0'}`);
+  return enabled.join(',');
+}
+
+const cacheKey = makeCacheKey(token, ctx, opts.vip, purpose);
   if (!opts.bypassCache) {
-    const cached = await readCache(cacheKey, opts.vip.cacheTtlDays ?? 14);
+    const cached = await readEnrichmentCache(cacheKey, opts.vip.cacheTtlDays ?? 14);
     if (cached) return cached;
   }
 
@@ -477,7 +534,7 @@ export async function runEnrichment(
   }
 
   // Best-effort cache write — never let a write failure surface.
-  void writeCache(cacheKey, result).catch(() => {});
+  void writeEnrichmentCache(cacheKey, result).catch(() => {});
   return result;
 }
 
@@ -3286,278 +3343,3 @@ function mergeFields(
   return { entry, vip };
 }
 
-/* ─── Cache (in-memory LRU + IndexedDB via Dexie) ─────────────────────── */
-
-interface CacheRow {
-  key: string;
-  payload: EnrichmentResult;
-  storedAt: number;
-}
-
-/**
- * In-memory LRU sitting in front of the IndexedDB cache. The service
- * worker keeps recently-resolved entries hot so a re-hover on the same
- * word (the common case while reading subtitles — the user re-checks a
- * word seconds later) returns in ~0 ms with no IndexedDB round-trip and
- * no `await` at all.
- *
- * Bounded so a long session can't grow it unboundedly; the SW also tears
- * the whole Map down whenever it's evicted (~30 s-5 min idle), and the
- * persistent IndexedDB layer survives that to repopulate it. TTL is
- * enforced on read so a stale hot entry never outlives the configured
- * cache window.
- */
-const MEM_CACHE_MAX = 300;
-const memCache = new Map<string, CacheRow>();
-
-function memGet(key: string, ttlDays: number): EnrichmentResult | null {
-  const row = memCache.get(key);
-  if (!row) return null;
-  const ageMs = Date.now() - (row.storedAt ?? 0);
-  if (ageMs > ttlDays * 24 * 3600 * 1000) {
-    memCache.delete(key);
-    return null;
-  }
-  // Same rule as the IndexedDB branch: a payload written while sources were
-  // still waiting for access must not satisfy a lookup after the grant lands.
-  // Keeping it in the hot layer is exactly what made the CTA look broken —
-  // the user grants, hovers the same word, and gets the same held-back row.
-  if (row.payload.needsAccess && row.payload.needsAccess.length > 0) {
-    memCache.delete(key);
-    return null;
-  }
-  // LRU bump: re-insert so it moves to the end (most-recently-used).
-  memCache.delete(key);
-  memCache.set(key, row);
-  return row.payload;
-}
-
-function memSet(key: string, payload: EnrichmentResult): void {
-  if (memCache.has(key)) memCache.delete(key);
-  memCache.set(key, { key, payload, storedAt: Date.now() });
-  // Evict the least-recently-used (first inserted) when over capacity.
-  if (memCache.size > MEM_CACHE_MAX) {
-    const oldest = memCache.keys().next().value;
-    if (oldest !== undefined) memCache.delete(oldest);
-  }
-}
-
-/** Clear the in-memory layer — called when the user wipes the cache so a
- *  freshly-emptied cache isn't shadowed by hot SW memory. */
-export function clearMemEnrichmentCache(): void {
-  memCache.clear();
-}
-
-function makeCacheKey(
-  token: string,
-  ctx: EnrichmentContext,
-  vip: VipSettings,
-  purpose: 'popover' | 'card',
-): string {
-  // Tier is part of the key: a word looked up in Standard mode must NOT
-  // satisfy a later VIP lookup (the VIP result is a superset). Without
-  // this, flipping the VIP switch ON would keep serving the stale
-  // Standard-only payload from cache until the TTL expired.
-  // Purpose is also part of the key: the popover payload omits images, so
-  // it must not satisfy a card lookup (which needs them) and vice-versa.
-  const tier = vip.enabled ? 'vip' : 'std';
-  const sentence = (ctx.sentence ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
-  return `${purpose}|${tier}|${activeSourceSignature(vip)}|${ctx.sourceLang}|${ctx.targetLang}|${token.trim().toLowerCase()}|${sentence}`;
-}
-
-/**
- * Include the source selection in the cache identity. Previously the key
- * carried only the master tier, so toggling an individual provider still
- * served a result made with the old provider set until the TTL expired.
- * Keep credentials out of the key; only their presence affects which
- * public endpoint can answer.
- */
-function activeSourceSignature(vip: VipSettings): string {
-  const enabled = Object.entries(VIP_SOURCES)
-    .filter(([flag, source]) => {
-      if (!source) return false;
-      const key = flag as keyof VipSettings;
-      return STANDARD_SOURCE_KEYS.has(key)
-        ? vip[key] === true
-        : vip.enabled && vip[key] === true;
-    })
-    .map(([flag]) => flag);
-  enabled.push(`cambridgeAudio:${vip.cambridgeAudio ? '1' : '0'}`);
-  enabled.push(`oxfordAudio:${vip.oxfordAudio ? '1' : '0'}`);
-  enabled.push(`timeout:${vip.perSourceTimeoutMs}`);
-  enabled.push(`unsplashKey:${vip.unsplashAccessKey ? '1' : '0'}`);
-  enabled.push(`pixabayKey:${vip.pixabayApiKey ? '1' : '0'}`);
-  return enabled.join(',');
-}
-
-async function readCache(key: string, ttlDays: number): Promise<EnrichmentResult | null> {
-  // 1. Hot in-memory layer first — instant, no await, no IndexedDB hop.
-  const hot = memGet(key, ttlDays);
-  if (hot) return hot;
-  // 2. Persistent IndexedDB layer.
-  try {
-    const db = getDB();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const row = (await (db as any).vip_cache?.get(key)) as CacheRow | undefined;
-    if (!row) return null;
-    const ageMs = Date.now() - (row.storedAt ?? 0);
-    if (ageMs > ttlDays * 24 * 3600 * 1000) return null;
-    // A cached answer that still lists sources waiting for access is treated
-    // as a miss: the grant may have arrived since the row was written, and
-    // the payload would keep reporting them missing for the whole TTL.
-    const stale = (row.payload as EnrichmentResult)?.needsAccess ?? [];
-    if (stale.length > 0) {
-      await clearCachedEntry(key);
-      return null;
-    }
-    // Warm the in-memory layer so the next re-hover is instant.
-    memSet(key, row.payload);
-    return row.payload;
-  } catch {
-    return null;
-  }
-}
-
-async function clearCachedEntry(key: string): Promise<void> {
-  try {
-    const db = getDB();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any).vip_cache?.delete(key);
-  } catch {
-    // ignore — a stale row is recoverable
-  }
-}
-
-async function writeCache(key: string, payload: EnrichmentResult): Promise<void> {
-  // An answer that still has sources waiting for access must NOT be cached in
-  // either layer: the cache key does not include the granted origins, so a
-  // stored row would keep hiding those sources AFTER the user grants them —
-  // for the whole TTL in IndexedDB, and for the rest of the SW's life in the
-  // hot layer. Early return BEFORE memSet is what makes it hold.
-  if (payload.needsAccess && payload.needsAccess.length > 0) return;
-  // Populate the hot layer synchronously so an immediate re-hover hits it.
-  memSet(key, payload);
-  try {
-    const db = getDB();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any).vip_cache?.put({ key, payload, storedAt: Date.now() });
-    void pruneVipCache();
-  } catch {
-    // ignore — cache misses are recoverable.
-  }
-}
-
-/**
- * Keep `vip_cache` bounded.
- *
- * The table is a word→enrichment cache keyed by lookup key, so it grows for as
- * long as the user browses: every `TOKEN|langs|flags` combination gets a row
- * that never expires on its own. Readers treat rows past the TTL as a miss, so
- * the obvious cost was silently paying for entries nobody would ever read
- * again — a slow memory leak in the extension's own database.
- *
- * Two passes, both cheap against the `storedAt` index:
- *   1. drop entries older than the TTL (they are unreadable by definition);
- *   2. if the table is still above MAX_VIP_CACHE_ROWS, drop the oldest until
- *      it is a simple MRU cache for the words the user actually looks at.
- *
- * Runs on write rather than on an alarm so the cost lands on the request that
- * grows the table, and at most once every PRUNE_INTERVAL_MS so a burst of
- * hovers does not trigger a scan per word.
- */
-const MAX_VIP_CACHE_ROWS = 2000;
-const PRUNE_INTERVAL_MS = 5 * 60 * 1000;
-/** Same TTL the readers apply, so expired rows are actually unreachable. */
-const DEFAULT_VIP_CACHE_TTL_DAYS = 30;
-let lastVipPruneAt = 0;
-
-async function pruneVipCache(): Promise<void> {
-  const now = Date.now();
-  if (now - lastVipPruneAt < PRUNE_INTERVAL_MS) return;
-  lastVipPruneAt = now;
-  try {
-    const db = getDB();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const table = ((db as any).vip_cache ?? null) as
-      | {
-          where(index: string): { below(threshold: number): { delete(): Promise<number> } };
-          orderBy(index: string): {
-            reverse(): { offset(n: number): { primaryKeys(): Promise<string[]> } };
-          };
-          count(): Promise<number>;
-          bulkDelete(keys: string[]): Promise<void>;
-          toArray(): Promise<CacheRow[]>;
-        }
-      | null;
-    if (!table) return;
-    // Rows written before `storedAt` existed are invisible to the index, so
-    // the two index passes below never touch them: they accumulate without
-    // bound AND inflate `count()`, making the row ceiling wrong by exactly
-    // their number. This is a scan — the necessary price for rows the index
-    // cannot reach, paid at most every PRUNE_INTERVAL_MS and over a table that
-    // rarely exceeds a few hundred rows.
-    const rows = await table.toArray().catch(() => [] as CacheRow[]);
-    const orphans = rows.filter((r) => !r.storedAt).map((r) => r.key);
-    if (orphans.length > 0) await table.bulkDelete(orphans);
-
-    const ttlMs = DEFAULT_VIP_CACHE_TTL_DAYS * 24 * 3600 * 1000;
-    await table.where('storedAt').below(now - ttlMs).delete();
-
-    // Count AFTER the orphans and the expired rows are gone, so the ceiling
-    // describes real rows.
-    const remaining = await table.count().catch(() => 0);
-    if (remaining > MAX_VIP_CACHE_ROWS) {
-      const staleKeys = await table
-        .orderBy('storedAt')
-        .reverse()
-        .offset(MAX_VIP_CACHE_ROWS)
-        .primaryKeys();
-      if (staleKeys.length > 0) await table.bulkDelete(staleKeys);
-    }
-  } catch {
-    // A cache that will not prune is still a cache; never fail the hover on it.
-  }
-}
-
-/* ─── Cache management (exposed to the side-panel via the SW) ──────────── */
-
-/**
- * Count of cached enrichment rows + an approximate byte size. Cheap
- * enough to call on panel open (one full-table scan of a table that
- * rarely exceeds a few hundred rows).
- */
-export async function getEnrichmentCacheStats(): Promise<{ count: number; bytes: number }> {
-  try {
-    const db = getDB();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rows = (await (db as any).vip_cache?.toArray()) as CacheRow[] | undefined;
-    if (!rows || !rows.length) return { count: 0, bytes: 0 };
-    let bytes = 0;
-    for (const r of rows) {
-      // Approximate: the JSON length of the payload + key. Good enough
-      // for a human-readable "~X KB" display.
-      try {
-        bytes += r.key.length + JSON.stringify(r.payload).length;
-      } catch {
-        // skip rows that won't serialise
-      }
-    }
-    return { count: rows.length, bytes };
-  } catch {
-    return { count: 0, bytes: 0 };
-  }
-}
-
-/** Wipe every cached enrichment row. Returns how many were removed. */
-export async function clearEnrichmentCache(): Promise<number> {
-  try {
-    const db = getDB();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const count = (await (db as any).vip_cache?.count()) as number | undefined;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any).vip_cache?.clear();
-    return count ?? 0;
-  } catch {
-    return 0;
-  }
-}
