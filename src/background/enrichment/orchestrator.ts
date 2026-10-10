@@ -33,7 +33,7 @@ import type {
   SenseRelationGroup,
   SourcePartial,
 } from './types';
-import { grantedOriginList, originCovered, permissionsApiAvailable } from '../../shared/host-permissions';
+import { gateSources } from './permissions-gate';
 import { providerHosts } from '../../shared/provider-hosts';
 
 import { freeDictionarySource } from './sources/free-dictionary';
@@ -153,57 +153,10 @@ function getStandardSources(vip: VipSettings): EnrichmentSource[] {
 }
 
 /**
- * VIP-tier sources, keyed by their `VipSettings` flag. The
- * orchestrator runs only the ones whose flag is `true`.
+ * VIP-tier sources, keyed by their `VipSettings` flag. The orchestrator runs
+ * only the ones whose flag is `true`. Which permission group each source needs
+ * lives in `permissions-gate.ts` next to the gate that applies it.
  */
-/**
- * Source id → the permission group its requests need.
- *
- * Sources with no network reach (bundled dictionaries, Yomitan packs, the
- * phonetics/audio built-ins) are absent on purpose: they must run even with
- * every optional origin revoked.
- */
-const SOURCE_PERMISSION_GROUP: Record<string, string> = {
-  freeDictionary: 'dict:dictionaryapi',
-  datamuse: 'dict:datamuse',
-  wiktionary: 'dict:wiktionary',
-  wiktionaryHtml: 'dict:wiktionary',
-  wiktionaryApi: 'dict:wiktionary',
-  wiktApi: 'dict:wiktionary',
-  mobyThesaurus: 'dict:moby',
-  thesaurusCom: 'dict:thesauruscom',
-  wordHippo: 'dict:wordhippo',
-  theIdioms: 'dict:theidioms',
-  britannicaDictionary: 'dict:britannica',
-  cambridge: 'dict:cambridge',
-  oxfordLearners: 'dict:oxford',
-  longman: 'dict:oxford',
-  collins: 'dict:dictionarycom',
-  merriamWebster: 'dict:merriam',
-  merriamWebsterThesaurus: 'dict:merriam',
-  ozdic: 'dict:ozdic',
-  pons: 'dict:pons',
-  babla: 'dict:babla',
-  dictCc: 'dict:dictcc',
-  reverso: 'dict:reverso',
-  linguee: 'dict:linguee',
-  promtContext: 'dict:promt',
-  wordReference: 'dict:wordreference',
-  spanishDict: 'dict:spanishdict',
-  tatoeba: 'dict:tatoeba',
-  etymonline: 'dict:etymonline',
-  forvo: 'audio:forvo',
-  linguaLibre: 'vip:lingualibre',
-  googleTtsFallback: 'tts:google',
-  unsplash: 'vip:unsplash',
-  pixabay: 'vip:pixabay',
-  bingImages: 'vip:bing',
-  duckduckgoImages: 'vip:ddg',
-  openverse: 'vip:openverse',
-  wikimediaCommons: 'vip:wikimedia',
-  youglish: 'video:youglish',
-};
-
 const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   enabled: null,
   perSourceTimeoutMs: null,
@@ -412,45 +365,12 @@ export async function runEnrichment(
     active = active.filter((s) => !IMAGE_SOURCE_KEYS.has(s.id as keyof VipSettings));
   }
 
-  // OPTIONAL HOST PERMISSIONS.
-  //
-  // The dictionary hosts live in `optional_host_permissions` (a manifest with
-  // 96 granted hosts reads as a data-collection extension to Web Store review),
-  // so a source whose network access was never granted would start failing with
-  // unreadable CORS noise. That is the one thing worse than a slow failure:
-  // the user sees an empty popover with no idea why. Rather than fire those
-  // requests, we check first and report WHAT needs granting so the UI can show
-  // a CTA and the runtime can skip cleanly.
-  //
-  // Failing closed is deliberate: a dictionary the user cannot reach is not a
-  // source at all, and its "error" in the UI is a lie.
-  const permissionBlocked: Array<{ source: string; group: string }> = [];
-  const reachable: EnrichmentSource[] = [];
-  if (!permissionsApiAvailable()) {
-    // Not an extension context (unit tests, plain pages): nothing to gate.
-    reachable.push(...active);
-  } else {
-    // One permission LISTING per lookup, not one per source: a fresh install
-    // with ~20 sources used to make ~20 `getAll()` calls in series before the
-    // first network request even started.
-    const grantedList = await grantedOriginList();
-    for (const source of active) {
-      const group = SOURCE_PERMISSION_GROUP[source.id];
-      const origins = group ? providerHosts(group) : [];
-      const missing = origins.filter((o) => !originCovered(o, grantedList));
-      if (missing.length > 0) {
-        // Chrome does not auto-cover the apex: granting
-        // `https://*.dictionary.cambridge.org/*` leaves
-        // `https://dictionary.cambridge.org/*` missing and vice versa, which is
-        // why provider-hosts lists BOTH for every group and `requestHosts` asks
-        // for the whole list in one prompt.
-        permissionBlocked.push({ source: source.id, group: group ?? 'dict' });
-        continue;
-      }
-      reachable.push(source);
-    }
-  }
-  active = reachable;
+  // OPTIONAL HOST PERMISSIONS — see permissions-gate.ts, which owns the listing
+  // (one per lookup, not one per source), the match-pattern comparison and the
+  // report the popover turns into its grant CTA.
+  const gate = await gateSources(active);
+  active = gate.reachable;
+  const permissionBlocked = gate.needsAccess;
 
   // Fan out.
   const settled = await Promise.allSettled(

@@ -23,14 +23,13 @@ const SRC = join(__dirname, '..', '..', 'src');
  * the same alternation as the closing one: both of those shapes are what made
  * an earlier version blind to `import('vitest')`, where the `import(` prefix
  * swallowed the quote that the closing branch then required again.
- */
-/**
- * `vi.mock('vitest')` is the remaining pull-in form: a mocked import never
- * says `from`, so the prefix alternation was extended with it, and the
- * sub-path `vitest/...` too.
+ *
+ * There is deliberately NO `vitest-*` branch: `vitest-mock` is a real package
+ * shape that is not this framework, and the second alternative is what made the
+ * one-dash negative look random (it only passed because it doubled the dash).
  */
 const VITEST_IMPORT =
-  /(?:from|import\s*\(?|require\s*\(|\.mock\s*\()\s*["']@?vitest(?:\/[^"']*)?["']|from\s+["']vitest(?:-[a-z]+)?["']/;
+  /(?:from|import\s*\(?|require\s*\(|vi\.mock\()\s*["'](?:@vitest|vitest)(?:\/[^"']*)?["']/;
 
 describe('the vitest-import regex itself', () => {
   it('matches every way a package gets pulled in', () => {
@@ -55,38 +54,44 @@ describe('the vitest-import regex itself', () => {
       "const toolName = 'vitest-runner';",
       "const word = 'notvitestInQuotes';",
       "from './vitest-helper';",
-      'from \'vitest-library-shim\';',
+      "from 'vitest-library-shim';",
+      "from 'vitest-mock';",
       "const x = 'from' + ' ' + 'vitest-noop';",
     ]) {
       expect(VITEST_IMPORT.test(source), source).toBe(false);
     }
   });
 
-  it('a commented-out import is only ignored once comment lines are stripped', () => {
+  it('a commented-out `//` import is ignored', () => {
+    // Stale `//` comments are exactly what removing an import leaves behind.
     const commented = "// it used to import { describe } from 'vitest'";
     expect(VITEST_IMPORT.test(commented)).toBe(true);
-    // …which is exactly why the per-file scan strips comment lines before
-    // asking: a stale commented import IS what gets left behind after one is
-    // removed, and it must not trip the guard.
     expect(VITEST_IMPORT.test(stripComments(commented))).toBe(false);
   });
 
+  it('a block comment on the same line as a real import does NOT hide it', () => {
+    // A guard erring towards silence hides real bugs; erring towards noise
+    // costs one review comment. Block comments are therefore not stripped, so
+    // `/* x */ import … from 'vitest'` is still a hit.
+    const source = "/* placeholder */ import { x } from 'vitest';";
+    expect(stripComments(source)).toBe(source);
+    expect(VITEST_IMPORT.test(stripComments(source))).toBe(true);
+  });
+
   it('stripping leaves a glob inside a string alone', () => {
-    // Only a block STARTING at column 0 is removed: a `/**/` inside a string
-    // would otherwise eat through to the next closing and hide a real import.
     const withGlob = "const glob = 'src/**/*.ts';";
     expect(stripComments(withGlob)).toContain('src/**/*.ts');
   });
 });
 
 /**
- * Remove comment lines only, and only SAFE ones: a block that starts at the
- * beginning of a line (the shape a removed import leaves behind after being
- * commented out) and whole `//` lines. Nothing else — over-eager stripping is
- * exactly how a real import gets hidden from the guard.
+ * Remove WHOLE `//` comment lines only. Block comments are deliberately left
+ * in place: a stray `/*` inside a string would otherwise eat everything up to
+ * the next close and hide a real import, and a false positive on a commented
+ * block costs a review comment rather than a missed violation.
  */
 function stripComments(text: string): string {
-  return text.replace(/^\/\*[\s\S]*?\*\/$/gm, '\n').replace(/^[ \t]*\/\/.*$/gm, '');
+  return text.replace(/^[ \t]*\/\/.*$/gm, '');
 }
 
 function walk(dir: string): string[] {

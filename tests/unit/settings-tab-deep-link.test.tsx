@@ -82,6 +82,21 @@ describe('Settings accordions under a deep link', () => {
     document.body.textContent = '';
   });
 
+  it('points its control at its panel (aria-expanded == aria-controls wiring)', async () => {
+    const { SettingsTab } = await import('../../src/app/components/tabs/SettingsTab');
+    await act(async () => {
+      render(<SettingsTab initialSection="perm" initialNonce={1} />);
+    });
+    const header = Array.from(document.querySelectorAll('button[aria-expanded]')).find((b) =>
+      b.textContent?.toUpperCase().includes('ACCESO A SITIOS'),
+    );
+    const controls = header?.getAttribute('aria-controls');
+    expect(controls).toBeTruthy();
+    // The id the deep link scrolls to is the id its control points at, or there
+    // would be no relationship between the two halves of the feature.
+    expect(document.getElementById(controls!)).not.toBeNull();
+  });
+
   it('expands the section it is opened with', async () => {
     const { SettingsTab } = await import('../../src/app/components/tabs/SettingsTab');
     await act(async () => {
@@ -92,7 +107,10 @@ describe('Settings accordions under a deep link', () => {
 
   it('a DIFFERENT section replaces the old one while the tab stays mounted', async () => {
     const { SettingsTab } = await import('../../src/app/components/tabs/SettingsTab');
-    const tree = render(<SettingsTab initialSection="perm" initialNonce={1} />);
+    let tree!: ReturnType<typeof render>;
+    await act(async () => {
+      tree = render(<SettingsTab initialSection="perm" initialNonce={1} />);
+    });
     expect(permOpen()).toBe(true);
 
     // The regression this pins: without the `setDeepLinkSection` in the nonce
@@ -107,7 +125,10 @@ describe('Settings accordions under a deep link', () => {
 
   it('the SAME section repeated stays open (a repeat is not a collapse)', async () => {
     const { SettingsTab } = await import('../../src/app/components/tabs/SettingsTab');
-    const tree = render(<SettingsTab initialSection="perm" initialNonce={1} />);
+    let tree!: ReturnType<typeof render>;
+    await act(async () => {
+      tree = render(<SettingsTab initialSection="perm" initialNonce={1} />);
+    });
     expect(permOpen()).toBe(true);
 
     await act(async () => {
@@ -118,9 +139,14 @@ describe('Settings accordions under a deep link', () => {
 
   it('an unchanged nonce is not an event (the accordion stays as the user left it)', async () => {
     const { SettingsTab } = await import('../../src/app/components/tabs/SettingsTab');
-    const tree = render(<SettingsTab initialSection="perm" initialNonce={1} />);
+    let tree!: ReturnType<typeof render>;
+    await act(async () => {
+      tree = render(<SettingsTab initialSection="perm" initialNonce={1} />);
+    });
     expect(permOpen()).toBe(true);
-    const header = screen.getByRole('button', { expanded: true });
+    const header = Array.from(document.querySelectorAll('button[aria-expanded]')).find((b) =>
+      b.textContent?.toUpperCase().includes('ACCESO A SITIOS'),
+    );
     await act(async () => header.click());
     expect(permOpen()).toBe(false);
 

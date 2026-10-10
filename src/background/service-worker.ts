@@ -189,13 +189,24 @@ void chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 }).catch(() => {});
  * left the hot layer answering with the pre-grant payload for the rest of the
  * service worker's life, which is the case a user actually hits: they grant,
  * hover the SAME word again, and see the SAME "held back" strip.
+ *
+ * Registered from TOP-LEVEL SYNCHRONOUS code on purpose. A service worker can
+ * be killed at any await point, and this is the one listener whose only job is
+ * to close a window that opens and closes within one instant — the gap between
+ * `chrome.permissions.request()` resolving and the next hover. If registration
+ * sinks behind an await (a controller module that awaits anything before
+ * calling this, an async IIFE), that window is open and the CTA looks broken.
+ * The wiring lives in `permissions-gate.ts` next to the gate it invalidates.
  */
-if (chrome.permissions?.onAdded) {
+function registerPermissionInvalidation(): void {
+  if (!chrome.permissions?.onAdded) return;
   chrome.permissions.onAdded.addListener(() => {
     clearMemEnrichmentCache();
     void clearEnrichmentCache().catch(() => {});
   });
 }
+
+registerPermissionInvalidation();
 
 async function loadMapping(): Promise<AnkiMapping> {
   try {
