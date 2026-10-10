@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { t } from '../../shared/i18n';
 import { KeyRound, ShieldCheck } from 'lucide-react';
-import { useGrantedOrigins, refreshHostPermissions } from '../../shared/host-permissions-store';
+import { useGrantedOrigins, refreshHostPermissions, hasOrigin } from '../../shared/host-permissions-store';
 import { requestHosts, revokeHosts, ensureProviderHosts } from '../../shared/host-permissions';
 import { providerHosts } from '../../shared/provider-hosts';
 
@@ -100,7 +100,7 @@ export function HostPermissionsRow() {
     <div className="space-y-2">
       {GROUPS.map((group) => {
         const own = originsFor(group.providers);
-        const have = own.filter((o) => granted.includes(o)).length;
+        const have = own.filter((o) => granted.includes(o) || hasOrigin(o)).length;
         const complete = have === own.length;
         return (
           <div

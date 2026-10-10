@@ -135,6 +135,13 @@ export interface EnrichmentResult {
   /** Sources that errored — surfaced in the popover footer for the
    *  user so they can flip them off if the noise is unbearable. */
   failedSources: Array<{ source: string; error: string }>;
+  /**
+   * Sources that were NOT CALLED because their network access has not been
+   * granted (`optional_host_permissions`). Never returned as "failed": there
+   * is a CTA for this in the UI, and pretending it is an error hides the only
+   * actionable thing the user can do.
+   */
+  needsAccess?: Array<{ source: string; group: string }>;
 }
 
 /**

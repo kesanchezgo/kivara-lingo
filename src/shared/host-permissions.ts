@@ -20,23 +20,28 @@
 import { providerHosts } from './provider-hosts';
 import { refreshHostPermissions } from './host-permissions-store';
 
-/** Chrome match-pattern semantics: `scheme://host/path`, with `*` allowed in
- * the scheme and in the host (`*` = any, `*.example.com` = any subdomain but
- * not the apex). */
 function matchesPattern(pattern: string, origin: string): boolean {
   const [scheme, rest] = pattern.split('://');
-  const [patternHost, patternPath] = (rest ?? '').split('/');
-  const [host, path] = (origin.split('://')[1] ?? '').split('/');
+  const slashAt = (rest ?? '').indexOf('/');
+  const patternHost = slashAt < 0 ? rest : rest.slice(0, slashAt);
+  const patternPath = slashAt < 0 ? '*' : rest.slice(slashAt + 1);
+  const target = origin.split('://')[1] ?? '';
+  const host = target.split('/')[0];
+  const path = target.split('/').slice(1).join('/');
   if (scheme !== '*' && scheme !== origin.split('://')[0]) return false;
   if (patternHost === '*') return true;
   if (patternHost.startsWith('*.')) {
+    // `*.example.com` matches any subdomain AND the apex, which is how chrome's
+    // own matcher treats the syntactically generous form.
     const suffix = patternHost.slice(1); // ".example.com"
-    if (!host.endsWith(suffix) || host.length === suffix.length - 1) return false;
+    const bare = patternHost.slice(2); // "example.com"
+    if (host !== bare && !host.endsWith(suffix)) return false;
   } else if (patternHost !== host) {
     return false;
   }
-  // Path: chrome requires `*` in the pattern's path to match anything.
-  return !patternPath || path === patternPath || patternPath === '*';
+  // Path: an explicit path matches only itself or by prefix on '/'.
+  if (!patternPath || patternPath === '*') return true;
+  return path === patternPath || path.startsWith(`${patternPath}/`);
 }
 
 /** Is `origin` covered by any of the granted patterns? */

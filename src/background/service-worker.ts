@@ -943,6 +943,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           runtimeId: chrome.runtime.id,
           url,
         });
+        // Cancellable: the panel can abandon an install, and a pack that is
+        // taking longer than the timeout still needs a deadline.
+        const abort = new AbortController();
+        const downloadSignal = abort.signal;
+        const downloadTimer = setTimeout(() => abort.abort(), DICT_PACK_TIMEOUT_MS);
+        const stopDownloadTimer = () => clearTimeout(downloadTimer);
         if (reject) {
           reportProgress({ stage: 'error', error: reject });
           sendResponse({ ok: false, error: reject });
@@ -951,10 +957,23 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         reportProgress({ stage: 'downloading', received: 0, total: 0 });
 
         // Streaming download with progress so the side-panel can render
-        // a real ratio while the bytes come in. `fetchGuarded` walks the
-        // redirect chain itself and refuses any hop that leaves the public
-        // internet — `redirect: 'follow'` would let a 302 to loopback through.
-        const res = await fetchGuarded(url, { timeoutMs: DICT_PACK_TIMEOUT_MS });
+        // a real ratio while the bytes come in. Redirects are FOLLOWED (an
+        // opaque 'manual' response cannot be read at all — see net-guard) and
+        // the DESTINATION is validated once they have resolved, so a 302 that
+        // lands on loopback/LAN is refused before any byte is read.
+        const { response: res, done: downloadDone } = await fetchGuarded(url, {
+          timeoutMs: DICT_PACK_TIMEOUT_MS,
+          signal: downloadSignal,
+        });
+        const finishDownload = () => {
+          stopDownloadTimer();
+          try {
+            downloadDone();
+          } catch {
+            /* already disarmed */
+          }
+        };
+        try {
         if (!res.ok) {
           sendResponse({ ok: false, error: `HTTP ${res.status} ${res.statusText}` });
           return;
@@ -1025,6 +1044,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         );
         if (result.ok) void broadcastDictPacksChanged();
         sendResponse(result);
+        } finally {
+          finishDownload();
+        }
       } catch (err) {
         const errorMessage = (err as Error).message ?? String(err);
         reportProgress({ stage: 'error', error: errorMessage });

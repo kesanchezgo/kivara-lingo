@@ -277,7 +277,13 @@ export function SettingsTab() {
             <Row label="Proveedor">
               <select
                 value={translate.provider}
-                onChange={(e) => setTranslate({ ...translate, provider: e.target.value as TranslateProvider })}
+                onChange={(e) => {
+                  const provider = e.target.value as TranslateProvider;
+                  setTranslate({ ...translate, provider });
+                  // Optional host permission, from inside the click (the only
+                  // place chrome will show a prompt).
+                  void ensureProviderHosts(`translate:${provider}`);
+                }}
                 className="sl-select w-full"
               >
                 <option value="offline">Offline (diccionario local)</option>
@@ -420,7 +426,12 @@ export function SettingsTab() {
           <Row label="Proveedor">
             <select
               value={tts.provider}
-              onChange={(e) => setTts({ ...tts, provider: e.target.value as PremiumTtsProvider })}
+              onChange={(e) => {
+                const provider = e.target.value as PremiumTtsProvider;
+                setTts({ ...tts, provider });
+                // Optional host permission, asked inside the click.
+                void ensureProviderHosts(`tts:${provider}`);
+              }}
               className="sl-select w-full"
             >
               <option value="auto">Auto (ElevenLabs ▸ OpenAI ▸ template)</option>

@@ -62,50 +62,50 @@ export async function fetchWithTimeout(
   if (opts.signal?.aborted) ctrl.abort();
   else opts.signal?.addEventListener('abort', onOuterAbort, { once: true });
   const startedAt = performance.now();
+  const allowHttp = /^http:/i.test(url);
   try {
-    // `redirect: 'follow'` is NOT used here: a scraper URL that answers
-    // 302 → http://127.0.0.1/… (or the metadata endpoint) would be honoured
-    // by the network stack before this code could look at the response. Every
-    // hop is validated with assertPublicHttpUrl instead.
-    const allowHttp = /^http:/i.test(url);
-    let target = url;
-    for (let hop = 0; hop < 5; hop += 1) {
-      const candidate = assertPublicHttpUrl(target, { allowHttp });
-      const res = await fetch(candidate.toString(), {
-        method: 'GET',
-        credentials: opts.credentials ?? 'omit',
-        cache: 'no-store',
-        redirect: 'manual',
-        headers: {
-          'User-Agent': DEFAULT_USER_AGENT,
-          Accept:
-            'text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.9,*/*;q=0.5',
-          'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
-          ...(opts.headers ?? {}),
-        },
-        signal: ctrl.signal,
-      });
-      if (res.status >= 300 && res.status < 400) {
-        const location = res.headers.get('location');
-        if (!location) return null;
-        target = new URL(location, candidate.toString()).toString();
-        continue;
-      }
-      logFetchDiagnostic('response', {
-        url: target,
-        finalUrl: res.url,
-        status: res.status,
-        ok: res.ok,
-        redirected: res.redirected,
-        contentType: res.headers.get('content-type'),
-        contentLength: res.headers.get('content-length'),
-        elapsedMs: Math.round(performance.now() - startedAt),
-      });
+    // Redirects are FOLLOWED. Handling them by hand with `redirect:'manual'`
+    // is not possible from a service worker: that mode returns an opaque
+    // redirect (status 0, no headers), so `Location` cannot be read and every
+    // legitimate hop — http→https upgrade, a www prefix, a CDN, Wikimedia
+    // `Special:FilePath`, GitHub releases → codeload — dies with "HTTP 0".
+    //
+    // The guard therefore checks where the request ENDED UP: `res.url` is the
+    // final URL after every hop, and a response from a loopback / LAN /
+    // metadata address is dropped before the caller can read it.
+    const res = await fetch(url, {
+      method: 'GET',
+      credentials: opts.credentials ?? 'omit',
+      cache: 'no-store',
+      redirect: 'follow',
+      headers: {
+        'User-Agent': DEFAULT_USER_AGENT,
+        Accept:
+          'text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.9,*/*;q=0.5',
+        'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
+        ...(opts.headers ?? {}),
+      },
+      signal: ctrl.signal,
+    });
+    if (res.ok && res.url && res.url !== url && !isPublicHttpUrlSync(res.url, allowHttp)) {
+      logFetchDiagnostic('blocked-destination', { url, finalUrl: res.url });
+      await res.body?.cancel().catch(() => {});
       opts.onResponse?.(res);
-      if (!res.ok) return null;
-      return res;
+      return null;
     }
-    return null;
+    logFetchDiagnostic('response', {
+      url,
+      finalUrl: res.url,
+      status: res.status,
+      ok: res.ok,
+      redirected: res.redirected,
+      contentType: res.headers.get('content-type'),
+      contentLength: res.headers.get('content-length'),
+      elapsedMs: Math.round(performance.now() - startedAt),
+    });
+    opts.onResponse?.(res);
+    if (!res.ok) return null;
+    return res;
   } catch (error) {
     logFetchDiagnostic('error', {
       url,
@@ -117,6 +117,15 @@ export async function fetchWithTimeout(
   } finally {
     clearTimeout(timer);
     opts.signal?.removeEventListener('abort', onOuterAbort);
+  }
+}
+
+function isPublicHttpUrlSync(url: string, allowHttp = false): boolean {
+  try {
+    assertPublicHttpUrl(url, { allowHttp });
+    return true;
+  } catch {
+    return false;
   }
 }
 

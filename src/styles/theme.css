@@ -439,6 +439,20 @@
 }
 
 @layer utilities {
+  /**
+   * Popover entrance. This is NOT tailwindcss-animate (`animate-in fade-in
+   * zoom-in-95`): that package was removed as dead weight, leaving those
+   * classes as dangling no-ops that produced no animation at all. Same effect,
+   * declared here next to the other `sl-animate-*` utilities so the chain never
+   * breaks silently again.
+   */
+  .kvl-pop-in {
+    animation: kvl-pop-in 150ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes kvl-pop-in {
+    from { opacity: 0; transform: scale(0.95) translateY(4px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0); }
+  }
   .sl-animate-fade-up {
     animation: sl-fade-up 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }

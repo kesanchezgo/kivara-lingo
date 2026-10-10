@@ -143,73 +143,60 @@ describe('fetchBytesWithLimits', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it('refuses a redirect that lands on loopback (follow would reach it)', async () => {
-    // `redirect: 'follow'` is not used precisely because the network stack
-    // would honour this 302 and the SW's host permissions would carry it.
-    const wrapped = new Response(null, {
-      status: 302,
-      headers: { location: 'http://127.0.0.1:8765/' },
+  // Redirects are followed by the network stack, so the guard sees the RESPONSE
+  // for the FINAL url - `res.url`. A 302 whose Location points at a private
+  // host arrives here as a 200 for that host. (`redirect:'manual'` cannot be
+  // used at all from a service worker: Chromium answers an opaque redirect,
+  // status 0 with no headers, so no Location can be read - that is why the
+  // guard works on res.url.)
+  const followedTo = (finalUrl: string, body = 'body'): Response =>
+    Object.defineProperty(new Response(new TextEncoder().encode(body), { status: 200 }), 'url', {
+      value: finalUrl,
     });
-    vi.stubGlobal('fetch', vi.fn(async () => wrapped));
 
+  it('refuses a response whose redirect landed on loopback', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => followedTo('http://127.0.0.1:8765/')));
     await expect(
       fetchBytesWithLimits('https://cdn.example.com/a.bin', { timeoutMs: 1000 }),
     ).rejects.toThrow(UrlNotAllowedError);
   });
 
-  it('refuses a redirect to a private LAN address', async () => {
-    const wrapped = new Response(null, {
-      status: 302,
-      headers: { location: 'http://192.168.1.50/admin' },
-    });
-    vi.stubGlobal('fetch', vi.fn(async () => wrapped));
+  it('refuses a response whose redirect landed on a private LAN address', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => followedTo('http://192.168.1.50/admin')));
     await expect(
       fetchBytesWithLimits('https://cdn.example.com/a.bin', { timeoutMs: 1000 }),
     ).rejects.toThrow(UrlNotAllowedError);
   });
 
-  it('refuses a redirect to the cloud metadata endpoint', async () => {
-    const wrapped = new Response(null, {
-      status: 302,
-      headers: { location: 'http://169.254.169.254/latest/meta-data/' },
-    });
-    vi.stubGlobal('fetch', vi.fn(async () => wrapped));
-    await expect(
-      fetchBytesWithLimits('https://cdn.example.com/a.bin', { timeoutMs: 1000 }),
-    ).rejects.toThrow(UrlNotAllowedError);
-  });
-
-  it('walks a redirect to another PUBLIC host', async () => {
-    const calls: string[] = [];
+  it('refuses a response whose redirect landed on the metadata endpoint', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (url: string) => {
-        calls.push(url);
-        if (calls.length === 1) {
-          return new Response(null, {
-            status: 302,
-            headers: { location: '/mirrors/a.bin' },
-          });
-        }
-        return new Response(new TextEncoder().encode('mirrored'), { status: 200 });
-      }),
+      vi.fn(async () => followedTo('http://169.254.169.254/latest/meta-data/')),
     );
+    await expect(
+      fetchBytesWithLimits('https://cdn.example.com/a.bin', { timeoutMs: 1000 }),
+    ).rejects.toThrow(UrlNotAllowedError);
+  });
+
+  it('serves a public redirect-landed URL normally', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => followedTo('https://cdn2.example.com/mirrors/a.bin')));
     const out = await fetchBytesWithLimits('https://cdn.example.com/a.bin', { timeoutMs: 1000 });
-    expect(new TextDecoder().decode(out)).toBe('mirrored');
-    expect(calls).toEqual(['https://cdn.example.com/a.bin', 'https://cdn.example.com/mirrors/a.bin']);
+    expect(new TextDecoder().decode(out)).toBe('body');
   });
 
-  it('gives up after too many hops', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => new Response(null, { status: 302, headers: { location: '/next.bin' } })),
-    );
-    await expect(
-      fetchBytesWithLimits('https://cdn.example.com/a.bin', { timeoutMs: 1000 }),
-    ).rejects.toThrow(/redirecciones/);
+  it('falls back to the requested URL when the response hides its own', async () => {
+    // Test doubles (and any engine that does not disclose a final URL) come
+    // back with an empty `res.url`; the caller has already validated the URL
+    // it asked for, so that is what the guard uses.
+    const opaque = new Response(new TextEncoder().encode('body'), { status: 200 });
+    Object.defineProperty(opaque, 'url', { value: '' });
+    vi.stubGlobal('fetch', vi.fn(async () => opaque));
+    const out = await fetchBytesWithLimits('https://cdn.example.com/a.bin', { timeoutMs: 1000 });
+    expect(new TextDecoder().decode(out)).toBe('body');
   });
 
-  it('refuses a body bigger than the declared length', async () => {    const body = new Uint8Array(64);
+  it('refuses a body bigger than the declared length', async () => {
+    const body = new Uint8Array(64);
     vi.stubGlobal('fetch', vi.fn(async () => new Response(body, { status: 200 })));
     await expect(
       fetchBytesWithLimits('https://cdn.example.com/a.bin', { timeoutMs: 1000, maxBytes: 16 }),

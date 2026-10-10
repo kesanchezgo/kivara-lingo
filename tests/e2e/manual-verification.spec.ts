@@ -140,6 +140,13 @@ test('2 · Anki on a custom port, after the service worker went idle', async ({
     await setup.goto(`chrome-extension://${extensionId}/src/options/index.html`);
     await setup.evaluate(
       async ([key, port]) => {
+        // Test 1 of this suite breaks `chrome.storage.sync.set` on purpose.
+        // That patch is installed per PAGE, but the SW can carry the failed
+        // state into its own fallback paths — and an Anki URL that never
+        // landed means the ping goes to the default port and this test fails
+        // for the wrong reason. Writing through the store's own Setter first
+        // (once sync is healthy again) is not possible from there, so just
+        // assert the write landed before continuing.
         const found = await chrome.storage.sync.get(key);
         const raw = (found[key] as string) ?? JSON.stringify({ state: {}, version: 0 });
         const parsed = JSON.parse(raw) as { state?: Record<string, unknown> };
@@ -149,7 +156,19 @@ test('2 · Anki on a custom port, after the service worker went idle', async ({
           ankiUrl: `http://127.0.0.1:${Number(port)}`,
         };
         delete (parsed as Record<string, unknown>)._w;
-        await chrome.storage.sync.set({ [key]: JSON.stringify(parsed) });
+        // Re-write until it sticks: a still-broken sync would leave the app on
+        // the default port, which is exactly the regression this test guards.
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          await chrome.storage.sync
+            .set({ [key]: JSON.stringify(parsed) })
+            .catch(() => {});
+          const verify = await chrome.storage.sync.get(key).catch(() => ({}));
+          if (String((verify as Record<string, string>)[key] ?? '').includes(`127.0.0.1:${Number(port)}`)) {
+            return;
+          }
+          await new Promise((r) => setTimeout(r, 300));
+        }
+        throw new Error('could not persist the custom Anki port');
       },
       ['kivara-lingo-state', String(PORT)] as const,
     );

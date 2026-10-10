@@ -14,5 +14,14 @@
  * WASM ship inside `dist/`, flip it back on and the rest still applies.
  *
  * `KIVARA_WHISPER=1` at build time re-enables the Settings section.
+ *
+ * This is a BUILD-TIME constant, not a runtime `process.env` read: a plain
+ * `process.env.KIVARA_WHISPER` compiles into a live lookup of `process`, which
+ * does not exist in a bundled MV3 page and throws `ReferenceError` on import —
+ * so the panel would not open at all. `vite.config.ts` injects the boolean
+ * through `define`, which makes the flag literally `false` in the bundle and
+ * lets the bundler drop the dead branch.
  */
-export const WHISPER_BUILD: boolean = process.env.KIVARA_WHISPER === '1';
+declare const __KIVARA_WHISPER__: boolean;
+
+export const WHISPER_BUILD: boolean = __KIVARA_WHISPER__ === true;

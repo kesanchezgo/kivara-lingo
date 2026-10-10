@@ -42,12 +42,24 @@ export function getGrantedOrigins(): string[] {
 }
 
 export function hasOrigin(origin: string): boolean {
+  return isGranted(origin, granted);
+}
+
+function isGranted(origin: string, granted: string[]): boolean {
   if (granted.includes(origin)) return true;
   try {
-    const want = new URL(origin);
+    const want = new URL(origin.replace(/\*$/, 'x'));
     return granted.some((g) => {
       try {
-        return new URL(g).hostname === want.hostname;
+        const pattern = g.replace(/\*$/, 'x');
+        const host = pattern.split('://')[1]?.split('/')[0] ?? '';
+        if (host === '*') return true;
+        if (host.startsWith('*.')) {
+          return (
+            want.hostname === host.slice(2) || want.hostname.endsWith(host.slice(1))
+          );
+        }
+        return want.hostname === host;
       } catch {
         return false;
       }
@@ -56,8 +68,6 @@ export function hasOrigin(origin: string): boolean {
     return false;
   }
 }
-
-/** React hook mirroring the granted origin list. */
 export function useGrantedOrigins(): string[] {
   return useSyncExternalStore(subscribeHostPermissions, getGrantedOrigins, () => []);
 }

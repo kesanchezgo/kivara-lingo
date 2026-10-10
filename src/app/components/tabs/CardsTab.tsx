@@ -513,7 +513,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
 
         <div
           key={previewSide}
-          className="rounded-xl shadow-md overflow-hidden animate-in fade-in zoom-in-95 duration-150 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 p-3"
+          className="rounded-xl shadow-md overflow-hidden kvl-pop-in bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 p-3"
         >
           {previewSide === 'front' ? <FrontTemplate mockData={mockData} /> : <BackTemplate mockData={mockData} />}
         </div>

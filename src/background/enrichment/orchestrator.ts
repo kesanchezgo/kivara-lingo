@@ -33,6 +33,8 @@ import type {
   SenseRelationGroup,
   SourcePartial,
 } from './types';
+import { missingHosts } from '../../shared/host-permissions';
+import { providerHosts } from '../../shared/provider-hosts';
 
 import { freeDictionarySource } from './sources/free-dictionary';
 import { datamuseSource } from './sources/datamuse';
@@ -139,6 +141,54 @@ function getStandardSources(vip: VipSettings): EnrichmentSource[] {
  * VIP-tier sources, keyed by their `VipSettings` flag. The
  * orchestrator runs only the ones whose flag is `true`.
  */
+/**
+ * Source id → the permission group its requests need.
+ *
+ * Sources with no network reach (bundled dictionaries, Yomitan packs, the
+ * phonetics/audio built-ins) are absent on purpose: they must run even with
+ * every optional origin revoked.
+ */
+const SOURCE_PERMISSION_GROUP: Record<string, string> = {
+  freeDictionary: 'dict:dictionaryapi',
+  datamuse: 'dict:datamuse',
+  wiktionary: 'dict:wiktionary',
+  wiktionaryHtml: 'dict:wiktionary',
+  wiktionaryApi: 'dict:wiktionary',
+  wiktApi: 'dict:wiktionary',
+  mobyThesaurus: 'dict:moby',
+  thesaurusCom: 'dict:thesauruscom',
+  wordHippo: 'dict:wordhippo',
+  theIdioms: 'dict:theidioms',
+  britannicaDictionary: 'dict:britannica',
+  cambridge: 'dict:cambridge',
+  oxfordLearners: 'dict:oxford',
+  longman: 'dict:oxford',
+  collins: 'dict:dictionarycom',
+  merriamWebster: 'dict:merriam',
+  merriamWebsterThesaurus: 'dict:merriam',
+  ozdic: 'dict:ozdic',
+  pons: 'dict:pons',
+  babla: 'dict:babla',
+  dictCc: 'dict:dictcc',
+  reverso: 'dict:reverso',
+  linguee: 'dict:linguee',
+  promtContext: 'dict:promt',
+  wordReference: 'dict:wordreference',
+  spanishDict: 'dict:spanishdict',
+  tatoeba: 'dict:tatoeba',
+  etymonline: 'dict:etymonline',
+  forvo: 'audio:forvo',
+  linguaLibre: 'vip:lingualibre',
+  googleTtsFallback: 'tts:google',
+  unsplash: 'vip:unsplash',
+  pixabay: 'vip:pixabay',
+  bingImages: 'vip:bing',
+  duckduckgoImages: 'vip:ddg',
+  openverse: 'vip:openverse',
+  wikimediaCommons: 'vip:wikimedia',
+  youglish: 'video:youglish',
+};
+
 const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   enabled: null,
   perSourceTimeoutMs: null,
@@ -301,6 +351,32 @@ export async function runEnrichment(
     active = active.filter((s) => !IMAGE_SOURCE_KEYS.has(s.id as keyof VipSettings));
   }
 
+  // OPTIONAL HOST PERMISSIONS.
+  //
+  // The dictionary hosts live in `optional_host_permissions` (a manifest with
+  // 96 granted hosts reads as a data-collection extension to Web Store review),
+  // so a source whose network access was never granted would start failing with
+  // unreadable CORS noise. That is the one thing worse than a slow failure:
+  // the user sees an empty popover with no idea why. Rather than fire those
+  // requests, we check first and report WHAT needs granting so the UI can show
+  // a CTA and the runtime can skip cleanly.
+  //
+  // Failing closed is deliberate: a dictionary the user cannot reach is not a
+  // source at all, and its "error" in the UI is a lie.
+  const permissionBlocked: Array<{ source: string; group: string }> = [];
+  const reachable: EnrichmentSource[] = [];
+  for (const source of active) {
+    const group = SOURCE_PERMISSION_GROUP[source.id];
+    const origins = group ? providerHosts(group) : [];
+    const missing = await missingHosts(origins);
+    if (missing.length > 0) {
+      permissionBlocked.push({ source: source.id, group: group ?? 'dict' });
+      continue;
+    }
+    reachable.push(source);
+  }
+  active = reachable;
+
   // Fan out.
   const settled = await Promise.allSettled(
     active.map(async (s) => {
@@ -382,6 +458,9 @@ export async function runEnrichment(
     successfulSources,
     failedSources,
   };
+  if (permissionBlocked.length > 0) {
+    result.needsAccess = permissionBlocked;
+  }
 
   // Best-effort cache write — never let a write failure surface.
   void writeCache(cacheKey, result).catch(() => {});
@@ -3316,10 +3395,74 @@ async function writeCache(key: string, payload: EnrichmentResult): Promise<void>
     const db = getDB();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (db as any).vip_cache?.put({ key, payload, storedAt: Date.now() });
+    void pruneVipCache();
   } catch {
     // ignore — cache misses are recoverable.
   }
 }
+
+/**
+ * Keep `vip_cache` bounded.
+ *
+ * The table is a word→enrichment cache keyed by lookup key, so it grows for as
+ * long as the user browses: every `TOKEN|langs|flags` combination gets a row
+ * that never expires on its own. Readers treat rows past the TTL as a miss, so
+ * the obvious cost was silently paying for entries nobody would ever read
+ * again — a slow memory leak in the extension's own database.
+ *
+ * Two passes, both cheap against the `storedAt` index:
+ *   1. drop entries older than the TTL (they are unreadable by definition);
+ *   2. if the table is still above MAX_VIP_CACHE_ROWS, drop the oldest until
+ *      it is a simple MRU cache for the words the user actually looks at.
+ *
+ * Runs on write rather than on an alarm so the cost lands on the request that
+ * grows the table, and at most once every PRUNE_INTERVAL_MS so a burst of
+ * hovers does not trigger a scan per word.
+ */
+const MAX_VIP_CACHE_ROWS = 2000;
+const PRUNE_INTERVAL_MS = 5 * 60 * 1000;
+/** Same TTL the readers apply, so expired rows are actually unreachable. */
+const DEFAULT_VIP_CACHE_TTL_DAYS = 30;
+let lastVipPruneAt = 0;
+
+async function pruneVipCache(): Promise<void> {
+  const now = Date.now();
+  if (now - lastVipPruneAt < PRUNE_INTERVAL_MS) return;
+  lastVipPruneAt = now;
+  try {
+    const db = getDB();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const table = ((db as any).vip_cache ?? null) as
+      | { count(): Promise<number>; toArray(): Promise<CacheRow[]>; clear(): Promise<void> }
+      | null;
+    if (!table) return;
+    const ttlMs = (DEFAULT_VIP_CACHE_TTL_DAYS ?? 30) * 24 * 3600 * 1000;
+    const rows = await table.toArray();
+    const doomed = rows.filter((row) => !row?.storedAt || now - row.storedAt > ttlMs);
+    for (const row of doomed) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (table as any).delete(row.key);
+    }
+    const remaining = await table.count();
+    if (remaining <= MAX_VIP_CACHE_ROWS) return;
+    // Still too big: evict the oldest tail (a plain MRU trim).
+    const keep = rows
+      .filter((row) => row?.storedAt && now - row.storedAt <= ttlMs)
+      .sort((a, b) => b.storedAt - a.storedAt)
+      .slice(0, MAX_VIP_CACHE_ROWS);
+    const keepKeys = new Set(keep.map((row) => row.key));
+    const current = await table.toArray();
+    for (const row of current) {
+      if (!keepKeys.has(row.key)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (table as any).delete(row.key);
+      }
+    }
+  } catch {
+    // A cache that will not prune is still a cache; never fail the hover on it.
+  }
+}
+
 
 /* ─── Cache management (exposed to the side-panel via the SW) ──────────── */
 

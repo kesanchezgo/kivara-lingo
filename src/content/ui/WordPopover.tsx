@@ -375,20 +375,27 @@ export function WordPopover({
   /**
    * Accessibility: Escape closes, Tab stays inside.
    *
-   * The popover is hover-driven, so keyboard users had NO way out — the only
-   * acknowledged exit was moving the mouse. Escape calls the same close the
-   * parent uses for a mouse-out; Tab cycles within the card so focus cannot
-   * wander into the page behind it (a shadow root makes the page's own tab
-   * order reachable, which is how focus used to land invisibly inside the
-   * platform's UI).
+   * The popover is hover-driven, so the handler on the card alone never saw a
+   * key: focus sits on the page behind it, and the event did not reach this
+   * tree at all. Escape is therefore also watched at `window` level while the
+   * card is visible — the keyboard exit the card simply did not have — and the
+   * Tab trap only engages for focus that is actually INSIDE the card (a
+   * keyboard/click pointer to the card), instead of pressing on every Tab the
+   * user makes anywhere on the page.
    */
+  useEffect(() => {
+    if (!visible) return;
+    const onWindowKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.stopPropagation();
+      onClose?.();
+    };
+    window.addEventListener('keydown', onWindowKeyDown, true);
+    return () => window.removeEventListener('keydown', onWindowKeyDown, true);
+  }, [visible, onClose]);
+
   const handlePopoverKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === 'Escape') {
-        event.stopPropagation();
-        onClose?.();
-        return;
-      }
       if (event.key !== 'Tab') return;
       const root = rootRef.current;
       if (!root) return;
@@ -570,7 +577,7 @@ export function WordPopover({
       role="dialog"
       aria-label={`${t('popover.dictionary')} — ${token}`}
       aria-modal="false"
-      className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 z-30 animate-in fade-in zoom-in-95 slide-in-from-bottom-1 duration-150"
+      className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 z-30 kvl-pop-in"
       style={{
         pointerEvents: 'auto',
         textShadow: 'none',

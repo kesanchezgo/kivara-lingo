@@ -233,34 +233,29 @@ export async function fetchMediaWithLimits(
   raw: string,
   opts: MediaFetchOptions,
 ): Promise<MediaFetch> {
-  let current = assertPublicHttpUrl(raw, { allowHttp: opts.allowHttp }).toString();
+  const allowHttp = isHttpUrl(raw);
+  assertPublicHttpUrl(raw, { allowHttp });
   const maxBytes = opts.maxBytes;
   const { signal, cleanup } = composeSignals(opts.timeoutMs, opts.signal);
   try {
-    for (let hop = 0; ; hop += 1) {
-      const res = await fetch(current, {
-        method: 'GET',
-        credentials: 'omit',
-        cache: 'no-store',
-        redirect: 'manual',
-        headers: opts.headers,
-        signal,
-      });
-      if (res.status >= 300 && res.status < 400) {
-        const location = res.headers.get('location');
-        if (!location) throw new Error(`HTTP ${res.status}`);
-        if (hop >= MAX_REDIRECTS) throw new Error('demasiadas redirecciones');
-        current = assertPublicHttpUrl(new URL(location, current).toString(), { allowHttp: true }).toString();
-        continue;
-      }
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const bytes = await readWithLimit(res, maxBytes);
-      return {
-        bytes,
-        contentType: (res.headers.get('content-type') ?? '').toLowerCase(),
-        finalUrl: res.url || current,
-      };
-    }
+    const res = await fetch(raw, {
+      method: 'GET',
+      credentials: 'omit',
+      cache: 'no-store',
+      redirect: 'follow',
+      headers: opts.headers,
+      signal,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // Follow-destination check: never read a body the redirects dragged into
+    // a private host (see assertResponseDestination).
+    assertResponseDestination(res, allowHttp);
+    const bytes = await readWithLimit(res, maxBytes);
+    return {
+      bytes,
+      contentType: (res.headers.get('content-type') ?? '').toLowerCase(),
+      finalUrl: res.url || raw,
+    };
   } finally {
     cleanup();
   }
@@ -314,11 +309,34 @@ function composeSignals(
   };
 }
 
-/** Max hops we walk ourselves when re-validating redirects. */
-const MAX_REDIRECTS = 5;
+/**
+ * Validate a response BEFORE its body is touched.
+ *
+ * `redirect: 'manual'` does NOT work in an extension's network stack: it
+ * yields an opaque redirect (`status: 0`, no headers), so a per-hop loop reads
+ * no `Location` at all and every real-world hop — http→https, the www prefix, a
+ * CDN, GitHub releases → codeload, Wikimedia `Special:FilePath` — dies with
+ * `HTTP 0`. So the fetch FOLLOWS redirects and the guard checks where the
+ * request ENDED UP: `res.url` is the final URL after every hop, and a
+ * private/loopback/metadata destination is refused before a single byte is read
+ * or handed to Anki.
+ *
+ * An empty `res.url` (test doubles, or a response whose final URL the engine
+ * does not disclose) is treated as "the URL we asked for", which the caller
+ * already validated — refusing it would break every mocked response for no gain.
+ *
+ * Residual, stated plainly: the request itself did reach that address, so a
+ * scripter can still probe with timing. Closing that requires a DNR rule
+ * scoped to this extension's own fetches — see the notes in PRIVACY.md.
+ */
+function assertResponseDestination(res: Response, allowHttp = false): void {
+  const finalUrl = typeof res.url === 'string' ? res.url : '';
+  if (!finalUrl || finalUrl === 'about:blank') return;
+  assertPublicHttpUrl(finalUrl, { allowHttp });
+}
 
-/** True when the URL is http:// — used to allow a cleartext start when the
- * caller explicitly asked for it, so the redirect chain behaves the same. */
+/** True when the URL is http:// — callers use it to allow a cleartext start,
+ * while loopback and private ranges are refused either way. */
 function isHttpUrl(raw: string): boolean {
   try {
     return new URL(raw).protocol === 'http:';
@@ -328,86 +346,30 @@ function isHttpUrl(raw: string): boolean {
 }
 
 /**
- * GET a URL as bytes, bounded by time and size, validating EVERY hop.
- *
- * `redirect: 'follow'` is deliberately NOT used: with it, a public https URL
- * answering `302 → http://127.0.0.1:8765/…` (or `169.254.169.254`) is followed
- * by the network stack before our validation of the ORIGINAL url can matter,
- * and the service worker's host permissions make it reach the private target.
- * With `redirect: 'manual'` each hop has to pass `assertPublicHttpUrl` again.
+ * GET a URL as bytes, bounded by time and size. The DESTINATION is validated
+ * twice: before the request (the URL we were asked for) and after the
+ * redirects resolved (where we actually landed).
  */
 export async function fetchBytesWithLimits(
   raw: string,
   opts: LimitsOptions,
 ): Promise<Uint8Array> {
+  const allowHttp = isHttpUrl(raw);
+  assertPublicHttpUrl(raw, { allowHttp });
   const maxBytes = opts.maxBytes ?? DEFAULT_MAX_BYTES;
-  let current = assertPublicHttpUrl(raw).toString();
   const { signal, cleanup } = composeSignals(opts.timeoutMs, opts.signal);
   try {
-    for (let hop = 0; ; hop += 1) {
-      const res = await fetch(current, {
-        method: 'GET',
-        credentials: opts.credentials ?? 'omit',
-        cache: 'no-store',
-        redirect: 'manual',
-        headers: opts.headers,
-        signal,
-      });
-      if (res.status >= 300 && res.status < 400) {
-        const location = res.headers.get('location');
-        if (!location) throw new Error(`HTTP ${res.status}`);
-        if (hop >= MAX_REDIRECTS) throw new Error('demasiadas redirecciones');
-        // Absolute-ise against the hop we just served, then re-validate: a
-        // same-host hop is fine, a jump to localhost/LAN is not.
-        current = assertPublicHttpUrl(new URL(location, current).toString(), { allowHttp: true })
-          .toString();
-        continue;
-      }
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await readWithLimit(res, maxBytes);
-    }
-  } finally {
-    cleanup();
-  }
-}
-
-/**
- * GET `raw`, following redirects ONLY to destinations that pass
- * `assertPublicHttpUrl`, and hand back the final `Response`. Callers that
- * want the body bounded do their own size accounting (the pack installer
- * reports progress while reading; the enrichment fetcher reads text).
- *
- * Never use `redirect: 'follow'` in the service worker: the network stack
- * would honour a `302 → http://127.0.0.1:…` before any validation of the
- * requested URL matters, and the extension's host permissions make that
- * destination reachable.
- */
-export async function fetchGuarded(
-  raw: string,
-  opts: { timeoutMs: number; headers?: Record<string, string>; credentials?: RequestCredentials; maxRedirects?: number },
-): Promise<Response> {
-  let current = assertPublicHttpUrl(raw, { allowHttp: isHttpUrl(raw) }).toString();
-  const { signal, cleanup } = composeSignals(opts.timeoutMs);
-  try {
-    const maxHops = opts.maxRedirects ?? MAX_REDIRECTS;
-    for (let hop = 0; ; hop += 1) {
-      const res = await fetch(current, {
-        method: 'GET',
-        credentials: opts.credentials ?? 'omit',
-        cache: 'no-store',
-        redirect: 'manual',
-        headers: opts.headers,
-        signal,
-      });
-      if (res.status >= 300 && res.status < 400) {
-        const location = res.headers.get('location');
-        if (!location) throw new Error(`HTTP ${res.status}`);
-        if (hop >= maxHops) throw new Error('demasiadas redirecciones');
-        current = assertPublicHttpUrl(new URL(location, current).toString(), { allowHttp: true }).toString();
-        continue;
-      }
-      return res;
-    }
+    const res = await fetch(raw, {
+      method: 'GET',
+      credentials: opts.credentials ?? 'omit',
+      cache: 'no-store',
+      redirect: 'follow',
+      headers: opts.headers,
+      signal,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    assertResponseDestination(res, allowHttp);
+    return await readWithLimit(res, maxBytes);
   } finally {
     cleanup();
   }
@@ -420,4 +382,40 @@ export async function fetchTextWithLimits(
 ): Promise<string> {
   const bytes = await fetchBytesWithLimits(raw, opts);
   return new TextDecoder().decode(bytes);
+}
+
+/**
+ * GET `raw` for the pack installer, following redirects.
+ *
+ * Returns `{ response, done }` instead of the bare response so the CALLER
+ * decides when the timeout is disarmed: the installer reports progress while
+ * draining a body that can be 127 MB, so clearing the deadline in a `finally`
+ * here left that download without one.
+ */
+export async function fetchGuarded(
+  raw: string,
+  opts: {
+    timeoutMs: number;
+    headers?: Record<string, string>;
+    credentials?: RequestCredentials;
+    signal?: AbortSignal;
+  },
+): Promise<{ response: Response; done: () => void }> {
+  const allowHttp = isHttpUrl(raw);
+  assertPublicHttpUrl(raw, { allowHttp });
+  const composed = composeSignals(opts.timeoutMs, opts.signal);
+  const res = await fetch(raw, {
+    method: 'GET',
+    credentials: opts.credentials ?? 'omit',
+    cache: 'no-store',
+    redirect: 'follow',
+    headers: opts.headers,
+    signal: composed.signal,
+  });
+  if (!res.ok) {
+    composed.cleanup();
+    throw new Error(`HTTP ${res.status}`);
+  }
+  assertResponseDestination(res, allowHttp);
+  return { response: res, done: () => composed.cleanup() };
 }

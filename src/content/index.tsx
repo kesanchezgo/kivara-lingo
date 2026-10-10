@@ -136,12 +136,20 @@ let lastVideoContainer: HTMLElement | null = null;
  */
 let lastMediaId: string | null = null;
 
-/** Stable identifier for what is being played: the YouTube `v=` parameter,
- * or the pathname plus `movieId`/`jbv` for the platforms that use those. */
+/** Stable identifier for what is being played: the YouTube `v=` (or `shorts/`),
+ * or the pathname for the platforms that key their player by URL. Timestamps
+ * (`#t=`), autoplay and playlist params are ignored — the player rewrites them
+ * while a video keeps running, and remounting on each write both loses the
+ * panel state and spikes the CPU. */
 function currentMediaId(): string {
   const url = new URL(window.location.href);
-  const v = url.searchParams.get('v') ?? url.searchParams.get('movieId') ?? url.searchParams.get('jbv');
-  if (v) return v;
+  // YouTube Shorts: /shorts/<id> — the id is in the path, and it must not be
+  // confused with the `v=` namespace above.
+  const shorts = /^\/shorts\/([\w-]+)/.exec(url.pathname);
+  if (shorts) return `shorts:${shorts[1]}`;
+  const videoId =
+    url.searchParams.get('v') ?? url.searchParams.get('movieId') ?? url.searchParams.get('jbv');
+  if (videoId) return `v:${videoId}`;
   return url.pathname;
 }
 
@@ -277,27 +285,65 @@ async function mountFor(video: HTMLVideoElement, container: HTMLElement, adapter
  */
 function updateOverlayParentForFullscreen(): void {
   if (!mount) return;
-  const fullscreen = document.fullscreenElement ?? (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement ?? null;
+  const fullscreen =
+    document.fullscreenElement ??
+    (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement ??
+    null;
   const target = fullscreen ?? document.body;
   // Already in the right parent — leave it alone (re-appending resets layout).
-  if (mount.hostElement.parentElement === target) return;
+  if (mount.hostElement.parentElement === target) {
+    restoreOverlayOwnership(target === document.body);
+    return;
+  }
   try {
-    const hadPanel = mount.hostElement.contains(document.activeElement);
+    // Remember what we are about to change, so leaving fullscreen puts the
+    // site's element back exactly as we found it.
+    const previousParent = mount.hostElement.parentElement;
+    const previousActive = document.activeElement as HTMLElement | null;
+    const touchedPosition =
+      previousParent && window.getComputedStyle(previousParent as HTMLElement).position === 'static'
+        ? (previousParent as HTMLElement)
+        : null;
+    const hadPositionOverride = touchedPosition ? touchedPosition.style.position : '';
+    const nextActive =
+      previousActive && previousParent?.contains(previousActive) ? previousActive : null;
+
     target.appendChild(mount.hostElement);
-    // Fullscreen containers are frequently `display: flex` with no positioning;
-    // the overlay is absolutely positioned, so make sure it can anchor.
     const parentStyle = window.getComputedStyle(target as HTMLElement);
     if (parentStyle.position === 'static') {
       (target as HTMLElement).style.position = 'relative';
     }
-    // Focus does not survive a re-parent (the element is detached and
-    // re-attached): Windows drops it silently, so restore what the user had.
-    if (hadPanel) {
-      mount.hostElement.querySelector<HTMLElement>('input, button, [tabindex]')?.focus();
-    }
+
+    overlayRestore = {
+      // Only restore what we actually changed; returning to `document.body`
+      // leaves whatever we found alone.
+      touchedPosition:
+        fullscreen === null && touchedPosition === target ? touchedPosition : null,
+      hadPositionOverride,
+      nextActive,
+    };
   } catch (err) {
     console.warn('[Kivara Lingo] could not re-parent the overlay for fullscreen', err);
   }
+}
+
+interface OverlayRestoreState {
+  touchedPosition: HTMLElement | null;
+  hadPositionOverride: string;
+  nextActive: HTMLElement | null;
+}
+
+let overlayRestore: OverlayRestoreState | null = null;
+
+/** Put back only what the fullscreen move changed on the site's element. */
+function restoreOverlayOwnership(leavingFullscreen: boolean): void {
+  if (!leavingFullscreen || !overlayRestore) return;
+  const { touchedPosition, hadPositionOverride, nextActive } = overlayRestore;
+  overlayRestore = null;
+  if (touchedPosition) touchedPosition.style.position = hadPositionOverride;
+  // Focus does not survive a re-parent, and Windows drops it silently: give
+  // back exactly the element that had it.
+  nextActive?.focus?.();
 }
 
 function observeFullscreen(): void {
