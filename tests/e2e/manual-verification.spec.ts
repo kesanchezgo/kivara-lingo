@@ -138,6 +138,19 @@ test('2 · Anki on a custom port, after the service worker went idle', async ({
     // directly — the same shape the app persists.
     const setup = await context.newPage();
     await setup.goto(`chrome-extension://${extensionId}/src/options/index.html`);
+    // PRE-FLIGHT WAKE. The failure this spec fails with reads as "the custom
+    // port never answered", but one of the causes is that the service worker
+    // was still sleeping when the popup's first message arrived — and an
+    // indefinite localhost hold is what that looks like from outside.
+    // chrome.runtime.sendMessage IS the standard wake mechanism, so ping it
+    // here, before the idle wait, and let its answer prove the worker is up.
+    await setup.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          chrome.runtime.sendMessage({ type: 'PING' }, () => resolve());
+          setTimeout(() => resolve(), 5_000);
+        }),
+    );
     await setup.evaluate(
       async ([key, port]) => {
         // Test 1 of this suite breaks `chrome.storage.sync.set` on purpose.
@@ -192,9 +205,30 @@ test('2 · Anki on a custom port, after the service worker went idle', async ({
       // keeps the total bounded, and the failure being watched (a port that
       // never answers) hangs for the whole window rather than coming back
       // quickly and clean.
-      await expect(page.getByText(/AnkiConnect v[\d.]+ · (activo|active)/)).toBeVisible({
-        timeout: 120_000,
-      });
+      await expect
+        .poll(
+          async () => {
+            const visible = await page
+              .getByText(/AnkiConnect v[\d.]+ · (activo|active)/)
+              .first()
+              .isVisible()
+              .catch(() => false);
+            if (!visible) {
+              // Report WHILE it fails, once per interval: hits is what the fake
+              // server saw, so hits=0 says the ping never left the extension
+              // and hits>0 says the pill did not render. Distinguished from
+              // machine noise by the retries that follow.
+              console.log('[ANKI-POLL] pill? ' + visible + ' hits=' + log.hits);
+            }
+            return visible;
+          },
+          {
+            message: '[Anki] the custom-port ping did not answer (see [ANKI-POLL] lines for what the server saw)',
+            timeout: 60_000,
+            intervals: [1000, 2000, 4000, 8000],
+          },
+        )
+        .toBe(true);
       return page;
     };
 
@@ -211,7 +245,12 @@ test('2 · Anki on a custom port, after the service worker went idle', async ({
     await second.close();
 
     expect(corsErrors).toEqual([]);
-    expect(log.hits).toBeGreaterThanOrEqual(2);
+    // The pill's absence has three possible stops and each must fail
+    // differently: hits=0 (never reached), corsErrors (the original
+    // regression) or hits>0 with no pill (a render failure).
+    const diag = () => 'hits=' + log.hits + ' seen=' + JSON.stringify(log.urls.slice(0, 4)) + ' errors=' + JSON.stringify(corsErrors.slice(0, 4));
+    console.log('[ANKI-DIAG] ' + diag());
+    expect(log.hits, 'server saw ' + diag()).toBeGreaterThanOrEqual(2);
     expect(log.urls.every((u) => u === '/')).toBe(true);
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
