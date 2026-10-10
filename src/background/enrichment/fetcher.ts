@@ -90,7 +90,8 @@ export async function fetchWithTimeout(
     if (res.ok && res.url && res.url !== url && !isPublicHttpUrlSync(res.url, allowHttp)) {
       logFetchDiagnostic('blocked-destination', { url, finalUrl: res.url });
       await res.body?.cancel().catch(() => {});
-      opts.onResponse?.(res);
+      // The caller's observer is for status bookkeeping — a request we refused
+      // never got a status, so it must not look like a 200 that answered.
       return null;
     }
     logFetchDiagnostic('response', {
@@ -103,8 +104,30 @@ export async function fetchWithTimeout(
       contentLength: res.headers.get('content-length'),
       elapsedMs: Math.round(performance.now() - startedAt),
     });
-    opts.onResponse?.(res);
-    if (!res.ok) return null;
+    // A non-2xx must not leave the body open: an ignored 500 keeps the
+    // connection (and its half-read stream) held until GC.
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => {});
+      logFetchDiagnostic('response', {
+        url,
+        finalUrl: res.url,
+        status: res.status,
+        ok: false,
+        redirected: res.redirected,
+        elapsedMs: Math.round(performance.now() - startedAt),
+      });
+      opts.onResponse?.(res);
+      return null;
+    }
+    logFetchDiagnostic('response', {
+      url,
+      finalUrl: res.url,
+      status: res.status,
+      redirected: res.redirected,
+      contentType: res.headers.get('content-type'),
+      contentLength: res.headers.get('content-length'),
+      elapsedMs: Math.round(performance.now() - startedAt),
+    });
     return res;
   } catch (error) {
     logFetchDiagnostic('error', {

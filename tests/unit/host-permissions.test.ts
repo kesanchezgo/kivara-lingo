@@ -7,7 +7,7 @@
  * moment a participant actually enables the provider that needs them.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { missingHosts, hasHosts } from '../../src/shared/host-permissions';
+import { missingHosts, hasHosts, permissionsApiAvailable } from '../../src/shared/host-permissions';
 import {
   PROVIDER_HOSTS,
   providerHosts,
@@ -57,6 +57,9 @@ describe('missingHosts', () => {
 
   it('is a no-op outside an extension context (vitest)', async () => {
     vi.stubGlobal('chrome', undefined);
+    // With no permissions API there is nothing that CAN be granted, so a
+    // request must not be blocked on a listing that will never appear.
+    expect(permissionsApiAvailable()).toBe(false);
     expect(await missingHosts(['https://anything.example/*'])).toEqual([]);
     expect(await hasHosts(['https://anything.example/*'])).toBe(true);
   });

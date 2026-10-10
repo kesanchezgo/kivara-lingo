@@ -367,8 +367,13 @@ export async function fetchBytesWithLimits(
       headers: opts.headers,
       signal,
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // Destination first: a private landing page arriving as 200 must never be
+    // reported as a 404 to whoever asked for it.
     assertResponseDestination(res, allowHttp);
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => {});
+      throw new Error(`HTTP ${res.status}`);
+    }
     return await readWithLimit(res, maxBytes);
   } finally {
     cleanup();
@@ -404,18 +409,28 @@ export async function fetchGuarded(
   const allowHttp = isHttpUrl(raw);
   assertPublicHttpUrl(raw, { allowHttp });
   const composed = composeSignals(opts.timeoutMs, opts.signal);
-  const res = await fetch(raw, {
-    method: 'GET',
-    credentials: opts.credentials ?? 'omit',
-    cache: 'no-store',
-    redirect: 'follow',
-    headers: opts.headers,
-    signal: composed.signal,
-  });
+  let res: Response;
+  try {
+    res = await fetch(raw, {
+      method: 'GET',
+      credentials: opts.credentials ?? 'omit',
+      cache: 'no-store',
+      redirect: 'follow',
+      headers: opts.headers,
+      signal: composed.signal,
+    });
+    // Destination BEFORE status: a `302` to a private host arriving as a 200
+    // must never be reported as HTTP 404 — that number is itself a probe
+    // result for whoever sent the URL.
+    assertResponseDestination(res, allowHttp);
+  } catch (err) {
+    composed.cleanup();
+    throw err;
+  }
   if (!res.ok) {
     composed.cleanup();
+    await res.body?.cancel().catch(() => {});
     throw new Error(`HTTP ${res.status}`);
   }
-  assertResponseDestination(res, allowHttp);
   return { response: res, done: () => composed.cleanup() };
 }

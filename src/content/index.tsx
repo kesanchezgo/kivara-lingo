@@ -289,62 +289,64 @@ function updateOverlayParentForFullscreen(): void {
     document.fullscreenElement ??
     (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement ??
     null;
-  const target = fullscreen ?? document.body;
-  // Already in the right parent — leave it alone (re-appending resets layout).
-  if (mount.hostElement.parentElement === target) {
-    restoreOverlayOwnership(target === document.body);
-    return;
-  }
-  try {
-    // Remember what we are about to change, so leaving fullscreen puts the
-    // site's element back exactly as we found it.
-    const previousParent = mount.hostElement.parentElement;
-    const previousActive = document.activeElement as HTMLElement | null;
-    const touchedPosition =
-      previousParent && window.getComputedStyle(previousParent as HTMLElement).position === 'static'
-        ? (previousParent as HTMLElement)
-        : null;
-    const hadPositionOverride = touchedPosition ? touchedPosition.style.position : '';
-    const nextActive =
-      previousActive && previousParent?.contains(previousActive) ? previousActive : null;
+  const entering = fullscreen !== null && !overlayRestore;
+  const leaving = fullscreen === null && overlayRestore !== null;
 
-    target.appendChild(mount.hostElement);
-    const parentStyle = window.getComputedStyle(target as HTMLElement);
-    if (parentStyle.position === 'static') {
-      (target as HTMLElement).style.position = 'relative';
+  // Leaving: put back what the ENTRY changed, before the overlay moves home
+  // again — restoring after the move would read a parent that is no longer
+  // the one we wrote to.
+  if (leaving) {
+    const state = overlayRestore;
+    overlayRestore = null;
+    if (state && state.positionHost && state.positionHost.isConnected) {
+      state.positionHost.style.position = state.positionWas;
     }
+    // Focus does not survive a re-parent, and Windows drops it silently:
+    // give back exactly the element that had it.
+    if (state?.previousFocus?.isConnected) state.previousFocus.focus();
+  }
 
-    overlayRestore = {
-      // Only restore what we actually changed; returning to `document.body`
-      // leaves whatever we found alone.
-      touchedPosition:
-        fullscreen === null && touchedPosition === target ? touchedPosition : null,
-      hadPositionOverride,
-      nextActive,
-    };
+  const target = fullscreen ?? document.body;
+  if (mount.hostElement.parentElement === target) return;
+  try {
+    const previousParent = mount.hostElement.parentElement;
+    // Record the state we are about to change ONCE per fullscreen session:
+    // a second toggle inside the same session must not overwrite it, or the
+    // original value is lost after two entries.
+    if (entering) {
+      const host = (fullscreen ?? document.body) as HTMLElement;
+      overlayRestore = {
+        positionHost:
+          window.getComputedStyle(host).position === 'static' ? host : null,
+        positionWas: host.style.position,
+        // The focus goes through the video's controls on the way in, so this
+        // has to be captured BEFORE the host moves.
+        previousFocus: (document.activeElement as HTMLElement | null)?.isConnected
+          ? (document.activeElement as HTMLElement | null)
+          : null,
+      };
+    }
+    const saved = overlayRestore;
+    target.appendChild(mount.hostElement);
+    // The entry branch wrote the override per session; leaving clears it.
+    if (entering && saved?.positionHost) {
+      saved.positionHost.style.position = 'relative';
+    }
   } catch (err) {
     console.warn('[Kivara Lingo] could not re-parent the overlay for fullscreen', err);
   }
 }
 
 interface OverlayRestoreState {
-  touchedPosition: HTMLElement | null;
-  hadPositionOverride: string;
-  nextActive: HTMLElement | null;
+  /** The node we forced `position: relative` on, when it was `static`. */
+  positionHost: HTMLElement | null;
+  /** Its `position` before we wrote ours. */
+  positionWas: string;
+  /** Element that had focus before the move — may be gone by then. */
+  previousFocus: HTMLElement | null;
 }
 
 let overlayRestore: OverlayRestoreState | null = null;
-
-/** Put back only what the fullscreen move changed on the site's element. */
-function restoreOverlayOwnership(leavingFullscreen: boolean): void {
-  if (!leavingFullscreen || !overlayRestore) return;
-  const { touchedPosition, hadPositionOverride, nextActive } = overlayRestore;
-  overlayRestore = null;
-  if (touchedPosition) touchedPosition.style.position = hadPositionOverride;
-  // Focus does not survive a re-parent, and Windows drops it silently: give
-  // back exactly the element that had it.
-  nextActive?.focus?.();
-}
 
 function observeFullscreen(): void {
   document.addEventListener('fullscreenchange', updateOverlayParentForFullscreen);

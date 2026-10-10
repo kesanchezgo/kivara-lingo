@@ -44,6 +44,7 @@ import { translateText } from './translate';
 import { speak } from './tts';
 import { enrichWithAi } from './ai-enrich';
 import { resolveWordStreaming } from './resolve-word';
+import { clearEnrichmentCache } from './enrichment/orchestrator';
 import { getCacheStats, clearCaches } from './cache-admin';
 import { listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';
 import { t } from '../shared/i18n';
@@ -174,11 +175,24 @@ chrome.runtime.onInstalled.addListener(() => {
 // the SAVED url; refreshing with no argument would install the 8765 default
 // on every wake-up and break a configured custom port (first addNote after
 // idle → CORS).
-void loadMapping().then(
-  (m) => refreshAnkiOriginRules(m.ankiUrl),
+void loadMapping().then((m) => refreshAnkiOriginRules(m.ankiUrl),
   () => refreshAnkiOriginRules(),
 );
 void chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 }).catch(() => {});
+
+/**
+ * A grant changes what the enrichment chain can reach, so every cached answer
+ * is suspect the moment it arrives. `writeCache` already refuses to store a
+ * result that had sources waiting for access; this is the other half — the rows
+ * written BEFORE the grant, which would keep hiding those sources until they
+ * expired. Without it the CTA looks broken: the user grants, hovers the same
+ * word again, and sees exactly the same "held back" message.
+ */
+if (chrome.permissions?.onAdded) {
+  chrome.permissions.onAdded.addListener(() => {
+    void clearEnrichmentCache().catch(() => {});
+  });
+}
 
 async function loadMapping(): Promise<AnkiMapping> {
   try {
@@ -595,6 +609,15 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
           }
           break;
         case 'done':
+          // The phased resolver reports which sources were skipped for lack of
+          // access at the end; the legacy shape carries it on the response.
+          if (msg.needsAccess && msg.needsAccess.length > 0) {
+            const found = response.needsAccess ?? [];
+            for (const entry of msg.needsAccess) {
+              if (!found.some((f) => f.source === entry.source)) found.push(entry);
+            }
+            response.needsAccess = found;
+          }
           break;
       }
     },
@@ -974,11 +997,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           }
         };
         try {
-        if (!res.ok) {
-          sendResponse({ ok: false, error: `HTTP ${res.status} ${res.statusText}` });
-          return;
-        }
-        const totalHeader = res.headers.get('content-length');
+          // The status check lives in `fetchGuarded` (which throws HTTP 4xx/5xx
+          // itself), so a response here is already a 2xx; this branch is kept
+          // only as a guard against a future helper change.
+          const totalHeader = res.headers.get('content-length');
         const total = totalHeader ? parseInt(totalHeader, 10) || 0 : 0;
         if (total > DICT_PACK_MAX_BYTES) {
           sendResponse({

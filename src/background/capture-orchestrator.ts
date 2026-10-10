@@ -107,11 +107,7 @@ async function attachMedia(
       : [candidate];
     for (const url of variants) {
       try {
-        const { bytes, contentType } = await fetchMediaWithLimits(url, {
-          timeoutMs,
-          maxBytes,
-          ...(/^http:\/\//i.test(url) ? { allowHttp: true } : {}),
-        });
+        const { bytes, contentType } = await fetchMediaWithLimits(url, { timeoutMs, maxBytes });
         const filename = safeFilename(baseName, mediaExtFor(contentType, url, fallbackExt));
         await ankiConnect.storeMediaFile(
           filename,

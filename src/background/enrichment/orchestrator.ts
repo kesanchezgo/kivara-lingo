@@ -33,7 +33,7 @@ import type {
   SenseRelationGroup,
   SourcePartial,
 } from './types';
-import { missingHosts } from '../../shared/host-permissions';
+import { grantedOriginList, originCovered, permissionsApiAvailable } from '../../shared/host-permissions';
 import { providerHosts } from '../../shared/provider-hosts';
 
 import { freeDictionarySource } from './sources/free-dictionary';
@@ -365,15 +365,24 @@ export async function runEnrichment(
   // source at all, and its "error" in the UI is a lie.
   const permissionBlocked: Array<{ source: string; group: string }> = [];
   const reachable: EnrichmentSource[] = [];
-  for (const source of active) {
-    const group = SOURCE_PERMISSION_GROUP[source.id];
-    const origins = group ? providerHosts(group) : [];
-    const missing = await missingHosts(origins);
-    if (missing.length > 0) {
-      permissionBlocked.push({ source: source.id, group: group ?? 'dict' });
-      continue;
+  if (!permissionsApiAvailable()) {
+    // Not an extension context (unit tests, plain pages): nothing to gate.
+    reachable.push(...active);
+  } else {
+    // One permission LISTING per lookup, not one per source: a fresh install
+    // with ~20 sources used to make ~20 `getAll()` calls in series before the
+    // first network request even started.
+    const grantedList = await grantedOriginList();
+    for (const source of active) {
+      const group = SOURCE_PERMISSION_GROUP[source.id];
+      const origins = group ? providerHosts(group) : [];
+      const missing = origins.filter((o) => !originCovered(o, grantedList));
+      if (missing.length > 0) {
+        permissionBlocked.push({ source: source.id, group: group ?? 'dict' });
+        continue;
+      }
+      reachable.push(source);
     }
-    reachable.push(source);
   }
   active = reachable;
 
@@ -3380,6 +3389,14 @@ async function readCache(key: string, ttlDays: number): Promise<EnrichmentResult
     if (!row) return null;
     const ageMs = Date.now() - (row.storedAt ?? 0);
     if (ageMs > ttlDays * 24 * 3600 * 1000) return null;
+    // A cached answer that still lists sources waiting for access is treated
+    // as a miss: the grant may have arrived since the row was written, and
+    // the payload would keep reporting them missing for the whole TTL.
+    const stale = (row.payload as EnrichmentResult)?.needsAccess ?? [];
+    if (stale.length > 0) {
+      await clearCachedEntry(key);
+      return null;
+    }
     // Warm the in-memory layer so the next re-hover is instant.
     memSet(key, row.payload);
     return row.payload;
@@ -3388,9 +3405,23 @@ async function readCache(key: string, ttlDays: number): Promise<EnrichmentResult
   }
 }
 
+async function clearCachedEntry(key: string): Promise<void> {
+  try {
+    const db = getDB();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (db as any).vip_cache?.delete(key);
+  } catch {
+    // ignore — a stale row is recoverable
+  }
+}
+
 async function writeCache(key: string, payload: EnrichmentResult): Promise<void> {
   // Populate the hot layer synchronously so an immediate re-hover hits it.
   memSet(key, payload);
+  // An answer that still has sources waiting for access must NOT be cached:
+  // the cache key does not include the granted origins, so a stale row would
+  // keep hiding those sources AFTER the user granted them — for the whole TTL.
+  if (payload.needsAccess && payload.needsAccess.length > 0) return;
   try {
     const db = getDB();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -3433,36 +3464,34 @@ async function pruneVipCache(): Promise<void> {
     const db = getDB();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const table = ((db as any).vip_cache ?? null) as
-      | { count(): Promise<number>; toArray(): Promise<CacheRow[]>; clear(): Promise<void> }
+      | {
+          where(index: string): { below(threshold: number): { delete(): Promise<number> } };
+          orderBy(index: string): {
+            reverse(): { offset(n: number): { primaryKeys(): Promise<string[]> } };
+          };
+          count(): Promise<number>;
+          bulkDelete(keys: string[]): Promise<void>;
+        }
       | null;
     if (!table) return;
-    const ttlMs = (DEFAULT_VIP_CACHE_TTL_DAYS ?? 30) * 24 * 3600 * 1000;
-    const rows = await table.toArray();
-    const doomed = rows.filter((row) => !row?.storedAt || now - row.storedAt > ttlMs);
-    for (const row of doomed) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (table as any).delete(row.key);
-    }
-    const remaining = await table.count();
-    if (remaining <= MAX_VIP_CACHE_ROWS) return;
-    // Still too big: evict the oldest tail (a plain MRU trim).
-    const keep = rows
-      .filter((row) => row?.storedAt && now - row.storedAt <= ttlMs)
-      .sort((a, b) => b.storedAt - a.storedAt)
-      .slice(0, MAX_VIP_CACHE_ROWS);
-    const keepKeys = new Set(keep.map((row) => row.key));
-    const current = await table.toArray();
-    for (const row of current) {
-      if (!keepKeys.has(row.key)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (table as any).delete(row.key);
-      }
+    // Both passes go through the `storedAt` index the schema declares: no
+    // full table scan and no delete-per-row.
+    const ttlMs = DEFAULT_VIP_CACHE_TTL_DAYS * 24 * 3600 * 1000;
+    await table.where('storedAt').below(now - ttlMs).delete();
+
+    const remaining = await table.count().catch(() => 0);
+    if (remaining > MAX_VIP_CACHE_ROWS) {
+      const staleKeys = await table
+        .orderBy('storedAt')
+        .reverse()
+        .offset(MAX_VIP_CACHE_ROWS)
+        .primaryKeys();
+      if (staleKeys.length > 0) await table.bulkDelete(staleKeys);
     }
   } catch {
     // A cache that will not prune is still a cache; never fail the hover on it.
   }
 }
-
 
 /* ─── Cache management (exposed to the side-panel via the SW) ──────────── */
 

@@ -26,7 +26,9 @@ function matchesPattern(pattern: string, origin: string): boolean {
   const patternHost = slashAt < 0 ? rest : rest.slice(0, slashAt);
   const patternPath = slashAt < 0 ? '*' : rest.slice(slashAt + 1);
   const target = origin.split('://')[1] ?? '';
-  const host = target.split('/')[0];
+  // Chrome match patterns carry no port: `https://127.0.0.1:8765/*` is matched
+  // on host and path, so a pattern written WITH a port never fires.
+  const host = target.split('/')[0].split(':')[0];
   const path = target.split('/').slice(1).join('/');
   if (scheme !== '*' && scheme !== origin.split('://')[0]) return false;
   if (patternHost === '*') return true;
@@ -39,14 +41,47 @@ function matchesPattern(pattern: string, origin: string): boolean {
   } else if (patternHost !== host) {
     return false;
   }
-  // Path: an explicit path matches only itself or by prefix on '/'.
+  // Path: `*` inside a chrome pattern matches any run of characters, so treat
+  // it as a wildcard through the whole path, not a literal segment.
   if (!patternPath || patternPath === '*') return true;
-  return path === patternPath || path.startsWith(`${patternPath}/`);
+  const asRegex = new RegExp(
+    `^${patternPath.split('*').map((seg) => seg.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*')}$`,
+  );
+  return asRegex.test(path);
 }
 
 /** Is `origin` covered by any of the granted patterns? */
 function coveredBy(origin: string, granted: string[]): boolean {
   return granted.some((pattern) => pattern === origin || matchesPattern(pattern, origin));
+}
+
+/**
+ * The granted origin list, read once. Exported so a SW hot path can do ONE
+ * permission listing per request instead of one per source (a fresh install
+ * with ~20 sources was making ~20 `getAll()` calls in series before the first
+ * network request left).
+ */
+export async function grantedOriginList(): Promise<string[]> {
+  if (typeof chrome === 'undefined' || !chrome.permissions?.getAll) return [];
+  try {
+    const all = await chrome.permissions.getAll();
+    return all.origins ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** False when the permissions API does not exist at all (a plain page, or the
+ * unit-test environment). Callers use it to skip gating rather than treat
+ * "cannot list permissions" as "nothing is granted", which would turn every
+ * source into a permission-blocked answer outside a real extension context. */
+export function permissionsApiAvailable(): boolean {
+  return typeof chrome !== 'undefined' && !!chrome.permissions?.getAll;
+}
+
+/** Same verdict as `missingHosts`, against a list already fetched. */
+export function originCovered(origin: string, granted: string[]): boolean {
+  return granted.length === 0 ? false : coveredBy(origin, granted);
 }
 
 /** Are these origins granted right now? Never prompts. */
@@ -57,32 +92,31 @@ export async function hasHosts(origins: string[]): Promise<boolean> {
 /** Which of these origins is missing? Never prompts. */
 export async function missingHosts(origins: string[]): Promise<string[]> {
   if (origins.length === 0) return [];
-  if (typeof chrome === 'undefined' || !chrome.permissions?.getAll) return [];
-  try {
-    const all = await chrome.permissions.getAll();
-    const granted = all.origins ?? [];
-    return origins.filter((o) => !coveredBy(o, granted));
-  } catch {
-    // Outside an extension context (tests) — never block a request on it.
-    return [];
-  }
+  // No permissions API at all (a plain page, or the unit-test chrome mock):
+  // there is nothing that could be granted, so nothing is reported missing.
+  if (!permissionsApiAvailable()) return [];
+  const granted = await grantedOriginList();
+  return origins.filter((o) => !originCovered(o, granted));
 }
 
 /**
  * Prompt the user for these origins. MUST be called from a user gesture.
- * Returns the origins still missing afterwards (empty on success).
+ *
+ * `chrome.permissions.request` runs FIRST and synchronously: awaiting
+ * `getAll()` before it lets Chrome drop the gesture between the await and the
+ * prompt, which turns a "Conceder" click into a silently refused grant. The
+ * API is a no-op for origins that are already granted, so there is nothing to
+ * pre-check — and the grant answer is re-read afterwards to report what is
+ * still missing.
  */
 export async function requestHosts(origins: string[]): Promise<string[]> {
-  const missing = await missingHosts(origins);
-  if (missing.length === 0) return [];
-  if (typeof chrome === 'undefined' || !chrome.permissions?.request) return missing;
-  try {
-    const granted = await chrome.permissions.request({ origins: missing });
-    return granted ? [] : await missingHosts(origins);
-  } finally {
-    // Whatever the user chose, keep the UI's picture of it current.
-    void refreshHostPermissions();
+  if (origins.length === 0 || typeof chrome === 'undefined' || !chrome.permissions?.request) {
+    return await missingHosts(origins);
   }
+  const granted = await chrome.permissions.request({ origins });
+  // Keep the UI's picture of it current whatever happened.
+  void refreshHostPermissions();
+  return granted ? [] : await missingHosts(origins);
 }
 
 /** Drop these origins again (Permissions row → "revoke"). */

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { t } from '../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
 import {
-  Volume2, ChevronsLeftRight, Link2, Search, Plus, Eye, BookOpen, Check, Sparkles,
+  Volume2, ChevronsLeftRight, Link2, Search, Plus, Eye, BookOpen, Check, Sparkles, KeyRound,
 } from 'lucide-react';
 import type {
   AiEnrichment,
@@ -75,6 +75,12 @@ interface ResolveState {
   /** True while waiting on the AI enrichment wave. */
   aiLoading: boolean;
   aiError: string | null;
+  /**
+   * Sources the orchestrator skipped because their optional host permission
+   * was never granted. Not an error: nothing was tried, and the UI turns it
+   * into an actionable "concede acceso" affordance.
+   */
+  needsAccess: Array<{ source: string; group: string }>;
 }
 
 const INITIAL_STATE: ResolveState = {
@@ -87,6 +93,7 @@ const INITIAL_STATE: ResolveState = {
   ai: null,
   aiLoading: false,
   aiError: null,
+  needsAccess: [],
 };
 
 function useResolveWord(
@@ -165,6 +172,7 @@ function useResolveWord(
             enriching: false,
             remoteLoading: false,
             aiLoading: false,
+            needsAccess: resp.needsAccess ?? [],
             ai: aiWave && aiWave.stage === 'ai' ? aiWave.data : prev.ai,
           }));
         } catch (err) {
@@ -234,6 +242,7 @@ function useResolveWord(
             enriching: false,
             remoteLoading: false,
             aiLoading: false,
+            needsAccess: msg.needsAccess ?? [],
           }));
           break;
       }
@@ -385,9 +394,27 @@ export function WordPopover({
    */
   useEffect(() => {
     if (!visible) return;
+    const getActive = (): HTMLElement | null => {
+      // Inside a shadow root, document.activeElement is the HOST element, so
+      // any "is the focus inside the card" question answered with the document
+      // is always "no" — and the card would claim every Escape on the page.
+      const root = rootRef.current;
+      const shadowRoot = root?.getRootNode();
+      const scopedActive =
+        shadowRoot instanceof ShadowRoot ? shadowRoot.activeElement : null;
+      return (scopedActive as HTMLElement | null) ?? null;
+    };
+
     const onWindowKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
+      // Only swallow the key when it belongs to us: if the focus (or the
+      // pointer) lives in the card, the page behind never needed that Escape —
+      // and the platform's own dialogs keep working when the cursor happens to
+      // hover a word.
+      const ownsFocus = rootRef.current?.contains(getActive()) ?? false;
+      if (!ownsFocus && !event.defaultPrevented) return;
       event.stopPropagation();
+      event.preventDefault();
       onClose?.();
     };
     window.addEventListener('keydown', onWindowKeyDown, true);
@@ -403,18 +430,24 @@ export function WordPopover({
         root.querySelectorAll<HTMLElement>(
           'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
         ),
-      ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+      ).filter((el) => el.offsetParent !== null);
       if (focusables.length === 0) {
         event.preventDefault();
         return;
       }
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
-      const active = document.activeElement as HTMLElement | null;
+      // Same shadow-DOM rule: read the active element from the shadow root,
+      // not from the document, or the comparison is against our own host.
+      const shadowRoot = root.getRootNode();
+      const active =
+        (shadowRoot instanceof ShadowRoot ? shadowRoot.activeElement : document.activeElement) as
+          | HTMLElement
+          | null;
       if (event.shiftKey && (active === first || !root.contains(active))) {
         event.preventDefault();
         last.focus();
-      } else if (!event.shiftKey && (active === last || !root.contains(active))) {
+      } else if (!event.shiftKey && active === last) {
         event.preventDefault();
         first.focus();
       }
@@ -923,6 +956,36 @@ export function WordPopover({
               </div>
             )}
           </div>
+        )}
+
+        {resolved.needsAccess.length > 0 && (
+          <button
+            tabIndex={-1}
+            onMouseDown={blockFocusSteal}
+            onClick={(e) => {
+              // The ONE thing the user can do about it: grant the origins.
+              // The Settings page is the only place a prompt can be raised.
+              e.stopPropagation();
+              releaseFocus(e);
+              void chrome.runtime.sendMessage({
+                type: 'OPEN_SETTINGS',
+                section: 'perm',
+              } as unknown as string).catch(() => {});
+              // Fall back to the tab URL when the SW cannot open it itself.
+              try {
+                window.open(chrome.runtime.getURL('src/options/index.html#perm'), '_blank');
+              } catch {
+                /* runtime may not be available in a content-script context */
+              }
+            }}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-[10px] font-medium text-amber-200 bg-amber-500/15 hover:bg-amber-500/20 border-t border-amber-500/25 transition-colors"
+            title={resolved.needsAccess.map((n) => n.source).join(', ')}
+          >
+            <KeyRound size={10} />
+            <span className="normal-case">
+              {t('popover.needsAccess')} ({resolved.needsAccess.length})
+            </span>
+          </button>
         )}
 
         {isMWE && (

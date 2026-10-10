@@ -72,6 +72,7 @@ const es: Dict = {
 
   // ── word popover ───────────────────────────────────────────────────────
   'popover.loadingMore': 'buscando más…',
+  'popover.needsAccess': 'Faltan fuentes · concede acceso',
   'popover.loadingMoreShort': 'buscando más',
   'popover.playPronunciation': 'Reproducir pronunciación',
   'popover.joinPhrase': 'Unir como expresión',
@@ -606,6 +607,7 @@ const en: Dict = {
   'subs.keepAlignment': 'Keep alignment',
 
   'popover.loadingMore': 'looking up more…',
+  'popover.needsAccess': 'Sources held back · grant site access',
   'popover.loadingMoreShort': 'looking up more',
   'popover.playPronunciation': 'Play pronunciation',
   'popover.joinPhrase': 'Join as a phrase',

@@ -74,6 +74,10 @@ export async function resolveWordStreaming(
   const sourceLang = params.sourceLang || 'en';
   const token = (params.token ?? '').trim();
   const sentence = params.sentence ?? '';
+  // Sources the enrichment chain skipped for lack of optional host access.
+  // Collected on the way and reported on the terminal phase, so both the port
+  // stream and the legacy one-shot response can offer the grant CTA.
+  let needsAccess: Array<{ source: string; group: string }> = [];
 
   if (!token) {
     emit({ phase: 'local', entry: null });
@@ -211,6 +215,7 @@ export async function resolveWordStreaming(
         vip: vipSettings,
         purpose: params.purpose ?? 'popover',
       });
+      if (result.needsAccess?.length) needsAccess = result.needsAccess;
       if (result.entry) {
         const localTr = (local?.translation ?? '').trim();
         const localTrReal = localTr !== '' && localTr !== '—';
@@ -326,5 +331,5 @@ export async function resolveWordStreaming(
     else await recordMiss(MISS_PACK_ID);
   })();
 
-  emit({ phase: 'done' });
+  emit({ phase: 'done', ...(needsAccess.length ? { needsAccess } : {}) });
 }

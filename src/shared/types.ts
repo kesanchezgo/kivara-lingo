@@ -700,6 +700,12 @@ export type ResolveWordWave =
 export interface ResolveWordResponse {
   ok: true;
   waves: ResolveWordWave[];
+  /**
+   * Sources skipped because their optional host permission is not granted.
+   * The popover turns this into a "concede acceso" affordance; it is a state,
+   * never an error — nothing was tried and nothing failed.
+   */
+  needsAccess?: Array<{ source: string; group: string }>;
 }
 
 /**
@@ -730,7 +736,15 @@ export type ResolveWordStreamMsg =
   | { phase: 'enrichment'; entry: DictionaryEntry | null }
   | { phase: 'ai'; data: AiEnrichment }
   | { phase: 'error'; scope: 'remote' | 'ai' | 'enrichment'; message: string }
-  | { phase: 'done' };
+  | {
+      phase: 'done';
+      /**
+       * Sources the orchestrator did not call because their optional host
+       * access is missing. Carried on the terminal phase so the port stream
+       * and the legacy one-shot response can both offer the user a grant CTA.
+       */
+      needsAccess?: Array<{ source: string; group: string }>;
+    };
 
 /** Request envelope sent once over the resolve-word port. */
 export interface ResolveWordStreamRequest {
