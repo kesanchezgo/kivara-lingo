@@ -23,40 +23,39 @@ describe('orchestrator exports', () => {
     async () => {
       const mod = await import('../../src/background/enrichment/orchestrator');
       expect(Object.keys(mod).sort()).toMatchInlineSnapshot(`
-      [
-        "activeSourceSignature",
-        "clearEnrichmentCache",
-        "clearMemEnrichmentCache",
-        "contextTranslationReasons",
-        "contextTranslationScore",
-        "contextTranslationTrace",
-        "definitionContextReasons",
-        "etymologyDomainLabel",
-        "getEnrichmentCacheStats",
-        "glossPosShape",
-        "hasSubstantiveSenseOverlap",
-        "isFigurativeAntonym",
-        "isSlangSenseDefinition",
-        "makeCacheKey",
-        "pickCollocations",
-        "pickDefinitions",
-        "pickEtymology",
-        "pickExamples",
-        "pickImageCandidate",
-        "pickLexicalTranslations",
-        "pickRelatedTerms",
-        "pickSenseRelationGroups",
-        "rankImageCandidates",
-        "readEnrichmentCache",
-        "runEnrichment",
-        "scoreImageCandidate",
-        "sentencePosHint",
-        "writeEnrichmentCache",
-      ]
-    `,
-      30_000,
-    );
-  });
+        [
+          "activeSourceSignature",
+          "clearEnrichmentCache",
+          "clearMemEnrichmentCache",
+          "contextTranslationReasons",
+          "contextTranslationScore",
+          "contextTranslationTrace",
+          "definitionContextReasons",
+          "etymologyDomainLabel",
+          "getEnrichmentCacheStats",
+          "glossPosShape",
+          "hasSubstantiveSenseOverlap",
+          "isFigurativeAntonym",
+          "isSlangSenseDefinition",
+          "makeCacheKey",
+          "mergeFields",
+          "pickCollocations",
+          "pickDefinitions",
+          "pickEtymology",
+          "pickExamples",
+          "pickImageCandidate",
+          "pickLexicalTranslations",
+          "pickRelatedTerms",
+          "pickSenseRelationGroups",
+          "rankImageCandidates",
+          "readEnrichmentCache",
+          "runEnrichment",
+          "scoreImageCandidate",
+          "sentencePosHint",
+          "writeEnrichmentCache",
+        ]
+      `);
+  }, 30_000);
 
   it('clears the cache and reports how many rows went', async () => {
     const mod = await import('../../src/background/enrichment/orchestrator');

@@ -660,7 +660,7 @@ async function fillMissingExampleTranslations(
 
 /* ─── Merge logic ─────────────────────────────────────────────────────── */
 
-interface MergedFields {
+export interface MergedFields {
   entry: DictionaryEntry | null;
   vip: VipEnrichment;
 }
@@ -2671,7 +2671,7 @@ export function pickExamples(
     .map(({ score: _score, sourceRank: _sourceRank, ...example }) => example);
 }
 
-function mergeFields(
+export function mergeFields(
   token: string,
   partials: Array<{ source: EnrichmentSource; partial: SourcePartial }>,
   ctx: EnrichmentContext,

@@ -1050,6 +1050,7 @@ function Accordion({
   return (
     <div id={id} className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
       <button
+        id={`${sectionId(title, id)}-button`}
         onClick={onToggle}
         aria-expanded={open}
         aria-controls={`${sectionId(title, id)}-panel`}
@@ -1070,6 +1071,15 @@ function Accordion({
       </button>
       <div
         id={`${sectionId(title, id)}-panel`}
+        role="region"
+        aria-labelledby={`${sectionId(title, id)}-button`}
+        // A collapsed accordion must not be keyboard-reachable: the grid hides
+        // it visually but its controls stay tabbable, so a closed section's
+        // inputs and selects remain in the page's tab order while invisible to
+        // sighted users. Inert keeps the CSS transition (an unmount would
+        // jump) and disappears on an open panel. Spread because this React
+        // version's div types do not know the `inert` prop yet.
+        {...({ inert: open ? undefined : true } as { inert?: boolean })}
         style={{
           display: 'grid',
           gridTemplateRows: open ? '1fr' : '0fr',

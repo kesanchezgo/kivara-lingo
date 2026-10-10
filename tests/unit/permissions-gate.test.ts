@@ -87,9 +87,24 @@ describe('splitByPermission', () => {
   });
 
   it('a wildcard grant covers the apex of its host', () => {
-    // `matchesPattern` treats `*.dictionary.cambridge.org` as covering the
-    // apex, so the group's apex pattern is satisfied by the wildcard pattern.
+    // The group lists BOTH `*.self` and the apex, and `matchesPattern` treats
+    // the wildcard as covering the apex — this is what a strict-test version
+    // would have had to spell out wrongly. It passes because of the matcher,
+    // not because the group happens to contain the apex, since granting the
+    // wildcard alone satisfies BOTH patterns here.
+    expect(originsForSource('cambridge').length).toBeGreaterThan(1);
     const result = splitByPermission([src('cambridge')], [
+      'https://*.dictionary.cambridge.org/*',
+    ]);
+    expect(result.needsAccess).toEqual([]);
+    expect(result.reachable.map((s) => s.id)).toEqual(['cambridge']);
+  });
+
+  it('an exact-pattern grant of the whole group lets it through', () => {
+    // The apex form alone also satisfies its own pattern; granting both covers
+    // every pattern of the group, which is the intended use.
+    const result = splitByPermission([src('cambridge')], [
+      'https://dictionary.cambridge.org/*',
       'https://*.dictionary.cambridge.org/*',
     ]);
     expect(result.needsAccess).toEqual([]);
