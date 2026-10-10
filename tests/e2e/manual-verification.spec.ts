@@ -22,11 +22,12 @@ import type { Server } from 'node:http';
 
 type AnkiLog = { hits: number; urls: string[] };
 
-/**
- * The version the fake AnkiConnect reports — a stand-in for a real install, so
- * the value belongs next to the popup-side literal, not in this file: a bump to
- * either one fixes this popover.
- */
+/** The version the fake AnkiConnect reports. NOT shared with the popup — the
+ *  real one comes from AnkiConnect's own version response and lives in the
+ *  AnkiConnectError/AnkiPingResponse types in the background entry — this is a
+ *  stand-in. It is a constant because both the fake server and the pill wait
+ *  below must report/expect the SAME one, and a bump must not require two
+ *  identical literals in this file. */
 const FAKE_ANKI_VERSION = '25.02.manual';
 
 function startFakeAnki(port: number, log: AnkiLog): Promise<Server> {

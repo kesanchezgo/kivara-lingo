@@ -7,6 +7,7 @@ import { useKivaraStore } from '../shared/store';
 import { t } from '../shared/i18n';
 import { SyncWriteErrorBanner } from '../app/components/SyncWriteErrorBanner';
 import type { AnkiPingErrorCode, AnkiPingResponse, AudioCaptureStatus } from '../shared/types';
+import { BOOT_RETRY_MS, BOOT_RETRY_MAX, ERROR_RETRY_MS } from './ping-retry';
 
 type PingStatus = 'idle' | 'pinging' | 'ok' | 'error';
 
@@ -132,36 +133,42 @@ export function Popup() {
     };
   }, [runPing]);
 
-  // Auto-retry every 4s while disconnected — the popup recovers as soon as
-  // the user opens Anki, no manual click needed.
-  // Also while the FIRST ping is in flight and silent. Bounded: at most two
-  // attempts total, cleared on unmount or on a status change. The e2e showed
-  // that a popup's opening ping can arrive at the SW before it has finished
-  // waking (the SW stays productive through storage hydration, so pre-flight
-  // looks fine), and its message is dropped — hits on AnkiConnect stays at its
-  // pre-flight count while the pill sits on "Comprobando AnkiConnect…". A
-  // bounded re-ping resolves that without a user click.
+  // Two retry policies, because they answer two different questions:
+  //
+  //  - the SILENT FIRST PING. The e2e showed a popup's opening ping can reach
+  //    the SW before it has finished waking (the SW stays productive through
+  //    storage hydration, so pre-flight looks fine), and the message is dropped
+  //    — hits on AnkiConnect never move and the pill sits on "Comprobando
+  //    AnkiConnect…". A bounded re-ping resolves that with no user click.
+  //
+  //  - the PERIODIC retry while DISCONNECTED: every 4 s while the status is
+  //    error, so the popup recovers the moment the user opens Anki. The retry
+  //    loop this replaces never ran: its attempt counter reset to 0 on the
+  //    error branch and the guard `< 1` returned before a timer was set — see
+  //    tests/unit/popup-ping-retry.test.ts for the regression test.
   //
   // TODO(kivara-lingo#issue-stream-retry): the underlying "first dispatch after
   // a cold worker" belongs to stream.ts, which owns the port protocol; that
   // commit replaces or removes this patch AND closes the issue it references.
-  const attemptRef = useRef(0);
+  const bootRetryRef = useRef(0);
   useEffect(() => {
-    attemptRef.current = ping.status === 'pinging' ? attemptRef.current + 1 : 0;
-    if (!(ping.status === 'pinging' || ping.status === 'error')) return;
-    if (attemptRef.current < 1 || attemptRef.current > 2) return;
-    const timer = window.setTimeout(
-      () => {
-        void runPing();
-      },
-      ping.status === 'pinging' ? 2_500 : 4_000,
-    );
-    return () => window.clearTimeout(timer);
+    if (ping.status === 'pinging') {
+      // Only a CHANGE to pinging counts a boot attempt, so the re-ping landing
+      // back on pinging does not re-enter and self-retry forever.
+      if (bootRetryRef.current >= BOOT_RETRY_MAX) return;
+      bootRetryRef.current += 1;
+      const timer = window.setTimeout(() => void runPing(), BOOT_RETRY_MS);
+      return () => window.clearTimeout(timer);
+    }
+    bootRetryRef.current = 0;
+    return undefined;
   }, [ping.status, runPing]);
 
-  void (
-    ping.status === 'ok' ? ping.version : undefined
-  );
+  useEffect(() => {
+    if (ping.status !== 'error') return undefined;
+    const interval = window.setInterval(() => void runPing(), ERROR_RETRY_MS);
+    return () => window.clearInterval(interval);
+  }, [ping.status, runPing]);
 
   // Re-ping the instant focus comes back (alt-tab → Anki → back here).
   useEffect(() => {

@@ -4,7 +4,9 @@
  *
  * Moved verbatim from the orchestrator so the file the split produced keeps its
  * exact behaviour — see `tests/unit/merge-characterization.test.ts`, which
- * pinned pre-move behaviour and ran clean after this cut in the same commit.
+ * pinned pre-move behaviour and stayed byte-for-byte identical through this cut
+ * (only its import path moved; the orchestrator entry point is covered by the
+ * re-export it still carries).
  *
  * It imports nothing from the orchestrator by design: putting the merge behind
  * a back-edge would be a cycle, and in a service worker a cycle through a
