@@ -46,7 +46,6 @@ export function Popup() {
   // audio failure look like a broken AnkiConnect (and the catch swallowed
   // the reason entirely, so the user saw nothing).
   const [captureError, setCaptureError] = useState<string | null>(null);
-  const cancelledRef = useRef(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode);
@@ -73,7 +72,32 @@ export function Popup() {
   }, [setAudioCaptureActive]);
 
 
+  /**
+   * AnkiConnect mount ping, and why its result lives behind three guards
+   * rather than one. The e2e of the idle spec produced one where a hang, hit
+   * 2/2 pings at the fake server, and still read as "no pill". The cause was
+   * two lines above it: a cancellation that also triggered on EVERY
+   * `ankiMapping` churn, and the store hydrates AFTER mount (default url →
+   * stored url), so the first in-flight answer was discarded on arrival. In a
+   * real browser that reads as: the user opens the popup and watches
+   * "Comprobando AnkiConnect…" never resolve.
+   *  - the seq token: only the LATEST answer may write state;
+   *  - in-flight dedup: a churn that repeats the SAME url does not re-issue,
+   *    which is what kept the second request from losing its answer.
+   */
+  const pingSeqRef = useRef(0);
+  const mountedRef = useRef(true);
+  // A hydration churn can change the url twice in a frame — the sandbox
+  // behavior is the lost-ping race observed in the e2e (idle → pinging 8765 →
+  // pinging custom ≈ the pill stuck on "Comprobando" while BOTH pings returned
+  // ok). The guard makes an in-flight ping for the SAME url survive the churn.
+  const inflightUrlRef = useRef<string | null>(null);
+
   const runPing = useCallback(async () => {
+    const target = `${ankiMapping.ankiUrl ?? ''}|${ankiMapping.apiKey ?? ''}`;
+    if (inflightUrlRef.current === target) return;
+    inflightUrlRef.current = target;
+    const seq = ++pingSeqRef.current;
     setPing({ status: 'pinging' });
     try {
       const result = (await sendMessage(
@@ -81,22 +105,30 @@ export function Popup() {
         { url: ankiMapping.ankiUrl, apiKey: ankiMapping.apiKey },
         'background',
       )) as AnkiPingResponse;
-      if (cancelledRef.current) return;
+      if (inflightUrlRef.current === target) inflightUrlRef.current = null;
+      // A newer ping has started, or the page is gone: drop this answer but
+      // leave the state alone (the newer one owns it).
+      if (!mountedRef.current || seq !== pingSeqRef.current) return;
       if (result.ok) setPing({ status: 'ok', version: result.version });
       else setPing({ status: 'error', error: result.error, code: result.code });
     } catch (err) {
-      if (cancelledRef.current) return;
+      if (inflightUrlRef.current === target) inflightUrlRef.current = null;
+      if (!mountedRef.current || seq !== pingSeqRef.current) return;
       const reason = err instanceof Error ? err.message : 'unknown';
       setPing({ status: 'error', error: reason });
     }
   }, [ankiMapping.ankiUrl, ankiMapping.apiKey]);
 
-  // Ping on mount / whenever the AnkiConnect URL or key changes.
+  // Ping on mount / whenever the AnkiConnect URL or key changes. Cleanup does
+  // NOT abort the in-flight request: it only stops the state setter, because
+  // the url change it abides is itself often the store finishing hydrate (see
+  // the churn above), and killing the answer there loses the ping entirely.
   useEffect(() => {
-    cancelledRef.current = false;
+    mountedRef.current = true;
     void runPing();
     return () => {
-      cancelledRef.current = true;
+      // Bump so an in-flight answer cannot overwrite the new ping's state.
+      pingSeqRef.current += 1;
     };
   }, [runPing]);
 
@@ -109,6 +141,10 @@ export function Popup() {
     }, 4000);
     return () => window.clearInterval(interval);
   }, [ping.status, runPing]);
+
+  void (
+    ping.status === 'ok' ? ping.version : undefined
+  );
 
   // Re-ping the instant focus comes back (alt-tab → Anki → back here).
   useEffect(() => {

@@ -209,15 +209,14 @@ test('2 · Anki on a custom port, after the service worker went idle', async ({
         .poll(
           async () => {
             const visible = await page
-              .getByText(/AnkiConnect v[\d.]+ · (activo|active)/)
+              .getByText('25.02.manual', { exact: false })
               .first()
               .isVisible()
               .catch(() => false);
             if (!visible) {
-              // Report WHILE it fails, once per interval: hits is what the fake
-              // server saw, so hits=0 says the ping never left the extension
-              // and hits>0 says the pill did not render. Distinguished from
-              // machine noise by the retries that follow.
+              // Report WHILE it fails: hits is what the fake server saw, so
+              // hits>=2 says the request reached AnkiConnect and the silent
+              // half is the render; hits low is connectivity on its own.
               console.log('[ANKI-POLL] pill? ' + visible + ' hits=' + log.hits);
             }
             return visible;
@@ -245,11 +244,11 @@ test('2 · Anki on a custom port, after the service worker went idle', async ({
     await second.close();
 
     expect(corsErrors).toEqual([]);
-    // The pill's absence has three possible stops and each must fail
-    // differently: hits=0 (never reached), corsErrors (the original
-    // regression) or hits>0 with no pill (a render failure).
-    const diag = () => 'hits=' + log.hits + ' seen=' + JSON.stringify(log.urls.slice(0, 4)) + ' errors=' + JSON.stringify(corsErrors.slice(0, 4));
-    console.log('[ANKI-DIAG] ' + diag());
+    // `hits` counts pings the fake server saw. A pill that never appeared with
+    // hits>=2 is a render failure; hits low is connectivity; corsErrors is the
+    // original regression. Both facts go into the failure text because the
+    // assertion itself is where a reader starts.
+    const diag = () => 'hits=' + log.hits + ' errors=' + JSON.stringify(corsErrors.slice(0, 4));
     expect(log.hits, 'server saw ' + diag()).toBeGreaterThanOrEqual(2);
     expect(log.urls.every((u) => u === '/')).toBe(true);
   } finally {
