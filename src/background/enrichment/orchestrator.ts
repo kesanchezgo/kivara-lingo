@@ -3486,14 +3486,24 @@ async function pruneVipCache(): Promise<void> {
           };
           count(): Promise<number>;
           bulkDelete(keys: string[]): Promise<void>;
+          toArray(): Promise<CacheRow[]>;
         }
       | null;
     if (!table) return;
-    // Both passes go through the `storedAt` index the schema declares: no
-    // full table scan and no delete-per-row.
+    // Rows written before `storedAt` existed are invisible to the index, so
+    // the two index passes below never touch them and they accumulate forever
+    // AND inflate `count()`, which makes the row ceiling wrong by exactly their
+    // number. Swept once, cheaply: a scan of a table that rarely exceeds a few
+    // hundred rows, paid at most every PRUNE_INTERVAL_MS.
+    const rows = await table.toArray().catch(() => [] as CacheRow[]);
+    const orphans = rows.filter((r) => !r.storedAt).map((r) => r.key);
+    if (orphans.length > 0) await table.bulkDelete(orphans);
+
     const ttlMs = DEFAULT_VIP_CACHE_TTL_DAYS * 24 * 3600 * 1000;
     await table.where('storedAt').below(now - ttlMs).delete();
 
+    // Count AFTER the orphans and the expired rows are gone, so the ceiling
+    // describes real rows.
     const remaining = await table.count().catch(() => 0);
     if (remaining > MAX_VIP_CACHE_ROWS) {
       const staleKeys = await table
