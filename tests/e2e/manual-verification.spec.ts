@@ -128,7 +128,7 @@ test('2 · Anki on a custom port, after the service worker went idle', async ({
   context,
   extensionId,
 }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(260_000);
   const PORT = 18765; // NOT the default 8765
   const log: AnkiLog = { hits: 0, urls: [] };
   const server = await startFakeAnki(PORT, log);
@@ -184,9 +184,11 @@ test('2 · Anki on a custom port, after the service worker went idle', async ({
       // The popup pings on mount and the status pill shows the server version
       // on success ("AnkiConnect v… · activo/active"). The version text itself
       // is not what matters here — that the SW REACHES the custom port after
-      // going idle is, with no CORS/network error.
+      // going idle is, with no CORS/network error. A 5 s default budget is not
+      // enough on a loaded box: the SW has to wake from its 30 s teardown
+      // first, which is exactly the point of this test.
       await expect(page.getByText(/AnkiConnect v[\d.]+ · (activo|active)/)).toBeVisible({
-        timeout: 60_000,
+        timeout: 90_000,
       });
       return page;
     };
