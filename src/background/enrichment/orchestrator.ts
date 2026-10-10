@@ -352,7 +352,6 @@ export function activeSourceSignature(vip: VipSettings): string {
   enabled.push(`pixabayKey:${vip.pixabayApiKey ? '1' : '0'}`);
   return enabled.join(',');
 }
-
 /**
  * Run the enrichment chain for `token`. Always returns a result,
  * even when every source failed — fields just stay empty.

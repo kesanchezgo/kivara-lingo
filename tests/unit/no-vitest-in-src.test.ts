@@ -55,8 +55,7 @@ describe('the vitest-import regex itself', () => {
       "const toolName = 'vitest-runner';",
       "const word = 'notvitestInQuotes';",
       "from './vitest-helper';",
-      // A commented-out import left behind by removing one: the FILE-level check
-      // strips `//` lines first, so this is a negative for the pattern itself.
+      'from \'vitest-library-shim\';',
       "const x = 'from' + ' ' + 'vitest-noop';",
     ]) {
       expect(VITEST_IMPORT.test(source), source).toBe(false);
@@ -71,11 +70,23 @@ describe('the vitest-import regex itself', () => {
     // removed, and it must not trip the guard.
     expect(VITEST_IMPORT.test(stripComments(commented))).toBe(false);
   });
+
+  it('stripping leaves a glob inside a string alone', () => {
+    // Only a block STARTING at column 0 is removed: a `/**/` inside a string
+    // would otherwise eat through to the next closing and hide a real import.
+    const withGlob = "const glob = 'src/**/*.ts';";
+    expect(stripComments(withGlob)).toContain('src/**/*.ts');
+  });
 });
 
-/** Remove `//` and `/*…*\/` runs so a commented-out import is not a hit. */
+/**
+ * Remove comment lines only, and only SAFE ones: a block that starts at the
+ * beginning of a line (the shape a removed import leaves behind after being
+ * commented out) and whole `//` lines. Nothing else — over-eager stripping is
+ * exactly how a real import gets hidden from the guard.
+ */
 function stripComments(text: string): string {
-  return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
+  return text.replace(/^\/\*[\s\S]*?\*\/$/gm, '\n').replace(/^[ \t]*\/\/.*$/gm, '');
 }
 
 function walk(dir: string): string[] {

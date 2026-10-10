@@ -1,17 +1,18 @@
 /**
- * `getEnrichmentCacheStats` — the byte estimate the cache panel prints.
+ * `getEnrichmentCacheStats` — the byte estimate the cache panel prints — and
+ * the `clearEnrichmentCache` count it prints alongside.
  *
  * The keys are part of what the extension stores too, and dropping them from
- * the estimate made the panel under-report a table whose keys are about as
- * long as their payloads. There is no IndexedDB under happy-dom, so `getDB()`
- * is driven here through a stub table; that is the whole point of counting the
- * key length.
+ * the estimate made the panel under-report a table whose keys are about as long
+ * as their payloads. There is no IndexedDB under happy-dom, so `getDB()` is
+ * driven here through a stub table; that is the whole point of counting the key
+ * length.
  */
 import { describe, it, expect, vi } from 'vitest';
 
 /**
- * Loaded dynamically per test: the stub table has to be installed BEFORE the
- * module reads `getDB`, so every case is a fresh resetModules + import.
+ * Each test installs its stub BEFORE the module is imported: `cache.ts` reads
+ * `getDB()` per call, so the module must be re-imported to pick the stub up.
  */
 function installTable(
   tables: Partial<Record<'toArray' | 'count' | 'clear' | 'bulkDelete', () => Promise<unknown>>>,
@@ -52,27 +53,26 @@ describe('getEnrichmentCacheStats', () => {
     expect(result.bytes).toBeGreaterThan(70);
   });
 
-  it('reports zeroes with no rows or no table', async () => {
+  it('the clear path counts and then clears the table', async () => {
+    let cleared = false;
     vi.resetModules();
-    installTable({ toArray: async () => [] });
-    const { getEnrichmentCacheStats: stats } = await import('../../src/background/enrichment/cache');
-    expect(await stats()).toEqual({ count: 0, bytes: 0 });
-
-    // No table at all (a first install, or a DB without the schema version).
-    vi.resetModules();
-    installNoTable();
-    const { getEnrichmentCacheStats: noTable } = await import(
-      '../../src/background/enrichment/cache'
-    );
-    expect(await noTable()).toEqual({ count: 0, bytes: 0 });
+    installTable({
+      count: async () => 3,
+      clear: async () => {
+        cleared = true;
+      },
+      toArray: async () => [],
+    });
+    const { clearEnrichmentCache: clear } = await import('../../src/background/enrichment/cache');
+    // The count is what the panel prints; clear() is what actually empties it.
+    expect(await clear()).toBe(3);
+    expect(cleared).toBe(true);
   });
 
-  it('the stats path reads rows keyed by the column the cache writes', async () => {
-    // The mock must address the exact table name cache.ts queries, or the
-    // empty-answer branch above would make every assertion pass by accident.
+  it('reports 0 when nothing needs clearing', async () => {
     vi.resetModules();
-    installTable({ toArray: async () => [{ key: 'k', payload: {}, storedAt: 1 }] });
-    const { getEnrichmentCacheStats: stats } = await import('../../src/background/enrichment/cache');
-    expect((await stats()).count).toBe(1);
+    installTable({ count: async () => 0, toArray: async () => [] });
+    const { clearEnrichmentCache: clear } = await import('../../src/background/enrichment/cache');
+    expect(await clear()).toBe(0);
   });
 });

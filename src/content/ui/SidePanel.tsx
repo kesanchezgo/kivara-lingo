@@ -137,13 +137,15 @@ export function SidePanel({
    */
   const deepLink = useDeepLinkSection();
   const [activeTab, setActiveTab] = useState<'subtitles' | 'cards' | 'settings'>('cards');
-  // The deep link can only be known once the (async) session slot resolves, so
-  // the initial useState value above can legitimately be Cards: switch as soon
-  // as the section is known instead of hoping the value was there on frame 1.
+  // Switch as soon as the section is known — a deep link must not land on the
+  // Cards tab, which never mounts SettingsTab at all. The nonce is a dependency
+  // too: the section ALONE does not change when a second deep link asks for the
+  // same one while the user has since switched away, and that request must
+  // still bring them back.
   useEffect(() => {
     if (deepLink.pending) return;
     if (deepLink.section) setActiveTab('settings');
-  }, [deepLink.pending, deepLink.section]);
+  }, [deepLink.pending, deepLink.section, deepLink.nonce]);
   const persistedPosition = useKivaraStore((s) => s.panelPosition);
   const setPersistedPosition = useKivaraStore((s) => s.setPanelPosition);
 

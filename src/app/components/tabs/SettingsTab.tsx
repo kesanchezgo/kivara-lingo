@@ -94,14 +94,18 @@ export function SettingsTab({
       initialSection ?? (typeof window !== 'undefined' ? readHashSection() : undefined),
   );
 
-  // A new nonce re-runs the expand (and scroll) below even for the same section.
+  // A new nonce re-runs the expand (and scroll) below even for the same section —
+  // AND a DIFFERENT section arriving while this tab is mounted changes what is
+  // expanded: `deepLinkSection` is only seeded from the prop, so without the
+  // assignment here a perm → tts sequence reopened perm.
   const lastNonce = useRef<number | undefined>(initialNonce);
   const [expandTick, bumpExpandTick] = useReducer((n: number) => n + 1, 0);
   useEffect(() => {
     if (initialNonce === undefined || initialNonce === lastNonce.current) return;
     lastNonce.current = initialNonce;
+    if (initialSection) setDeepLinkSection(initialSection);
     bumpExpandTick();
-  }, [initialNonce]);
+  }, [initialNonce, initialSection]);
 
   // No panel forwarding (a direct navigation): read the slot once here too.
   // The panel path already consumed it on mount, so this normally finds none.
@@ -1043,6 +1047,7 @@ function Accordion({
     <div id={id} className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
       <button
         onClick={onToggle}
+        aria-expanded={open}
         className="w-full flex items-center justify-between gap-2 px-2.5 py-2 bg-zinc-50/60 dark:bg-zinc-900/60 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/40 transition-colors"
       >
         <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
