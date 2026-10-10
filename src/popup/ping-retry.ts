@@ -1,98 +1,109 @@
 /**
- * The Anki ping's retry policy AND its hook. The review caught the previous
- * version testing a pure function Popup never called, while Popup ran its own
- * inline copy of the same rules. The policy lives in ONE place (this module),
- * Popup consumes it through the hook, and the hook is what the test drives with
- * fake timers.
+ * The Anki ping's retry policy AND its hook. The review caught three
+ * regressions in the previous version, all hidden by a toy harness that did
+ * not behave like Popup (its `fail` did not re-render, and nothing re-rendered
+ * during pinging). The three were:
  *
- * Two retry situations, asked of the same status:
+ *  - the forced re-ping after the watchdog never left: `fail()` flipped the
+ *    status to error, and the cleanup the flip caused cancelled the retry that
+ *    had been chained off the status effect;
+ *  - the error poll used setTimeout with ping(false) — refused by Popup's
+ *    in-flight dedup — so the poll died after one tick and never re-armed;
+ *  - `ping`/`fail` were inline lambdas in the hook's OWN effect deps, so any
+ *    Popup render during pinging restarted the watchdog (indefinite delay).
  *
- *  - BOOT: the first ping can reach the SW before it has finished waking (the SW
- *    stays productive through storage hydration, so pre-flight looks fine), the
- *    message is dropped, AnkiConnect never registers a hit, and the pill sits on
- *    "Comprobando…". A bounded re-ping fixes that with no user click.
- *  - ERROR: disconnected. Poll forever so the popup recovers when Anki opens.
- *
- * The bug this file exists for: an old Popup effect used ONE counter — reset to
- * 0 on the error branch, with a `< 1` guard that returned before scheduling, so
- * "Auto-retry every 4 s" never ran once; and its boot branch could not produce a
- * second attempt, because the counter only advanced on a status CHANGE and a
- * re-ping landing back on 'pinging' is neither a new render nor an effect
- * re-entry.
+ * The shape that survives all three: callbacks in refs, `status` as the only
+ * effect dep, retries that re-arm THEMSELVES from their own timer callbacks
+ * (so a status change cannot cancel a chain in flight), a SILENT boot retry
+ * (one lost message is not "AnkiConnect is down"), and an always-final error
+ * poll.
  */
 
 import { useEffect, useRef } from 'react';
 
-/** Silent-first-ping: re-ping after this long, at most BOOT_RETRY_MAX times. */
+export type PingStatus = 'idle' | 'pinging' | 'ok' | 'error';
+
+/** A lost boot ping: watchdog 5 s, then a silent re-ping. Budget per opening. */
 export const BOOT_RETRY_MS = 2_500;
 export const BOOT_RETRY_MAX = 2;
-
-/** Disconnected: poll this often while the status is error. */
-export const ERROR_RETRY_MS = 4_000;
-
-/** A boot attempt with no answer by now: the request was dropped, not slow. */
 export const BOOT_WATCHDOG_MS = 5_000;
 
-export type PingStatus = 'idle' | 'pinging' | 'ok' | 'error';
+/** Disconnected: forced poll every 4 s while the status is error. */
+export const ERROR_RETRY_MS = 4_000;
 
 export interface PingRetryOptions {
   status: PingStatus;
   /** A re-ping. `force` means "skip Popup's in-flight dedup on purpose". */
   ping: (force?: boolean) => void;
-  /** Move to the error state because a watchdog outlived its answer. */
+  /** Move to the error state (the boot budget is spent). */
   fail: () => void;
 }
 
-/**
- * Wire the policy to the ping.
- *
- * The retry chain is driven by the timer callbacks themselves, not by status
- * changes: `setPing({status:'pinging'})` over a ping already 'pinging' produces
- * neither a render nor an effect re-entry, which is what kept the old boot loop
- * at one attempt forever. The sequence carried by each watchdog token is what
- * makes a watchdog retire the moment its attempt is answered or superseded.
- */
 export function usePingRetry({ status, ping, fail }: PingRetryOptions): void {
-  const bootRef = useRef(0);
-  const seqRef = useRef(0);
+  const pingRef = useRef(ping);
+  const failRef = useRef(fail);
+  pingRef.current = ping;
+  failRef.current = fail;
 
-  // A new ping cycle resets the boot cap (so a later disconnect starts fresh).
-  if (status !== 'pinging') bootRef.current = 0;
+  // The boot budget: re-pings granted to one opening cycle. Reset only on open
+  // (idle) or a settled answer (ok) — NOT on error, where the poll owns the
+  // state from then on.
+  const bootRef = useRef(0);
+  useEffect(() => {
+    if (status === 'idle' || status === 'ok') bootRef.current = 0;
+  }, [status]);
+
+  // The generation guards every timer callback: a chain armed during this
+  // status is inert the moment a newer status substitutes the effect.
+  const genRef = useRef(0);
 
   useEffect(() => {
-    // `seq` is bumped when the watchdog is ARMED, so an answer (which lands as
-    // a status change and clears this effect) or a newer manual re-ping cannot
-    // be shot down by the watchdog that preceded it.
-    const token = (seqRef.current += 1);
-    let retry: ReturnType<typeof setTimeout> | null = null;
+    const gen = ++genRef.current;
+    if (genRef.current !== gen) return undefined;
+    let watchdog: ReturnType<typeof setTimeout> | null = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
 
     if (status === 'pinging') {
-      const watchdog = setTimeout(() => {
-        // Superseded: either a newer ping was armed, or the answer landed.
-        if (seqRef.current !== token) return;
-        if (bootRef.current >= BOOT_RETRY_MAX) return;
-        // Stuck: move to error, which owns the periodic poll, then re-ping
-        // ONCE, forced, so the user does not wait a full poll tick.
-        fail();
-        bootRef.current += 1;
-        retry = setTimeout(() => ping(true), BOOT_RETRY_MS);
-      }, BOOT_WATCHDOG_MS);
+      // A chain re-arms itself from its own callback: the budget comes from
+      // bootRef (shared across pinging cycles of one opening), so a hung ping
+      // after a fail does not get a fresh set of silent re-pings.
+      const armWatchdog = () => {
+        watchdog = setTimeout(() => {
+          if (genRef.current !== gen) return;
+          if (bootRef.current >= BOOT_RETRY_MAX) {
+            // Budget spent: the failure is now real and visible.
+            failRef.current();
+            return;
+          }
+          bootRef.current += 1;
+          // Re-ping SILENTLY — the pill stays on "Comprobando…", because a
+          // single dropped message (the SW waking) is not "Anki is down".
+          const next = setTimeout(() => {
+            if (genRef.current !== gen) return;
+            pingRef.current(true);
+            armWatchdog();
+          }, BOOT_RETRY_MS);
+          watchdog = next;
+        }, BOOT_WATCHDOG_MS);
+      };
+      armWatchdog();
       return () => {
-        clearTimeout(watchdog);
-        if (retry) clearTimeout(retry);
+        if (watchdog) clearTimeout(watchdog);
       };
     }
 
     if (status === 'error') {
-      retry = setTimeout(() => {
-        if (seqRef.current !== token) return;
-        ping(false);
-      }, ERROR_RETRY_MS);
+      // Forced poll: the in-flight dedup in Popup refuses unforced sends, and
+      // a hung poll ping keeps the status out of error — force is what keeps
+      // this alive. A hung poll ping lands the status on pinging, which arms
+      // its own watchdog against the (already spent) budget, fails back to
+      // error in 5 s and this interval re-arms from the fresh error.
+      interval = setInterval(() => pingRef.current(true), ERROR_RETRY_MS);
       return () => {
-        if (retry) clearTimeout(retry);
+        if (interval) clearInterval(interval);
       };
     }
 
     return undefined;
-  }, [status, ping, fail]);
+  }, [status]);
 }

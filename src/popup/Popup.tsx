@@ -7,9 +7,8 @@ import { useKivaraStore } from '../shared/store';
 import { t } from '../shared/i18n';
 import { SyncWriteErrorBanner } from '../app/components/SyncWriteErrorBanner';
 import type { AnkiPingErrorCode, AnkiPingResponse, AudioCaptureStatus } from '../shared/types';
-import { BOOT_RETRY_MS, BOOT_RETRY_MAX, ERROR_RETRY_MS, usePingRetry } from './ping-retry';
-
-type PingStatus = 'idle' | 'pinging' | 'ok' | 'error';
+import { usePingRetry } from './ping-retry';
+import type { PingStatus } from './ping-retry';
 
 interface PingState {
   status: PingStatus;
