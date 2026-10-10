@@ -1,73 +1,111 @@
 /**
- * The popup's Anki retry policy, pinned with fake timers.
+ * The popup's retry hook ITSELF — the review caught the previous version
+ * testing a pure function Popup never called, while Popup ran its own inline
+ * copy of the rules. This test drives `usePingRetry` through `renderHook` with
+ * fake timers. The harness stands in for Popup's runPing INCLUDING its dedup
+ * guard: Popup refuses an unforced re-ping while a request is in flight, and
+ * skipping that guard is exactly why every retry the hook sends is FORCED. A
+ * LOST first ping never answers, so without force Popup's dedup would hold
+ * forever — which is what the old boot loop actually suffered from.
  *
- * The review asked for: "estado error → a los 4 s se lanza otro ping". The test
- * does exactly that, and it also documents the bug this policy replaced — the
- * AUTO-RETRY the popup's own comment promised ("Auto-retry every 4s while
- * disconnected") had never actually run:
+ * The review's cases: a first ping left unanswered gets ONE forced re-ping then
+ * quiet; error polls every 4 s; an answer keeps the watchdog silent; unmount
+ * stops the timers.
  *
- *   1. the old effect reset its attempt counter to 0 on the error branch and
- *      then returned on the `< 1` guard — a timer was never scheduled;
- *   2. the boot re-ping (silent first ping) also never produced a second retry:
- *      the counter only advanced when a status CHANGE delivered 'pinging', and
- *      a re-ping that landed back on 'pinging' did not re-enter the effect, so
- *      attempt 1 exhausted the single branch entry.
- *
- * The policy is in src/popup/ping-retry.ts precisely so a fake-timer test can
- * drive it without rendering the popup (store hydration, chrome APIs, the whole
- * pill tree).
+ * FALSIFICATION: flipping the hook's ping(true) back to ping(false) fails the
+ * lost-ping case — the dedup in the harness then blocks the re-ping forever.
  */
-import { describe, expect, it } from 'vitest';
-import { BOOT_RETRY_MAX, ERROR_RETRY_MS, pingRetryDecision } from '../../src/popup/ping-retry';
+import { act, cleanup, renderHook } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  ERROR_RETRY_MS,
+  type PingStatus,
+  usePingRetry,
+} from '../../src/popup/ping-retry';
 
-/** Mirrors the popup effect: fold the decision into what would be scheduled. */
-function scheduleSequence(statuses: Array<'idle' | 'pinging' | 'ok' | 'error'>) {
-  let attempts = 0;
-  const timers: Array<{ kind: 'boot' | 'error'; ms: number }> = [];
-  for (const status of statuses) {
-    const d = pingRetryDecision(status, attempts);
-    if (d.bootRetryMs != null) timers.push({ kind: 'boot', ms: d.bootRetryMs });
-    if (d.errorRetryMs != null) timers.push({ kind: 'error', ms: d.errorRetryMs });
-    attempts = d.bootAttempts;
-  }
-  return timers;
+let s: PingStatus;
+/** = Popup's in-flight ref: what blocks every unforced re-ping. */
+let inflight: boolean;
+/** force flags handed to Popup's runPing, in order. */
+let flags: Array<boolean | undefined>;
+
+/** The toy mounted as Popup's runPing body: real dedup, real force. */
+function renderWith() {
+  return renderHook(
+    ({ st }: { st: PingStatus }) =>
+      usePingRetry({
+        status: st,
+        ping: (f?: boolean) => {
+          // Popup's own guard, verbatim in effect.
+          if (inflight && f !== true) return;
+          inflight = true;
+          flags.push(f);
+          s = 'pinging';
+        },
+        fail: () => {
+          inflight = false;
+          s = 'error';
+        },
+      }),
+    { initialProps: { st: s } },
+  );
 }
 
-describe('popup ping retry policy', () => {
-  it('schedules a 4 s retry when the status is error — the case the old code never ran', () => {
-    const timers = scheduleSequence(['idle', 'pinging', 'error']);
-    const errorTimers = timers.filter((t) => t.kind === 'error');
-    expect(errorTimers).toHaveLength(1);
-    expect(errorTimers[0]!.ms).toBe(ERROR_RETRY_MS);
-    // The old version's exact shape of failure, asserted as such: an error
-    // transition produced NO boot timer and NO error timer at all.
+beforeEach(() => {
+  vi.useFakeTimers();
+  s = 'idle';
+  inflight = false;
+  flags = [];
+});
+
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
+
+describe('usePingRetry', () => {
+  it('a first ping left unanswered gets exactly ONE forced re-ping, then quiet', () => {
+    // The opener: sent, never answered.
+    inflight = true;
+    s = 'pinging';
+    renderWith();
+
+    // The watchdog fires at 5 s; its re-ping arrives 2.5 s later, FORCED —
+    // the only re-ping that Popup's still-armed dedup would let through.
+    act(() => vi.advanceTimersByTime(5_000 + 2_500));
+    expect(flags).toHaveLength(1);
+    expect(flags[0]).toBe(true);
+
+    // And nothing more: 60 s of silence add nothing.
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(flags).toHaveLength(1);
   });
 
-  it('the old guard shape would have scheduled nothing on error', () => {
-    // Reproduces the OLD effect: counter reset to 0 on error, then `< 1`
-    // returns before scheduling. If pinRetryDecision ever regresses to that
-    // shape, this test — not the production run — is what notices.
-    const timers = scheduleSequence(['pinging', 'error']);
-    const newlyScheduled = timers.slice(1);
-    expect(newlyScheduled.length).toBeGreaterThan(0);
+  it('polls every 4 s while the status is error', () => {
+    s = 'error';
+    inflight = false;
+    renderWith();
+    act(() => vi.advanceTimersByTime(ERROR_RETRY_MS * 3 + 10));
+    // Each tick re-asks; the first ask passes the guard, the later ones the
+    // guard refuses (inflight stays armed). Same burst a real scan does.
+    expect(flags.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('re-pings a silent first attempt, bounded to two', () => {
-    // idle → pinging → still pinging → still pinging: the first two transitions
-    // each schedule a 2.5 s boot re-ping, the third is bounded away.
-    const timers = scheduleSequence(['idle', 'pinging', 'pinging', 'pinging']);
-    const bootTimers = timers.filter((t) => t.kind === 'boot');
-    expect(bootTimers).toHaveLength(BOOT_RETRY_MAX);
-    expect(bootTimers.every((t) => t.ms > 0)).toBe(true);
+  it('an answer keeps the watchdog silent', () => {
+    inflight = true;
+    s = 'pinging';
+    const current = renderWith();
+    act(() => current.rerender({ st: 'ok' }));
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(flags).toHaveLength(0);
   });
 
-  it('a settled status schedules nothing', () => {
-    expect(scheduleSequence(['idle', 'ok'])).toEqual([]);
-  });
-
-  it('keeps going from a settled status into a fresh error', () => {
-    // ok → error: no boot retry in flight, but the periodic loop must run.
-    const timers = scheduleSequence(['ok', 'error']);
-    expect(timers.filter((t) => t.kind === 'error').length).toBe(1);
+  it('unmount stops every timer', () => {
+    inflight = true;
+    s = 'pinging';
+    const current = renderWith();
+    act(() => current.unmount());
+    act(() => vi.advanceTimersByTime(30_000));
+    expect(flags).toHaveLength(0);
   });
 });

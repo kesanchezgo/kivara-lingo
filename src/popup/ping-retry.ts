@@ -1,52 +1,98 @@
 /**
- * The Anki ping's retry policy: the two timers the popup runs with, as named
- * constants and one testable transition. The popup component itself would be a
- * nightmare to drive with fake timers (store hydration, chrome APIs, the whole
- * pill tree), so the POLICY lives here and its test drives the component's
- * exact logic — see tests/unit/popup-ping-retry.test.ts.
+ * The Anki ping's retry policy AND its hook. The review caught the previous
+ * version testing a pure function Popup never called, while Popup ran its own
+ * inline copy of the same rules. The policy lives in ONE place (this module),
+ * Popup consumes it through the hook, and the hook is what the test drives with
+ * fake timers.
  *
- * The bug this file exists for: the previous version used ONE counter for both
- * policies. It incremented on any 'pinging' and reset to 0 on 'error', and its
- * guard (`< 1`) then returned before scheduling — so the "auto-retry every 4 s"
- * promised in the comment never ran once.
+ * Two retry situations, asked of the same status:
+ *
+ *  - BOOT: the first ping can reach the SW before it has finished waking (the SW
+ *    stays productive through storage hydration, so pre-flight looks fine), the
+ *    message is dropped, AnkiConnect never registers a hit, and the pill sits on
+ *    "Comprobando…". A bounded re-ping fixes that with no user click.
+ *  - ERROR: disconnected. Poll forever so the popup recovers when Anki opens.
+ *
+ * The bug this file exists for: an old Popup effect used ONE counter — reset to
+ * 0 on the error branch, with a `< 1` guard that returned before scheduling, so
+ * "Auto-retry every 4 s" never ran once; and its boot branch could not produce a
+ * second attempt, because the counter only advanced on a status CHANGE and a
+ * re-ping landing back on 'pinging' is neither a new render nor an effect
+ * re-entry.
  */
 
-/** Silent-first-ping case: re-ping after this long, at most BOOT_RETRY_MAX times. */
+import { useEffect, useRef } from 'react';
+
+/** Silent-first-ping: re-ping after this long, at most BOOT_RETRY_MAX times. */
 export const BOOT_RETRY_MS = 2_500;
 export const BOOT_RETRY_MAX = 2;
 
-/** Disconnected case: poll this often while the status is error. */
+/** Disconnected: poll this often while the status is error. */
 export const ERROR_RETRY_MS = 4_000;
+
+/** A boot attempt with no answer by now: the request was dropped, not slow. */
+export const BOOT_WATCHDOG_MS = 5_000;
 
 export type PingStatus = 'idle' | 'pinging' | 'ok' | 'error';
 
-/** What the popup's retry effect should schedule for a given status. */
-export interface PingRetryDecision {
-  /** Boot re-ping (silent first ping), or null when none is due. */
-  bootRetryMs: number | null;
-  /** Periodic retry (disconnected), or null when not running. */
-  errorRetryMs: number | null;
-  /** How many boot attempts this status transition consumed. */
-  bootAttempts: number;
+export interface PingRetryOptions {
+  status: PingStatus;
+  /** A re-ping. `force` means "skip Popup's in-flight dedup on purpose". */
+  ping: (force?: boolean) => void;
+  /** Move to the error state because a watchdog outlived its answer. */
+  fail: () => void;
 }
 
 /**
- * The popup's decision, as a function of the status and how many boot attempts
- * have run. Boot attempts only count while the status STAYS pinging (a re-ping
- * landing back on 'pinging' would otherwise retry itself forever), and the
- * counter does not reset on error — the two policies are independent questions
- * asked of the same status.
+ * Wire the policy to the ping.
+ *
+ * The retry chain is driven by the timer callbacks themselves, not by status
+ * changes: `setPing({status:'pinging'})` over a ping already 'pinging' produces
+ * neither a render nor an effect re-entry, which is what kept the old boot loop
+ * at one attempt forever. The sequence carried by each watchdog token is what
+ * makes a watchdog retire the moment its attempt is answered or superseded.
  */
-export function pingRetryDecision(status: PingStatus, bootAttempts: number): PingRetryDecision {
-  if (status === 'pinging') {
-    if (bootAttempts >= BOOT_RETRY_MAX) {
-      return { bootRetryMs: null, errorRetryMs: null, bootAttempts };
+export function usePingRetry({ status, ping, fail }: PingRetryOptions): void {
+  const bootRef = useRef(0);
+  const seqRef = useRef(0);
+
+  // A new ping cycle resets the boot cap (so a later disconnect starts fresh).
+  if (status !== 'pinging') bootRef.current = 0;
+
+  useEffect(() => {
+    // `seq` is bumped when the watchdog is ARMED, so an answer (which lands as
+    // a status change and clears this effect) or a newer manual re-ping cannot
+    // be shot down by the watchdog that preceded it.
+    const token = (seqRef.current += 1);
+    let retry: ReturnType<typeof setTimeout> | null = null;
+
+    if (status === 'pinging') {
+      const watchdog = setTimeout(() => {
+        // Superseded: either a newer ping was armed, or the answer landed.
+        if (seqRef.current !== token) return;
+        if (bootRef.current >= BOOT_RETRY_MAX) return;
+        // Stuck: move to error, which owns the periodic poll, then re-ping
+        // ONCE, forced, so the user does not wait a full poll tick.
+        fail();
+        bootRef.current += 1;
+        retry = setTimeout(() => ping(true), BOOT_RETRY_MS);
+      }, BOOT_WATCHDOG_MS);
+      return () => {
+        clearTimeout(watchdog);
+        if (retry) clearTimeout(retry);
+      };
     }
-    return { bootRetryMs: BOOT_RETRY_MS, errorRetryMs: null, bootAttempts: bootAttempts + 1 };
-  }
-  if (status === 'error') {
-    // Boot attempts stay where they are: the periodic loop is what runs now.
-    return { bootRetryMs: null, errorRetryMs: ERROR_RETRY_MS, bootAttempts };
-  }
-  return { bootRetryMs: null, errorRetryMs: null, bootAttempts: 0 };
+
+    if (status === 'error') {
+      retry = setTimeout(() => {
+        if (seqRef.current !== token) return;
+        ping(false);
+      }, ERROR_RETRY_MS);
+      return () => {
+        if (retry) clearTimeout(retry);
+      };
+    }
+
+    return undefined;
+  }, [status, ping, fail]);
 }

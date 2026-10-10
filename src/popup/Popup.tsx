@@ -7,7 +7,7 @@ import { useKivaraStore } from '../shared/store';
 import { t } from '../shared/i18n';
 import { SyncWriteErrorBanner } from '../app/components/SyncWriteErrorBanner';
 import type { AnkiPingErrorCode, AnkiPingResponse, AudioCaptureStatus } from '../shared/types';
-import { BOOT_RETRY_MS, BOOT_RETRY_MAX, ERROR_RETRY_MS } from './ping-retry';
+import { BOOT_RETRY_MS, BOOT_RETRY_MAX, ERROR_RETRY_MS, usePingRetry } from './ping-retry';
 
 type PingStatus = 'idle' | 'pinging' | 'ok' | 'error';
 
@@ -94,9 +94,13 @@ export function Popup() {
   // ok). The guard makes an in-flight ping for the SAME url survive the churn.
   const inflightUrlRef = useRef<string | null>(null);
 
-  const runPing = useCallback(async () => {
+  const runPing = useCallback(async (force = false) => {
     const target = `${ankiMapping.ankiUrl ?? ''}|${ankiMapping.apiKey ?? ''}`;
-    if (inflightUrlRef.current === target) return;
+    // The hydration-churn guard (see the sandbox note below). A FORCED ping
+    // exists to outrun it: the path that needs one is precisely the message the
+    // SW dropped before it had finished waking, whose answer will never clear
+    // this ref — so without force the retry would return here forever.
+    if (!force && inflightUrlRef.current === target) return;
     inflightUrlRef.current = target;
     const seq = ++pingSeqRef.current;
     setPing({ status: 'pinging' });
@@ -128,47 +132,31 @@ export function Popup() {
     mountedRef.current = true;
     void runPing();
     return () => {
+      mountedRef.current = false;
       // Bump so an in-flight answer cannot overwrite the new ping's state.
       pingSeqRef.current += 1;
     };
   }, [runPing]);
 
-  // Two retry policies, because they answer two different questions:
-  //
-  //  - the SILENT FIRST PING. The e2e showed a popup's opening ping can reach
-  //    the SW before it has finished waking (the SW stays productive through
-  //    storage hydration, so pre-flight looks fine), and the message is dropped
-  //    — hits on AnkiConnect never move and the pill sits on "Comprobando
-  //    AnkiConnect…". A bounded re-ping resolves that with no user click.
-  //
-  //  - the PERIODIC retry while DISCONNECTED: every 4 s while the status is
-  //    error, so the popup recovers the moment the user opens Anki. The retry
-  //    loop this replaces never ran: its attempt counter reset to 0 on the
-  //    error branch and the guard `< 1` returned before a timer was set — see
-  //    tests/unit/popup-ping-retry.test.ts for the regression test.
+  // The whole retry policy — boot re-ping, disconnected poll, the stuck-ping
+  // watchdog, and the force flag they share — lives in ping-retry.ts and is
+  // used through its hook; the rules and Popup's wiring of them are the same
+  // object. The review caught the earlier version testing a copy of those rules
+  // while Popup ran its own, so the test drives THIS hook now.
   //
   // TODO(kivara-lingo#issue-stream-retry): the underlying "first dispatch after
   // a cold worker" belongs to stream.ts, which owns the port protocol; that
   // commit replaces or removes this patch AND closes the issue it references.
-  const bootRetryRef = useRef(0);
-  useEffect(() => {
-    if (ping.status === 'pinging') {
-      // Only a CHANGE to pinging counts a boot attempt, so the re-ping landing
-      // back on pinging does not re-enter and self-retry forever.
-      if (bootRetryRef.current >= BOOT_RETRY_MAX) return;
-      bootRetryRef.current += 1;
-      const timer = window.setTimeout(() => void runPing(), BOOT_RETRY_MS);
-      return () => window.clearTimeout(timer);
-    }
-    bootRetryRef.current = 0;
-    return undefined;
-  }, [ping.status, runPing]);
-
-  useEffect(() => {
-    if (ping.status !== 'error') return undefined;
-    const interval = window.setInterval(() => void runPing(), ERROR_RETRY_MS);
-    return () => window.clearInterval(interval);
-  }, [ping.status, runPing]);
+  usePingRetry({
+    status: ping.status,
+    // A re-ping from a watchdog or the error poll: forced, because both exist
+    // for the message that never got an answer and therefore never clears the
+    // in-flight ref above.
+    ping: (force?: boolean) => {
+      void runPing(force ?? true);
+    },
+    fail: () => setPing({ status: 'error', error: 'timeout', code: 'TIMEOUT' }),
+  });
 
   // Re-ping the instant focus comes back (alt-tab → Anki → back here).
   useEffect(() => {
