@@ -77,6 +77,7 @@ import { duckduckgoImagesSource } from './sources/duckduckgo-images';
 import { youglishSource } from './sources/youglish';
 import { etymonlineSource } from './sources/etymonline';
 import { wordnetSource } from './sources/wordnet';
+import { sourceTier } from './source-tiers';
 import {
   clearMemEnrichmentCache,
   getEnrichmentCacheStats,
@@ -120,40 +121,16 @@ import { translateText } from '../translate';
  * / Reverso / Linguee / WordReference / SpanishDict / Forvo / Ozdic) +
  * BYOK image APIs (Unsplash, Pixabay).
  */
-const STANDARD_SOURCE_KEYS = new Set<keyof VipSettings>([
-  'freeDictionary',
-  'datamuse',
-  'wiktionary',
-  'wiktionaryHtml',
-  'wiktionaryApi',
-  'wiktApi',
-  'mobyThesaurus',
-  'thesaurusCom',
-  'wordHippo',
-  'theIdioms',
-  'bundled',
-  'yomitanPacks',
-  'etymonline',
-  'tatoeba',
-  'linguaLibre',
-  'googleTtsFallback',
-  'bingImages',
-  'openverse',
-  'wikimediaCommons',
-  'duckduckgoImages',
-  'youglish',
-  'wordnet',
-]);
+// STANDARD_SOURCE_KEYS is derived below, after VIP_SOURCES: tier membership lives in source-tiers.ts.
 
 function getStandardSources(vip: VipSettings): EnrichmentSource[] {
   const out: EnrichmentSource[] = [];
   for (const [flag, source] of Object.entries(VIP_SOURCES)) {
     if (!source) continue;
     const k = flag as keyof VipSettings;
-    if (!STANDARD_SOURCE_KEYS.has(k)) continue;
     if (vip[k] === true) out.push(source);
   }
-  return out;
+  return out.filter((source) => sourceTier(source.id) === 'standard');
 }
 
 /**
@@ -224,6 +201,20 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
   wordnet: wordnetSource,
 };
 
+/**
+ * Which flags are Standard tier. Derived from VIP_SOURCES + the tier map in
+ * source-tiers.ts so the lists and the map cannot drift: the merge ranks by
+ * tier through the same module.
+ *
+ * Resolved lazily on first use instead of at module load because it sits
+ * after the source table it reads.
+ */
+const STANDARD_SOURCE_KEYS: Set<keyof VipSettings> = new Set(
+  (Object.entries(VIP_SOURCES) as Array<[keyof VipSettings, EnrichmentSource | null]>)
+    .filter(([, source]) => source !== null && sourceTier(source.id) === 'standard')
+    .map(([flag]) => flag),
+);
+
 interface RunOptions {
   /** Source language (BCP-47 primary). */
   sourceLang: string;
@@ -275,7 +266,7 @@ const IMAGE_SOURCE_KEYS = new Set<keyof VipSettings>([
  * the old rules' output (rankings, caps, dedup), and would be served until
  * the TTL expired. The version, not time, is what invalidates it.
  */
-export const ENRICHMENT_CACHE_VERSION = 2;
+export const ENRICHMENT_CACHE_VERSION = 3;
 
 export function makeCacheKey(
   token: string,

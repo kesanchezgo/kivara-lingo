@@ -131,14 +131,14 @@ describe('the merge, characterized', () => {
     );
   });
 
-  it('IS order-dependent for first-written formatting — pinned, not endorsed', () => {
-    // CASO 5, the FINDING: two definitions differing only in case are one
-    // definition (case 1), but WHICH casing survives depends on which source
-    // arrived first — not on editorial tier. `freeDictionary` before
-    // `cambridge` therefore yields the free API's lowercase gloss.
-    //
-    // Characterization, not a contract: the move must reproduce this shape, and
-    // a future change making the editor win would need a deliberate review.
+  it("gives the editorial source the win regardless of arrival order", () => {
+    // CASO 5, once the FINDING, now the CONTRACT: two definitions differing
+    // only in case are one definition (case 1), and the winner used to be
+    // whichever source arrived first, so the card flipped depending on
+    // network latency and then sat in cache for days. mergeFields now ranks
+    // partials by tier before the accumulate loop, so cambridge (editorial)
+    // beats freeDictionary (standard) in BOTH orders — the merge's definition
+    // of "first write wins" is now the tier's standing, not the race.
     const pairs: Array<[string, SourcePartial]> = [
       ['cambridge', { definitions: ['To move quickly.'], phonetic: '/rʌn/' }],
       ['freeDictionary', { definitions: ['to move quickly.'], translations: ['correr'] }],
@@ -147,10 +147,20 @@ describe('the merge, characterized', () => {
     const forward = mergeFields('run', payloads(pairs), ctx);
     const backward = mergeFields('run', payloads([...pairs].reverse()), ctx);
 
-    expect(stable(forward.entry?.monolingual)).toBe('"To move quickly."');
-    expect(stable(backward.entry?.monolingual)).toBe('"to move quickly."');
+    // The ORDER PROPERTY, asserted directly: the same pair in either order
+    // produces byte-identical merges. That is the property the tier ranking
+    // exists to establish — used to be "first written wins" by arrival.
+    expect(stable(forward)).toBe(stable(mergeFields('run', payloads([...pairs].reverse()), ctx)));
 
-    // Deterministic, at least: the same input twice is the same output.
+    // And the editorial casing is what survives, both ways.
+    const forwardEntry = stable(forward.entry?.monolingual);
+    const backwardEntry = stable(
+      mergeFields('run', payloads([...pairs].reverse()), ctx).entry?.monolingual,
+    );
+    expect(forwardEntry).toBe('"To move quickly."');
+    expect(backwardEntry).toBe('"To move quickly."');
+
+    // Deterministic within one order too: the same input twice, same output.
     expect(stable(mergeFields('run', payloads(pairs), ctx))).toBe(stable(forward));
   });
 

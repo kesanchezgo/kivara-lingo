@@ -26,6 +26,7 @@ import type {
   SenseRelationGroup,
   SourcePartial,
 } from './types';
+import { sourceTierRank } from './source-tiers';
 
 /* ─── Merge logic ─────────────────────────────────────────────────────── */
 
@@ -2051,6 +2052,15 @@ export function mergeFields(
   partials: Array<{ source: EnrichmentSource; partial: SourcePartial }>,
   ctx: EnrichmentContext,
 ): MergedFields {
+  // Tier ordering BEFORE the accumulate loop: every "first write wins" field
+  // (the IPA, frequencyRank, deduped audio/definitions) used to inherit the
+  // fan-out order, so the winner was whichever network call answered fastest
+  // and the same word could produce a different card run to run — then sit
+  // in cache for days. A stable sort by tier rank makes the tier's standing
+  // decide; intra-tier arrival order is untouched.
+  const ordered = [...partials].sort(
+    (a, b) => sourceTierRank(a.source.id) - sourceTierRank(b.source.id),
+  );
   const entry: DictionaryEntry = {
     token,
     type: token.includes(' ') ? 'phrase' : 'word',
@@ -2099,7 +2109,7 @@ export function mergeFields(
   ];
 
   // Accumulate everything first, then pick winners.
-  for (const { source, partial } of partials) {
+  for (const { source, partial } of ordered) {
     if (partial.synonyms) {
       for (const synonym of partial.synonyms) synonymCandidates.push({ source: source.id, text: synonym });
     }
