@@ -27,7 +27,7 @@ import { SecretKeyInput } from '../SecretKeyInput';
 import { SyncWriteErrorBanner } from '../SyncWriteErrorBanner';
 import { HostPermissionsRow } from '../HostPermissionsRow';
 import { ensureProviderHosts } from '../../../shared/host-permissions';
-import { readOpenSettingsSection } from '../../../shared/open-settings-section';
+import { consumeOpenSettingsSection } from '../../../shared/open-settings-section';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { ShortcutEditor } from '../ShortcutEditor';
 import { InfoHint } from '../InfoHint';
@@ -64,14 +64,10 @@ export function SettingsTab({ initialSection }: { initialSection?: string } = {}
   const isOpen = (id: string) => !!open[id];
 
   // DEEP LINK. The popover's "held back" strip opens Settings for a reason, so
-  // the requested section is opened for it. The panel that renders this tab
-  // reads the deep link (hash, then the storage.session slot the
-  // OPEN_SETTINGS handler writes) so its INITIAL tab is Settings at all, and
-  // forwards it here; reading the session slot ourselves would race that.
-  //
-  // A remount (tab bar switch) re-expands the same section, which is what a
-  // user who switched away and back expects — the sticky-jump problem was the
-  // panel dropping them back into Settings, not this.
+  // the requested section is expanded for it. SidePanel consumes the section
+  // (hash first, then the storage.session slot the OPEN_SETTINGS handler
+  // writes) when picking its initial tab and forwards it here; the URL hash
+  // also stands alone so a direct options.html#perm still works.
   const [deepLinkSection, setDeepLinkSection] = useState<string | undefined>(
     () =>
       initialSection ??
@@ -79,18 +75,14 @@ export function SettingsTab({ initialSection }: { initialSection?: string } = {}
         ? window.location.hash.replace('#', '')
         : undefined),
   );
-  const sectionRef = useRef<string | undefined>(deepLinkSection);
 
-  // Direct navigation to options.html#perm, with no panel to forward the
-  // section: read the session slot ONCE here and expand it. The cleanup flag
-  // keeps the `deepLinkSection` dependency from re-reading after it lands.
-  const sectionTried = useRef(false);
+  // No panel forwarding (a direct navigation): read the slot once here too.
+  // The panel path already consumed it on mount, so this normally finds none.
   useEffect(() => {
-    if (initialSection || deepLinkSection || sectionTried.current) return;
-    sectionTried.current = true;
+    if (initialSection || deepLinkSection) return;
     let alive = true;
     void (async () => {
-      const fallback = await readOpenSettingsSection();
+      const fallback = await consumeOpenSettingsSection();
       if (alive && fallback) setDeepLinkSection(fallback);
     })();
     return () => {

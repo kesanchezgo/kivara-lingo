@@ -301,39 +301,61 @@ function updateOverlayParentForFullscreen(): void {
   const leaving = fullscreen === null || movingToNewElement;
 
   if (entering) focusTrailFrozen = true;
+  // State worth restoring off this event, if any.
+  let restoring: OverlayRestoreState | null = null;
   if (leaving) {
-    const state = overlayRestore;
+    restoring = overlayRestore;
     overlayRestore = null;
-    if (state?.positionHost?.isConnected) {
-      state.positionHost.style.position = state.positionWas;
+    if (restoring?.positionHost?.isConnected) {
+      restoring.positionHost.style.position = restoring.positionWas;
     }
-    // The restore call below focuses `previousFocus`, which fires `focusin`.
-    // Unfreeze the trail FIRST so that focus change is what the trail learns
-    // from, instead of the video we just left.
-    focusTrailFrozen = fullscreen === null;
+    // Unfreeze ONLY on a real exit. An A→B move is also a "leaving" but the
+    // session continues, and unfreezing there would let the trail record the
+    // element the new player grabbed focus on.
+    if (!movingToNewElement) focusTrailFrozen = false;
   }
 
   const target = fullscreen ?? document.body;
-  if (mount.hostElement.parentElement === target && !entering) return;
+  if (mount.hostElement.parentElement === target && !entering) {
+    // Nothing moves, and the restore focus would otherwise be skipped.
+    giveBackFocus(restoring);
+    return;
+  }
   try {
     if (entering) {
       const host = fullscreen as HTMLElement;
       overlayRestore = {
         positionHost: window.getComputedStyle(host).position === 'static' ? host : null,
         positionWas: host.style.position,
-        // Read from the focusin trail, not from document.activeElement: by the
-        // time `fullscreenchange` runs, focus has already moved into the video
+        // The trail, not document.activeElement: by the time
+        // `fullscreenchange` runs, focus has already moved into the video
         // (or to <body>), so activeElement no longer knows what the user had.
-        // See observeFocusTrail below.
         previousFocus: lastFocusedBeforeFullscreen,
       };
     }
-    const saved = overlayRestore;
     target.appendChild(mount.hostElement);
-    if (saved?.positionHost) saved.positionHost.style.position = 'relative';
-    if (leaving && saved?.previousFocus?.isConnected) saved.previousFocus.focus();
+    if (overlayRestore?.positionHost) overlayRestore.positionHost.style.position = 'relative';
+    giveBackFocus(restoring);
   } catch (err) {
     console.warn('[Kivara Lingo] could not re-parent the overlay for fullscreen', err);
+  }
+}
+
+/**
+ * Hand focus back to whatever the user had before we took the overlay away.
+ * It belongs here rather than inline because the function has two exits (the
+ * host already-in-place early return and the re-parent path) and both must
+ * restore: reading it off a shared local is what previously let `saved` come
+ * back null after `overlayRestore` was cleared, so the restore never ran.
+ */
+function giveBackFocus(state: OverlayRestoreState | null): void {
+  const el = state?.previousFocus;
+  if (el?.isConnected) {
+    try {
+      el.focus();
+    } catch {
+      // A detached-from-document focus target throws in some engines.
+    }
   }
 }
 
@@ -352,24 +374,34 @@ let overlayRestore: OverlayRestoreState | null = null;
  * Focus trail. `fullscreenchange` fires AFTER focus has already been pulled
  * into the fullscreen element (or dropped on <body>), so reading
  * `document.activeElement` there records the wrong element and the "give the
- * focus back" step restores nothing the user chose. A passive `focusin`
- * listener keeps the last real target.
+ * focus back" step restores nothing the user chose.
  *
- * The trail is FROZEN while fullscreen is active on purpose: the entry pulls
- * focus into the player within the same frame, and a trail that kept updating
- * would snapshot the video and "restore" focus to the very element the user
- * left. What is recorded is the value at the last focus change BEFORE the
- * transition.
+ * Two rules keep the value honest:
+ *  - a focus event INSIDE the fullscreen element (or on it) is the player
+ *    taking over, never something to remember;
+ *  - anything that arrives within `ENTRY_WINDOW_MS` of the last remembered
+ *    target is treated as the player's grab too: a fullscreen button click is
+ *    usually re-rendered by the site and comes back through focusin as a fresh
+ *    synthetic element, which would otherwise replace a perfectly good trail.
  */
 let lastFocusedBeforeFullscreen: HTMLElement | null = null;
+let lastFocusedAt = 0;
+const ENTRY_WINDOW_MS = 500;
 
 /**
- * Set while `fullscreenElement` is non-null. Kept as a flag rather than read
- * from the DOM inside the handler because `document.exitFullscreen()` resolves
- * AFTER our restore focus lands — checking the live DOM there would see the
- * exiting state and drop the one focus change we actually want to learn.
+ * Set for the whole fullscreen session, cleared on a real exit. Two jobs the
+ * DOM alone cannot do: keep the trail clear between the entry (focus has
+ * already moved into the player when `fullscreenchange` lands) and the exit,
+ * where our own restore-focus must not be recorded as the next "pre" value —
+ * `document.exitFullscreen()` resolves AFTER that focus lands, so the live DOM
+ * would still look fullscreen at exactly the wrong moment.
  */
 let focusTrailFrozen = false;
+
+function insideFullscreenElement(el: Element): boolean {
+  const fs = document.fullscreenElement;
+  return !!fs && (fs === el || fs.contains(el));
+}
 
 function observeFocusTrail(): void {
   document.addEventListener(
@@ -377,9 +409,16 @@ function observeFocusTrail(): void {
     (event) => {
       if (focusTrailFrozen) return;
       const target = event.target as HTMLElement | null;
-      if (target && target.isConnected && target !== document.body) {
-        lastFocusedBeforeFullscreen = target;
+      if (!target || !target.isConnected || target === document.body) return;
+      // The player grabbing focus on itself is not a focus change to record.
+      if (insideFullscreenElement(target)) return;
+      const now = Date.now();
+      if (lastFocusedBeforeFullscreen && lastFocusedBeforeFullscreen !== target &&
+          now - lastFocusedAt < ENTRY_WINDOW_MS) {
+        return;
       }
+      lastFocusedBeforeFullscreen = target;
+      lastFocusedAt = now;
     },
     true,
   );

@@ -38,7 +38,6 @@ describe('missingHosts', () => {
       'https://api.openai.com/*',
     ]);
     expect(await hasHosts(['https://api.deepl.com/*', 'https://api.openai.com/*'])).toBe(false);
-    console.log('DBG missing=', JSON.stringify(await missingHosts(['https://api.deepl.com/*', 'https://api.openai.com/*'])), 'has=', await hasHosts(['https://api.openai.com/*']));
   });
 
   it('treats a wildcard grant as covering the origin', async () => {
@@ -62,6 +61,65 @@ describe('missingHosts', () => {
     expect(permissionsApiAvailable()).toBe(false);
     expect(await missingHosts(['https://anything.example/*'])).toEqual([]);
     expect(await hasHosts(['https://anything.example/*'])).toBe(true);
+  });
+});
+
+describe('match pattern semantics', () => {
+  const covered = async (origin: string, grant: string): Promise<boolean> => {
+    vi.stubGlobal('chrome', {
+      permissions: { getAll: async () => ({ origins: [grant] }), contains: async () => true },
+      storage: { session: { get: async () => ({}), set: async () => {}, remove: async () => {} } },
+      runtime: { getURL: (p: string) => `chrome-extension://test/${p}` },
+    });
+    try {
+      return (await missingHosts([origin])).length === 0;
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  };
+
+  it('a ported pattern only covers its own port', async () => {
+    expect(await covered('http://localhost:8765/*', 'http://localhost:8765/*')).toBe(true);
+    expect(await covered('http://localhost:9999/*', 'http://localhost:8765/*')).toBe(false);
+  });
+
+  it('a portless pattern still covers any port (Chrome drops the port)', async () => {
+    expect(await covered('http://localhost:8765/*', 'http://localhost/*')).toBe(true);
+    expect(await covered('http://127.0.0.1:8765/*', 'http://127.0.0.1/*')).toBe(true);
+  });
+
+  it('an IPv6 literal keeps its shape and compares its port', async () => {
+    expect(await covered('http://[::1]:8765/*', 'http://[::1]:8765/*')).toBe(true);
+    // The bug this pins: the host was rewritten BEFORE the port was read, so
+    // `[::1]:9999` matched a `[::1]:8765` grant on an empty port.
+    expect(await covered('http://[::1]:9999/*', 'http://[::1]:8765/*')).toBe(false);
+    expect(await covered('http://[::1]/*', 'http://[::1]/*')).toBe(true);
+  });
+
+  it('a port on the origin alone does not defeat a portless pattern', async () => {
+    expect(await covered('https://api.deepl.com:443/*', 'https://api.deepl.com/*')).toBe(true);
+  });
+
+  it('an IPv6 origin with no port matches a portless IPv6 pattern', async () => {
+    // The empty-port asymmetry: the naive parser rewrote `host` before reading
+    // `originPort`, so `[::1]` (no port) reported an empty port and any
+    // `[::1]:<port>` grant refused it.
+    expect(await covered('http://[::1]/*', 'http://[::1]:8765/*')).toBe(true);
+  });
+
+  it('the wildcard host covers everything, paths included', async () => {
+    expect(await covered('https://any.example/deep/path', '*://*/*')).toBe(true);
+  });
+
+  it('a subdomain pattern covers the apex and the children, not siblings', async () => {
+    expect(await covered('https://dictionary.cambridge.org/*', 'https://*.dictionary.cambridge.org/*')).toBe(true);
+    expect(await covered('https://es.dictionary.cambridge.org/*', 'https://*.dictionary.cambridge.org/*')).toBe(true);
+    expect(await covered('https://cambridge.org/*', 'https://*.dictionary.cambridge.org/*')).toBe(false);
+  });
+
+  it('path wildcards span the whole path', async () => {
+    expect(await covered('https://api.example.com/v2/things/1', 'https://api.example.com/*')).toBe(true);
+    expect(await covered('https://api.example.com/v1', 'https://api.example.com/v2/*')).toBe(false);
   });
 });
 

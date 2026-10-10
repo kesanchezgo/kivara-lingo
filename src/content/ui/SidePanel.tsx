@@ -7,7 +7,7 @@ import { SettingsTab } from '../../app/components/tabs/SettingsTab';
 import { SubtitleStyles, AnkiMapping } from '../../app/types';
 import { useKivaraStore, type PanelPosition } from '../../shared/store';
 import { t } from '../../shared/i18n';
-import { clearOpenSettingsSection, readOpenSettingsSection } from '../../shared/open-settings-section';
+import { consumeOpenSettingsSection } from '../../shared/open-settings-section';
 
 interface SidePanelProps {
   isPopupMode: boolean;
@@ -79,13 +79,11 @@ function useDeepLinkSection(): { pending: boolean; section: string | undefined }
     if (!resolved.pending) return;
     let alive = true;
     void (async () => {
-      const section = await readOpenSettingsSection();
-      if (!alive) return;
-      // Consume the slot here: this panel mount IS the deep link's target, and
-      // leaving it behind would make every later plain open of the panel jump
-      // back to the same section too.
-      await clearOpenSettingsSection();
-      setResolved({ pending: false, section });
+      // Consume in ONE step: this panel mount is the deep link's target, and
+      // the slot must not outlive it — otherwise a later plain open of the
+      // panel jumps to the same section too.
+      const section = await consumeOpenSettingsSection();
+      if (alive) setResolved({ pending: false, section });
     })();
     return () => {
       alive = false;
@@ -117,9 +115,14 @@ export function SidePanel({
    * the resolve default is Settings when a section was on the URL.
    */
   const deepLink = useDeepLinkSection();
-  const [activeTab, setActiveTab] = useState<'subtitles' | 'cards' | 'settings'>(
-    deepLink.pending ? 'cards' : deepLink.section ? 'settings' : 'cards',
-  );
+  const [activeTab, setActiveTab] = useState<'subtitles' | 'cards' | 'settings'>('cards');
+  // The deep link can only be known once the (async) session slot resolves, so
+  // the initial useState value above can legitimately be Cards: switch as soon
+  // as the section is known instead of hoping the value was there on frame 1.
+  useEffect(() => {
+    if (deepLink.pending) return;
+    if (deepLink.section) setActiveTab('settings');
+  }, [deepLink.pending, deepLink.section]);
   const persistedPosition = useKivaraStore((s) => s.panelPosition);
   const setPersistedPosition = useKivaraStore((s) => s.setPanelPosition);
 

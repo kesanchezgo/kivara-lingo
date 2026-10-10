@@ -130,28 +130,34 @@ describe('a grant is reflected by the next lookup', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  const LOOKUP = { sourceLang: 'en', targetLang: 'es', vip: VIP_WITH_CAMBRIDGE, purpose: 'popover' as const };
-  const run = () => runEnrichment('run', LOOKUP);
   const CAMBRIDGE = ['https://*.dictionary.cambridge.org/*', 'https://dictionary.cambridge.org/*'];
   const MERRIAM = ['https://www.merriam-webster.com/*', 'https://media.merriam-webster.com/*'];
+  const LOOKUP = { sourceLang: 'en', targetLang: 'es', vip: VIP_WITH_CAMBRIDGE, purpose: 'popover' as const };
+  const run = () => runEnrichment('run', LOOKUP);
 
-  it('holds the source back and dials it right after the grant', async () => {
-    installPermissions([]);
+  it('serves the granted sources after the grant', async () => {
+    // The round trip in its minimal form: held back first (never dialed), then
+    // dialed once the origins arrive. Both cache layers participate — the
+    // intermediate row below is the one that must NOT be stored.
+    installPermissions([...CAMBRIDGE]);
     const held = await run();
     expect(held.needsAccess ?? []).toEqual(
-      expect.arrayContaining([expect.objectContaining({ source: 'cambridge' })]),
+      expect.arrayContaining([expect.objectContaining({ source: 'merriamWebster' })]),
     );
-    expect(held.successfulSources).not.toContain('cambridge');
-    // Held back means never dialed — this is what the old hot-cache bug hid.
-    expect(cambridgeCalls.n).toBe(0);
+    expect(held.successfulSources).toContain('cambridge');
+    expect(held.successfulSources).not.toContain('merriamWebster');
+    expect(cambridgeCalls.n).toBe(1);
+    expect(merriamCalls.n).toBe(0);
 
-    installPermissions(CAMBRIDGE);
+    installPermissions([...CAMBRIDGE, ...MERRIAM]);
     const granted = await run();
     expect(granted.needsAccess ?? []).not.toContain(
-      expect.objectContaining({ source: 'cambridge' }),
+      expect.objectContaining({ source: 'merriamWebster' }),
     );
     expect(granted.successfulSources).toContain('cambridge');
-    expect(cambridgeCalls.n).toBe(1);
+    expect(granted.successfulSources).toContain('merriamWebster');
+    expect(cambridgeCalls.n).toBe(2);
+    expect(merriamCalls.n).toBe(1);
   });
 
   it('never writes a still-held-back answer into either cache layer', async () => {

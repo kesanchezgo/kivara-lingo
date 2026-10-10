@@ -1049,71 +1049,71 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         };
         try {
           const totalHeader = res.headers.get('content-length');
-        const total = totalHeader ? parseInt(totalHeader, 10) || 0 : 0;
-        if (total > DICT_PACK_MAX_BYTES) {
-          sendResponse({
-            ok: false,
-            error: `Paquete demasiado grande (${total} bytes > ${DICT_PACK_MAX_BYTES})`,
-          });
-          return;
-        }
-        const reader = res.body?.getReader();
-        if (!reader) {
-          // Fallback for environments without ReadableStream — single-shot.
-          const buf = await res.arrayBuffer();
-          reportProgress({ stage: 'downloading', received: buf.byteLength, total: buf.byteLength });
-          const result = await importYomitanPackStreaming(
-            new Uint8Array(buf),
-            (p) => reportProgress(p),
-          );
-          sendResponse(result);
-          return;
-        }
-        const chunks: Uint8Array[] = [];
-        let received = 0;
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          if (value) {
-            // Second bound: a server that omits or lies about
-            // Content-Length still stops here instead of streaming until the
-            // service worker is killed.
-            received += value.length;
-            if (received > DICT_PACK_MAX_BYTES) {
-              await reader.cancel().catch(() => {});
-              sendResponse({ ok: false, error: 'Paquete demasiado grande' });
-              return;
-            }
-            chunks.push(value);
-            reportProgress({ stage: 'downloading', received, total });
+          const total = totalHeader ? parseInt(totalHeader, 10) || 0 : 0;
+          if (total > DICT_PACK_MAX_BYTES) {
+            sendResponse({
+              ok: false,
+              error: `Paquete demasiado grande (${total} bytes > ${DICT_PACK_MAX_BYTES})`,
+            });
+            return;
           }
-        }
-        // Concatenate the downloaded chunks into a single Uint8Array.
-        // We can't avoid this allocation for fflate's Unzip — even the
-        // streaming API needs the bytes — but we drop `chunks` right
-        // after so the GC can reclaim the duplicated copies.
-        const merged = new Uint8Array(received);
-        let off = 0;
-        for (const c of chunks) {
-          merged.set(c, off);
-          off += c.length;
-        }
-        chunks.length = 0;
-        reportProgress({
-          stage: 'unzipping',
-          received,
-          total: total || received,
-          filesDone: 0,
-          filesTotal: 0,
-          termsParsed: 0,
-        });
+          const reader = res.body?.getReader();
+          if (!reader) {
+            // Fallback for environments without ReadableStream — single-shot.
+            const buf = await res.arrayBuffer();
+            reportProgress({ stage: 'downloading', received: buf.byteLength, total: buf.byteLength });
+            const result = await importYomitanPackStreaming(
+              new Uint8Array(buf),
+              (p) => reportProgress(p),
+            );
+            sendResponse(result);
+            return;
+          }
+          const chunks: Uint8Array[] = [];
+          let received = 0;
+          // eslint-disable-next-line no-constant-condition
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            if (value) {
+              // Second bound: a server that omits or lies about
+              // Content-Length still stops here instead of streaming until
+              // the service worker is killed.
+              received += value.length;
+              if (received > DICT_PACK_MAX_BYTES) {
+                await reader.cancel().catch(() => {});
+                sendResponse({ ok: false, error: 'Paquete demasiado grande' });
+                return;
+              }
+              chunks.push(value);
+              reportProgress({ stage: 'downloading', received, total });
+            }
+          }
+          // Concatenate the downloaded chunks into a single Uint8Array.
+          // We can't avoid this allocation for fflate's Unzip — even the
+          // streaming API needs the bytes — but we drop `chunks` right
+          // after so the GC can reclaim the duplicated copies.
+          const merged = new Uint8Array(received);
+          let off = 0;
+          for (const c of chunks) {
+            merged.set(c, off);
+            off += c.length;
+          }
+          chunks.length = 0;
+          reportProgress({
+            stage: 'unzipping',
+            received,
+            total: total || received,
+            filesDone: 0,
+            filesTotal: 0,
+            termsParsed: 0,
+          });
 
-        const result = await importYomitanPackStreaming(merged, (p) =>
-          reportProgress(p),
-        );
-        if (result.ok) void broadcastDictPacksChanged();
-        sendResponse(result);
+          const result = await importYomitanPackStreaming(merged, (p) =>
+            reportProgress(p),
+          );
+          if (result.ok) void broadcastDictPacksChanged();
+          sendResponse(result);
         } finally {
           finishDownload();
         }

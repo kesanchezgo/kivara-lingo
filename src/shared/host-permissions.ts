@@ -20,6 +20,24 @@
 import { providerHosts } from './provider-hosts';
 import { refreshHostPermissions } from './host-permissions-store';
 
+/**
+ * host[:port] → [host, port], keeping an IPv6 literal intact: the naive split
+ * on ':' turns `[::1]:8765` into `[`, and reading the port AFTER rewriting the
+ * host reads back the rewritten value, which is how `[::1]:9999` ends up
+ * matching a `[::1]:8765` grant. Both sides go through this.
+ */
+function splitHostPort(hostAndPort: string): [string, string] {
+  if (hostAndPort.startsWith('[')) {
+    const bracketEnd = hostAndPort.indexOf(']');
+    if (bracketEnd < 0) return [hostAndPort, ''];
+    const tail = hostAndPort.slice(bracketEnd + 1);
+    return [hostAndPort.slice(0, bracketEnd + 1), tail.startsWith(':') ? tail.slice(1) : ''];
+  }
+  const colon = hostAndPort.indexOf(':');
+  if (colon < 0) return [hostAndPort, ''];
+  return [hostAndPort.slice(0, colon), hostAndPort.slice(colon + 1)];
+}
+
 function matchesPattern(pattern: string, origin: string): boolean {
   const scheme = pattern.split('://')[0];
   const rest = pattern.split('://')[1] ?? '';
@@ -31,42 +49,20 @@ function matchesPattern(pattern: string, origin: string): boolean {
   // Chrome match patterns DO carry a port (`http://localhost:8080/*` is a
   // valid, distinct pattern from `http://localhost/*`), so the port is only
   // dropped from the SIDE that has none — otherwise a permission typed for
-  // port 8765 would silently cover every other port on that host. The Anki
-  // entries in the manifest are the ones that use this.
-  let host = target.split('/')[0];
-  let originPort = '';
-  if (host.startsWith('[')) {
-    host = host.split(']:')[0] + ']';
-    originPort = host.split(']:')[1] ?? '';
-  } else {
-    const colon = host.indexOf(':');
-    if (colon >= 0) {
-      originPort = host.slice(colon + 1);
-      host = host.slice(0, colon);
-    }
-  }
-  let patternHostWithPort = patternHost;
-  let patternPort = '';
-  if (patternHost.startsWith('[')) {
-    patternHostWithPort = patternHost.split(']:')[0] + ']';
-    patternPort = patternHost.split(']:')[1] ?? '';
-  } else {
-    const colon = patternHost.indexOf(':');
-    if (colon >= 0) {
-      patternPort = patternHost.slice(colon + 1);
-      patternHostWithPort = patternHost.slice(0, colon);
-    }
-  }
+  // port 8765 would silently cover every port on that host. The Anki entries
+  // in the manifest are the ones that use this.
+  const [host, originPort] = splitHostPort(target.split('/')[0]);
+  const [patternHostName, patternPort] = splitHostPort(patternHost);
   const path = target.split('/').slice(1).join('/');
   if (scheme !== '*' && scheme !== origin.split('://')[0]) return false;
   if (patternPort && originPort && patternPort !== originPort) return false;
-  if (patternHostWithPort.toLowerCase() === '*') return true;
-  if (patternHostWithPort.toLowerCase().startsWith('*.')) {
+  if (patternHostName.toLowerCase() === '*') return true;
+  if (patternHostName.toLowerCase().startsWith('*.')) {
     // `*.example.com` matches any subdomain AND the apex.
-    const suffix = patternHostWithPort.slice(1);
-    const bare = patternHostWithPort.slice(2);
+    const suffix = patternHostName.slice(1);
+    const bare = patternHostName.slice(2);
     if (host.toLowerCase() !== bare.toLowerCase() && !host.toLowerCase().endsWith(suffix.toLowerCase())) return false;
-  } else if (patternHostWithPort.toLowerCase() !== host.toLowerCase()) {
+  } else if (patternHostName.toLowerCase() !== host.toLowerCase()) {
     return false;
   }
   // Path: `*` inside a chrome pattern matches any run of characters, so treat
