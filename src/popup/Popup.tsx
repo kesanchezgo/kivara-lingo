@@ -134,14 +134,17 @@ export function Popup() {
 
   // Auto-retry every 4s while disconnected — the popup recovers as soon as
   // the user opens Anki, no manual click needed.
-  // ALSO while the FIRST ping is in flight and silent. Two retries: the e2e
-  // showed that a popup's opening ping can arrive at the SW before it has
-  // finished waking (the SW stays productive through storage hydration, so
-  // pre-flight looks fine), and its message is dropped — hits on AnkiConnect
-  // stays at its pre-flight count while the pill sits on "Comprobando
-  // AnkiConnect…". A bounded re-ping resolves that without a user click; the
-  // underlying "first dispatch after a cold worker" belongs to stream.ts, which
-  // owns the port protocol, and is tracked separately.
+  // Also while the FIRST ping is in flight and silent. Bounded: at most two
+  // attempts total, cleared on unmount or on a status change. The e2e showed
+  // that a popup's opening ping can arrive at the SW before it has finished
+  // waking (the SW stays productive through storage hydration, so pre-flight
+  // looks fine), and its message is dropped — hits on AnkiConnect stays at its
+  // pre-flight count while the pill sits on "Comprobando AnkiConnect…". A
+  // bounded re-ping resolves that without a user click.
+  //
+  // TODO(kivara-lingo#issue-stream-retry): the underlying "first dispatch after
+  // a cold worker" belongs to stream.ts, which owns the port protocol; that
+  // commit replaces or removes this patch AND closes the issue it references.
   const attemptRef = useRef(0);
   useEffect(() => {
     attemptRef.current = ping.status === 'pinging' ? attemptRef.current + 1 : 0;

@@ -19,7 +19,7 @@
  * Serialization uses ordered keys: an order-dependent one would change for
  * reasons unrelated to the code under test.
  */
-import { mergeFields } from '../../src/background/enrichment/orchestrator';
+import { mergeFields } from '../../src/background/enrichment/merge';
 import type {
   EnrichmentContext,
   EnrichmentSource,

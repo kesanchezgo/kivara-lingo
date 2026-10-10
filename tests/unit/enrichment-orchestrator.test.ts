@@ -78,8 +78,10 @@ vi.mock('../../src/background/translate', () => ({
     translateTextMock(req),
 }));
 
+const { clearMemEnrichmentCache, runEnrichment } =
+  await import('../../src/background/enrichment/orchestrator');
+
 const {
-  clearMemEnrichmentCache,
   definitionContextReasons,
   pickCollocations,
   pickDefinitions,
@@ -92,8 +94,7 @@ const {
   pickSenseRelationGroups,
   hasSubstantiveSenseOverlap,
   isFigurativeAntonym,
-  runEnrichment,
-} = await import('../../src/background/enrichment/orchestrator');
+} = await import('../../src/background/enrichment/merge');
 
 function withAllSourcesDisabled(): VipSettings {
   return Object.fromEntries(

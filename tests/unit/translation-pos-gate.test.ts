@@ -5,7 +5,7 @@ import {
   pickDefinitions,
   pickLexicalTranslations,
   sentencePosHint,
-} from '../../src/background/enrichment/orchestrator';
+} from '../../src/background/enrichment/merge';
 
 /**
  * POS gate for the primary translation — regression tests for the

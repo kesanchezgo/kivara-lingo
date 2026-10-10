@@ -22,6 +22,13 @@ import type { Server } from 'node:http';
 
 type AnkiLog = { hits: number; urls: string[] };
 
+/**
+ * The version the fake AnkiConnect reports — a stand-in for a real install, so
+ * the value belongs next to the popup-side literal, not in this file: a bump to
+ * either one fixes this popover.
+ */
+const FAKE_ANKI_VERSION = '25.02.manual';
+
 function startFakeAnki(port: number, log: AnkiLog): Promise<Server> {
   const server = http.createServer((req, res) => {
     log.hits++;
@@ -31,7 +38,7 @@ function startFakeAnki(port: number, log: AnkiLog): Promise<Server> {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
     });
-    res.end(JSON.stringify({ result: '25.02.manual', error: null }));
+    res.end(JSON.stringify({ result: FAKE_ANKI_VERSION, error: null }));
   });
   return new Promise((resolve, reject) => {
     server.once('error', reject);
@@ -209,7 +216,7 @@ test('2 · Anki on a custom port, after the service worker went idle', async ({
         .poll(
           async () => {
             const visible = await page
-              .getByText('25.02.manual', { exact: false })
+              .getByText(FAKE_ANKI_VERSION, { exact: false })
               .first()
               .isVisible()
               .catch(() => false);
