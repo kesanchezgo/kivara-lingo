@@ -3,10 +3,12 @@ import { ShadowHost } from './shadow-host';
 import { detectPlatform } from './platform-adapters';
 import { App } from './ui/App';
 import type { SubtitleSource } from './platform-adapters/types';
+import type { Mount as OverlayMount } from './fullscreen-overlay-core';
 import { useKivaraStore } from '../shared/store';
 import { clearBus, reprocessLastDashManifest } from './platform-adapters/intercepted-bus';
 import { bumpMountGen, enqueueMount, readMountGen } from './mount-queue';
 import { setYomitanHeadwords } from './nlp/yomitan-headwords';
+import { updateOverlayParent, type RestoreState } from './fullscreen-overlay-core';
 
 console.log('[Kivara Lingo] content script injected on', window.location.hostname);
 
@@ -282,93 +284,29 @@ async function mountFor(video: HTMLVideoElement, container: HTMLElement, adapter
  * The fullscreen element is a site element, so the host is re-parented, not
  * re-created: remounting React would cost the panel's state (the whole point
  * of watching in fullscreen).
+ *
+ * The mechanics live in `fullscreen-overlay-core.ts` and are unit-tested there;
+ * this is the glue that feeds them the real document, host and focus trail.
  */
+const overlayCoreState: { restore: RestoreState | null } = { restore: null };
+
 function updateOverlayParentForFullscreen(): void {
   if (!mount) return;
-  const fullscreen =
-    document.fullscreenElement ??
-    (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement ??
-    null;
-
-  // Case A→B: the user goes fullscreen on one element then on another WITHOUT
-  // exiting, which platforms do when the player mounts a new video. That is a
-  // leave AND an entry in one event, and doing only the entry would leave the
-  // old element without the position restore that belongs to it, while the new
-  // one never gets the override its overlay needs.
-  const movingToNewElement =
-    fullscreen !== null && overlayRestore !== null && overlayRestore.positionHost !== fullscreen;
-  const entering = fullscreen !== null && (overlayRestore === null || movingToNewElement);
-  const leaving = fullscreen === null || movingToNewElement;
-
-  if (entering) focusTrailFrozen = true;
-  // State worth restoring off this event, if any.
-  let restoring: OverlayRestoreState | null = null;
-  if (leaving) {
-    restoring = overlayRestore;
-    overlayRestore = null;
-    if (restoring?.positionHost?.isConnected) {
-      restoring.positionHost.style.position = restoring.positionWas;
-    }
-    // Unfreeze ONLY on a real exit. An A→B move is also a "leaving" but the
-    // session continues, and unfreezing there would let the trail record the
-    // element the new player grabbed focus on.
-    if (!movingToNewElement) focusTrailFrozen = false;
-  }
-
-  const target = fullscreen ?? document.body;
-  if (mount.hostElement.parentElement === target && !entering) {
-    // Nothing moves, and the restore focus would otherwise be skipped.
-    giveBackFocus(restoring);
-    return;
-  }
-  try {
-    if (entering) {
-      const host = fullscreen as HTMLElement;
-      overlayRestore = {
-        positionHost: window.getComputedStyle(host).position === 'static' ? host : null,
-        positionWas: host.style.position,
-        // The trail, not document.activeElement: by the time
-        // `fullscreenchange` runs, focus has already moved into the video
-        // (or to <body>), so activeElement no longer knows what the user had.
-        previousFocus: lastFocusedBeforeFullscreen,
-      };
-    }
-    target.appendChild(mount.hostElement);
-    if (overlayRestore?.positionHost) overlayRestore.positionHost.style.position = 'relative';
-    giveBackFocus(restoring);
-  } catch (err) {
-    console.warn('[Kivara Lingo] could not re-parent the overlay for fullscreen', err);
-  }
+  updateOverlayParent(
+    {
+      mount: mount as unknown as OverlayMount,
+      getFullscreenElement: () =>
+        (document.fullscreenElement ??
+          (document as Document & { webkitFullscreenElement?: Element | null })
+            .webkitFullscreenElement ??
+          null) as HTMLElement | null,
+      getPosition: (el) => window.getComputedStyle(el).position,
+      getFallbackParent: () => document.body,
+      getPreviousFocus: () => lastFocusedBeforeFullscreen,
+    },
+    overlayCoreState,
+  );
 }
-
-/**
- * Hand focus back to whatever the user had before we took the overlay away.
- * It belongs here rather than inline because the function has two exits (the
- * host already-in-place early return and the re-parent path) and both must
- * restore: reading it off a shared local is what previously let `saved` come
- * back null after `overlayRestore` was cleared, so the restore never ran.
- */
-function giveBackFocus(state: OverlayRestoreState | null): void {
-  const el = state?.previousFocus;
-  if (el?.isConnected) {
-    try {
-      el.focus();
-    } catch {
-      // A detached-from-document focus target throws in some engines.
-    }
-  }
-}
-
-interface OverlayRestoreState {
-  /** The node we forced `position: relative` on, when it was `static`. */
-  positionHost: HTMLElement | null;
-  /** Its `position` before we wrote ours. */
-  positionWas: string;
-  /** Element that held focus before the move — may be gone by then. */
-  previousFocus: HTMLElement | null;
-}
-
-let overlayRestore: OverlayRestoreState | null = null;
 
 /**
  * Focus trail. `fullscreenchange` fires AFTER focus has already been pulled
