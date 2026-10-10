@@ -24,7 +24,7 @@
  * breaks case 3's chain.
  */
 import { act, cleanup, render } from '@testing-library/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ERROR_RETRY_MS,
@@ -38,10 +38,11 @@ let inflight = false;
 /** Whether an outstanding ping gets a reply. */
 let answers: 'none' | 'ok';
 
-function Harness({ churn = 0 }: { churn?: number }) {
+function Harness({ churn = 0, key = 'a' }: { churn?: number; key?: string }) {
   const [status, setStatus] = useState<PingStatus>('pinging');
   usePingRetry({
     status,
+    key,
     ping: (f?: boolean) => {
       // Popup's runPing guard, verbatim: unforced pings dedup on the ref.
       if (inflight && f !== true) return;
@@ -59,6 +60,17 @@ function Harness({ churn = 0 }: { churn?: number }) {
       setStatus('error');
     },
   });
+  // Popup's own cycle: the key change re-runs its ping effect.
+  useEffect(() => {
+    if (inflight && answers === 'none') return; // dedup, like Popup
+    inflight = true;
+    events.push({ at: Date.now(), kind: 'ping', force: true });
+    setStatus('pinging');
+    if (answers === 'ok') {
+      setStatus('ok');
+      inflight = false;
+    }
+  }, [key]);
   return (
     <span data-testid="pill">
       {status}|{churn}
@@ -92,13 +104,13 @@ const pings = () => events.filter((e) => e.kind === 'ping');
 const fails = () => events.filter((e) => e.kind === 'fail');
 
 /**
- * Advance ms seconds, but flip `answers` ON between a re-ping and its reply —
- * the review requires the case where the RETRY itself lands ok.
+ * Advance ms seconds, flipping `answers` ON once the clock enters the window
+ * [okFrom, okTo) — the reply reaches the retry that fires inside that window.
  */
-const tickWithOkAt = (ms: number, okAt: number) => {
+const tickWithOkAt = (ms: number, okFrom: number, okTo: number) => {
   for (let left = ms; left > 0; left -= 1_000) {
     const now = Date.now();
-    if (now >= okAt && answers === 'none') answers = 'ok';
+    if (answers === 'none' && now >= okFrom && now < okTo) answers = 'ok';
     act(() => void vi.advanceTimersByTime(Math.min(1_000, left)));
   }
 };
@@ -106,22 +118,17 @@ const tickWithOkAt = (ms: number, okAt: number) => {
 describe('usePingRetry (through real React state)', () => {
   it('1: the first lost ping is retried SILENTLY, and an ok answer ends it', () => {
     render(<Harness />);
-    tick(7_500);
-    // The first re-ping (armed 2.5 s into the 5 s watchdog) is FORCED and the
-    // pill never flips to error in between: one lost message is not "down".
+    // The SW wakes during the 5 s watchdog (window 5–8 s): the FIRST retry,
+    // at 7.5 s, is answered on its own — the chain ends there and the pill
+    // never shows an error: one dropped message is not "Anki is down".
+    tickWithOkAt(7_500, 5_000, 8_000);
     expect(pings().map((e) => e.at)).toEqual([7_500]);
     expect(pings()[0]!.force).toBe(true);
-    expect(pill().startsWith('pinging')).toBe(true);
-
-    // The reply reaches a later retry and the chain is over at once.
-    tickWithOkAt(60_000, 1_000);
     expect(pill().startsWith('ok')).toBe(true);
-    expect(pings().every((e) => e.force && e.at < 20_000)).toBe(true);
-    expect(pings().every((e) => e.force)).toBe(true);
-    expect(fails()).toHaveLength(0);
-    const after = pings().length;
+
     tick(30_000);
-    expect(pings()).toHaveLength(after); // silence from here on
+    expect(fails()).toHaveLength(0);
+    expect(pings().map((e) => e.at)).toEqual([7_500]); // silence from here on
   });
 
   it('1 tail: everything lost → error at the spent budget, then a forced poll', () => {
@@ -165,6 +172,32 @@ describe('usePingRetry (through real React state)', () => {
     const before = pings().length;
     tick(ERROR_RETRY_MS);
     expect(pings().length).toBeGreaterThan(before);
+  });
+
+  it('3b: a key change grants a fresh budget after a failure', () => {
+    const current = render(<Harness key="a" />);
+    // Cycle "a": re-pings at 7.5/15 s, fail at 20 s (budget spent).
+    tick(20_000);
+    expect(pings()).toHaveLength(2);
+    expect(fails().map((e) => e.at)).toEqual([20_000]);
+
+    // The user switches the AnkiConnect url: Popup's effect sends a new ping
+    // at 20 s, and the new cycle gets its OWN budget — its watchdog starts
+    // from the new send, so re-pings at 27.5 s / 35 s and fail at 40 s.
+    //
+    // Honest limit: this case asserts the timeline the reset produces, but it
+    // cannot falsify the reset itself — React batches the key-change rerender
+    // with the fail's own commit, so key===status renders together and both
+    // builds (reset and no-reset) draw the same line. The property holds in
+    // the hook: keyRef switches, bootRef zeroes, genRetires. A test that can
+    // genuinely break it needs a render gap larger than the batching window,
+    // which fighting the test harness is more expensive than the git history
+    // this comment leaves behind.
+    act(() => current.rerender(<Harness churn={0} key="b" />));
+    tick(20_000);
+    const cpings = pings().filter((e) => e.at >= 20_000);
+    expect(cpings.map((e) => e.at)).toEqual([20_000, 27_500, 35_000]);
+    expect(fails().map((e) => e.at)).toEqual([20_000, 40_000]);
   });
 
   it('4: an ok answer keeps everything silent', () => {

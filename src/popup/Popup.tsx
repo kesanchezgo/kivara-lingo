@@ -143,11 +143,16 @@ export function Popup() {
   // object. The review caught the earlier version testing a copy of those rules
   // while Popup ran its own, so the test drives THIS hook now.
   //
-  // TODO(kivara-lingo#issue-stream-retry): the underlying "first dispatch after
-  // a cold worker" belongs to stream.ts, which owns the port protocol; that
-  // commit replaces or removes this patch AND closes the issue it references.
+  // TODO(kivara-lingo#27): the underlying "first dispatch after a cold worker"
+  // belongs to stream.ts, which owns the port protocol; that commit replaces or
+  // removes this patch AND closes #27, its issue.
   usePingRetry({
     status: ping.status,
+    // One opening cycle = one url+key. The budget resets when this changes, so
+    // switching the AnkiConnect url grants a fresh set of silent re-pings; a
+    // manual re-ping after a fail does not, because the budget stays spent
+    // until the state returns to idle/ok (it is spent, not restarted).
+    key: `${ankiMapping.ankiUrl}|${ankiMapping.apiKey}`,
     // A re-ping from a watchdog or the error poll: forced, because both exist
     // for the message that never got an answer and therefore never clears the
     // in-flight ref above.
