@@ -100,11 +100,13 @@ describe('match pattern semantics', () => {
     expect(await covered('https://api.deepl.com:443/*', 'https://api.deepl.com/*')).toBe(true);
   });
 
-  it('an IPv6 origin with no port matches a portless IPv6 pattern', async () => {
-    // The empty-port asymmetry: the naive parser rewrote `host` before reading
-    // `originPort`, so `[::1]` (no port) reported an empty port and any
-    // `[::1]:<port>` grant refused it.
-    expect(await covered('http://[::1]/*', 'http://[::1]:8765/*')).toBe(true);
+  it('a ported pattern does not cover an origin with no port, or another one', async () => {
+    // Only the PORTLESS SIDE is the wildcard: a pattern typed for :8765 means
+    // that port. An origin without a port (or on another one) is not it. The
+    // previous version let the port check be skipped whenever the origin side
+    // was empty, which made a :8765 grant cover every port.
+    expect(await covered('https://api.deepl.com/*', 'https://api.deepl.com:443/*')).toBe(false);
+    expect(await covered('http://[::1]/*', 'http://[::1]:8765/*')).toBe(false);
   });
 
   it('the wildcard host covers everything, paths included', async () => {

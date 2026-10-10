@@ -23,34 +23,45 @@ describe('the fullscreen overlay move', () => {
   let state: { restore: RestoreState | null };
   let focusTrail: HTMLElement | null;
 
-  const run = (fullscreenElement: HTMLElement | null): void =>
+  // `computedPosition` stands for what `getComputedStyle(el).position` would
+  // say for the entry target — 'static' is the only value the core overrides.
+  const run = (fullscreenElement: HTMLElement | null, computedPosition = 'static'): void =>
     updateOverlayParent(
       {
         mount: { hostElement: host },
         getFullscreenElement: () => fullscreenElement,
-        getPosition: () => 'static',
+        getPosition: () => computedPosition,
         getFallbackParent: () => doc.body,
         getPreviousFocus: () => focusTrail,
       },
       state,
     );
 
+  /** The fake surroundings: the REAL global document, since happy-dom's
+   *  `activeElement` only tracks that one — a separate `createHTMLDocument`
+   *  document would make the focus assertions pass for the wrong reason. */
   beforeEach(() => {
-    doc = document.implementation.createHTMLDocument('t');
+    doc = document;
+    doc.body.textContent = '';
     stage = doc.createElement('div');
     video = doc.createElement('video');
     button = doc.createElement('button');
     host = doc.createElement('div');
-    doc.body.appendChild(stage as unknown as Node);
-    stage.appendChild(video as unknown as Node);
-    stage.appendChild(button as unknown as Node);
-    doc.body.appendChild(host as unknown as Node);
+    doc.body.appendChild(stage);
+    stage.appendChild(video);
+    stage.appendChild(button);
+    doc.body.appendChild(host);
     state = { restore: null };
     focusTrail = button;
   });
 
+  afterEach(() => {
+    state.restore = null;
+    doc.body.textContent = '';
+  });
+
   it('restores the position it wrote on exit', () => {
-    run(video);
+    run(video, 'static');
     expect(stage.style.position).toBe('');
     expect(video.style.position).toBe('relative');
     expect(host.parentElement).toBe(video);
@@ -60,9 +71,36 @@ describe('the fullscreen overlay move', () => {
     expect(host.parentElement).toBe(doc.body);
   });
 
+  it('does not touch an element that was already positioned', () => {
+    // `static` is the only computed value worth overriding; a player that is
+    // already `absolute` must be left exactly as the site had it, so a restore
+    // cannot write "" over its own layout.
+    video.style.position = 'absolute';
+    run(video, 'absolute');
+    expect(video.style.position).toBe('absolute');
+    run(null);
+    expect(video.style.position).toBe('absolute');
+  });
+
   it('hands focus back to the element the user was on', () => {
-    run(video);
+    video.focus();
+    run(video, 'static');
     expect(doc.activeElement).not.toBe(button);
+    run(null);
+    expect(doc.activeElement).toBe(button);
+  });
+
+  it('does not move focus on an A to B switch', () => {
+    const other = doc.createElement('div');
+    doc.body.appendChild(other);
+    video.focus();
+    run(video, 'static');
+    other.focus();
+    // Mid-fullscreen on B: yanking focus back to the page would break the
+    // click the user just made.
+    run(other, 'static');
+    expect(doc.activeElement).toBe(other);
+    // …and the real exit still gives the original focus back.
     run(null);
     expect(doc.activeElement).toBe(button);
   });

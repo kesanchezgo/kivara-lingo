@@ -29,20 +29,31 @@ export const OPEN_SETTINGS_SECTION_KEY = 'kivara:open-settings-section';
  * The hash itself is left on the URL — reload must be able to re-open it.
  */
 export async function consumeOpenSettingsSection(): Promise<string | undefined> {
-  const fromHash =
-    typeof window !== 'undefined' && window.location.hash
-      ? window.location.hash.replace('#', '').trim()
-      : '';
-  try {
-    const raw = await chrome.storage.session.get(OPEN_SETTINGS_SECTION_KEY);
-    const value = raw[OPEN_SETTINGS_SECTION_KEY];
-    const slot = typeof value === 'string' && value ? value : undefined;
-    if (slot) await chrome.storage.session.remove(OPEN_SETTINGS_SECTION_KEY);
-    // Hash wins: it is explicit on the URL, and the slot is cleared above
-    // either way so no stale section is left behind.
-    return fromHash || slot;
-  } catch {
-    // storage.session is only missing outside an extension context.
-    return fromHash || undefined;
-  }
+  // One SHARED promise for the page, not one per caller: React StrictMode runs
+  // effects twice, and two independent consume() calls race — the second
+  // `remove()` can land before either read sees the slot, and the deep-linked
+  // section is gone. Caching the promise makes read-then-remove one sequence
+  // however many surfaces ask.
+  consumePromise ??= (async () => {
+    const fromHash =
+      typeof window !== 'undefined' && window.location.hash
+        ? window.location.hash.replace('#', '').trim()
+        : '';
+    try {
+      const raw = await chrome.storage.session.get(OPEN_SETTINGS_SECTION_KEY);
+      const value = raw[OPEN_SETTINGS_SECTION_KEY];
+      const slot = typeof value === 'string' && value ? value : undefined;
+      if (slot) await chrome.storage.session.remove(OPEN_SETTINGS_SECTION_KEY);
+      // Hash wins: it is explicit on the URL, and the slot is cleared above
+      // either way so no stale section is left behind.
+      return fromHash || slot;
+    } catch {
+      // storage.session is only missing outside an extension context.
+      return fromHash || undefined;
+    }
+  })();
+  return consumePromise;
 }
+
+/** Per-page latch around the read-and-remove sequence above. */
+let consumePromise: Promise<string | undefined> | undefined;

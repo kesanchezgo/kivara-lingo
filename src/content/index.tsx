@@ -314,49 +314,56 @@ function updateOverlayParentForFullscreen(): void {
  * `document.activeElement` there records the wrong element and the "give the
  * focus back" step restores nothing the user chose.
  *
- * Two rules keep the value honest:
+ * Two rules keep the value honest, and only one of them is time-based:
  *  - a focus event INSIDE the fullscreen element (or on it) is the player
  *    taking over, never something to remember;
- *  - anything that arrives within `ENTRY_WINDOW_MS` of the last remembered
- *    target is treated as the player's grab too: a fullscreen button click is
- *    usually re-rendered by the site and comes back through focusin as a fresh
- *    synthetic element, which would otherwise replace a perfectly good trail.
+ *  - the PRE-ENTRY window: a fullscreen button clicked a moment ago is usually
+ *    re-rendered by the site and comes back as a fresh synthetic element that
+ *    would replace a perfectly good trail. That window is armed by
+ *    `armPreEntryWindow` (a `pointerdown`/`click` on anything, so it is running
+ *    exactly around an entry) — NOT around every focus, which would also drop
+ *    a legitimate quick Tab.
  */
 let lastFocusedBeforeFullscreen: HTMLElement | null = null;
-let lastFocusedAt = 0;
 const ENTRY_WINDOW_MS = 500;
+let preEntryWindowUntil = 0;
 
-/**
- * Set for the whole fullscreen session, cleared on a real exit. Two jobs the
- * DOM alone cannot do: keep the trail clear between the entry (focus has
- * already moved into the player when `fullscreenchange` lands) and the exit,
- * where our own restore-focus must not be recorded as the next "pre" value —
- * `document.exitFullscreen()` resolves AFTER that focus lands, so the live DOM
- * would still look fullscreen at exactly the wrong moment.
- */
-let focusTrailFrozen = false;
+/** Arms the window; called from a cheap pointerdown/click listener so it is
+ *  only ever running right around an entry the user just made. */
+function armPreEntryWindow(): void {
+  preEntryWindowUntil = Date.now() + ENTRY_WINDOW_MS;
+}
+
+function currentFullscreenElement(): Element | null {
+  return (
+    document.fullscreenElement ??
+    (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement ??
+    null
+  );
+}
 
 function insideFullscreenElement(el: Element): boolean {
-  const fs = document.fullscreenElement;
+  const fs = currentFullscreenElement();
   return !!fs && (fs === el || fs.contains(el));
 }
 
 function observeFocusTrail(): void {
+  document.addEventListener('pointerdown', armPreEntryWindow, true);
+  document.addEventListener('click', armPreEntryWindow, true);
   document.addEventListener(
     'focusin',
     (event) => {
-      if (focusTrailFrozen) return;
       const target = event.target as HTMLElement | null;
       if (!target || !target.isConnected || target === document.body) return;
       // The player grabbing focus on itself is not a focus change to record.
       if (insideFullscreenElement(target)) return;
-      const now = Date.now();
+      // Only the moment right after a user gesture is suspect: a quick Tab or
+      // click anywhere later is a real focus change and must replace the trail.
       if (lastFocusedBeforeFullscreen && lastFocusedBeforeFullscreen !== target &&
-          now - lastFocusedAt < ENTRY_WINDOW_MS) {
+          Date.now() < preEntryWindowUntil) {
         return;
       }
       lastFocusedBeforeFullscreen = target;
-      lastFocusedAt = now;
     },
     true,
   );

@@ -987,6 +987,7 @@ export function WordPopover({
         {resolved.needsAccess.length > 0 && (
           <button
             tabIndex={-1}
+            data-testid="kivara-needs-access"
             onMouseDown={blockFocusSteal}
             onClick={(e) => {
               // The ONE thing the user can do about it: grant the origins.

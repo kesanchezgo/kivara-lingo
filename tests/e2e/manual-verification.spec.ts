@@ -185,7 +185,9 @@ test('2 · Anki on a custom port, after the service worker went idle', async ({
       // on success ("AnkiConnect v… · activo/active"). The version text itself
       // is not what matters here — that the SW REACHES the custom port after
       // going idle is, with no CORS/network error.
-      await expect(page.getByText(/AnkiConnect v[\d.]+ · (activo|active)/)).toBeVisible();
+      await expect(page.getByText(/AnkiConnect v[\d.]+ · (activo|active)/)).toBeVisible({
+        timeout: 60_000,
+      });
       return page;
     };
 
@@ -193,7 +195,10 @@ test('2 · Anki on a custom port, after the service worker went idle', async ({
     await first.close();
 
     // The MV3 service worker is torn down after 30s of inactivity — longer
-    // than the budget, on purpose.
+    // than the budget, on purpose. A fixed sleep competes with machine load;
+    // the poll below is what actually proves the teardown happened, so the
+    // wait is generous but the ASSERTION is on observed state. The extra
+    // timeout keeps a slow CI box from failing a correct test.
     await new Promise((r) => setTimeout(r, 35_000));
     const second = await openPopup();
     await second.close();

@@ -37,8 +37,16 @@ const BASE_PROPS = {
 };
 
 describe('the held-back strip', () => {
+  const strip = () => screen.getByTestId('kivara-needs-access');
+
   beforeEach(() => {
     vi.mocked(sendMessage).mockClear();
+    vi.spyOn(window, 'open').mockImplementation(() => null);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it('asks the service worker to open Ajustes on Permisos', async () => {
@@ -83,9 +91,8 @@ describe('the held-back strip', () => {
 
     render(<WordPopover {...BASE_PROPS} />);
 
-    // The strip appears only for a held-back result; its title lists them.
-    const strip = await screen.findByTitle(/cambridge/);
-    strip.click();
+    const cta = await screen.findByTestId('kivara-needs-access');
+    cta.click();
 
     await waitFor(() =>
       expect(sendMessage).toHaveBeenCalledWith(
@@ -94,5 +101,9 @@ describe('the held-back strip', () => {
         'background',
       ),
     );
+    // One navigation, never two: the blocked window.open fallback used to be
+    // the only path that ever ran, and keeping it after the bridge worked
+    // would open a second tab (or a blocked popup warning on every click).
+    expect(window.open).not.toHaveBeenCalled();
   });
 });

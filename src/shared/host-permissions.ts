@@ -55,7 +55,12 @@ function matchesPattern(pattern: string, origin: string): boolean {
   const [patternHostName, patternPort] = splitHostPort(patternHost);
   const path = target.split('/').slice(1).join('/');
   if (scheme !== '*' && scheme !== origin.split('://')[0]) return false;
-  if (patternPort && originPort && patternPort !== originPort) return false;
+  // Chrome's rule: only a PORTLESS pattern is the wildcard. A pattern with a
+  // port means exactly that port, and an origin carrying none is not it —
+  // which is also why `[::1]` does not match `[::1]:8765`.
+  if (patternPort) {
+    if (!originPort || originPort !== patternPort) return false;
+  }
   if (patternHostName.toLowerCase() === '*') return true;
   if (patternHostName.toLowerCase().startsWith('*.')) {
     // `*.example.com` matches any subdomain AND the apex.

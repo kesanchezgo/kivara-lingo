@@ -8,14 +8,15 @@
  * What it guarantees, in order:
  *  - ONE restore state per session, and a restore of exactly what the entry
  *    changed (the `position` it wrote), before the host moves home;
- *  - the focus hand-back happens once, on a real exit, to whatever the user
+ *  - the focus hand-back happens ONCE, on a real exit, to whatever the user
  *    had before — the step that previously never ran, because the state was
- *    nulled out before it was read;
+ *    nulled out before it was read. An A→B move restores the position but
+ *    deliberately does NOT move the focus: focus was already handed to the new
+ *    player and yanking it back to the page mid-fullscreen loses the click the
+ *    user just made;
  *  - a leave AND an entry in one event (A→B without exiting) loses neither the
  *    old host's restore nor the new one's override.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
-
 export interface Mount {
   hostElement: HTMLElement;
 }
@@ -62,11 +63,17 @@ export function updateOverlayParent(deps: FullscreenDeps, state: { restore: Rest
   }
 
   const target = fullscreen ?? deps.getFallbackParent();
-  if (deps.mount.hostElement.parentElement === target && !entering) {
-    // Nothing moves, and the restore focus would otherwise be skipped.
-    giveBackFocus(restoring);
-    return;
+  // The focus hand-back belongs to a REAL exit only: on an A→B move the player
+  // already owns focus and pulling it back to the page would break the click
+  // the user just made. Position is restored either way.
+  if (leaving && fullscreen === null && restoring?.previousFocus?.isConnected) {
+    try {
+      restoring.previousFocus.focus();
+    } catch {
+      /* a detached target throws in some engines */
+    }
   }
+  if (deps.mount.hostElement.parentElement === target && !entering) return;
   try {
     if (entering) {
       const host = fullscreen as HTMLElement;
@@ -78,23 +85,13 @@ export function updateOverlayParent(deps: FullscreenDeps, state: { restore: Rest
         previousFocus: deps.getPreviousFocus(),
       };
     }
-    const current = state.restore;
     target.appendChild(deps.mount.hostElement);
-    if (current?.positionHost) current.positionHost.style.position = 'relative';
-    giveBackFocus(restoring);
-  } catch {
-    /* re-parenting a vanished site element is not worth failing the page over */
-  }
-}
-
-function giveBackFocus(restoring: RestoreState | null): void {
-  const el = restoring?.previousFocus;
-  if (el?.isConnected) {
-    try {
-      el.focus();
-    } catch {
-      /* a detached target throws in some engines */
-    }
+    if (state.restore?.positionHost) state.restore.positionHost.style.position = 'relative';
+  } catch (err) {
+    // The host just stays on <body>: subtitles keep working, the panel does not
+    // overlay the player. Logged at debug because a site that mutates its own
+    // DOM mid-fullscreen is the usual cause and not actionable by the user.
+    console.debug('[Kivara Lingo] could not re-parent the overlay for fullscreen', err);
   }
 }
 

@@ -3491,10 +3491,11 @@ async function pruneVipCache(): Promise<void> {
       | null;
     if (!table) return;
     // Rows written before `storedAt` existed are invisible to the index, so
-    // the two index passes below never touch them and they accumulate forever
-    // AND inflate `count()`, which makes the row ceiling wrong by exactly their
-    // number. Swept once, cheaply: a scan of a table that rarely exceeds a few
-    // hundred rows, paid at most every PRUNE_INTERVAL_MS.
+    // the two index passes below never touch them: they accumulate without
+    // bound AND inflate `count()`, making the row ceiling wrong by exactly
+    // their number. This is a scan — the necessary price for rows the index
+    // cannot reach, paid at most every PRUNE_INTERVAL_MS and over a table that
+    // rarely exceeds a few hundred rows.
     const rows = await table.toArray().catch(() => [] as CacheRow[]);
     const orphans = rows.filter((r) => !r.storedAt).map((r) => r.key);
     if (orphans.length > 0) await table.bulkDelete(orphans);
