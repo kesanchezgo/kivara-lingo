@@ -378,6 +378,11 @@ export async function runEnrichment(
       const origins = group ? providerHosts(group) : [];
       const missing = origins.filter((o) => !originCovered(o, grantedList));
       if (missing.length > 0) {
+        // Chrome does not auto-cover the apex: granting
+        // `https://*.dictionary.cambridge.org/*` leaves
+        // `https://dictionary.cambridge.org/*` missing and vice versa, which is
+        // why provider-hosts lists BOTH for every group and `requestHosts` asks
+        // for the whole list in one prompt.
         permissionBlocked.push({ source: source.id, group: group ?? 'dict' });
         continue;
       }
@@ -3313,6 +3318,14 @@ function memGet(key: string, ttlDays: number): EnrichmentResult | null {
     memCache.delete(key);
     return null;
   }
+  // Same rule as the IndexedDB branch: a payload written while sources were
+  // still waiting for access must not satisfy a lookup after the grant lands.
+  // Keeping it in the hot layer is exactly what made the CTA look broken —
+  // the user grants, hovers the same word, and gets the same held-back row.
+  if (row.payload.needsAccess && row.payload.needsAccess.length > 0) {
+    memCache.delete(key);
+    return null;
+  }
   // LRU bump: re-insert so it moves to the end (most-recently-used).
   memCache.delete(key);
   memCache.set(key, row);
@@ -3416,12 +3429,14 @@ async function clearCachedEntry(key: string): Promise<void> {
 }
 
 async function writeCache(key: string, payload: EnrichmentResult): Promise<void> {
+  // An answer that still has sources waiting for access must NOT be cached in
+  // either layer: the cache key does not include the granted origins, so a
+  // stored row would keep hiding those sources AFTER the user grants them —
+  // for the whole TTL in IndexedDB, and for the rest of the SW's life in the
+  // hot layer. Early return BEFORE memSet is what makes it hold.
+  if (payload.needsAccess && payload.needsAccess.length > 0) return;
   // Populate the hot layer synchronously so an immediate re-hover hits it.
   memSet(key, payload);
-  // An answer that still has sources waiting for access must NOT be cached:
-  // the cache key does not include the granted origins, so a stale row would
-  // keep hiding those sources AFTER the user granted them — for the whole TTL.
-  if (payload.needsAccess && payload.needsAccess.length > 0) return;
   try {
     const db = getDB();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -96,6 +96,12 @@ const INITIAL_STATE: ResolveState = {
   needsAccess: [],
 };
 
+/** True while the pointer is inside the hover card. Module scope because the
+ *  overlay renders exactly one card, and the card never owns focus (its
+ *  controls are `tabIndex={-1}` on purpose), which leaves the pointer as the
+ *  only signal Escape's ownership test can use. */
+let pointerOverCard = false;
+
 function useResolveWord(
   token: string,
   sentence: string,
@@ -407,12 +413,18 @@ export function WordPopover({
 
     const onWindowKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
-      // Only swallow the key when it belongs to us: if the focus (or the
-      // pointer) lives in the card, the page behind never needed that Escape —
-      // and the platform's own dialogs keep working when the cursor happens to
-      // hover a word.
-      const ownsFocus = rootRef.current?.contains(getActive()) ?? false;
-      if (!ownsFocus && !event.defaultPrevented) return;
+      const root = rootRef.current;
+      // The card's controls are `tabIndex={-1}` by design (clicking one must
+      // never pull focus out of the video), so the card almost never OWNS
+      // focus — a focus-only test makes this listener dead code. The card is
+      // only visible while hovered, so the pointer is the reliable signal.
+      const shadowRoot = root?.getRootNode();
+      const scopedActive =
+        shadowRoot instanceof ShadowRoot ? shadowRoot.activeElement : null;
+      const ownsEscape =
+        (root && scopedActive && root.contains(scopedActive)) || pointerOverCard;
+      // A key the page already consumed stays the page's.
+      if (!ownsEscape || event.defaultPrevented) return;
       event.stopPropagation();
       event.preventDefault();
       onClose?.();
@@ -600,8 +612,14 @@ export function WordPopover({
   return (
     <div
       ref={rootRef}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      onMouseEnter={() => {
+        pointerOverCard = true;
+        onMouseEnter();
+      }}
+      onMouseLeave={() => {
+        pointerOverCard = false;
+        onMouseLeave();
+      }}
       onKeyDown={handlePopoverKeyDown}
       data-kivara-hover-zone="true"
       // Accessibility (audit item): the popover is a modal-ish surface that

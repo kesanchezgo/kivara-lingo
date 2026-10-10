@@ -289,49 +289,44 @@ function updateOverlayParentForFullscreen(): void {
     document.fullscreenElement ??
     (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement ??
     null;
-  const entering = fullscreen !== null && !overlayRestore;
-  const leaving = fullscreen === null && overlayRestore !== null;
 
-  // Leaving: put back what the ENTRY changed, before the overlay moves home
-  // again — restoring after the move would read a parent that is no longer
-  // the one we wrote to.
+  // Case A→B: the user goes fullscreen on one element then on another WITHOUT
+  // exiting, which platforms do when the player mounts a new video. That is a
+  // leave AND an entry in one event, and doing only the entry would leave the
+  // old element without the position restore that belongs to it, while the new
+  // one never gets the override its overlay needs.
+  const movingToNewElement =
+    fullscreen !== null && overlayRestore !== null && overlayRestore.positionHost !== fullscreen;
+  const entering = fullscreen !== null && (overlayRestore === null || movingToNewElement);
+  const leaving = fullscreen === null || movingToNewElement;
+
   if (leaving) {
     const state = overlayRestore;
     overlayRestore = null;
-    if (state && state.positionHost && state.positionHost.isConnected) {
+    if (state?.positionHost?.isConnected) {
       state.positionHost.style.position = state.positionWas;
     }
-    // Focus does not survive a re-parent, and Windows drops it silently:
-    // give back exactly the element that had it.
-    if (state?.previousFocus?.isConnected) state.previousFocus.focus();
   }
 
   const target = fullscreen ?? document.body;
-  if (mount.hostElement.parentElement === target) return;
+  if (mount.hostElement.parentElement === target && !entering) return;
   try {
-    const previousParent = mount.hostElement.parentElement;
-    // Record the state we are about to change ONCE per fullscreen session:
-    // a second toggle inside the same session must not overwrite it, or the
-    // original value is lost after two entries.
     if (entering) {
-      const host = (fullscreen ?? document.body) as HTMLElement;
+      const host = fullscreen as HTMLElement;
       overlayRestore = {
-        positionHost:
-          window.getComputedStyle(host).position === 'static' ? host : null,
+        positionHost: window.getComputedStyle(host).position === 'static' ? host : null,
         positionWas: host.style.position,
-        // The focus goes through the video's controls on the way in, so this
-        // has to be captured BEFORE the host moves.
-        previousFocus: (document.activeElement as HTMLElement | null)?.isConnected
-          ? (document.activeElement as HTMLElement | null)
-          : null,
+        // Read from the focusin trail, not from document.activeElement: by the
+        // time `fullscreenchange` runs, focus has already moved into the video
+        // (or to <body>), so activeElement no longer knows what the user had.
+        // See observeFocusTrail below.
+        previousFocus: lastFocusedBeforeFullscreen,
       };
     }
     const saved = overlayRestore;
     target.appendChild(mount.hostElement);
-    // The entry branch wrote the override per session; leaving clears it.
-    if (entering && saved?.positionHost) {
-      saved.positionHost.style.position = 'relative';
-    }
+    if (saved?.positionHost) saved.positionHost.style.position = 'relative';
+    if (leaving && saved?.previousFocus?.isConnected) saved.previousFocus.focus();
   } catch (err) {
     console.warn('[Kivara Lingo] could not re-parent the overlay for fullscreen', err);
   }
@@ -342,11 +337,35 @@ interface OverlayRestoreState {
   positionHost: HTMLElement | null;
   /** Its `position` before we wrote ours. */
   positionWas: string;
-  /** Element that had focus before the move — may be gone by then. */
+  /** Element that held focus before the move — may be gone by then. */
   previousFocus: HTMLElement | null;
 }
 
 let overlayRestore: OverlayRestoreState | null = null;
+
+/**
+ * Focus trail. `fullscreenchange` fires AFTER focus has already been pulled
+ * into the fullscreen element (or dropped on <body>), so reading
+ * `document.activeElement` there records the wrong element and the "give the
+ * focus back" step restores nothing the user chose. A passive `focusin`
+ * listener keeps the last real target; the trail is stale-checked against
+ * `isConnected` at restore time, because the video element is usually gone by
+ * then anyway.
+ */
+let lastFocusedBeforeFullscreen: HTMLElement | null = null;
+
+function observeFocusTrail(): void {
+  document.addEventListener(
+    'focusin',
+    (event) => {
+      const target = event.target as HTMLElement | null;
+      if (target && target.isConnected && target !== document.body) {
+        lastFocusedBeforeFullscreen = target;
+      }
+    },
+    true,
+  );
+}
 
 function observeFullscreen(): void {
   document.addEventListener('fullscreenchange', updateOverlayParentForFullscreen);

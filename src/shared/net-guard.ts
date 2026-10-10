@@ -369,7 +369,14 @@ export async function fetchBytesWithLimits(
     });
     // Destination first: a private landing page arriving as 200 must never be
     // reported as a 404 to whoever asked for it.
-    assertResponseDestination(res, allowHttp);
+    try {
+      assertResponseDestination(res, allowHttp);
+    } catch (err) {
+      // Cancel the body too: a refused destination keeps its stream (and its
+      // connection) held until GC otherwise.
+      await res.body?.cancel().catch(() => {});
+      throw err;
+    }
     if (!res.ok) {
       await res.body?.cancel().catch(() => {});
       throw new Error(`HTTP ${res.status}`);

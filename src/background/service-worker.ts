@@ -44,7 +44,10 @@ import { translateText } from './translate';
 import { speak } from './tts';
 import { enrichWithAi } from './ai-enrich';
 import { resolveWordStreaming } from './resolve-word';
-import { clearEnrichmentCache } from './enrichment/orchestrator';
+import { clearEnrichmentCache, clearMemEnrichmentCache } from './enrichment/orchestrator';
+
+/** Deep-link section for OPEN_SETTINGS (see the handler below). */
+const OPEN_SETTINGS_SECTION_KEY = 'kivara:open-settings-section';
 import { getCacheStats, clearCaches } from './cache-admin';
 import { listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';
 import { t } from '../shared/i18n';
@@ -182,14 +185,14 @@ void chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 }).catch(() => {});
 
 /**
  * A grant changes what the enrichment chain can reach, so every cached answer
- * is suspect the moment it arrives. `writeCache` already refuses to store a
- * result that had sources waiting for access; this is the other half — the rows
- * written BEFORE the grant, which would keep hiding those sources until they
- * expired. Without it the CTA looks broken: the user grants, hovers the same
- * word again, and sees exactly the same "held back" message.
+ * is suspect the moment it arrives — in BOTH layers. Clearing only IndexedDB
+ * left the hot layer answering with the pre-grant payload for the rest of the
+ * service worker's life, which is the case a user actually hits: they grant,
+ * hover the SAME word again, and see the SAME "held back" strip.
  */
 if (chrome.permissions?.onAdded) {
   chrome.permissions.onAdded.addListener(() => {
+    clearMemEnrichmentCache();
     void clearEnrichmentCache().catch(() => {});
   });
 }
@@ -555,11 +558,43 @@ onMessage('AI_ENRICH', async ({ data }) => {
  * streaming — in practice the popover already has a 200 ms-ish dictionary
  * spinner so this single round-trip is acceptable.
  */
+/**
+ * Deep link into Settings.
+ *
+ * The popover's "held back" strip is the entry point when a word resolves with
+ * dictionary sources held back for missing host access: nothing else on that
+ * card can fix it, and a grant can only be raised from a user gesture in the
+ * options page. A content script cannot open that page directly (options/ is
+ * not web-accessible), so the popover asks here.
+ *
+ * The section lands in `chrome.storage.session` — it survives the page load and
+ * disappears when the profile does, unlike `local`.
+ */
+onMessage(
+  'OPEN_SETTINGS' as never,
+  async ({ data }) => {
+    const section = String((data as { section?: string })?.section ?? '');
+    if (section) {
+      await chrome.storage.session.set({ [OPEN_SETTINGS_SECTION_KEY]: section }).catch(() => {});
+    }
+    try {
+      await chrome.tabs.create({
+        url: `${chrome.runtime.getURL('src/options/index.html')}${
+          section ? `#${section}` : ''
+        }`,
+      });
+    } catch (err) {
+      console.warn('[Kivara Lingo] could not open settings', err);
+    }
+    return { ok: true } as never;
+  },
+);
+
+// Legacy one-shot path (kept for callers that don't use the streaming port).
+// Reuses the SAME phased resolver as the stream so quality never diverges — it
+// just collects every emit into a waves[] array and maps the stream phases back
+// onto the legacy wave shape.
 onMessage('RESOLVE_WORD', async ({ data }) => {
-  // Legacy one-shot path (kept for callers that don't use the streaming
-  // port). Reuses the SAME phased resolver as the stream so quality never
-  // diverges — it just collects every emit into a waves[] array and maps
-  // the stream phases back onto the legacy wave shape.
   const req = data as unknown as ResolveWordRequest;
   const waves: ResolveWordWave[] = [];
   let lastEntry: DictionaryEntry | null = null;
@@ -975,10 +1010,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         if (reject) {
           reportProgress({ stage: 'error', error: reject });
           sendResponse({ ok: false, error: reject });
+          stopDownloadTimer();
           return;
         }
         reportProgress({ stage: 'downloading', received: 0, total: 0 });
-
         // Streaming download with progress so the side-panel can render
         // a real ratio while the bytes come in. Redirects are FOLLOWED (an
         // opaque 'manual' response cannot be read at all — see net-guard) and
@@ -989,7 +1024,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           signal: downloadSignal,
         });
         const finishDownload = () => {
-          stopDownloadTimer();
           try {
             downloadDone();
           } catch {
@@ -997,9 +1031,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           }
         };
         try {
-          // The status check lives in `fetchGuarded` (which throws HTTP 4xx/5xx
-          // itself), so a response here is already a 2xx; this branch is kept
-          // only as a guard against a future helper change.
           const totalHeader = res.headers.get('content-length');
         const total = totalHeader ? parseInt(totalHeader, 10) || 0 : 0;
         if (total > DICT_PACK_MAX_BYTES) {

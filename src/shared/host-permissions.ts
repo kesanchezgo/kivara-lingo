@@ -20,25 +20,40 @@
 import { providerHosts } from './provider-hosts';
 import { refreshHostPermissions } from './host-permissions-store';
 
+/** The host part of `host[:port]`, keeping an IPv6 literal intact — the naive
+ *  split on ':' would turn `[::1]:8765` into `[`. */
+function extractHost(hostAndPort: string): string {
+  const head = hostAndPort.split('/')[0];
+  if (head.startsWith('[')) return head.split(']:')[0] + ']';
+  return head.split(':')[0];
+}
+
 function matchesPattern(pattern: string, origin: string): boolean {
-  const [scheme, rest] = pattern.split('://');
-  const slashAt = (rest ?? '').indexOf('/');
+  const scheme = pattern.split('://')[0];
+  const rest = pattern.split('://')[1] ?? '';
+  const slashAt = rest.indexOf('/');
   const patternHost = slashAt < 0 ? rest : rest.slice(0, slashAt);
   const patternPath = slashAt < 0 ? '*' : rest.slice(slashAt + 1);
   const target = origin.split('://')[1] ?? '';
-  // Chrome match patterns carry no port: `https://127.0.0.1:8765/*` is matched
-  // on host and path, so a pattern written WITH a port never fires.
-  const host = target.split('/')[0].split(':')[0];
+
+  // Chrome match patterns carry NO PORT: `http://127.0.0.1:8765` is matched on
+  // host alone, so stripping the port from BOTH sides is what makes a
+  // port-specific origin comparable with a host pattern (and the Anki entries
+  // in the manifest, which are the ones that actually have a port, usable).
+  const host = extractHost(target.split('/')[0]);
+  const patternHostNoPort = patternHost.startsWith('[')
+    ? // IPv6 literal — `[::1]` must keep its shape, port comes after `]:`
+      patternHost.split(']:')[0] + ']'
+    : patternHost.split(':')[0];
   const path = target.split('/').slice(1).join('/');
   if (scheme !== '*' && scheme !== origin.split('://')[0]) return false;
-  if (patternHost === '*') return true;
-  if (patternHost.startsWith('*.')) {
-    // `*.example.com` matches any subdomain AND the apex, which is how chrome's
-    // own matcher treats the syntactically generous form.
-    const suffix = patternHost.slice(1); // ".example.com"
-    const bare = patternHost.slice(2); // "example.com"
+  if (patternHostNoPort === '*') return true;
+  if (patternHostNoPort.startsWith('*.')) {
+    // `*.example.com` matches any subdomain AND the apex.
+    const suffix = patternHostNoPort.slice(1);
+    const bare = patternHostNoPort.slice(2);
     if (host !== bare && !host.endsWith(suffix)) return false;
-  } else if (patternHost !== host) {
+  } else if (patternHostNoPort.toLowerCase() !== host.toLowerCase()) {
     return false;
   }
   // Path: `*` inside a chrome pattern matches any run of characters, so treat
@@ -113,10 +128,17 @@ export async function requestHosts(origins: string[]): Promise<string[]> {
   if (origins.length === 0 || typeof chrome === 'undefined' || !chrome.permissions?.request) {
     return await missingHosts(origins);
   }
-  const granted = await chrome.permissions.request({ origins });
-  // Keep the UI's picture of it current whatever happened.
-  void refreshHostPermissions();
-  return granted ? [] : await missingHosts(origins);
+  try {
+    // Runs FIRST, synchronously in the gesture: awaiting anything before
+    // `request` lets Chrome drop the gesture in the gap and answer `false`.
+    const granted = await chrome.permissions.request({ origins });
+    return granted ? [] : await missingHosts(origins);
+  } catch {
+    return await missingHosts(origins);
+  } finally {
+    // Whatever happened, the UI should not be looking at a stale picture.
+    void refreshHostPermissions();
+  }
 }
 
 /** Drop these origins again (Permissions row → "revoke"). */

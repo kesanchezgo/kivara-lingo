@@ -27,6 +27,9 @@ import { SecretKeyInput } from '../SecretKeyInput';
 import { SyncWriteErrorBanner } from '../SyncWriteErrorBanner';
 import { HostPermissionsRow } from '../HostPermissionsRow';
 import { ensureProviderHosts } from '../../../shared/host-permissions';
+/** Same key the OPEN_SETTINGS service-worker handler writes into
+ *  `chrome.storage.session`; kept in sync by both sides of the deep link. */
+const OPEN_SETTINGS_SECTION_KEY = 'kivara:open-settings-section';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { ShortcutEditor } from '../ShortcutEditor';
 import { InfoHint } from '../InfoHint';
@@ -61,6 +64,41 @@ export function SettingsTab() {
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const toggle = (id: string) => setOpen((prev) => ({ ...prev, [id]: !prev[id] }));
   const isOpen = (id: string) => !!open[id];
+
+  // DEEP LINK. The popover's "held back" strip opens Settings for a reason,
+  // so the requested section is opened for it: `storage.session` is written
+  // by the OPEN_SETTINGS handler (it survives the navigation and dies with the
+  // profile), and the URL hash covers a reload. Reading only one of the two
+  // leaves the other path landing on a closed accordion.
+  const [pendingSection] = useState<string | undefined>(
+    () =>
+      (typeof window !== 'undefined' && window.location.hash.replace('#', '')) ||
+      undefined,
+  );
+  const sectionRef = useRef<string | undefined>(pendingSection);
+
+  useEffect(() => {
+    const wanted = sectionRef.current;
+    void (async () => {
+      if (!wanted) {
+        try {
+          const raw = await chrome.storage.session.get(OPEN_SETTINGS_SECTION_KEY);
+          sectionRef.current = raw[OPEN_SETTINGS_SECTION_KEY] as string | undefined;
+          await chrome.storage.session.remove(OPEN_SETTINGS_SECTION_KEY);
+        } catch {
+          // storage.session is only missing outside an extension context.
+        }
+      }
+      const section = sectionRef.current;
+      if (!section) return;
+      setOpen((prev) => ({ ...prev, [section]: true }));
+      requestAnimationFrame(() => {
+        document
+          .getElementById(`kivara-section-${section}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    })();
+  }, []);
 
   // User-customisable shortcut combos (synced via the store, see useShortcuts).
   // We surface the first three combos in the accordion summary line so the
@@ -477,6 +515,7 @@ export function SettingsTab() {
 
         {/* ── Permisos de red (opcionales) ────────────────────────────── */}
         <Accordion
+          id="kivara-section-perm"
           icon={<KeyRound size={10} />}
           title="Acceso a sitios"
           open={isOpen('perm')}
@@ -953,7 +992,7 @@ function AiByokSection() {
 /* ─── Accordion ───────────────────────────────────────────────────────── */
 
 function Accordion({
-  icon, title, summary, summaryColor, open, onToggle, children, noPadding, description,
+  icon, title, summary, summaryColor, open, onToggle, children, noPadding, description, id,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -963,6 +1002,8 @@ function Accordion({
   onToggle: () => void;
   children: React.ReactNode;
   noPadding?: boolean;
+  /** Stable DOM id so a deep link (OPEN_SETTINGS) can open AND scroll to it. */
+  id?: string;
   /**
    * Optional one-liner shown as an InfoHint next to the section title.
    * Mirrors the design mock pattern: we standardize "what is this & when
@@ -971,7 +1012,7 @@ function Accordion({
   description?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+    <div id={id} className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
       <button
         onClick={onToggle}
         className="w-full flex items-center justify-between gap-2 px-2.5 py-2 bg-zinc-50/60 dark:bg-zinc-900/60 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/40 transition-colors"
