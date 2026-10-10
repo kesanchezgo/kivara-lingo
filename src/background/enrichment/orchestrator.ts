@@ -34,7 +34,6 @@ import type {
   SourcePartial,
 } from './types';
 import { gateSources } from './permissions-gate';
-import { providerHosts } from '../../shared/provider-hosts';
 
 import { freeDictionarySource } from './sources/free-dictionary';
 import { datamuseSource } from './sources/datamuse';

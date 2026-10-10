@@ -196,7 +196,9 @@ void chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 }).catch(() => {});
  * `chrome.permissions.request()` resolving and the next hover. If registration
  * sinks behind an await (a controller module that awaits anything before
  * calling this, an async IIFE), that window is open and the CTA looks broken.
- * The wiring lives in `permissions-gate.ts` next to the gate it invalidates.
+ * The gate's read side lives in `enrichment/permissions-gate.ts`; this call is
+ * its only invalidation partner and belongs here, with the SW's own chrome
+ * wiring.
  */
 function registerPermissionInvalidation(): void {
   if (!chrome.permissions?.onAdded) return;

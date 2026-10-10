@@ -92,9 +92,23 @@ describe('Settings accordions under a deep link', () => {
     );
     const controls = header?.getAttribute('aria-controls');
     expect(controls).toBeTruthy();
-    // The id the deep link scrolls to is the id its control points at, or there
-    // would be no relationship between the two halves of the feature.
-    expect(document.getElementById(controls!)).not.toBeNull();
+    const panel = document.getElementById(controls!);
+    // The panel exists and does NOT contain the button that controls it: when
+    // the id also sat on the wrapper, aria-controls pointed at the button's own
+    // ancestor and the relationship was circular.
+    expect(panel).not.toBeNull();
+    expect(panel?.contains(header as Node)).toBe(false);
+    // The scroll target is on the wrapper, exactly once, and it is the one that
+    // CONTAINS the button (the panel is deeper inside it).
+    const wrappers = document.querySelectorAll('#kivara-section-perm');
+    expect(wrappers.length).toBe(1);
+    // The wrapper CARRIES the section (button included): it is where the deep
+    // link scrolls to, and it must NOT be the panel — a panel that resolved
+    // back to the wrapper made the control point at its own ancestor, and that
+    // circular relationship was the duplicated-id bug.
+    const wrapper = wrappers[0];
+    expect(wrapper?.contains(header as Node)).toBe(true);
+    expect(panel).not.toBe(wrapper);
   });
 
   it('expands the section it is opened with', async () => {

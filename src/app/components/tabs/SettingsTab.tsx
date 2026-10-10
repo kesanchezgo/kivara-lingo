@@ -1023,6 +1023,10 @@ function AiByokSection() {
 
 /* ─── Accordion ───────────────────────────────────────────────────────── */
 
+function sectionId(title: string, id?: string): string {
+  return id ?? `kivara-section-${title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
+}
+
 function Accordion({
   icon, title, summary, summaryColor, open, onToggle, children, noPadding, description, id,
 }: {
@@ -1048,7 +1052,7 @@ function Accordion({
       <button
         onClick={onToggle}
         aria-expanded={open}
-        aria-controls={id ?? `kivara-section-${title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`}
+        aria-controls={`${sectionId(title, id)}-panel`}
         className="w-full flex items-center justify-between gap-2 px-2.5 py-2 bg-zinc-50/60 dark:bg-zinc-900/60 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/40 transition-colors"
       >
         <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
@@ -1065,7 +1069,7 @@ function Accordion({
         </span>
       </button>
       <div
-        id={id ?? `kivara-section-${title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`}
+        id={`${sectionId(title, id)}-panel`}
         style={{
           display: 'grid',
           gridTemplateRows: open ? '1fr' : '0fr',

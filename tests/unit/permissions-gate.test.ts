@@ -51,12 +51,6 @@ describe('splitByPermission', () => {
     expect(result.needsAccess).toEqual([{ source: 'cambridge', group: 'dict:cambridge' }]);
   });
 
-  it('lets everything through when the whole group is granted', () => {
-    const result = splitByPermission([src('cambridge')], cambridgeOrigins);
-    expect(result.needsAccess).toEqual([]);
-    expect(result.reachable.map((s) => s.id)).toEqual(['cambridge']);
-  });
-
   it('holds a PARTIALLY granted group back (one pattern is not enough)', () => {
     // `dict:merriam` declares two DISTINCT hosts; granting only the first must
     // not make the source reachable, because matching is origin-by-origin —
@@ -84,11 +78,22 @@ describe('splitByPermission', () => {
     expect(result.needsAccess.map((n) => n.source)).toEqual(['cambridge', 'forvo']);
   });
 
-  it('drops a group with no registered origins to "dict" but keeps trying', () => {
-    // Unknown to the table → `origins` is empty → nothing is missing, so the
-    // source stays reachable (the report path defaults the group name).
+  it('an unlisted source is reachable (no group means no network)', () => {
+    // A source absent from the table is treated as needing nothing, which is
+    // also what a future local source expects.
     const result = splitByPermission([src('unlisted')], []);
+    expect(result.needsAccess).toEqual([]);
     expect(result.reachable.map((s) => s.id)).toEqual(['unlisted']);
+  });
+
+  it('a wildcard grant covers the apex of its host', () => {
+    // `matchesPattern` treats `*.dictionary.cambridge.org` as covering the
+    // apex, so the group's apex pattern is satisfied by the wildcard pattern.
+    const result = splitByPermission([src('cambridge')], [
+      'https://*.dictionary.cambridge.org/*',
+    ]);
+    expect(result.needsAccess).toEqual([]);
+    expect(result.reachable.map((s) => s.id)).toEqual(['cambridge']);
   });
 });
 

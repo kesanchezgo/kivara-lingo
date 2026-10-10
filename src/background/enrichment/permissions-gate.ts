@@ -18,11 +18,11 @@
  *    calls in series before the first request left;
  *  - a request made without a grant is reported as `needsAccess`, never thrown.
  *
- * When the user does grant, `chrome.permissions.onAdded` must purge both cache
- * layers immediately (see `installGrantListener`) — an answer taken while
- * sources were held back would otherwise keep reporting them missing.
+ * The invalidation side (a grant must purge both cache layers) is registered
+ * from the service worker itself, next to the rest of its chrome wiring — see
+ * `registerPermissionInvalidation` in `service-worker.ts`.
  */
-import { grantedOriginList, originCovered } from '../../shared/host-permissions';
+import { grantedOriginList, originCovered, permissionsApiAvailable } from '../../shared/host-permissions';
 import { providerHosts } from '../../shared/provider-hosts';
 
 /** A source that is held back because its optional origins are not granted. */
@@ -89,7 +89,11 @@ export const SOURCE_PERMISSION_GROUP: Record<string, string> = {
 
 /** The origins a single source needs, or none when it does no networking. */
 export function originsForSource(sourceId: string): string[] {
-  const group = SOURCE_PERMISSION_GROUP[sourceId];
+  return hostsForGroup(SOURCE_PERMISSION_GROUP[sourceId]);
+}
+
+/** The `origins` of a group, through the same table the split reads. */
+function hostsForGroup(group: string | undefined): string[] {
   return group ? providerHosts(group) : [];
 }
 
@@ -107,11 +111,15 @@ export function splitByPermission(
   const needsAccess: NeedsAccess[] = [];
   for (const source of sources) {
     const group = SOURCE_PERMISSION_GROUP[source.id];
-    const origins = group ? providerHosts(group) : [];
+    const origins = hostsForGroup(group);
     // Every pattern of a group must be granted, not one of them: matching is
     // origin-by-origin, so a partially granted group is an unreachable group.
     const missing = origins.filter((o) => !originCovered(o, granted));
     if (missing.length > 0) {
+      // Defensive: a source absent from the table has no group, and `origins`
+      // is then empty so `missing` is empty and this branch does not run. The
+      // fallback keeps the report's shape even if the table ever drifts from
+      // the provider table.
       needsAccess.push({ source: source.id, group: group ?? 'dict' });
       continue;
     }
@@ -132,12 +140,8 @@ export async function gateSources(
   // there is nothing that could be granted, so nothing is gated. Treating
   // "cannot list permissions" as "nothing is granted" would hold every network
   // source back outside a real service worker.
-  if (typeof chrome === 'undefined' || !chrome.permissions?.getAll) {
+  if (!permissionsApiAvailable()) {
     return { reachable: sources, needsAccess: [] };
   }
   return splitByPermission(sources, await grantedOriginList());
 }
-
-export { grantedOriginList };
-import { permissionsApiAvailable } from '../../shared/host-permissions';
-export { permissionsApiAvailable };

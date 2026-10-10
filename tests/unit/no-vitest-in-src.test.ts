@@ -29,7 +29,7 @@ const SRC = join(__dirname, '..', '..', 'src');
  * one-dash negative look random (it only passed because it doubled the dash).
  */
 const VITEST_IMPORT =
-  /(?:from|import\s*\(?|require\s*\(|vi\.mock\()\s*["'](?:@vitest|vitest)(?:\/[^"']*)?["']/;
+  /(?:from|import\s*\(?|require\s*\(|(?:vi|vitest)\.mock\()\s*["'](?:@vitest|vitest)(?:\/[^"']*)?["']/;
 
 describe('the vitest-import regex itself', () => {
   it('matches every way a package gets pulled in', () => {
@@ -44,6 +44,7 @@ describe('the vitest-import regex itself', () => {
       'import { a } from "@vitest/spy";',
       '  indented `import { x } from \'vitest\'`',
       "vi.mock('vitest', () => ({}))",
+      "vitest.mock('vitest', () => ({}))",
     ]) {
       expect(VITEST_IMPORT.test(source), source).toBe(true);
     }
