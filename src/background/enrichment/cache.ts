@@ -142,35 +142,13 @@ function isHeldBack(payload: EnrichmentResult | null | undefined): boolean {
 
 const MAX_VIP_CACHE_ROWS = 2000;
 const PRUNE_INTERVAL_MS = 5 * 60 * 1000;
-/**
- * The housekeeping TTL AND the orchestrator's read TTL, one number for both.
- * They used to be two literals — 14 in the reader, 30 here — so a payload
- * could go stale at 14 d and then occupy a row the pruner kept for 30, or
- * something older than 14 d sit served meanwhile; both were the same
- * question ("how long is a payload current?") answered differently in two
- * files.
- */
-export const DEFAULT_VIP_CACHE_TTL_DAYS = 14;
+export const DEFAULT_VIP_CACHE_TTL_DAYS = DEFAULT_CACHE_TTL_DAYS;
 
-/**
- * The TTL guard, applied EVERYWHERE a day count reaches the cache: the
- * settings input (`Number(v) || 14` catches 0 and NaN but lets a typed `-5`
- * through), the store hydration, and any saved setting from an older build.
- * A negative ttl computes a THRESHOLD ABOVE `now`, so the pruner deletes
- * EVERY row and the reader calls every row stale — the whole cache gone
- * because someone typed a dash.
- *
- * One bump for every entry point; the DEFAULT is this file's, so the number
- * exists in exactly one place.
- */
-export function normalizeTtlDays(days: number | null | undefined): number {
-  if (typeof days !== 'number' || !Number.isFinite(days) || days < 1) {
-    return DEFAULT_VIP_CACHE_TTL_DAYS;
-  }
-  return Math.min(days, 365);
-}
-
-
+// The TTL guard itself lives in shared/cache-ttl so the app bundle never
+// pulls Dexie in just to validate a number. Re-exported so the cache's
+// own surface stays whole for existing callers.
+import { DEFAULT_CACHE_TTL_DAYS, normalizeTtlDays } from '../../shared/cache-ttl';
+export { DEFAULT_CACHE_TTL_DAYS, normalizeTtlDays };
 
 let lastVipPruneAt = 0;
 
@@ -223,7 +201,6 @@ async function pruneVipCache(ttlDays: number = DEFAULT_VIP_CACHE_TTL_DAYS): Prom
     // The EFFECTIVE ttl, not the default: a user who set cacheTtlDays: 30 was
     // having their 30-day rows deleted at the 14-day default (the reader and
     // the pruner answered "how long is a row current?" differently, again).
-
 
     const ttlMs = normalizeTtlDays(ttlDays) * 24 * 3600 * 1000;
     await table.where('storedAt').below(now - ttlMs).delete();

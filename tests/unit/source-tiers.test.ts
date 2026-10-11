@@ -2,7 +2,6 @@ import { ALL_SOURCE_IDS } from '../../src/background/enrichment/orchestrator';
 
 import { describe, it, expect } from 'vitest';
 import { SOURCE_TIERS, sourceGate, sourceTier, sourceTierRank } from "../../src/background/enrichment/source-tiers";
-import type { EnrichmentSource } from "../../src/shared/types";
 import { bablaSource } from "../../src/background/enrichment/sources/babla";
 import { bingImagesSource } from "../../src/background/enrichment/sources/bing-images";
 import { britannicaDictionarySource } from "../../src/background/enrichment/sources/britannica-dictionary";

@@ -19,6 +19,7 @@
 
 import { t } from '../../../shared/i18n';
 import React from 'react';
+import { normalizeTtlDays } from '../../../shared/cache-ttl';
 import { useKivaraStore } from '../../../shared/store';
 import { SecretKeyInput } from '../SecretKeyInput';
 import { InfoHint } from '../InfoHint';
@@ -245,7 +246,8 @@ export function VipSection() {
                   min={1}
                   max={365}
                   value={vip.cacheTtlDays}
-                  onChange={(e) => setKey('cacheTtlDays', Number(e.target.value) || 14)}
+                  onChange={(e) => setKey('cacheTtlDays', (e.target.value === '' ? 0 : Number(e.target.value)) as 0)}
+                  onBlur={(e) => setKey('cacheTtlDays', normalizeTtlDays(Number(e.target.value)))}
                   className="sl-input text-right tabular-nums"
                   style={{ width: 50 }}
                 />

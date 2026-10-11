@@ -78,7 +78,7 @@ import { youglishSource } from './sources/youglish';
 import { etymonlineSource } from './sources/etymonline';
 import { wordnetSource } from './sources/wordnet';
 import { sourceGate } from './source-tiers';
-import { normalizeTtlDays } from './cache';
+import { normalizeTtlDays } from '../../shared/cache-ttl';
 import {
   clearMemEnrichmentCache,
   getEnrichmentCacheStats,
