@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { t } from '../../shared/i18n';
 import { Subtitles, Sparkles, Rocket, MousePointerClick, Save, LayoutGrid, BookText } from 'lucide-react';
 

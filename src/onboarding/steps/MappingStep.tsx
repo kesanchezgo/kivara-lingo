@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { t } from '../../shared/i18n';
 import { CheckCircle2, AlertTriangle, Loader2, Play, ArrowLeftRight, LayoutGrid, ListChecks, Wand2 } from 'lucide-react';
 import type { AnkiMapping, FieldSource } from '../../shared/types';
@@ -58,6 +58,8 @@ export function MappingStep({
                 />
               ) : (
                 <select
+                  data-testid="onboarding-deck-select"
+                  aria-label={t('onb.destDeck')}
                   value={decks?.includes(mapping.deckName) ? mapping.deckName : ''}
                   onChange={(e) => setMapping({ ...mapping, deckName: e.target.value })}
                   disabled={!decks || decks.length === 0}
@@ -115,6 +117,8 @@ export function MappingStep({
               />
             ) : (
               <select
+                data-testid="onboarding-model-select"
+                aria-label={t('onb.noteModelTitle')}
                 value={mapping.modelName}
                 onChange={(e) => {
                   const m = e.target.value;

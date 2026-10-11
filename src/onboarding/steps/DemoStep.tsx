@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { t } from '../../shared/i18n';
 import { Subtitles, Rocket, MousePointerClick, Save, LayoutGrid, Mic } from 'lucide-react';
 import { ShortcutsPreview } from './ShortcutsPreview';

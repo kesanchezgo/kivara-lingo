@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { t } from '../../shared/i18n';
 import { CheckCircle2, AlertTriangle, Loader2, Play, PlugZap, Globe, BookText, Plug } from 'lucide-react';
 import type { AnkiMapping } from '../../shared/types';
@@ -57,7 +57,12 @@ export function AnkiStep({ mapping, setMapping, ping, onRunPing }: AnkiStepProps
             {isErr && <AlertTriangle size={12} className={a.text} />}
             {isBusy && <Loader2 size={12} className={`${a.text} animate-spin`} />}
             {state === 'idle' && <PlugZap size={12} className={a.text} />}
-            <span className={`text-[11px] font-semibold ${a.text}`}>
+            <span
+              data-testid="onboarding-anki-status"
+              data-ping-status={state}
+              aria-live="polite"
+              className={`text-[11px] font-semibold ${a.text}`}
+            >
               {isOk ? t('onb.connectedFmt', { v: ping.version ?? '' })
                 : isErr ? (ping.error || t('onb.noResponse'))
                   : isBusy ? t('onb.testingConnection')
@@ -80,6 +85,9 @@ export function AnkiStep({ mapping, setMapping, ping, onRunPing }: AnkiStepProps
               className="sl-input sl-lg flex-1 font-mono"
             />
             <button
+              type="button"
+              data-testid="onboarding-anki-ping"
+              aria-label={t('onb.probeAction')}
               onClick={onRunPing}
               disabled={isBusy}
               className="inline-flex items-center gap-2 px-4 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 shadow-sm transition-all shrink-0"

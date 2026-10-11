@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { t } from '../../shared/i18n';
 import { CheckCircle2, ExternalLink, Rocket } from 'lucide-react';
 import { StepSection } from './StepSection';

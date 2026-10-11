@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { t } from '../shared/i18n';
 import {
   STEPS as OB_STEPS,
@@ -14,27 +14,15 @@ import { AnkiStep } from './steps/AnkiStep';
 import { MappingStep } from './steps/MappingStep';
 import { AIStep } from './steps/AIStep';
 import { DemoStep } from './steps/DemoStep';
-import { ShortcutsPreview } from './steps/ShortcutsPreview';
 import { DoneStep } from './steps/DoneStep';
 import { LangStep } from './steps/LangStep';
 import { DictStep } from './steps/DictStep';
-import { SOURCE_BADGE } from './steps/badges';
 
 import { sendMessage } from 'webext-bridge/options';
 import { CheckCircle2, ChevronRight, ChevronLeft, Moon, Sun } from 'lucide-react';
 import { useKivaraStore } from '../shared/store';
-import { MODELS_BY_PROVIDER } from '../shared/ai-models';
-import { SHORTCUT_DEFS, parseCombo } from '../shared/shortcuts';
-import { useShortcuts } from '../app/hooks/useShortcuts';
-import { ShortcutEditor } from '../app/components/ShortcutEditor';
-import type {
-  AiProvider,
-  AnkiMapping,
-  AnkiPingResponse,
-  AnkiListsResponse,
-  AnkiFieldsResponse,
-  FieldSource,
-} from '../shared/types';
+import { autoMapFields } from '../shared/anki-field-detect';
+import type { AnkiPingResponse, AnkiListsResponse, AnkiFieldsResponse } from '../shared/types';
 
 /* ─── Stepper config ──────────────────────────────────────────────────────── */
 
@@ -141,12 +129,15 @@ export function Onboarding() {
   }, [models, ankiMapping.modelName]);
 
   function next() {
+    // `done` is terminal. Keeping this guard explicit prevents a future
+    // refactor from refreshing completedAt if a terminal CTA is added.
+    if (step === 'done') return;
     // steps.ts owns the ordering; the `completed` write stays here because
     // the pure function only returns the id and this is the one side effect
     // that belongs to the root — it IS the onboarding's whole point.
     const n = obNextStepId(step);
     setDirection(1);
-    if (n === 'done') {
+    if (n === 'done' && !onboarding.completed) {
       // Last regular step ('demo') → mark complete and slide into 'done'.
       setOnboarding({ completed: true, completedAt: Date.now() });
     }
@@ -213,6 +204,8 @@ export function Onboarding() {
         </div>
         <div className="flex items-center gap-2">
           <button
+            type="button"
+            aria-label={isDarkMode ? 'Tema claro' : 'Tema oscuro'}
             onClick={() => setIsDarkMode(!isDarkMode)}
             className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
             title={isDarkMode ? 'Tema claro' : 'Tema oscuro'}
@@ -237,13 +230,19 @@ export function Onboarding() {
             return (
               <React.Fragment key={s.id}>
                 <div className="flex items-center gap-2 shrink-0">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${
+                  <div
+                    data-testid={`onboarding-step-${s.id}`}
+                    data-step-state={done ? 'done' : active ? 'active' : 'pending'}
+                    data-step-index={i}
+                    aria-current={active ? 'step' : undefined}
+                    className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${
                     done
                       ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/40'
                       : active
                         ? 'bg-white dark:bg-zinc-950 ring-2 ring-indigo-500 text-indigo-600 dark:text-indigo-400'
                         : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-600'
-                  }`}>
+                  }`}
+                  >
                     {done ? <CheckCircle2 size={12} /> : <span style={{ fontSize: 10, fontWeight: 700 }}>{i + 1}</span>}
                   </div>
                   <div className="hidden sm:flex flex-col items-start">
@@ -343,6 +342,9 @@ export function Onboarding() {
       {/* Navigation footer */}
       <footer className="shrink-0 border-t border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md px-6 h-16 flex items-center justify-between">
         <button
+          type="button"
+          aria-label={t('common.back')}
+          data-testid="onboarding-back"
           onClick={prev}
           disabled={step === 'welcome' || step === 'done'}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-30 transition-all"
@@ -369,6 +371,9 @@ export function Onboarding() {
               </span>
             )}
             <button
+              type="button"
+              aria-label={step === 'demo' ? t('onb.startAction') : t('onb.nextAction')}
+              data-testid="onboarding-next"
               onClick={next}
               disabled={!canAdvance}
               className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md hover:shadow-indigo-500/20 transition-all"

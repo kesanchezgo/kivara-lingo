@@ -1,5 +1,5 @@
 /* ConnNode / ConnLink — presenters used by AnkiStep. Moved verbatim. */
-import React, { useState } from 'react';
+import React from 'react';
 import { CheckCircle2, AlertTriangle, Loader2, PlugZap } from 'lucide-react';
 
 export function ConnNode({ icon, label, sub, tone }: { icon: React.ReactNode; label: string; sub: string; tone: 'indigo' | 'amber' }) {

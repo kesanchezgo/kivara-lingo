@@ -46,8 +46,8 @@ describe('requestHosts: the gesture', () => {
   });
 
   it('reports the origins still missing when the user declines', async () => {
-    // With no getAll stub, missingHosts falls back to the input list —
-    // the shape callers rely on for the "grant access" hint.
+    // getAll reports no granted origins, so missingHosts returns the input
+    // list — the shape callers rely on for the "grant access" hint.
     vi.stubGlobal('chrome', {
       permissions: {
         request: vi.fn().mockResolvedValue(false),

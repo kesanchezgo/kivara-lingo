@@ -1,6 +1,5 @@
+import React from 'react';
 import type { LangMeta } from './LangMeta';
-import { getLang } from './LangMeta';
-import React, { useState } from 'react';
 
 export function SlotCard({
   icon, label, lang, active, accent, onClick,

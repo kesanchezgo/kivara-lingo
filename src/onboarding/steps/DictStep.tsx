@@ -10,7 +10,6 @@ import {
   type OnboardingDictPack,
 } from '../dict-onboarding';
 import { StepSection } from './StepSection';
-import { ToggleRow } from './StepSection';
 
 /* ─── DictStep — real Yomitan importer wired to the curated catalogue ────── */
 

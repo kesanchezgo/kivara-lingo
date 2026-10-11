@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { t } from '../../shared/i18n';
 import { Sparkles, CheckCircle2, Ban, Mic, Zap, Brain, KeyRound, AlertTriangle, Cpu } from 'lucide-react';
 import type { AiProvider } from '../../shared/types';
