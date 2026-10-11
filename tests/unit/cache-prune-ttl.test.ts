@@ -89,6 +89,20 @@ describe('prune honors the effective TTL', () => {
     expect(expiredDeletes.map((r) => r.key)).not.toContain('stored20');
   });
 
+  it('survives a NEGATIVE ttl: the young row stays, the ceiling still prunes', async () => {
+    // The UI guard `Number(v) || 14` catches 0 and NaN but lets a typed `-5`
+    // through. A negative ttl computes a PRUNE THRESHOLD ABOVE `now`, so the
+    // pruner's `below(...)` deletes EVERY row and the reader calls every row
+    // stale — the whole cache gone because someone typed a dash.
+    installPruneRecorder([
+      { key: 'anHourOld', payload: { entry: null }, storedAt: Date.now() - 3600_000 },
+      { key: 'veryOld', payload: { entry: null }, storedAt: Date.now() - 40 * DAY },
+    ]);
+    await write(-5);
+    // The clamp is to the DEFAULT 14: young survives, past-ceiling dies —
+    // so the window moved to the default instead of wiping the table.
+    expect(expiredDeletes.map((r) => r.key)).toEqual(['veryOld']);
+  });
   it('deletes a 20-day row when the effective TTL is 14', async () => {
     // Same row, explicit 14: the window is a parameter in both directions.
     installPruneRecorder(freshRows());

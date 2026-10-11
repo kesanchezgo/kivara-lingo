@@ -151,6 +151,27 @@ const PRUNE_INTERVAL_MS = 5 * 60 * 1000;
  * files.
  */
 export const DEFAULT_VIP_CACHE_TTL_DAYS = 14;
+
+/**
+ * The TTL guard, applied EVERYWHERE a day count reaches the cache: the
+ * settings input (`Number(v) || 14` catches 0 and NaN but lets a typed `-5`
+ * through), the store hydration, and any saved setting from an older build.
+ * A negative ttl computes a THRESHOLD ABOVE `now`, so the pruner deletes
+ * EVERY row and the reader calls every row stale — the whole cache gone
+ * because someone typed a dash.
+ *
+ * One bump for every entry point; the DEFAULT is this file's, so the number
+ * exists in exactly one place.
+ */
+export function normalizeTtlDays(days: number | null | undefined): number {
+  if (typeof days !== 'number' || !Number.isFinite(days) || days < 1) {
+    return DEFAULT_VIP_CACHE_TTL_DAYS;
+  }
+  return Math.min(days, 365);
+}
+
+
+
 let lastVipPruneAt = 0;
 
 /**
@@ -202,9 +223,9 @@ async function pruneVipCache(ttlDays: number = DEFAULT_VIP_CACHE_TTL_DAYS): Prom
     // The EFFECTIVE ttl, not the default: a user who set cacheTtlDays: 30 was
     // having their 30-day rows deleted at the 14-day default (the reader and
     // the pruner answered "how long is a row current?" differently, again).
-    // The EFFECTIVE ttl, not the default: a user who set cacheTtlDays: 30
-    // was having their 30-day rows deleted at the DEFAULT 14.
-    const ttlMs = ttlDays * 24 * 3600 * 1000;
+
+
+    const ttlMs = normalizeTtlDays(ttlDays) * 24 * 3600 * 1000;
     await table.where('storedAt').below(now - ttlMs).delete();
 
     // Count AFTER the orphans and the expired rows are gone, so the ceiling

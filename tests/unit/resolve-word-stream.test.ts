@@ -144,24 +144,28 @@ describe('openResolveWordStream', () => {
     expect(failures).toHaveLength(0);
   });
 
-  it('handlers see a phase replay without corrupting the state', () => {
-    // The replay resends the FULL request, so phases already delivered on the
-    // dead port arrive TWICE on the new one. The consumer handlers must be
-    // idempotent (adoptEntry assigns, never appends; flags overwrite) — this
-    // case proves the client delivers every phase, dedup is the consumer's
-    // contract, and the SW-side phases carry NO counters to dedup on.
+  it('drops below-rank phases after a replay (no skeleton-flash re-entry)', () => {
+    // THE regression: the replay re-sends the FULL request, so a `local`
+    // already delivered on the dead port arrives again AFTER translation/
+    // enrichment and pastes the poor entry back over the rich one. The
+    // review's case: the consumer must NOT receive `local` a second time.
     stubChrome(spawnPort);
     killOnPostFrom = 0;
     const stream = run();
     vi.advanceTimersByTime(1);
-    // Replay happened: two ports, each received the request.
-    expect(ports).toHaveLength(2);
-    // The client delivered every phase to the handler (count them below).
-    ports.forEach((port) => port.onMessage.fire({ phase: 'local' }));
-    expect(seen.map((e) => e.phase)).toEqual(['local', 'local']);
+    expect(ports).toHaveLength(2); // replay happened
+
+    // Both ports emit `local`, as the re-send would.
+    ports[0]!.onMessage.fire({ phase: 'local' });
+    ports[1]!.onMessage.fire({ phase: 'local' });
+    // Only ONE local: the second is a lower rank than the first delivery.
+    expect(seen.map((e) => e.phase)).toEqual(['local']);
+
+    // A higher phase after a lower one still lands (order is not reversed).
+    ports[1]!.onMessage.fire({ phase: 'translation' });
+    expect(seen.map((e) => e.phase)).toEqual(['local', 'translation']);
     stream.close();
   });
-
   it('reports immediately when the port cannot be opened', () => {
     vi.stubGlobal('chrome', {
       runtime: { connect: () => { throw new Error('cold worker'); } },

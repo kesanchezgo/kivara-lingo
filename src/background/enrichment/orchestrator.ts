@@ -78,6 +78,7 @@ import { youglishSource } from './sources/youglish';
 import { etymonlineSource } from './sources/etymonline';
 import { wordnetSource } from './sources/wordnet';
 import { sourceGate } from './source-tiers';
+import { normalizeTtlDays } from './cache';
 import {
   clearMemEnrichmentCache,
   getEnrichmentCacheStats,
@@ -367,7 +368,7 @@ export async function runEnrichment(
   // it with two different literals.
   const cached = await readEnrichmentCache(
     cacheKey,
-    opts.vip.cacheTtlDays ?? DEFAULT_VIP_CACHE_TTL_DAYS,
+    normalizeTtlDays(opts.vip.cacheTtlDays),
   );
   if (cached) return cached;
   }
@@ -485,8 +486,7 @@ export async function runEnrichment(
   // Best-effort cache write — never let a write failure surface.
   // The same effective TTL the READ used: the pruner now honors it, so a
   // user's cacheTtlDays: 30 no longer loses rows at the 14-day default.
-  const effectiveTtlDays = opts.vip.cacheTtlDays ?? DEFAULT_VIP_CACHE_TTL_DAYS;
-  void writeEnrichmentCache(cacheKey, result, effectiveTtlDays).catch(() => {});
+  void writeEnrichmentCache(cacheKey, result, normalizeTtlDays(opts.vip.cacheTtlDays)).catch(() => {});
   return result;
 }
 

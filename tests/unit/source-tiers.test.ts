@@ -45,19 +45,6 @@ import { wordReferenceSource } from "../../src/background/enrichment/sources/wor
 import { yomitanPacksSource } from "../../src/background/enrichment/sources/yomitan-packs";
 import { youglishSource } from "../../src/background/enrichment/sources/youglish";
 
-const ALL_SOURCES: EnrichmentSource[] = [
-  bablaSource, bingImagesSource, britannicaDictionarySource, bundledSource,
-  cambridgeSource, datamuseSource, dictCcSource, dictionaryComSource,
-  duckduckgoImagesSource, etymonlineSource, forvoSource, freeDictionarySource,
-  googleTtsSource, linguaLibreSource, lingueeSource, longmanSource,
-  merriamWebsterSource, mobyThesaurusSource, merriamWebsterThesaurusSource,
-  openverseSource, oxfordLearnersSource, ozdicSource, pixabaySource,
-  ponsSource, promtContextSource, reversoSource, spanishDictSource,
-  tatoebaSource, theIdiomsSource, thesaurusComSource, unsplashSource,
-  wikimediaCommonsSource, wiktApiSource, wiktionaryApiSource,
-  wiktionaryHtmlSource, wiktionarySource, wordHippoSource, wordnetSource,
-  wordReferenceSource, yomitanPacksSource, youglishSource,
-];
 /**
  * The tier/gate contract, from the merge's and the fan-out's points of view.
  *
@@ -93,7 +80,7 @@ describe('source tiers and gates', () => {
     // source REMOVED from the orchestrator leaves a dead row here.
     const orphanMapIds = Object.keys(SOURCE_TIERS).filter((id) => !ALL_SOURCE_IDS.includes(id));
     expect(orphanMapIds).toEqual([]);
-  });  });
+  });
 
   it("keeps the VIP-OFF fan-out identical to the pre-74a5a10 literal", () => {
     // THE regression tripwire: the set that runs with the master switch OFF.
@@ -102,10 +89,10 @@ describe('source tiers and gates', () => {
     // reproduces the STANDARD_SOURCE_KEYS literal that shipped before it,
     // and this pins that set against the registry. (Falsified: seeding one
     // axis from the other fails this case.)
-    const gateStandard = ALL_SOURCES
-      .filter((s) => sourceGate(s.id) === 'standard')
-      .map((s) => s.id)
+    const gateStandard = ALL_SOURCE_IDS
+      .filter((id) => sourceGate(id) === 'standard')
       .sort();
+
     expect(gateStandard).toEqual(EXPECTED_VIP_OFF_SOURCES);
   });
 
@@ -154,3 +141,4 @@ const EXPECTED_VIP_OFF_SOURCES = [
   'yomitanPacks',
   'youglish',
 ];
+});
