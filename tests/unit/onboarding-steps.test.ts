@@ -1,7 +1,9 @@
 /**
- * The stepper contract extracted from the Onboarding monolith — the gate
- * for its split. These rules live inline in the 86 KB root today; the
- * extracted module must reproduce them exactly.
+ * The stepper contract extracted from the Onboarding monolith, and now
+ * the ONLY implementation the wizard reads — the grep for `idx + 1`,
+ * `idx - 1` and an inline `canAdvance` in Onboarding.tsx comes back
+ * empty, so a lock changed here changes the wizard; a regression in the
+ * wizard shows up here.
  */
 import { describe, expect, it } from 'vitest';
 import {
@@ -20,20 +22,27 @@ describe('onboarding stepper', () => {
     let id: StepId = 'welcome';
     const seen: StepId[] = [];
     for (let i = 0; i < 8; i++) { seen.push(id); id = nextStepId(id); }
+    // exact ids, step by step: a reordered wizard fails here.
     expect(seen).toEqual([
       'welcome', 'lang', 'anki', 'mapping', 'dict', 'ai', 'demo', 'done',
     ]);
-    // done is terminal.
     expect(LAST_STEP_ID).toBe('demo');
     expect(nextStepId('done')).toBe('done');
   });
 
-  it('goes back but never before welcome', () => {
+  it('goes back step by step and stops at welcome', () => {
+    const ids: StepId[] = [];
     let id: StepId = 'demo';
-    const seen: StepId[] = [];
-    for (let i = 0; i < 9; i++) { seen.push(id); id = prevStepId(id); }
-    expect(seen).toContain('welcome');
-    expect(prevStepId('welcome')).toBe('welcome');
+    for (let i = 0; i < 8; i++) { ids.push(id); id = prevStepId(id); }
+    expect(ids).toEqual([
+      'demo', 'ai', 'dict', 'mapping', 'anki', 'lang', 'welcome', 'welcome',
+    ]);
+  });
+
+  it('done has no way back — the back button is disabled there', () => {
+    // The monolith never moved back from done (the button was disabled);
+    // returning demo would smuggle a silent jump out of the terminal.
+    expect(prevStepId('done')).toBe('done');
   });
 
   it('gates anki on a live ping', () => {
@@ -57,6 +66,6 @@ describe('onboarding stepper', () => {
   });
 
   it('keeps the demo deep link in one place', () => {
-    expect(DEMO_URL).toMatch(/^https:\/\//);
+    expect(DEMO_URL).toBe('https://www.youtube.com/watch?v=arj7oStGLkU');
   });
 });

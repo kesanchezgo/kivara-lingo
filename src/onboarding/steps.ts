@@ -71,9 +71,14 @@ export function nextStepId(id: StepId): StepId {
   return STEPS[i + 1]!.id;
 }
 
-/** The previous step. Stuck at `welcome`; `done` has no way back. */
+/**
+ * The previous step. Stuck at `welcome`, and `done` has no way back: the
+ * terminal screen's back button is disabled, and the root's guard
+ * (`n === step`) is a no-op there, so returning `done` keeps button and
+ * handler in agreement instead of smuggling a silent jump to demo.
+ */
 export function prevStepId(id: StepId): StepId {
-  if (id === 'done') return LAST_STEP_ID;
+  if (id === 'done') return 'done';
   const i = indexOf(id);
   if (i <= 0) return STEPS[0]!.id;
   return STEPS[i - 1]!.id;

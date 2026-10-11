@@ -168,24 +168,26 @@ export function Onboarding() {
   }, [models, ankiMapping.modelName]);
 
   function next() {
-    const idx = OB_STEPS.findIndex((s) => s.id === step);
+    // steps.ts owns the ordering; the `completed` write stays here because
+    // the pure function only returns the id and this is the one side effect
+    // that belongs to the root — it IS the onboarding's whole point.
+    const n = obNextStepId(step);
     setDirection(1);
-    if (idx >= 0 && idx + 1 < OB_STEPS.length) {
-      setStep(OB_STEPS[idx + 1].id);
-    } else {
+    if (n === 'done') {
       // Last regular step ('demo') → mark complete and slide into 'done'.
       setOnboarding({ completed: true, completedAt: Date.now() });
-      setStep('done');
     }
+    setStep(n);
   }
 
   function prev() {
-    const idx = OB_STEPS.findIndex((s) => s.id === step);
-    if (idx > 0) {
-      setDirection(-1);
-      setStep(OB_STEPS[idx - 1].id);
-    }
+    const n = obPrevStepId(step);
+    // `n === step` means there is nowhere to go: welcome, or done.
+    if (n === step) return;
+    setDirection(-1);
+    setStep(n);
   }
+
 
   function openDemo() {
     try {
@@ -206,11 +208,11 @@ export function Onboarding() {
   }
 
   // Block "Siguiente" until each step's preconditions are met.
-  const canAdvance = (() => {
-    if (step === 'anki') return ping.status === 'ok';
-    if (step === 'mapping') return Boolean(ankiMapping.deckName && ankiMapping.modelName);
-    return true;
-  })();
+  // The lock rules live in steps.ts; the buttons ask that, not a copy.
+  const canAdvance = obCanAdvance(step, {
+    ping,
+    ankiMapping: { deckName: ankiMapping.deckName, modelName: ankiMapping.modelName },
+  });
 
   const stepIndex = OB_STEPS.findIndex((s) => s.id === step);
 
