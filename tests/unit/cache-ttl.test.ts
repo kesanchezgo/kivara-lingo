@@ -51,4 +51,22 @@ describe('normalizeTtlDays', () => {
     expect(normalizeTtlDays(0.5)).toBe(1);
     expect(normalizeTtlDays(0.999)).toBe(1);
   });
+
+  it('falls back to the CALLER default, not the module one', () => {
+    // 23766cc wired the AI cache through this guard with NO fallback, so an
+    // unset/0/negative AI ttl read the module's 14 and silently halved that
+    // cache's window from its shipped 30. The fallback belongs to the caller
+    // depends on which cache is being guarded.
+    expect(normalizeTtlDays(0, 30)).toBe(30);
+    expect(normalizeTtlDays(-5, 30)).toBe(30);
+    expect(normalizeTtlDays(undefined, 30)).toBe(30);
+    expect(normalizeTtlDays(NaN, 30)).toBe(30);
+    expect(normalizeTtlDays(null, 30)).toBe(30);
+    // An in-range value ignores the fallback entirely.
+    expect(normalizeTtlDays(7, 30)).toBe(7);
+    // A real fraction still floors to 1 under any fallback.
+    expect(normalizeTtlDays(0.4, 30)).toBe(1);
+    // The default call keeps the module default.
+    expect(normalizeTtlDays(0)).toBe(14);
+  });
 });

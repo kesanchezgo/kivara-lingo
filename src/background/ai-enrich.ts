@@ -117,9 +117,10 @@ export async function enrichWithAi(req: AiEnrichRequest): Promise<AiEnrichRespon
       latencyMs,
       cached: false,
     };
-    // Same guard as the enrichment cache: a negative or zero || default
-    // passed -5 straight through (the negative stored as a negative).
-    const ttl = normalizeTtlDays(settings.cacheTtlDays) * 24 * 60 * 60 * 1000;
+    // Same guard as the enrichment cache, with THIS cache's own default
+    // (30): `|| 30` let a typed `-5` through, and an unset value would
+    // now fall back to 14 and silently halve the AI cache's window.
+    const ttl = normalizeTtlDays(settings.cacheTtlDays, DEFAULT_AI.cacheTtlDays) * 24 * 60 * 60 * 1000;
     try {
       await getDB().ai_cache.put({
         key: cacheKey,
