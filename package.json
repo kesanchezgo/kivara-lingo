@@ -9,6 +9,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "vite build && playwright test",
+    "test:e2e:audio": "node scripts/run-e2e-with-flag.mjs",
     "quality:audit": "tsx scripts/evaluate-enrichment-quality.ts",
     "audit:mv3": "node scripts/mv3-enrichment-audit.mjs",
     "dict:build": "tsx scripts/expand-dictionary.ts",

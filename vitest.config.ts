@@ -8,6 +8,12 @@ export default defineConfig({
   // unresolvable identifier.
   define: {
     __KIVARA_WHISPER__: JSON.stringify(process.env.KIVARA_WHISPER === '1'),
+    // The E2E bridge compiles into the service worker ONLY when this is true
+    // (see vite.config.ts). Vitest needs the same source of truth — a test
+    // that imports the real service worker must see the same constants the
+    // browser bundle does, or importing the worker throws on an unresolvable
+    // identifier.
+    __E2E__: JSON.stringify(process.env.KIVARA_E2E === '1'),
   },
   resolve: {
     alias: {

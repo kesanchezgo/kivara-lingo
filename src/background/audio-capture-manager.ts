@@ -223,10 +223,11 @@ async function withOffscreen<T>(op: () => Promise<T>): Promise<T> {
 export async function startAudioCapture(
   tabId: number,
   bufferSizeSec: number,
+  streamIdOverride?: string,
 ): Promise<{ ok: boolean; mimeType?: string; error?: string }> {
   try {
     await ensureOffscreen();
-    const streamId = await getStreamId(tabId);
+    const streamId = streamIdOverride ?? (await getStreamId(tabId));
     const result = await sendToOffscreen<OffscreenResponse & { mimeType?: string }>({
       type: 'OFFSCREEN_START_AUDIO_CAPTURE',
       streamId,

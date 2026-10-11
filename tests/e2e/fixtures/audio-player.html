@@ -1,0 +1,100 @@
+/**
+ * e2e audio fixture.
+ *
+ * Plays a real WAV file built from `tests/helpers/pcm.ts` — a 440 Hz sine
+ * with a shaped burst envelope: 1 s of silence, 3 s of tone, 1 s of silence,
+ * looping — so `chrome.tabCapture` records actual media audio rather than an
+ * oscillator graph. No network and no media asset in the repo: the page
+ * synthesizes the WAV in its own script at runtime and plays it from a blob
+ * URL, which is exactly what `tabCapture` picks up.
+ */
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Kivara e2e audio player</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #000;
+      }
+      audio {
+        width: 360px;
+        display: block;
+        margin: 40px auto;
+      }
+    </style>
+  </head>
+  <body>
+    <audio id="player" loop></audio>
+    <script type="module">
+      // The burst, parameterised identically to the unit fixtures so both the
+      // spec and this page agree by construction rather than by luck.
+      const RATE = 48_000;
+      const TONE_HZ = 440;
+      const LEAD_MS = 1_000;
+      const TONE_MS = 3_000;
+      const TAIL_MS = 1_000;
+
+      const lead = new Float32Array(Math.round((LEAD_MS / 1000) * RATE));
+      const tone = new Float32Array(Math.round((TONE_MS / 1000) * RATE));
+      for (let i = 0; i < tone.length; i++) {
+        // Envelope so the gate is real audio, not a click at the seam.
+        const env = Math.min(1, i / 600, (tone.length - i) / 600);
+        tone[i] = 0.85 * env * Math.sin((2 * Math.PI * TONE_HZ * i) / RATE);
+      }
+      const tail = new Float32Array(Math.round((TAIL_MS / 1000) * RATE));
+      const pcm = new Float32Array(lead.length + tone.length + tail.length);
+      pcm.set(lead, 0);
+      pcm.set(tone, lead.length);
+      pcm.set(tail, lead.length + tone.length);
+
+      // RIFF/WAVE PCM16 header (44 bytes) + samples.
+      const bytesPerSample = 2;
+      const dataLength = pcm.length * bytesPerSample;
+      const buffer = new ArrayBuffer(44 + dataLength);
+      const view = new DataView(buffer);
+      const ascii = (offset, text) => {
+        for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i));
+      };
+      ascii(0, 'RIFF');
+      view.setUint32(4, 36 + dataLength, true);
+      ascii(8, 'WAVE');
+      ascii(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, RATE, true);
+      view.setUint32(28, RATE * bytesPerSample, true);
+      view.setUint16(32, bytesPerSample, true);
+      view.setUint16(34, 16, true);
+      ascii(36, 'data');
+      view.setUint32(40, dataLength, true);
+      let offset = 44;
+      for (let i = 0; i < pcm.length; i++, offset += 2) {
+        let s = pcm[i];
+        if (s > 1) s = 1;
+        else if (s < -1) s = -1;
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      }
+
+      const audio = document.getElementById('player');
+      audio.src = URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
+      audio.loop = true;
+      audio.volume = 1;
+      // Autoplay is allowed by the e2e fixture (`--autoplay-policy`), but the
+      // requirement is only that the element exists and plays: the capture
+      // path attaches regardless of the muted state.
+      audio.play().catch(() => {});
+      window.__kivaraAudio = {
+        toneHz: TONE_HZ,
+        leadMs: LEAD_MS,
+        toneMs: TONE_MS,
+        tailMs: TAIL_MS,
+        burstPeriodMs: LEAD_MS + TONE_MS + TAIL_MS,
+        sampleRate: RATE,
+      };
+    </script>
+  </body>
+</html>

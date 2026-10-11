@@ -467,8 +467,34 @@ onMessage('ANKI_SAVED_WORDS', async ({ data }) => {
   }
 });
 
-onMessage('START_AUDIO_CAPTURE', async ({ data }) => {
+/**
+ * Audio capture handlers, as plain functions.
+ *
+ * `onMessage` (webext-bridge) is the production path. The E2E bridge
+ * (`__E2E__`, see the block at the bottom of this file) re-routes the SAME
+ * three functions so a test never exercises a second implementation — only a
+ * second door. Keep that property: any new audio message goes here first,
+ * and the bridge block only forwards.
+ *
+ * Each returns the raw response object; `onMessage` wraps it via `asJson`,
+ * the bridge sends it as-is.
+ */
+
+/** Mirrors the return of `startAudioCapture` (audio-capture-manager.ts). */
+type StartCaptureResponse = { ok: boolean; mimeType?: string; error?: string };
+
+export async function startAudioCaptureHandler(data: unknown): Promise<StartCaptureResponse> {
   let tabId = (data as { tabId?: number } | undefined)?.tabId;
+  // E2E-only: the synthetic stream lives in the offscreen document itself
+  // (see `openStream`), so the tab-capture hop is skipped entirely rather
+  // than attempted against activeTab a headless run cannot hold. Production
+  // never takes this branch — `__E2E__` compiles it out.
+  if (__E2E__ && (data as { synthetic?: boolean } | undefined)?.synthetic === true) {
+    const bufferSec = await loadCaptureBufferSec();
+    const result = await startAudioCapture(tabId ?? 0, bufferSec, 'kivara-e2e-synthetic');
+    if (result.ok) void ensureOffscreenKeepalive();
+    return result;
+  }
   if (tabId == null) {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -478,43 +504,50 @@ onMessage('START_AUDIO_CAPTURE', async ({ data }) => {
     }
   }
   if (tabId == null) {
-    return asJson({ ok: false, error: 'No active tab' });
+    return { ok: false, error: 'No active tab' };
   }
   const bufferSec = await loadCaptureBufferSec();
   const result = await startAudioCapture(tabId, bufferSec);
   // Start the keepalive ping so Chrome doesn't close the offscreen document.
   if (result.ok) void ensureOffscreenKeepalive();
-  return asJson(result);
-});
+  return result;
+}
 
-onMessage('STOP_AUDIO_CAPTURE', async () => {
+export async function stopAudioCaptureHandler(): Promise<{}> {
   await stopAudioCapture();
-  // Stop the keepalive — offscreen will close on its own.
   await chrome.alarms.clear(OFFSCREEN_KEEPALIVE_ALARM);
-  return asJson({ ok: true });
-});
+  return { ok: true };
+}
+
+export async function extractAudioClipHandler(data: unknown): Promise<AudioClipResponse> {
+  const req = (data as { startMs: number; endMs: number; format?: 'mp3' | 'wav' | 'webm'; useVad?: boolean }) ?? {};
+  const { startMs, endMs } = req;
+  if (typeof startMs !== 'number' || typeof endMs !== 'number') {
+    return { ok: false, error: 'startMs/endMs required' };
+  }
+  const capture = await loadCaptureSettings();
+  const result = await extractAudioClip(startMs, endMs, {
+    // Honour the caller's format preference; default to 'mp3' for Anki.
+    format: req.format ?? 'mp3',
+    // An explicit `useVad` wins (TRANSCRIBE_AUDIO_CLIP has always done this);
+    // otherwise fall back to the capture setting, which is 'vad' by default.
+    useVad: req.useVad ?? capture.endDetect === 'vad',
+    preRollMs: capture.preRoll,
+    postRollMs: capture.postRoll,
+  });
+  return result;
+}
+
+onMessage('START_AUDIO_CAPTURE', async ({ data }) => asJson(await startAudioCaptureHandler(data)));
+
+onMessage('STOP_AUDIO_CAPTURE', async () => asJson(await stopAudioCaptureHandler()));
 
 onMessage('AUDIO_CAPTURE_STATUS', async () => {
   const status: AudioCaptureStatus = await getAudioCaptureStatus();
   return asJson(status);
 });
 
-onMessage('EXTRACT_AUDIO_CLIP', async ({ data }) => {
-  const req = (data as { startMs: number; endMs: number; format?: 'mp3' | 'wav' | 'webm' }) ?? {};
-  const { startMs, endMs } = req;
-  if (typeof startMs !== 'number' || typeof endMs !== 'number') {
-    return asJson({ ok: false, error: 'startMs/endMs required' } satisfies AudioClipResponse);
-  }
-  const capture = await loadCaptureSettings();
-  const result = await extractAudioClip(startMs, endMs, {
-    // Honour the caller's format preference; default to 'mp3' for Anki.
-    format: req.format ?? 'mp3',
-    useVad: capture.endDetect === 'vad',
-    preRollMs: capture.preRoll,
-    postRollMs: capture.postRoll,
-  });
-  return asJson(result);
-});
+onMessage('EXTRACT_AUDIO_CLIP', async ({ data }) => asJson(await extractAudioClipHandler(data)));
 
 onMessage('TRANSCRIBE_AUDIO_CLIP', async ({ data }) => {
   const req = (data as TranscribeRequest) ?? { startMs: 0, endMs: 0 };
@@ -1095,3 +1128,48 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
   return false;
 });
+/**
+ * E2E bridge. Compiled ONLY into a `KIVARA_E2E=1` build (see vite.config.ts
+ * and the dist guard test), so a production worker has no reference to it.
+ *
+ * The product speaks webext-bridge, which a Playwright page cannot drive:
+ * the bare module specifier does not resolve inside a page and the CSP
+ * refuses it. This is the second door — the SAME three handler functions the
+ * production path uses (above), reached from a page that only exists in the
+ * e2e build. Nothing here is a re-implementation: it forwards, it does not
+ * compute.
+ *
+ * Reachability is the gate: only a sender inside this extension
+ * (`sender.id === location.host === chrome.runtime.id`, which is what the
+ * e2e page is) can open this door. There is no `externally_connectable`
+ * entry, so an outside page has no path to these handlers at all.
+ */
+if (__E2E__) {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (!message || typeof message !== 'object') return false;
+    if (sender.id !== chrome.runtime.id) return false;
+    const type = (message as { type?: string }).type;
+    if (!type || !type.startsWith('KIVARA_E2E_')) return false;
+
+    const respond = (fn: Promise<unknown>) => {
+      void fn.then(
+        (result) => sendResponse(result as object),
+        (err) => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }),
+      );
+      return true;
+    };
+
+    switch (type) {
+      case 'KIVARA_E2E_START_AUDIO_CAPTURE':
+        return respond(startAudioCaptureHandler((message as { data?: unknown }).data));
+      case 'KIVARA_E2E_STOP_AUDIO_CAPTURE':
+        return respond(Promise.resolve(stopAudioCaptureHandler()));
+      case 'KIVARA_E2E_AUDIO_CAPTURE_STATUS':
+        return respond(Promise.resolve(getAudioCaptureStatus() as Promise<unknown>));
+      case 'KIVARA_E2E_EXTRACT_AUDIO_CLIP':
+        return respond(extractAudioClipHandler((message as { data?: unknown }).data));
+      default:
+        return false;
+    }
+  });
+}

@@ -168,22 +168,62 @@ async function startCapture(
   }
 }
 
+/** E2E-only synthetic stream holder (see `openStream`). */
+let e2eStream: MediaStream | null = null;
+
+/**
+ * Open the stream to record.
+ *
+ * Production path: `chrome.tabCapture.getMediaStreamId` + `getUserMedia` with
+ * the legacy `chromeMediaSource: 'tab'` constraints — the stream of whatever
+ * tab the service worker was asked to capture.
+ *
+ * E2E path (`__E2E__` only, so a production build has no copy of this code):
+ * tab capture needs the active-tab permission, which a headless test cannot
+ * grant — no user will click around to invoke the extension per tab. Instead
+ * of shipping a fake recorder, the offscreen builds its OWN synthetic stream
+ * (a 440 Hz sine with the same burst envelope as the e2e fixture) and records
+ * that through MediaRecorder and the PCM ScriptProcessor like any other stream.
+ * Everything downstream — chunking, VAD, resampling, WAV output — is the real
+ * code on a real stream; only the tab-capture hop is skipped, and that gap is
+ * the one thing this file's e2e does NOT cover.
+ */
+async function openStream(streamId: string): Promise<MediaStream> {
+  if (__E2E__ && streamId === 'kivara-e2e-synthetic') {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = 440;
+    // Envelope identical to tests/e2e/fixtures/audio-player.html so both the
+    // spec and this recorder agree on the burst shape by construction:
+    // 1 s of silence, 3 s of tone, 1 s of silence.
+    const gate = ctx.createGain();
+    gate.gain.setValueAtTime(0, ctx.currentTime + 1);
+    gate.gain.linearRampToValueAtTime(0.85, ctx.currentTime + 1.06);
+    gate.gain.setValueAtTime(0.85, ctx.currentTime + 4);
+    gate.gain.linearRampToValueAtTime(0, ctx.currentTime + 4.06);
+    osc.connect(gate);
+    const dest = ctx.createMediaStreamDestination();
+    gate.connect(dest);
+    osc.start();
+    e2eStream = dest.stream;
+    return dest.stream;
+  }
+  return await (navigator.mediaDevices as MediaDevices & {
+    getUserMedia(constraints: unknown): Promise<MediaStream>;
+  }).getUserMedia({
+    audio: { mandatory: { chromeMediaSource: 'tab', chromeMediaSourceId: streamId } },
+    video: false,
+  });
+}
+
 /** Capture setup proper, always under `startInFlight`. */
 async function beginCapture(
   streamId: string,
 ): Promise<{ ok: boolean; mimeType?: string; error?: string }> {
 
   try {
-    stream = await (
-      navigator.mediaDevices as MediaDevices & {
-        getUserMedia(constraints: unknown): Promise<MediaStream>;
-      }
-    ).getUserMedia({
-      audio: {
-        mandatory: { chromeMediaSource: 'tab', chromeMediaSourceId: streamId },
-      },
-      video: false,
-    });
+    stream = await openStream(streamId);
   } catch (err) {
     const reason = err instanceof Error ? err.message : 'getUserMedia failed';
     console.warn('[Kivara Lingo] offscreen getUserMedia failed', err);

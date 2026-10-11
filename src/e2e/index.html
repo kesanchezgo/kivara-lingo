@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Kivara e2e bridge</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        font: 12px/1.5 monospace;
+        background: #0b0b0f;
+        color: #ddd;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 4px 8px;
+      }
+      button {
+        background: #222;
+        color: #ddd;
+        border: 1px solid #444;
+        border-radius: 6px;
+        padding: 4px 10px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #2c2c34;
+      }
+      #log {
+        padding: 0 8px 12px;
+        white-space: pre-wrap;
+        color: #9ad;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      E2E bridge page. Exists ONLY in a KIVARA_E2E=1 build; a production
+      bundle has no copy of this file (enforced by the dist guard test).
+
+      It forwards start/stop/status/extract for the audio capture path to the
+      service worker's E2E door (`chrome.runtime.onMessage` inside
+      `if (__E2E__)`), which re-runs the SAME handler functions the
+      production webext-bridge path runs. No logic lives here: the page only
+      renders a button per bridge message and prints answers, so a test
+      drives the pipeline through a real page and a real tab gesture.
+    -->
+    <div class="row">
+      <button id="start">start capture</button>
+      <button id="stop">stop capture</button>
+      <button id="status">status</button>
+    </div>
+    <div class="row">
+      <label for="startMs">startMs</label>
+      <input id="startMs" type="number" value="0" style="width: 90px" />
+      <label for="endMs">endMs</label>
+      <input id="endMs" type="number" value="5000" style="width: 90px" />
+      <button id="extract">extract clip</button>
+    </div>
+    <div id="log"></div>
+
+    <script type="module">
+      /**
+       * To the E2E door, and only there: raw `chrome.runtime.sendMessage`
+       * with a `KIVARA_E2E_` prefix, sent from inside this extension. Raw
+       * runtime messaging is the one channel Playwright can always drive;
+       * webext-bridge's own module specifiers do not resolve in a page, and
+       * its runtime port would answer "no listener" anyway for these types.
+       */
+      const send = (payload) =>
+        new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage(payload, (response) => {
+            const err = chrome.runtime.lastError;
+            if (err) {
+              reject(new Error(err.message));
+              return;
+            }
+            resolve(response);
+          });
+        });
+      const log = (line) => {
+        document.getElementById('log').textContent += `${line}\n`;
+      };
+      const num = (id) => Number(document.getElementById(id).value);
+
+      document.getElementById('start').onclick = () =>
+        send({ type: 'KIVARA_E2E_START_AUDIO_CAPTURE' }).then((r) => log(JSON.stringify(r)));
+      document.getElementById('stop').onclick = () =>
+        send({ type: 'KIVARA_E2E_STOP_AUDIO_CAPTURE' }).then((r) => log(JSON.stringify(r)));
+      document.getElementById('status').onclick = () =>
+        send({ type: 'KIVARA_E2E_AUDIO_CAPTURE_STATUS' }).then((r) => log(JSON.stringify(r)));
+      document.getElementById('extract').onclick = () =>
+        send({
+          type: 'KIVARA_E2E_EXTRACT_AUDIO_CLIP',
+          data: { startMs: num('startMs'), endMs: num('endMs'), format: 'wav' },
+        }).then((r) => {
+          const shape = r && r.dataUrl
+            ? `ok=${r.ok} durationMs=${r.durationMs} mime=${r.mimeType} dataUrl=${r.dataUrl.slice(0, 40)}…`
+            : JSON.stringify(r);
+          log(shape);
+        });
+    </script>
+  </body>
+</html>

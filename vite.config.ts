@@ -26,6 +26,12 @@ export default defineConfig({
     // load under MV3's CSP unless it ships INSIDE the extension.
     // `KIVARA_WHISPER=1 pnpm build` flips it on (see shared/whisper-flag.ts).
     __KIVARA_WHISPER__: JSON.stringify(process.env.KIVARA_WHISPER === '1'),
+    // Build-time E2E flag. Only `KIVARA_E2E=1 pnpm build` (what the Playwright
+    // fixture runs) flips it on, and it is the ONLY thing that compiles the
+    // e2e bridge page into the bundle (see src/background/service-worker.ts
+    // and src/e2e/index.ts). A production build has no reference to it: the
+    // e2e dist guard greps for both the page and the listener to prove that.
+    __E2E__: JSON.stringify(process.env.KIVARA_E2E === '1'),
   },
   plugins: [
     figmaAssetResolver(),
@@ -56,6 +62,12 @@ export default defineConfig({
       input: {
         offscreen: path.resolve(__dirname, 'src/offscreen/index.html'),
         onboarding: path.resolve(__dirname, 'src/onboarding/index.html'),
+        // Compiled only when __E2E__ is true: the page is the sole entry to
+        // the bridge, so keeping it out of the default input list is what
+        // keeps a production build free of it even before the tree-shake.
+        ...(process.env.KIVARA_E2E === '1'
+          ? { e2e: path.resolve(__dirname, 'src/e2e/index.html') }
+          : {}),
       },
       output: {
         // Force lamejs into the same chunk as the offscreen processor.
