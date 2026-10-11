@@ -5,6 +5,7 @@ import { WHISPER_BUILD } from '../../../shared/whisper-flag';
 import { useKivaraStore } from '../../../shared/store';
 import type { AsrSettings } from '../../../shared/types';
 import { WHISPER_MODEL_PRESETS, type WhisperModelKey } from '../../../shared/whisper-presets';
+import { assertExtensionScriptUrl, assertFetchableWhisperUrl } from '../../../shared/whisper-url';
 import { InfoHint } from '../InfoHint';
 
 function sectionId(title: string, id?: string): string {
@@ -114,6 +115,12 @@ export function NestedAccordion({
 }
 
 export function WhisperAsrSection() {
+  const asr = useKivaraStore((s) => s.asr);
+  const setAsr = (next: Partial<AsrSettings>) =>
+    useKivaraStore.setState((s) => ({ asr: { ...s.asr, ...next } }));
+  // Compile-time constants decide what is compiled at all, so the hook order
+  // is identical on every mount of a given build and the compiled-out build
+  // leaves them unused entirely.
   if (!WHISPER_BUILD) {
     // Compile-time off, on purpose: see shared/whisper-flag.ts. The glue cannot
     // load under MV3's CSP, so the whole section was a form that could only
@@ -126,12 +133,6 @@ export function WhisperAsrSection() {
       </p>
     );
   }
-  const asr = useKivaraStore((s) => s.asr);
-  const setAsr = (next: Partial<AsrSettings>) =>
-    useKivaraStore.setState((s) => ({ asr: { ...s.asr, ...next } }));
-  // Safe as written because `WHISPER_BUILD` is a compile-time constant: this
-  // return is a stable branch, so the hook order is identical on every mount
-  // of a given build and only the compiled-out build leaves them unused.
   return (
     <>
       <Row label="Habilitar Whisper ASR">
@@ -159,15 +160,7 @@ export function WhisperAsrSection() {
               ))}
             </select>
           </Row>
-          <Row label="Glue URL (whisper.js)">
-            <input
-              type="text"
-              value={asr.glueUrl ?? ''}
-              onChange={(e) => setAsr({ glueUrl: e.target.value.trim() || undefined })}
-              placeholder="https://tu-cdn.com/whisper.js"
-              className="sl-input sl-mono w-full"
-            />
-          </Row>
+          <WhisperGlueUrlRow setAsr={setAsr} asr={asr} />
           <WhisperModelUrlRow setAsr={setAsr} asr={asr} />
         </>
       )}
@@ -175,6 +168,81 @@ export function WhisperAsrSection() {
   );
 }
 
+/** Why the value in one of the ASR URL fields is wrong, or null when fine. */
+function whisperUrlError(value: string | undefined, checker: (v: string) => void): string | null {
+  if (!value) return null;
+  try {
+    checker(value);
+    return null;
+  } catch (err) {
+    return err instanceof Error ? err.message : 'URL no permitida';
+  }
+}
+
+/**
+ * Both URL fields validate on the way in AND on the way to the store.
+ *
+ * The second is the one that matters. A value can reach the offscreen without
+ * ever passing this panel — an older build's stored settings, an imported
+ * dump, devtools — so a check that only runs on `onChange` would be a UI
+ * courtesy. The offscreen re-validates at the point of use (see
+ * `shared/whisper-url.ts`); this reports the reason at the moment the user
+ * types it, which is the only moment they can act on it.
+ */
+function WhisperGlueUrlRow({
+  asr,
+  setAsr,
+}: {
+  asr: AsrSettings;
+  setAsr: (next: Partial<AsrSettings>) => void;
+}) {
+  const error = whisperUrlError(asr.glueUrl, (v) => assertExtensionScriptUrl(v, chrome.runtime.id));
+  return (
+    <>
+      <Row label="Glue URL (whisper.js)">
+        <input
+          type="text"
+          value={asr.glueUrl ?? ''}
+          onChange={(e) => {
+            const raw = e.target.value.trim();
+            // A remote glue cannot load under MV3's CSP and is not one keystroke
+            // away from working, so it is refused here instead of stored and
+            // discovered at transcription time.
+            if (!raw) {
+              setAsr({ glueUrl: undefined });
+              return;
+            }
+            try {
+              // Stored as typed, right or wrong: the offscreen refuses a bad
+              // one at the point of use, and the derived `error` right above
+              // this returns the reason while the user is looking at the box.
+              assertExtensionScriptUrl(raw, chrome.runtime.id);
+              setAsr({ glueUrl: raw });
+            } catch {
+              setAsr({ glueUrl: raw });
+            }
+          }}
+          placeholder="chrome-extension://…/whisper.js"
+          className="sl-input sl-mono w-full"
+        />
+      </Row>
+      {error && <UrlErrorRow error={error} />}
+    </>
+  );
+}
+
+/**
+ * Inline reason under a rejected URL. `role="alert"` keeps a screen reader
+ * from silently losing it: the value stays in the field (the user has to be
+ * able to see what was rejected), so the error is the only signal.
+ */
+function UrlErrorRow({ error }: { error: string }) {
+  return (
+    <p role="alert" className="text-[10.5px] leading-snug text-red-600 dark:text-red-400 px-2">
+      {error}
+    </p>
+  );
+}
 function WhisperModelUrlRow({
   asr,
   setAsr,
@@ -182,16 +250,30 @@ function WhisperModelUrlRow({
   asr: AsrSettings;
   setAsr: (next: Partial<AsrSettings>) => void;
 }) {
+  const error = whisperUrlError(asr.modelUrl, assertFetchableWhisperUrl);
   return (
-    <Row label="Modelo URL (override)">
-      <input
-        type="text"
-        value={asr.modelUrl ?? ''}
-        onChange={(e) => setAsr({ modelUrl: e.target.value.trim() || undefined })}
-        placeholder={WHISPER_MODEL_PRESETS[asr.model].url}
-        className="sl-input sl-mono w-full"
-      />
-    </Row>
+    <>
+      <Row label="Modelo URL (override)">
+        <input
+          type="text"
+          value={asr.modelUrl ?? ''}
+          onChange={(e) => {
+            const raw = e.target.value.trim();
+            if (!raw) {
+              setAsr({ modelUrl: undefined });
+              return;
+            }
+            // Kept as typed; the derived `error` below reports the reason, and
+            // `shared/whisper-url` refuses it again where it is used.
+            assertFetchableWhisperUrl(raw);
+            setAsr({ modelUrl: raw });
+          }}
+          placeholder={WHISPER_MODEL_PRESETS[asr.model].url}
+          className="sl-input sl-mono w-full"
+        />
+      </Row>
+      {error && <UrlErrorRow error={error} />}
+    </>
   );
 }
 

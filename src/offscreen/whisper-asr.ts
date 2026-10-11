@@ -34,6 +34,11 @@ import {
   modelKeyForUrl,
   type WhisperModelKey,
 } from '../shared/whisper-presets';
+import {
+  WHISPER_MODEL_MAX_BYTES,
+  assertExtensionScriptUrl,
+  assertFetchableWhisperUrl,
+} from '../shared/whisper-url';
 
 export { WHISPER_MODEL_PRESETS, type WhisperModelKey };
 
@@ -221,9 +226,29 @@ async function fetchModel(): Promise<ArrayBuffer> {
       return res.arrayBuffer();
     }
 
-    res = await fetch(url, { mode: 'cors' });
+    // The URL loaded out of settings can be anything: free text in a settings
+    // panel, an imported dump, or a value written by an older build that had
+    // no validation. It is validated HERE and not only on save, because the
+    // offscreen document is the one place in the extension that has its own
+    // storage, Dexie and the media graph all in scope — a request into the
+    // user's LAN or loopback from here is a scanner, not a lookup.
+    assertFetchableWhisperUrl(url);
+
+    res = await fetch(url, { mode: 'cors', redirect: 'follow' });
     if (!res.ok) {
       throw new Error(`Whisper model HTTP ${res.status} (${url})`);
+    }
+    // Redirects are followed by the network stack before any of the above
+    // could matter, so the check has to be repeated on where the request
+    // ENDED UP — a public mirror that answers `302 → http://127.0.0.1/…`
+    // would otherwise sail through. `res.url` is the final URL.
+    assertFetchableWhisperUrl(res.url || url);
+    const declared = Number(res.headers.get('content-length') ?? 0);
+    if (declared > WHISPER_MODEL_MAX_BYTES) {
+      await res.body?.cancel().catch(() => {});
+      throw new Error(
+        `El peso del modelo declara ${declared} bytes y el máximo admitido es ${WHISPER_MODEL_MAX_BYTES}`,
+      );
     }
 
     // Stream the body so we can report progress for the (potentially large)
@@ -236,6 +261,15 @@ async function fetchModel(): Promise<ArrayBuffer> {
       // No streaming support — fall back to a single-shot read.
       emitProgress({ modelKey, loadedBytes: 0, totalBytes, fraction: 0, cached: false, done: false });
       const buffer = await res.arrayBuffer();
+      // A server that under-declares `content-length` (or omits it) and then
+      // lies in the other direction is the case the stream reader catches
+      // below; there is no incremental point to stop at here, so the bound is
+      // applied to what arrived.
+      if (buffer.byteLength > WHISPER_MODEL_MAX_BYTES) {
+        throw new Error(
+          `El peso del modelo ocupa ${buffer.byteLength} bytes y el máximo admitido es ${WHISPER_MODEL_MAX_BYTES}`,
+        );
+      }
       try {
         await cache.put(req, new Response(buffer));
       } catch (err) {
@@ -259,6 +293,15 @@ async function fetchModel(): Promise<ArrayBuffer> {
       const { value, done } = await reader.read();
       if (done) break;
       if (value) {
+        // Stop mid-stream rather than letting a lying `content-length` (or a
+        // missing one) turn the extension's cache into an unbounded staging
+        // area. The chunks already read are discarded with the promise.
+        if (received + value.byteLength > WHISPER_MODEL_MAX_BYTES) {
+          await reader.cancel().catch(() => {});
+          throw new Error(
+            `El peso del modelo supera el máximo admitido (${WHISPER_MODEL_MAX_BYTES} bytes)`,
+          );
+        }
         chunks.push(value);
         received += value.byteLength;
         const fraction = totalBytes > 0 ? Math.min(1, received / totalBytes) : 0;
@@ -362,6 +405,28 @@ function injectGlueScript(url: string): Promise<void> {
   const cached = injectedGlue.get(url);
   if (cached) return cached;
   const promise = new Promise<void>((resolve, reject) => {
+    /**
+     * Only code from inside this extension is acceptable. Free text in
+     * `AsrSettings.glueUrl` used to reach `script.src` verbatim, which is a
+     * settings panel able to execute arbitrary JavaScript in the offscreen
+     * document — the one page here with the extension's own storage, Dexie
+     * and the media graph in scope. MV3's `script-src 'self'` blocks the
+     * remote case at the network layer; this refuses it in code, first, so the
+     * failure is a stated rule instead of an opaque CSP violation.
+     */
+    try {
+      assertExtensionScriptUrl(url, chrome.runtime.id);
+    } catch (err) {
+      reject(
+        new Error(
+          `El glue de Whisper debe ser un script dentro de la extensión: ${url} ` +
+            `${err instanceof Error ? `(${err.message})` : ''}. En MV3 no se puede ` +
+            'cargar código remoto desde una página de extensión; empaqueta el glue ' +
+            'y el WASM dentro de la extensión.',
+        ),
+      );
+      return;
+    }
     const existing = document.querySelector(`script[data-kl-whisper="${url}"]`);
     if (existing) {
       resolve();
@@ -372,21 +437,11 @@ function injectGlueScript(url: string): Promise<void> {
     script.async = true;
     script.dataset.klWhisper = url;
     script.onload = () => resolve();
-    /**
-     * MV3 extension pages (including this offscreen document) run under
-     * `script-src 'self'`, so a REMOTE glue is refused by CSP before the
-     * request even leaves. That is not fixable from here: making local ASR
-     * work requires shipping the glue + WASM inside `dist/` and loading them
-     * from the extension's own origin. Saying so beats the generic
-     * "Failed to load" that used to appear.
-     */
     script.onerror = () =>
       reject(
         new Error(
           `No se pudo cargar el glue de Whisper: ${url}. ` +
-            'Las páginas de extensión MV3 solo permiten scripts propios ' +
-            `(script-src 'self'): el glue y el WASM deben empaquetarse ` +
-            'dentro de la extensión para que el ASR funcione sin conexión.',
+            'El archivo debe existir dentro del bundle de la extensión.',
         ),
       );
     document.head.appendChild(script);

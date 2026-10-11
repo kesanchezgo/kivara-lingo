@@ -4,6 +4,9 @@
   "version": "0.2.0",
   "description": "Learn languages while watching your favorite shows.",
   "homepage_url": "https://github.com/kesanchezgo/kivara-lingo",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
   "permissions": [
     "storage",
     "cookies",
