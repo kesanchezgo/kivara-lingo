@@ -41,6 +41,8 @@ const req = {
 let ports: StubPort[] = [];
 /** Ports that die immediately on the second send (SW restart simulation). */
 let killOnPostFrom: number;
+/** -1: kill by range (killOnPostFrom); >=0: ONLY that port index dies. */
+let killOnly = -1;
 
 function spawnPort(): StubPort {
   const messageCbs: Array<(m: unknown) => void> = [];
@@ -60,7 +62,11 @@ function spawnPort(): StubPort {
     },
     postMessage: (m: unknown) => {
       port.posted.push(m);
-      if (ports.indexOf(port) >= killOnPostFrom) {
+      const diesOnThisPost =
+        killOnly >= 0
+          ? ports.indexOf(port) === killOnly
+          : ports.indexOf(port) >= killOnPostFrom;
+      if (diesOnThisPost) {
         // Simulate the death on THIS send: the SW restarted between phases.
         setTimeout(() => port.onDisconnect.fire(), 0);
       }
@@ -89,6 +95,7 @@ const run = () => {
 beforeEach(() => {
   vi.useFakeTimers();
   killOnPostFrom = Number.POSITIVE_INFINITY;
+  killOnly = -1;
 });
 
 afterEach(() => {
@@ -100,7 +107,7 @@ describe('openResolveWordStream', () => {
   it('replays ONCE on a mid-flight disconnect and delivers on the new port', () => {
     stubChrome(spawnPort);
     // Die on the FIRST port's very first post (a restart between phases).
-    killOnPostFrom = 0; // the FIRST port dies on its own post
+    killOnly = 0; // port 0 dies; the replayed port delivers the phases
     const stream = run();
     expect(ports).toHaveLength(1);
     vi.advanceTimersByTime(2); // the death is a macrotask in real MV3
@@ -112,11 +119,12 @@ describe('openResolveWordStream', () => {
 
   it('gives up and reports when the SECOND connection also dies', () => {
     stubChrome(spawnPort);
-    killOnPostFrom = 0; // every port dies immediately on its post
+    killOnPostFrom = 0; // ports 0 and 1 die on their post
     const stream = run();
     vi.advanceTimersByTime(1);
     // Port 0 posted, died, replayed to port 1, which also died: NO third
     // connect — the budget is one replay, and the caller is told it's gone.
+    // eslint-disable-next-line no-console
     expect(ports).toHaveLength(2);
     expect(failures.length).toBe(1); // exactly one report, never two
     stream.close();
@@ -144,26 +152,72 @@ describe('openResolveWordStream', () => {
     expect(failures).toHaveLength(0);
   });
 
-  it('drops below-rank phases after a replay (no skeleton-flash re-entry)', () => {
-    // THE regression: the replay re-sends the FULL request, so a `local`
-    // already delivered on the dead port arrives again AFTER translation/
-    // enrichment and pastes the poor entry back over the rich one. The
-    // review's case: the consumer must NOT receive `local` a second time.
+  it('replay: one local delivered, richer phases still flow', () => {
+    // The new minimal guard: after the replay, a re-sent `local` is dropped
+    // ONLY once something richer has landed on this stream. Everything
+    // else flows (translation/enrichment/AI are parallel and repeat).
     stubChrome(spawnPort);
-    killOnPostFrom = 0;
+    killOnly = 0;
     const stream = run();
     vi.advanceTimersByTime(1);
-    expect(ports).toHaveLength(2); // replay happened
-
-    // Both ports emit `local`, as the re-send would.
-    ports[0]!.onMessage.fire({ phase: 'local' });
+    expect(ports).toHaveLength(2); // replay happened on the new port
+    // First local delivered on the DEAD port (port 0):
+    ports[0]!.onMessage.fire({ phase: 'translation' });
+    // After the replay, the SW re-sends local AND translation: the local is
+    // dropped (richer already), the translation is not (assignment).
     ports[1]!.onMessage.fire({ phase: 'local' });
-    // Only ONE local: the second is a lower rank than the first delivery.
-    expect(seen.map((e) => e.phase)).toEqual(['local']);
-
-    // A higher phase after a lower one still lands (order is not reversed).
     ports[1]!.onMessage.fire({ phase: 'translation' });
-    expect(seen.map((e) => e.phase)).toEqual(['local', 'translation']);
+    expect(seen.map((e) => e.phase)).toEqual(['translation', 'translation']);
+    // A local delivered BEFORE anything richer on the replayed port passes.
+    const s2 = openResolveWordStream(
+      { kind: 'resolve-word', token: 'x', sentence: '', sourceLang: 'en', includeAi: false },
+      { onMessage: (m) => seen.push({ phase: m.phase }), onDisconnected: () => {} },
+    );
+    killOnly = -1;
+    ports[ports.length - 1]!.onMessage.fire({ phase: 'local' });
+    expect(seen.at(-1)!.phase).toBe('local');
+    s2.close();
+    stream.close();
+  });
+
+  it('delivers every phase out of order: translation, then error, then enrichment, then done', () => {
+    // 884a410 froze this: `error` unmapped landed on rank 99 and every
+    // later phase (done included) was dropped -- the card stuck on resolving
+    // forever. The SW emits `error` on ordinary paths (translate failed,
+    // enrichment failed, AI failed); it is NOT terminal.
+    stubChrome(spawnPort);
+    const stream = run();
+    ports[0]!.onMessage.fire({ phase: 'translation' });
+    ports[0]!.onMessage.fire({ phase: 'error', scope: 'translate' });
+    ports[0]!.onMessage.fire({ phase: 'enrichment' });
+    ports[0]!.onMessage.fire({ phase: 'done' });
+    expect(seen.map((e) => e.phase)).toEqual([
+      'translation', 'error', 'enrichment', 'done',
+    ]);
+    // The error must not read as a disconnect: the stream still completed.
+    expect(failures).toHaveLength(0);
+    stream.close();
+  });
+
+  it('delivers two enrichments (parallel AI and chain phases both land)', () => {
+    // AI emits its own enrichment (mnemonic/etymology) alongside the chain's;
+    // the parallel waves repeat `enrichment` legitimately.
+    stubChrome(spawnPort);
+    const stream = run();
+    ports[0]!.onMessage.fire({ phase: 'enrichment' });
+    ports[0]!.onMessage.fire({ phase: 'enrichment' });
+    expect(seen.map((e) => e.phase)).toEqual(['enrichment', 'enrichment']);
+    stream.close();
+  });
+
+  it('delivers ai before enrichment (parallel order is not fixed)', () => {
+    // Whichever wave resolves first sends first; a rank gate dropped the
+    // enrichment that arrived after `ai`.
+    stubChrome(spawnPort);
+    const stream = run();
+    ports[0]!.onMessage.fire({ phase: 'ai' });
+    ports[0]!.onMessage.fire({ phase: 'enrichment' });
+    expect(seen.map((e) => e.phase)).toEqual(['ai', 'enrichment']);
     stream.close();
   });
   it('reports immediately when the port cannot be opened', () => {
