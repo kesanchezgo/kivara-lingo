@@ -17,7 +17,9 @@ test('fullscreen re-parents the mounted overlay and cleans up after itself', asy
       <button id="enterFullscreen">enter fullscreen</button>
       <script>
         document.getElementById('enterFullscreen').addEventListener('click', () => {
-          document.getElementById('stage').requestFullscreen();
+          document.getElementById('stage').requestFullscreen().catch((error) => {
+            window.__kivaraFullscreenError = String(error);
+          });
         });
       </script>
     </body></html>`,
@@ -45,14 +47,26 @@ test('fullscreen re-parents the mounted overlay and cleans up after itself', asy
     await page.evaluate(() => window.focus());
     await expect.poll(
       async () => await page.evaluate(() => document.hasFocus() && document.visibilityState === 'visible'),
-    ).toBe(true);
-    // Keyboard activation is a real user gesture and is stable in headless Chromium;
-    // a synthetic evaluate/click can lose the transient fullscreen permission.
-    await enterFullscreen.press('Enter');
-    await expect.poll(
-      async () => await page.evaluate(() => Boolean(document.fullscreenElement)),
       { timeout: 10_000 },
     ).toBe(true);
+    // Keyboard activation is a real user gesture, which a synthetic
+    // evaluate/click is not. Headless Chromium still drops the transient
+    // activation between the keypress and the call once in a while, answering
+    // `TypeError: not granted` -- so retry with fresh gestures and report the
+    // last refusal instead of timing out on a poll.
+    let entered = false;
+    let lastRefusal: string | null = null;
+    for (let attempt = 1; attempt <= 5 && !entered; attempt++) {
+      await page.bringToFront();
+      await enterFullscreen.press('Enter');
+      const state = await page.evaluate(() => ({
+        fullscreen: Boolean(document.fullscreenElement),
+        error: (window as Window & { __kivaraFullscreenError?: string }).__kivaraFullscreenError ?? null,
+      }));
+      entered = state.fullscreen;
+      lastRefusal = state.error;
+    }
+    expect(entered, `fullscreen refused after 5 gestures: ${lastRefusal}`).toBe(true);
     await expect.poll(
       async () =>
         await page.evaluate(() =>
@@ -69,15 +83,23 @@ test('fullscreen re-parents the mounted overlay and cleans up after itself', asy
       { timeout: 10_000 },
     ).toBe(true);
 
-    const positionAfter = await stage.evaluate((el) => getComputedStyle(el).position);
-    expect(positionAfter).toBe(positionBefore);
-
-    const parentTags = await page.evaluate(() =>
-      Array.from(document.body.querySelectorAll('*'))
-        .filter((el) => el.shadowRoot !== null)
-        .map((el) => el.parentElement?.tagName ?? ''),
-    );
-    expect(parentTags).toContain('BODY');
+    // The reparent lives in the extension's own fullscreenchange handler, so
+    // the exit race is the intermediate state a single read could catch:
+    // `fullscreenElement` already null while the hosts still sit inside the
+    // stage and the stage still carries the override position.
+    await expect.poll(
+      async () => await stage.evaluate((el) => getComputedStyle(el).position),
+      { timeout: 10_000 },
+    ).toBe(positionBefore);
+    await expect.poll(
+      async () =>
+        await page.evaluate(() =>
+          Array.from(document.body.querySelectorAll('*'))
+            .filter((el) => el.shadowRoot !== null)
+            .map((el) => el.parentElement?.tagName ?? ''),
+        ),
+      { timeout: 10_000 },
+    ).toContain('BODY');
   } finally {
     await page.close();
   }

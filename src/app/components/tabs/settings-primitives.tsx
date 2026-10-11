@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { t } from '../../../shared/i18n';
 import { WHISPER_BUILD } from '../../../shared/whisper-flag';
@@ -113,9 +113,6 @@ export function NestedAccordion({
   );
 }
 
-/* ─── QuickRow ───────────────────────────────────────────────────────── */
-
-
 export function WhisperAsrSection() {
   if (!WHISPER_BUILD) {
     // Compile-time off, on purpose: see shared/whisper-flag.ts. The glue cannot
@@ -132,6 +129,9 @@ export function WhisperAsrSection() {
   const asr = useKivaraStore((s) => s.asr);
   const setAsr = (next: Partial<AsrSettings>) =>
     useKivaraStore.setState((s) => ({ asr: { ...s.asr, ...next } }));
+  // Safe as written because `WHISPER_BUILD` is a compile-time constant: this
+  // return is a stable branch, so the hook order is identical on every mount
+  // of a given build and only the compiled-out build leaves them unused.
   return (
     <>
       <Row label="Habilitar Whisper ASR">
@@ -192,26 +192,6 @@ function WhisperModelUrlRow({
         className="sl-input sl-mono w-full"
       />
     </Row>
-  );
-}
-
-function WhisperAsrSectionBody({
-  asr,
-  setAsr,
-}: {
-  asr: AsrSettings;
-  setAsr: (next: Partial<AsrSettings>) => void;
-}) {
-  return (
-    <>
-      <WhisperModelProgress modelKey={asr.model} />
-      <p className="text-[10px] text-zinc-500 dark:text-zinc-500 leading-snug">
-        {t('set.whisperWasm')}
-        <strong>Tiny</strong> {t('set.tinyLaptops')}
-        <strong>Base</strong> {t('set.baseDesktops')}
-      </p>
-      <WhisperModelUrlRow asr={asr} setAsr={setAsr} />
-    </>
   );
 }
 
@@ -335,85 +315,6 @@ export function CompactSlider({
         className="sl-range w-full"
       />
     </Row>
-  );
-}
-
-/* ─── WhisperModelProgress ───────────────────────────────────────────── */
-
-/**
- * Listens for `OFFSCREEN_WHISPER_MODEL_PROGRESS` messages broadcast by the
- * offscreen document when downloading a Whisper ggml model. Shows a minimal
- * progress bar that fills up during the (potentially long) first download,
- * then disappears when done or when the model is loaded from cache.
- *
- * The component only renders anything while a download is actively in
- * progress (fraction > 0 && fraction < 1).
- */
-function WhisperModelProgress({ modelKey }: { modelKey: WhisperModelKey }) {
-  const [progress, setProgress] = useState<{
-    fraction: number;
-    loadedBytes: number;
-    totalBytes: number;
-    done: boolean;
-    cached: boolean;
-  } | null>(null);
-
-  useEffect(() => {
-    const handler = (msg: Record<string, unknown>) => {
-      if (msg?.type !== 'OFFSCREEN_WHISPER_MODEL_PROGRESS') return;
-      const info = msg as {
-        modelKey: string | null;
-        fraction: number;
-        loadedBytes: number;
-        totalBytes: number;
-        done: boolean;
-        cached: boolean;
-      };
-      if (info.modelKey !== null && info.modelKey !== modelKey) return;
-      setProgress({
-        fraction: info.fraction,
-        loadedBytes: info.loadedBytes,
-        totalBytes: info.totalBytes,
-        done: info.done,
-        cached: info.cached,
-      });
-      if (info.done) {
-        setTimeout(() => setProgress(null), 2000);
-      }
-    };
-    try {
-      chrome.runtime.onMessage.addListener(handler);
-    } catch {
-      /* not in an extension context (dev preview) — no-op */
-    }
-    return () => {
-      try {
-        chrome.runtime.onMessage.removeListener(handler);
-      } catch {
-        /* ignore */
-      }
-    };
-  }, [modelKey]);
-
-  if (!progress || progress.done || progress.fraction === 0) return null;
-
-  const pct = Math.round(progress.fraction * 100);
-  const mb = (progress.loadedBytes / 1_000_000).toFixed(1);
-  const totalMb = (progress.totalBytes / 1_000_000).toFixed(0);
-
-  return (
-    <div className="space-y-1 -mt-0.5">
-      <div className="flex items-center justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
-        <span>Descargando modelo…</span>
-        <span className="font-mono tabular-nums">{mb} / {totalMb} MB ({pct}%)</span>
-      </div>
-      <div className="h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-indigo-500 rounded-full transition-all duration-300"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
   );
 }
 
