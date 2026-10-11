@@ -2,6 +2,7 @@
 
 import { DEFAULT_AI, DEFAULT_TRANSLATE, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
 import { aiCacheKey, getDB } from '../shared/db';
+import { normalizeTtlDays } from '../shared/cache-ttl';
 import type {
   AiEnrichRequest,
   AiEnrichResponse,
@@ -116,7 +117,9 @@ export async function enrichWithAi(req: AiEnrichRequest): Promise<AiEnrichRespon
       latencyMs,
       cached: false,
     };
-    const ttl = (settings.cacheTtlDays || 30) * 24 * 60 * 60 * 1000;
+    // Same guard as the enrichment cache: a negative or zero || default
+    // passed -5 straight through (the negative stored as a negative).
+    const ttl = normalizeTtlDays(settings.cacheTtlDays) * 24 * 60 * 60 * 1000;
     try {
       await getDB().ai_cache.put({
         key: cacheKey,

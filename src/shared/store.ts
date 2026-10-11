@@ -718,12 +718,16 @@ function mergePersisted(persistedState: unknown, currentState: KivaraState): Kiv
   // Normalize the VIP block's ttl BEFORE the spread: a value persisted by
   // an older build (or hand-edited) can be 0, -5, NaN or 9999, and a bad ttl
   // either wipes the cache or never expires it. Clamp on hydrate, once, here.
-  if (persisted.vip && typeof persisted.vip === 'object') {
-    persisted.vip.cacheTtlDays = normalizeTtlDays(persisted.vip.cacheTtlDays);
-  }
+  // Non-mutating: the incoming persisted object is not ours to write.
+  // If vip is present, spread it — but add a normalized cacheTtlDays to the
+  // flowing vip object. This leaves the input `persisted` untouched.
+  const vip = persisted.vip && typeof persisted.vip === 'object'
+    ? { ...persisted.vip, cacheTtlDays: normalizeTtlDays(persisted.vip.cacheTtlDays) }
+    : undefined;
   return {
     ...currentState,
     ...persisted,
+    ...(vip ? { vip } : {}),
     subtitleStyles: { ...DEFAULT_SUBTITLE_STYLES, ...(persisted.subtitleStyles ?? {}) },
     ankiMapping: {
       ...DEFAULT_ANKI_MAPPING,

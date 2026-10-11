@@ -194,6 +194,46 @@ describe('openResolveWordStream', () => {
     stream.close();
   });
 
+  it('delivers every phase out of order: translation, then error, then enrichment, then done', () => {
+    // 884a410 froze this: `error` unmapped landed on rank 99 and every
+    // later phase (done included) was dropped -- the card stuck on resolving
+    // forever. The SW emits `error` on ordinary paths (translate failed,
+    // enrichment failed, AI failed); it is NOT terminal.
+    stubChrome(spawnPort);
+    const stream = run();
+    ports[0]!.onMessage.fire({ phase: 'translation' });
+    ports[0]!.onMessage.fire({ phase: 'error', scope: 'translate' });
+    ports[0]!.onMessage.fire({ phase: 'enrichment' });
+    ports[0]!.onMessage.fire({ phase: 'done' });
+    expect(seen.map((e) => e.phase)).toEqual([
+      'translation', 'error', 'enrichment', 'done',
+    ]);
+    // The error must not read as a disconnect: the stream still completed.
+    expect(failures).toHaveLength(0);
+    stream.close();
+  });
+
+  it('delivers two enrichments (parallel AI and chain phases both land)', () => {
+    // AI emits its own enrichment (mnemonic/etymology) alongside the chain's;
+    // the parallel waves repeat `enrichment` legitimately.
+    stubChrome(spawnPort);
+    const stream = run();
+    ports[0]!.onMessage.fire({ phase: 'enrichment' });
+    ports[0]!.onMessage.fire({ phase: 'enrichment' });
+    expect(seen.map((e) => e.phase)).toEqual(['enrichment', 'enrichment']);
+    stream.close();
+  });
+
+  it('delivers ai before enrichment (parallel order is not fixed)', () => {
+    // Whichever wave resolves first sends first; a rank gate dropped the
+    // enrichment that arrived after `ai`.
+    stubChrome(spawnPort);
+    const stream = run();
+    ports[0]!.onMessage.fire({ phase: 'ai' });
+    ports[0]!.onMessage.fire({ phase: 'enrichment' });
+    expect(seen.map((e) => e.phase)).toEqual(['ai', 'enrichment']);
+    stream.close();
+  });
   it('reports immediately when the port cannot be opened', () => {
     vi.stubGlobal('chrome', {
       runtime: { connect: () => { throw new Error('cold worker'); } },

@@ -37,6 +37,7 @@ describe('normalizeTtlDays', () => {
     expect(normalizeTtlDays(NaN)).toBe(14);
     expect(normalizeTtlDays(Number.POSITIVE_INFINITY)).toBe(14);
     expect(normalizeTtlDays(null)).toBe(14);
+    expect(normalizeTtlDays(0 as unknown as number)).toBe(14);
     expect(normalizeTtlDays(undefined)).toBe(14);
   });
 

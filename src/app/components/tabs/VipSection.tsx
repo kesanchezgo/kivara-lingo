@@ -125,7 +125,9 @@ export function VipSection() {
     const next = normalizeTtlDays(Number(ttlText));
     lastCommittedTtl.current = next;
     setTtlText(String(next));
-    setKey('cacheTtlDays', next);
+    // Enter also is followed by blur — the second commit is a no-op write
+    // (and a redundant re-sync); skip it when the value already matches.
+    if (next !== vip.cacheTtlDays) setKey('cacheTtlDays', next);
   };
   // Re-sync the box when the store changes it from elsewhere (another tab's
   // write, the hydration pass): only when the committed value truly moved,
@@ -271,7 +273,12 @@ export function VipSection() {
                   onChange={(e) => setTtlText(e.target.value)}
                   onBlur={commitTtl}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') commitTtl();
+                    if (e.key === 'Enter') {
+                      // Enter also is followed by blur — the second commit is a no-op write
+                      // (and a redundant re-sync); skip it when the value already matches.
+                      commitTtl();
+                      e.currentTarget.blur();
+                    }
                   }}
                   className="sl-input text-right tabular-nums"
                   style={{ width: 50 }}
