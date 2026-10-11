@@ -39,6 +39,7 @@ import {
   extractAudioClip,
   transcribeAudioClip,
   getAudioCaptureStatus,
+  getAudioCaptureStatusWithPath,
 } from './audio-capture-manager';
 import { translateText } from './translate';
 import { speak } from './tts';
@@ -491,7 +492,8 @@ export async function startAudioCaptureHandler(data: unknown): Promise<StartCapt
   // never takes this branch — `__E2E__` compiles it out.
   if (__E2E__ && (data as { synthetic?: boolean } | undefined)?.synthetic === true) {
     const bufferSec = await loadCaptureBufferSec();
-    const result = await startAudioCapture(tabId ?? 0, bufferSec, 'kivara-e2e-synthetic');
+    const pcmPath = (data as { pcmPath?: 'audio-worklet' | 'script-processor' }).pcmPath;
+    const result = await startAudioCapture(tabId ?? 0, bufferSec, 'kivara-e2e-synthetic', pcmPath);
     if (result.ok) void ensureOffscreenKeepalive();
     return result;
   }
@@ -1165,9 +1167,10 @@ if (__E2E__) {
       case 'KIVARA_E2E_STOP_AUDIO_CAPTURE':
         return respond(Promise.resolve(stopAudioCaptureHandler()));
       case 'KIVARA_E2E_AUDIO_CAPTURE_STATUS':
-        return respond(Promise.resolve(getAudioCaptureStatus() as Promise<unknown>));
-      case 'KIVARA_E2E_EXTRACT_AUDIO_CLIP':
-        return respond(extractAudioClipHandler((message as { data?: unknown }).data));
+        // With the pcm path, so the parity test can assert on the route it
+        // forced rather than the one it requested.
+        return respond(Promise.resolve(getAudioCaptureStatusWithPath() as Promise<unknown>));
+      case 'KIVARA_E2E_EXTRACT_AUDIO_CLIP':        return respond(extractAudioClipHandler((message as { data?: unknown }).data));
       default:
         return false;
     }

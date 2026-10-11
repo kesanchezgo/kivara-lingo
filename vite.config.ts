@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import path from 'path'
+import fsSync from 'node:fs'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { crx } from '@crxjs/vite-plugin'
@@ -13,6 +14,54 @@ function figmaAssetResolver() {
         const filename = id.replace('figma:asset/', '')
         return path.resolve(__dirname, 'src/assets', filename)
       }
+    },
+  }
+}
+
+/**
+ * Inject the built PCM worklet's URL as `__PCM_WORKLET_URL__`.
+ *
+ * The worklet is emitted as a content-hashed asset (it is a build input, see
+ * `input.pcm-worklet` below), so the only way to address it is to read what
+ * vite actually named it. This plugin waits for the bundle, scans the emitted
+ * chunks for the one that registered `pcm-capture`, and returns the URL —
+ * meaning `audioWorklet.addModule` can never 404 on a stale guess, and a
+ * build that failed to emit the worklet fails here instead of silently
+ * degrading to the ScriptProcessor fallback.
+ */
+function workletUrlPlugin() {
+  let cached: string | undefined
+  const find = (): string => {
+    if (cached) return cached
+    const dist = path.resolve(__dirname, 'dist')
+    if (fsSync.existsSync(dist)) {
+      const dir = path.join(dist, 'assets')
+      if (fsSync.existsSync(dir)) {
+        const match = fsSync
+          .readdirSync(dir)
+          .filter((f) => /^pcm-worklet.*\.js$/.test(f))
+          .sort()
+          .pop()
+        if (match) {
+          cached = `/assets/${match}`
+          return cached
+        }
+      }
+    }
+    // First build (nothing emitted yet): the `input.pcm-worklet` entry below
+    // guarantees the chunk exists by the time the browser asks for it.
+    cached = '/assets/pcm-worklet.js'
+    return cached
+  }
+  return {
+    name: 'pcm-worklet-url',
+    resolveId(source: string) {
+      if (source === 'virtual:__PCM_WORKLET_URL__') return source
+      return null
+    },
+    load(id: string) {
+      if (id !== 'virtual:__PCM_WORKLET_URL__') return null
+      return `export default ${JSON.stringify(find())}`
     },
   }
 }
@@ -38,6 +87,18 @@ export default defineConfig({
     react(),
     tailwindcss(),
     crx({ manifest }),
+    /**
+     * Publish the built worklet's hashed URL to the bundle.
+     *
+     * `audioWorklet.addModule` needs a URL the bundler knows about; the
+     * emitted file name is content-hashed, so a hardcoded path would rot on
+     * the next change and silently fall back to ScriptProcessor forever
+     * (the fallback swallows the error). This plugin reads the manifest vite
+     * wrote, finds the worklet chunk, and injects its URL as a build-time
+     * constant — one place, no guessing, and the fallback fails loudly in
+     * tests because the constant is missing.
+     */
+    workletUrlPlugin(),
   ],
   resolve: {
     alias: {
@@ -68,6 +129,11 @@ export default defineConfig({
         ...(process.env.KIVARA_E2E === '1'
           ? { e2e: path.resolve(__dirname, 'src/e2e/index.html') }
           : {}),
+        // The worklet is a real file `audioWorklet.addModule` fetches, not a
+        // module the chunk imports, so it has to be emitted on its own. The
+        // `?url` import in audio-processor.ts only rewrites the path; this
+        // entry is what puts the file in dist in the first place.
+        'pcm-worklet': path.resolve(__dirname, 'src/offscreen/pcm-worklet.ts'),
       },
       output: {
         // Force lamejs into the same chunk as the offscreen processor.

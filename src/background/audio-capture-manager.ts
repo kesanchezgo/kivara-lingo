@@ -131,6 +131,7 @@ async function getOffscreenRecorderStatus(): Promise<{
   active?: boolean;
   mimeType?: string;
   error?: string;
+  pcmPath?: 'audio-worklet' | 'script-processor' | null;
 } | null> {
   if (!(await hasOffscreenDocument())) return null;
   try {
@@ -139,6 +140,7 @@ async function getOffscreenRecorderStatus(): Promise<{
       active?: boolean;
       mimeType?: string;
       error?: string;
+      pcmPath?: 'audio-worklet' | 'script-processor' | null;
     }>({ type: 'OFFSCREEN_STATUS' });
   } catch {
     return null;
@@ -224,6 +226,8 @@ export async function startAudioCapture(
   tabId: number,
   bufferSizeSec: number,
   streamIdOverride?: string,
+  /** E2E-only capture-path override; forwarded verbatim to the offscreen. */
+  pcmPath?: 'audio-worklet' | 'script-processor',
 ): Promise<{ ok: boolean; mimeType?: string; error?: string }> {
   try {
     await ensureOffscreen();
@@ -232,6 +236,7 @@ export async function startAudioCapture(
       type: 'OFFSCREEN_START_AUDIO_CAPTURE',
       streamId,
       bufferSizeSec,
+      ...(pcmPath ? { pcmPath } : {}),
     });
     if (!result?.ok) {
       lastError = result?.error || 'offscreen reported failure';
@@ -406,4 +411,21 @@ export async function getAudioCaptureStatus(): Promise<AudioCaptureStatus> {
     mimeType: activeMimeType,
     error: lastError,
   };
+}
+
+/**
+ * Status plus which PCM path is filling the ring buffer.
+ *
+ * Only the E2E bridge asks for this. It exists because the AudioWorklet /
+ * ScriptProcessor equivalence test has to know it compared the two paths it
+ * claims to compare: without the path reported back, a forced path that
+ * silently fell back would be measured as its twin and the parity number
+ * would be meaningless.
+ */
+export async function getAudioCaptureStatusWithPath(): Promise<AudioCaptureStatus & {
+  pcmPath?: 'audio-worklet' | 'script-processor' | null;
+}> {
+  const status = await getAudioCaptureStatus();
+  const offscreen = await getOffscreenRecorderStatus();
+  return { ...status, pcmPath: offscreen?.pcmPath ?? null };
 }

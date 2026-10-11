@@ -41,6 +41,10 @@ import {
 import { tightenToSpeech, type VadOptions } from './vad';
 import { speakViaSpeechSynthesis } from './tts-fallback';
 import { buildPcmClip as buildPcmClipPure, bufferBounds } from './pcm-timeline';
+import { emitBlock, makeProcessorHandler, type PcmChunkRecord } from './pcm-block';
+// Emitted by the `pcm-worklet-url` vite plugin: the hashed URL of the built
+// worklet chunk. Importing the virtual module is what ties the two together.
+import pcmWorkletUrl from 'virtual:__PCM_WORKLET_URL__';
 import {
   setWhisperConfig,
   transcribePcm,
@@ -78,6 +82,8 @@ interface OffscreenMessage {
   lang?: string;
   rate?: number;
   pitch?: number;
+  /** E2E-only capture-path override: 'audio-worklet' | 'script-processor'. */
+  pcmPath?: 'audio-worklet' | 'script-processor';
   /** Whisper / VAD fields */
   format?: 'mp3' | 'wav' | 'webm';
   useVad?: boolean;
@@ -97,13 +103,6 @@ interface ChunkRecord {
   durationMs: number;
 }
 
-interface PcmChunkRecord {
-  samples: Float32Array;
-  recordedAt: number;
-  durationMs: number;
-  sampleRate: number;
-}
-
 const TIMESLICE_MS = 250;
 const TARGET_SAMPLE_RATE = 16_000;
 /** Ceiling for the rolling buffer. The settings slider tops out at 30 s;
@@ -118,6 +117,12 @@ let stream: MediaStream | null = null;
 let audioCtx: AudioContext | null = null;
 let sourceNode: MediaStreamAudioSourceNode | null = null;
 let processorNode: ScriptProcessorNode | null = null;
+let workletNode: AudioWorkletNode | null = null;
+/** Which PCM path is live: 'audio-worklet' or 'script-processor'. */
+let pcmPath: 'audio-worklet' | 'script-processor' | null = null;
+/** Worklet clock: total samples emitted, and the wall-clock start. */
+let workletSamplesSeen = 0;
+let workletStartMs = 0;
 let silentGain: GainNode | null = null;
 let chunks: ChunkRecord[] = [];
 let pcmChunks: PcmChunkRecord[] = [];
@@ -170,6 +175,8 @@ async function startCapture(
 
 /** E2E-only synthetic stream holder (see `openStream`). */
 let e2eStream: MediaStream | null = null;
+/** Loop timers for the synthetic stream's repeating burst (E2E only). */
+const e2eRepeaters: Array<() => void> = [];
 
 /**
  * Open the stream to record.
@@ -194,19 +201,29 @@ async function openStream(streamId: string): Promise<MediaStream> {
     const osc = ctx.createOscillator();
     osc.type = 'sine';
     osc.frequency.value = 440;
-    // Envelope identical to tests/e2e/fixtures/audio-player.html so both the
-    // spec and this recorder agree on the burst shape by construction:
-    // 1 s of silence, 3 s of tone, 1 s of silence.
     const gate = ctx.createGain();
-    gate.gain.setValueAtTime(0, ctx.currentTime + 1);
-    gate.gain.linearRampToValueAtTime(0.85, ctx.currentTime + 1.06);
-    gate.gain.setValueAtTime(0.85, ctx.currentTime + 4);
-    gate.gain.linearRampToValueAtTime(0, ctx.currentTime + 4.06);
+    const burst = (startSec: number): void => {
+      const g = gate.gain;
+      g.cancelScheduledValues(startSec);
+      g.setValueAtTime(0, startSec + 1);
+      g.linearRampToValueAtTime(0.85, startSec + 1.06);
+      g.setValueAtTime(0.85, startSec + 4);
+      g.linearRampToValueAtTime(0, startSec + 4.06);
+    };
+    // Envelope identical to tests/e2e/fixtures/audio-player.html (1 s of
+    // silence, 3 s of tone, 1 s of silence) so both the spec and this
+    // recorder agree on the burst shape by construction. Looped: one burst
+    // every 5 s forever, because the smoke asks for its window whenever the
+    // buffer has filled, and a single burst would leave later asks with
+    // nothing but silence in them.
+    burst(ctx.currentTime);
+    const repeat = setInterval(() => burst(ctx.currentTime), 5_000);
     osc.connect(gate);
     const dest = ctx.createMediaStreamDestination();
     gate.connect(dest);
     osc.start();
     e2eStream = dest.stream;
+    e2eRepeaters.push(() => clearInterval(repeat));
     return dest.stream;
   }
   return await (navigator.mediaDevices as MediaDevices & {
@@ -215,6 +232,109 @@ async function openStream(streamId: string): Promise<MediaStream> {
     audio: { mandatory: { chromeMediaSource: 'tab', chromeMediaSourceId: streamId } },
     video: false,
   });
+}
+
+/**
+ * Install the PCM capture path on the live graph.
+ *
+ * Capability is probed ONCE (per graph, not per call): if the AudioWorklet
+ * module can be registered, the worklet is used; anything else — missing
+ * constructor, a rejected `addModule` (an unreachable URL), a context that
+ * already has a worklet installed — falls back to ScriptProcessor. Both
+ * branches converge on `emitBlock`, so a chunk in the ring buffer is
+ * indistinguishable regardless of capture path.
+ *
+ * The worklet must be connected into the graph with a destination, otherwise
+ * the runtime never calls its `process()` (a node with no downstream consumer
+ * is pruned); `silentGain` keeps it alive while muting what the user hears.
+ */
+/**
+ * E2E-only capture-path override.
+ *
+ * The value arrives as part of `OFFSCREEN_START_AUDIO_CAPTURE` (the SW
+ * forwards it from the E2E bridge), NOT from a page global: the offscreen
+ * document is created by `chrome.offscreen.createDocument`, outside the tab
+ * the test drives, so Playwright's init script never touches it. Leaving the
+ * value as a *message* also keeps the override test-observable, because the
+ * path the document actually used is reported back by `OFFSCREEN_STATUS`.
+ */
+let forcedPathOverride: 'audio-worklet' | 'script-processor' | null = null;
+
+/**
+ * Whether an unforced run defaults to AudioWorklet when the browser has one.
+ *
+ * `false` on purpose: the worklet path mis-samples at 1-in-3 (see the note in
+ * `wirePcmCapture`), so the recorder stays on the ScriptProcessor that is
+ * proven, and this constant is the single switch to flip once the smoke is
+ * green on both halves. An E2E run can force either half without it.
+ */
+const PCM_WORKLET_DEFAULT = false;
+
+async function wirePcmCapture(): Promise<void> {
+  const ctx = audioCtx!;
+  const source = sourceNode!;
+  const sink: (chunk: PcmChunkRecord) => void = (chunk) => {
+    pcmChunks.push(chunk);
+    pruneOld();
+  };
+
+  // An explicit override wins; otherwise capability decides.
+  //
+  // NOT yet defaulted to the worklet even when the browser has one: the
+  // AudioWorklet path currently delivers 1-in-3 samples (the smoke measures
+  // the tone at 146.8 Hz against the 146.4 Hz the ScriptProcessor path
+  // reports on the same input), and a shipped recorder that silently
+  // subsampled speech would be worse than the throttling it was meant to
+  // avoid. So the default is the proven ScriptProcessor until that is fixed,
+  // and the worklet stays reachable through the explicit E2E override that
+  // measures it.
+  const useWorklet =
+    forcedPathOverride === 'audio-worklet' ||
+    (forcedPathOverride === null && !__E2E__ && typeof AudioWorkletNode === 'function' && PCM_WORKLET_DEFAULT);
+
+  if (!useWorklet) {
+    console.log('[Kivara Lingo] ScriptProcessor path (forced or unavailable)');
+  } else {
+    try {
+      await ctx.audioWorklet.addModule(pcmWorkletUrl);
+      workletNode = new AudioWorkletNode(ctx, 'pcm-capture');
+      workletSamplesSeen = 0;
+      workletStartMs = Date.now();
+      workletNode.port.onmessage = (
+        event: MessageEvent<{ channels: Float32Array[]; length: number }>,
+      ) => {
+        const { channels, length } = event.data;
+        // Timestamp by render quantum, not by drain time. `Date.now()` is
+        // sampled when the message reaches the main thread, which under load
+        // is milliseconds behind the render it describes — and that drift is
+        // exactly what made the ring buffer hold ~3x the real audio. These
+        // blocks arrive in render order, so the sample count IS the clock.
+        workletSamplesSeen += length;
+        emitBlock(
+          {
+            numberOfChannels: channels.length,
+            length,
+            sampleRate: ctx.sampleRate,
+            channels,
+          },
+          sink,
+          workletStartMs + (workletSamplesSeen / ctx.sampleRate) * 1000,
+        );
+      };
+      source.connect(workletNode);
+      workletNode.connect(silentGain!).connect(ctx.destination);
+      pcmPath = 'audio-worklet';
+      return;
+    } catch (err) {
+      console.warn('[Kivara Lingo] AudioWorklet setup failed, using ScriptProcessor', err);
+    }
+  }
+
+  processorNode = ctx.createScriptProcessor(4096, 2, 1);
+  processorNode.onaudioprocess = makeProcessorHandler(sink);
+  source.connect(processorNode);
+  processorNode.connect(silentGain!).connect(ctx.destination);
+  pcmPath = 'script-processor';
 }
 
 /** Capture setup proper, always under `startInFlight`. */
@@ -241,29 +361,13 @@ async function beginCapture(
     // once MediaRecorder's initial header falls out of the rolling window,
     // decodeAudioData can fail with EncodingError. PCM is already decoded and
     // timestamped, so extraction is deterministic.
-    processorNode = audioCtx.createScriptProcessor(4096, 2, 1);
+    //
+    // The block arrives either as an AudioWorklet frame (non-throttled) or a
+    // ScriptProcessor event (main-thread); both normalise in `pcm-block.ts`,
+    // so the chunk that lands in the ring buffer is identical either way.
     silentGain = audioCtx.createGain();
     silentGain.gain.value = 0;
-    processorNode.onaudioprocess = (event) => {
-      const input = event.inputBuffer;
-      const length = input.length;
-      const channels = Math.max(1, input.numberOfChannels);
-      const mono = new Float32Array(length);
-      for (let ch = 0; ch < channels; ch += 1) {
-        const data = input.getChannelData(ch);
-        for (let i = 0; i < length; i += 1) mono[i] += data[i] / channels;
-      }
-      const durationMs = (length / input.sampleRate) * 1000;
-      pcmChunks.push({
-        samples: mono,
-        recordedAt: Date.now() - durationMs,
-        durationMs,
-        sampleRate: input.sampleRate,
-      });
-      pruneOld();
-    };
-    sourceNode.connect(processorNode);
-    processorNode.connect(silentGain).connect(audioCtx.destination);
+    await wirePcmCapture();
   } catch (err) {
     console.warn('[Kivara Lingo] failed to wire audio passthrough', err);
   }
@@ -334,6 +438,9 @@ function pruneOld() {
  * that can stop it.
  */
 async function teardownPipeline(): Promise<void> {
+  // Stop the synthetic stream's burst loop (E2E only): a setInterval
+  // outliving the graph keeps scheduling gain envelopes into a dead context.
+  while (e2eRepeaters.length) e2eRepeaters.pop()?.();
   try {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
   } catch (err) {
@@ -354,6 +461,18 @@ async function teardownPipeline(): Promise<void> {
     // ignore
   }
   processorNode = null;
+  try {
+    workletNode?.port.close();
+  } catch {
+    // ignore
+  }
+  try {
+    workletNode?.disconnect();
+  } catch {
+    // ignore
+  }
+  workletNode = null;
+  pcmPath = null;
   try {
     silentGain?.disconnect();
   } catch {
@@ -649,6 +768,11 @@ chrome.runtime.onMessage.addListener((rawMsg: unknown, _sender, sendResponse) =>
   if (!msg.type || !msg.type.startsWith('OFFSCREEN_')) return false;
 
   if (msg.type === 'OFFSCREEN_START_AUDIO_CAPTURE' && msg.streamId) {
+    // E2E-only override, forwarded by the SW (see the field's declaration
+    // above). Validated here so a typo cannot force a path that does not exist.
+    const forced = msg.pcmPath;
+    forcedPathOverride =
+      forced === 'audio-worklet' || forced === 'script-processor' ? forced : null;
     void startCapture(msg.streamId, msg.bufferSizeSec ?? 30).then((result) => {
       sendResponse(result);
     }, (err) => {
@@ -736,6 +860,9 @@ chrome.runtime.onMessage.addListener((rawMsg: unknown, _sender, sendResponse) =>
       mimeType: recordedMime,
       bufferedChunks: chunks.length,
       recordingStartedAt,
+      // Which PCM path is filling the ring buffer. Reported so the E2E smoke
+      // can prove it compared the two paths it meant to compare.
+      pcmPath: pcmPath ?? null,
     });
     return false;
   }
