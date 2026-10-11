@@ -1,35 +1,44 @@
 /**
- * The SW half of the `kvl-resolve-word` port, characterized BEFORE the move
- * of #27 (src/background/stream.ts -> enrichment/stream). Same contract as
- * the merge and cache cuts: whatever the CURRENT code does on each input is
- * recorded as data, and the move must reproduce it exactly.
+ * The SW half of the `kvl-resolve-word` port (enrichment/stream.ts).
  *
- * The review's step-1 baseline, four asks:
+ * These pin the handler's contract across the #27 move: written against the
+ * pre-move code in a git worktree (the module path changed, nothing else),
+ * and they still hold unchanged.
  *
- *  - a port whose produce emits local -> delayed phases -> done delivers all
- *    of them IN ORDER on the port;
- *  - a produce that throws reports error + done;
- *  - the emit stops after the port disconnects;
+ * The review's baseline, all five asks:
+ *  - a port whose produce emits local -> error -> enrichment -> done
+ *    receives ALL of them: `error` is NOT terminal (it only logs), so a
+ *    regression that makes it terminal — or drops the phases after it —
+ *    fails here. This is the family of the 884a410 phase-rank bug.
+ *  - `needsAccess` survives on the terminal `done` intact;
+ *  - a produce that throws reports error (scope enrichment, THROWN message)
+ *    + done;
+ *  - the emit stops on disconnect;
  *  - a port already closed receives no further postMessage.
+ *
+ * No wall-clock anywhere: the only ordering signal is the promise chain of
+ * the produce itself, so a slow CI cannot invert the order.
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { installResolveWordPort } from "../../src/background/stream";
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { installResolveWordPort } from '../../src/background/enrichment/stream';
 
 interface StubPort {
   name: string;
-  posted: unknown[];
+  posted: Array<Record<string, unknown>>;
   onMessage: { addListener: (l: (m: unknown) => void) => void; fire: (m: unknown) => void };
   onDisconnect: { addListener: (l: () => void) => void; fire: () => void };
   postMessage: (m: unknown) => void;
   disconnect: () => void;
+  closing: boolean;
 }
 
-function makePort(name = "kvl-resolve-word"): StubPort {
+function makePort(name = 'kvl-resolve-word'): StubPort {
   const mC: Array<(m: unknown) => void> = [];
   const dC: Array<() => void> = [];
   const port: StubPort = {
     name,
     posted: [],
+    closing: false,
     onMessage: {
       addListener: (l: (m: unknown) => void) => mC.push(l),
       fire: (m: unknown) => mC.forEach((l) => l(m)),
@@ -38,96 +47,107 @@ function makePort(name = "kvl-resolve-word"): StubPort {
       addListener: (l: () => void) => dC.push(l),
       fire: () => dC.forEach((l) => l()),
     },
-    postMessage: (m: unknown) => { port.posted.push(m); },
+    postMessage: (m: unknown) => {
+      if (port.closing) throw new Error('port closed');
+      port.posted.push(m as Record<string, unknown>);
+    },
     disconnect: () => {},
   };
   return port;
 }
 
-/** Wire a produce fn and a port, then deliver the request. */
 function wire(
-  produce: (_params: unknown, emit: (m: unknown) => void) => Promise<void>,
+  produce: (_params: unknown, emit: (m: Record<string, unknown>) => void) => Promise<void>,
   port: StubPort,
 ): void {
   const listeners: Array<(p: StubPort) => void> = [];
-  vi.stubGlobal("chrome", {
+  vi.stubGlobal('chrome', {
     runtime: { onConnect: { addListener: (l: (p: StubPort) => void) => listeners.push(l) } },
   });
   installResolveWordPort(produce as never);
   listeners[0]!(port);
-  port.onMessage.fire({ kind: "resolve-word", token: "run" });
+  port.onMessage.fire({ kind: 'resolve-word', token: 'run' });
 }
 
-const phasesOf = (port: StubPort): string[] =>
-  (port.posted as Array<{ phase: string }>).map((m) => m.phase);
+const phasesOf = (port: StubPort): string[] => port.posted.map((m) => m.phase as string);
 
-const settle = async (ms: number): Promise<void> => {
-  await new Promise((r) => setTimeout(r, ms));
+/** Drain microtasks only — deterministic on any machine, no fake timers. */
+const flush = async (): Promise<void> => {
+  for (let i = 0; i < 6; i++) await Promise.resolve();
 };
 
-describe("installResolveWordPort (SW side)", () => {
+describe('installResolveWordPort (SW side)', () => {
   beforeEach(() => { vi.unstubAllGlobals(); });
 
-  it("ignores a port with a different name", () => {
-    const port = makePort("some-other-channel");
-    wire(async (_p, emit) => { emit({ phase: "local" }); }, port);
-    expect(port.posted as unknown[]).toHaveLength(0);
+  it('ignores a port with a different name', () => {
+    const port = makePort('some-other-channel');
+    wire(async (_p, emit) => { emit({ phase: 'local' }); }, port);
+    expect(port.posted).toHaveLength(0);
   });
 
-  it("delivers every phase, in order, then done", async () => {
+  it('delivers every phase in order, error included, then done', async () => {
     const port = makePort();
     wire(async (_p, emit) => {
-      emit({ phase: "local", entry: { token: "run" } });
-      await settle(2);
-      emit({ phase: "translation" });
-      await settle(2);
-      emit({ phase: "enrichment" });
-      await settle(2);
-      emit({ phase: "done" });
+      emit({ phase: 'local', entry: { token: 'run' } });
+      emit({ phase: 'error', scope: 'remote', message: 'translate failed' });
+      emit({ phase: 'enrichment', entry: { token: 'run' } });
+      emit({ phase: 'done' });
     }, port);
-    await settle(20);
-    expect(phasesOf(port)).toEqual(["local", "translation", "enrichment", "done"]);
+    await flush();
+    expect(phasesOf(port)).toEqual(['local', 'error', 'enrichment', 'done']);
   });
 
-  it("reports error + done when produce throws", async () => {
-    const port = makePort();
-    wire(async () => { throw new Error("boom"); }, port);
-    await settle(5);
-    expect(phasesOf(port)).toEqual(["error", "done"]);
-  });
-
-  it("stops emitting after the port disconnects", async () => {
+  it('carries needsAccess on the terminal done intact', async () => {
+    const needsAccess = [{ source: 'forvo', group: 'audio' }, { source: 'unsplash', group: 'images' }];
     const port = makePort();
     wire(async (_p, emit) => {
-      emit({ phase: "local", entry: { token: "run" } });
-      await settle(6);
-      emit({ phase: "translation" });
-      await settle(6);
-      emit({ phase: "done" });
+      emit({ phase: 'local', entry: { token: 'run' } });
+      emit({ phase: 'done', needsAccess });
     }, port);
-    await settle(2); // only `local` has landed
+    await flush();
+    const done = port.posted.find((m) => m.phase === 'done');
+    expect(done).toBeDefined();
+    expect(done!.needsAccess).toEqual(needsAccess);
+  });
+
+  it('reports error + done with the thrown detail when produce throws', async () => {
+    const port = makePort();
+    wire(async () => { throw new Error('boom-kaboom'); }, port);
+    await flush();
+    expect(phasesOf(port)).toEqual(['error', 'done']);
+    const err = port.posted[0]!;
+    expect(err.scope).toBe('enrichment');
+    expect(String(err.message)).toContain('boom-kaboom');
+  });
+
+  it('stops emitting after the port disconnects', async () => {
+    const port = makePort();
+    let release: (() => void) | null = null;
+    wire(async (_p, emit) => {
+      emit({ phase: 'local', entry: { token: 'run' } });
+      await new Promise<void>((r) => { release = r; });
+      emit({ phase: 'enrichment' });
+      emit({ phase: 'done' });
+    }, port);
+    await flush();
+    expect(phasesOf(port)).toEqual(['local']);
     port.onDisconnect.fire();
-    await settle(20);
-    expect(phasesOf(port)).toEqual(["local"]);
+    release!();
+    await flush();
+    expect(phasesOf(port)).toEqual(['local']);
   });
 
-  it("never posts on a closed port (mid-flight dismiss)", async () => {
+  it('never posts on a closed port (mid-flight dismiss)', async () => {
     const port = makePort();
-    let closed = false;
-    port.postMessage = (m: unknown) => {
-      if (closed) throw new Error("port closed");
-      port.posted.push(m);
-    };
     wire(async (_p, emit) => {
-      emit({ phase: "local", entry: { token: "run" } });
-      await settle(3);
-      emit({ phase: "translation" }); // throws now -> cancel
-      await settle(3);
-      emit({ phase: "done" });        // must be swallowed
+      emit({ phase: 'local', entry: { token: 'run' } }); // still alive
+      await Promise.resolve();
+      port.closing = true; // mid-flight the port dies
+      emit({ phase: 'enrichment' }); // throws -> the handler cancels
+      await Promise.resolve();
+      emit({ phase: 'done' }); // swallowed, never reaches the port
     }, port);
-    await settle(2);
-    closed = true;
-    await settle(15);
-    expect(phasesOf(port)).toEqual(["local"]);
+    await flush();
+    expect(phasesOf(port)).toEqual(['local']);
   });
 });
