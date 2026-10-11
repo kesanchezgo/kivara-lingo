@@ -18,7 +18,7 @@
  */
 
 import { t } from '../../../shared/i18n';
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { normalizeTtlDays } from '../../../shared/cache-ttl';
 import { useKivaraStore } from '../../../shared/store';
 import { SecretKeyInput } from '../SecretKeyInput';
@@ -114,6 +114,28 @@ export function VipSection() {
   const setKey = <K extends VipKey>(k: K, v: VipSettings[K]) => {
     setVip((prev) => ({ ...prev, [k]: v }));
   };
+
+  // The TTL box holds a local STRING while it is being typed, so typing
+  // `30` digit by digit never writes 3, then 0-as-30-between — and clearing
+  // the field does not park an intermediate value. The store only ever sees
+  // the committed, clamped number.
+  const [ttlText, setTtlText] = useState(String(vip.cacheTtlDays));
+  const lastCommittedTtl = useRef(vip.cacheTtlDays);
+  const commitTtl = () => {
+    const next = normalizeTtlDays(Number(ttlText));
+    lastCommittedTtl.current = next;
+    setTtlText(String(next));
+    setKey('cacheTtlDays', next);
+  };
+  // Re-sync the box when the store changes it from elsewhere (another tab's
+  // write, the hydration pass): only when the committed value truly moved,
+  // so the in-progress typing never gets yanked.
+  useEffect(() => {
+    if (vip.cacheTtlDays !== lastCommittedTtl.current) {
+      lastCommittedTtl.current = vip.cacheTtlDays;
+      setTtlText(String(vip.cacheTtlDays));
+    }
+  }, [vip.cacheTtlDays]);
 
   return (
     <div className="p-2.5 space-y-3">
@@ -245,9 +267,12 @@ export function VipSection() {
                   type="number"
                   min={1}
                   max={365}
-                  value={vip.cacheTtlDays}
-                  onChange={(e) => setKey('cacheTtlDays', (e.target.value === '' ? 0 : Number(e.target.value)) as 0)}
-                  onBlur={(e) => setKey('cacheTtlDays', normalizeTtlDays(Number(e.target.value)))}
+                  value={ttlText}
+                  onChange={(e) => setTtlText(e.target.value)}
+                  onBlur={commitTtl}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitTtl();
+                  }}
                   className="sl-input text-right tabular-nums"
                   style={{ width: 50 }}
                 />

@@ -27,14 +27,12 @@ export interface ResolveWordStreamHandlers {
   onDisconnected: () => void;
 }
 
+const REPLAY_LIMIT = 1;
+
 /**
  * Open the stream. `REPLAY_LIMIT = 1` is the whole retry budget: the first
  * disconnect gets one replay; a second disconnect gives up and reports.
  */
-const REPLAY_LIMIT = 1;
-
-
-
 export function openResolveWordStream(
   request: ResolveWordStreamRequest,
   handlers: ResolveWordStreamHandlers,
@@ -76,7 +74,7 @@ export function openResolveWordStream(
       // post-replay `local`, once anything richer has landed.
       if (msg.phase === 'local' && replayed && sawRicherThanLocal) return;
       if (msg.phase !== 'local') sawRicherThanLocal = true;
-      if (msg.phase !== 'local') sawRicherThanLocal = true;
+
       handlers.onMessage(msg);
     });
     active.onDisconnect.addListener(() => {

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { normalizeTtlDays } from './cache-ttl';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { pushSecretsToLocal, pullSecretsFromLocal, isOwnLocalWrite } from './secret-store';
 import type {
@@ -714,6 +715,12 @@ export async function retrySyncWrite(): Promise<boolean> {
  */
 function mergePersisted(persistedState: unknown, currentState: KivaraState): KivaraState {
   const persisted = (persistedState ?? {}) as Partial<KivaraState>;
+  // Normalize the VIP block's ttl BEFORE the spread: a value persisted by
+  // an older build (or hand-edited) can be 0, -5, NaN or 9999, and a bad ttl
+  // either wipes the cache or never expires it. Clamp on hydrate, once, here.
+  if (persisted.vip && typeof persisted.vip === 'object') {
+    persisted.vip.cacheTtlDays = normalizeTtlDays(persisted.vip.cacheTtlDays);
+  }
   return {
     ...currentState,
     ...persisted,
