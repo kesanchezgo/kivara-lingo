@@ -63,12 +63,10 @@ function makePort(name = 'kvl-resolve-word'): StubPort {
 }
 
 function makeListeners(): {
-  listeners: Array<(p: StubPort) => void>;
   wire: (produce: (_p: unknown, emit: (m: Record<string, unknown>) => void) => Promise<void>, port: StubPort) => void;
 } {
   const listeners: Array<(p: StubPort) => void> = [];
   return {
-    listeners,
     wire: (produce, port) => {
       vi.stubGlobal('chrome', {
         runtime: { onConnect: { addListener: (l: (p: StubPort) => void) => listeners.push(l) } },
@@ -90,7 +88,7 @@ const phasesOf = (port: StubPort): string[] => port.posted.map((m) => m.phase as
 /** Macrotask flush: lets the handler's promise chain settle, no wall-clock race. */
 const settle = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 
-describe('installResolveWorldPort (SW side)', () => {
+describe('installResolveWordPort (SW side)', () => {
   beforeEach(() => { vi.unstubAllGlobals(); });
   afterEach(() => { vi.unstubAllGlobals(); });
 
@@ -170,7 +168,6 @@ describe('installResolveWorldPort (SW side)', () => {
       emit({ phase: 'enrichment' }); // attempt 2: throws -> cancelled
       emit({ phase: 'done' });        // must NOT attempt again
     }, port);
-    await settle();
     await settle();
     expect(port.posted).toEqual([{ phase: 'local', entry: { token: 'run' } }]);
     expect(port.log.calls).toBe(2); // 'local' + the first throwing one, no more
