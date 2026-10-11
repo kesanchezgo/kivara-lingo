@@ -267,14 +267,15 @@ let forcedPathOverride: 'audio-worklet' | 'script-processor' | null = null;
 /**
  * Whether an unforced run defaults to AudioWorklet when the browser has one.
  *
- * `false` on purpose, and it is the one line to flip: the worklet path was
- * wrong for its whole first life because the processor's `port` field was
- * declared with an initialiser, which clobbered the real `MessagePort` and
- * silently dropped every block. It is correct now, and the smoke proves both
- * halves on the same input, so the switch stays closed only until the next
- * round opens it — not because anything is broken.
+ * `true` since the processor stopped clobbering its own `port` field (see the
+ * class in `pcm-worklet.ts`) and the worklet URL stopped naming the previous
+ * build's chunk (see `workletUrlPlugin`): both halves of the capture smoke now
+ * measure the same tone, the same clip length and the same RMS on the same
+ * synthetic stream. The audio-render-thread path is the point of the worklet —
+ * a throttled tab cannot drop its callbacks — so it is the default, and this
+ * constant is the one line back if that ever stops being true.
  */
-const PCM_WORKLET_DEFAULT = false;
+const PCM_WORKLET_DEFAULT = true;
 
 async function wirePcmCapture(): Promise<void> {
   const ctx = audioCtx!;
