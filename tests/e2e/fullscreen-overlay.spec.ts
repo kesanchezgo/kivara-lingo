@@ -52,21 +52,48 @@ test('fullscreen re-parents the mounted overlay and cleans up after itself', asy
     // Keyboard activation is a real user gesture, which a synthetic
     // evaluate/click is not. Headless Chromium still drops the transient
     // activation between the keypress and the call once in a while, answering
-    // `TypeError: not granted` -- so retry with fresh gestures and report the
-    // last refusal instead of timing out on a poll.
-    let entered = false;
-    let lastRefusal: string | null = null;
-    for (let attempt = 1; attempt <= 5 && !entered; attempt++) {
+    // `TypeError: not granted`. Only THAT refusal is retried, and at most
+    // twice more: if the product ever stops calling requestFullscreen inside
+    // the gesture, every attempt answers the same way and the test fails
+    // instead of passing on a slow retry. A run that needed the retry is
+    // logged, so the noise rate stays visible in the report rather than
+    // being absorbed.
+    const ACTIVATION_REFUSALS = [
+      // V8: no transient activation.
+      /TypeError: not granted/i,
+      // Chromium: the gesture is no longer fresh enough.
+      /NotAllowedError/i,
+      /Permissions check failed/i,
+    ];
+    const tryFullscreenGesture = async () => {
       await page.bringToFront();
       await enterFullscreen.press('Enter');
-      const state = await page.evaluate(() => ({
+      return page.evaluate(() => ({
         fullscreen: Boolean(document.fullscreenElement),
         error: (window as Window & { __kivaraFullscreenError?: string }).__kivaraFullscreenError ?? null,
       }));
-      entered = state.fullscreen;
-      lastRefusal = state.error;
+    };
+    const probe = await tryFullscreenGesture();
+    let attempts = 1;
+    while (
+      !probe.fullscreen &&
+      attempts < 3 &&
+      ACTIVATION_REFUSALS.some((r) => r.test(String(probe.error)))
+    ) {
+      attempts += 1;
+      Object.assign(probe, await tryFullscreenGesture());
     }
-    expect(entered, `fullscreen refused after 5 gestures: ${lastRefusal}`).toBe(true);
+    expect(
+      probe,
+      `fullscreen refused after ${attempts} attempt(s): ${probe.error}`,
+    ).toMatchObject({ fullscreen: true });
+    if (attempts > 1) {
+      // A minority of retried runs is environment noise; a majority is the
+      // product, and this line is where that trend first shows up.
+      console.warn(
+        `[full] needed a transient-activation retry: attempts=${attempts} (${probe.error})`,
+      );
+    }
     await expect.poll(
       async () =>
         await page.evaluate(() =>
