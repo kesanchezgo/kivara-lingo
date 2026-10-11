@@ -196,7 +196,12 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     modA.useKivaraStore.setState({
       ai: { ...modA.useKivaraStore.getState().ai, apiKey: 'sk-retry-survivor' },
     });
-    await flush();
+    // The slot write is async, and a fixed `flush(60)` here was the one place
+    // in this file that still trusted a sleep: under a loaded box the poll in
+    // the test above wins and this one reads `undefined`, which asserts as
+    // "the retry tombstoned the key" — a real regression reported as a pass
+    // blocker. Wait for the write to land instead.
+    await waitFor(() => local.get(SLOT_KEY)?.startsWith('enc:v1:') === true);
     const slotBefore = local.get(SLOT_KEY);
     expect(typeof slotBefore).toBe('string');
     expect(modA.getSyncWriteFailed()).toBe(false);

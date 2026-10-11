@@ -25,6 +25,16 @@ function jsonResponse(value: unknown): Response {
 beforeEach(() => {
   vi.restoreAllMocks();
   vi.clearAllMocks();
+  // `clearAllMocks` clears calls, not the implementations other tests armed on
+  // the shared `chrome` mock from tests/setup.ts — so a test that made
+  // `storage.local.get` resolve to an OPEN circuit used to leave it there for
+  // every test that ran after it. Under `--sequence.shuffle` that reaches back
+  // into this file's earlier tests (the circuit ones sit at line 84+), and the
+  // scraper policy tests then measured zero fetches and failed. The default
+  // empty store has to be re-armed, not assumed.
+  vi.mocked(chrome.storage.local.get).mockResolvedValue({});
+  vi.mocked(chrome.storage.local.set).mockResolvedValue(undefined);
+  vi.mocked(chrome.storage.local.remove).mockResolvedValue(undefined);
 });
 
 describe('browser-session protected scrapers', () => {
