@@ -379,34 +379,70 @@ describe('pcm-block: the block carries its own rate', () => {
     const a = buildPcmClip(worklet, 0, windowMs, DEFAULT_TARGET_RATE)!;
     const b = buildPcmClip(processor, 0, windowMs, DEFAULT_TARGET_RATE)!;
 
-    // What the equivalence contract is actually about: the extraction window,
-    // not the block size, decides the clip. 375 seams and 11 seams give the
-    // same length, the same pitch and the same envelope.
+    // Byte for byte, not "close": the window is laid out once at the source
+    // rate and resampled once, so the block size only decides where the seam
+    // bookkeeping happens — never any output sample. This used to be a
+    // `> 0.995` correlation threshold when the resampling ran per chunk, which
+    // was the honest description of the defect rather than of the contract.
     expect(a.samples.length).toBe(b.samples.length);
+    let worst = 0;
+    for (let i = 0; i < a.samples.length; i++) {
+      worst = Math.max(worst, Math.abs(a.samples[i] - b.samples[i]));
+    }
+    expect(worst).toBe(0);
+
+    // And what both are identical to: one pass of the same resampler over the
+    // whole window.
+    const reference = resampleLinear(
+      signal.subarray(0, Math.round((windowMs / 1000) * rate)),
+      rate,
+      DEFAULT_TARGET_RATE,
+    );
+    expect(a.samples.length).toBe(reference.length);
+    let vsReference = 0;
+    for (let i = 0; i < reference.length; i++) {
+      vsReference = Math.max(vsReference, Math.abs(a.samples[i] - reference[i]));
+    }
+    expect(vsReference).toBe(0);
+
+    // The pitch and the envelope survive, on either block size.
     for (const clip of [a, b]) {
       expect(
         Math.abs(estimateFrequency(clip.samples, clip.sampleRate) - DEFAULT_TONE_HZ),
-      ).toBeLessThanOrEqual(DEFAULT_TONE_HZ * 0.02);
-      expect(rms(clip.samples)).toBeCloseTo(Math.SQRT1_2, 3);
+      ).toBeLessThanOrEqual(DEFAULT_TONE_HZ * 0.005);
+      expect(rms(clip.samples)).toBeCloseTo(Math.SQRT1_2, 4);
     }
+  });
 
-    // Measured on a full-scale 440 Hz sine: correlation 0.9978 lag 0, mean
-    // absolute difference 0.057. That residual is real and worth recording —
-    // each chunk is resampled on its own from a floored source index, so every
-    // seam carries up to one source sample (20.8 us at 48 kHz, a 3.3 degree
-    // phase step at 440 Hz) of grid error. `ScriptProcessor` pays it 11 times a
-    // second at 4096 samples a block; the worklet pays it 375 times. Neither
-    // the frequency nor the RMS moves, so VAD and Whisper are unaffected, but
-    // true sample-for-sample parity would mean resampling the window once at
-    // the source rate instead of chunk by chunk — a change to `buildPcmClip`
-    // itself, not to either capture path.
-    let dot = 0, na = 0, nb = 0;
-    for (let i = 0; i < a.samples.length; i++) {
-      dot += a.samples[i] * b.samples[i];
-      na += a.samples[i] * a.samples[i];
-      nb += b.samples[i] * b.samples[i];
+  it('keeps a chunk that changed rate inside itself at its own rate', () => {
+    // An AudioContext rate change lands wherever the render quantum is, not at
+    // a block boundary, so one block can hold two rates. Reading the tail at
+    // the head's rate is what put 48 kHz samples on a 16 kHz timeline once.
+    const rate = DEFAULT_SOURCE_RATE;
+    const tailRate = 32_000;
+    const head = sine({ sampleRate: rate, durationMs: 250, freqHz: DEFAULT_TONE_HZ });
+    const tail = sine({ sampleRate: tailRate, durationMs: 250, freqHz: DEFAULT_TONE_HZ });
+    const samples = new Float32Array(head.length + tail.length);
+    samples.set(head, 0);
+    samples.set(tail, head.length);
+    const chunk: PcmChunk = {
+      samples,
+      recordedAt: 0,
+      durationMs: 500,
+      sampleRate: rate,
+      midStreamRate: tailRate,
+      midStreamAtMs: 250,
+    };
+
+    const clip = buildPcmClip([chunk], 0, 500, DEFAULT_TARGET_RATE)!;
+    // Both halves measure as the same tone, because each was read at its own
+    // rate; a whole-chunk read at `rate` makes the tail read at 32/48 of it.
+    const half = Math.floor(clip.samples.length / 2);
+    for (const part of [clip.samples.subarray(0, half), clip.samples.subarray(half)]) {
+      expect(rms(part)).toBeGreaterThan(0.5);
+      expect(Math.abs(estimateFrequency(part, clip.sampleRate) - DEFAULT_TONE_HZ))
+        .toBeLessThanOrEqual(DEFAULT_TONE_HZ * 0.05);
     }
-    expect(dot / Math.sqrt(na * nb)).toBeGreaterThan(0.995);
   });
 
   it('tolerates a one-sample hole at a seam rather than drifting the timeline', () => {
