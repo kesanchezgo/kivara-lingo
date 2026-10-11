@@ -132,6 +132,12 @@ async function getOffscreenRecorderStatus(): Promise<{
   mimeType?: string;
   error?: string;
   pcmPath?: 'audio-worklet' | 'script-processor' | null;
+  captureSampleRate?: number | null;
+  bufferedPcmChunks?: number;
+  chunkSampleRate?: number | null;
+  workletBlocksSeen?: number | null;
+  workletFirstError?: string | null;
+  workletSetupError?: string | null;
 } | null> {
   if (!(await hasOffscreenDocument())) return null;
   try {
@@ -141,6 +147,12 @@ async function getOffscreenRecorderStatus(): Promise<{
       mimeType?: string;
       error?: string;
       pcmPath?: 'audio-worklet' | 'script-processor' | null;
+      captureSampleRate?: number | null;
+      bufferedPcmChunks?: number;
+      chunkSampleRate?: number | null;
+      workletBlocksSeen?: number | null;
+      workletFirstError?: string | null;
+      workletSetupError?: string | null;
     }>({ type: 'OFFSCREEN_STATUS' });
   } catch {
     return null;
@@ -414,7 +426,8 @@ export async function getAudioCaptureStatus(): Promise<AudioCaptureStatus> {
 }
 
 /**
- * Status plus which PCM path is filling the ring buffer.
+ * Status plus which PCM path is filling the ring buffer — and the rates that
+ * path declared, for the AudioWorklet pitch diagnostic.
  *
  * Only the E2E bridge asks for this. It exists because the AudioWorklet /
  * ScriptProcessor equivalence test has to know it compared the two paths it
@@ -424,8 +437,14 @@ export async function getAudioCaptureStatus(): Promise<AudioCaptureStatus> {
  */
 export async function getAudioCaptureStatusWithPath(): Promise<AudioCaptureStatus & {
   pcmPath?: 'audio-worklet' | 'script-processor' | null;
+  captureSampleRate?: number | null;
+  bufferedPcmChunks?: number;
+  chunkSampleRate?: number | null;
+  chunkLength?: number | null;
+  workletBlocksSeen?: number | null;
+  workletFirstError?: string | null;
 }> {
   const status = await getAudioCaptureStatus();
   const offscreen = await getOffscreenRecorderStatus();
-  return { ...status, pcmPath: offscreen?.pcmPath ?? null };
+  return { ...status, ...offscreen };
 }

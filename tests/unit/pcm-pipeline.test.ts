@@ -28,6 +28,7 @@ import {
   resampleLinear,
   type PcmChunk,
 } from '../../src/offscreen/pcm-timeline';
+import { blockFromMessage, emitBlock } from '../../src/offscreen/pcm-block';
 import { detectSpeech, tightenToSpeech } from '../../src/offscreen/vad';
 import { encodeWavMono } from '../../src/offscreen/audio-encoder';
 
@@ -257,5 +258,172 @@ describe('encodeWavMono', () => {
     expect(at(3)).toBe(-16384); // -0.5 * 32768 = -16384
     expect(at(4)).toBe(32767);
     expect(at(5)).toBe(-32768);
+  });
+});
+
+describe('pcm-block: the block carries its own rate', () => {
+  /**
+   * The shape the AudioWorklet posts, and the shape the ScriptProcessor hands
+   * over, reduced to what both share. These tests exist because a block
+   * labelled with a wrong rate does not fail loudly anywhere else: a 440 Hz
+   * signal at 48 kHz stamped as 16 kHz reads back at 48000/16000 of the pitch,
+   * 146.7 Hz, and nothing downstream can tell that from a real recording.
+   */
+  /** Slice `samples` into blocks and stamp each on an explicit audio clock. */
+  const blocksOf = (
+    samples: Float32Array,
+    sampleRate: number,
+    blockSize: number,
+    startMs = 0,
+  ): PcmChunkRecord[] => {
+    const out: PcmChunkRecord[] = [];
+    for (let i = 0; i < samples.length; i += blockSize) {
+      const part = samples.subarray(i, Math.min(i + blockSize, samples.length));
+      // The same simulated audio clock both production paths use: the wall
+      // time at the END of this block, from which `downmixBlock` backs out
+      // where the block starts.
+      const endMs = startMs + ((i + part.length) / sampleRate) * 1000;
+      emitBlock({
+        numberOfChannels: 1,
+        length: part.length,
+        sampleRate,
+        channels: [part],
+      }, out.push.bind(out), endMs);
+    }
+    return out;
+  };
+
+  it('measures 440 Hz within 2% from 128-sample worklet blocks at 48 kHz', () => {
+    const rate = DEFAULT_SOURCE_RATE;
+    // A whole number of cycles, so the crossing estimate is exact for a
+    // correctly labelled block.
+    const blocks = blocksOf(
+      sine({ sampleRate: rate, durationMs: 1_000, freqHz: DEFAULT_TONE_HZ }),
+      rate,
+      128,
+    );
+    expect(blocks.length).toBeGreaterThan(300);
+
+    const clip = buildPcmClip(blocks, 0, 1_000, DEFAULT_TARGET_RATE);
+    expect(clip).not.toBeNull();
+    expect(Math.abs(estimateFrequency(clip!.samples, clip!.sampleRate) - DEFAULT_TONE_HZ))
+      .toBeLessThanOrEqual(DEFAULT_TONE_HZ * 0.02);
+  });
+
+  it('shows a mislabelled rate is not silently accepted', () => {
+    // The failure mode this describe block guards. A block stamped 16 000
+    // while its samples were rendered at 48 000 does not throw, and nothing
+    // downstream can tell it from a real recording — the clip just does not
+    // measure the tone that went in. `blockFromMessage` is what stops the
+    // message that would cause this from becoming a block at all.
+    const rate = DEFAULT_SOURCE_RATE;
+    const blocks = blocksOf(
+      sine({ sampleRate: rate, durationMs: 1_000, freqHz: DEFAULT_TONE_HZ }),
+      rate,
+      128,
+    );
+    const mislabelled = blocks.map((b) => ({ ...b, sampleRate: DEFAULT_TARGET_RATE }));
+    const clip = buildPcmClip(mislabelled, 0, 1_000, DEFAULT_TARGET_RATE);
+
+    expect(clip).not.toBeNull();
+    expect(clip!.sampleRate).toBe(DEFAULT_TARGET_RATE);
+    const measured = estimateFrequency(clip!.samples, clip!.sampleRate);
+    expect(
+      Math.abs(measured - DEFAULT_TONE_HZ),
+      `mislabelled rate measured ${measured.toFixed(1)} Hz as ${DEFAULT_TONE_HZ} Hz`,
+    ).toBeGreaterThan(DEFAULT_TONE_HZ * 0.02);
+  });
+
+  it('refuses a worklet message that posts no rate, or the wrong one', () => {
+    const msg = {
+      channels: [new Float32Array([0, 0.1, 0.2, 0.1])],
+      length: 4,
+    };
+    expect(() => blockFromMessage(msg, DEFAULT_SOURCE_RATE)).toThrow(/no sampleRate/);
+    expect(() => blockFromMessage({ ...msg, sampleRate: DEFAULT_TARGET_RATE }, DEFAULT_SOURCE_RATE))
+      .toThrow(/!= context rate/);
+    // The well-formed case the real processor produces.
+    const block = blockFromMessage({ ...msg, sampleRate: DEFAULT_SOURCE_RATE }, DEFAULT_SOURCE_RATE);
+    expect(block.sampleRate).toBe(DEFAULT_SOURCE_RATE);
+    expect(emitBlock(block, () => {}, 0)).toBeUndefined();
+  });
+
+  it('refuses a block whose rate is missing or non-positive', () => {
+    const bad = [Number.NaN, 0, -48_000, Infinity, undefined as unknown as number];
+    for (const sampleRate of bad) {
+      expect(() => emitBlock({
+        numberOfChannels: 1,
+        length: 4,
+        sampleRate,
+        channels: [new Float32Array([0, 0.1, 0.2, 0.1])],
+      }, () => {})).toThrow(/sampleRate/);
+    }
+  });
+
+  it('builds the same clip from 128-sample worklet blocks as from 4096-sample processor blocks', () => {
+    const rate = DEFAULT_SOURCE_RATE;
+    const signal = sine({ sampleRate: rate, durationMs: 1_000, freqHz: DEFAULT_TONE_HZ });
+    const windowMs = 900;
+
+    const worklet = blocksOf(signal, rate, 128);
+    const processor = blocksOf(signal, rate, 4_096);
+
+    // Both series cover the same wall clock, so the last block of each ends at
+    // the same instant whatever the block size.
+    const endOf = (list: PcmChunkRecord[]) => {
+      const last = list.at(-1)!;
+      return last.recordedAt + last.durationMs;
+    };
+    expect(Math.abs(endOf(worklet) - endOf(processor))).toBeLessThanOrEqual(1);
+
+    const a = buildPcmClip(worklet, 0, windowMs, DEFAULT_TARGET_RATE)!;
+    const b = buildPcmClip(processor, 0, windowMs, DEFAULT_TARGET_RATE)!;
+
+    // What the equivalence contract is actually about: the extraction window,
+    // not the block size, decides the clip. 375 seams and 11 seams give the
+    // same length, the same pitch and the same envelope.
+    expect(a.samples.length).toBe(b.samples.length);
+    for (const clip of [a, b]) {
+      expect(
+        Math.abs(estimateFrequency(clip.samples, clip.sampleRate) - DEFAULT_TONE_HZ),
+      ).toBeLessThanOrEqual(DEFAULT_TONE_HZ * 0.02);
+      expect(rms(clip.samples)).toBeCloseTo(Math.SQRT1_2, 3);
+    }
+
+    // Measured on a full-scale 440 Hz sine: correlation 0.9978 lag 0, mean
+    // absolute difference 0.057. That residual is real and worth recording —
+    // each chunk is resampled on its own from a floored source index, so every
+    // seam carries up to one source sample (20.8 us at 48 kHz, a 3.3 degree
+    // phase step at 440 Hz) of grid error. `ScriptProcessor` pays it 11 times a
+    // second at 4096 samples a block; the worklet pays it 375 times. Neither
+    // the frequency nor the RMS moves, so VAD and Whisper are unaffected, but
+    // true sample-for-sample parity would mean resampling the window once at
+    // the source rate instead of chunk by chunk — a change to `buildPcmClip`
+    // itself, not to either capture path.
+    let dot = 0, na = 0, nb = 0;
+    for (let i = 0; i < a.samples.length; i++) {
+      dot += a.samples[i] * b.samples[i];
+      na += a.samples[i] * a.samples[i];
+      nb += b.samples[i] * b.samples[i];
+    }
+    expect(dot / Math.sqrt(na * nb)).toBeGreaterThan(0.995);
+  });
+
+  it('tolerates a one-sample hole at a seam rather than drifting the timeline', () => {
+    // `buildPcmClip` positions each chunk by rounding its own offset, which can
+    // leave a single unwritten sample where two chunks meet (index 6826 of the
+    // clip above, on the `ScriptProcessor` path). A dropped sample is the
+    // cheaper failure than a shifted timeline, so the contract is that the hole
+    // stays isolated: a run of missing samples means the chunk landed wrong.
+    const rate = DEFAULT_SOURCE_RATE;
+    const signal = sine({ sampleRate: rate, durationMs: 1_000, freqHz: DEFAULT_TONE_HZ });
+    const clip = buildPcmClip(blocksOf(signal, rate, 4_096), 0, 900, DEFAULT_TARGET_RATE)!;
+
+    let run = 0, worstRun = 0;
+    for (let i = 0; i < clip.samples.length; i++) {
+      run = clip.samples[i] === 0 ? run + 1 : 0;
+      worstRun = Math.max(worstRun, run);
+    }
+    expect(worstRun).toBeLessThanOrEqual(2);
   });
 });

@@ -12,9 +12,16 @@
  * The block shape differs between the two paths, and this is where that gets
  * normalised:
  *   - ScriptProcessor: `{ inputBuffer }` (an AudioBuffer, N channels)
- *   - AudioWorklet: `{ input }` (one AudioBuffer per frame, N channels)
+ *   - AudioWorklet: `{ channels, sampleRate }` posted by the processor
  * Both expose `numberOfChannels`, `length` and `sampleRate`, so after
  * downmixing they are the same object.
+ *
+ * `sampleRate` is not optional and has no default. A block labelled with the
+ * wrong rate does not throw: `resampleLinear` short-circuits when
+ * `fromRate === toRate`, so 48 kHz samples stamped as 16 kHz are written into
+ * a 16 kHz timeline untouched — a 440 Hz tone then reads as 48000/16000 of it,
+ * 146.7 Hz, and nothing downstream can tell that from a real recording. The
+ * rate travels with the block and a missing one is an error, not a guess.
  */
 
 /** The block shape both the processor and the worklet receive. */
@@ -48,16 +55,15 @@ export type PcmSink = (chunk: PcmChunkRecord) => void;
  * call it directly — see `wirePcmCapture` for the pre-bound form the
  * offscreen document uses.
  */
-/**
- * Downmix a block to mono and hand one chunk to the sink.
- *
- * Exported so both the processor callback and the worklet's `process()` can
- * call it directly — see `wirePcmCapture` for the pre-bound form the
- * offscreen document uses.
- */
 export function downmixBlock(block: PcmBlock, nowMs: number = Date.now()): PcmChunkRecord {
   const length = Math.max(0, block.length | 0);
   const channels = Math.max(1, block.numberOfChannels | 0);
+  if (!Number.isFinite(block.sampleRate) || block.sampleRate <= 0) {
+    throw new Error(
+      `pcm-block: block has no usable sampleRate (got ${String(block.sampleRate)}); ` +
+        'a wrong rate is indistinguishable from a true recording downstream',
+    );
+  }
   const mono = new Float32Array(length);
   // Channel views are only read up to `length`: a block can be shorter than
   // the underlying render buffer, and reading the whole view would pull in
@@ -81,6 +87,46 @@ export function downmixBlock(block: PcmBlock, nowMs: number = Date.now()): PcmCh
 /** Downmix and push, for callers that just want the side effect. */
 export function emitBlock(block: PcmBlock, sink: PcmSink, nowMs: number = Date.now()): void {
   sink(downmixBlock(block, nowMs));
+}
+
+/** What a worklet posts for one render quantum. */
+export interface PcmBlockMessage {
+  channels: Float32Array[];
+  length: number;
+  /** The worklet scope's own rate; not optional — see the module header. */
+  sampleRate: number;
+}
+
+/**
+ * Turn a worklet message into a block, refusing a rate that is absent or does
+ * not match the context the node belongs to.
+ *
+ * The cross-check is the point. A worklet processor renders at its context's
+ * rate, so a disagreeing number can only mean the message is stale or
+ * clobbered — and accepting it would mislabel the block, which downstream is
+ * indistinguishable from a real recording (see the module header). The rate is
+ * typed optional because a message can come from a sender that does not post
+ * one; that is exactly the case this refuses rather than guesses.
+ */
+export function blockFromMessage(
+  msg: { channels: Float32Array[]; length: number; sampleRate?: number },
+  contextSampleRate: number,
+): PcmBlock {
+  const rate = msg.sampleRate;
+  if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0) {
+    throw new Error(`pcm-block: worklet message carries no sampleRate (${String(rate)})`);
+  }
+  if (rate !== contextSampleRate) {
+    throw new Error(
+      `pcm-block: worklet block rate ${rate} != context rate ${contextSampleRate}`,
+    );
+  }
+  return {
+    numberOfChannels: msg.channels.length,
+    length: msg.length,
+    sampleRate: rate,
+    channels: msg.channels,
+  };
 }
 
 /**

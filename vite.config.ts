@@ -22,48 +22,56 @@ function figmaAssetResolver() {
  * Inject the built PCM worklet's URL as `__PCM_WORKLET_URL__`.
  *
  * The worklet is emitted as a content-hashed asset (it is a build input, see
- * `input.pcm-worklet` below), so the only way to address it is to read what
- * vite actually named it. This plugin waits for the bundle, scans the emitted
- * chunks for the one that registered `pcm-capture`, and returns the URL —
- * meaning `audioWorklet.addModule` can never 404 on a stale guess, and a
- * build that failed to emit the worklet fails here instead of silently
- * degrading to the ScriptProcessor fallback.
+ * `input.pcm-worklet` below), and the hash is not known until the bundle has
+ * been generated — so reading `dist/` to guess it, which is what this used to
+ * do, resolves to the PREVIOUS build's chunk name. dist is not emptied between
+ * builds, so that stale file usually still exists: `addModule` loads an older
+ * copy of the processor, and a change to the worklet source silently does not
+ * take effect (that is how a broken processor kept looking fine for a whole
+ * round). On the first build, when there is no previous chunk at all, the
+ * guessed name does not exist, `addModule` rejects, and capture silently
+ * degrades to the ScriptProcessor fallback.
+ *
+ * So the URL is a placeholder until the bundle exists: this plugin emits one,
+ * then rewrites the placeholder in the generated chunks with the name of the
+ * chunk that actually registered `pcm-capture`. A build that fails to emit the
+ * worklet leaves the placeholder standing, and `pcm-worklet.test.ts` fails on
+ * it.
  */
 function workletUrlPlugin() {
-  let cached: string | undefined
-  const find = (): string => {
-    if (cached) return cached
-    const dist = path.resolve(__dirname, 'dist')
-    if (fsSync.existsSync(dist)) {
-      const dir = path.join(dist, 'assets')
-      if (fsSync.existsSync(dir)) {
-        const match = fsSync
-          .readdirSync(dir)
-          .filter((f) => /^pcm-worklet.*\.js$/.test(f))
-          .sort()
-          .pop()
-        if (match) {
-          cached = `/assets/${match}`
-          return cached
-        }
-      }
-    }
-    // First build (nothing emitted yet): the `input.pcm-worklet` entry below
-    // guarantees the chunk exists by the time the browser asks for it.
-    cached = '/assets/pcm-worklet.js'
-    return cached
-  }
+  /** Rewritten, after `generateBundle`, in every chunk that carries it. */
+  const placeholder = '/__PCM_WORKLET_URL__';
+  let cache: string | undefined;
   return {
     name: 'pcm-worklet-url',
     resolveId(source: string) {
-      if (source === 'virtual:__PCM_WORKLET_URL__') return source
-      return null
+      if (source === 'virtual:__PCM_WORKLET_URL__') return source;
+      return null;
     },
     load(id: string) {
-      if (id !== 'virtual:__PCM_WORKLET_URL__') return null
-      return `export default ${JSON.stringify(find())}`
+      if (id !== 'virtual:__PCM_WORKLET_URL__') return null;
+      return `export default ${JSON.stringify(placeholder)}`;
     },
-  }
+    generateBundle(_options: unknown, bundle: Record<string, { type: string; code?: string }>) {
+      cache = undefined;
+      for (const [fileName, chunk] of Object.entries(bundle)) {
+        if (chunk.type !== 'chunk' || !/pcm-worklet.*\.js$/.test(fileName)) continue;
+        cache = cache ?? fileName;
+      }
+      if (!cache) throw new Error('pcm-worklet-url: no pcm-worklet chunk was emitted');
+      // The bundle key is relative to the output root (`assets/pcm-worklet-h.js`),
+      // so normalise to a root-absolute URL — `/assets/assets/…` does not exist,
+      // and addModule reports that as a bare AbortError.
+      const url = cache.startsWith('/') ? cache : `/${cache}`;
+      cache = url;
+      // The placeholder may have been inlined into any chunk that imported
+      // the virtual module, so rewrite every chunk that still carries it.
+      for (const chunk of Object.values(bundle)) {
+        if (chunk.type !== 'chunk' || !chunk.code?.includes(placeholder)) continue;
+        chunk.code = chunk.code.split(placeholder).join(cache);
+      }
+    },
+  };
 }
 
 export default defineConfig({
@@ -93,10 +101,9 @@ export default defineConfig({
      * `audioWorklet.addModule` needs a URL the bundler knows about; the
      * emitted file name is content-hashed, so a hardcoded path would rot on
      * the next change and silently fall back to ScriptProcessor forever
-     * (the fallback swallows the error). This plugin reads the manifest vite
-     * wrote, finds the worklet chunk, and injects its URL as a build-time
-     * constant — one place, no guessing, and the fallback fails loudly in
-     * tests because the constant is missing.
+     * (the fallback swallows the error). The placeholder is filled in from the
+     * generated bundle itself, so what ships is always the name of the chunk
+     * in that same build — see `workletUrlPlugin`.
      */
     workletUrlPlugin(),
   ],

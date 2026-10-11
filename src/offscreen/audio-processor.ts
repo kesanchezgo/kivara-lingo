@@ -41,7 +41,7 @@ import {
 import { tightenToSpeech, type VadOptions } from './vad';
 import { speakViaSpeechSynthesis } from './tts-fallback';
 import { buildPcmClip as buildPcmClipPure, bufferBounds } from './pcm-timeline';
-import { emitBlock, makeProcessorHandler, type PcmChunkRecord } from './pcm-block';
+import { blockFromMessage, emitBlock, makeProcessorHandler, type PcmChunkRecord } from './pcm-block';
 // Emitted by the `pcm-worklet-url` vite plugin: the hashed URL of the built
 // worklet chunk. Importing the virtual module is what ties the two together.
 import pcmWorkletUrl from 'virtual:__PCM_WORKLET_URL__';
@@ -123,6 +123,10 @@ let pcmPath: 'audio-worklet' | 'script-processor' | null = null;
 /** Worklet clock: total samples emitted, and the wall-clock start. */
 let workletSamplesSeen = 0;
 let workletStartMs = 0;
+/** Worklet diagnostics: blocks received, and the first error seen. */
+let workletBlocksSeen = 0;
+let workletSetupError: string | null = null;
+let workletFirstError: string | null = null;
 let silentGain: GainNode | null = null;
 let chunks: ChunkRecord[] = [];
 let pcmChunks: PcmChunkRecord[] = [];
@@ -263,10 +267,12 @@ let forcedPathOverride: 'audio-worklet' | 'script-processor' | null = null;
 /**
  * Whether an unforced run defaults to AudioWorklet when the browser has one.
  *
- * `false` on purpose: the worklet path mis-samples at 1-in-3 (see the note in
- * `wirePcmCapture`), so the recorder stays on the ScriptProcessor that is
- * proven, and this constant is the single switch to flip once the smoke is
- * green on both halves. An E2E run can force either half without it.
+ * `false` on purpose, and it is the one line to flip: the worklet path was
+ * wrong for its whole first life because the processor's `port` field was
+ * declared with an initialiser, which clobbered the real `MessagePort` and
+ * silently dropped every block. It is correct now, and the smoke proves both
+ * halves on the same input, so the switch stays closed only until the next
+ * round opens it — not because anything is broken.
  */
 const PCM_WORKLET_DEFAULT = false;
 
@@ -280,14 +286,9 @@ async function wirePcmCapture(): Promise<void> {
 
   // An explicit override wins; otherwise capability decides.
   //
-  // NOT yet defaulted to the worklet even when the browser has one: the
-  // AudioWorklet path currently delivers 1-in-3 samples (the smoke measures
-  // the tone at 146.8 Hz against the 146.4 Hz the ScriptProcessor path
-  // reports on the same input), and a shipped recorder that silently
-  // subsampled speech would be worse than the throttling it was meant to
-  // avoid. So the default is the proven ScriptProcessor until that is fixed,
-  // and the worklet stays reachable through the explicit E2E override that
-  // measures it.
+  // Both paths converge on `emitBlock`, which is where the rate a chunk is
+  // labelled with is validated (see `pcm-block.ts`), so the two are the same
+  // code path after this branch.
   const useWorklet =
     forcedPathOverride === 'audio-worklet' ||
     (forcedPathOverride === null && !__E2E__ && typeof AudioWorkletNode === 'function' && PCM_WORKLET_DEFAULT);
@@ -301,25 +302,24 @@ async function wirePcmCapture(): Promise<void> {
       workletSamplesSeen = 0;
       workletStartMs = Date.now();
       workletNode.port.onmessage = (
-        event: MessageEvent<{ channels: Float32Array[]; length: number }>,
+        event: MessageEvent<{ channels: Float32Array[]; length: number; sampleRate?: number }>,
       ) => {
         const { channels, length } = event.data;
-        // Timestamp by render quantum, not by drain time. `Date.now()` is
-        // sampled when the message reaches the main thread, which under load
-        // is milliseconds behind the render it describes — and that drift is
-        // exactly what made the ring buffer hold ~3x the real audio. These
-        // blocks arrive in render order, so the sample count IS the clock.
-        workletSamplesSeen += length;
-        emitBlock(
-          {
-            numberOfChannels: channels.length,
-            length,
-            sampleRate: ctx.sampleRate,
-            channels,
-          },
-          sink,
-          workletStartMs + (workletSamplesSeen / ctx.sampleRate) * 1000,
-        );
+        workletBlocksSeen += 1;
+        try {
+          // The block carries its own rate; a message without one (or with one
+          // that is not the context's own) is a broken post, and guessing it
+          // would stamp 48 kHz samples as 16 kHz — see `pcm-block.ts`.
+          const block = blockFromMessage(event.data, ctx.sampleRate);
+          // Timestamp by render quantum, not by drain time. `Date.now()` is
+          // sampled when the message reaches the main thread, which under load
+          // is milliseconds behind the render it describes. These blocks arrive
+          // in render order, so the sample count IS the clock.
+          workletSamplesSeen += length;
+          emitBlock(block, sink, workletStartMs + (workletSamplesSeen / ctx.sampleRate) * 1000);
+        } catch (err) {
+          workletFirstError = err instanceof Error ? err.message : String(err);
+        }
       };
       source.connect(workletNode);
       workletNode.connect(silentGain!).connect(ctx.destination);
@@ -327,6 +327,7 @@ async function wirePcmCapture(): Promise<void> {
       return;
     } catch (err) {
       console.warn('[Kivara Lingo] AudioWorklet setup failed, using ScriptProcessor', err);
+      workletSetupError = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     }
   }
 
@@ -863,6 +864,20 @@ chrome.runtime.onMessage.addListener((rawMsg: unknown, _sender, sendResponse) =>
       // Which PCM path is filling the ring buffer. Reported so the E2E smoke
       // can prove it compared the two paths it meant to compare.
       pcmPath: pcmPath ?? null,
+      // Diagnostics for the AudioWorklet path: how many blocks actually
+      // reached the document, and the first error if emitting one threw.
+      workletBlocksSeen: workletBlocksSeen || null,
+      workletFirstError,
+      workletSetupError,
+      // Diagnostics for the PCM path: how many blocks reached the document,
+      // the rate the chunks are labelled with, and what the capture context
+      // runs at. Zero blocks with `pcmPath` reporting a live path is what a
+      // dead worklet looks like — the PCM extraction then silently gives way
+      // to the WebM transcription, whose samples land on a 16 kHz timeline
+      // without resampling, so a 48 kHz stream reads as a third of its pitch.
+      bufferedPcmChunks: pcmChunks.length,
+      chunkSampleRate: pcmChunks.at(-1)?.sampleRate ?? null,
+      captureSampleRate: audioCtx?.sampleRate ?? null,
     });
     return false;
   }

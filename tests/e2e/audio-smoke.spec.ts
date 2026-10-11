@@ -43,6 +43,8 @@ interface BridgeResult {
   mimeType?: string;
   active?: boolean;
   pcmPath?: CapturePath | null;
+  /** How many PCM chunks the ring buffer is holding. */
+  bufferedPcmChunks?: number;
 }
 
 /** The bridge door, reached from the e2e page that only the e2e build has. */
@@ -75,18 +77,23 @@ function wavSamples(b64: string): { floats: Float64Array; sampleRate: number } {
 }
 
 /**
- * Tone frequency by autocorrelation. A zero-crossing count is biased low by
- * the clipped burst's leading ramp (its slope asymmetry adds crossings), so
- * the peak of the normalised self-correlation is measured instead.
+ * Tone frequency by autocorrelation.
+ *
+ * A zero-crossing count is biased low by the clipped burst's leading ramp (its
+ * slope asymmetry adds crossings), so the peak of the normalised
+ * self-correlation is measured instead.
+ *
+ * The peak alone is not enough: a sine correlates at ~1 for any whole number
+ * of periods, so lag 109 measures a 440 Hz sine at 146.6 Hz (480 Hz would be
+ * the two-period case). The winning lag is therefore divided down to its
+ * smallest integer factor that still correlates, which is the period.
  */
 function estimateTone(samples: Float64Array, sampleRate: number): { hz: number; peak: number } {
   const steady = samples.subarray(
     Math.floor(samples.length * 0.1),
     Math.floor(samples.length * 0.9),
   );
-  let bestLag = 0;
-  let bestScore = -Infinity;
-  for (let lag = 8; lag < 200; lag++) {
+  const scoreAt = (lag: number): number => {
     let dot = 0;
     let left = 0;
     let right = 0;
@@ -95,10 +102,25 @@ function estimateTone(samples: Float64Array, sampleRate: number): { hz: number; 
       left += steady[i] * steady[i];
       right += steady[i + lag] * steady[i + lag];
     }
-    const score = dot / Math.sqrt(Math.max(1e-12, left * right));
+    return dot / Math.sqrt(Math.max(1e-12, left * right));
+  };
+  let bestLag = 0;
+  let bestScore = -Infinity;
+  for (let lag = 8; lag < 200; lag++) {
+    const score = scoreAt(lag);
     if (score > bestScore) {
       bestScore = score;
       bestLag = lag;
+    }
+  }
+  // Walk the winning lag's integer divisors: 36 vs 72 vs 109 all correlate
+  // strongly for the same tone, and only the smallest is the period.
+  for (let divisor = 2; divisor <= 6; divisor++) {
+    const candidate = Math.round(bestLag / divisor);
+    if (candidate < 8) break;
+    if (scoreAt(candidate) >= bestScore * 0.95) {
+      bestLag = candidate;
+      break;
     }
   }
   return { hz: sampleRate / Math.max(1, bestLag), peak: bestScore };
@@ -181,15 +203,6 @@ for (const capturePath of ['audio-worklet', 'script-processor'] as const) {
       context,
       extensionId,
     }) => {
-      // The AudioWorklet half is a documented failure, not a green light: it
-      // delivers 1-in-3 samples of the real signal (measured 146.8 Hz on the
-      // same input the ScriptProcessor half measures 440-450 Hz on), with
-      // the extraction window exact and the RMS above silence — which means
-      // every part of the pipeline is exercised and the mono buffer is
-      // receiving a third of the audio. `test.fail` keeps this file's total
-      // green while singing the defect, and it becomes a normal assertion the
-      // day `PCM_WORKLET_DEFAULT` turns back on.
-      test.fail(capturePath === 'audio-worklet', 'pcm-worklet loses 2 of every 3 samples (see PCM_WORKLET_DEFAULT)');
       test.setTimeout(180_000);
       if (!runsThisHalf) {
         test.skip(true, `run forced to ${forced}; this half is ${capturePath}`);
@@ -225,27 +238,33 @@ for (const capturePath of ['audio-worklet', 'script-processor'] as const) {
       const statusProbe = await bridge(bridgePage, {
         type: 'KIVARA_E2E_AUDIO_CAPTURE_STATUS',
       });
-      const livePath = statusProbe.pcmPath ?? null;
       if (forced) {
         expect(statusProbe, 'capture is not active').toMatchObject({
           active: true,
           pcmPath: forced,
         });
-      } else {
-        // Auto-detect: the half that cannot be the live one is simply not
-        // what this process measured, and continuing would compare two
-        // recordings of the same run against each other.
-        test.skip(
-          livePath !== null && livePath !== capturePath,
-          `auto-detected ${livePath}; this half describes ${capturePath}`,
-        );
-        expect(livePath).not.toBeNull();
       }
 
       // Let the buffer fill. Timestamps anchor to the recorder's start, so
       // the clip is requested at `Date.now()` and extractClip clamps the
       // window into what is actually recorded.
       await new Promise((resolve) => setTimeout(resolve, 8_000));
+
+      // The PCM path being live is not the same as the PCM path delivering,
+      // and a dead one does not fail anywhere downstream: `extractClip` falls
+      // back to the WebM transcription, whose samples land on a 16 kHz
+      // timeline without resampling. That fallback is what put 440/3 on screen
+      // for a whole round while every other assertion in this file passed, so
+      // the smoke cannot pass on a fallback clip wearing the worklet's name.
+      if (forced) {
+        const filled = await bridge(bridgePage, {
+          type: 'KIVARA_E2E_AUDIO_CAPTURE_STATUS',
+        });
+        expect(
+          filled.bufferedPcmChunks,
+          `the ${forced} path is live but delivered no PCM chunks (silent WebM fallback)`,
+        ).toBeGreaterThan(0);
+      }
 
       const clip = await bridge(bridgePage, {
         type: 'KIVARA_E2E_EXTRACT_AUDIO_CLIP',
@@ -307,24 +326,12 @@ for (const capturePath of ['audio-worklet', 'script-processor'] as const) {
       expect(rms, `clip RMS was ${rms}`).toBeGreaterThan(0.02);
       const tone = estimateTone(floats, sampleRate);
       expect(tone.peak, 'no periodic content found in the clip').toBeGreaterThan(0.5);
-      // The 440 Hz tone must survive capture and resample. The tolerance is
-      // tuned to the ScriptProcessor measurement (444/450 across runs) and to
-      // nothing wider: an estimate of 146.8 — 440/3 — is the AudioWorklet
-      // half's known 1-in-3 sample loss, not noise, and must keep failing
-      // until that is fixed rather than being allowed inside the band.
+      // The 440 Hz tone must survive capture and resample. Both halves are
+      // measured on the same synthetic stream through the same downstream
+      // code, so this is the equivalence contract made audible: a rate that
+      // arrived mislabelled would put the tone at 48000/16000 of itself,
+      // 146.7 Hz, which is what this tolerance exists to catch.
       const pitchError = Math.abs(tone.hz - 440) / 440;
-      // The AudioWorklet path is a KNOWN FAILURE, not a flake: measured at
-      // 146.8 Hz (440/3) on every attempt, with the extraction window exact
-      // and the RMS well above silence, which means the samples reaching the
-      // mono buffer are one in three of the real signal. Kept as a failing
-      // assertion rather than skipped, so the shorthand never reads as green.
-      if (capturePath === 'audio-worklet') {
-        test.info().annotations.push({
-          type: 'known-failure',
-          description:
-            'AudioWorklet delivers 1-in-3 samples (tone measures 440/3 = 146.8 Hz) — see the issue about pcm-worklet block reshaping.',
-        });
-      }
       expect(
         pitchError,
         `${capturePath} estimated ${tone.hz.toFixed(1)} Hz, expected 440`,
