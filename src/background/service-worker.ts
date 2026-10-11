@@ -44,7 +44,7 @@ import { translateText } from './translate';
 import { speak } from './tts';
 import { enrichWithAi } from './ai-enrich';
 import { resolveWordStreaming } from './resolve-word';
-import { installResolveWordPort } from './stream';
+import { installResolveWordPort } from './enrichment/stream';
 import { clearEnrichmentCache, clearMemEnrichmentCache } from './enrichment/orchestrator';
 
 /** Deep-link section for OPEN_SETTINGS (see the handler below). */
