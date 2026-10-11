@@ -21,6 +21,11 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Cheap gate at the front: `.editorconfig` has required LF + a final
+      # newline since it was written, and the same four files kept losing the
+      # newline anyway because nothing enforced it. Fails here, in seconds,
+      # before the build starts.
+      - run: node scripts/check-line-endings.mjs
       - run: pnpm test
       - run: pnpm exec tsc --noEmit
 

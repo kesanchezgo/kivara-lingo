@@ -29,5 +29,15 @@ export default defineConfig({
     // `vitest` and `playwright test` never fight over the same files.
     exclude: [...configDefaults.exclude, 'tests/e2e/**'],
     setupFiles: ['tests/setup.ts'],
+    // Report an unhandled rejection against a file instead of swallowing it.
+    //
+    // Left at the default (false) on purpose: it was set to true during a round
+    // that wanted shuffle-only flakes to stop failing, and that made a real
+    // defect unfalsifiable — Vitest attributes the rejection to whichever task
+    // was running when the rejection surfaced, so the file named in the report
+    // was never the file that left the promise dangling. See the long note in
+    // tests/setup.ts. Reading `unhandledErrors` in the JSON reporter gives the
+    // real stack.
+    dangerouslyIgnoreUnhandledErrors: false,
   },
 });

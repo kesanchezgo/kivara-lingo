@@ -4,6 +4,31 @@
  */
 import { vi } from 'vitest';
 
+// Deliberately NOT configuring the unhandled-rejection attribution here.
+//
+// Vitest reports an unhandled rejection against whichever task is running when
+// it surfaces, so a Dexie promise left dangling by an earlier test once showed
+// as a bare `STACK_TRACE_ERROR` inside `orchestrator-exports` — a file that
+// could not throw from the line named, which made a real defect unfalsifiable.
+// Two remedies were tried here and both are wrong, recorded so nobody repeats
+// them:
+//
+//   • `vi.onUnhandledRejection` does not exist in Vitest 4 as a global `vi`
+//     method (it is a reporter/config concern). Calling it breaks every test
+//     file in the run with `TypeError: not a function`.
+//   • Throwing from a `process.on('unhandledRejection')` handler crashes every
+//     file too: it re-attributes nothing, it just escapes the harness.
+//
+// The working lever is `dangerouslyIgnoreUnhandledErrors: false` in
+// vitest.config.ts, which keeps Vitest's own per-file reporting of
+// `unhandledErrors`. When a `STACK_TRACE_ERROR` shows up there, the file is
+// listed because it was running, not because it was guilty — read the
+// `unhandledErrors` array in the JSON reporter for the stack of the real
+// offender.
+
+
+
+
 // Minimal chrome.* API mock so imports that reference chrome don't crash.
 const chromeMock = {
   runtime: {
