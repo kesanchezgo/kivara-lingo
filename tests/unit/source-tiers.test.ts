@@ -1,3 +1,5 @@
+import { ALL_SOURCE_IDS } from '../../src/background/enrichment/orchestrator';
+
 import { describe, it, expect } from 'vitest';
 import { SOURCE_TIERS, sourceGate, sourceTier, sourceTierRank } from "../../src/background/enrichment/source-tiers";
 import type { EnrichmentSource } from "../../src/shared/types";
@@ -76,13 +78,22 @@ describe('source tiers and gates', () => {
     // 41 sources today. A NEW source that ships without an entry in
     // SOURCE_TIERS fails HERE — not through a default that quietly changes
     // the card. (Falsified: dropping `forvo`'s entry fails this case.)
-    expect(ALL_SOURCES.length).toBeGreaterThanOrEqual(41);
-    for (const source of ALL_SOURCES) {
-      expect(SOURCE_TIERS).toHaveProperty(source.id);
-      expect(['vip', 'editorial', 'standard']).toContain(SOURCE_TIERS[source.id]!.tier);
-      expect(['standard', 'vip']).toContain(SOURCE_TIERS[source.id]!.gate);
+    // THE DRIFT TRIPWIRE, against the orchestrator's own registry: the map
+    // must cover every id the fan-out can actually run. A source added to
+    // VIP_SOURCES without an entry here fails this case — instead of merging
+    // silently with the unknown default (standard/vip) at runtime.
+    const registryIds = ALL_SOURCE_IDS.slice().sort();
+    expect(registryIds.length).toBeGreaterThanOrEqual(41);
+    for (const id of registryIds) {
+      expect(SOURCE_TIERS).toHaveProperty(id);
+      expect(['vip', 'editorial', 'standard']).toContain(SOURCE_TIERS[id]!.tier);
+      expect(['standard', 'vip']).toContain(SOURCE_TIERS[id]!.gate);
     }
-  });
+    // And the reverse: the map holds nothing the registry cannot run — a
+    // source REMOVED from the orchestrator leaves a dead row here.
+    const orphanMapIds = Object.keys(SOURCE_TIERS).filter((id) => !ALL_SOURCE_IDS.includes(id));
+    expect(orphanMapIds).toEqual([]);
+  });  });
 
   it("keeps the VIP-OFF fan-out identical to the pre-74a5a10 literal", () => {
     // THE regression tripwire: the set that runs with the master switch OFF.
@@ -116,7 +127,7 @@ describe('source tiers and gates', () => {
     expect(sourceTier('someNewSource')).toBe('standard');
     expect(sourceGate('someNewSource')).toBe('vip');
   });
-});
+
 
 /** Snapshot of the always-on set — the review's requested pin. */
 const EXPECTED_VIP_OFF_SOURCES = [

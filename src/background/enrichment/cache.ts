@@ -110,7 +110,11 @@ async function clearCachedEntry(key: string): Promise<void> {
   }
 }
 
-async function writeCache(key: string, payload: EnrichmentResult): Promise<void> {
+async function writeCache(
+  key: string,
+  payload: EnrichmentResult,
+  effectiveTtlDays: number = DEFAULT_VIP_CACHE_TTL_DAYS,
+): Promise<void> {
   // An answer that still has sources waiting for access must NOT be cached in
   // either layer: the key does not include the granted origins, so a stored
   // row would keep hiding those sources AFTER the user grants them — for the
@@ -123,7 +127,7 @@ async function writeCache(key: string, payload: EnrichmentResult): Promise<void>
     const db = getDB();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (db as any).vip_cache?.put({ key, payload, storedAt: Date.now() });
-    void pruneVipCache();
+    void pruneVipCache(effectiveTtlDays);
   } catch {
     // ignore — cache misses are recoverable.
   }
@@ -171,7 +175,7 @@ let lastVipPruneAt = 0;
  * most every PRUNE_INTERVAL_MS and over a table that rarely exceeds a few
  * hundred rows.
  */
-async function pruneVipCache(): Promise<void> {
+async function pruneVipCache(ttlDays: number = DEFAULT_VIP_CACHE_TTL_DAYS): Promise<void> {
   const now = Date.now();
   if (now - lastVipPruneAt < PRUNE_INTERVAL_MS) return;
   lastVipPruneAt = now;
@@ -195,7 +199,12 @@ async function pruneVipCache(): Promise<void> {
     const orphans = rows.filter((r) => !r.storedAt).map((r) => r.key);
     if (orphans.length > 0) await table.bulkDelete(orphans);
 
-    const ttlMs = DEFAULT_VIP_CACHE_TTL_DAYS * 24 * 3600 * 1000;
+    // The EFFECTIVE ttl, not the default: a user who set cacheTtlDays: 30 was
+    // having their 30-day rows deleted at the 14-day default (the reader and
+    // the pruner answered "how long is a row current?" differently, again).
+    // The EFFECTIVE ttl, not the default: a user who set cacheTtlDays: 30
+    // was having their 30-day rows deleted at the DEFAULT 14.
+    const ttlMs = ttlDays * 24 * 3600 * 1000;
     await table.where('storedAt').below(now - ttlMs).delete();
 
     // Count AFTER the orphans and the expired rows are gone, so the ceiling

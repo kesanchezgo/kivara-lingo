@@ -76,7 +76,6 @@ export function usePingRetry({ status, key = '', ping, fail }: PingRetryOptions)
       bootRef.current = 0;
     }
     const gen = ++genRef.current;
-    if (genRef.current !== gen) return undefined;
     let watchdog: ReturnType<typeof setTimeout> | null = null;
     let interval: ReturnType<typeof setInterval> | null = null;
 

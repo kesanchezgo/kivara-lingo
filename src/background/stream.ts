@@ -63,13 +63,13 @@ export function installResolveWordPort(
         },
         (out: ResolveWordStreamMsg) => {
           if (cancelled) return;
-        try {
-          port.postMessage(out);
-        } catch {
-          // Port closed mid-stream (popover dismissed) — stop emitting.
-          cancelled = true;
-        }
-      }).catch((err) => {
+          try {
+            port.postMessage(out);
+          } catch {
+            // Port closed mid-stream (popover dismissed) — stop emitting.
+            cancelled = true;
+          }
+        }).catch((err) => {
         if (cancelled) return;
         try {
           port.postMessage({

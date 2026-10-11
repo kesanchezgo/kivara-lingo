@@ -118,7 +118,7 @@ describe('openResolveWordStream', () => {
     // Port 0 posted, died, replayed to port 1, which also died: NO third
     // connect — the budget is one replay, and the caller is told it's gone.
     expect(ports).toHaveLength(2);
-    expect(failures.length).toBeGreaterThan(0);
+    expect(failures.length).toBe(1); // exactly one report, never two
     stream.close();
   });
 
@@ -144,12 +144,30 @@ describe('openResolveWordStream', () => {
     expect(failures).toHaveLength(0);
   });
 
+  it('handlers see a phase replay without corrupting the state', () => {
+    // The replay resends the FULL request, so phases already delivered on the
+    // dead port arrive TWICE on the new one. The consumer handlers must be
+    // idempotent (adoptEntry assigns, never appends; flags overwrite) — this
+    // case proves the client delivers every phase, dedup is the consumer's
+    // contract, and the SW-side phases carry NO counters to dedup on.
+    stubChrome(spawnPort);
+    killOnPostFrom = 0;
+    const stream = run();
+    vi.advanceTimersByTime(1);
+    // Replay happened: two ports, each received the request.
+    expect(ports).toHaveLength(2);
+    // The client delivered every phase to the handler (count them below).
+    ports.forEach((port) => port.onMessage.fire({ phase: 'local' }));
+    expect(seen.map((e) => e.phase)).toEqual(['local', 'local']);
+    stream.close();
+  });
+
   it('reports immediately when the port cannot be opened', () => {
     vi.stubGlobal('chrome', {
       runtime: { connect: () => { throw new Error('cold worker'); } },
     });
     const stream = run();
-    expect(failures.length).toBeGreaterThan(0);
+    expect(failures.length).toBe(1); // exactly one report, never two
     expect(ports).toHaveLength(0);
     stream.close();
   });

@@ -58,7 +58,7 @@ export interface SourceClassification {
  * fails when a source ships without an entry here.
  *
  * The gate column reproduces the pre-74a5a10 STANDARD_SOURCE_KEYS list
- * exactly: fourteen dictionaries sit behind the master switch (gate: 'vip')
+ * exactly: nineteen sources sit behind the master switch (gate: 'vip')
  * and everything else runs regardless (gate: 'standard').
  */
 export const SOURCE_TIERS: Record<string, SourceClassification> = {
@@ -121,7 +121,7 @@ const TIER_RANK: Record<SourceTier, number> = {
   standard: 2,
 };
 
-/** Unknown ids fall back to the SAFE defaults (see above). */
+/** Unknown ids: lose the merge race AND stay behind the master switch. */
 const UNMAPPED: SourceClassification = { tier: 'standard', gate: 'vip' };
 
 /**

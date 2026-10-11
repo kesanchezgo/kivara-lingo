@@ -41,7 +41,6 @@ export interface MergedFields {
 // list at 12 instead, which carried unranked and unduplicated glosses into the
 // card.
 const MAX_BILINGUAL_GLOSSES = 8;
-const MAX_VIP_TRANSLATIONS = 8;
 
 const TRANSLATION_SOURCE_PRIORITY = [
   'bundled',
@@ -1748,8 +1747,6 @@ export interface GlossWithSources {
   text: string;
   /** Every source that offered this gloss, including 'contextRule'. */
   sources: string[];
-  /** True when the gloss came from the sentence context rule. */
-  contextual: boolean;
 }
 
 /**
@@ -1845,8 +1842,9 @@ export function pickLexicalTranslationsWithSources(
       const sources = sourcesByKey.get(key);
       return {
         text: group,
-        sources: [...(sources ?? new Set<string>(['context']))],
-        contextual: !sources,
+        // Every group in sourcesByKey came from real candidates, so an
+        // empty-fallback branch would be dead code; the annotated exact.
+        sources: [...(sources ?? new Set<string>())],
       };
     });
 }

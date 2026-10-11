@@ -203,6 +203,18 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
 };
 
 /**
+ * Every source the fan-out CAN run, as its id set — the drift tripwire's
+ * ground truth. The tier map in source-tiers.ts grades these one by one, and
+ * a source added here without an entry there silently merges with the
+ * unknown default (standard/vip: loses the race, stays behind the master).
+ * The tier test asserts SOURCE_TIERS covers this set, so a new source fails
+ * at add-time instead of at merge-time.
+ */
+export const ALL_SOURCE_IDS: string[] = Object.values(VIP_SOURCES)
+  .filter((s): s is EnrichmentSource => s !== null)
+  .map((s) => s.id);
+
+/**
  * Which flags run with the VIP master switch OFF. Derived from VIP_SOURCES +
  * the GATE axis of source-tiers.ts — not the tier axis: 74a5a10 derived it
  * from the tier and shipped Forvo/Unsplash/Pixabay/Promt running with the
@@ -269,7 +281,7 @@ const IMAGE_SOURCE_KEYS = new Set<keyof VipSettings>([
  * the old rules' output (rankings, caps, dedup), and would be served until
  * the TTL expired. The version, not time, is what invalidates it.
  */
-export const ENRICHMENT_CACHE_VERSION = 3;
+export const ENRICHMENT_CACHE_VERSION = 4;
 
 export function makeCacheKey(
   token: string,
@@ -357,7 +369,7 @@ export async function runEnrichment(
     cacheKey,
     opts.vip.cacheTtlDays ?? DEFAULT_VIP_CACHE_TTL_DAYS,
   );
-    if (cached) return cached;
+  if (cached) return cached;
   }
 
   // Build the active source list.
@@ -471,7 +483,10 @@ export async function runEnrichment(
   }
 
   // Best-effort cache write — never let a write failure surface.
-  void writeEnrichmentCache(cacheKey, result).catch(() => {});
+  // The same effective TTL the READ used: the pruner now honors it, so a
+  // user's cacheTtlDays: 30 no longer loses rows at the 14-day default.
+  const effectiveTtlDays = opts.vip.cacheTtlDays ?? DEFAULT_VIP_CACHE_TTL_DAYS;
+  void writeEnrichmentCache(cacheKey, result, effectiveTtlDays).catch(() => {});
   return result;
 }
 

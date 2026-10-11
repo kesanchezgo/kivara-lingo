@@ -28,6 +28,7 @@ describe('orchestrator exports', () => {
       const mod = await import('../../src/background/enrichment/orchestrator');
       expect(Object.keys(mod).sort()).toMatchInlineSnapshot(`
         [
+          "ALL_SOURCE_IDS",
           "ENRICHMENT_CACHE_VERSION",
           "activeSourceSignature",
           "clearEnrichmentCache",
