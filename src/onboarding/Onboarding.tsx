@@ -1,5 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { t } from '../shared/i18n';
+import {
+  STEPS as OB_STEPS,
+  DEMO_URL,
+  canAdvance as obCanAdvance,
+  nextStepId as obNextStepId,
+  prevStepId as obPrevStepId,
+  type StepId,
+} from './steps';
 import { sendMessage } from 'webext-bridge/options';
 import {
   CheckCircle2, AlertTriangle, Loader2, Play, ChevronRight, ChevronLeft,
@@ -32,19 +40,6 @@ import type {
 
 /* ─── Stepper config ──────────────────────────────────────────────────────── */
 
-type StepId = 'welcome' | 'lang' | 'anki' | 'mapping' | 'dict' | 'ai' | 'demo' | 'done';
-
-const STEPS: { id: StepId; label: string; optional?: boolean; recommended?: boolean }[] = [
-  { id: 'welcome', label: 'Bienvenida' },
-  { id: 'lang',    label: 'Idioma' },
-  { id: 'anki',    label: 'Anki' },
-  { id: 'mapping', label: 'Mapeo' },
-  { id: 'dict',    label: 'Diccionarios', recommended: true },
-  { id: 'ai',      label: 'IA', optional: true },
-  { id: 'demo',    label: 'Demo' },
-];
-
-const DEMO_URL = 'https://www.youtube.com/watch?v=arj7oStGLkU';
 
 /* ─── Source-badge palette (re-used from CardsTab) ────────────────────────── */
 
@@ -173,10 +168,10 @@ export function Onboarding() {
   }, [models, ankiMapping.modelName]);
 
   function next() {
-    const idx = STEPS.findIndex((s) => s.id === step);
+    const idx = OB_STEPS.findIndex((s) => s.id === step);
     setDirection(1);
-    if (idx >= 0 && idx + 1 < STEPS.length) {
-      setStep(STEPS[idx + 1].id);
+    if (idx >= 0 && idx + 1 < OB_STEPS.length) {
+      setStep(OB_STEPS[idx + 1].id);
     } else {
       // Last regular step ('demo') → mark complete and slide into 'done'.
       setOnboarding({ completed: true, completedAt: Date.now() });
@@ -185,10 +180,10 @@ export function Onboarding() {
   }
 
   function prev() {
-    const idx = STEPS.findIndex((s) => s.id === step);
+    const idx = OB_STEPS.findIndex((s) => s.id === step);
     if (idx > 0) {
       setDirection(-1);
-      setStep(STEPS[idx - 1].id);
+      setStep(OB_STEPS[idx - 1].id);
     }
   }
 
@@ -217,7 +212,7 @@ export function Onboarding() {
     return true;
   })();
 
-  const stepIndex = STEPS.findIndex((s) => s.id === step);
+  const stepIndex = OB_STEPS.findIndex((s) => s.id === step);
 
   return (
     <div className={`fixed inset-0 z-[100] flex flex-col font-sans ${isDarkMode ? 'dark bg-zinc-950 text-zinc-100' : 'bg-zinc-50 text-zinc-900'}`}
@@ -261,7 +256,7 @@ export function Onboarding() {
       {/* Stepper */}
       <div className="shrink-0 bg-white/70 dark:bg-zinc-900/70 backdrop-blur border-b border-zinc-200 dark:border-zinc-800">
         <div className="max-w-2xl mx-auto px-6 py-3.5 flex items-center">
-          {STEPS.map((s, i) => {
+          {OB_STEPS.map((s, i) => {
             const done = step === 'done' || i < stepIndex;
             const active = i === stepIndex;
             return (
@@ -292,7 +287,7 @@ export function Onboarding() {
                     )}
                   </div>
                 </div>
-                {i < STEPS.length - 1 && (
+                {i < OB_STEPS.length - 1 && (
                   <div className={`flex-1 h-px mx-3 transition-all duration-500 rounded-full ${
                     done ? 'bg-indigo-400 dark:bg-indigo-600' : 'bg-zinc-200 dark:bg-zinc-800'
                   }`} />
