@@ -33,6 +33,7 @@ import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator
 import { DEFAULT_ANKI_MAPPING, DEFAULT_CAPTURE, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
 import { resolveSecret } from '../shared/secret-store';
 import { escapeAnkiSearchTerm } from '../shared/anki-search';
+import { ankiHostVariants, parseAnkiAuthority } from '../shared/anki-host';
 import {
   startAudioCapture,
   stopAudioCapture,
@@ -88,6 +89,7 @@ async function ensureOffscreenKeepalive(): Promise<void> {
  * AnkiConnect config by hand.
  */
 const ANKI_DNR_RULE_ID = 9981;
+
 // Hosts that need the Origin rewrite. Rebuilt by refreshAnkiOriginRules()
 // whenever the user changes their Anki URL — the static manifest rule only
 // covers the 8765 default, and a custom port/remote host would otherwise get
@@ -150,13 +152,17 @@ async function applyDnrRules(ankiUrl?: string): Promise<void> {
   if (!chrome.declarativeNetRequest?.updateSessionRules) return;
   try {
     const raw = (ankiUrl ?? '').trim() || 'http://127.0.0.1:8765';
-    const withoutScheme = raw.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-    const host = withoutScheme.split('/')[0] || '127.0.0.1:8765';
-    const hosts = host.includes('127.0.0.1')
-      ? [host, host.replace('127.0.0.1', 'localhost')]
-      : host.includes('localhost')
-        ? [host, host.replace('localhost', '127.0.0.1')]
-        : [host];
+    // Parsed, not scraped: the previous version stripped the scheme by hand and
+    // split on `/`, which let any character the user typed into the `urlFilter`
+    // — see shared/anki-host.ts for why that is a matcher injection.
+    const authority = parseAnkiAuthority(raw);
+    if (!authority) {
+      console.warn('[Kivara Lingo] Anki URL host rejected, keeping previous DNR rule', {
+        ankiUrl: raw,
+      });
+      return;
+    }
+    const hosts = ankiHostVariants(authority);
     if (ankiDnrHosts && ankiDnrHosts.join('|') === hosts.join('|')) return;
     const rules = await ankiOriginRules(hosts);
     await chrome.declarativeNetRequest.updateSessionRules({
