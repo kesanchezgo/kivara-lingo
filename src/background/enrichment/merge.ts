@@ -1741,6 +1741,31 @@ export function pickLexicalTranslations(
   translations: Array<{ source: string; text: string }>,
   ctx: Pick<EnrichmentContext, 'sentence'> & { targetLang?: string },
 ): string[] {
+  return pickLexicalTranslationsWithSources(token, translations, ctx).map((g) => g.text);
+}
+
+export interface GlossWithSources {
+  text: string;
+  /** Every source that offered this gloss, including 'contextRule'. */
+  sources: string[];
+  /** True when the gloss came from the sentence context rule. */
+  contextual: boolean;
+}
+
+/**
+ * The same ranking as pickLexicalTranslations, but each gloss carries its
+ * sources. The VIP block needs them, and mapping the texts back onto raw
+ * `allTrans` by string equality does NOT work: the glosses here are cleaned
+ * ("to move" → "mover"), split, grouped and — for anything/anybody — produced
+ * by the context rule itself. Those glosses matched no raw candidate and were
+ * silently DROPPED from vip.translations, the context-rule gloss included,
+ * which is exactly the gloss the picker exists to surface.
+ */
+export function pickLexicalTranslationsWithSources(
+  token: string,
+  translations: Array<{ source: string; text: string }>,
+  ctx: Pick<EnrichmentContext, 'sentence'> & { targetLang?: string },
+): GlossWithSources[] {
   const candidates = new Map<string, RankedTranslation>();
   const contextualTranslations = [...translations];
   const normalizedToken = token.trim().toLowerCase();
@@ -1805,8 +1830,25 @@ export function pickLexicalTranslations(
       candidate.sources.has('bundled') || candidate.sources.size > 1 || candidate.score - posAdjustment(candidate.value) < 0)
     .sort((a, b) => a.score - b.score || a.sourceRank - b.sourceRank || a.value.length - b.value.length);
 
-  return groupEquivalentGlossVariants(rankedCandidates.map((candidate) => candidate.value))
-    .slice(0, MAX_BILINGUAL_GLOSSES);
+  const sourcesByKey = new Map<string, Set<string>>();
+  for (const candidate of rankedCandidates) {
+    const key = glossVariantKey(candidate.value);
+    if (!key) continue;
+    if (!sourcesByKey.has(key)) sourcesByKey.set(key, new Set());
+    for (const source of candidate.sources) sourcesByKey.get(key)!.add(source);
+  }
+  const groups = groupEquivalentGlossVariants(rankedCandidates.map((c) => c.value));
+  return groups
+    .slice(0, MAX_BILINGUAL_GLOSSES)
+    .map((group) => {
+      const key = glossVariantKey(group);
+      const sources = sourcesByKey.get(key);
+      return {
+        text: group,
+        sources: [...(sources ?? new Set<string>(['context']))],
+        contextual: !sources,
+      };
+    });
 }
 
 function normalizedWords(text: string): Set<string> {
@@ -2284,7 +2326,8 @@ export function mergeFields(
   }
 
   // Pick clean lexical translations from all source-attributed candidates.
-  const lexicalTranslations = pickLexicalTranslations(token, allTrans, ctx);
+  const rankedGlosses = pickLexicalTranslationsWithSources(token, allTrans, ctx);
+  const lexicalTranslations = rankedGlosses.map((g) => g.text);
   if (lexicalTranslations.length) {
     // `translation` remains the best/current-context primary gloss, while
     // `bilingual` intentionally keeps a wider learner-facing list. Subtitle
@@ -2618,20 +2661,23 @@ export function mergeFields(
   // VIP block surfaces full source-attributed lists.
   if (rankedDefinitions.length) vip.definitions = rankedDefinitions.slice(0, 12);
   // The SAME ranked and deduplicated pick as the learner-facing `bilingual`
-  // string, capped at the VIP list size — not the raw allTrans slice: unranked
-  // duplicates used to leak into the VIP card. A gloss keeps every source that
-  // offered it, one row per source, like the definitions block above.
-  if (lexicalTranslations.length) {
-    const vipTranslations: Array<{ source: string; text: string }> = [];
-    for (const text of lexicalTranslations.slice(0, MAX_VIP_TRANSLATIONS)) {
-      const sources = new Set(
-        allTrans
-          .filter((candidate) => candidate.text.trim().toLowerCase() === text.toLowerCase())
-          .map((candidate) => candidate.source),
-      );
-      for (const source of sources) vipTranslations.push({ source, text });
-    }
-    if (vipTranslations.length) vip.translations = vipTranslations;
+  // string: `rankedGlosses` carries each gloss WITH its sources. Matching the
+  // glosses back onto allTrans by raw string equality does NOT work — the
+  // cleaning splits 'to run a race' into pieces, and the context rule
+  // FABRICATES glosses (`nada` for 'anything' in a negative sentence) that
+  // match no raw candidate at all; string-equality DROPPED them silently.
+  // One row per gloss, source = highest-tier contributor ('context' for the
+  // context-rule gloss): the only consumer joins the texts into the bilingual
+  // fallback, and per-source rows duplicated the same gloss there.
+  if (rankedGlosses.length) {
+    vip.translations = rankedGlosses
+      .slice(0, MAX_BILINGUAL_GLOSSES)
+      .map((gloss) => ({
+        source: gloss.sources
+          .slice()
+          .sort((a, b) => sourceTierRank(a) - sourceTierRank(b))[0] ?? 'context',
+        text: gloss.text,
+      }));
   }
   if (rankedExamples.length) vip.examples = rankedExamples;
   if (videoLinks.length) vip.videoLinks = videoLinks;

@@ -642,9 +642,19 @@ export async function createCardFromRequest(
       const sourceDefinitions = enriched.vip.definitions ?? [];
       const sourceTranslations = enriched.vip.translations ?? [];
       if (!ctx.monolingual && sourceDefinitions.length > 0) ctx.monolingual = usable(sourceDefinitions[0].text);
-      const lexicalTranslations = sourceTranslations
-        .map((t) => usable(t.text))
-        .filter((text) => isLexicalGloss(text));
+      // Dedup defensively: vip.translations publishes one row per GLOSS and
+      // captures the highest-tier source per gloss, but a payload produced
+      // before that fix (or by any other writer) can repeat a gloss — and the
+      // join below has no way to tell a duplicate apart (`correr - correr -
+      // ...` on the Anki card was a real reported artifact).
+      const lexicalTranslations = Array.from(
+        new Map(
+          sourceTranslations
+            .map((t) => usable(t.text))
+            .filter((text) => isLexicalGloss(text))
+            .map((text) => [text.toLowerCase(), text] as const),
+        ).values(),
+      );
       if (!ctx.translation && lexicalTranslations.length > 0) {
         ctx.translation = lexicalTranslations[0];
       }

@@ -59,25 +59,22 @@ export function usePingRetry({ status, key = '', ping, fail }: PingRetryOptions)
   // cycle opens (idle/ok) or when its key changes — NOT on error, where the
   // poll owns the state from then on.
   const bootRef = useRef(0);
-  const keyRef = useRef<string | null>(null);
+  const keyRef = useRef(key);
+  const genRef = useRef(0);
+
+  // The generation guards every timer callback: a chain armed during this
+  // cycle is inert the moment a newer status OR key substitutes the effect.
+  // `key` in the deps IS the fix: without it, changing url/port while
+  // `pinging` retired the chain WITHOUT re-arming the watchdog (the budget
+  // effect bumped the generation, the timer effect never re-ran), so the pill
+  // sat on "Comprobando…" forever with no chain and no interval to resume it.
   useEffect(() => {
     if (keyRef.current !== key) {
       keyRef.current = key;
       bootRef.current = 0;
-      // Retire the stale chain too: the status may still be pinging (Popup
-      // sends its new ping at the same moment), and only a gen bump stops a
-      // watchdog armed for the OLD url from failing the new cycle late.
-      genRef.current += 1;
-      return;
+    } else if (status === 'idle' || status === 'ok') {
+      bootRef.current = 0;
     }
-    if (status === 'idle' || status === 'ok') bootRef.current = 0;
-  }, [key, status]);
-
-  // The generation guards every timer callback: a chain armed during this
-  // status is inert the moment a newer status substitutes the effect.
-  const genRef = useRef(0);
-
-  useEffect(() => {
     const gen = ++genRef.current;
     if (genRef.current !== gen) return undefined;
     let watchdog: ReturnType<typeof setTimeout> | null = null;
@@ -125,5 +122,8 @@ export function usePingRetry({ status, key = '', ping, fail }: PingRetryOptions)
     }
 
     return undefined;
-  }, [status]);
+  }, [status, key]);
 }
+
+
+

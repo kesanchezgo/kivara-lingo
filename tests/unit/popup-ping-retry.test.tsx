@@ -38,11 +38,11 @@ let inflight = false;
 /** Whether an outstanding ping gets a reply. */
 let answers: 'none' | 'ok';
 
-function Harness({ churn = 0, key = 'a' }: { churn?: number; key?: string }) {
+function Harness({ churn = 0, cycle = 'a' }: { churn?: number; cycle?: string }) {
   const [status, setStatus] = useState<PingStatus>('pinging');
   usePingRetry({
     status,
-    key,
+    key: cycle,
     ping: (f?: boolean) => {
       // Popup's runPing guard, verbatim: unforced pings dedup on the ref.
       if (inflight && f !== true) return;
@@ -70,7 +70,7 @@ function Harness({ churn = 0, key = 'a' }: { churn?: number; key?: string }) {
       setStatus('ok');
       inflight = false;
     }
-  }, [key]);
+  }, [cycle]);
   return (
     <span data-testid="pill">
       {status}|{churn}
@@ -175,7 +175,7 @@ describe('usePingRetry (through real React state)', () => {
   });
 
   it('3b: a key change grants a fresh budget after a failure', () => {
-    const current = render(<Harness key="a" />);
+    const current = render(<Harness cycle="a" />);
     // Cycle "a": re-pings at 7.5/15 s, fail at 20 s (budget spent).
     tick(20_000);
     expect(pings()).toHaveLength(2);
@@ -193,13 +193,34 @@ describe('usePingRetry (through real React state)', () => {
     // genuinely break it needs a render gap larger than the batching window,
     // which fighting the test harness is more expensive than the git history
     // this comment leaves behind.
-    act(() => current.rerender(<Harness churn={0} key="b" />));
+    act(() => current.rerender(<Harness churn={0} cycle="b" />));
     tick(20_000);
     const cpings = pings().filter((e) => e.at >= 20_000);
     expect(cpings.map((e) => e.at)).toEqual([20_000, 27_500, 35_000]);
     expect(fails().map((e) => e.at)).toEqual([20_000, 40_000]);
   });
 
+
+
+  it('3c: a key change mid-pinging RE-ARMS the chain', () => {
+    // The review's test: the ping is hung (answer never comes) and the user
+    // switches the AnkiConnect url WHILE pinging — at 2 s, mid-flight, not
+    // at a status boundary. The old code bumped the generation from the
+    // budget effect; the timer effect (deps [status] only) never re-ran, so
+    // the watchdog armed for the OLD url died at its check and nothing
+    // re-armed — "Comprobando..." forever. The fix puts `key` in the timer
+    // effect deps, so the cleanup re-arms the watchdog for the new cycle.
+    const current = render(<Harness cycle="a" />);
+    tick(2_000);
+    act(() => current.rerender(<Harness churn={0} cycle="b" />));
+    // The chain re-armed at the swap (2s): watchdog at 2+5, re-ping at 9.5 s,
+    // second watchdog at 14.5 s, re-ping at 17 s, fail at 22 s — the budget
+    // was refreshed by the key reset, so the cycle is FULL again (two silent
+    // re-pings before the failure), unlike the mid-error change of 3b.
+    tick(20_000);
+    expect(pings().map((e) => e.at)).toEqual([9_500, 17_000]);
+    expect(fails().map((e) => e.at)).toEqual([22_000]);
+  });
   it('4: an ok answer keeps everything silent', () => {
     render(<Harness />);
     act(() => {

@@ -13,6 +13,7 @@ import type {
 } from '../../shared/types';
 import { formatFrequencyBand, pickFrequencyWinner } from '../../shared/frequency';
 import { lookupDictionary } from '../nlp/dictionary';
+import { openResolveWordStream } from '../resolve-word-stream';
 
 interface WordPopoverProps {
   visible: boolean;
@@ -138,8 +139,11 @@ function useResolveWord(
     // 2) Open the streaming port. The SW emits phases (local → translation
     //    → enrichment → ai → done) as each is ready, so the essential
     //    fields paint in <1 s while the extras stream in without blocking.
-    let port: chrome.runtime.Port | null = null;
+    //    The port lifecycle — including the ONE reconnect after a mid-flight
+    //    disconnect (SW restart between phases) — lives in
+    //    resolve-word-stream.ts, so this effect stays about rendering.
     let closed = false;
+    let fellBack = false;
 
     const adoptEntry = (
       incoming: DictionaryEntry | null,
@@ -152,140 +156,125 @@ function useResolveWord(
         return { ...prev, entry: incoming, ...patch };
       });
     };
-
-    try {
-      port = chrome.runtime.connect({ name: 'kvl-resolve-word' });
-    } catch {
-      port = null;
-    }
-
-    if (!port) {
-      // Streaming unavailable (e.g. SW asleep on a cold start in some
-      // builds) — fall back to the legacy one-shot message so the popover
-      // still resolves.
-      void (async () => {
-        try {
-          const resp = (await sendMessage(
-            'RESOLVE_WORD',
-            { token, sentence, sourceLang, includeAi },
-            'background',
-          )) as ResolveWordResponse;
-          if (closed) return;
-          const localWave = resp.waves.find((w) => w.stage === 'local');
-          const aiWave = resp.waves.find((w) => w.stage === 'ai');
-          setState((prev) => ({
-            ...prev,
-            entry: (localWave && localWave.stage === 'local' ? localWave.entry : null) ?? prev.entry,
-            resolving: false,
-            enriching: false,
-            remoteLoading: false,
-            aiLoading: false,
-            needsAccess: resp.needsAccess ?? [],
-            ai: aiWave && aiWave.stage === 'ai' ? aiWave.data : prev.ai,
-          }));
-        } catch (err) {
-          if (closed) return;
-          setState((prev) => ({
-            ...prev,
-            resolving: false,
-            enriching: false,
-            remoteLoading: false,
-            aiLoading: false,
-            remoteError: prev.entry ? null : err instanceof Error ? err.message : 'unknown',
-          }));
-        }
-      })();
-      return () => {
-        closed = true;
-      };
-    }
-
-    port.onMessage.addListener((raw) => {
-      if (closed) return;
-      const msg = raw as ResolveWordStreamMsg;
-      switch (msg.phase) {
-        case 'local':
-          adoptEntry(msg.entry, {
-            // If the local entry already has a real translation, drop the
-            // essential-fold skeleton immediately.
-            resolving:
-              !!(msg.entry && (msg.entry.translation ?? '').trim() &&
-              (msg.entry.translation ?? '').trim() !== '—')
-                ? false
-                : true,
-          });
-          break;
-        case 'translation':
-          adoptEntry(msg.entry, {
-            resolving: false,
-            remoteLoading: false,
-            remoteError: null,
-            source: msg.cached ? 'cache' : msg.provider,
-          });
-          break;
-        case 'enrichment':
-          // Extras arrived — adopt the richer entry. Keep `enriching` true
-          // until `done` (AI may still patch etymology/mnemonic).
-          adoptEntry(msg.entry, { resolving: false, remoteLoading: false });
-          break;
-        case 'ai':
-          setState((prev) => ({ ...prev, ai: msg.data, aiLoading: false, aiError: null }));
-          break;
-        case 'error':
-          setState((prev) =>
-            msg.scope === 'ai'
-              ? { ...prev, aiLoading: false, aiError: msg.message }
-              : {
-                  ...prev,
-                  remoteLoading: false,
-                  // Only surface a translate error when we have nothing.
-                  remoteError: prev.entry ? prev.remoteError : msg.message,
-                },
-          );
-          break;
-        case 'done':
-          setState((prev) => ({
-            ...prev,
-            resolving: false,
-            enriching: false,
-            remoteLoading: false,
-            aiLoading: false,
-            needsAccess: msg.needsAccess ?? [],
-          }));
-          break;
-      }
-    });
-
-    port.onDisconnect.addListener(() => {
-      if (closed) return;
-      setState((prev) => ({
-        ...prev,
-        resolving: false,
-        enriching: false,
-        remoteLoading: false,
-        aiLoading: false,
-      }));
-    });
-
-    try {
-      port.postMessage({
+    const stream = openResolveWordStream(
+      {
         kind: 'resolve-word',
         token,
         sentence,
         sourceLang,
         includeAi,
-      } satisfies ResolveWordStreamRequest);
-    } catch {
-      /* port died before first post — onDisconnect will clear flags */
+      } satisfies ResolveWordStreamRequest,
+      {
+        onMessage: (msg) => {
+          if (closed) return;
+          switch (msg.phase) {
+            case 'local':
+              adoptEntry(msg.entry, {
+                // If the local entry already has a real translation, drop the
+                // essential-fold skeleton immediately.
+                resolving:
+                  !!(msg.entry && (msg.entry.translation ?? '').trim() &&
+                  (msg.entry.translation ?? '').trim() !== '—')
+                    ? false
+                    : true,
+              });
+              break;
+            case 'translation':
+              adoptEntry(msg.entry, {
+                resolving: false,
+                remoteLoading: false,
+                remoteError: null,
+                source: msg.cached ? 'cache' : msg.provider,
+              });
+              break;
+            case 'enrichment':
+              // Extras arrived — adopt the richer entry. Keep `enriching`
+              // true until `done` (AI may still patch etymology/mnemonic).
+              adoptEntry(msg.entry, { resolving: false, remoteLoading: false });
+              break;
+            case 'ai':
+              setState((prev) => ({ ...prev, ai: msg.data, aiLoading: false, aiError: null }));
+              break;
+            case 'error':
+              setState((prev) =>
+                msg.scope === 'ai'
+                  ? { ...prev, aiLoading: false, aiError: msg.message }
+                  : {
+                      ...prev,
+                      remoteLoading: false,
+                      // Only surface a translate error when we have nothing.
+                      remoteError: prev.entry ? prev.remoteError : msg.message,
+                    },
+              );
+              break;
+            case 'done':
+              setState((prev) => ({
+                ...prev,
+                resolving: false,
+                enriching: false,
+                remoteLoading: false,
+                aiLoading: false,
+                needsAccess: msg.needsAccess ?? [],
+              }));
+              break;
+          }
+        },
+        onDisconnected: () => {
+          // The port died for good — mid-flight death after the replay, or
+          // the stream never opened (cold worker). Clear the loading flags
+          // and try the legacy one-shot path so the popover still resolves.
+          setState((prev) => ({
+            ...prev,
+            resolving: false,
+            enriching: false,
+            remoteLoading: false,
+            aiLoading: false,
+            remoteError: prev.entry ? null : 'stream disconnected',
+          }));
+          void fallbackResolve();
+        },
+      },
+    );
+
+    // Legacy one-shot path: used when the port could not be established at
+    // all — e.g. a SW asleep on a cold start in some builds.
+    async function fallbackResolve() {
+      if (fellBack) return;
+      fellBack = true;
+      try {
+        const resp = (await sendMessage(
+          'RESOLVE_WORD',
+          { token, sentence, sourceLang, includeAi },
+          'background',
+        )) as ResolveWordResponse;
+        if (closed) return;
+        const localWave = resp.waves.find((w) => w.stage === 'local');
+        const aiWave = resp.waves.find((w) => w.stage === 'ai');
+        setState((prev) => ({
+          ...prev,
+          entry: (localWave && localWave.stage === 'local' ? localWave.entry : null) ?? prev.entry,
+          resolving: false,
+          enriching: false,
+          remoteLoading: false,
+          aiLoading: false,
+          needsAccess: resp.needsAccess ?? [],
+          ai: aiWave && aiWave.stage === 'ai' ? aiWave.data : prev.ai,
+        }));
+      } catch (err) {
+        if (closed) return;
+        setState((prev) => ({
+          ...prev,
+          resolving: false,
+          enriching: false,
+          remoteLoading: false,
+          aiLoading: false,
+        }));
+      }
     }
 
     return () => {
       closed = true;
-      try {
-        port?.disconnect();
-      } catch {
-        /* ignore */
-      }
+      stream.close();
     };
   }, [token, sentence, sourceLang, includeAi]);
 

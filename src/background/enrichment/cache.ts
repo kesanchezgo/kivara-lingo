@@ -138,7 +138,15 @@ function isHeldBack(payload: EnrichmentResult | null | undefined): boolean {
 
 const MAX_VIP_CACHE_ROWS = 2000;
 const PRUNE_INTERVAL_MS = 5 * 60 * 1000;
-const DEFAULT_VIP_CACHE_TTL_DAYS = 30;
+/**
+ * The housekeeping TTL AND the orchestrator's read TTL, one number for both.
+ * They used to be two literals — 14 in the reader, 30 here — so a payload
+ * could go stale at 14 d and then occupy a row the pruner kept for 30, or
+ * something older than 14 d sit served meanwhile; both were the same
+ * question ("how long is a payload current?") answered differently in two
+ * files.
+ */
+export const DEFAULT_VIP_CACHE_TTL_DAYS = 14;
 let lastVipPruneAt = 0;
 
 /**

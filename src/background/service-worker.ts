@@ -44,6 +44,7 @@ import { translateText } from './translate';
 import { speak } from './tts';
 import { enrichWithAi } from './ai-enrich';
 import { resolveWordStreaming } from './resolve-word';
+import { installResolveWordPort } from './stream';
 import { clearEnrichmentCache, clearMemEnrichmentCache } from './enrichment/orchestrator';
 
 /** Deep-link section for OPEN_SETTINGS (see the handler below). */
@@ -674,53 +675,7 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
   return asJson(response);
 });
 
-/**
- * Streaming transport for the word popover. The content script opens a
- * Port named `kvl-resolve-word`, posts a single ResolveWordStreamRequest,
- * and receives ResolveWordStreamMsg phases as they're produced — so the
- * essential fields paint in <1 s while the slower extras stream in.
- */
-chrome.runtime.onConnect.addListener((port) => {
-  if (port.name !== 'kvl-resolve-word') return;
-  let cancelled = false;
-  port.onDisconnect.addListener(() => {
-    cancelled = true;
-  });
-  port.onMessage.addListener((raw) => {
-    const msg = raw as ResolveWordStreamRequest;
-    if (!msg || msg.kind !== 'resolve-word') return;
-    void resolveWordStreaming(
-      {
-        token: msg.token ?? '',
-        sentence: msg.sentence ?? '',
-        sourceLang: msg.sourceLang || 'en',
-        includeAi: !!msg.includeAi,
-        purpose: msg.purpose ?? 'popover',
-      },
-      (out: ResolveWordStreamMsg) => {
-        if (cancelled) return;
-        try {
-          port.postMessage(out);
-        } catch {
-          // Port closed mid-stream (popover dismissed) — stop emitting.
-          cancelled = true;
-        }
-      },
-    ).catch((err) => {
-      if (cancelled) return;
-      try {
-        port.postMessage({
-          phase: 'error',
-          scope: 'enrichment',
-          message: err instanceof Error ? err.message : 'resolve threw',
-        } satisfies ResolveWordStreamMsg);
-        port.postMessage({ phase: 'done' } satisfies ResolveWordStreamMsg);
-      } catch {
-        /* ignore */
-      }
-    });
-  });
-});
+installResolveWordPort(resolveWordStreaming);
 
 async function broadcastToActive(message: { type: string; [k: string]: unknown }) {
   try {

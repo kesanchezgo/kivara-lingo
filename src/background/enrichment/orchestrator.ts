@@ -77,12 +77,13 @@ import { duckduckgoImagesSource } from './sources/duckduckgo-images';
 import { youglishSource } from './sources/youglish';
 import { etymonlineSource } from './sources/etymonline';
 import { wordnetSource } from './sources/wordnet';
-import { sourceTier } from './source-tiers';
+import { sourceGate } from './source-tiers';
 import {
   clearMemEnrichmentCache,
   getEnrichmentCacheStats,
   readEnrichmentCache,
   writeEnrichmentCache,
+  DEFAULT_VIP_CACHE_TTL_DAYS,
 } from './cache';
 
 // Re-exported so cache-admin.ts and the SW keep importing the cache surface
@@ -130,7 +131,7 @@ function getStandardSources(vip: VipSettings): EnrichmentSource[] {
     const k = flag as keyof VipSettings;
     if (vip[k] === true) out.push(source);
   }
-  return out.filter((source) => sourceTier(source.id) === 'standard');
+  return out.filter((source) => sourceGate(source.id) === 'standard');
 }
 
 /**
@@ -202,16 +203,18 @@ const VIP_SOURCES: Record<keyof VipSettings, EnrichmentSource | null> = {
 };
 
 /**
- * Which flags are Standard tier. Derived from VIP_SOURCES + the tier map in
- * source-tiers.ts so the lists and the map cannot drift: the merge ranks by
- * tier through the same module.
+ * Which flags run with the VIP master switch OFF. Derived from VIP_SOURCES +
+ * the GATE axis of source-tiers.ts — not the tier axis: 74a5a10 derived it
+ * from the tier and shipped Forvo/Unsplash/Pixabay/Promt running with the
+ * master off. The set matches the previous hand-kept literal exactly (the
+ * source-tiers test pins it), so this is still not a behavior change — it is
+ * the same list, kept against drift by construction instead of by hand.
  *
- * Resolved lazily on first use instead of at module load because it sits
- * after the source table it reads.
+ * Eager, not lazy: it sits after the source table it reads.
  */
 const STANDARD_SOURCE_KEYS: Set<keyof VipSettings> = new Set(
   (Object.entries(VIP_SOURCES) as Array<[keyof VipSettings, EnrichmentSource | null]>)
-    .filter(([, source]) => source !== null && sourceTier(source.id) === 'standard')
+    .filter(([, source]) => source !== null && sourceGate(source.id) === 'standard')
     .map(([flag]) => flag),
 );
 
@@ -347,7 +350,13 @@ export async function runEnrichment(
 
   const cacheKey = makeCacheKey(token, ctx, opts.vip, purpose);
   if (!opts.bypassCache) {
-    const cached = await readEnrichmentCache(cacheKey, opts.vip.cacheTtlDays ?? 14);
+    // One TTL, shared with the pruner in cache.ts: the reader and the housekeeper
+  // answer the same question (how long is a payload current?) and used to answer
+  // it with two different literals.
+  const cached = await readEnrichmentCache(
+    cacheKey,
+    opts.vip.cacheTtlDays ?? DEFAULT_VIP_CACHE_TTL_DAYS,
+  );
     if (cached) return cached;
   }
 

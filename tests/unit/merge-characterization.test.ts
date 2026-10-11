@@ -58,6 +58,12 @@ const stable = (value: unknown) => {
 
 const ctx: EnrichmentContext = { sourceLang: 'en', targetLang: 'es', timeoutMs: 1000 };
 
+/** The same context with a sentence, for the context-rule cases. */
+const ctxWithSentence = (sentence: string): EnrichmentContext => ({
+  ...ctx,
+  sentence,
+});
+
 describe('the merge, characterized', () => {
   it('de-duplicates definitions that differ only in case, punctuation or whitespace', () => {
     // CASO 1: three definitions that a human reads as ONE; the free API's
@@ -189,7 +195,6 @@ describe('the merge, characterized', () => {
       JSON.stringify(
         [
           { source: 'cambridge', text: 'correr' },
-          { source: 'spanishDict', text: 'correr' },
           { source: 'cambridge', text: 'operar' },
           { source: 'cambridge', text: 'verter' },
           { source: 'cambridge', text: 'dirigir' },
@@ -202,11 +207,38 @@ describe('the merge, characterized', () => {
         2,
       ),
     );
-    // The cap and the ranking, stated as properties: 8 is the ceiling on the
-    // ranked vocabulary, and one gloss may repeat once per source that
-    // offered it — one row per source, like the definitions block.
-    const glosses = (merged.vip.translations ?? []).map((row) => row.text);
-    expect(glosses.length).toBeLessThanOrEqual(9); // 8 against the cap, +1 shared
+    // The cap and the ranking, stated as properties:
+    // - the cap holds exactly: no more rows than MAX_BILINGUAL_GLOSSES;
+    // - every row's text is UNIQUE: `vip.translations` is one row per GLOSS
+    //   (74a5a10/26a10de leaked one row per SOURCE and a two-provider gloss
+    //   read `correr · correr · …` in the capture fallback);
+    // - a gloss offered by two sources publishes the HIGHEST-TIER one.
+    const rows = merged.vip.translations ?? [];
+    expect(rows.length).toBe(8);
+    const texts = rows.map((row) => row.text);
+    expect(new Set(texts).size).toBe(texts.length); // zero duplicate texts
+    const correr = rows.filter((row) => row.text === 'correr');
+    expect(correr).toHaveLength(1);
+    expect(correr[0]!.source).toBe('cambridge'); // editorial outranks
     expect(merged.entry?.bilingual).not.toContain('mantener'); // unranked tail is out
+  });
+
+  it("keeps the context-rule gloss in vip.translations", () => {
+    // The regression the review found: pickLexicalTranslations CLEANS and
+    // SPLITS the raw candidates (and the context rule fabricates glosses for
+    // anything/anybody that match no raw candidate at all), so mapping the
+    // glosses back onto allTrans by string equality silently DROPPED the very
+    // top-ranked gloss — for 'anything' in a negative sentence, `nada`.
+    const merged = mergeFields(
+      'anything',
+      payloads([
+        ['cambridge', { translations: ['cualquier cosa'] }],
+        ['freeDictionary', { translations: ['whatever'] }],
+      ]),
+      ctxWithSentence("I didn't see anything."),
+    );
+    const texts = (merged.vip.translations ?? []).map((row) => row.text);
+    expect(texts).toContain('nada');
+    expect(new Set(texts).size).toBe(texts.length);
   });
 });
