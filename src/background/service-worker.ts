@@ -698,6 +698,14 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
   const req = data as unknown as ResolveWordRequest;
   const waves: ResolveWordWave[] = [];
   let lastEntry: DictionaryEntry | null = null;
+  // Declared BEFORE the resolver runs, not after: the `done` callback below
+  // mutates it (`response.needsAccess = …`) while the stream is still in
+  // flight, and a `const` declared afterwards would either land in the TDZ
+  // (a ReferenceError the moment the first emitted phase reached the
+  // callback) or read as already-serialized once the handler returned.
+  // Declaring it first is what makes the held-back sources actually reach
+  // the popover through the fallback path.
+  const response: ResolveWordResponse = { ok: true, waves };
   await resolveWordStreaming(
     {
       token: req.token ?? '',
@@ -757,7 +765,6 @@ onMessage('RESOLVE_WORD', async ({ data }) => {
       }
     },
   );
-  const response: ResolveWordResponse = { ok: true, waves };
   return asJson(response);
 });
 

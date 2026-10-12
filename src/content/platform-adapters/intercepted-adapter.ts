@@ -233,11 +233,19 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
       }
     },
     showNativeSubtitles() {
+      // Remove the injected <style> only — the poll CONTINUES. show/hide is
+      // a visibility state, not an end of cue flow: App.tsx hides native
+      // captions while the overlay is on, shows them while the overlay is
+      // off, and the poll must stay alive across every toggle. If a `hide`
+      // → `show` cycle after a poll-killing `show` left `pollHandle === null`,
+      // no further cues would ever emit — the overlay would freeze on its
+      // first subtitle while the video kept playing, which was the
+      // regression.
       if (hideStyle) {
         hideStyle.remove();
         hideStyle = null;
       }
-      stopPolling();
+      startPolling();
     },
     getAltCueAt(timeMs, lang, sourceRange) {
       const altTrack = getTrackByLanguage(lang);

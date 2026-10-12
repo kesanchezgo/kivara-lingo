@@ -772,6 +772,15 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
           case 'recapture_frame':
             doRecaptureFrame();
             break;
+          case 'toggle_panel':
+            // Tier 1.2: Alt+K arrives as a manifest command through the
+            // service worker. Without the case the handler fell into the
+            // default branch, which logged "unknown command" and dropped
+            // it — the shortcut did nothing on any platform, on Mac
+            // (where Option is the Alt carrier) it never even reached
+            // the listener. The store toggle IS the product behavior.
+            setPanelOpen(!useKivaraStore.getState().panelOpen);
+            break;
           case 'show_translation':
             // Translation is already shown automatically on hover. Kept here
             // so unknown commands don't fall through to the default warning,

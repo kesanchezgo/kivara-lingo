@@ -194,6 +194,17 @@ export class ShadowHost {
     // Tell Dark Reader (and similar) to leave our host alone.
     hostElement.setAttribute('data-darkreader-ignore', 'true');
 
+    // `all: initial` resets inheritable properties picked up from the host
+    // page (color, font-family, text-shadow, letter-spacing, etc.) so our
+    // baseline inside the shadow tree is ours, not theirs. It MUST be the
+    // FIRST assignment: `all` is a shorthand that ALSO resets the
+    // non-inherited layout properties set below (position, width, height,
+    // z-index, pointer-events, contain), and a later assignment leaves the
+    // host static and click-through — the overlay then never positions over
+    // the video, which is exactly the failure the closed-root hover guard
+    // surfaced in manual testing.
+    hostElement.style.all = 'initial';
+
     // Position the host so it overlays the page without intercepting clicks
     // outside our actual interactive surfaces. Only the React tree opts back
     // into pointer-events.
@@ -205,10 +216,6 @@ export class ShadowHost {
     hostElement.style.zIndex = '2147483647'; // Max int32 z-index
     hostElement.style.pointerEvents = 'none';
     hostElement.style.contain = 'layout style';
-    // `all: initial` resets inheritable properties picked up from the host
-    // page (color, font-family, text-shadow, letter-spacing, etc.) before
-    // we re-establish our own baseline inside the shadow tree.
-    hostElement.style.all = 'initial';
 
     container.appendChild(hostElement);
 
