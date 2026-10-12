@@ -1100,9 +1100,38 @@ export async function createCardFromRequest(
  * holds NETWORK/TIMEOUT rows — see createCardFromRequest).
  */
 const MAX_RETRIES = 10;
+
+/**
+ * One pass at a time.
+ *
+ * The alarm fires every minute; with a slow Anki or a queued backlog a single
+ * pass can run longer than that — media extraction, DB writes, an HTTP
+ * round trip per note. Without this flag the NEXT alarm would start a second
+ * pass over the SAME rows while the first was still running, and two passes
+ * creating the same card is exactly the duplicate the queue exists to avoid.
+ * The backoff already reschedules a row for later, so skipping a pass is free.
+ */
+let retryInFlight = false;
+
 export async function retryPendingNotes(
   mapping: AnkiMapping,
   capture: CaptureSettings = DEFAULT_CAPTURE,
+): Promise<{ retried: number; succeeded: number }> {
+  if (retryInFlight) {
+    console.info('[Kivara Lingo] retry pass already in flight, skipping this alarm');
+    return { retried: 0, succeeded: 0 };
+  }
+  retryInFlight = true;
+  try {
+    return await drainPendingNotes(mapping, capture);
+  } finally {
+    retryInFlight = false;
+  }
+}
+
+async function drainPendingNotes(
+  mapping: AnkiMapping,
+  capture: CaptureSettings,
 ): Promise<{ retried: number; succeeded: number }> {
   const db = getDB();
   const now = Date.now();

@@ -63,6 +63,19 @@ interface InvokeOptions {
    * late used to read as TIMEOUT, and the localhost fallback then created
    * the SAME note a second time. Callers carrying media pass a higher
    * timeout instead of risking a duplicate. */
+  /**
+   * Whether the request may be retried against the other spelling of the same
+   * Anki (127.0.0.1 ↔ localhost).
+   *
+   * Read-only actions can: a `deckNames` that times out means nothing
+   * happened, and retrying costs a fraction of a second. An action that
+   * CREATES something cannot: `addNote` timing out after Anki already stored
+   * the note means a retry creates the duplicate the user then sees as
+   * "card already added" — a false report of a failure for a card that is
+   * actually in the collection. Those actions set this false, so a TIMEOUT or
+   * a connection failure is thrown rather than replayed.
+   */
+  allowFallbackRetry?: boolean;
 }
 
 async function invokeOnce<T = unknown>(
@@ -148,6 +161,16 @@ async function invoke<T = unknown>(
       // Only retry on transport-level failures — don't retry on Anki
       // protocol errors (HTTP 500 / wrong API key / duplicate note).
       if (
+        opts.allowFallbackRetry === false &&
+        err instanceof AnkiConnectError &&
+        (err.code === 'TIMEOUT' || err.code === 'NETWORK' || err.code === 'CORS')
+      ) {
+        // A write action that timed out has already been applied as far as we
+        // know, so the fallback URL is not a retry — it is a second attempt at
+        // a side effect that may have landed. Throw exactly what happened.
+        throw err;
+      }
+      if (
         err instanceof AnkiConnectError &&
         (err.code === 'HTTP' || err.code === 'ANKI' || err.code === 'API_KEY')
       ) {
@@ -222,7 +245,15 @@ export const ankiConnect = {
     // time. 15 s keeps the duplicate path shut in practice.
     const fieldText = Object.values(note.fields ?? {}).join(' ');
     const hasMedia = /\[sound:|\<img/i.test(fieldText);
-    return invoke<number>('addNote', { note }, { url, apiKey, timeoutMs: hasMedia ? 15000 : undefined });
+    return invoke<number>('addNote', { note }, {
+      url,
+      apiKey,
+      timeoutMs: hasMedia ? 15000 : undefined,
+      // A note that was stored and answered late must NOT be replayed on the
+      // fallback URL: that is how a user gets a duplicate card reported as an
+      // error.
+      allowFallbackRetry: false,
+    });
   },
 
   /**
@@ -242,7 +273,7 @@ export const ankiConnect = {
     return invoke<null>(
       'updateNoteFields',
       { note: { id: noteId, fields } },
-      { url, apiKey },
+      { url, apiKey, allowFallbackRetry: false },
     );
   },
 
@@ -252,11 +283,11 @@ export const ankiConnect = {
     url?: string,
     apiKey?: string,
   ): Promise<string> {
-    return invoke<string>('storeMediaFile', { filename, data: dataBase64 }, { url, apiKey });
+    return invoke<string>('storeMediaFile', { filename, data: dataBase64 }, { url, apiKey, allowFallbackRetry: false });
   },
 
   async createDeck(deck: string, url?: string, apiKey?: string): Promise<number> {
-    return invoke<number>('createDeck', { deck }, { url, apiKey });
+    return invoke<number>('createDeck', { deck }, { url, apiKey, allowFallbackRetry: false });
   },
 
   /**

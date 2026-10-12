@@ -241,6 +241,16 @@ export async function startAudioCapture(
   /** E2E-only capture-path override; forwarded verbatim to the offscreen. */
   pcmPath?: 'audio-worklet' | 'script-processor',
 ): Promise<{ ok: boolean; mimeType?: string; error?: string }> {
+  // A ref is held for the WHOLE start, including the async gaps — `getStreamId`,
+  // the offscreen round trip and the `storage.session` write.
+  //
+  // `closeOffscreenIfIdle` only knows "capture is active" once `activeTabId`
+  // is set, which happens AFTER the offscreen acknowledges. In that window the
+  // extension looks idle, so a TTS one-shot finishing concurrently would
+  // release its own ref, see `oneShotRefs === 0`, and close the document the
+  // capture had just been started inside: the start then fails with a
+  // "document not found" that has nothing to do with the user's action.
+  oneShotRefs += 1;
   try {
     await ensureOffscreen();
     const streamId = streamIdOverride ?? (await getStreamId(tabId));
@@ -255,7 +265,6 @@ export async function startAudioCapture(
       activeTabId = null;
       activeMimeType = undefined;
       await clearStoredSession();
-      void closeOffscreenIfIdle();
       return { ok: false, error: lastError };
     }
     activeTabId = tabId;
@@ -274,9 +283,14 @@ export async function startAudioCapture(
     activeTabId = null;
     activeMimeType = undefined;
     await clearStoredSession();
-    // Best effort: shut the offscreen doc back down if we failed to start.
-    void closeOffscreenIfIdle();
     return { ok: false, error: reason };
+  } finally {
+    oneShotRefs = Math.max(0, oneShotRefs - 1);
+    // Released AFTER the session is recorded, so the document this came from is
+    // abandoned only if the capture is not actually stored — the normal
+    // success path ends with `loadStoredSession()` true and a close attempt
+    // that returns early.
+    void closeOffscreenIfIdle();
   }
 }
 

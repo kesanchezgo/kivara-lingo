@@ -31,7 +31,7 @@ import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator
 import { DEFAULT_ANKI_MAPPING, DEFAULT_CAPTURE, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
 import { resolveSecret } from '../shared/secret-store';
 import { escapeAnkiSearchTerm } from '../shared/anki-search';
-import { ankiHostVariants, parseAnkiAuthority } from '../shared/anki-host';
+import { ankiHostVariants, isLoopbackAnkiUrl, parseAnkiAuthority } from '../shared/anki-host';
 import {
   startAudioCapture,
   stopAudioCapture,
@@ -93,6 +93,21 @@ const ANKI_DNR_RULE_ID = 9981;
 // rejected by AnkiConnect's webCorsOriginList.
 let ankiDnrHosts: string[] | null = null;
 async function ankiOriginRules(hosts: string[]): Promise<chrome.declarativeNetRequest.Rule[]> {
+  // `initiatorDomains` restricted to THIS extension, not just the host.
+  //
+  // The rule rewrites `Origin: http://localhost` on an XHR to AnkiConnect.
+  // AnkiConnect's default `webCorsOriginList` is `["http://localhost"]`, so
+  // that header is the thing that authorises the request — and without an
+  // initiator restriction, ANY PAGE can satisfy it: youtube.com's ads, a
+  // compromised Netflix tab or an XSS could POST `{"action":"deleteDecks"}`
+  // to 127.0.0.1:8765 wearing a permitted origin, and AnkiConnect would
+  // execute it. Host permissions are not the check; the rewritten header is.
+  //
+  // Naming our own id here accepts only requests the extension itself starts,
+  // which is the intended consumer (audio-service-worker fetch → the SW).
+  // A page's own XHR has a web-domain initiator and does not match, so it
+  // keeps the CORS failure it had before this rule existed.
+  const initiator = chrome.runtime.id;
   return hosts.slice(0, 8).map((host, i) => ({
     id: ANKI_DNR_RULE_ID + i,
     priority: 1,
@@ -108,6 +123,10 @@ async function ankiOriginRules(hosts: string[]): Promise<chrome.declarativeNetRe
     },
     condition: {
       urlFilter: `|http*://${host}/*`,
+      // The extension id is a valid `initiatorDomains` entry: requests fired
+      // by an extension carry it as initiator. Listed alongside the host so a
+      // page-initiated request can never inherit the rewrite.
+      initiatorDomains: [initiator],
       resourceTypes: [
         'xmlhttprequest' as chrome.declarativeNetRequest.ResourceType,
       ],
@@ -334,11 +353,27 @@ onMessage('UPDATE_NOTE_FRAME', async ({ data }) => {
  * (popup / CardsTab "Probar" button); when omitted we read the saved
  * mapping from chrome.storage.sync so background-triggered actions
  * (CREATE_CARD, retry alarm) honour the user's saved settings.
+ *
+ * A payload `url` is confined to THIS MACHINE. AnkiConnect's entire cross-origin
+ * story is `Origin: http://localhost` (the one thing the DNR rule manufactures),
+ * so a message that could name any host would let a page ask the extension to
+ * carry that origin to an endpoint of the page's choosing — and the extension's
+ * DNR entry would be rewritten to make it succeed. Loopback is also the only
+ * thing the manifest's host permissions cover, so nothing else is reachable
+ * anyway. Rejection is LOUD (the button shows it) rather than a silent fallback
+ * to settings, because a user who typed a remote Anki deserves to know it is
+ * not supported rather than have their input quietly ignored.
  */
 async function resolveAnkiAuth(
   data: unknown,
-): Promise<{ url?: string; apiKey?: string }> {
+): Promise<{ url?: string; apiKey?: string; error?: string }> {
   const payload = (data as { url?: string; apiKey?: string } | undefined) ?? {};
+  if (payload.url && !isLoopbackAnkiUrl(payload.url)) {
+    return {
+      error: 'La URL de Anki debe apuntar a esta máquina (127.0.0.1 o localhost). '
+        + 'Un Anki en otra máquina no está soportado.',
+    };
+  }
   if (payload.url || payload.apiKey != null) {
     return { url: payload.url, apiKey: payload.apiKey };
   }

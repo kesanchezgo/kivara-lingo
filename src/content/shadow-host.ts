@@ -22,7 +22,9 @@
  *
  * Defence in depth:
  *
- *   - **Frontier**: ShadowRoot with `mode: 'open'`.
+ *   - **Frontier**: ShadowRoot with `mode: 'closed'`, so the page can neither
+ *     read `host.shadowRoot` nor query into it — the panel's API-key inputs
+ *     live inside and must stay invisible to the host.
  *   - **Inheritance cut**: `all: initial` on `:host`, then explicit defaults
  *     for typography, colour-scheme, font smoothing.
  *   - **Token pinning**: every `--text-*`, `--spacing`, `--radius-*` is
@@ -61,6 +63,23 @@ const VIDEO_REACT_ROOT_ID = 'kivara-lingo-video-react-root';
  * be processed by Dark Reader / picked up by the host page's CSS resets.
  */
 let pageGuardsApplied = false;
+
+/**
+ * Host element → the shadow root mounted inside it.
+ *
+ * A CLOSED root is unreachable through `element.shadowRoot` — that is the
+ * point — so our own modules cannot reach back through the host either. This
+ * registry is how they do: the extension holds the reference it created, and
+ * the page that hosts it never gets one, so the DOM the secrets live in stays
+ * opaque to the page.
+ */
+const shadowRoots = new WeakMap<HTMLElement, ShadowRoot>();
+
+export function getShadowRoot(host: HTMLElement | null | undefined): ShadowRoot | null {
+  if (!host) return null;
+  return shadowRoots.get(host) ?? null;
+}
+
 function applyPageGuards(): void {
   if (pageGuardsApplied) return;
   pageGuardsApplied = true;
@@ -111,7 +130,16 @@ export class ShadowHost {
 
     container.appendChild(hostElement);
 
-    const shadowRoot = hostElement.attachShadow({ mode: 'open' });
+    // CLOSED, not open: `attachShadow({mode:'open'})` exposes `host.shadowRoot`
+    // to any script on the page, and the panel rendered inside that root holds
+    // the user's API-key inputs and their settings. A page could read those
+    // values straight out of the DOM (or wire a global listener and type into
+    // the fields) — the API keys were never secret from the extension's own
+    // point of view, but they were never meant to be readable from YouTube's
+    // either. `getShadowRoot` above is how our code reaches a root the page
+    // cannot.
+    const shadowRoot = hostElement.attachShadow({ mode: 'closed' });
+    shadowRoots.set(hostElement, shadowRoot);
 
     // ── Layer 1: baseline stylesheet ─────────────────────────────────────
     // Pinned typography + Tailwind v4 token overrides + every --tw-* seed.

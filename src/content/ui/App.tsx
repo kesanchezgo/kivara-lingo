@@ -9,6 +9,7 @@ import { applyCleanupCss } from './cleanup-css';
 import { useKivaraStore } from '../../shared/store';
 import { captureFrame, captureBestFrame } from '../capture/frame';
 import { comboFromEvent, normalizeCombo } from '../../shared/shortcuts';
+import { getShadowRoot } from '../shadow-host';
 import { eventPathIsEditable } from '../utils/keyboard';
 import type {
   CreateCardRequest,
@@ -201,9 +202,10 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   // Sync dark mode on hosts + overlay root so theme.css `.dark` selector works.
   useEffect(() => {
     const mainHost = document.getElementById('kivara-lingo-host');
-    const mainRoot = mainHost?.shadowRoot?.getElementById('kivara-lingo-react-root');
-    const videoHost = document.getElementById('kivara-lingo-video-host');
-    const videoRoot = videoHost?.shadowRoot?.getElementById('kivara-lingo-video-react-root');
+    // `getShadowRoot`, not `mainHost?.shadowRoot`: the root is CLOSED (so the
+    // page cannot read it), so the reference is the one our mount keeps.
+    const mainRoot = getShadowRoot(mainHost)?.getElementById('kivara-lingo-react-root');    const videoHost = document.getElementById('kivara-lingo-video-host');
+    const videoRoot = getShadowRoot(videoHost)?.getElementById('kivara-lingo-video-react-root');
 
     const elementsToUpdate = [mainHost, mainRoot, videoHost, videoRoot, videoOverlayRoot].filter(
       Boolean,

@@ -64,6 +64,20 @@ export async function fetchWithTimeout(
   const startedAt = performance.now();
   const allowHttp = /^http:/i.test(url);
   try {
+    // The requested URL is validated BEFORE the request leaves, not only after
+    // it comes back. The post-check alone has a hole: it runs when the response
+    // is `ok`, so a redirect that lands on a private host and answers 4xx/5xx
+    // slips through before the caller ever sees `res.url`. Guarding the INPUT
+    // closes that, and the extra `res.url` check below still catches a
+    // redirect from a public host to a private one after a 200.
+    if (!isPublicHttpUrlSync(url, allowHttp)) {
+      logFetchDiagnostic('blocked-source', { url });
+      // No request was made, so `onResponse` must NOT be given a response
+      // object: its job in the enrichment sources is to look at the status and
+      // at `cf-mitigated`, and passing a synthetic one would be lying about
+      // both.
+      return null;
+    }
     // Redirects are FOLLOWED. Handling them by hand with `redirect:'manual'`
     // is not possible from a service worker: that mode returns an opaque
     // redirect (status 0, no headers), so `Location` cannot be read and every
@@ -87,7 +101,10 @@ export async function fetchWithTimeout(
       },
       signal: ctrl.signal,
     });
-    if (res.ok && res.url && res.url !== url && !isPublicHttpUrlSync(res.url, allowHttp)) {
+    // Validated on the final URL regardless of status: a redirect to a private
+    // host that then answers 403 must not count as "we did not reach it", and a
+    // `res.ok` gate would have kept exactly that case out of this check.
+    if (res.url && res.url !== url && !isPublicHttpUrlSync(res.url, allowHttp)) {
       logFetchDiagnostic('blocked-destination', { url, finalUrl: res.url });
       await res.body?.cancel().catch(() => {});
       // The caller's observer is for status bookkeeping — a request we refused

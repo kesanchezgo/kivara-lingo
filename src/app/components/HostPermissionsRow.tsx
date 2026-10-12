@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { t } from '../../shared/i18n';
 import { KeyRound, ShieldCheck } from 'lucide-react';
 import { useGrantedOrigins, refreshHostPermissions, hasOrigin } from '../../shared/host-permissions-store';
-import { requestHosts, revokeHosts, ensureProviderHosts } from '../../shared/host-permissions';
+import { requestHosts, revokeHosts, ensureProviderHosts, permissionsApiAvailable } from '../../shared/host-permissions';
 import { providerHosts } from '../../shared/provider-hosts';
 
 /**
@@ -84,8 +84,28 @@ function originsFor(providers: readonly string[]): string[] {
 export function HostPermissionsRow() {
   const granted = useGrantedOrigins();
   const [pending, setPending] = useState(false);
+  // `chrome.permissions` does not exist inside a CONTENT SCRIPT: this panel is
+  // the same React tree that runs there, and without this check the grant
+  // button would report success for a request that was never made — `request`
+  // is skipped when `chrome.permissions?.request` is absent and `missingHosts`
+  // answers "nothing missing" in the same situation, so the row would flip to
+  // "23/23 concedidos" with zero origins granted. The options page is a real
+  // extension page and can prompt; pointing there is the honest move.
+  const canPrompt = permissionsApiAvailable();
+
+  const openOptions = () => {
+    try {
+      void chrome.runtime.openOptionsPage?.();
+    } catch {
+      /* nothing to do if the page cannot be opened */
+    }
+  };
 
   const run = async (providers: string[], revokeIt: boolean) => {
+    if (!canPrompt) {
+      openOptions();
+      return;
+    }
     setPending(true);
     try {
       if (revokeIt) await revokeHosts(originsFor(providers));
@@ -124,9 +144,18 @@ export function HostPermissionsRow() {
               </p>
             </div>
             <div className="flex flex-col gap-1 shrink-0">
+              {!canPrompt && (
+                <button
+                  type="button"
+                  onClick={openOptions}
+                  className="text-[10px] font-semibold px-2 py-1 rounded border border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+                >
+                  {t('perm.openOptions')}
+                </button>
+              )}
               <button
                 type="button"
-                disabled={pending || complete}
+                disabled={pending || complete || !canPrompt}
                 onClick={() => void run(group.providers, false)}
                 className="text-[10px] font-semibold px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
               >

@@ -11,6 +11,7 @@
 
 import { DEFAULT_VIP, DEFAULT_TRANSLATE, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
 import { resolveSecret } from '../shared/secret-store';
+import { normalizeTtlDays } from '../shared/cache-ttl';
 import type { VipSettings } from '../shared/types';
 
 export async function getVipSettings(): Promise<VipSettings> {
@@ -22,6 +23,12 @@ export async function getVipSettings(): Promise<VipSettings> {
     const vip = parsed?.state?.vip ?? parsed?.vip;
     if (vip && typeof vip === 'object') {
       const merged: VipSettings = { ...DEFAULT_VIP, ...vip };
+      // `chrome.storage.sync` is read DIRECTLY here, not through the store's
+      // `mergePersisted`, so nothing else has validated this number: a -5 or a
+      // 9999 written by an older build would reach the enrichment cache
+      // unchecked, and one wipes the whole table while the other never expires
+      // a row. Normalising here is the same clamp, one more entry point.
+      merged.cacheTtlDays = normalizeTtlDays(merged.cacheTtlDays);
       // BYOK image keys live in local slots (see secret-store.ts) —
       // resolveSecret handles decrypt + legacy fallback + unreadable.
       merged.unsplashAccessKey = await resolveSecret(

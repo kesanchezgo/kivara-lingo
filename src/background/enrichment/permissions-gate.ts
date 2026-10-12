@@ -62,6 +62,12 @@ export const SOURCE_PERMISSION_GROUP: Record<string, string> = {
   oxfordLearners: 'dict:oxford',
   longman: 'dict:oxford',
   collins: 'dict:dictionarycom',
+  // The `collins` toggle still names Collins in Settings, but the source it
+  // drives is Dictionary.com (id `dictionaryCom`). The gate is keyed by SOURCE
+  // ID, so listing only `collins` meant the Dictionary.com source passed the
+  // gate ungated: it issued requests with no grant waiting on the answer, and
+  // the resulting payload was cached as complete.
+  dictionaryCom: 'dict:dictionarycom',
   merriamWebster: 'dict:merriam',
   merriamWebsterThesaurus: 'dict:merriam',
   ozdic: 'dict:ozdic',

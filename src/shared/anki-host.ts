@@ -34,6 +34,38 @@ export function ankiHostVariants(host: string): string[] {
 }
 
 /**
+ * True when the URL names AnkiConnect on this machine, which is the only Anki
+ * the extension is willing to talk to.
+ *
+ * Two reasons this is worth its own function rather than a string check:
+ *
+ *  1. The manifest grants loopback host permissions and nothing else, so a
+ *     remote host is a request the extension cannot legally make anyway.
+ *  2. The AnkiConnect `Origin` rewrite (declarative-net-request, service
+ *     worker) exists to satisfy AnkiConnect's default `webCorsOriginList`
+ *     `["http://localhost"]`. Pointing that machinery at an arbitrary
+ *     message-supplied host turns the extension into an authorised-origin
+ *     fetcher for whoever can reach the message door.
+ *
+ * `:port` is accepted on either name because Anki's port is user-editable and
+ * the extension documents, in PRIVACY.md, that a remote Anki stays out on
+ * purpose. A hostname that merely CONTAINS `localhost` (e.g. `x.localhost.attacker`)
+ * is not loopback, and a `127.`-family address outside 127/8 is refused by the
+ * exact-match rule below.
+ */
+export function isLoopbackAnkiUrl(raw: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(String(raw).trim());
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+  const host = url.hostname.toLowerCase().replace(/\.+$/, '');
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+}
+
+/**
  * The authority (`host[:port]`) a rule may be built from, or `null` when the
  * URL is unparseable or carries anything the matcher would interpret.
  */

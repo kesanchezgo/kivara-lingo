@@ -22,10 +22,48 @@ export interface ProviderError {
 
 const TIMEOUT_MS = 5000;
 
+/**
+ * Where a request is allowed to land, and where it started.
+ *
+ * A user-configured LibreTranslate is often a LAN box (`http://192.168.1.20:5000/translate`
+ * is the documented self-host case), so a "public HTTPS only" rule would break
+ * the feature's main use. What matters instead is that the request cannot be
+ * REDIRECTED off the host the user chose: that turns "talk to my server" into
+ * "talk to whatever my server says", which reintroduces the exact probe the
+ * enrichment fetchers refuse.
+ *
+ * So: the start must parse as http(s), and after the round trip the response's
+ * origin must be the one asked for. Cross-origin redirects are refused; a
+ * same-origin hop (a trailing-slash or case change) is fine, and a 302 whose
+ * own origin differs is dropped before the body is read.
+ */
+function assertSameOriginAfterRedirect(input: string, finalUrl: string): void {
+  const asked = new URL(input);
+  const landed = new URL(finalUrl);
+  const sameOrigin =
+    landed.protocol === asked.protocol && landed.hostname === asked.hostname && landed.port === asked.port;
+  if (!sameOrigin) {
+    throw new Error(`el proveedor redirigió a otro origen (${landed.origin}); rechazado`);
+  }
+}
+
 function withTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
-  return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timeout));
+  return fetch(input, { ...init, signal: controller.signal })
+    .then((res) => {
+      // Both branches checked BEFORE the caller reads a body: `res.url` is the
+      // post-redirect URL, and a redirect to another origin while the headers
+      // claim success is precisely the case that must never get that far.
+      if (res.ok || res.redirected) {
+        assertSameOriginAfterRedirect(String(input), res.url || String(input));
+      }
+      if (!res.ok) {
+        void res.body?.cancel().catch(() => {});
+      }
+      return res;
+    })
+    .finally(() => clearTimeout(timeout));
 }
 
 /**

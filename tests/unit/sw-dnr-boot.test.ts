@@ -98,6 +98,20 @@ describe('SW boot applies the SAVED Anki URL to the DNR rules', () => {
     expect(joined).toContain('localhost:9999');
     // The DEFAULT port must NOT be installed as the primary rule.
     expect(joined).not.toContain('127.0.0.1:8765');
+
+    // The security property, not the plumbing one: every rule must be bound to
+    // THIS extension as the initiator. AnkiConnect's default
+    // `webCorsOriginList` is `["http://localhost"]`, so the rewritten Origin is
+    // what authorises the request — and a rule without `initiatorDomains`
+    // hands that authorisation to any page that can fire an XHR at the port.
+    // Host permissions do not constrain it; this does.
+    const initiators = sessionRulesCalls.flatMap((c) =>
+      c.addRules.map((r) => r.condition.initiatorDomains),
+    );
+    expect(initiators.length, 'no rules carried an initiator restriction').toBe(filters.length);
+    for (const list of initiators) {
+      expect(list, 'the rule is open to every initiator').toEqual(['test-extension-id']);
+    }
   });
 
   it('falls back to the default port when no URL is saved', { timeout: 20_000 }, async () => {
