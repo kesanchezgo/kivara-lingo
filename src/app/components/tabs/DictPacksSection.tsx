@@ -284,31 +284,6 @@ export function DictPacksSection() {
       setFeedback(null);
       setImportingUrl(trimmed);
 
-      // Listen for progress broadcasts coming from the SW so we can show
-      // the user *what* is happening — downloading bytes, unzipping,
-      // parsing, writing — instead of a static "Descargando" spinner.
-      // Tracked in state-free closures so we don't have to re-render
-      // for every progress tick.
-      const progressListener = (msg: unknown) => {
-        if (
-          typeof msg !== 'object' ||
-          msg === null ||
-          (msg as { type?: string }).type !== 'DICT_PACK_PROGRESS' ||
-          (msg as { url?: string }).url !== trimmed
-        ) {
-          return;
-        }
-        // Progress payload reaches us; we don't surface it visually yet
-        // (mock has a single "Descargando" pill) but we tap into it so
-        // future UI iterations can render the bar without protocol
-        // changes.
-      };
-      try {
-        chrome.runtime.onMessage.addListener(progressListener);
-      } catch {
-        // Non-extension context (vitest) — ignore.
-      }
-
       try {
         // Run the entire download + unzip + insert in the service worker
         // so a 700+ MB decompressed payload (Wiktionary EN→EN) doesn't
@@ -358,11 +333,6 @@ export function DictPacksSection() {
           message: t('dict.unexpectedError', { msg: (err as Error).message }),
         });
       } finally {
-        try {
-          chrome.runtime.onMessage.removeListener(progressListener);
-        } catch {
-          // ignore
-        }
         setImportingUrl(null);
       }
     },

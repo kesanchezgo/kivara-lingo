@@ -73,7 +73,15 @@ export function openResolveWordStream(
       // `error` (no rank) froze the stream. The replay guard is exactly: a
       // post-replay `local`, once anything richer has landed.
       if (msg.phase === 'local' && replayed && sawRicherThanLocal) return;
-      if (msg.phase !== 'local') sawRicherThanLocal = true;
+      // Only a phase that DELIVERED DATA counts. An `error` (or the closing
+      // `done`) used to set this flag too, which meant: an error arrives, the
+      // worker dies, the replay re-sends the `local` the popover never saw,
+      // and the guard drops it — the card ends up empty for a request whose
+      // only outcome was a lookup failure plus a local entry. The guard is
+      // about not LOSING richer data, so it must answer to richer data.
+      if (msg.phase === 'translation' || msg.phase === 'enrichment' || msg.phase === 'ai') {
+        sawRicherThanLocal = true;
+      }
 
       handlers.onMessage(msg);
     });

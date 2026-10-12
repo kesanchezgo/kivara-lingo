@@ -295,10 +295,15 @@ export async function resolveWordStreaming(
   // Phase 4 — AI enrichment (optional).
   const aiTask = (async () => {
     if (!params.includeAi) return;
-    const settings = await getAiSettings();
-    if (settings.provider === 'disabled' || !settings.apiKey || !settings.enrichOnHover) return;
-    const nativeLang = await getResolvedNativeLang(settings);
+    // Everything is inside the try: the SOFT mentions are inside it, and the
+    // two `await`s that USED to sit above it (`getAiSettings`,
+    // `getResolvedNativeLang`) could reject without anyone hearing — the outer
+    // `Promise.allSettled` swallows the rejection, and the popover therefore
+    // never receives the `error` phase that says the AI pass did not happen.
     try {
+      const settings = await getAiSettings();
+      if (settings.provider === 'disabled' || !settings.apiKey || !settings.enrichOnHover) return;
+      const nativeLang = await getResolvedNativeLang(settings);
       const ai = await enrichWithAi({ token, sentence, sourceLang, nativeLang });
       if (ai.ok) {
         if (local) {
@@ -325,10 +330,17 @@ export async function resolveWordStreaming(
   await Promise.allSettled([translationTask, enrichmentTask, aiTask]);
 
   // Telemetry — exactly one bucket per resolve, after we know the outcome.
+  // The rejection is CAUGHT: the awaits were floating inside a `void`-ed
+  // IIFE before, so a failing `recordLookupHit` became an unhandled rejection
+  // that Vitest later reported against whichever test happened to be running.
   void (async () => {
-    if (resolvedPackId) await recordLookupHit(resolvedPackId);
-    else if (remoteServed) await recordLookupHit(REMOTE_PACK_ID);
-    else await recordMiss(MISS_PACK_ID);
+    try {
+      if (resolvedPackId) await recordLookupHit(resolvedPackId);
+      else if (remoteServed) await recordLookupHit(REMOTE_PACK_ID);
+      else await recordMiss(MISS_PACK_ID);
+    } catch (err) {
+      console.warn('[Kivara Lingo] lookup telemetry failed', err);
+    }
   })();
 
   emit({ phase: 'done', ...(needsAccess.length ? { needsAccess } : {}) });

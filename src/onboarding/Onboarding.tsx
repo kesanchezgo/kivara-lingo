@@ -80,6 +80,11 @@ export function Onboarding() {
       const r = (await sendMessage('ANKI_DECKS', { url, apiKey }, 'background')) as AnkiListsResponse;
       if (r.decks) setDecks(r.decks);
       if (r.models) setModels(r.models);
+    } catch (err) {
+      // An unhandled rejection here took the whole onboarding wizard down on a
+      // cold Anki: the promise from `sendMessage` was floating, so a failed
+      // ping on entry left the user on a broken step with no way back.
+      setPing({ status: 'error', error: err instanceof Error ? err.message : 'unknown' });
     } finally {
       setBusy(false);
     }
@@ -91,11 +96,21 @@ export function Onboarding() {
       const r = (await sendMessage('ANKI_FIELDS', { url, apiKey, modelName }, 'background')) as AnkiFieldsResponse;
       if (r.fields?.length) {
         setFields(r.fields);
-        const mapped = autoMapFields(r.fields, ankiMapping.fieldSources);
-        setAnkiMapping({ ...ankiMapping, modelName, fieldSources: mapped });
+        // FUNCTIONAL update: this runs after an await, and `ankiMapping` was
+        // captured when the effect started. Spreading the captured object
+        // wrote back every edit the user made in between (deck name, another
+        // mapping) — the same trap `CardsTab` avoids by writing `(prev) =>`.
+        setAnkiMapping((prev) => ({
+          ...prev,
+          modelName,
+          fieldSources: autoMapFields(r.fields!, prev.fieldSources),
+        }));
       } else {
         setFields([]);
       }
+    } catch (err) {
+      setFields([]);
+      setPing({ status: 'error', error: err instanceof Error ? err.message : 'unknown' });
     } finally {
       setBusy(false);
     }

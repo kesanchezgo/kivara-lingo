@@ -5,11 +5,11 @@
  *
  * Responsibilities:
  *  - Create / close the offscreen document and keep it alive while at least
- *    one consumer holds a refcount (capture, TTS, ASR…).
+ *    one consumer holds a refcount (capture, TTS).
  *  - Resolve a `streamId` from `chrome.tabCapture.getMediaStreamId` and ship
  *    it to the offscreen worker.
- *  - Proxy `EXTRACT_AUDIO_CLIP` and `TRANSCRIBE_AUDIO_CLIP` requests from
- *    content / orchestrator into the offscreen worker.
+ *  - Proxy `EXTRACT_AUDIO_CLIP` requests from content / orchestrator into the
+ *    offscreen worker.
  *  - Proxy `OFFSCREEN_TTS_SPEAK` so the background's `tts.ts` can fall back
  *    to `speechSynthesis` when `chrome.tts` is unavailable.
  */

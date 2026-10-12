@@ -569,7 +569,8 @@ export async function extractAudioClipHandler(data: unknown): Promise<AudioClipR
   const result = await extractAudioClip(startMs, endMs, {
     // Honour the caller's format preference; default to 'mp3' for Anki.
     format: req.format ?? 'mp3',
-    // An explicit `useVad` wins (TRANSCRIBE_AUDIO_CLIP has always done this);
+    // An explicit `useVad` always wins (the extract path answers from the same
+    // rule); when it is absent the user's saved end-of-line setting decides.
     // otherwise fall back to the capture setting, which is 'vad' by default.
     useVad: req.useVad ?? capture.endDetect === 'vad',
     preRollMs: capture.preRoll,

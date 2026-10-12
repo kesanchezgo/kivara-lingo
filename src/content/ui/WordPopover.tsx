@@ -623,7 +623,7 @@ export function WordPopover({
       // steals hover for a card, so expose it as a dialog, give Escape a
       // documented way out, and trap Tab inside until it closes.
       role="dialog"
-      aria-label={`${t('popover.dictionary')} — ${token}`}
+      aria-label={`${t('popover.dictionaryLabel')} — ${token}`}
       aria-modal="false"
       className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 z-30 kvl-pop-in"
       style={{

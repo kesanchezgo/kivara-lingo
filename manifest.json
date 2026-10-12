@@ -75,8 +75,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "src/assets/dictionaries/*",
-        "src/onboarding/*"
+        "src/assets/dictionaries/*"
       ],
       "matches": [
         "*://*.youtube.com/*",
