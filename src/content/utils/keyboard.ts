@@ -10,12 +10,15 @@
  *
  * `event.composedPath()` was the answer... for an OPEN root. It is NOT the
  * answer for a CLOSED one: a page-side listener's path stops at the host (see
- * `extendedComposedPath` in content/shadow-host.ts, and the Chromium
- * measurement in tests/e2e/shadow-composed-path.spec.ts). Every hop through
- * the helper below, which re-appends the inside of our own closed roots, is
- * inspected instead.
+ * `eventClosedRoot` in content/shadow-host.ts, and the Chromium measurement in
+ * tests/e2e/shadow-composed-path.spec.ts). For a closed root the panel's
+ * focused element is resolved directly — `root.activeElement` is the node the
+ * browser itself considers focused inside the panel — instead of by presence:
+ * "the root contains A text field" would over-match a Ctrl+s aimed at some
+ * other surface. The path scan stays for every other shape: open roots,
+ * plain page events, and environments that deliver the inner node natively.
  */
-import { extendedComposedPath } from '../shadow-host';
+import { eventClosedRoot } from '../shadow-host';
 
 /** `input[type=…]` where typing letters means text, not a shortcut. */
 const TEXTUAL_INPUT_TYPES = new Set([
@@ -41,7 +44,10 @@ function isEditableElement(node: EventTarget | null): boolean {
 /** True when the event came from (or passed through) a text-entry control,
  * including one inside a shadow root. */
 export function eventPathIsEditable(event: Event): boolean {
-  const path = extendedComposedPath(event);
-  if (path.length === 0) return isEditableElement(event.target);
-  return path.some((node) => isEditableElement(node));
+  const root = eventClosedRoot(event);
+  if (root) return isEditableElement(root.activeElement);
+  const path =
+    typeof event.composedPath === 'function' ? Array.from(event.composedPath()) : [];
+  const nodes = path.length > 0 ? path : [event.target];
+  return nodes.some((node) => isEditableElement(node));
 }

@@ -81,67 +81,70 @@ export function getShadowRoot(host: HTMLElement | null | undefined): ShadowRoot 
 }
 
 /**
- * The path a page-side listener sees for an event, PLUS the inside of any
- * closed root mentioned in it.
+ * The closed root mentioned in this path, if any.
  *
- * `event.composedPath()` is not the whole story for a closed root: for a
- * `window` / `document` listener it STOPS AT THE HOST and omits the tree
- * inside. Measured in Chromium with a real closed root and a real `keydown`
- * dispatched from an `<input>` inside it (tests/e2e/shadow-composed-path.spec.ts):
- * the delivered path did not contain the input. jsdom gets this backwards — it
- * delivers the input — which is why the property ships pinned by an e2e test
- * and a unit test alone cannot decide it.
+ * `event.composedPath()` stops at a CLOSED root's host for a page-side
+ * (`window` / `document`) listener: measured in Chromium with a real closed
+ * root and a real `keydown` dispatched from an `<input>` inside it
+ * (tests/e2e/shadow-composed-path.spec.ts) — the delivered path did not
+ * contain the input. jsdom gets this backwards — it delivers the input —
+ * which is why the property ships pinned by an e2e test and a unit test
+ * alone cannot decide it. `event.target` is retargeted to the host the same
+ * way.
  *
- * That gap lands exactly on two guards:
- *   - `eventPathIsEditable()` (content/utils/keyboard.ts) scans the path for
- *     the editable element; on a host-truncated path it reports "not typing"
- *     and App.tsx fires the global shortcuts while the user edits an API key;
- *   - `overKivaraZone()` scans it for `[data-kivara-hover-zone]`; truncated,
- *     the cursor sitting on the subtitle reads "not over Kivara" and the video
- *     resumes underneath it.
+ * That gap lands exactly on two guards in App.tsx:
+ *   - the shortcut guard (`eventPathIsEditable`, content/utils/keyboard.ts)
+ *     needs to know the keydown came from a text control; on a host-
+ *     truncated path it reports "not typing" and the global shortcuts fire
+ *     while the user types in an API-key field;
+ *   - the hover guard (`overKivaraZone` here) needs to know the pointer
+ *     dropped onto one of OUR zones; truncated, the cursor sitting on the
+ *     subtitle — and the cursor anywhere on the bigger overlay around it —
+ *     read "not over Kivara" / "over Kivara" respectively.
  *
- * So the scan is widened to the targets those two guards actually look for,
- * reached through the registry only the extension can read — the page still
- * cannot get at them. `event.target` is left exactly as the platform delivers
- * it (retargeted to the host, and still true), so everything else about how a
- * page-side listener sees these events is unchanged.
- *
- * For an OPEN root — where the raw path already carries the inner nodes, and
- * which this registry never registers — the selectors below simply match
- * nodes already present in the path, so the answer is the same list.
+ * Both resolve the ONE node each guard asks about, THROUGH the registry only
+ * the extension can read (`getShadowRoot`) — `root.activeElement` for the
+ * keyboard half, `root.elementFromPoint(x, y)` for the hover half. Neither is
+ * a membership check over the whole tree: "the root contains a field /
+ * a zone" over-matches a Ctrl+s aimed at a button and keeps the video parked
+ * on a pointer over the empty overlay, and both failures are pinned (the
+ * hover one, with real mouse coordinates, by the e2e spec).
  */
-export function extendedComposedPath(event: Event): EventTarget[] {
-  const path =
-    typeof event.composedPath === 'function' ? Array.from(event.composedPath()) : [];
-  const out: EventTarget[] = [...path];
+export function eventClosedRoot(event: Event): ShadowRoot | null {
+  if (typeof event.composedPath !== 'function') return null;
+  const path = Array.from(event.composedPath());
   for (const node of path) {
     const root = getShadowRoot(node as HTMLElement);
-    if (!root) continue;
-    // The scan targets, at any depth inside the panel — inputs sit several
-    // levels below the react root, and zones are set per-subtitle / per-popover.
-    for (const el of root.querySelectorAll(EDITABLE_OR_ZONE_SELECTOR)) out.push(el);
+    if (root) return root;
   }
-  return out;
+  return null;
 }
-
-/**
- * The elements the page-side guards need to see through a closed root:
- * whatever `eventPathIsEditable` treats as a text target, plus every hover
- * zone `App.tsx` pauses under.
- */
-const EDITABLE_OR_ZONE_SELECTOR =
-  'input, textarea, select, [contenteditable], [data-kivara-hover-zone]';
 
 /**
  * Is the event over one of our hover zones?
  *
- * `extendedComposedPath`, not the raw path: a closed root's path, as delivered
- * to a page-side (`document`) listener, stops at the shadow host (measured in
- * Chromium, tests/e2e/shadow-composed-path.spec.ts). This is the runtime form
- * of the shorthand used in App.tsx's mousemove handler.
+ * The DOM resolver, not a presence check: the pointer sits on a zone exactly
+ * when `root.elementFromPoint(event.clientX, event.clientY)` lands on (or
+ * inside) a `[data-kivara-hover-zone]` element. Everything else — the
+ * pointer on the fullscreen overlay's empty area, on the plate's non-subtitle
+ * strips, or on the popover but not on a card inside it — reads "not over
+ * Kivara", which is what App.tsx's watchdog needs to resume the video.
  */
 export function overKivaraZone(event: MouseEvent): boolean {
-  for (const node of extendedComposedPath(event)) {
+  const path = typeof event.composedPath === 'function' ? Array.from(event.composedPath()) : [];
+  for (const node of path) {
+    const root = getShadowRoot(node as HTMLElement);
+    if (root) {
+      // The resolver, through the root the registry holds: the pointer is
+      // over a zone exactly when the element under its coordinates is the
+      // zone or sits inside one.
+      const el = root.elementFromPoint(event.clientX, event.clientY);
+      return el instanceof HTMLElement && el.closest('[data-kivara-hover-zone]') !== null;
+    }
+  }
+  // OPEN roots (and plain page events) need nothing — the raw path already
+  // carries the inner nodes, and this scan is exactly what it was before.
+  for (const node of path) {
     if (node instanceof HTMLElement && node.dataset?.kivaraHoverZone === 'true') {
       return true;
     }

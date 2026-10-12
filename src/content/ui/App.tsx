@@ -513,6 +513,10 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     // page-side `document` mousemove. A CLOSED root's raw path stops at the
     // host in Chrome — measured — so the event would report "not over Kivara"
     // while the cursor is on the subtitle and the video would resume under it.
+    // The resolver resolves the ONE element under the pointer coordinates
+    // instead of asking whether the root contains A zone — a presence check
+    // would keep the video parked on a mousemove over the (much larger)
+    // overlay area outside any zone.
     const isOverKivara = overKivaraZone;
 
     const onMove = (e: MouseEvent) => {

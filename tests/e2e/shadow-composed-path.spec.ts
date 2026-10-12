@@ -66,13 +66,50 @@ const FIXTURE = /* html */ `<!doctype html><html><body><h1>probe</h1>
 </script>
 </body></html>`;
 
+/**
+ * The hover half: the overlay shape ShadowHost mounts for a video page — a
+ * full-screen, pointer-events-none closed root carrying a hover zone (the
+ * popover / subtitle plate) that opts back into pointer-events.
+ *
+ * The overlay host covers the whole viewport. A MEMBERSHIP check ("the root
+ * contains a zone") therefore fires for a pointer anywhere on it — including
+ * the large area outside the zone; the resolver's hit test does not.
+ *
+ * The coordinates come from real `page.mouse.move` calls in the test below:
+ * Chromium does its own hit testing through the real layout, which is what
+ * makes this a Chromium test rather than a jsdom one.
+ */
+const FIXTURE_ZONE = /* html */ `<!doctype html><html><body style="margin:0">
+<script>
+  const host = document.createElement('div');
+  host.id = 'kivara-lingo-host';
+  Object.assign(host.style, { position: 'fixed', inset: '0', pointerEvents: 'none', zIndex: '2147483647' });
+  const root = host.attachShadow({ mode: 'closed' });
+  const style = document.createElement('style');
+  style.textContent = ':host { contain: layout style; }';
+  root.appendChild(style);
+  // The overlay chrome — huge, NOT a zone — the pointer-moving zone.
+  const chromeLayer = document.createElement('div');
+  Object.assign(chromeLayer.style, { position: 'absolute', inset: '0', pointerEvents: 'none' });
+  root.appendChild(chromeLayer);
+  // The zone: the only interactive surface — the popover card / plate.
+  const zone = document.createElement('div');
+  zone.dataset.kivaraHoverZone = 'true';
+  zone.textContent = 'zone';
+  Object.assign(zone.style, { position: 'absolute', left: '500px', top: '300px', width: '200px', height: '60px', pointerEvents: 'auto', background: '#9333ea20' });
+  root.appendChild(zone);
+  document.body.appendChild(host);
+  window.__zone = { root, zone, host };
+</script>
+</body></html>`;
+
 test.describe('closed-root event paths in real Chromium', () => {
   // This page proves what Chrome hands a page-side listener for a REAL keydown
   // from inside a closed root: the path STOPS AT THE HOST. That is the fact the
-  // whole `extendedComposedPath` helper exists to answer — `eventPathIsEditable`
+  // whole `eventClosedRoot` helper exists to answer — `eventPathIsEditable`
   // on that raw path reports "not typing", so App.tsx's guard used to fire the
-  // global shortcuts while the user typed in an API-key field. `extends` below
-  // is the fix, pinned to this platform's behaviour.
+  // global shortcuts while the user typed in an API-key field. The helpers
+  // below are the fix, pinned to this platform's behaviour.
   test('records the raw composedPath for a closed-root input event', async ({ context }) => {
     const page = await context.newPage();
     await page.setContent(FIXTURE);
@@ -83,13 +120,59 @@ test.describe('closed-root event paths in real Chromium', () => {
         .__kivaraProbe.keydown,
     );
     expect(keydown, 'the window keydown listener never fired').not.toBeNull();
-    // Should the browser ever deliver natively — which would make
-    // `extendedComposedPath` redundant — flip this assert to `true` and delete
-    // the helper. Both directions are intentional guardrails.
+    // Should the browser ever deliver natively — which would make the
+    // closed-root helpers redundant — flip this assert to `true` and delete
+    // them. Both directions are intentional guardrails.
     expect(
       keydown!.containsInput,
-      'Chrome delivered the input across the closed-root boundary: the guard never needed extendedComposedPath',
+      'Chrome delivered the input across the closed-root boundary: the guard never needed the closed-root helpers',
     ).toBe(false);
     await page.close();
   });
+
+  // The hover guard's second half — what a MEMBERSHIP check would get wrong.
+  // A closed root's path truncates at the host, so `overKivaraZone` resolves
+  // the ONE element under the pointer coordinates through the root
+  // (`root.elementFromPoint(...)` + `.closest('[data-kivara-hover-zone]')`).
+  // The alternative — "the root contains a zone" — fires on every mousemove
+  // over the transparent fullscreen overlay, including the large area outside
+  // any zone. This test drives REAL mouse coordinates at a REAL box in
+  // Chromium: jsdom has no layout and cannot decide it.
+  test('resolves pointer position, not zone presence, inside a closed root', async ({ context }) => {
+    const page = await context.newPage();
+    await page.setContent(FIXTURE_ZONE);
+
+    // The production resolver, exactly as shadow-host's `overKivaraZone`
+    // computes it: coordinates → element-from-point → nearest zone.
+    const hit = async (x: number, y: number) => {
+      await page.mouse.move(x, y, { steps: 1 });
+      return page.evaluate(([cx, cy]: [number, number]) => {
+        const w = window as unknown as { __zone?: { root: ShadowRoot; zone: HTMLElement; host: HTMLElement } };
+        const { root } = w.__zone!;
+        const el = root.elementFromPoint(cx, cy);
+        return el instanceof HTMLElement ? el.closest('[data-kivara-hover-zone]') !== null : false;
+      }, [x, y]);
+    };
+
+    const box = await page.evaluate(() => {
+      const w = window as unknown as { __zone?: { zone: HTMLElement; host: HTMLElement } };
+      const r = w.__zone!.zone.getBoundingClientRect();
+      const h = w.__zone!.host.getBoundingClientRect();
+      return { zx: r.x, zy: r.y, zw: r.width, zh: r.height, hw: h.width, hh: h.height };
+    });
+
+    // ON the zone — zones are the only elements with pointer events; the
+    // overlay host covers everything and must NOT intercept this.
+    const onZone = await hit(box.zx + box.zw / 2, box.zy + box.zh / 2);
+    expect(onZone, 'cursor ON a hover zone inside a closed root must read as a hit').toBe(true);
+
+    // ON the overlay but OUTSIDE the zone — the regression a membership
+    // check shipped: "the root contains a zone" fires here and the video
+    // never resumes while the cursor moves over the (much larger) overlay.
+    const offZone = await hit(Math.max(box.zx - 60, box.hw - 10), Math.max(box.zy - 60, 1));
+    expect(offZone, 'cursor on the overlay OUTSIDE any zone must read as not-a-hit').toBe(false);
+
+    await page.close();
+  });
 });
+
