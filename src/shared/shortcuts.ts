@@ -30,11 +30,11 @@ export interface ShortcutDef {
 }
 
 export const SHORTCUT_DEFS: ShortcutDef[] = [
-  { id: 'save',    label: 'Guardar tarjeta',      defaultCombo: 'Ctrl+S' },
+  { id: 'save',    label: t('shortcut.save'),          defaultCombo: 'Ctrl+Shift+S' },
   { id: 'toggle',  label: t('shortcut.toggleSubs'),    defaultCombo: 'Alt+C' },
-  { id: 'replay',  label: 'Repetir frase',        defaultCombo: 'Alt+R' },
-  { id: 'recap',   label: 'Re-capturar frame',    defaultCombo: 'Alt+V' },
-  { id: 'panel',   label: 'Abrir / cerrar panel', defaultCombo: 'Alt+K' },
+  { id: 'replay',  label: t('shortcut.replay'),        defaultCombo: 'Alt+R' },
+  { id: 'recap',   label: t('shortcut.recap'),         defaultCombo: 'Alt+V' },
+  { id: 'panel',   label: t('shortcut.panel'),         defaultCombo: 'Alt+K' },
 ];
 
 export type ShortcutMap = Record<string, string>;

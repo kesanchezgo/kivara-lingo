@@ -31,7 +31,7 @@ Solo cuando el usuario dispara una función concreta:
    incrustarlas en la tarjeta. Todo con `credentials: 'omit'`: las cookies
    del usuario NO viajan (excepción: `wordreference.com`, que requiere poner
    su propia cookie de paso para que responda).
-6. **TTS (opt-in)** — la frase a ElevenLabs o Google TTS.
+6. **TTS (opt-in)** — la frase a ElevenLabs o a la API de OpenAI.
 
 ## Qué NO hace
 
@@ -87,7 +87,7 @@ Solo cuando el usuario dispara una función concreta:
 | `alarms` | Reintentar tarjetas pendientes. |
 | `tts` | Pronunciación cuando la API de audio falla. |
 | `declarativeNetRequestWithHostAccess` | Reescribir el origen de AnkiConnect en un puerto propio. La regla solo modifica peticiones iniciadas por la propia extensión (`initiatorDomains`), así que ninguna página puede aprovecharla; y el destino se limita a loopback. |
-| `host_permissions` (16) | Streaming (subtítulos) y AnkiConnect en loopback. Los diccionarios y las APIs de traducción NO están aquí: son `optional_host_permissions` concedidos a demanda. |
+| `host_permissions` (18) | Streaming (subtítulos) y AnkiConnect en loopback, incluido `[::1]` (IPv6 loopback, `http://[::1]:8765/*` y `http://[::1]/*`). Los diccionarios y las APIs de traducción NO están aquí: son `optional_host_permissions` concedidos a demanda. |
 
 ## Contacto
 

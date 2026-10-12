@@ -6,10 +6,15 @@
  *  1. A URL that reaches inside the user's own network. The service worker
  *     has host permissions far beyond any page, so a loopback / RFC1918 /
  *     link-local target turns "download this dictionary" or "fetch this
- *     image" into a port scanner aimed at `127.0.0.1` or the LAN — including
- *     via a REDIRECT, which is why nothing here uses `redirect: 'follow'`
- *     (the network stack would honour a `302 → http://127.0.0.1/…` before a
- *     validation of the requested URL could matter).
+ *     image" into a port scanner aimed at `127.0.0.1` or the LAN. This is
+ *     NOT avoided by refusing to follow redirects: `redirect: 'follow'`
+ *     is used by the callers that handle the case (and it is the browser's
+ *     only benign implementation for Google TTS and the like), so the
+ *     post-fetch check `assertResponseDestination(res)` re-validates the
+ *     FINAL landed URL. The eager `assertPublicHttpUrl` before the fetch
+ *     is the pre-flight half of the same rule: see `fetchMediaWithLimits`
+ *     / `fetchBytesWithLimits` (destination-check-first, body-cancelled
+ *     on refusal).
  *  2. An answer that never ends. Nothing in `fetch` bounds latency or size
  *     by itself: a hung CDN holds the enrichment chain open past the UI's
  *     patience, and a `Content-Length`-less stream can stream until the SW
