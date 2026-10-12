@@ -9,7 +9,7 @@ import { applyCleanupCss } from './cleanup-css';
 import { useKivaraStore } from '../../shared/store';
 import { captureFrame, captureBestFrame } from '../capture/frame';
 import { comboFromEvent, normalizeCombo } from '../../shared/shortcuts';
-import { getShadowRoot } from '../shadow-host';
+import { getShadowRoot, overKivaraZone } from '../shadow-host';
 import { eventPathIsEditable } from '../utils/keyboard';
 import type {
   CreateCardRequest,
@@ -204,7 +204,8 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     const mainHost = document.getElementById('kivara-lingo-host');
     // `getShadowRoot`, not `mainHost?.shadowRoot`: the root is CLOSED (so the
     // page cannot read it), so the reference is the one our mount keeps.
-    const mainRoot = getShadowRoot(mainHost)?.getElementById('kivara-lingo-react-root');    const videoHost = document.getElementById('kivara-lingo-video-host');
+    const mainRoot = getShadowRoot(mainHost)?.getElementById('kivara-lingo-react-root');
+    const videoHost = document.getElementById('kivara-lingo-video-host');
     const videoRoot = getShadowRoot(videoHost)?.getElementById('kivara-lingo-video-react-root');
 
     const elementsToUpdate = [mainHost, mainRoot, videoHost, videoRoot, videoOverlayRoot].filter(
@@ -508,18 +509,11 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   useEffect(() => {
     if (!videoElement) return;
 
-    const isOverKivara = (e: MouseEvent): boolean => {
-      const path = (e.composedPath?.() ?? []) as EventTarget[];
-      for (const node of path) {
-        if (
-          node instanceof HTMLElement &&
-          node.dataset?.kivaraHoverZone === 'true'
-        ) {
-          return true;
-        }
-      }
-      return false;
-    };
+    // One call, one body: `overKivaraZone` is what production calls with a
+    // page-side `document` mousemove. A CLOSED root's raw path stops at the
+    // host in Chrome — measured — so the event would report "not over Kivara"
+    // while the cursor is on the subtitle and the video would resume under it.
+    const isOverKivara = overKivaraZone;
 
     const onMove = (e: MouseEvent) => {
       cursorOverKivaraRef.current = isOverKivara(e);

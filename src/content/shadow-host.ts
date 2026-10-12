@@ -81,6 +81,75 @@ export function getShadowRoot(host: HTMLElement | null | undefined): ShadowRoot 
 }
 
 /**
+ * The path a page-side listener sees for an event, PLUS the inside of any
+ * closed root mentioned in it.
+ *
+ * `event.composedPath()` is not the whole story for a closed root: for a
+ * `window` / `document` listener it STOPS AT THE HOST and omits the tree
+ * inside. Measured in Chromium with a real closed root and a real `keydown`
+ * dispatched from an `<input>` inside it (tests/e2e/shadow-composed-path.spec.ts):
+ * the delivered path did not contain the input. jsdom gets this backwards — it
+ * delivers the input — which is why the property ships pinned by an e2e test
+ * and a unit test alone cannot decide it.
+ *
+ * That gap lands exactly on two guards:
+ *   - `eventPathIsEditable()` (content/utils/keyboard.ts) scans the path for
+ *     the editable element; on a host-truncated path it reports "not typing"
+ *     and App.tsx fires the global shortcuts while the user edits an API key;
+ *   - `overKivaraZone()` scans it for `[data-kivara-hover-zone]`; truncated,
+ *     the cursor sitting on the subtitle reads "not over Kivara" and the video
+ *     resumes underneath it.
+ *
+ * So the scan is widened to the targets those two guards actually look for,
+ * reached through the registry only the extension can read — the page still
+ * cannot get at them. `event.target` is left exactly as the platform delivers
+ * it (retargeted to the host, and still true), so everything else about how a
+ * page-side listener sees these events is unchanged.
+ *
+ * For an OPEN root — where the raw path already carries the inner nodes, and
+ * which this registry never registers — the selectors below simply match
+ * nodes already present in the path, so the answer is the same list.
+ */
+export function extendedComposedPath(event: Event): EventTarget[] {
+  const path =
+    typeof event.composedPath === 'function' ? Array.from(event.composedPath()) : [];
+  const out: EventTarget[] = [...path];
+  for (const node of path) {
+    const root = getShadowRoot(node as HTMLElement);
+    if (!root) continue;
+    // The scan targets, at any depth inside the panel — inputs sit several
+    // levels below the react root, and zones are set per-subtitle / per-popover.
+    for (const el of root.querySelectorAll(EDITABLE_OR_ZONE_SELECTOR)) out.push(el);
+  }
+  return out;
+}
+
+/**
+ * The elements the page-side guards need to see through a closed root:
+ * whatever `eventPathIsEditable` treats as a text target, plus every hover
+ * zone `App.tsx` pauses under.
+ */
+const EDITABLE_OR_ZONE_SELECTOR =
+  'input, textarea, select, [contenteditable], [data-kivara-hover-zone]';
+
+/**
+ * Is the event over one of our hover zones?
+ *
+ * `extendedComposedPath`, not the raw path: a closed root's path, as delivered
+ * to a page-side (`document`) listener, stops at the shadow host (measured in
+ * Chromium, tests/e2e/shadow-composed-path.spec.ts). This is the runtime form
+ * of the shorthand used in App.tsx's mousemove handler.
+ */
+export function overKivaraZone(event: MouseEvent): boolean {
+  for (const node of extendedComposedPath(event)) {
+    if (node instanceof HTMLElement && node.dataset?.kivaraHoverZone === 'true') {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Same registry as `ShadowHost.mount`, for tests that mount a real closed root
  * themselves and need the handle this module returns. The mount path is the
  * only writer in production; a closed root registered here is exactly the one
