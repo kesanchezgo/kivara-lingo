@@ -1,11 +1,12 @@
 import { t } from '../shared/i18n';
+import { isLoopbackAnkiUrl } from '../shared/anki-host';
 /// <reference types="chrome" />
 
 const DEFAULT_URL = 'http://127.0.0.1:8765';
 const DEFAULT_VERSION = 6;
 const DEFAULT_TIMEOUT_MS = 4000;
 
-export type AnkiErrorCode = 'NETWORK' | 'CORS' | 'TIMEOUT' | 'HTTP' | 'ANKI' | 'API_KEY';
+export type AnkiErrorCode = 'NETWORK' | 'CORS' | 'TIMEOUT' | 'HTTP' | 'ANKI' | 'API_KEY' | 'LOOPBACK_REFUSED';
 
 export class AnkiConnectError extends Error {
   constructor(message: string, public readonly code?: AnkiErrorCode) {
@@ -32,8 +33,12 @@ function normalizeUrl(raw?: string): string {
   if (!/^https?:\/\//i.test(url)) url = 'http://' + url;
   // Strip trailing slash so fetch() doesn't 404 on the root handler.
   url = url.replace(/\/+$/, '');
-  // Add the default port when missing on a localhost-style URL.
-  if (/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(url)) {
+  // Add the default port when missing on a localhost-style URL. `[::1]`
+  // counts here: `URL.hostname` keeps the brackets, and the review's #10
+  // was that a user typing `[::1]` got accepted (isLoopbackAnkiUrl passes)
+  // but the fetch 404'd because the port was never defaulted. The regex
+  // includes the bracketed form so the same default applies.
+  if (/^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/i.test(url)) {
     if (!/:\d+$/.test(url)) url = url + ':8765';
   }
   return url;
@@ -148,6 +153,18 @@ async function invoke<T = unknown>(
   params: Record<string, unknown> = {},
   opts: InvokeOptions = {},
 ): Promise<T> {
+  // Loopback is enforced HERE, not only at rule-refresh time. A remote URL
+  // saved into `ankiUrl` (older build, hand-edited flag, migration gone
+  // wrong) used to be caught by `refreshAnkiOriginRules` — which just left
+  // the DNR rule in place — and then this code fetched it anyway, which is
+  // what PRIVACY.md explicitly says must not happen. All callers pass
+  // through here, so this is where the contract holds.
+  if (opts.url != null && opts.url !== '' && !isLoopbackAnkiUrl(opts.url)) {
+    throw new AnkiConnectError(
+      'Anki URL is not loopback; the extension refuses remote Anki endpoints. Configure AnkiConnect on this machine.',
+      'LOOPBACK_REFUSED',
+    );
+  }
   const primary = normalizeUrl(opts.url);
   const urls = fallbackUrls(primary);
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;

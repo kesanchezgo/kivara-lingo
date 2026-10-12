@@ -31,6 +31,8 @@
     "*://*.youtube.com/*",
     "http://127.0.0.1:8765/*",
     "http://127.0.0.1/*",
+    "http://[::1]:8765/*",
+    "http://[::1]/*",
     "http://localhost:8765/*",
     "http://localhost/*",
     "https://*.youtube.com/embed/*"

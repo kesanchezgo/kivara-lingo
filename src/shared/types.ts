@@ -964,7 +964,7 @@ export interface UpdateNoteFrameResponse {
   error?: string;
 }
 
-export type AnkiPingErrorCode = 'NETWORK' | 'CORS' | 'TIMEOUT' | 'HTTP' | 'ANKI' | 'API_KEY';
+export type AnkiPingErrorCode = 'NETWORK' | 'CORS' | 'TIMEOUT' | 'HTTP' | 'ANKI' | 'API_KEY' | 'LOOPBACK_REFUSED';
 
 export interface AnkiPingResponse {
   ok: boolean;

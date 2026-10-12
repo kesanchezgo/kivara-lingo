@@ -117,6 +117,7 @@ const PING_ERROR_LABEL: Record<AnkiPingErrorCode, string> = {
   HTTP:     t('cards.ankiHttp'),
   ANKI:     t('cards.ankiInternal'),
   API_KEY:  'API key incorrecta o caducada.',
+  LOOPBACK_REFUSED: 'La URL de Anki no es local: solo se acepta AnkiConnect en esta máquina.',
 };
 
 export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
