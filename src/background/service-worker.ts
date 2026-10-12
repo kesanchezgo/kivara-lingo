@@ -433,6 +433,11 @@ onMessage('ANKI_DECKS', async ({ data }) => {
 });
 
 onMessage('ANKI_MODELS', async ({ data }) => {
+  // SW responds to this, but no content script sends `ANKI_MODELS` today —
+  // audit #18 flagged "handler with no sender" (the same list is already
+  // returned inside ANKI_DECKS). Left wired (the Protocol map and the
+  // handler both existed before #18) and marked so a future PR does not
+  // wonder how to trigger it. If a caller ships, this case activates.
   const auth = await resolveAnkiAuth(data);
   // A rejected auth is LOUD, not a fallback to the saved URL: a user who typed
   // a remote Anki must be told it is unsupported rather than have their input
@@ -468,6 +473,9 @@ onMessage('ANKI_FIELDS', async ({ data }) => {
 });
 
 onMessage('ANKI_CREATE_DECK', async ({ data }) => {
+  // Same "no current caller" note as ANKI_MODELS (audit #18): exists on
+  // the Protocol map and here, but nothing in the app sends
+  // `ANKI_CREATE_DECK` today. Left wired intentionally.
   const auth = await resolveAnkiAuth(data);
   // A rejected auth is LOUD, not a fallback to the saved URL: a user who typed
   // a remote Anki must be told it is unsupported rather than have their input

@@ -246,10 +246,19 @@ export async function fetchMediaWithLimits(
       headers: opts.headers,
       signal,
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    // Follow-destination check: never read a body the redirects dragged into
-    // a private host (see assertResponseDestination).
-    assertResponseDestination(res, allowHttp);
+    // Destination first: a private landing page arriving as 200 must never
+    // be reported as a 404 to whoever asked for it. Body cancelled on
+    // refusal too — a held response keeps its connection alive.
+    try {
+      assertResponseDestination(res, allowHttp);
+    } catch (err) {
+      await res.body?.cancel().catch(() => {});
+      throw err;
+    }
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => {});
+      throw new Error(`HTTP ${res.status}`);
+    }
     const bytes = await readWithLimit(res, maxBytes);
     return {
       bytes,

@@ -134,7 +134,22 @@ async function invokeOnce<T = unknown>(
     throw new AnkiConnectError(`AnkiConnect respondió ${response.status}.`, 'HTTP');
   }
 
-  const json = (await response.json()) as { result: T; error: string | null };
+  const res = await response.json().catch((parseErr: unknown) => {
+    // A response with a non-JSON body (plain-text 200, a captive portal
+    // intercepting, an empty-body tunnel) — this is NOT a transient
+    // network failure to retry. The audit's finding was: on this path
+    // the error class was UNKNOWN, so `invoke()`'s retry filter dropped
+    // it into the "always retry" branch and `addNote` (a write) fell
+    // through to the fallback URL, creating a second note via a channel
+    // it should not even have tried.
+    throw new AnkiConnectError(
+      `AnkiConnect devolvió una respuesta ilegible (${
+        parseErr instanceof Error ? parseErr.message : String(parseErr)
+      }). ¿Está algo más escuchando en ${url}?`,
+      'HTTP',
+    );
+  });
+  const json = res as { result: T; error: string | null };
   if (json.error) {
     const msg = json.error;
     if (/api ?key|valid key/i.test(msg)) {
@@ -175,16 +190,19 @@ async function invoke<T = unknown>(
       return await invokeOnce<T>(action, params, url, opts.apiKey, timeoutMs);
     } catch (err) {
       lastErr = err;
-      // Only retry on transport-level failures — don't retry on Anki
-      // protocol errors (HTTP 500 / wrong API key / duplicate note).
-      if (
-        opts.allowFallbackRetry === false &&
-        err instanceof AnkiConnectError &&
-        (err.code === 'TIMEOUT' || err.code === 'NETWORK' || err.code === 'CORS')
-      ) {
-        // A write action that timed out has already been applied as far as we
-        // know, so the fallback URL is not a retry — it is a second attempt at
-        // a side effect that may have landed. Throw exactly what happened.
+      // AllowFallbackRetry:false means "this call has a SIDE EFFECT that
+      // may already have landed" — a write action. On a single attempt
+      // that may have completed, a SECOND call to the fallback URL is a
+      // duplicate write, not a retry: the audit caught this as "addNote
+      // creates the note twice, second run reports 'duplicate' as the"
+      // error". Throw immediately — do not let the fallback URL run.
+      //
+      // The previous filter listed only TIMEOUT/NETWORK/CORS: an
+      // AnkiConnectError with OTHER codes (and, in the audit's example,
+      // a skin of HTML that parsed into a SyntaxError) fell through to
+      // the retry below and the second request went out. Every failure
+      // of a write must stop here.
+      if (opts.allowFallbackRetry === false) {
         throw err;
       }
       if (
