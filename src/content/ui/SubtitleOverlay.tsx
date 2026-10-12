@@ -166,7 +166,7 @@ export function SubtitleOverlay({
       window.removeEventListener('blur', blur);
       document.removeEventListener('visibilitychange', visibility);
     };
-  }, []);
+  }, [expandedMWEs]);
 
   const effectiveExpanded = useMemo(() => {
     if (!altExpandedKey) return expandedMWEs;

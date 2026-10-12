@@ -458,11 +458,19 @@ function dispatchLocationChange(): void {
 
 async function handleNavigation() {
   const gen = bumpMountGen(); // invalidate every pending queued mount
-  const { video, container } = findVideoContainer();
-  if (!video || !container) {
+  // Wait for the <video> (the review's "SPA nav uses findVideoContainer
+  // instead of waitForVideo"): a fetch/replace in the SPA can leave the
+  // window briefly without a video element, and the old synchronous find
+  // returned null, fired enqueueMount(unmount), and the next tick — after
+  // the video HAS arrived — was never re-dispatched. 3 s is enough for
+  // the SPA to paint while not adding a perceptible delay to the
+  // interactive case (waitForVideo returns on the very first poll).
+  const found = await waitForVideo(3000);
+  if (!found) {
     await enqueueMount(gen, async () => unmount());
     return;
   }
+  const { video, container } = found;
   await enqueueMount(gen, async () => {
     // Identity of the MEDIA, not of the element. YouTube keeps one <video>
     // per player and swaps its source on SPA navigation, so element identity

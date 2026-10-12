@@ -384,7 +384,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       // adapter can use overlap-based lookup (deterministic across
       // timestamp drift). Falls back to point lookup when no source
       // cue is active (e.g. between cues, after a seek).
-      const srcCue = activeCue;
+      const srcCue = activeCueRef.current;
       const range =
         srcCue?.start != null && srcCue?.end != null
           ? { start: srcCue.start, end: srcCue.end }
@@ -415,7 +415,13 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       window.clearInterval(handle);
       off();
     };
-  }, [adapter, targetLang, activeCue]);
+    // Only the adapter and the target language. `activeCue` is read
+    // through `activeCueRef` so the 20 Hz interval is CREATED ONCE per
+    // mount, not re- Created on every cue boundary (the old deps carried
+    // `activeCue`, so Netflix/YouTube — one cue per second for the whole
+    // movie — tore down and set up the interval a thousand times an
+    // episode).
+  }, [adapter, targetLang]);
 
   // Pause video while the user is reading a popover; resume on leave.
   //
