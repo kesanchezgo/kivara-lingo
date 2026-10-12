@@ -78,7 +78,7 @@ export const CURATED_DICT_PACKS: OnboardingDictPack[] = [
     tier: 'premium',
     benefit: t('dictob.advancedImmersion'),
     disabledInOnboarding: true,
-    disabledReason: t('dictob.tooLarge'),
+    disabledReason: t('dictob.tooLarge', { path: `${t('nav.settings')} → ${t('set.sectionOfflineDicts')}` }),
   },
 ];
 

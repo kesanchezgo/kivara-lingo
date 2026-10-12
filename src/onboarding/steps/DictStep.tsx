@@ -150,7 +150,7 @@ export function DictStep() {
           <p className="text-[12.5px]">
             <strong className="font-semibold">Cobertura local ~98%</strong> {t('onb.coverageVs')}</p>
           <p className="text-[11.5px] text-indigo-700/80 dark:text-indigo-200/70">
-            {t('onb.storedLocalNote')}</p>
+            {t('onb.storedLocalNote', { path: `${t('nav.settings')} → ${t('set.sectionOfflineDicts')}` })}</p>
         </div>
       </div>
 
@@ -281,7 +281,7 @@ export function DictStep() {
 
       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed px-0.5">
         {t('onb.compatiblePre')}{' '}
-        <span className="font-medium text-zinc-600 dark:text-zinc-300">Settings → Diccionarios offline</span>.
+        <span className="font-medium text-zinc-600 dark:text-zinc-300">{`${t('nav.settings')} → ${t('set.sectionOfflineDicts')}`}</span>.
       </p>
     </StepSection>
   );

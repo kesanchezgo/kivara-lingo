@@ -159,7 +159,7 @@ export function AIStep({
       )}
 
       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed px-0.5">
-        {t('onb.cacheTtlNote')}<span className="font-medium text-zinc-700 dark:text-zinc-300">Settings → IA premium</span> {t('onb.wheneverPost')}</p>
+        {t('onb.cacheTtlNote')}<span className="font-medium text-zinc-700 dark:text-zinc-300">{`${t('nav.settings')} → ${t('set.sectionAiPremium')}`}</span> {t('onb.wheneverPost')}</p>
     </StepSection>
   );
 }

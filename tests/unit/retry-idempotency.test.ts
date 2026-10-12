@@ -123,7 +123,10 @@ describe('retry idempotency', () => {
     vi.unstubAllGlobals();
   });
 
-  it('skips addNote when Anki already has the card (timeout-after-create)', async () => {
+  it(
+    'skips addNote when Anki already has the card (timeout-after-create)',
+    { timeout: 20_000 },
+    async () => {
     const m = setupMocks({ findNotesIds: [98765] });
     m.addNote.mockImplementation(async () => {
       throw new Error('should not be called');

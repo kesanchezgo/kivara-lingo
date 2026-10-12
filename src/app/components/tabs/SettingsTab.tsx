@@ -197,7 +197,7 @@ export function SettingsTab({
         {!autoMode && (
           <Accordion
             icon={<Wand2 size={10} />}
-            title="Captura avanzada"
+            title={t('set.sectionAdvancedCapture')}
             summary={`${audioSource} · ${bufferSize}s`}
             open={isOpen('capture')}
             onToggle={() => toggle('capture')}
@@ -424,7 +424,7 @@ export function SettingsTab({
         {/* ── Diccionarios offline ───────────────────────────────────── */}
         <Accordion
           icon={<BookOpen size={10} />}
-          title="Diccionarios offline"
+          title={t('set.sectionOfflineDicts')}
           summary="yomitan"
           open={isOpen('dict')}
           onToggle={() => toggle('dict')}
@@ -437,7 +437,7 @@ export function SettingsTab({
         {/* ── VIP enrichment chain ─────────────────────────────────── */}
         <Accordion
           icon={<Sparkles size={10} />}
-          title="Enriquecimiento (Standard + VIP)"
+          title={t('set.sectionEnrichment')}
           summary={vip.enabled ? 'VIP activo' : 'solo Standard'}
           summaryColor={vip.enabled ? 'text-fuchsia-500 dark:text-fuchsia-400' : undefined}
           open={isOpen('vip')}
@@ -451,7 +451,7 @@ export function SettingsTab({
         {/* ── IA premium ─────────────────────────────────────────────── */}
         <Accordion
           icon={<Sparkles size={10} />}
-          title="IA premium"
+          title={t('set.sectionAiPremium')}
           summary={
             ai.provider === 'disabled'
               ? 'desactivada'
@@ -470,7 +470,7 @@ export function SettingsTab({
         {/* ── TTS premium ────────────────────────────────────────────── */}
         <Accordion
           icon={<Mic2 size={10} />}
-          title="TTS premium"
+          title={t('set.sectionTtsPremium')}
           summary={tts.provider === 'disabled' ? 'desactivado' : tts.provider}
           summaryColor={tts.provider !== 'disabled' ? 'text-indigo-500 dark:text-indigo-400' : undefined}
           open={isOpen('tts')}
@@ -533,7 +533,7 @@ export function SettingsTab({
         <Accordion
           id="kivara-section-perm"
           icon={<KeyRound size={10} />}
-          title="Acceso a sitios"
+          title={t('set.sectionHostAccess')}
           open={isOpen('perm')}
           onToggle={() => toggle('perm')}
           description={t('perm.intro')}

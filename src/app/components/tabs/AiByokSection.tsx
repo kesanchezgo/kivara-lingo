@@ -67,7 +67,7 @@ export function AiByokSection() {
     // place chrome will show a prompt (the service worker cannot, and the AI
     // request would otherwise fail with a CORS/network error nobody can read).
     void ensureProviderHosts(`ai:${provider}`).then((missing) => {
-      if (missing) setTest({ state: 'error', error: t('perm.needHost') });
+      if (missing) setTest({ state: 'error', error: t('perm.needHost', { path: `${t('nav.settings')} → ${t('set.sectionHostAccess')}` }) });
     });
   }
 
