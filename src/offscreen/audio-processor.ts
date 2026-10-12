@@ -260,9 +260,18 @@ async function wirePcmCapture(): Promise<void> {
   // Both paths converge on `emitBlock`, which is where the rate a chunk is
   // labelled with is validated (see `pcm-block.ts`), so the two are the same
   // code path after this branch.
+  //
+  // No `__E2E__` exception here on purpose. It used to be excluded in test
+  // builds so a forced smoke run could not accidentally measure the route it
+  // was not asked for — but that made the route a test build never ships
+  // impossible to observe: coverage of "the default is the worklet" would
+  // have been a comment, not a run. Choosing like production is what lets
+  // `tests/e2e/shipped-capabilities.spec.ts` assert the worklet is what a
+  // real renderer auto-detects. Forcing still decides which half of the
+  // equivalence runs, so the forced runner sees no ambiguity.
   const useWorklet =
     forcedPathOverride === 'audio-worklet' ||
-    (forcedPathOverride === null && !__E2E__ && typeof AudioWorkletNode === 'function' && PCM_WORKLET_DEFAULT);
+    (forcedPathOverride === null && typeof AudioWorkletNode === 'function' && PCM_WORKLET_DEFAULT);
 
   if (!useWorklet) {
     console.log('[Kivara Lingo] ScriptProcessor path (forced or unavailable)');

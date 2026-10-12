@@ -160,5 +160,5 @@ export function decodeWavBytes(bytes: Uint8Array): {
 export const DEFAULT_TONE_HZ = 440;
 /** Device/context rate the fixtures start at. */
 export const DEFAULT_SOURCE_RATE = 48_000;
-/** The pipeline's destination rate (Whisper + Anki). */
+/** The pipeline's destination rate (Anki and any downstream consumer). */
 export const DEFAULT_TARGET_RATE = 16_000;

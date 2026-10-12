@@ -130,10 +130,10 @@ describe('a production build', () => {
     // that by hand is safe twice over: `WebAssembly.compile` on any page of the
     // extension keeps working. A hand-written `script-src 'self'` without the
     // token is not: compiling stops, and the only signal is an opaque thrown
-    // error from inside the offscreen document — the same page that loads
-    // Whisper's WASM. The policy this extension intends has never been
-    // compiled without it, so it is worth a test in the same place the rest of
-    // the dist-artifact guards live.
+    // error from inside the offscreen document — the page with the media graph
+    // and therefore the likeliest first WASM consumer. The policy this
+    // extension intends has never been compiled without the token, so it is
+    // worth a test in the same place the rest of the dist-artifact guards live.
     const manifestPath = path.join(DIST, 'manifest.json');
     expect(existsSync(manifestPath)).toBe(true);
     const policy = (JSON.parse(readFileSync(manifestPath, 'utf8')) as {

@@ -31,9 +31,6 @@ Solo cuando el usuario dispara una función concreta:
    del usuario NO viajan (excepción: `wordreference.com`, que requiere poner
    su propia cookie de paso para que responda).
 6. **TTS (opt-in)** — la frase a ElevenLabs o Google TTS.
-7. **ASR / Whisper (retirado salvo `KIVARA_WHISPER=1`)** — si se activara, el
-   PCM de la frase entraría en un modelo local. Hoy no puede cargar su glue en
-   MV3 (CSP), así que está fuera de la interfaz por defecto.
 
 ## Qué NO hace
 
@@ -49,13 +46,13 @@ Solo cuando el usuario dispara una función concreta:
   - validación de CADA redirección (un `302` hacia localhost se rechaza);
   - tope de tiempo y de bytes, comprobado contra el `Content-Length` y contra
     lo realmente leído.
-  Las APIs de traducción, IA, TTS y el modelo de Whisper usan HTTP directo con
-  timeout pero sin esa puerta de destinos, porque el host lo fija el usuario al
-  elegir proveedor (y el modelo de Whisper es de ~75 MB sin tope de tamaño —
-  motivo por el que el ASR está deshabilitado).
+  Las APIs de traducción, IA y TTS usan HTTP directo con timeout pero sin esa
+  puerta de destinos, porque el host lo fija el usuario al elegir proveedor.
 - Sin inyección de scripts remotos en páginas de extensión: la CSP de MV3 lo
-  prohíbe y eso mantiene el ASR (Whisper) deshabilitado hasta que se empaquete
-  su glue dentro de la extensión.
+  prohíbe, y esa es la razón por la que la transcripción on-device se retiró en
+  lugar de empaquetarse (issue #30): un glue remoto no puede cargar jamás desde
+  una página de la extensión. La CSP declara además `'wasm-unsafe-eval'` para
+  que cualquier módulo WASM futuro siga compilable sin relajar el resto.
 - **Anki remoto no soportado**: el permiso cubre `127.0.0.1` y `localhost` en
   cualquier puerto; un Anki en otra máquina queda fuera a propósito (ver
   `IMPLEMENTATION.md` §11.0).
