@@ -178,9 +178,11 @@ export function SettingsTab({
               <Zap size={9} /> {t('set.quickAccess')}</span>
           </div>
           <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
-            <QuickRow label={t('set.autoCapture')} info={t('set.autoCaptureDesc')} hint={autoMode ? 'VAD · 30s' : 'manual'}>
-              <Toggle on={autoMode} onChange={setAutoMode} />
-            </QuickRow>
+            {/* autoMode QuickRow removed (audit #11, part 2): the captured
+                mode is not read by background or content — grep for
+                capture.autoMode across src/background/** and
+                src/content/** returns zero calls. The toggle appears here
+                to be dead. */}
             <QuickRow label={t('set.readingMode')} info={t('set.hideHoverDesc')} hint={readingMode ? t('set.noPopovers') : t('set.learningHint')}>
               <Toggle on={readingMode} onChange={setReadingMode} />
             </QuickRow>
@@ -193,50 +195,35 @@ export function SettingsTab({
           </div>
         </div>
 
-        {/* ── Captura avanzada — only when modo manual is selected ─────── */}
-        {!autoMode && (
-          <Accordion
-            icon={<Wand2 size={10} />}
-            title={t('set.sectionAdvancedCapture')}
-            summary={`${audioSource} · ${bufferSize}s`}
-            open={isOpen('capture')}
-            onToggle={() => toggle('capture')}
-            description={t('set.captureDesc')}
-          >
-            <Row label="Fuente audio" hint={audioSource === 'tab' ? t('set.tabAudioHint') : t('set.micDesc')}>
-              <SegmentedControl
-                options={[{ v: 'tab', l: t('set.tab') }, { v: 'mic', l: 'Mic' }]}
-                value={audioSource}
-                onChange={setAudioSource}
-              />
-            </Row>
-            <Row label="Buffer rolling" value={`${bufferSize}s`} hint={t('set.bufferDesc')}>
-              <input
-                type="range" min={10} max={60} step={5} value={bufferSize}
-                onChange={(e) => setBufferSize(Number(e.target.value))}
-                className="sl-range w-full"
-              />
-            </Row>
-            <Row label={t('set.sentenceEndLabel')} hint={endDetect === 'vad' ? t('set.vadModeDesc') : t('set.exactModeDesc')}>
-              <SegmentedControl
-                options={[{ v: 'vad', l: 'VAD' }, { v: 'cue', l: 'Cue exacto' }]}
-                value={endDetect}
-                onChange={setEndDetect}
-              />
-            </Row>
-            <Row label={t('set.frameMomentLabel')} hint={t('set.frameDesc')}>
-              <SegmentedControl
-                options={[
-                  { v: 'start', l: 'Inicio' },
-                  { v: 'center', l: 'Centro' },
-                  { v: 'end', l: 'Final' },
-                ]}
-                value={frameMoment}
-                onChange={setFrameMoment}
-              />
-            </Row>
-          </Accordion>
-        )}
+        {/* ── Captura avanzada — only captures-settings that DO get consumed ── */}
+        <Accordion
+          icon={<Wand2 size={10} />}
+          title={t('set.sectionAdvancedCapture')}
+          summary={`${bufferSize}s`}
+          open={isOpen('capture')}
+          onToggle={() => toggle('capture')}
+          description={t('set.captureDesc')}
+        >
+          {/* audioSource removed (audit #11, part 2): nothing in background
+              or content reads capture.audioSource — the segmented control
+              was a no-op UI. */}
+          <Row label="Buffer rolling" value={`${bufferSize}s`} hint={t('set.bufferDesc')}>
+            <input
+              type="range" min={10} max={60} step={5} value={bufferSize}
+              onChange={(e) => setBufferSize(Number(e.target.value))}
+              className="sl-range w-full"
+            />
+          </Row>
+          <Row label={t('set.sentenceEndLabel')} hint={endDetect === 'vad' ? t('set.vadModeDesc') : t('set.exactModeDesc')}>
+            <SegmentedControl
+              options={[{ v: 'vad', l: 'VAD' }, { v: 'cue', l: 'Cue exacto' }]}
+              value={endDetect}
+              onChange={setEndDetect}
+            />
+          </Row>
+          {/* frameMoment removed (audit #11, part 2): nothing reads
+              capture.frameMoment — same dead control shape as audioSource. */}
+        </Accordion>
 
         {/* ── Idioma — always visible (paired source / target) ─────────── */}
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">

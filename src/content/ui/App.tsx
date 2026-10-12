@@ -644,6 +644,14 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   }, []);
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      // Gated on the master `enabled` toggle from the very first line:
+      // the review (#6-2) caught that the previous handler had no such
+      // check, so with the extension disabled the user could still
+      // trigger `repeat_cue` (seek), save-word (Ctrl+S), toggle
+      // subtitles — EVERYTHING — via a keypress aimed at the page. The
+      // chrome.commands path goes through RUN_COMMAND (toggle_subtitles
+      // etc), but the in-page handler ALSO handled them and had no gate.
+      if (!useKivaraStore.getState().enabled) return;
       // composedPath, not `e.target`: inside the panel's shadow root the
       // reported target is the host element, so a tagName check would miss
       // the input the user is typing in and fire shortcuts mid-sentence.
@@ -656,31 +664,42 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       const map = useKivaraStore.getState().shortcuts;
       const video = videoElementRef.current;
       const cue = activeCueRef.current;
-      if (map.recap && combo === map.recap) {
+      // The map is USER-CUSTOMIZED: a raw 'Ctrl+S' typed string compares
+      // fine, but a user-rebound 'command+s' (mac default) or 'ctrl+ shift+k'
+      // stored in the persisted state does NOT match the canonical 'Meta+S'
+      // that comboFromEvent produces. Normalize BOTH sides of the check —
+      // chrome.commands.getAll() is normalized already below, and the map
+      // was previously compared verbatim.
+      const normRecap = map.recap ? normalizeCombo(map.recap) : null;
+      const normPanel = map.panel ? normalizeCombo(map.panel) : null;
+      const normSave = map.save ? normalizeCombo(map.save) : null;
+      const normToggle = map.toggle ? normalizeCombo(map.toggle) : null;
+      const normReplay = map.replay ? normalizeCombo(map.replay) : null;
+      if (normRecap && combo === normRecap) {
         e.preventDefault();
         e.stopPropagation();
         window.dispatchEvent(new CustomEvent('kivara-recapture-frame'));
-      } else if (map.panel && combo === map.panel) {
+      } else if (normPanel && combo === normPanel) {
         e.preventDefault();
         e.stopPropagation();
         setPanelOpen(!useKivaraStore.getState().panelOpen);
-      } else if (map.save && combo === map.save) {
+      } else if (normSave && combo === normSave) {
         e.preventDefault();
         e.stopPropagation();
         setSaveTick(Date.now());
-      } else if (map.toggle && combo === map.toggle) {
+      } else if (normToggle && combo === normToggle) {
         e.preventDefault();
         e.stopPropagation();
         const next = !useKivaraStore.getState().subtitlesVisible;
         setSubtitlesVisible(next);
-      } else if (map.replay && combo === map.replay) {
+      } else if (normReplay && combo === normReplay) {
         e.preventDefault();
         e.stopPropagation();
         if (video && cue?.start != null) {
           video.currentTime = cue.start / 1000;
           void video.play().catch(() => {});
         }
-      } else if (combo && !Object.values(map).includes(combo)) {
+      } else if (combo && !Object.values(map).some((m) => normalizeCombo(m ?? '') === combo)) {
         // Custom combo that matches NO configured action (e.g. it equals
         // another action's default the user moved away from): ignore loudly
         // in dev instead of silently swallowing the keypress.
@@ -737,6 +756,21 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       });
     };
     const handler = (msg: { type?: string; command?: string }) => {
+      // Same gate as the in-page handler (#6-2 from the review): a
+      // chrome.commands message from the service worker fires VERBATIM
+      // even when the user disabled the extension from Settings, so
+      // Alt+R used to seek the video and Ctrl+S saved a word with the
+      // whole extension off. The toggle_panel is intentionally exempt
+      // (it is the same `chrome.action` click path a user takes when
+      // opening the preferences) but the other six commands are gated.
+      const COMMANDS_GATED_BY_ENABLED = new Set([
+        'save_word', 'save_word_alt',
+        'toggle_subtitles', 'repeat_cue', 'repeat_phrase',
+        'recapture_frame',
+      ]);
+      if (msg?.type === 'RUN_COMMAND' && COMMANDS_GATED_BY_ENABLED.has(msg.command ?? '')) {
+        if (!useKivaraStore.getState().enabled) return;
+      }
       if (msg?.type === 'TOGGLE_PANEL') {
         setPanelOpen(!useKivaraStore.getState().panelOpen);
       } else if (msg?.type === 'OPEN_PANEL') {
@@ -806,6 +840,10 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     // hotkey (Alt+R) also performs, so the button and the hotkey are the
     // SAME action rather than a button that silently swallowed clicks.
     const onRepeatCueEvent = () => {
+      // Same gate: with the extension off, the SubtitleOverlay button
+      // should not seek the video either. See the review's #6-2 note on
+      // the in-page and switch cases.
+      if (!useKivaraStore.getState().enabled) return;
       if (videoElement && activeCue?.start != null) {
         videoElement.currentTime = activeCue.start / 1000;
         void videoElement.play().catch(() => {});
