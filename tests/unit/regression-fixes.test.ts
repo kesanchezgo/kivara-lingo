@@ -52,12 +52,13 @@ describe('write actions stop at first error (#21)', () => {
       calls.push(url);
       throw new Error('first attempt fails');
     });
+    // addNote's PUBLIC signature is 3-args but it already hard-codes
+    // allowFallbackRetry:false internally — same protection.
     await expect(
       ankiConnect.addNote(
         { deckName: 'X', modelName: 'B', fields: {} },
         'http://127.0.0.1:8765',
         undefined,
-        { allowFallbackRetry: false },
       ),
     ).rejects.toThrow();
     expect(calls.length).toBe(1);
