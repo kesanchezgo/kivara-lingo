@@ -68,12 +68,20 @@ describe('a production build', () => {
   beforeAll(() => {
     // Stash whatever is there: this asserts what the BUILD produces, not what
     // happened to be lying in the output folder beforehand.
-    if (existsSync(DIST)) rmSync(DIST, { recursive: true, force: true });
-    execFileSync('npx', ['vite', 'build'], {
-      cwd: process.cwd(),
-      stdio: 'pipe',
-      timeout: 180_000,
-    });
+    //
+    // `KIVARA_SKIP_DIST_BUILD=1` keeps the folder as-is and just asserts. That
+    // exists because the default WIPES `dist/`: harmless on CI and after an e2e
+    // run, but it would replace the build you were about to zip for the store
+    // when a stray `pnpm test` lands on it. Skipping is strictly weaker (it
+    // cannot see a build that failed to produce), so it stays opt-in.
+    if (process.env.KIVARA_SKIP_DIST_BUILD !== '1') {
+      if (existsSync(DIST)) rmSync(DIST, { recursive: true, force: true });
+      execFileSync('npx', ['vite', 'build'], {
+        cwd: process.cwd(),
+        stdio: 'pipe',
+        timeout: 180_000,
+      });
+    }
     files = distFiles();
   }, 240_000);
 
