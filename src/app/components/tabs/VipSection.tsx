@@ -214,7 +214,7 @@ export function VipSection() {
             </div>
             <label className="flex flex-col gap-1 text-[11px] text-zinc-700 dark:text-zinc-300">
               <span className="flex items-center justify-between gap-1">
-                <span>Unsplash Access Key</span>
+                <span>{t('vip.unsplashKey')}</span>
                 <a href="https://unsplash.com/developers" target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-500 hover:underline">obtener</a>
               </span>
               <SecretKeyInput
@@ -227,7 +227,7 @@ export function VipSection() {
             </label>
             <label className="flex flex-col gap-1 text-[11px] text-zinc-700 dark:text-zinc-300">
               <span className="flex items-center justify-between gap-1">
-                <span>Pixabay API Key</span>
+                <span>{t('vip.pixabayKey')}</span>
                 <a href="https://pixabay.com/api/docs/" target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-500 hover:underline">obtener</a>
               </span>
               <SecretKeyInput
@@ -423,7 +423,7 @@ function CacheManager() {
             </li>
           ))}
           <li className="flex items-center justify-between gap-2 pt-0.5 mt-0.5 border-t border-zinc-200/60 dark:border-zinc-800/70 font-medium text-zinc-700 dark:text-zinc-300">
-            <span>Total</span>
+            <span>{t('vip.total')}</span>
             <span className="tabular-nums">{total} · {formatBytes(totalBytes)}</span>
           </li>
         </ul>

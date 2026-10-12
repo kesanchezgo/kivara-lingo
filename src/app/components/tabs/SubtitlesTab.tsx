@@ -226,7 +226,7 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
                 ))}
               </div>
               <div className="flex justify-between text-[9px] text-zinc-400 dark:text-zinc-500 mt-0.5 px-0.5">
-                <span>Arriba</span><span>Medio</span><span>Abajo</span>
+                <span>{t('sub.posTop')}</span><span>{t('sub.posMiddle')}</span><span>{t('sub.posBottom')}</span>
               </div>
             </div>
           </Row>

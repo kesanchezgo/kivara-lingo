@@ -611,7 +611,7 @@ export function DictPacksSection() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">Otras fuentes</label>
+            <label className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">{t('dict.otherSources')}</label>
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
