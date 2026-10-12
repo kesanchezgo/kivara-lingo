@@ -18,7 +18,6 @@ export const PROVIDER_HOSTS: Record<string, string[]> = {
   'translate:mymemory': ['https://api.mymemory.translated.net/*'],
   'translate:lingva': [
     'https://lingva.ml/*',
-    'https://*.lingva.ml/*',
     'https://lingva.thedaviddelta.com/*',
     'https://lingva.pussthecat.org/*',
     'https://lingva.lunar.icu/*',

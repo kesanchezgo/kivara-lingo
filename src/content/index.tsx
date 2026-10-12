@@ -384,10 +384,16 @@ async function init() {
     return;
   }
   const { video, container } = result;
-  const adapter = await detectPlatform();
   // Enqueued: a navigation that fires while we waited for the video must
-  // not mount in parallel (see enqueueMount).
-  await enqueueMount(gen, () => mountFor(video, container, adapter));
+  // not mount in parallel (see enqueueMount). The adapter is created
+  // INSIDE the task, after the generation survived — not before.
+  await enqueueMount(gen, async () => {
+    const adapter = await detectPlatform();
+    // Final generation check before actually mounting: a navigation that
+    // landed during the adapter creation would mount the OLD video.
+    if (gen !== readMountGen()) return;
+    await mountFor(video, container, adapter);
+  });
 }
 
 function observeNavigation() {
@@ -457,7 +463,6 @@ async function handleNavigation() {
     await enqueueMount(gen, async () => unmount());
     return;
   }
-  const adapter = await detectPlatform();
   await enqueueMount(gen, async () => {
     // Identity of the MEDIA, not of the element. YouTube keeps one <video>
     // per player and swaps its source on SPA navigation, so element identity
@@ -472,6 +477,14 @@ async function handleNavigation() {
     // `mount` may have changed while earlier queued tasks ran, so the
     // decision is only final once it is this task's turn.
     if (sameMedia) return;
+    // The adapter is created HERE, inside the queued task, AFTER the
+    // sameMedia check — never before. Creating it earlier meant every SPA
+    // navigation spawned one (youtube.ts / generic-html5 each attach a
+    // oncuechange listener and read document.querySelector('video')), and
+    // the `return` above left every one of them alive with its intervals
+    // and listeners piling up per navigation. Now a task that decides not
+    // to mount never pays for the adapter it did not use.
+    const adapter = await detectPlatform();
     // SPA navigated to a different video — drop any subtitle tracks the bus
     // cached from the previous one. Without this, the dual-caption lookup
     // would happily return cues from video A while we're watching video B

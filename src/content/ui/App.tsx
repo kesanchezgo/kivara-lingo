@@ -910,7 +910,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
           duration: 3200,
         });
       } else {
-        toast.error(response?.error ?? t('cards.ankiSaveError'), { id: saveToastId });
+        toast.error(response?.error ?? t('app.ankiSaveError'), { id: saveToastId });
       }
     } catch (err) {
       const reason = err instanceof Error ? err.message : t('app.unknownReason');
