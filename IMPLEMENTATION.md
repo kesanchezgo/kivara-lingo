@@ -273,6 +273,7 @@ kivara-lingo-extension/
 ```json
 {
   "manifest_version": 3,
+  "_not_shipped": "Manifiesto de DISEÑO del MVP; el que se empaqueta es manifest.json en la raíz. Se conserva como referencia de por qué existe cada permiso.",
   "name": "Kivara Lingo",
   "version": "0.1.0",
   "description": "Aprende idiomas mientras ves tu serie favorita.",

@@ -3,11 +3,11 @@
 /**
  * Optional host permissions, on demand.
  *
- * Chrome Web Store review reads a manifest with ~96 host permissions as
- * "collects your browsing habits", so they are declared OPTIONAL and granted
- * when the user turns on the provider that needs them. Inside the service
- * worker a prompt is impossible, so every request path here either has the
- * origins already granted or reports what is missing for the UI to explain.
+ * Review treats mandatory host permissions as "collects your browsing habits",
+ * so they are declared OPTIONAL and granted when the user turns on the provider
+ * that needs them. Inside the service worker a prompt is impossible, so every
+ * request path here either has the origins already granted or reports what is
+ * missing for the UI to explain.
  *
  * Semantics:
  *  - ask: `chrome.permissions.request` — MUST run inside a user gesture;

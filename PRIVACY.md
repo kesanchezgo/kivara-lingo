@@ -25,7 +25,8 @@ Solo cuando el usuario dispara una función concreta:
 3. **IA (opt-in)** — palabra + frase al proveedor elegido (OpenAI /
    Anthropic / Gemini). Apagado por defecto.
 4. **Anki** — las tarjetas a `http://127.0.0.1` / `http://localhost`
-   (AnkiConnect), solo en el puerto configurado.
+   (AnkiConnect), solo en el puerto configurado. La URL se comprueba en el
+   punto de uso y se rechaza si no apunta a esta máquina.
 5. **Imagen / audio** — las URLs que esas mismas respuestas devuelven, para
    incrustarlas en la tarjeta. Todo con `credentials: 'omit'`: las cookies
    del usuario NO viajan (excepción: `wordreference.com`, que requiere poner
@@ -66,11 +67,11 @@ Solo cuando el usuario dispara una función concreta:
   propia. Lo que sí queda cerrado: URLs privadas literales, redirecciones a
   privado, y toda la ruta de paquetes de diccionario. Mitigarlo del todo
   exigiría un proxy de resolución; no está en el alcance.
-- **Lista de hosts**: el manifest declara ~96 hosts (uno por diccionario /
-  API). Algunas entradas están muertas y a la espera de poda (`lexico.com`,
-  mirrors de `lingva`); moverlas a `optional_host_permissions` con petición
-  bajo demanda es el siguiente paso y reduce lo que la Web Store tiene que
-  justificar.
+- **Lista de hosts**: el manifest declara 16 hosts fijos (streaming + Anki en
+  loopback) y los de diccionarios/APIs viven en `optional_host_permissions`
+  (80 grupos, uno por origen): no se solicitan hasta que el usuario activa la
+  fuente o pulsa «Conceder» en Ajustes → Permisos, y se pueden revocar igual.
+  Las URL de Anki se restringen además a loopback (ver más abajo).
 - **Telemetría**: se contabiliza en local (porcentaje de enriquecimiento que
   requirió red, fallos de proveedores). Nunca se envía fuera del dispositivo.
 
@@ -85,8 +86,8 @@ Solo cuando el usuario dispara una función concreta:
 | `offscreen` | Decodificar/recortar audio sin bloquear el service worker. |
 | `alarms` | Reintentar tarjetas pendientes. |
 | `tts` | Pronunciación cuando la API de audio falla. |
-| `declarativeNetRequestWithHostAccess` | Reescribir el origen de AnkiConnect en un puerto propio. |
-| `host_permissions` (~96) | Streaming (subtítulos) + cada diccionario/API de traducción. La lista completa está en `manifest.json`; contiene entradas muertas pendientes de poda (`lexico.com`, mirrors de `lingva`). |
+| `declarativeNetRequestWithHostAccess` | Reescribir el origen de AnkiConnect en un puerto propio. La regla solo modifica peticiones iniciadas por la propia extensión (`initiatorDomains`), así que ninguna página puede aprovecharla; y el destino se limita a loopback. |
+| `host_permissions` (16) | Streaming (subtítulos) y AnkiConnect en loopback. Los diccionarios y las APIs de traducción NO están aquí: son `optional_host_permissions` concedidos a demanda. |
 
 ## Contacto
 

@@ -7,13 +7,13 @@ import { requestHosts, revokeHosts, ensureProviderHosts, permissionsApiAvailable
 import { providerHosts } from '../../shared/provider-hosts';
 
 /**
- * The UI half of `optional_host_permissions`.
+ * The UI half of `optional_host_permissions` — 80 origins, one per group, all
+ * of them grantable only from a user gesture.
  *
- * Chrome Web Store review reads a manifest with ~96 host permissions as a
- * data-collection extension, so those origins live in
- * `optional_host_permissions` and are granted HERE — on purpose, in groups,
- * exactly when the user says yes. The service worker cannot prompt at all, so
- * every grant happens here (or in a provider `onChange`).
+ * Manual-review justification was ~96 hosts on the surface; the count is fixed
+ * now, but the reason still holds: no dictionary or API origin sits in the
+ * mandatory manifest, so granting one means this button, or the provider's own
+ * onChange. The service worker cannot prompt at all.
  */
 
 interface PermissionGroup {
