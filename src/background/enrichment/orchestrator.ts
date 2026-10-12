@@ -432,12 +432,10 @@ export async function runEnrichment(
         )
         .map(([field]) => field);
       const has = fields.length > 0;
-      console.info('[kivara:enrichment:source]', {
-        source: src.id,
-        token,
-        hasData: has,
-        fields,
-      });
+      // Per-source logging dropped (audit #8): the token and the sources
+      // hit were the user's search behavior, logged for EVERY enrichment
+      // call. fetcher.ts had already removed its own logs for the same
+      // reason — the orchestrator was the last place that kept them.
       if (has) {
         successfulSources.push(src.id);
         partials.push({ source: src, partial: p });
@@ -445,12 +443,6 @@ export async function runEnrichment(
     } else {
       const msg =
         r.reason instanceof Error ? r.reason.message : String(r.reason);
-      console.info('[kivara:enrichment:source]', {
-        source: src.id,
-        token,
-        hasData: false,
-        error: msg,
-      });
       failedSources.push({ source: src.id, error: msg });
     }
   }

@@ -675,6 +675,11 @@ export function SubtitleOverlay({
             <button
               tabIndex={-1}
               onMouseDown={(e) => e.preventDefault()}
+              // Bridges to App.tsx's in-page repeat handler (same as the
+              // Alt+R hotkey performs): the button used to preventDefault
+              // and swallow the click with nothing else attached, which
+              // was the review's "botons muertos" finding.
+              onClick={() => window.dispatchEvent(new CustomEvent('kivara-repeat-cue'))}
               className="p-1.5 text-zinc-300 hover:text-white hover:bg-zinc-700/50 rounded-md transition-colors"
               title={t('overlay.playSentenceTitle')}
             >

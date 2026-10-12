@@ -795,9 +795,21 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     const onRecaptureEvent = () => doRecaptureFrame();
     chrome.runtime.onMessage.addListener(handler);
     window.addEventListener('kivara-recapture-frame', onRecaptureEvent);
+    // Same bridge for the in-page "Reproducir frase" button on the subtitle
+    // overlay: it dispatches this event, which performs the seek the
+    // hotkey (Alt+R) also performs, so the button and the hotkey are the
+    // SAME action rather than a button that silently swallowed clicks.
+    const onRepeatCueEvent = () => {
+      if (videoElement && activeCue?.start != null) {
+        videoElement.currentTime = activeCue.start / 1000;
+        void videoElement.play().catch(() => {});
+      }
+    };
+    window.addEventListener('kivara-repeat-cue', onRepeatCueEvent);
     return () => {
       chrome.runtime.onMessage.removeListener(handler);
       window.removeEventListener('kivara-recapture-frame', onRecaptureEvent);
+      window.removeEventListener('kivara-repeat-cue', onRepeatCueEvent);
     };
   }, [activeCue, setPanelOpen, videoElement]);
 

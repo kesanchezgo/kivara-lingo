@@ -13,6 +13,7 @@ import { callChain, callChainRaced, callOne } from './translate-providers';
 import type { ChainStep } from './translate-providers';
 import { getDB, translationCacheKey } from '../shared/db';
 import { resolveSecret } from '../shared/secret-store';
+import { normalizeTtlDays } from '../shared/cache-ttl';
 
 let lastCallAt = 0;
 const DEBOUNCE_MS = 200;
@@ -271,7 +272,7 @@ export async function translateText(req: TranslateRequest): Promise<TranslateRes
     // cache the same string is re-served forever, so this is the right
     // single chokepoint to clean translations.
     const cleanedText = sanitizeTranslation(result.translatedText);
-    const ttl = (settings.cacheTtlDays || 30) * 24 * 60 * 60 * 1000;
+    const ttl = normalizeTtlDays(settings.cacheTtlDays, 30) * 24 * 60 * 60 * 1000;
     try {
       await getDB().translation_cache.put({
         key: cacheKey,

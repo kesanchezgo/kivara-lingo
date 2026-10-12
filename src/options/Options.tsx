@@ -29,8 +29,6 @@ export function Options() {
       <div className="w-[420px] h-[820px] shadow-2xl overflow-hidden rounded-xl">
         <SidePanel
           isPopupMode={false}
-          togglePopupMode={() => {}}
-          onClose={() => {}}
           isDarkMode={isDarkMode}
           toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
           styles={subtitleStyles}

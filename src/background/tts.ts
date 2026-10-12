@@ -242,28 +242,69 @@ async function generateViaOpenAi(text: string): Promise<GenerateTtsResult> {
   }
 }
 
+/**
+ * Chrome's own TTS, resolved on the FIRST terminal event.
+ *
+ * Two issues this fixes over its earlier self, both of which made the
+ * promise able to never leave pending:
+ *
+ *  - only `end` and `error` were handled. A `cancel` (chrome.tts.stop()
+ *    called from another tab, or by us from a second TTS click that won
+ *    the race) fired `cancelled` on this one and left the caller
+ *    awaiting forever — which is why a fast double-click used to leave
+ *    the first request hanging with no visible error in the tooltip.
+ *  - there was no timeout: a browser that reports NEVER (some Chrome
+ *    versions on Windows when audio output is grabbed, e.g. in
+ *    fullscreen video contexts) would hang. We now resolve `ok:false`
+ *    after a finite budget so the UI can always surface the outcome.
+ *
+ * `text.trim()` also gets a guard: the TTS button on a token whose text
+ * field never populated would have thrown on the first click.
+ */
 function tryChromeTts(text: string, lang: string): Promise<TtsResponse> {
   return new Promise<TtsResponse>((resolve) => {
     if (typeof chrome === 'undefined' || !chrome.tts || typeof chrome.tts.speak !== 'function') {
       resolve({ ok: false, error: 'chrome.tts unavailable' });
       return;
     }
+    const cleanText = typeof text === 'string' ? text.trim() : '';
+    if (!cleanText) {
+      resolve({ ok: false, error: 'no text to speak' });
+      return;
+    }
+    let settled = false;
+    const done = (result: TtsResponse) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      resolve(result);
+    };
+    // Budget: chrome.tts has no hard timeout contract. 30 s is longer
+    // than any sentence at 0.95x rate this panel ever speaks, and shallow
+    // enough that the UI feels no worse than the original case where the
+    // event DID eventually arrive.
+    const timeoutId = window.setTimeout(() => {
+      done({ ok: false, error: 'tts timed out' });
+    }, 30_000);
     try {
       chrome.tts.stop();
-      chrome.tts.speak(text, {
+      chrome.tts.speak(cleanText, {
         lang,
         rate: 0.95,
         enqueue: false,
         onEvent: (event) => {
-          if (event.type === 'end') resolve({ ok: true });
-          if (event.type === 'error') {
-            resolve({ ok: false, error: event.errorMessage ?? 'tts error' });
+          if (event.type === 'end') done({ ok: true });
+          else if (event.type === 'error') {
+            done({ ok: false, error: event.errorMessage ?? 'tts error' });
+          } else if (event.type === 'cancelled' || event.type === 'interrupted') {
+            // Both are terminal and neither means success: the caller
+            // was awaiting on this and nothing else would resolve it.
+            done({ ok: false, error: event.errorMessage ?? 'tts interrupted' });
           }
         },
       });
     } catch (err) {
-      const reason = err instanceof Error ? err.message : 'tts unavailable';
-      resolve({ ok: false, error: reason });
+      done({ ok: false, error: err instanceof Error ? err.message : 'tts unavailable' });
     }
   });
 }

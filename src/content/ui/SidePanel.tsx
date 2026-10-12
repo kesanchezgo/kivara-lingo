@@ -11,8 +11,14 @@ import { consumeOpenSettingsSection } from '../../shared/open-settings-section';
 
 interface SidePanelProps {
   isPopupMode: boolean;
-  togglePopupMode: () => void;
-  onClose: () => void;
+  /** Popup-mode toggle. Optional: a host that does not offer a floating
+   * panel (e.g. the options page, which IS the app at full size) should
+   * omit this and the button is not rendered, rather than showing a dead
+   * onClick that silently swallows the click. */
+  togglePopupMode?: () => void;
+  /** ✕ button handler. Optional for the same reason: options has nothing
+   * to close. */
+  onClose?: () => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
   styles: SubtitleStyles;
@@ -268,7 +274,9 @@ export function SidePanel({
       onKeyDown={(e) => {
         if (e.key !== 'Escape') return;
         e.stopPropagation();
-        onClose();
+        // Escape is the keyboard twin of the ✕ button: only act when the
+        // host actually gave us a close handler.
+        onClose?.();
       }}
       className={`flex flex-col bg-white dark:bg-zinc-950 shadow-2xl overflow-hidden ${
         isPopupMode
@@ -304,20 +312,24 @@ export function SidePanel({
           >
             {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
           </button>
-          <button 
-            onClick={togglePopupMode}
-            className="p-1.5 text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-md transition-colors"
-            title={isPopupMode ? 'Anclar al lateral' : t('panel.openFloating')}
-          >
-            {isPopupMode ? <LayoutGrid size={16} /> : <ExternalLink size={16} />}
-          </button>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"
-            title="Cerrar panel"
-          >
-            <X size={16} />
-          </button>
+            {togglePopupMode && (
+              <button
+                onClick={togglePopupMode}
+                className="p-1.5 text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-md transition-colors"
+                title={isPopupMode ? 'Anclar al lateral' : t('panel.openFloating')}
+              >
+                {isPopupMode ? <LayoutGrid size={16} /> : <ExternalLink size={16} />}
+              </button>
+            )}
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-1.5 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"
+                title="Cerrar panel"
+              >
+                <X size={16} />
+              </button>
+            )}
         </div>
       </div>
 

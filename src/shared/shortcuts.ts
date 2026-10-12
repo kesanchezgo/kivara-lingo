@@ -59,10 +59,31 @@ export function comboFromEvent(
   if (e.shiftKey) mods.push('Shift');
   if (e.metaKey)  mods.push('Meta');
 
-  const raw = e.key;
-  if (!raw || raw === 'Control' || raw === 'Alt' || raw === 'Shift' || raw === 'Meta') return null;
+  // Layout-independent key extraction, with `e.key` as the fallback.
+  //
+  // `e.key` reports the CHARACTER a key produces, not the key: on macOS
+  // Option is the carrier for Alt, and Option+C produces the character 'ç'
+  // (ç = the dead-key output of Alt+c on the Spanish layout, or '√' with
+  // Option on the default layout), so the combo string came out as "Alt+ç"
+  // and "Alt+C" NEVER matched. Every in-page shortcut silently died for
+  // anyone on a Mac — the exact behaviour the review measured as "Alt+V
+  // never works".
+  //
+  // `e.code` is the PHYSICAL key ("KeyV", "Digit3") and is the same on
+  // every keyboard and OS. We read it for letter/digit keys — the shapes
+  // the whole shortcut catalog uses — and keep `e.key` for everything
+  // else (Space, arrows, F-keys, punctuation): those are the same on every
+  // layout and `e.code` would be 'Quote'/'Slash' instead of the character.
+  let key: string | null = null;
+  const code = 'code' in e ? e.code : undefined;
+  if (code?.startsWith('Key')) key = code.slice(3);
+  else if (code?.startsWith('Digit')) key = code.slice(5);
 
-  let key = raw;
+  if (key === null) {
+    const raw = e.key;
+    if (!raw || raw === 'Control' || raw === 'Alt' || raw === 'Shift' || raw === 'Meta') return null;
+    key = raw;
+  }
   if (key === ' ') key = 'Space';
   else if (key.length === 1) key = key.toUpperCase();
 
