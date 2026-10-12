@@ -557,19 +557,11 @@ export function SettingsTab({
           </Row>
         </Accordion>
 
-        {/* ── Sincronización fina ────────────────────────────────────── */}
-        <Accordion
-          icon={<SlidersHorizontal size={10} />}
-          title={t('set.fineSync')}
-          summary="pre/post roll"
-          open={isOpen('sync')}
-          onToggle={() => toggle('sync')}
-          description={t('set.fineSyncDesc')}
-        >
-          <CompactSlider label="Pre-roll"    defaultValue={300}  max={1500} unit="ms" />
-          <CompactSlider label="Post-roll"   defaultValue={400}  max={1500} unit="ms" />
-          <CompactSlider label={t('set.cueMerge')} defaultValue={300}  max={1000} unit="ms" />
-        </Accordion>
+        {/* Sincronización fina (pre-roll / post-roll / cueMerge) removed:
+            audit #11. The CompactSliders inside it had no onChange wired
+            to `capture` — they were visual-only. Rather than promise
+            behavior we do not deliver, they are omitted until the
+            capture pipeline consumes the values. */}
 
         {/* ── Atajos ─────────────────────────────────────────────────── */}
         <Accordion
