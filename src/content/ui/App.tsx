@@ -720,13 +720,13 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
             'background',
           )) as { ok: boolean; error?: string };
           if (response?.ok) {
-            toast.success('Frame actualizado', { duration: 1600 });
+            toast.success(t('app.frameUpdated'), { duration: 1600 });
           } else {
-            toast.error(response?.error ?? 'Error actualizando frame');
+            toast.error(response?.error ?? t('app.frameUpdateError'));
           }
         } catch (err) {
-          const reason = err instanceof Error ? err.message : 'desconocido';
-          toast.error(`Error actualizando frame: ${reason}`);
+          const reason = err instanceof Error ? err.message : t('app.unknownReason');
+          toast.error(`${t('app.frameUpdateError')}: ${reason}`);
         }
       });
     };
@@ -852,7 +852,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     const tokenValue = token?.trim() || sentence.trim();
     if (!tokenValue) return;
 
-    const saveToastId = toast.loading('Guardando tarjeta…', {
+    const saveToastId = toast.loading(t('app.savingCard'), {
       description: t('app.preparingSave'),
     });
 
@@ -895,17 +895,17 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
         const warningSuffix = response.warnings?.length
           ? ` · ${response.warnings.join(' · ')}`
           : '';
-        toast.success('Tarjeta guardada', {
+        toast.success(t('app.cardSaved'), {
           id: saveToastId,
           description: `${tokenValue} → ${ankiMapping.deckName}${warningSuffix}`,
           duration: 3200,
         });
       } else {
-        toast.error(response?.error ?? 'Error guardando en Anki', { id: saveToastId });
+        toast.error(response?.error ?? t('cards.ankiSaveError'), { id: saveToastId });
       }
     } catch (err) {
-      const reason = err instanceof Error ? err.message : 'desconocido';
-      toast.error(`Error guardando en Anki: ${reason}`, { id: saveToastId });
+      const reason = err instanceof Error ? err.message : t('app.unknownReason');
+      toast.error(`${t('app.ankiSaveError')}: ${reason}`, { id: saveToastId });
     }
   };
 
