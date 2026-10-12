@@ -61,8 +61,8 @@ describe('mount-queue', () => {
     const ran: string[] = [];
     const genA = bumpMountGen();
     const genB = bumpMountGen();
-    const a = enqueueMount(genA, async () => ran.push('A'));
-    const b = enqueueMount(genB, async () => ran.push('B'));
+    const a = enqueueMount(genA, async () => { ran.push('A'); });
+    const b = enqueueMount(genB, async () => { ran.push('B'); });
     await Promise.all([a, b]);
     expect(ran).toEqual(['B']);
   });

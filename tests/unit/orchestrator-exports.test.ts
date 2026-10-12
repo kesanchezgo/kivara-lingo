@@ -13,9 +13,10 @@
  * to learn about the split.
  */
 import { describe, it, expect } from 'vitest';
-import type { EnrichmentContext, VipSettings } from '../../src/shared/types';
+import type { VipSettings } from '../../src/shared/types';
+import type { EnrichmentContext } from '../../src/background/enrichment/types';
 
-const ctxOf = (): EnrichmentContext => ({ sourceLang: 'en', targetLang: 'es', sentence: 'run' });
+const ctxOf = (): EnrichmentContext => ({ sourceLang: 'en', targetLang: 'es', sentence: 'run', timeoutMs: 0 });
 const vipOf = (enabled: boolean) => ({ enabled }) as unknown as VipSettings;
 
 describe('orchestrator exports', () => {

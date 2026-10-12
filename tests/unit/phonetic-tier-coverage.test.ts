@@ -20,6 +20,7 @@ vi.mock('../../src/background/enrichment/sources/wiktapi', () => ({
 }));
 
 const enrichFreeDictionary = vi.fn(async () => ({
+  phonetic: '' as string | undefined,
   definitions: ['a round fruit'],
 }));
 vi.mock('../../src/background/enrichment/sources/free-dictionary', () => ({

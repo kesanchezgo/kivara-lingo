@@ -38,9 +38,11 @@ describe('adapter destroy()', () => {
       return id;
     }) as unknown as typeof window.setInterval);
     const realClear = window.clearInterval.bind(window);
+    // The DOM's number handle and Node's Timeout object disagree at the type
+    // level; the casts below are the only two places the shapes cross.
     vi.spyOn(window, 'clearInterval').mockImplementation(((id: number) => {
       cleared.push(id);
-      realClear(id as unknown as ReturnType<typeof clearInterval>);
+      (realClear as unknown as (h: number) => void)(id);
     }) as unknown as typeof window.clearInterval);
   });
 

@@ -32,7 +32,7 @@ function mountStatefulStorage(): ChromeStorageLocal {
     }),
     remove: vi.fn(async () => undefined),
   };
-  const chrome = (globalThis as { chrome?: { storage?: { local?: ChromeStorageLocal } } }).chrome;
+  const chrome = (globalThis as unknown as { chrome?: { storage?: { local?: ChromeStorageLocal } } }).chrome;
   if (chrome?.storage) chrome.storage.local = local;
   return local;
 }

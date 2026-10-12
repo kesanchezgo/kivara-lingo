@@ -15,7 +15,7 @@ import { formatFrequencyBand, pickFrequencyWinner } from '../../shared/frequency
 import { lookupDictionary } from '../nlp/dictionary';
 import { openResolveWordStream } from '../resolve-word-stream';
 
-interface WordPopoverProps {
+export interface WordPopoverProps {
   visible: boolean;
   onMouseEnter: () => void;
   onMouseLeave: () => void;

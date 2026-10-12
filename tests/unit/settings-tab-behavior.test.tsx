@@ -8,7 +8,8 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useKivaraStore } from '../../src/shared/store';
-import { DEFAULT_VIP, DEFAULT_TRANSLATE, DEFAULT_TTS, DEFAULT_AI, DEFAULT_CAPTURE, DEFAULT_CLEANUP, DEFAULT_ASR, DEFAULT_ONBOARDING, DEFAULT_TELEMETRY, DEFAULT_SHORTCUTS, DEFAULT_PANEL_POSITION, DEFAULT_SUBTITLE_STYLES, DEFAULT_ANKI_MAPPING } from '../../src/shared/store';
+import { DEFAULT_VIP, DEFAULT_TRANSLATE, DEFAULT_TTS, DEFAULT_AI, DEFAULT_CAPTURE, DEFAULT_CLEANUP, DEFAULT_ONBOARDING, DEFAULT_TELEMETRY, DEFAULT_SHORTCUTS, DEFAULT_PANEL_POSITION, DEFAULT_SUBTITLE_STYLES, DEFAULT_ANKI_MAPPING } from '../../src/shared/store';
+import type { VipSettings } from '../../src/shared/types';
 import { refreshHostPermissions } from '../../src/shared/host-permissions-store';
 import { PROVIDER_HOSTS, hostsForProviders } from '../../src/shared/provider-hosts';
 
@@ -26,10 +27,10 @@ const dictOrigins = hostsForProviders(dictProviders);
 const chromeStub = () => ({
   runtime: { sendMessage: vi.fn(), getURL: (path: string) => path, lastError: null, onMessage: { addListener: vi.fn(), removeListener: vi.fn() } },
   permissions: {
-    getAll: vi.fn().mockResolvedValue({ origins: [] }),
-    contains: vi.fn().mockResolvedValue(false),
-    request: vi.fn().mockResolvedValue(true),
-    remove: vi.fn().mockResolvedValue(true),
+    getAll: vi.fn(async () => ({ origins: [] as string[] })),
+    contains: vi.fn(() => Promise.resolve(false)),
+    request: vi.fn(() => Promise.resolve(true)),
+    remove: vi.fn(() => Promise.resolve(true)),
   },
   storage: { session: { get: vi.fn().mockResolvedValue({}), remove: vi.fn().mockResolvedValue(undefined) }, local: { get: vi.fn().mockResolvedValue({}), set: vi.fn().mockResolvedValue(undefined), remove: vi.fn().mockResolvedValue(undefined) } },
   i18n: { getUILanguage: () => 'es' },
@@ -41,7 +42,7 @@ function resetStore() {
     ...state,
     vip: { ...DEFAULT_VIP },
     translate: { ...DEFAULT_TRANSLATE, tiersEnabled: { ...DEFAULT_TRANSLATE.tiersEnabled }, freeChain: [...DEFAULT_TRANSLATE.freeChain], premiumChain: [...DEFAULT_TRANSLATE.premiumChain] },
-    tts: { ...DEFAULT_TTS }, ai: { ...DEFAULT_AI }, capture: { ...DEFAULT_CAPTURE }, cleanup: { ...DEFAULT_CLEANUP }, asr: { ...DEFAULT_ASR }, onboarding: { ...DEFAULT_ONBOARDING }, telemetry: { ...DEFAULT_TELEMETRY }, shortcuts: { ...DEFAULT_SHORTCUTS }, panelPosition: DEFAULT_PANEL_POSITION, subtitleStyles: { ...DEFAULT_SUBTITLE_STYLES }, ankiMapping: { ...DEFAULT_ANKI_MAPPING, fieldSources: {} },
+    tts: { ...DEFAULT_TTS }, ai: { ...DEFAULT_AI }, capture: { ...DEFAULT_CAPTURE }, cleanup: { ...DEFAULT_CLEANUP }, onboarding: { ...DEFAULT_ONBOARDING }, telemetry: { ...DEFAULT_TELEMETRY }, shortcuts: { ...DEFAULT_SHORTCUTS }, panelPosition: DEFAULT_PANEL_POSITION, subtitleStyles: { ...DEFAULT_SUBTITLE_STYLES }, ankiMapping: { ...DEFAULT_ANKI_MAPPING, fieldSources: {} },
   }, true);
 }
 
@@ -67,7 +68,7 @@ describe('SettingsTab behavior across the split', () => {
     await mountSettings();
     fireEvent.click(screen.getByRole('button', { name: /Enriquecimiento/i }));
     expect(screen.queryByText('Cambridge')).toBeNull();
-    await act(async () => useKivaraStore.getState().setVip({ enabled: true }));
+    await act(async () => useKivaraStore.getState().setVip((prev: VipSettings) => ({ ...prev, enabled: true })));
     await waitFor(() => expect(screen.getByText('Cambridge')).not.toBeNull());
   });
 
@@ -150,7 +151,7 @@ describe('SettingsTab behavior across the split', () => {
     expect([...new Set(request.mock.calls[0][0].origins)].sort()).toEqual([...new Set(dictOrigins)].sort());
 
     // The grant answer comes back from chrome, not from our own state.
-    getAll.mockResolvedValue({ origins: [...dictOrigins] });
+    getAll.mockResolvedValue({ origins: [...dictOrigins] } as unknown as void);
     await act(async () => refreshHostPermissions());
     const revoke = [...dictRow().querySelectorAll('button')].find((b) => b.textContent === 'Revocar');
     expect(revoke).toBeDefined();

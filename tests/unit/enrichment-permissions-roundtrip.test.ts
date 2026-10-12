@@ -132,7 +132,7 @@ describe('a grant is reflected by the next lookup', () => {
 
   const CAMBRIDGE = ['https://*.dictionary.cambridge.org/*', 'https://dictionary.cambridge.org/*'];
   const MERRIAM = ['https://www.merriam-webster.com/*', 'https://media.merriam-webster.com/*'];
-  const LOOKUP = { sourceLang: 'en', targetLang: 'es', vip: VIP_WITH_CAMBRIDGE, purpose: 'popover' as const };
+  const LOOKUP = { sourceLang: 'en', targetLang: 'es', vip: VIP_WITH_CAMBRIDGE as unknown as import('../../src/shared/types').VipSettings, purpose: 'popover' as const };
   const run = () => runEnrichment('run', LOOKUP);
 
   it('serves the granted sources after the grant', async () => {

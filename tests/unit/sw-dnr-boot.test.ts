@@ -21,7 +21,7 @@ async function waitFor(predicate: () => boolean, tries = 50): Promise<void> {
   throw new Error('waitFor timed out');
 }
 
-type Rule = { condition: { urlFilter: string } };
+type Rule = { condition: { urlFilter: string; initiatorDomains?: string[] } };
 
 function makeChrome(opts: { ankiUrl?: string; dnr?: Array<{ updateSessionRules: unknown }> }) {
   const sessionRulesCalls: Array<{ removeRuleIds: number[]; addRules: Rule[] }> = [];
@@ -63,7 +63,7 @@ function makeChrome(opts: { ankiUrl?: string; dnr?: Array<{ updateSessionRules: 
       sendMessage: vi.fn(),
     },
     declarativeNetRequest: { updateSessionRules },
-    commands: { onCommand: { addListener: vi.fn() }, getAll: vi.fn((cb: unknown) => cb?.([])) },
+    commands: { onCommand: { addListener: vi.fn() }, getAll: vi.fn((cb: (r: unknown[]) => void) => cb?.([])) },
     offscreen: { createDocument: vi.fn(async () => {}), closeDocument: vi.fn(async () => {}) },
     tabCapture: { getMediaStreamId: vi.fn() },
     tts: { speak: vi.fn() },

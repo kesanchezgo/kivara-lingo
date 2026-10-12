@@ -51,16 +51,17 @@ export function sine(spec: PcmSpec & { freqHz: number }): Float32Array {
  * one a boundary test cannot fake with a constant signal.
  */
 export function burst(
-  spec: PcmSpec & {
+  spec: Pick<PcmSpec, 'sampleRate'> & {
     freqHz: number;
     leadMs: number;
     toneMs: number;
     tailMs: number;
+    amplitude?: number;
   },
 ): Float32Array {
   const parts = [
     silence({ sampleRate: spec.sampleRate, durationMs: spec.leadMs }),
-    sine({ ...spec, durationMs: spec.toneMs }),
+    sine({ sampleRate: spec.sampleRate, freqHz: spec.freqHz, durationMs: spec.toneMs, amplitude: spec.amplitude }),
     silence({ sampleRate: spec.sampleRate, durationMs: spec.tailMs }),
   ];
   const total = parts.reduce((acc, p) => acc + p.length, 0);

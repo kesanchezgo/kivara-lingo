@@ -30,12 +30,17 @@ vi.mock('../../src/shared/store', () => {
   };
   // Plain state when called with no argument (the common read), and a field
   // reader when given one, because the component uses both shapes.
-  const useKivaraStore = ((selector?: (s: unknown) => unknown) =>
-    selector ? selector(state) : state) as unknown as () => typeof state;
-  useKivaraStore.setState = () => {};
-  useKivaraStore.subscribe = () => () => {};
-  useKivaraStore.getState = () => state;
-  return { useKivaraStore };
+  const store = ((selector?: (s: unknown) => unknown) =>
+    selector ? selector(state) : state) as unknown as {
+    (selector?: (s: unknown) => unknown): unknown;
+    setState: (fn: (s: unknown) => void) => void;
+    subscribe: (fn: () => void) => () => void;
+    getState: () => typeof state;
+  };
+  store.setState = () => {};
+  store.subscribe = () => () => {};
+  store.getState = () => state;
+  return { useKivaraStore: store };
 });
 vi.mock('../../src/app/hooks/useShortcuts', () => ({ useShortcuts: () => ({ map: {} }) }));
 vi.mock('../../src/app/components/tabs/DictPacksSection', () => ({
@@ -158,10 +163,11 @@ describe('Settings accordions under a deep link', () => {
       tree = render(<SettingsTab initialSection="perm" initialNonce={1} />);
     });
     expect(permOpen()).toBe(true);
-    const header = Array.from(document.querySelectorAll('button[aria-expanded]')).find((b) =>
+    const header = Array.from(document.querySelectorAll<HTMLButtonElement>('button[aria-expanded]')).find((b) =>
       b.textContent?.toUpperCase().includes('ACCESO A SITIOS'),
     );
-    await act(async () => header.click());
+    expect(header).toBeDefined();
+    await act(async () => header!.click());
     expect(permOpen()).toBe(false);
 
     // The very same props again: nothing is delivered, so nothing reopens.

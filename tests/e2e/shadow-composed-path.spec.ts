@@ -144,9 +144,9 @@ test.describe('closed-root event paths in real Chromium', () => {
 
     // The production resolver, exactly as shadow-host's `overKivaraZone`
     // computes it: coordinates → element-from-point → nearest zone.
-    const hit = async (x: number, y: number) => {
+    const hit = async (x: number, y: number): Promise<boolean> => {
       await page.mouse.move(x, y, { steps: 1 });
-      return page.evaluate(([cx, cy]: [number, number]) => {
+      return page.evaluate<boolean, [number, number]>(([cx, cy]) => {
         const w = window as unknown as { __zone?: { root: ShadowRoot; zone: HTMLElement; host: HTMLElement } };
         const { root } = w.__zone!;
         const el = root.elementFromPoint(cx, cy);

@@ -23,7 +23,7 @@
  * capture; the forced path is injected with Playwright's init script and is a
  * build-time-only override (`__E2E__`).
  */
-import { test, expect, type Page, type BrowserContext } from './fixtures';
+import { test, expect, type Page } from './fixtures';
 import os from 'node:os';
 import path from 'node:path';
 import { existsSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
@@ -49,7 +49,7 @@ interface BridgeResult {
 
 /** The bridge door, reached from the e2e page that only the e2e build has. */
 async function bridge(page: Page, payload: Record<string, unknown>): Promise<BridgeResult> {
-  return page.evaluate(async (body) => {
+  return page.evaluate<BridgeResult, Record<string, unknown>>(async (body) => {
     return await new Promise((resolve, reject) => {
       const api = (globalThis as unknown as { chrome: typeof chrome }).chrome;
       api.runtime.sendMessage(body as object, (response) => {
@@ -57,7 +57,7 @@ async function bridge(page: Page, payload: Record<string, unknown>): Promise<Bri
           reject(new Error(api.runtime.lastError.message));
           return;
         }
-        resolve(response as object);
+        resolve(response as unknown as BridgeResult);
       });
     });
   }, payload) as Promise<BridgeResult>;
@@ -151,12 +151,12 @@ function forcedPath(): CapturePath | null {
 
 /** Boot the fixture tab and the bridge page, then resolve the fixture's id. */
 async function openCapture(
-  context: BrowserContext,
+  context: import('@playwright/test').BrowserContext,
   extensionId: string,
   fixtureBody: string,
 ): Promise<{ tab: Page; bridgePage: Page; tabId: number | null }> {
   const tab = await context.newPage();
-  await tab.route(/^https:\/\/www\.netflix\.com\/watch\/audio-smoke/, async (route) => {
+  await tab.route(/^https:\/\/www\.netflix\.com\/watch\/audio-smoke/, async (route: import('@playwright/test').Route) => {
     await route.fulfill({ status: 200, contentType: 'text/html', body: fixtureBody });
   });
   await tab.goto(NETFLIX_URL);

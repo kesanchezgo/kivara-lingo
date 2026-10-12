@@ -49,8 +49,8 @@ test.describe('shipped-build capabilities', () => {
     await offscreen.waitForFunction(() => document.readyState === 'complete');
 
     const compiled = await offscreen.evaluate(
-      async (bytes) => {
-        const Wasm = (globalThis as unknown as { WebAssembly: WebAssembly }).WebAssembly;
+      async (bytes: number[]) => {
+        const Wasm = WebAssembly;
         try {
           const module = await Wasm.compile(new Uint8Array(bytes));
           return { ok: module instanceof WebAssembly.Module, error: null };

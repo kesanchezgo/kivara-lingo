@@ -66,7 +66,7 @@ const chromeProbe = {
   },
 };
 if (!('chrome' in globalThis)) {
-  (globalThis as typeof globalThis & { chrome: typeof chromeProbe }).chrome = chromeProbe;
+  (globalThis as { chrome: unknown }).chrome = chromeProbe;
 }
 
 const token = process.env.KIVARA_TOKEN || 'give';

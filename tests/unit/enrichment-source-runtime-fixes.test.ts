@@ -32,9 +32,9 @@ beforeEach(() => {
   // into this file's earlier tests (the circuit ones sit at line 84+), and the
   // scraper policy tests then measured zero fetches and failed. The default
   // empty store has to be re-armed, not assumed.
-  vi.mocked(chrome.storage.local.get).mockResolvedValue({});
-  vi.mocked(chrome.storage.local.set).mockResolvedValue(undefined);
-  vi.mocked(chrome.storage.local.remove).mockResolvedValue(undefined);
+  vi.mocked(chrome.storage.local.get).mockResolvedValue({} as unknown as void);
+  vi.mocked(chrome.storage.local.set).mockResolvedValue(undefined as unknown as void);
+  vi.mocked(chrome.storage.local.remove).mockResolvedValue(undefined as unknown as void);
 });
 
 describe('browser-session protected scrapers', () => {

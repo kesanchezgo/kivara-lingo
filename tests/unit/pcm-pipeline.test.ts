@@ -275,8 +275,8 @@ describe('pcm-block: the block carries its own rate', () => {
     sampleRate: number,
     blockSize: number,
     startMs = 0,
-  ): PcmChunkRecord[] => {
-    const out: PcmChunkRecord[] = [];
+  ): PcmChunk[] => {
+    const out: PcmChunk[] = [];
     for (let i = 0; i < samples.length; i += blockSize) {
       const part = samples.subarray(i, Math.min(i + blockSize, samples.length));
       // The same simulated audio clock both production paths use: the wall
@@ -370,7 +370,7 @@ describe('pcm-block: the block carries its own rate', () => {
 
     // Both series cover the same wall clock, so the last block of each ends at
     // the same instant whatever the block size.
-    const endOf = (list: PcmChunkRecord[]) => {
+    const endOf = (list: PcmChunk[]) => {
       const last = list.at(-1)!;
       return last.recordedAt + last.durationMs;
     };

@@ -14,9 +14,9 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { sendMessage } from 'webext-bridge/content-script';
-import { WordPopover } from '../../src/content/ui/WordPopover';
+import { WordPopover, type WordPopoverProps } from '../../src/content/ui/WordPopover';
 
-const BASE_PROPS = {
+const BASE_PROPS: WordPopoverProps = {
   visible: true,
   onMouseEnter: () => {},
   onMouseLeave: () => {},
@@ -25,8 +25,7 @@ const BASE_PROPS = {
   sentence: 'She ran home.',
   sourceLang: 'en',
   includeAi: false,
-  kind: 'single' as const,
-  mweKind: null,
+  kind: 'unknown',
   lemma: 'run',
   isExpanded: false,
   isSaved: false,
@@ -34,7 +33,7 @@ const BASE_PROPS = {
   onToggleExpand: () => {},
   onRejoinParent: () => {},
   onSave: () => {},
-};
+} as unknown as WordPopoverProps;
 
 describe('the held-back strip', () => {
   beforeEach(() => {

@@ -43,10 +43,12 @@ function setupMocks(opts: {
   /** What `translateToken` resolves to (dictionary bucket, examples, …). */
   tokenResult?: Record<string, unknown>;
   /** What `runEnrichment` resolves to (VIP media, video links, …). */
-  enriched?: { entry?: unknown };
+  enriched?: { entry?: unknown; vip?: Record<string, unknown> };
 } = {}) {
-  const addNote = vi.fn(opts.addNoteImpl ?? (async () => 123));
-  const findNotes = vi.fn(async () => opts.findNotesIds ?? []);
+  const addNote = vi.fn<(note: { deckName: string; modelName: string; fields?: Record<string, string> }) => Promise<number>>(
+    opts.addNoteImpl ?? (async () => 123),
+  );
+  const findNotes = vi.fn<(query: string) => Promise<number[]>>(async () => opts.findNotesIds ?? []);
   const notesInfo = vi.fn(async () => opts.notesInfos ?? []);
   const storeMediaFile = vi.fn(async (filename: string) => filename);
   const ledgerPut: unknown[][] = [];
@@ -155,10 +157,10 @@ describe('retry idempotency', () => {
     expect(m.addNote).not.toHaveBeenCalled();
     // ORDER: the duplicate check runs BEFORE any media upload.
     expect(m.storeMediaFile).not.toHaveBeenCalled();
-    const q = m.findNotes.mock.calls[0][0] as string;
-    expect(q).toContain('\\"Best\\"');
-    expect(q).toContain('note:"Basic"');
-    expect(q).toContain('"Front:hola"');
+    const q = m.findNotes.mock.calls[0]?.[0] as unknown as string;
+    expect(q ?? '').toContain('\\"Best\\"');
+    expect(q ?? '').toContain('note:"Basic"');
+    expect(q ?? '').toContain('"Front:hola"');
     // No provider hit either.
     expect(m.translateCalls.n).toBe(0);
     // The verified match IS written to the ledger for the next retry.
@@ -245,7 +247,7 @@ describe('retry idempotency', () => {
         ],
       },
       enriched: {
-        entry: {},
+        entry: {} as unknown,
         vip: { videoLinks: [{ url: 'https://youglish.com/x" onmouseover="alert(4)' }] },
       },
     });
@@ -273,7 +275,7 @@ describe('retry idempotency', () => {
     expect(res.ok).toBe(true);
     expect(m.addNote).toHaveBeenCalledTimes(1);
 
-    const fields = m.addNote.mock.calls[0][0].fields as Record<string, string>;
+    const fields = m.addNote.mock.calls[0]?.[0]?.fields as unknown as Record<string, string>;
     // No live tag or attribute survive anywhere in the note.
     const all = Object.values(fields).join('\n');
     // Remove the markup Kivara adds on purpose, then demand that nothing
@@ -317,7 +319,7 @@ describe('retry idempotency', () => {
     // The human clip was uploaded, not a TTS fallback.
     expect(m.storeMediaFile).toHaveBeenCalledTimes(1);
     expect(m.storeMediaFile.mock.calls[0][0]).toContain('hola');
-    const fields = m.addNote.mock.calls[0][0] as { fields: Record<string, string> };
+    const fields = m.addNote.mock.calls[0]?.[0] as unknown as { fields: Record<string, string> };
     expect(Object.values(fields.fields).join(' ')).toContain('[sound:');
   });
 });

@@ -1556,7 +1556,7 @@ describe('enrichment orchestrator tier and cache selection', () => {
     expect(result.vip.definitions?.length).toBeGreaterThan(0);
     // The relation groups are sense-bound, so the merger can publish
     // sense-matched synonyms instead of lemma-level noise.
-    expect(result.entry.monolingual).toBeDefined();
+    expect(result.entry?.monolingual).toBeDefined();
   });
 
   it('honours Cambridge audio separately from Cambridge lexical data', async () => {
