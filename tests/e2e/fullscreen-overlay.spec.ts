@@ -30,11 +30,16 @@ test('fullscreen re-parents the mounted overlay and cleans up after itself', asy
     await page.bringToFront();
 
     // The overlay host must exist before anything else means something.
+    //
+    // Counted by ELEMENT ID, not by `el.shadowRoot !== null`: the roots are
+    // closed (see content/shadow-host.ts — a page-readable root is how the
+    // API-key fields used to leak), and a closed root is invisible to that
+    // query from the page's side. The host itself is still page DOM, which is
+    // exactly what this assertion is about: that we mounted, and where.
     const hostCount = async () =>
       page.evaluate(
         () =>
-          Array.from(document.body.querySelectorAll('*')).filter((el) => el.shadowRoot !== null)
-            .length,
+          document.querySelectorAll('#kivara-lingo-host, #kivara-lingo-video-host').length,
       );
     await expect.poll(async () => await hostCount(), { timeout: 15_000 }).toBeGreaterThan(0);
 
@@ -94,13 +99,16 @@ test('fullscreen re-parents the mounted overlay and cleans up after itself', asy
         `[full] needed a transient-activation retry: attempts=${attempts} (${probe.error})`,
       );
     }
+    // The re-parent must put a lot inside the fullscreen element. It is
+    // counted the only way a closed shadow root allows: by our own host ids
+    // inside the stage's own DOM.
     await expect.poll(
       async () =>
-        await page.evaluate(() =>
-          Array.from(document.body.querySelectorAll('*')).some(
-            (el) => el.shadowRoot !== null && el.parentElement?.id === 'stage',
-          ),
-        ),
+        await page.evaluate(() => {
+          const stage = document.getElementById('stage');
+          if (!stage) return false;
+          return stage.querySelector('#kivara-lingo-host, #kivara-lingo-video-host') !== null;
+        }),
       { timeout: 10_000 },
     ).toBe(true);
 
@@ -118,12 +126,15 @@ test('fullscreen re-parents the mounted overlay and cleans up after itself', asy
       async () => await stage.evaluate((el) => getComputedStyle(el).position),
       { timeout: 10_000 },
     ).toBe(positionBefore);
+    // The same reparent verdict from the other end: once the exit is settled
+    // our hosts are back under <body>, not inside the stage. Counted by host
+    // id because the roots are closed.
     await expect.poll(
       async () =>
         await page.evaluate(() =>
-          Array.from(document.body.querySelectorAll('*'))
-            .filter((el) => el.shadowRoot !== null)
-            .map((el) => el.parentElement?.tagName ?? ''),
+          Array.from(
+            document.querySelectorAll('#kivara-lingo-host, #kivara-lingo-video-host'),
+          ).map((el) => el.parentElement?.tagName ?? ''),
         ),
       { timeout: 10_000 },
     ).toContain('BODY');
