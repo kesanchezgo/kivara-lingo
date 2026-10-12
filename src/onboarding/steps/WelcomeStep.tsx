@@ -38,7 +38,7 @@ export function WelcomeStep() {
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/70 dark:bg-zinc-900/60 ring-1 ring-zinc-200/80 dark:ring-zinc-700/60 text-[10.5px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-300">
             <Rocket size={10} /> {t('onb.setupMeta')}</div>
           <h2 className="text-[26px] sm:text-[28px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 leading-tight">
-            Bienvenido a <span className="text-indigo-600 dark:text-indigo-300">Kivara Lingo</span>
+            {t('onb.welcomePrefix')} <span className="text-indigo-600 dark:text-indigo-300">Kivara Lingo</span>
           </h2>
           <p className="text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-300 max-w-xl">
             {t('onb.heroDesc')}</p>
