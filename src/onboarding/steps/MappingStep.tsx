@@ -210,29 +210,29 @@ export function MappingStep({
                       className="sl-select shrink-0"
                       style={{ width: 160 }}
                     >
-                      <option value="manual">— No mapear —</option>
-                      <option value="selection">Palabra</option>
-                      <option value="cue">Frase completa</option>
+                      <option value="manual">{t('cards.noMapping')}</option>
+                      <option value="selection">{t('cards.wordSelection')}</option>
+                      <option value="cue">{t('cards.sentence')}</option>
                       <option value="phonetic">{t('onb.fieldPhonetic')}</option>
                       <option value="translation">{t('cards.translation')}</option>
                       <option value="bilingual">{t('onb.bilingualOpt')}</option>
                       <option value="monolingual">{t('onb.monolingualOpt')}</option>
-                      <option value="examples">Ejemplos</option>
-                      <option value="frame">Picture (frame)</option>
-                      <option value="sentence-audio">Sentence audio</option>
-                      <option value="word-audio">Word audio</option>
+                      <option value="examples">{t('cards.examples')}</option>
+                      <option value="frame">{t('cards.pictureFrame')}</option>
+                      <option value="sentence-audio">{t('cards.sentenceAudio')}</option>
+                      <option value="word-audio">{t('cards.wordAudio')}</option>
                       <option value="synonyms">{t('cards.synonyms')}</option>
                       <option value="antonyms">{t('cards.antonyms')}</option>
-                      <option value="collocations">Combinaciones</option>
+                      <option value="collocations">{t('cards.collocations')}</option>
                       <option value="etymology">{t('cards.etymology')}</option>
                       <option value="mnemonic">{t('cards.mnemonic')}</option>
-                      <option value="image">Imagen enriquecida</option>
-                      <option value="video-link">Video link</option>
+                      <option value="image">{t('cards.enrichedImage')}</option>
+                      <option value="video-link">{t('cards.videoLink')}</option>
                       <option value="ai-definition">{t('cards.aiDefinitionLabel')}</option>
                       <option value="ai-synonyms">{t('cards.aiSynonymsLabel')}</option>
-                      <option value="ai-collocations">IA · Colocaciones</option>
-                      <option value="ai-nuance">IA · Matiz</option>
-                      <option value="ai-register">IA · Registro</option>
+                      <option value="ai-collocations">{t('cards.aiCollocationsLabel')}</option>
+                      <option value="ai-nuance">{t('cards.aiNuanceLabel')}</option>
+                      <option value="ai-register">{t('cards.aiRegisterLabel')}</option>
                     </select>
                   </div>
                 );
