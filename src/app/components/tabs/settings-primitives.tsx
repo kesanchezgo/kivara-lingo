@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { t } from '../../../shared/i18n';
-import { WHISPER_BUILD } from '../../../shared/whisper-flag';
+import { WHISPER_BUILD, WHISPER_GLUE_PACKAGED } from '../../../shared/whisper-flag';
 import { useKivaraStore } from '../../../shared/store';
 import type { AsrSettings } from '../../../shared/types';
 import { WHISPER_MODEL_PRESETS, type WhisperModelKey } from '../../../shared/whisper-presets';
@@ -122,15 +122,32 @@ export function WhisperAsrSection() {
   // is identical on every mount of a given build and the compiled-out build
   // leaves them unused entirely.
   if (!WHISPER_BUILD) {
-    // Compile-time off, on purpose: see shared/whisper-flag.ts. The glue cannot
-    // load under MV3's CSP, so the whole section was a form that could only
-    // fail later; the code behind it stays for when it is packaged.
     return (
       <p className="text-[10.5px] leading-snug text-zinc-500 dark:text-zinc-400 px-2 py-1.5">
-        ASR local no disponible en esta compilación: Whisper necesita empaquetar
-        su glue y su WASM dentro de la extensión (la CSP de MV3 no permite
-        cargar el glue desde una URL remota).
+        {t('set.whisperUnavailable')}
       </p>
+    );
+  }
+  if (!WHISPER_GLUE_PACKAGED) {
+    // Compiled in but NOT shippable yet: same reason, different visibility.
+    // A switch that turns on and can only fail exponentially worse than a
+    // paragraph saying why, so the switch is disabled and the paragraph is the
+    // reason. Packaging the glue + WASM sets WHISPER_GLUE_PACKAGED and this
+    // branch disappears with it.
+    return (
+      <>
+        <Row label={t('set.whisperTitle')}>
+          <Toggle
+            on={false}
+            onChange={() => {}}
+            disabled
+            disabledTitle={t('set.whisperUnavailable')}
+          />
+        </Row>
+        <p className="text-[10.5px] leading-snug text-zinc-500 dark:text-zinc-400 px-2 py-1.5">
+          {t('set.whisperUnavailable')}
+        </p>
+      </>
     );
   }
   return (
@@ -250,29 +267,48 @@ function WhisperModelUrlRow({
   asr: AsrSettings;
   setAsr: (next: Partial<AsrSettings>) => void;
 }) {
-  const error = whisperUrlError(asr.modelUrl, assertFetchableWhisperUrl);
+  // The same pure checker the offscreen enforces at the point of use, called on
+  // every render: the field shows the live verdict, so the inline error
+  // appears as the user types and stays if they commit out of order (paste,
+  // tab away, blur). `onBlur` alone would only show it after they left.
+  const liveError = whisperUrlError(asr.modelUrl, assertFetchableWhisperUrl);
   return (
     <>
-      <Row label="Modelo URL (override)">
+      <Row
+        label="Modelo URL (override)"
+        hint={liveError ? undefined : t('set.whisperModelHint')}
+      >
         <input
           type="text"
           value={asr.modelUrl ?? ''}
           onChange={(e) => {
             const raw = e.target.value.trim();
-            if (!raw) {
-              setAsr({ modelUrl: undefined });
-              return;
+            // Kept as typed even when invalid: word is fast and dropping
+            // keystrokes mid-typing a URL is the classic fight with a validator.
+            setAsr({ modelUrl: raw || undefined });
+          }}
+          onBlur={() => {
+            // One authoritative re-check on commit — a paste may not fire a
+            // change at all, and blur is the moment the user has finished.
+            // The thrown error is the UI's own signal and MUST NOT propagate:
+            // a thrown error inside an event handler takes the panel down and
+            // shows a blank form, which is a worse report than the inline text
+            // right under the field saying the same thing.
+            if (!asr.modelUrl) return;
+            try {
+              assertFetchableWhisperUrl(asr.modelUrl);
+            } catch {
+              // The verdict is derived on every render, so this branch only
+              // exists to normalise the value the store keeps: a URL that
+              // cannot be fetched is exactly the string that was typed.
+              setAsr({ modelUrl: asr.modelUrl });
             }
-            // Kept as typed; the derived `error` below reports the reason, and
-            // `shared/whisper-url` refuses it again where it is used.
-            assertFetchableWhisperUrl(raw);
-            setAsr({ modelUrl: raw });
           }}
           placeholder={WHISPER_MODEL_PRESETS[asr.model].url}
           className="sl-input sl-mono w-full"
         />
       </Row>
-      {error && <UrlErrorRow error={error} />}
+      {liveError && <UrlErrorRow error={liveError} />}
     </>
   );
 }
@@ -351,7 +387,19 @@ export function SegmentedControl<T extends string>({
 
 /* ─── Toggle ─────────────────────────────────────────────────────────── */
 
-export function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+export function Toggle({
+  on,
+  onChange,
+  disabled = false,
+  disabledTitle,
+}: {
+  on: boolean;
+  onChange: (v: boolean) => void;
+  /** Rendered inert, with the reason explainable: a switch that answers nothing
+   *  is worse than a paragraph saying why. */
+  disabled?: boolean;
+  disabledTitle?: string;
+}) {
   const ref = React.useRef<HTMLButtonElement>(null);
   const [isDark, setIsDark] = React.useState(false);
   React.useEffect(() => {
@@ -363,11 +411,17 @@ export function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) =
     <button
       ref={ref}
       type="button"
-      onClick={() => onChange(!on)}
+      onClick={() => { if (!disabled) onChange(!on); }}
+      role="switch"
+      aria-checked={on}
+      aria-disabled={disabled || undefined}
+      title={disabled ? disabledTitle : undefined}
       style={{
         position: 'relative', flexShrink: 0, width: 34, height: 19,
-        borderRadius: 9999, backgroundColor: on ? bgOn : bgOff,
-        transition: 'background-color 150ms', border: 'none', cursor: 'pointer', padding: 0,
+        borderRadius: 9999, backgroundColor: on ? bgOn : (disabled ? bgOff : bgOff),
+        transition: 'background-color 150ms', border: 'none',
+        cursor: disabled ? 'not-allowed' : 'pointer', padding: 0,
+        opacity: disabled ? 0.55 : 1,
       }}
     >
       <span style={{

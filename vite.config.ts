@@ -83,6 +83,10 @@ export default defineConfig({
     // load under MV3's CSP unless it ships INSIDE the extension.
     // `KIVARA_WHISPER=1 pnpm build` flips it on (see shared/whisper-flag.ts).
     __KIVARA_WHISPER__: JSON.stringify(process.env.KIVARA_WHISPER === '1'),
+    // Whether the glue that must sit inside the extension actually does.
+    // Distinct from __KIVARA_WHISPER__: the flag compiles the feature in, this
+    // says whether the panel may offer the switch knowing the glue resolves.
+    __KIVARA_WHISPER_GLUE_PACKAGED__: JSON.stringify(process.env.KIVARA_WHISPER_GLUE_PACKAGED === '1'),
     // Build-time E2E flag. Only `KIVARA_E2E=1 pnpm build` (what the Playwright
     // fixture runs) flips it on, and it is the ONLY thing that compiles the
     // e2e bridge page into the bundle (see src/background/service-worker.ts

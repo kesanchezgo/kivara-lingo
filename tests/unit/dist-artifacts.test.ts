@@ -125,6 +125,31 @@ describe('a production build', () => {
     }
   });
 
+  it('keeps WebAssembly compilable on extension pages', () => {
+    // MV3's IMPLIED policy is `script-src 'self' 'wasm-unsafe-eval'`, so storing
+    // that by hand is safe twice over: `WebAssembly.compile` on any page of the
+    // extension keeps working. A hand-written `script-src 'self'` without the
+    // token is not: compiling stops, and the only signal is an opaque thrown
+    // error from inside the offscreen document — the same page that loads
+    // Whisper's WASM. The policy this extension intends has never been
+    // compiled without it, so it is worth a test in the same place the rest of
+    // the dist-artifact guards live.
+    const manifestPath = path.join(DIST, 'manifest.json');
+    expect(existsSync(manifestPath)).toBe(true);
+    const policy = (JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+      content_security_policy?: { extension_pages?: string };
+    }).content_security_policy?.extension_pages ?? '';
+    expect(policy, 'the implied MV3 policy already forbids remote code').toContain(
+      "'wasm-unsafe-eval'",
+    );
+    // `script-src 'self' 'wasm-unsafe-eval'` is exactly the parts of the default
+    // that matter, plus the wasm token; anything wider is a relaxation.
+    expect(policy).toBe("script-src 'self' 'wasm-unsafe-eval'; object-src 'self'");
+    // The exact comparison above IS the no-relaxation check: `'unsafe-eval'`
+    // without the wasm token, a remote origin, or an inline `'unsafe-inline'`
+    // would all read as a different string and fail there.
+  });
+
   it('does not open the worker to any page outside the extension', () => {
     const manifestPath = path.join(DIST, 'manifest.json');
     expect(existsSync(manifestPath)).toBe(true);

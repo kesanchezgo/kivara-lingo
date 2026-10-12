@@ -8,6 +8,9 @@ export default defineConfig({
   // unresolvable identifier.
   define: {
     __KIVARA_WHISPER__: JSON.stringify(process.env.KIVARA_WHISPER === '1'),
+    // Package status of the local glue. Without it the Settings section renders
+    // the switch disabled instead of offering a Whisper that can only fail.
+    __KIVARA_WHISPER_GLUE_PACKAGED__: JSON.stringify(process.env.KIVARA_WHISPER_GLUE_PACKAGED === '1'),
     // The E2E bridge compiles into the service worker ONLY when this is true
     // (see vite.config.ts). Vitest needs the same source of truth — a test
     // that imports the real service worker must see the same constants the
