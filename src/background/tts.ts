@@ -276,14 +276,17 @@ function tryChromeTts(text: string, lang: string): Promise<TtsResponse> {
     const done = (result: TtsResponse) => {
       if (settled) return;
       settled = true;
-      window.clearTimeout(timeoutId);
+      // NO `window`: this call runs in a ServiceWorker scope where
+      // `window` does not exist — referencing it throws immediately and
+      // takes out the entire TTS step, not just the timeout's job.
+      clearTimeout(timeoutId);
       resolve(result);
     };
     // Budget: chrome.tts has no hard timeout contract. 30 s is longer
     // than any sentence at 0.95x rate this panel ever speaks, and shallow
     // enough that the UI feels no worse than the original case where the
     // event DID eventually arrive.
-    const timeoutId = window.setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       done({ ok: false, error: 'tts timed out' });
     }, 30_000);
     try {

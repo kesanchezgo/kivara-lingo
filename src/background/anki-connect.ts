@@ -174,13 +174,22 @@ async function invoke<T = unknown>(
   // the DNR rule in place — and then this code fetched it anyway, which is
   // what PRIVACY.md explicitly says must not happen. All callers pass
   // through here, so this is where the contract holds.
-  if (opts.url != null && opts.url !== '' && !isLoopbackAnkiUrl(opts.url)) {
+  //
+  // NORMALIZATION FIRST, VALIDATION SECOND. `isLoopbackAnkiUrl` calls
+  // `new URL(raw)`, which does NOT accept the forms the UI tolerates
+  // (e.g. "127.0.0.1:8765" with no scheme). Reviewing this commit, the
+  // check had been placed BEFORE `normalizeUrl`, so a legitimate
+  // loopback URL with no scheme was rejected by the guard that exists
+  // to accept loopbacks, and routed to LOOPBACK_REFUSED. There is no
+  // way to accidentally validate a URL the user typed AFTER we
+  // normalize it — the loopback rule applies to what we FETCH.
+  const primary = normalizeUrl(opts.url);
+  if (opts.url != null && opts.url !== '' && !isLoopbackAnkiUrl(primary)) {
     throw new AnkiConnectError(
       'Anki URL is not loopback; the extension refuses remote Anki endpoints. Configure AnkiConnect on this machine.',
       'LOOPBACK_REFUSED',
     );
   }
-  const primary = normalizeUrl(opts.url);
   const urls = fallbackUrls(primary);
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 

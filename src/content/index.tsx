@@ -390,8 +390,16 @@ async function init() {
   await enqueueMount(gen, async () => {
     const adapter = await detectPlatform();
     // Final generation check before actually mounting: a navigation that
-    // landed during the adapter creation would mount the OLD video.
-    if (gen !== readMountGen()) return;
+    // landed during the adapter creation would mount the OLD video. The
+    // created adapter MUST be destroyed rather than left alive — the
+    // audit's #3 flagged a similar orphan and the bail-out path is the
+    // second one: the listers (cuechange, addtrack, polling) are all
+    // registered at detectPlatform() time, and a destroy() call here is
+    // the only thing that will notice.
+    if (gen !== readMountGen()) {
+      adapter?.destroy?.();
+      return;
+    }
     await mountFor(video, container, adapter);
   });
 }

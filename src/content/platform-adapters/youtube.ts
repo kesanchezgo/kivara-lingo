@@ -110,10 +110,19 @@ export function attachYouTube(): SubtitleSource | null {
 
   function bindTrack(track: TextTrack) {
     if (activeTrack === track) return;
-    if (activeTrack) activeTrack.oncuechange = null;
+    // Remove OUR OWN handler only — never hold the `oncuechange` slot
+    // hostage. Two adapters on the same <video> (a pending navigation
+    // re-attaching while the previous is shutting down) both want to
+    // attach and the LAST one wins; if destroy() nulls the slot without
+    // checking WHOSE it is, the surviving adapter loses the callback and
+    // cues freeze silently. addEventListener/removeEventListener with
+    // OUR OWN reference keeps that from happening.
+    if (activeTrack) {
+      activeTrack.removeEventListener('cuechange', onCueChange);
+    }
     activeTrack = track;
     track.mode = 'hidden';
-    track.oncuechange = onCueChange;
+    track.addEventListener('cuechange', onCueChange);
     onCueChange();
   }
 
@@ -252,7 +261,10 @@ export function attachYouTube(): SubtitleSource | null {
         pollHandle = null;
       }
       if (activeTrack) {
-        activeTrack.oncuechange = null;
+        // removeEventListener with OUR OWN reference — never a blunt
+        // "oncuechange = null" (that could nuke a sibling adapter's
+        // handler on the same shared <video>).
+        activeTrack.removeEventListener('cuechange', onCueChange);
         activeTrack = null;
       }
       if (video.textTracks?.removeEventListener) {

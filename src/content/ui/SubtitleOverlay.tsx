@@ -42,7 +42,9 @@ export interface SubtitleOverlayProps {
   onSaveCard: (token: string | undefined, sentence: string) => Promise<CreateCardResponse>;
   onTokenHoverChange?: (hovered: boolean) => void;
   /** Words already in the user's Anki deck — pre-fetched at mount so they
-   *  show the green "saved" highlight from the first frame. */
+   *  show the green "saved" highlight from the first frame. Optional
+   *  because the ServiceWorker fetch is asynchronous (the overlay mounts
+   *  before the words arrive — see `useEffect` mid-file). */
   initialSavedWords?: Set<string>;
 }
 
@@ -102,6 +104,22 @@ export function SubtitleOverlay({
   useEffect(() => {
     onTokenHoverChange?.(isHovered || hoveredId !== null);
   }, [isHovered, hoveredId, onTokenHoverChange]);
+
+  // Sub-10ms after the overlay mounts, `initialSavedWords` arrives from
+  // the ServiceWorker (ANKI_SAVED_WORDS). SubtitleOverlay only read it
+  // in the useState initializer — which ran BEFORE the words were
+  // fetched, so the "already saved" green highlight never appeared.
+  // This effect is the missing piece (audit finding #13): the prop is
+  // re-propagated when App's fetch resolves, and here we merge it into
+  // the local `savedTokens` set.
+  useEffect(() => {
+    if (!initialSavedWords || initialSavedWords.size === 0) return;
+    setSavedTokens((prev) => {
+      const next = new Set(prev);
+      for (const w of initialSavedWords!) next.add(w);
+      return next;
+    });
+  }, [initialSavedWords]);
 
   useEffect(() => {
     // Only these three. The hover/hoverleave refs already cancel themselves

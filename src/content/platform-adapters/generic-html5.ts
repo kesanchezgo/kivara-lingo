@@ -38,11 +38,16 @@ export function attachGenericHtml5(video: HTMLVideoElement): SubtitleSource {
 
   const bindTrack = (track: TextTrack) => {
     if (activeTrack) {
-      activeTrack.oncuechange = null;
+      // Removes OUR OWN handler only. The old `oncuechange = null` could
+      // clear a DIFFERENT adapter's callback on the same shared <video>
+      // — SPA navigations that re-use one player and the "previous
+      // adapter is still shutting down" window (see mountFor in
+      // index.tsx) run two adapters on the same TextTrack for a moment.
+      activeTrack.removeEventListener('cuechange', handleCueChange);
     }
     activeTrack = track;
     track.mode = 'hidden'; // Hide the native one
-    track.oncuechange = handleCueChange;
+    track.addEventListener('cuechange', handleCueChange);
     // Trigger immediately in case there's already an active cue
     handleCueChange();
   };
@@ -89,7 +94,7 @@ export function attachGenericHtml5(video: HTMLVideoElement): SubtitleSource {
       // cues into a React tree that no longer exists.
       video.textTracks.removeEventListener('addtrack', onAddTrack);
       if (activeTrack) {
-        activeTrack.oncuechange = null;
+        activeTrack.removeEventListener('cuechange', handleCueChange);
         activeTrack = null;
       }
       listeners.length = 0;
