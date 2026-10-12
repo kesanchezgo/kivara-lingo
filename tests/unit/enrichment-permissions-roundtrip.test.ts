@@ -163,10 +163,13 @@ describe('a grant is reflected by the next lookup', () => {
   it('never writes a still-held-back answer into either cache layer', async () => {
     installPermissions([...CAMBRIDGE]);
     const intermediate = await run();
-    // Let the fire-and-forget `writeCache` land before the next read: without
-    // this the flip below races the singleton promise and the poisoned row can
-    // appear seconds after the lookup it needs to influence.
-    await new Promise((r) => setTimeout(r, 50));
+    // Drain the fire-and-forget `writeCache` deterministically: the promise
+    // chain the orchestrator released is microtask-only (memSet is sync, the
+    // Dexie put is mocked away by happy-dom's shim), so a tick of the
+    // microtask queue settles it. The old fixed 50 ms sleep only guaranteed
+    // wall-clock time, which is exactly what makes it flake under load.
+    await Promise.resolve();
+    await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
     expect(cambridgeCalls.n).toBe(1);
     expect(merriamCalls.n).toBe(0);
     expect(intermediate.needsAccess ?? []).toEqual(

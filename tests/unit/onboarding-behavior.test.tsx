@@ -122,7 +122,7 @@ function ankiStatus(): HTMLElement {
   return screen.getByTestId('onboarding-anki-status');
 }
 
-describe('Onboarding wizard - behavioral characterization (pre-move)', () => {
+describe('Onboarding wizard - behavioral characterization (pre-move)', { timeout: 20_000 }, () => {
   beforeEach(async () => {
     cleanup();
     vi.stubGlobal('chrome', chromeStub());

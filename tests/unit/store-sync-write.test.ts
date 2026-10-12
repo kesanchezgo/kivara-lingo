@@ -129,10 +129,16 @@ function canon(raw: string): string {
 }
 
 /** A fired onChanged event schedules a debounced rehydrate (250 ms). Wait it
- * out INSIDE the test so no stray timer runs against a later test's chrome
- * mock (and so a rejection surfaces here, where it can be read). */
+ * out with fake clocks so the wait is exactly the debounce and no stray
+ * timer runs against a later test's chrome mock (the old fixed 320 ms sleep
+ * only guaranteed a wall-clock guess, which is what flaked). */
 async function settle(): Promise<void> {
-  await new Promise((r) => setTimeout(r, 320));
+  vi.useFakeTimers();
+  try {
+    await vi.advanceTimersByTimeAsync(320);
+  } finally {
+    vi.useRealTimers();
+  }
 }
 
 async function markerOf(value: string | null): Promise<string | null> {

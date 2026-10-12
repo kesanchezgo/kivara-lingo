@@ -144,14 +144,23 @@ describe('telemetry', () => {
   });
 
   it('updates lastUsedAt on every recorded hit', async () => {
-    await recordLookupHit('pack-abc');
-    const after = await fakeTable.get('pack-abc');
-    const first = after!.lastUsedAt;
-    // Ensure the second tick lands on a later timestamp.
-    await new Promise((r) => setTimeout(r, 5));
-    await recordLookupHit('pack-abc');
-    const later = await fakeTable.get('pack-abc');
-    expect(later!.lastUsedAt).toBeGreaterThan(first);
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+      await recordLookupHit('pack-abc');
+      const after = await fakeTable.get('pack-abc');
+      const first = after!.lastUsedAt;
+      // Deterministic clock step instead of a real sleep: the only reason
+      // the original slept 5 ms was so Date.now() would tick past itself,
+      // which under a loaded machine could still land on the same ms.
+      vi.setSystemTime(new Date('2026-01-01T00:00:01Z'));
+      await recordLookupHit('pack-abc');
+      const later = await fakeTable.get('pack-abc');
+      expect(later!.lastUsedAt).toBeGreaterThan(first);
+      expect(later!.lastUsedAt).toBe(Date.parse('2026-01-01T00:00:01Z'));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   describe('export / import', () => {
