@@ -62,7 +62,11 @@ export function isLoopbackAnkiUrl(raw: string): boolean {
   }
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
   const host = url.hostname.toLowerCase().replace(/\.+$/, '');
-  return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  // IPv6 is BRACKETED in `URL`: `url.hostname` is the string "[::1]", so
+  // comparing it to the bare form is a comparison no URL will ever satisfy —
+  // the address is loopback and the function says it is not.
+  const bare = host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host;
+  return bare === 'localhost' || bare === '127.0.0.1' || bare === '::1';
 }
 
 /**

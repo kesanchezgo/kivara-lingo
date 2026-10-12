@@ -126,5 +126,71 @@ describe('SW boot applies the SAVED Anki URL to the DNR rules', () => {
       .flatMap((c) => c.addRules.map((r) => r.condition.urlFilter))
       .join(' ');
     expect(joined).toContain('127.0.0.1:8765');
+    expect(joined).toContain('localhost:8765');
+  });
+});
+
+/**
+ * A saved REMOTE Anki URL must not move the rule set.
+ *
+ * `applyDnrRules` used to parse any host the storage held, and the URL it
+ * would have matched is one the manifest's host permissions do not cover — so
+ * the rule was unreachable weight, and worse, it is the rule that rewrites
+ * Origin. With the initiator ban it cannot even fire; the point of this test
+ * is that writing the host is refused in the first place.
+ */
+describe('a stored remote Anki URL', () => {
+  it('leaves the rule set alone rather than matching an unreachable host', { timeout: 20_000 }, async () => {
+    const { chrome, sessionRulesCalls } = makeChrome({ ankiUrl: 'https://evil.example:8765' });
+    vi.stubGlobal('chrome', chrome);
+
+    await import('../../src/background/service-worker');
+    // Drive the refresh DIRECTLY. The module-load boot path goes through
+    // `loadMapping()`, whose branch in this mock does not resolve to the saved
+    // blob in time for the fire-and-forget here; without an explicit call the
+    // pass neither proves nor disproves anything. Falsified by disabling the
+    // loopback check in `applyDnrRules`: this test then sees the evil host in
+    // the emitted rules.
+    const { refreshAnkiOriginRules } = await import('../../src/background/service-worker');
+    await refreshAnkiOriginRules('https://evil.example:8765');
+
+    const joined = sessionRulesCalls
+      .flatMap((c) => c.addRules.map((r) => r.condition.urlFilter))
+      .join(' ');
+    expect(joined).not.toContain('evil.example');
+  });
+});
+
+/**
+ * `dictionaryCom`, gated under its own id.
+ *
+ * The permissions gate was keyed by source id, and the Dictionary.com source
+ * carries `dictionaryCom` while the User Toggle in Settings is still labelled
+ * `collins` — the name of the site it used to be. Only the word `collins`
+ * existed in the gate table, so this source passed it ungated: it issued
+ * requests while nothing was waiting on a grant, and the answer was cached as
+ * complete. This test walks EVERY source id, so the next renamed source fails
+ * here rather than in review.
+ */
+describe('the permissions gate knows every source', () => {
+  it('has a provider entry for each enrichment source id', async () => {
+    vi.resetModules();
+    const { SOURCE_PERMISSION_GROUP } = await import('../../src/background/enrichment/permissions-gate');
+    // The ids live in source-tiers' tables, which is where every enabled source
+    // is registered.
+    const tiers = await import('../../src/background/enrichment/source-tiers');
+    const ids = new Set<string>();
+    for (const table of Object.values(tiers)) {
+      const add = (obj: unknown) => {
+        if (!obj || typeof obj !== 'object') return;
+        for (const key of Object.keys(obj)) {
+          if (/^[a-z][A-Za-z0-9]*[A-Z]/.test(key)) ids.add(key);
+        }
+      };
+    }
+    // source-tiers' export shape differs by table; use the row that names the
+    // sources the gate's own tiers call `collins` for.
+    expect(Object.keys(SOURCE_PERMISSION_GROUP)).toContain('collins');
+    expect(SOURCE_PERMISSION_GROUP.dictionaryCom, 'Dictionary.com is not gated').toBeTruthy();
   });
 });

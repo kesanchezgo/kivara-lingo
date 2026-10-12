@@ -138,10 +138,11 @@ async function ankiOriginRules(hosts: string[]): Promise<chrome.declarativeNetRe
   }));
 }
 /** Rebuild the Origin-rewrite rules for the user's ACTUAL Anki URL
- * (custom port or remote host). Serialized through a single-flight lock so
- * concurrent callers (startup + CREATE_CARD + ANKI_PING) can't interleave
- * removeRuleIds/addRules batches and clobber each other. No-op when the
- * hosts already match. */
+ * (loopback with a custom port — a remote host is rejected by the caller
+ * and by `applyDnrRules`, see the note there). Serialized through a
+ * single-flight lock so concurrent callers (startup + CREATE_CARD +
+ * ANKI_PING) can't interleave removeRuleIds/addRules batches and clobber
+ * each other. No-op when the hosts already match. */
 let dnrRefreshPromise: Promise<void> | null = null;
 /** Most recent url asked for; consumed by the next queued run. */
 let pendingDnrUrl: string | null = null;
@@ -172,6 +173,16 @@ async function applyDnrRules(ankiUrl?: string): Promise<void> {
   if (!chrome.declarativeNetRequest?.updateSessionRules) return;
   try {
     const raw = (ankiUrl ?? '').trim() || 'http://127.0.0.1:8765';
+    // Loopback, checked on the SETTINGS path too, not just the message path.
+    // A saved remote `ankiUrl` used to just raise a console warning what the
+    // product intent is: AnkiConnect only exists on this machine (that is the
+    // whole cross-origin story) if the manifest grants loopback hosts, and a
+    // persistent remote host is AnkiMigration gone wrong. Falls back to the
+    // default rule rather than pointing the rewrite at something unreachable.
+    if (!isLoopbackAnkiUrl(raw)) {
+      console.warn('[Kivara Lingo] stored Anki URL is not loopback; leaving the previous rule', { ankiUrl: raw });
+      return;
+    }
     // Parsed, not scraped: the previous version stripped the scheme by hand and
     // split on `/`, which let any character the user typed into the `urlFilter`
     // — see shared/anki-host.ts for why that is a matcher injection.
@@ -373,10 +384,7 @@ async function resolveAnkiAuth(
 ): Promise<{ url?: string; apiKey?: string; error?: string }> {
   const payload = (data as { url?: string; apiKey?: string } | undefined) ?? {};
   if (payload.url && !isLoopbackAnkiUrl(payload.url)) {
-    return {
-      error: 'La URL de Anki debe apuntar a esta máquina (127.0.0.1 o localhost). '
-        + 'Un Anki en otra máquina no está soportado.',
-    };
+    return { error: t('anki.mustBeLocal') };
   }
   if (payload.url || payload.apiKey != null) {
     return { url: payload.url, apiKey: payload.apiKey };
@@ -386,7 +394,12 @@ async function resolveAnkiAuth(
 }
 
 onMessage('ANKI_PING', async ({ data }) => {
-  const { url, apiKey } = await resolveAnkiAuth(data);
+  const auth = await resolveAnkiAuth(data);
+  // A rejected auth is LOUD, not a fallback to the saved URL: a user who typed
+  // a remote Anki must be told it is unsupported rather than have their input
+  // silently ignored in favour of whatever settings hold.
+  if (auth.error) return asJson({ ok: false, error: auth.error });
+  const { url, apiKey } = auth;
   // Sync the rules BEFORE pinging: the ping itself is an http request that
   // needs the Origin rewrite on a custom port. Awaited for the same reason
   // as CREATE_CARD.
@@ -399,7 +412,12 @@ onMessage('ANKI_PING', async ({ data }) => {
 });
 
 onMessage('ANKI_DECKS', async ({ data }) => {
-  const { url, apiKey } = await resolveAnkiAuth(data);
+  const auth = await resolveAnkiAuth(data);
+  // A rejected auth is LOUD, not a fallback to the saved URL: a user who typed
+  // a remote Anki must be told it is unsupported rather than have their input
+  // silently ignored in favour of whatever settings hold.
+  if (auth.error) return asJson({ ok: false, error: auth.error });
+  const { url, apiKey } = auth;
   if (url) await refreshAnkiOriginRules(url);
   try {
     const [decks, models] = await Promise.all([
@@ -415,7 +433,12 @@ onMessage('ANKI_DECKS', async ({ data }) => {
 });
 
 onMessage('ANKI_MODELS', async ({ data }) => {
-  const { url, apiKey } = await resolveAnkiAuth(data);
+  const auth = await resolveAnkiAuth(data);
+  // A rejected auth is LOUD, not a fallback to the saved URL: a user who typed
+  // a remote Anki must be told it is unsupported rather than have their input
+  // silently ignored in favour of whatever settings hold.
+  if (auth.error) return asJson({ ok: false, error: auth.error });
+  const { url, apiKey } = auth;
   try {
     const models = await ankiConnect.modelNames(url, apiKey);
     return asJson({ decks: [], models } satisfies AnkiListsResponse);
@@ -426,7 +449,12 @@ onMessage('ANKI_MODELS', async ({ data }) => {
 });
 
 onMessage('ANKI_FIELDS', async ({ data }) => {
-  const { url, apiKey } = await resolveAnkiAuth(data);
+  const auth = await resolveAnkiAuth(data);
+  // A rejected auth is LOUD, not a fallback to the saved URL: a user who typed
+  // a remote Anki must be told it is unsupported rather than have their input
+  // silently ignored in favour of whatever settings hold.
+  if (auth.error) return asJson({ ok: false, error: auth.error });
+  const { url, apiKey } = auth;
   const modelName = (data as { modelName?: string } | undefined)?.modelName;
   if (!modelName) return asJson({ fields: [] } satisfies AnkiFieldsResponse);
   try {
@@ -440,7 +468,12 @@ onMessage('ANKI_FIELDS', async ({ data }) => {
 });
 
 onMessage('ANKI_CREATE_DECK', async ({ data }) => {
-  const { url, apiKey } = await resolveAnkiAuth(data);
+  const auth = await resolveAnkiAuth(data);
+  // A rejected auth is LOUD, not a fallback to the saved URL: a user who typed
+  // a remote Anki must be told it is unsupported rather than have their input
+  // silently ignored in favour of whatever settings hold.
+  if (auth.error) return asJson({ ok: false, error: auth.error });
+  const { url, apiKey } = auth;
   const deckName = (data as { deckName?: string } | undefined)?.deckName;
   if (!deckName) return asJson({ ok: false, error: 'deckName missing' });
   try {
@@ -474,7 +507,12 @@ export function invalidateSavedWordsCache(deckName?: string): void {
   }
 }
 onMessage('ANKI_SAVED_WORDS', async ({ data }) => {
-  const { url, apiKey } = await resolveAnkiAuth(data);
+  const auth = await resolveAnkiAuth(data);
+  // A rejected auth is LOUD, not a fallback to the saved URL: a user who typed
+  // a remote Anki must be told it is unsupported rather than have their input
+  // silently ignored in favour of whatever settings hold.
+  if (auth.error) return asJson({ ok: false, error: auth.error });
+  const { url, apiKey } = auth;
   const deckName = (data as { deckName?: string } | undefined)?.deckName;
   const fieldName = (data as { fieldName?: string } | undefined)?.fieldName || 'Front';
   if (!deckName) return asJson({ words: [] as string[] });

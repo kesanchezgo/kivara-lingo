@@ -28,6 +28,11 @@ describe('the Anki URL a message may name', () => {
     expect(isLoopbackAnkiUrl('http://localhost:8765')).toBe(true);
     expect(isLoopbackAnkiUrl('http://localhost:9898')).toBe(true);
     expect(isLoopbackAnkiUrl('https://127.0.0.1')).toBe(true);
+    // IPv6 is bracketed in `URL`, with or without a port — a bare-'::1'
+    // comparison matches nothing and silently refuses the address.
+    expect(isLoopbackAnkiUrl('http://[::1]:8765')).toBe(true);
+    expect(isLoopbackAnkiUrl('http://[::1]')).toBe(true);
+    expect(isLoopbackAnkiUrl('http://[::1]:9898')).toBe(true);
   });
 
   it('refuses every remote host, including ones that contain loopback', () => {
@@ -35,10 +40,13 @@ describe('the Anki URL a message may name', () => {
       'https://anki.example.com',
       'http://192.168.1.50:8765',
       'http://attacker.test:8765',
-      // The dangerous shape: a public name that merely CONTAINS the loopback
-      // label. A substring test for 'localhost' lets straight through.
+      // A trailing dot is a legal alternate form of the same name; the
+      // canonical one is not loopback either.
       'http://localhost.attacker.test:8765',
       'http://my.localhost.evil.test',
+      'http://127.0.0.2',
+      'http://[::2]:8765',
+      'ftp://127.0.0.1',
       'not a url',
       '',
     ]) {

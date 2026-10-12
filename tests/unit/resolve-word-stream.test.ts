@@ -194,6 +194,25 @@ describe('openResolveWordStream', () => {
     stream.close();
   });
 
+  it('replay after an error-only stream: the re-sent local still arrives', () => {
+    // 851e10f found the guard had a hole: it counted `error` (and the closing
+    // `done`) as "richer than local". So a lookup that failed — the SW dies
+    // before anything richer landed, error is all that was ever sent — would
+    // replay the `local` the popover never saw AND DROP it, ending up on a
+    // card with no entry for a word it could have defined. Only phases that
+    // DELIVER DATA count: translation, enrichment, ai.
+    stubChrome(spawnPort);
+    killOnly = 0;
+    const stream = run();
+    vi.advanceTimersByTime(1);
+    expect(ports).toHaveLength(2);
+    ports[0]!.onMessage.fire({ phase: 'error', scope: 'lookup', message: 'boom' });
+    // The SW restarts before anything richer, and the replay re-sends local.
+    ports[1]!.onMessage.fire({ phase: 'local' });
+    expect(seen.map((e) => e.phase)).toEqual(['error', 'local']);
+    stream.close();
+  });
+
   it('delivers every phase out of order: translation, then error, then enrichment, then done', () => {
     // 884a410 froze this: `error` unmapped landed on rank 99 and every
     // later phase (done included) was dropped -- the card stuck on resolving

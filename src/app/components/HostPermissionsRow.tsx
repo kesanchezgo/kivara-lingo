@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { t } from '../../shared/i18n';
+import { sendMessage } from 'webext-bridge/content-script';
 import { KeyRound, ShieldCheck } from 'lucide-react';
 import { useGrantedOrigins, refreshHostPermissions, hasOrigin } from '../../shared/host-permissions-store';
 import { requestHosts, revokeHosts, ensureProviderHosts, permissionsApiAvailable } from '../../shared/host-permissions';
@@ -94,11 +95,18 @@ export function HostPermissionsRow() {
   const canPrompt = permissionsApiAvailable();
 
   const openOptions = () => {
-    try {
-      void chrome.runtime.openOptionsPage?.();
-    } catch {
-      /* nothing to do if the page cannot be opened */
-    }
+    // `chrome.runtime.openOptionsPage` only exists in an EXTENSION page. This
+    // panel also runs in a content script, where a "grant permissions" button
+    // would answer "whatever" forever — so the click goes to the service
+    // worker, which CAN open the options page, the same door the card's
+    // "Open settings" link uses.
+    void sendMessage(
+      'OPEN_SETTINGS' as const,
+      { section: 'permissions' },
+      'background',
+    ).catch(() => {
+      // Nothing to show in a context that cannot reach the worker either.
+    });
   };
 
   const run = async (providers: string[], revokeIt: boolean) => {

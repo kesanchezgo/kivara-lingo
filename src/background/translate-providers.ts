@@ -22,28 +22,23 @@ export interface ProviderError {
 
 const TIMEOUT_MS = 5000;
 
-/**
- * Where a request is allowed to land, and where it started.
- *
- * A user-configured LibreTranslate is often a LAN box (`http://192.168.1.20:5000/translate`
- * is the documented self-host case), so a "public HTTPS only" rule would break
- * the feature's main use. What matters instead is that the request cannot be
- * REDIRECTED off the host the user chose: that turns "talk to my server" into
- * "talk to whatever my server says", which reintroduces the exact probe the
- * enrichment fetchers refuse.
- *
- * So: the start must parse as http(s), and after the round trip the response's
- * origin must be the one asked for. Cross-origin redirects are refused; a
- * same-origin hop (a trailing-slash or case change) is fine, and a 302 whose
- * own origin differs is dropped before the body is read.
- */
-function assertSameOriginAfterRedirect(input: string, finalUrl: string): void {
-  const asked = new URL(input);
-  const landed = new URL(finalUrl);
-  const sameOrigin =
-    landed.protocol === asked.protocol && landed.hostname === asked.hostname && landed.port === asked.port;
-  if (!sameOrigin) {
-    throw new Error(`el proveedor redirigió a otro origen (${landed.origin}); rechazado`);
+/** Where the response must land: the origin that was asked for. */
+export function sameOrigin(asked: string, landed: string): boolean {
+  try {
+    const a = new URL(asked);
+    const b = new URL(landed);
+    return a.protocol === b.protocol && a.hostname === b.hostname && a.port === b.port;
+  } catch {
+    return false;
+  }
+}
+
+/** The message for a redirected-off-origin response, localised. */
+function originMismatch(asked: string, landed: string): string {
+  try {
+    return `proveedor redirigió a otro origen (${new URL(landed).origin})`;
+  } catch {
+    return `proveedor redirigió a otro origen (${landed})`;
   }
 }
 
@@ -52,11 +47,14 @@ function withTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Resp
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
   return fetch(input, { ...init, signal: controller.signal })
     .then((res) => {
-      // Both branches checked BEFORE the caller reads a body: `res.url` is the
-      // post-redirect URL, and a redirect to another origin while the headers
-      // claim success is precisely the case that must never get that far.
-      if (res.ok || res.redirected) {
-        assertSameOriginAfterRedirect(String(input), res.url || String(input));
+      // Checked BEFORE the caller reads a body: `res.url` is the post-redirect
+      // URL, and a redirect to another origin while the headers claim success
+      // is precisely the case that must never get that far. The body is
+      // CANCELED, so a refused response cannot hold its connection and its
+      // half-read stream open until GC — the throw used to leave both attached.
+      if ((res.ok || res.redirected) && !sameOrigin(String(input), res.url || String(input))) {
+        void res.body?.cancel().catch(() => {});
+        throw new Error(originMismatch(String(input), res.url || String(input)));
       }
       if (!res.ok) {
         void res.body?.cancel().catch(() => {});

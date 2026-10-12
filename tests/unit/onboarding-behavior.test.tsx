@@ -1,4 +1,3 @@
-// Onboarding mounts the whole settings bridge, so on a loaded machine its\n// beforeEach hook can take ~5 s (writes before paint, chrome mock ups). The\n// default 5 s test timeout was scheduled against that hitable only when this\n// file ran right after its imports resolved — see the flake notes in\n// IMPLEMENTATION.md. 20 s keeps the honest failure signal: a timeout then\n// means something is actually stuck, not that the machine was busy.\ndescribe.configure({ testTimeout: 20_000 });
 
 /**
  * Behavioral characterization of the Onboarding ROOT, rendered for real
@@ -11,6 +10,10 @@
  * button position. It also resets the Zustand singleton and bridge mocks
  * around every case, so hydration and one test's chrome stub cannot leak
  * into the next case.
+ *
+ * 20 s per case, not Vitest's default 5: this file mounts the whole settings
+ * bridge (store, chrome mock, writes before render) and a default timeout
+ * there fails under machine load, which loses the signal.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';

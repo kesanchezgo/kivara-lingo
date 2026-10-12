@@ -80,6 +80,16 @@ export function getShadowRoot(host: HTMLElement | null | undefined): ShadowRoot 
   return shadowRoots.get(host) ?? null;
 }
 
+/**
+ * Same registry as `ShadowHost.mount`, for tests that mount a real closed root
+ * themselves and need the handle this module returns. The mount path is the
+ * only writer in production; a closed root registered here is exactly the one
+ * the page cannot reach.
+ */
+export function __registerShadowRootForTests(host: HTMLElement, root: ShadowRoot): void {
+  shadowRoots.set(host, root);
+}
+
 function applyPageGuards(): void {
   if (pageGuardsApplied) return;
   pageGuardsApplied = true;
