@@ -76,6 +76,12 @@ export function SubtitleOverlay({
   const dragAnchorRef = useRef<string | null>(null);
 
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The three "restore me in a moment" timers. These exist to flip a state
+  // flag back 200-2 000 ms after an effect; when the component unmounts first
+  // (SPA navigation, panel closed) each one fires `setState` on a tree React
+  // has already torn down — a warning per cue, and on a streaming tab that
+  // remounts constantly it is a steady stream of them.
+  const restoreTimersRef = useRef<number[]>([]);
   const wordHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Tracks the *dictionary key* of the currently hovered token so the Alt /
   // Ctrl+S handlers can act on the actual word/MWE. Kept in sync with
@@ -91,6 +97,16 @@ export function SubtitleOverlay({
   useEffect(() => {
     onTokenHoverChange?.(isHovered || hoveredId !== null);
   }, [isHovered, hoveredId, onTokenHoverChange]);
+
+  useEffect(() => {
+    // Only these three. The hover/hoverleave refs already cancel themselves
+    // in their own handlers (both call clearTimeout before re-arming).
+    return () => {
+      for (const id of restoreTimersRef.current) clearTimeout(id);
+      restoreTimersRef.current.length = 0;
+      if (wordHoverTimeout.current) clearTimeout(wordHoverTimeout.current);
+    };
+  }, []);
 
   useEffect(() => {
     // We only handle the Alt key when it would do something useful — i.e.,
@@ -383,10 +399,12 @@ export function SubtitleOverlay({
   const handleSaveToken = useCallback(
     (token: string) => {
       setCaptureState('screenshot');
-      window.setTimeout(() => {
+      const first = window.setTimeout(() => {
         setCaptureState('audio');
-        window.setTimeout(() => setCaptureState('idle'), 900);
+        const second = window.setTimeout(() => setCaptureState('idle'), 900);
+        restoreTimersRef.current.push(second);
       }, 220);
+      restoreTimersRef.current.push(first);
       onSaveCard(token, targetSentence);
       setSavedTokens((prev) => new Set(prev).add(token.toLowerCase()));
     },
@@ -431,7 +449,8 @@ export function SubtitleOverlay({
       navigator.clipboard.writeText(targetSentence).catch(() => {});
     }
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const id = window.setTimeout(() => setCopied(false), 2000);
+    restoreTimersRef.current.push(id);
   };
 
   if (!cue || !targetSentence.trim()) return null;

@@ -57,11 +57,15 @@ console.log('[Kivara Lingo] service worker booting');
 
 const RETRY_ALARM = 'kivara-lingo-retry-pending';
 const OFFSCREEN_KEEPALIVE_ALARM = 'kivara-lingo-offscreen-keepalive';
+/** Chrome bounds service-worker start-up; a ping faster than this loses the race. */
+const OFFSCREEN_KEEPALIVE_PERIOD_MIN = 0.5;
 
 /**
  * Chrome MV3 offscreen documents auto-close after ~30 s of inactivity.
- * While audio capture is active we ping the offscreen every 20 s to keep
- * the document alive.
+ * While audio capture is active we ping the offscreen every 30 s (the alarm
+ * period above) to keep the document alive. This comment used to say 20 s
+ * while the code said 30 — the comment was the stale one, and a reader could
+ * not tell which value was authoritative without reading both.
  */
 async function ensureOffscreenKeepalive(): Promise<void> {
   const status = await getAudioCaptureStatus();
@@ -71,7 +75,7 @@ async function ensureOffscreenKeepalive(): Promise<void> {
     // any period < 0.5 min up to 30 s anyway (0.33 behaved as 0.5 in
     // production), and the offscreen doc uses USER_MEDIA + WORKERS with a
     // live stream, which is exempt from the 30 s playback-idle auto-close.
-    await chrome.alarms.create(OFFSCREEN_KEEPALIVE_ALARM, { periodInMinutes: 0.5 });
+    await chrome.alarms.create(OFFSCREEN_KEEPALIVE_ALARM, { periodInMinutes: OFFSCREEN_KEEPALIVE_PERIOD_MIN });
   } else {
     await chrome.alarms.clear(OFFSCREEN_KEEPALIVE_ALARM);
   }
