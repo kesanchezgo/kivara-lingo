@@ -74,7 +74,7 @@ async function ensureOffscreen(): Promise<void> {
     if (await hasOffscreenDocument()) return;
     // We list every reason we use across the whole app so a single offscreen
     // document can serve capture (USER_MEDIA), TTS fallback (AUDIO_PLAYBACK)
-    // and Whisper.cpp WASM transcription (WORKERS-friendly compute).
+    // and speech synthesis (WORKERS-friendly compute).
     const reasons = [
       'USER_MEDIA',
       'AUDIO_PLAYBACK',
@@ -85,7 +85,7 @@ async function ensureOffscreen(): Promise<void> {
         url: OFFSCREEN_URL,
         reasons,
         justification:
-          'Tab audio capture, on-device speech synthesis (TTS fallback) and Whisper.cpp transcription for language learning cards.',
+          'Tab audio capture, on-device speech synthesis (TTS fallback) for language learning cards.',
       });
     } catch (err) {
       // Lost the race with another context that created it first — not fatal.
@@ -306,7 +306,7 @@ export interface ExtractAudioClipOptions {
    * Output container.
    *  - `'mp3'` (default for Anki): smallest file, compatible with all Anki
    *    clients. Encoded via lamejs in the offscreen.
-   *  - `'wav'`: 16 kHz mono PCM. Used internally by Whisper transcription.
+   *  - `'wav'`: 16 kHz mono PCM. returned on the pcm field when the caller asks for it.
    *  - `'webm'`: raw recorder output, no transcoding.
    */
   format?: 'mp3' | 'wav' | 'webm';
@@ -337,61 +337,6 @@ export async function extractAudioClip(
   } catch (err) {
     const reason = err instanceof Error ? err.message : 'unknown';
     return { ok: false, error: reason };
-  }
-}
-
-export interface TranscribeClipOptions extends ExtractAudioClipOptions {
-  /** BCP-47 language code (or 'auto' to let Whisper detect) */
-  language?: string;
-  /** Override the Whisper glue / model URLs at runtime */
-  whisperConfig?: {
-    glueUrl?: string;
-    modelUrl?: string;
-    cacheName?: string;
-  };
-}
-
-export interface TranscribeClipResult {
-  clip: AudioClipResponse;
-  transcription:
-    | {
-        ok: true;
-        text: string;
-        segments: Array<{ startMs: number; endMs: number; text: string }>;
-        language?: string;
-      }
-    | { ok: false; error: string; transient?: boolean };
-}
-
-export async function transcribeAudioClip(
-  startMs: number,
-  endMs: number,
-  options: TranscribeClipOptions = {},
-): Promise<TranscribeClipResult> {
-  if (!(await hydrateCaptureSession())) {
-    return {
-      clip: { ok: false, error: 'Audio capture is not active for this tab.' },
-      transcription: { ok: false, error: 'Audio capture is not active for this tab.' },
-    };
-  }
-  try {
-    const result = await sendToOffscreen<TranscribeClipResult>({
-      type: 'OFFSCREEN_TRANSCRIBE_CLIP',
-      startMs,
-      endMs,
-      useVad: options.useVad ?? true,
-      preRollMs: options.preRollMs,
-      postRollMs: options.postRollMs,
-      language: options.language,
-      whisperConfig: options.whisperConfig,
-    });
-    return result;
-  } catch (err) {
-    const reason = err instanceof Error ? err.message : 'unknown';
-    return {
-      clip: { ok: false, error: reason },
-      transcription: { ok: false, error: reason },
-    };
   }
 }
 

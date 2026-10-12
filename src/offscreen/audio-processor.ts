@@ -16,17 +16,14 @@
  *     worth of chunks (timeslice 250 ms).
  *  5. When the background asks `OFFSCREEN_EXTRACT_AUDIO_CLIP`, we splice the
  *     relevant chunks, optionally trim to detected speech (RMS-based VAD),
- *     transcode to 16 kHz mono WAV (Anki-friendly and Whisper-ready) and
- *     ship a base64 data URL back.
- *  6. `OFFSCREEN_TRANSCRIBE_CLIP` runs the same pipeline but additionally
- *     hands the PCM buffer to Whisper.cpp WASM and returns the recognised
- *     text — used when the platform doesn't expose subtitles.
- *  7. `OFFSCREEN_TTS_SPEAK` delegates to `speechSynthesis` (Web Speech API)
+ *     transcode to 16 kHz mono WAV (Anki-friendly) and ship a base64 data URL
+ *     back.
+ *  6. `OFFSCREEN_TTS_SPEAK` delegates to `speechSynthesis` (Web Speech API)
  *     — the fallback for browsers / platforms where `chrome.tts` fails.
  *
  * The whole document lives only while audio capture is active OR while a
- * TTS/transcription request is in flight. The service worker tears it down
- * with `chrome.offscreen.closeDocument()` via the refcount in
+ * TTS request is in flight. The service worker tears it down with
+ * `chrome.offscreen.closeDocument()` via the refcount in
  * `audio-capture-manager.ts`.
  */
 
@@ -45,31 +42,6 @@ import { blockFromMessage, emitBlock, makeProcessorHandler, type PcmChunkRecord 
 // Emitted by the `pcm-worklet-url` vite plugin: the hashed URL of the built
 // worklet chunk. Importing the virtual module is what ties the two together.
 import pcmWorkletUrl from 'virtual:__PCM_WORKLET_URL__';
-import {
-  setWhisperConfig,
-  transcribePcm,
-  unloadWhisper,
-  onModelProgress,
-  type WhisperConfig,
-  type WhisperResult,
-} from './whisper-asr';
-
-// Bridge Whisper model-download progress events from the offscreen document
-// to the rest of the extension (popup, side panel, options page). Anyone
-// can subscribe with `chrome.runtime.onMessage` and filter by
-// `type === 'OFFSCREEN_WHISPER_MODEL_PROGRESS'`. Cheap fire-and-forget;
-// errors are swallowed because the receivers are optional.
-onModelProgress((info) => {
-  try {
-    chrome.runtime.sendMessage({
-      type: 'OFFSCREEN_WHISPER_MODEL_PROGRESS',
-      ...info,
-    });
-  } catch {
-    /* no listeners, no problem */
-  }
-});
-
 interface OffscreenMessage {
   type: string;
   streamId?: string;
@@ -84,15 +56,13 @@ interface OffscreenMessage {
   pitch?: number;
   /** E2E-only capture-path override: 'audio-worklet' | 'script-processor'. */
   pcmPath?: 'audio-worklet' | 'script-processor';
-  /** Whisper / VAD fields */
+  /** VAD fields */
   format?: 'mp3' | 'wav' | 'webm';
   useVad?: boolean;
   preRollMs?: number;
   postRollMs?: number;
   /** MP3 bitrate (kbps) for Anki output. Defaults to 64 in `extractClip`. */
   mp3BitrateKbps?: number;
-  language?: string;
-  whisperConfig?: Partial<WhisperConfig>;
 }
 
 interface ChunkRecord {
@@ -492,9 +462,6 @@ async function teardownPipeline(): Promise<void> {
   recorderHeader = null;
   recordedMime = '';
   recordingStartedAt = 0;
-  // Free the (potentially large) Whisper model when capture stops — we'll
-  // reload it on the next request if needed.
-  unloadWhisper();
 }
 
 /** Full stop: release the pipeline AND reset the buffers it was filling. */
@@ -505,7 +472,6 @@ async function stopCapture(): Promise<void> {
   recorderHeader = null;
   recordedMime = '';
   recordingStartedAt = 0;
-  unloadWhisper();
 }
 
 /** Build a self-contained WebM blob that is contiguous up to sliceEnd. */
@@ -546,7 +512,7 @@ interface ExtractOptions {
    * Output container.
    *  - `'mp3'` (default for Anki): smallest, ~10× smaller than WAV.
    *    Browsers and Anki play MP3 natively. Encoded via `lamejs`.
-   *  - `'wav'`: 16 kHz mono PCM. Used internally by Whisper. Bigger but
+   *  - `'wav'`: 16 kHz mono PCM. 16 kHz mono PCM, kept for callers that want the samples back. Bigger but
    *    no encode cost beyond the RIFF header.
    *  - `'webm'`: raw recorder output, no transcoding. Useful for
    *    debugging or if the consumer wants to handle decoding itself.
@@ -567,7 +533,7 @@ interface ExtractedClip {
   /** When `useVad` was true, the actual speech window (relative to clip start) */
   speechStartMs?: number;
   speechEndMs?: number;
-  /** PCM buffer (only when format = 'wav') for downstream Whisper */
+  /** PCM buffer (only when format = 'wav'), returned for callers that want the samples */
   pcm?: Float32Array;
   pcmSampleRate?: number;
   error?: string;
@@ -608,7 +574,7 @@ async function extractClip(opts: ExtractOptions): Promise<ExtractedClip> {
     }
     const finalPcm = trimPcm(pcmClip.samples, TARGET_SAMPLE_RATE, speechStartMs, speechEndMs);
     // Anki path: MP3 by default (~10× smaller than WAV PCM), WAV only when
-    // the caller explicitly asks for PCM-friendly output (Whisper) or when
+    // the caller explicitly asks for PCM-friendly output or when
     // lamejs fails to load — the card still gets audio, just larger.
     const useMp3 = opts.format !== 'wav';
     let outputBlob: Blob;
@@ -658,7 +624,7 @@ async function extractClip(opts: ExtractOptions): Promise<ExtractedClip> {
   }
 
   // WAV path: decode → optional VAD trim → encode WAV. The full-clip PCM
-  // is also returned so the caller can run Whisper without decoding twice.
+  // is also returned so the caller can decode once and reuse.
   try {
     const decoded = await convertBlobToWav(webmBlob, { targetSampleRate: TARGET_SAMPLE_RATE });
 
@@ -698,8 +664,8 @@ async function extractClip(opts: ExtractOptions): Promise<ExtractedClip> {
 
     // Anki path: default to MP3 (~10× smaller than WAV PCM) so the user's
     // sync stays fast and the media folder doesn't balloon. WAV is still
-    // emitted internally on the `pcm` field so Whisper can re-use the
-    // decoded buffer without a second decode pass.
+    // emitted on the `pcm` field when the caller asks for it, so a consumer
+    // that needs samples gets the decoded buffer without a second pass.
     const useMp3 = opts.format !== 'wav';
     let outputBlob: Blob;
     let outputMime: string;
@@ -740,29 +706,6 @@ async function extractClip(opts: ExtractOptions): Promise<ExtractedClip> {
     console.warn('[Kivara Lingo] WAV conversion failed; using sentence TTS fallback', err);
     return { ok: false, error: reason };
   }
-}
-
-async function transcribeClip(
-  opts: ExtractOptions & { language?: string; whisperConfig?: Partial<WhisperConfig> },
-): Promise<{ clip: ExtractedClip; transcription: WhisperResult }> {
-  if (opts.whisperConfig) setWhisperConfig(opts.whisperConfig);
-
-  const clip = await extractClip({ ...opts, format: 'wav', useVad: opts.useVad ?? true });
-  if (!clip.ok || !clip.pcm) {
-    return {
-      clip,
-      transcription: {
-        ok: false,
-        error: clip.error ?? 'No PCM available for transcription',
-      },
-    };
-  }
-  const transcription = await transcribePcm(
-    clip.pcm,
-    clip.pcmSampleRate ?? TARGET_SAMPLE_RATE,
-    opts.language ?? 'auto',
-  );
-  return { clip, transcription };
 }
 
 chrome.runtime.onMessage.addListener((rawMsg: unknown, _sender, sendResponse) => {
@@ -816,33 +759,6 @@ chrome.runtime.onMessage.addListener((rawMsg: unknown, _sender, sendResponse) =>
     return true;
   }
 
-  if (
-    msg.type === 'OFFSCREEN_TRANSCRIBE_CLIP' &&
-    typeof msg.startMs === 'number' &&
-    typeof msg.endMs === 'number'
-  ) {
-    void transcribeClip({
-      startMs: msg.startMs,
-      endMs: msg.endMs,
-      useVad: msg.useVad ?? true,
-      preRollMs: msg.preRollMs,
-      postRollMs: msg.postRollMs,
-      language: msg.language,
-      whisperConfig: msg.whisperConfig,
-    }).then(({ clip, transcription }) => {
-      const { pcm: _pcm, pcmSampleRate: _rate, ...clipOut } = clip;
-      void _pcm;
-      void _rate;
-      sendResponse({ clip: clipOut, transcription });
-    }, (err) => {
-      sendResponse({
-        clip: { ok: false, error: err instanceof Error ? err.message : String(err) },
-        transcription: { ok: false, error: err instanceof Error ? err.message : String(err) },
-      });
-    });
-    return true;
-  }
-
   if (msg.type === 'OFFSCREEN_TTS_SPEAK' && typeof msg.text === 'string') {
     void speakViaSpeechSynthesis({
       text: msg.text,
@@ -874,7 +790,7 @@ chrome.runtime.onMessage.addListener((rawMsg: unknown, _sender, sendResponse) =>
       // the rate the chunks are labelled with, and what the capture context
       // runs at. Zero blocks with `pcmPath` reporting a live path is what a
       // dead worklet looks like — the PCM extraction then silently gives way
-      // to the WebM transcription, whose samples land on a 16 kHz timeline
+      // to the WebM path, whose samples land on a 16 kHz timeline
       // without resampling, so a 48 kHz stream reads as a third of its pitch.
       bufferedPcmChunks: pcmChunks.length,
       chunkSampleRate: pcmChunks.at(-1)?.sampleRate ?? null,

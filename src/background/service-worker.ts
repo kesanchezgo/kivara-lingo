@@ -20,8 +20,6 @@ import type {
   ResolveWordWave,
   ResolveWordStreamMsg,
   ResolveWordStreamRequest,
-  TranscribeRequest,
-  TranscribeResponse,
   TranslateRequest,
   TranslateResponse,
   TtsSpeakRequest,
@@ -38,7 +36,6 @@ import {
   startAudioCapture,
   stopAudioCapture,
   extractAudioClip,
-  transcribeAudioClip,
   getAudioCaptureStatus,
   getAudioCaptureStatusWithPath,
 } from './audio-capture-manager';
@@ -556,36 +553,6 @@ onMessage('AUDIO_CAPTURE_STATUS', async () => {
 });
 
 onMessage('EXTRACT_AUDIO_CLIP', async ({ data }) => asJson(await extractAudioClipHandler(data)));
-
-onMessage('TRANSCRIBE_AUDIO_CLIP', async ({ data }) => {
-  const req = (data as TranscribeRequest) ?? { startMs: 0, endMs: 0 };
-  if (typeof req.startMs !== 'number' || typeof req.endMs !== 'number') {
-    const err: TranscribeResponse = { ok: false, error: 'startMs/endMs required' };
-    return asJson(err);
-  }
-  const capture = await loadCaptureSettings();
-  const result = await transcribeAudioClip(req.startMs, req.endMs, {
-    useVad: req.useVad ?? capture.endDetect === 'vad',
-    preRollMs: req.preRollMs ?? capture.preRoll,
-    postRollMs: req.postRollMs ?? capture.postRoll,
-    language: req.language,
-    whisperConfig: req.whisperConfig,
-  });
-  const response: TranscribeResponse = result.transcription.ok
-    ? {
-        ok: true,
-        text: result.transcription.text,
-        segments: result.transcription.segments,
-        language: result.transcription.language,
-        clip: result.clip,
-      }
-    : {
-        ok: false,
-        error: result.transcription.error,
-        transient: result.transcription.transient,
-      };
-  return asJson(response);
-});
 
 onMessage('TRANSLATE', async ({ data }) => {
   const request = data as unknown as TranslateRequest;

@@ -538,7 +538,7 @@ await chrome.offscreen.createDocument({
 });
 ```
 
-**WAV vs MP3:** la implementación actual emite WAV PCM 16 kHz mono. Es el formato que mejor consume Whisper.cpp y AnkiConnect lo acepta sin problema. Convertir a MP3 requeriría una dependencia adicional (`lamejs`) que se ha evitado intencionalmente — el WAV ronda los ~32 kB/seg, suficientemente compacto para tarjetas de 2-5 s. Ver `audio-encoder.ts` para el header RIFF escrito a mano.
+**WAV vs MP3:** la implementación actual emite WAV PCM 16 kHz mono. AnkiConnect lo acepta sin problema y es la forma canónica de PCM de la extensión. Convertir a MP3 requeriría una dependencia adicional (`lamejs`) que se ha evitado intencionalmente — el WAV ronda los ~32 kB/seg, suficientemente compacto para tarjetas de 2-5 s. Ver `audio-encoder.ts` para el header RIFF escrito a mano.
 
 ### 8.3 Voice Activity Detection (VAD)
 
@@ -616,43 +616,18 @@ Cadena de fallback real (`src/background/tts.ts`):
 4. **Costo**: OpenAI `tts-1` cuesta ~USD 0.015 por cada 1000 caracteres. Una palabra promedio (~5 chars) sale a ~USD 0.0000075. Documentado para que el usuario decida activarlo o no.
 
 El offscreen mantiene una promesa pendiente por petición y resuelve en `utterance.onend` / `onerror`. Cualquier petición pendiente se cancela en `stopCapture()` (botón Stop del popup).
+### 9.5 ASR on-device — retirado (issue #30)
 
-### 9.5 ASR on-device — Whisper.cpp WASM
+**Retirado en main.** Existia una ruta completa `TRANSCRIBE_AUDIO_CLIP` → SW → offscreen → Whisper.cpp WASM, con cache del modelo en Cache Storage y override de URLs por el usuario. Se quito entera en lugar de dejarla tras un flag:
 
-Implementado en `src/offscreen/whisper-asr.ts` como **scaffolding opt-in con URLs configurables por el usuario** (no se descarga modelo ni glue hasta que el usuario active "ASR on-device" en Settings, configure `glueUrl`/`modelUrl` y se invoque `TRANSCRIBE_AUDIO_CLIP`).
+- el glue vivia en una URL remota y MV3 aplica `script-src 'self'` a las paginas de extension, asique nunca cargaba;
+- `script.src` se asignaba desde texto libre de settings — un panel capaz de ejecutar JavaScript arbitrario en el documento offscreen;
+- no habia ningun disparador en la UI: nada llamaba a `TRANSCRIBE_AUDIO_CLIP`, asique ni con glue empaquetado se podia usar;
+- el modelo `tiny.en` son ~75 MB contra un `dist` que ya pesa 31 MB.
 
-Arquitectura:
+El pipeline de audio NO toco nada de eso y sigue intacto: captura de pestaña, AudioWorklet con fallback a ScriptProcessor, resampleo unico de la ventana, VAD y recorte del clip. Ver `9.4` y `tests/unit/pcm-pipeline.test.ts`.
 
-```
-service-worker          offscreen document          CDN configurada por el usuario
-─────────────────       ──────────────────          ──────────────────────────────
-TRANSCRIBE_AUDIO_CLIP → OFFSCREEN_TRANSCRIBE_CLIP →  whisper.js (factory que expone
-                                  │                  globalThis.WhisperModule)
-                                  ▼                  ggml-tiny.en.bin
-                              cache.add()  →        Cache Storage `kivara-lingo-whisper-v1`
-                                  │                  (sobrevive a recargas, no a uninstall)
-                                  ▼
-                              transcribePcm(samples, sampleRate) ──► texto + segments
-```
-
-URLs **no se pinea automáticamente** (cambio post-Bloque 4): los defaults estaban apuntando a `libmain.worker.js` del repo upstream, que es un *Web Worker entry*, no la factory `Module` que `loadModule()` necesita. Hacer `init()` sobre eso fallaba siempre con `"Whisper glue did not expose a compatible Module instance"`. Soluciones aceptables:
-
-1. **Compilar tu propio glue** (recomendado, ver `README.md → ASR`): clonar `ggerganov/whisper.cpp@1.5.4`, `cd examples/whisper.wasm && make`, subir `whisper.js` + `whisper.wasm` + `ggml-tiny.en.bin` a tu propio CDN/bucket y configurar las URLs en `Settings → ASR`.
-2. **Usar un fork mantenido por la comunidad** que ya exponga `globalThis.WhisperModule` (p. ej. forks de `whisper.wasm` con un build pre-compilado en GitHub Pages).
-
-Si `AsrSettings.glueUrl` o `AsrSettings.modelUrl` están vacíos, `transcribePcm` rechaza con un error claro y el orquestador omite la pasada ASR (no rompe el resto del pipeline).
-
-Flujo (una vez configurado):
-
-1. `fetchModel()` busca el binario en `caches.open('kivara-lingo-whisper-v1')`. Si no está, hace `fetch` con `mode: 'cors'` y lo guarda con `cache.put`. La primera descarga puede tomar 1-2 minutos en redes lentas.
-2. `loadModule()` inyecta `<script src="glueUrl">` (no `import()` para evitar problemas con CSPs estrictos) y espera a que aparezca `globalThis.WhisperModule` o `globalThis.Module`.
-3. `transcribePcm(samples, sampleRate, language)` empaqueta el PCM Float32 en el formato esperado por Whisper.cpp (32-bit IEEE 754, mono) y llama al binding.
-4. `unloadWhisper()` libera el módulo en `stopCapture()` para no retener ~80 MB de RAM cuando el usuario no está usando ASR.
-
-**Errores transitorios** (red, timeout descarga del modelo) devuelven `{ ok: false, transient: true }` para que el caller pueda reintentar sin invalidar la config.
-
-**Por qué no `transformers.js`:** la librería en sí pesa ~2 MB minified y añade una dependencia grande. El glue oficial de `whisper.cpp` es de ~150 kB y está específicamente optimizado para WASM en navegador. Lo único que perdemos es el high-level API; lo añadimos a mano.
-
+Si algun dia se quiere, el camino es empaquetar glue + WASM en `dist/` (patron `virtual:__PCM_WORKLET_URL__`) y usar `dictado` con la API de `SpeechRecognition` / `chrome.tts` antes que un modelo propio de 75 MB: son dos categorias distintas de feature.
 ### 9.6 IA (premium) — capa 4 de enriquecimiento contextual
 
 Nueva capa opcional implementada en Bloques 1-3. Vive en `src/background/ai-providers.ts` (adapters) + `src/background/ai-enrich.ts` (cache + debounce + concurrencia).
@@ -709,7 +684,7 @@ El `WordPopover.tsx` consume las olas en orden, renderiza skeletons (`animate-pu
 | 1 — AI enrichment provider + cache + onboarding | ✔ | OpenAI/Anthropic/Gemini con prompt compartido, cache TTL configurable, paso opcional en el wizard. |
 | 2 — Popover progresivo de 3 oleadas | ✔ | Skeletons + `AbortController`. La "streaming" se hace via un solo round-trip por simplicidad (waves[]). |
 | 3 — TTS como archivo adjunto | ✔ | OpenAI `tts-1` reusando la `apiKey` del provider IA. Fallback a `{{tts}}` template si no hay provider. |
-| 4 — Whisper glueUrl + docs | ✔ | Defaults vacíos; el usuario debe configurar las URLs. Documentado en este archivo y en `README.md → ASR`. |
+| 4 — Whisper glueUrl + docs | ✗ | Retirado en main (issue #30) |
 
 ---
 
@@ -1092,14 +1067,14 @@ La AI anterior dejó cuatro entregas diferidas. Estado actualizado:
 
 | Entrega diferida | Estado | Archivos |
 |---|---|---|
-| **Whisper.cpp WASM completo** | ✅ Wired (scaffolding opt-in, CDN-hosted, IndexedDB cache) | `src/offscreen/whisper-asr.ts`, `src/background/audio-capture-manager.ts::transcribeAudioClip`, `src/background/service-worker.ts::TRANSCRIBE_AUDIO_CLIP` |
+| **Whisper.cpp WASM completo** | ✗ Retirado (issue #30) | Ruta entera eliminada; ver §9.5 |
 | **VAD real** | ✅ Implementado (RMS + noise floor adaptativo, hand-tuned) | `src/offscreen/vad.ts`, integrado en `audio-processor.ts::extractClip` |
 | **Conversión a MP3** | ⚠️ Sustituido por **WAV PCM 16 kHz mono** (sin nuevas deps) | `src/offscreen/audio-encoder.ts` |
 | **Fallback TTS por SpeechSynthesis** | ✅ Implementado (chrome.tts → offscreen SpeechSynthesis) | `src/offscreen/tts-fallback.ts`, `src/background/tts.ts::speak` |
 
 **Sobre la sustitución MP3 → WAV:** la decisión de no introducir `lamejs` (~75 kB minified) viene del requisito "sin dependencias nuevas". WAV PCM 16 kHz mono:
 
-- Es lo que Whisper espera — evita una doble conversión.
+- Es lo que consume el clip de Anki — evita una doble conversión.
 - AnkiConnect acepta `wav` igual que `mp3` (`storeMediaFile` no impone formato).
 - 32 kB/segundo · 3s típicos por cue = ~96 kB por tarjeta. Para una colección de 5000 tarjetas, ~480 MB — aceptable.
 - Si el usuario necesita MP3 más adelante, basta con añadir `lamejs` y un `encodeMp3Mono` al lado de `encodeWavMono` con la misma firma.
@@ -1113,7 +1088,7 @@ La AI anterior dejó cuatro entregas diferidas. Estado actualizado:
 
 **Pendiente para fases futuras:**
 
-- Modelos Whisper más grandes (`base`, `small`) — requeriría UI de progreso de descarga (los `tiny` se bajan en silencio).
+- Modelos mayores (`base`, `small`) — solo si el ASR vuelve empaquetado (issue #30).
 - Tono / pitch shifting del TTS premium (no relevante para la cadena chrome.tts → SpeechSynthesis actual).
 - Generación de MP3 si el usuario lo activa explícitamente (decisión pendiente vs mantener el "sin dependencias nuevas").
 

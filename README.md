@@ -194,9 +194,15 @@ El onboarding instala automáticamente `kty-en-es` + `kty-en-ipa`. Efecto medido
 
 ---
 
-## ASR on-device (opt-in)
+## ASR on-device
 
-Scaffolding para Whisper.cpp WASM. No se descarga nada hasta que el usuario active "ASR on-device" en Settings y configure las URLs del glue y el modelo. Ver `IMPLEMENTATION.md §9.5` para instrucciones de compilación.
+Retirado (issue #30). Una ruta completa de transcripción local con `whisper.cpp` era inalcanzable por construcción: el glue vivía en una URL remota y MV3 aplica `script-src 'self'` a las páginas de extensión, y `Settings → ASR` ya no existe. Ver `IMPLEMENTATION.md §9.5`.
+
+---
+
+## Convertir audio a flashcard
+
+La ruta de audio sí está completa y es el valor que ya se usa hoy: captura de pestaña (AudioWorklet con fallback a `ScriptProcessor`), ventana de muestreo resampleada una sola vez, recorte por VAD y salida MP3 o WAV 16 kHz mono para Anki.
 
 ---
 

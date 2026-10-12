@@ -286,69 +286,6 @@ export interface TranslateSettings {
   autoSelectSourceAudio: boolean;
 }
 
-export interface AsrSettings {
-  /** Whether the user opted-in to on-device transcription as fallback */
-  enabled: boolean;
-  /**
-   * Whisper model size. The trade-off is download size vs. transcription
-   * accuracy and speed. Whisper.cpp WASM runs on CPU only (no GPU), so
-   * larger models are 5-10× slower on the same machine — this is more
-   * about hardware budget than network.
-   *
-   *  - `tiny`   — ~75 MB,  fastest, ~5 % WER on clean speech.
-   *  - `base`   — ~150 MB, ~3.5 % WER. Good middle ground.
-   *  - `small`  — ~466 MB, ~2.5 % WER. Slow on older laptops.
-   *  - `medium` — ~1.5 GB, ~2 % WER. Only for desktop / multi-core.
-   */
-  model: 'tiny' | 'base' | 'small' | 'medium';
-  /**
-   * Optional override for the Whisper.cpp glue script URL. Defaults to a
-   * pinned jsdelivr CDN URL inside `whisper-asr.ts`. Surfaced here so the
-   * user can point at a self-hosted build (e.g. for offline environments).
-   */
-  glueUrl?: string;
-  /**
-   * Optional override for the ggml model URL. Leave empty to use the
-   * preset that matches `model`. The preset table lives in
-   * `whisper-asr.ts::DEFAULT_MODEL_URLS`.
-   */
-  modelUrl?: string;
-}
-
-export interface TranscribeRequest {
-  startMs: number;
-  endMs: number;
-  /** BCP-47 language tag; 'auto' lets Whisper detect */
-  language?: string;
-  /** Trim to detected speech via RMS-based VAD. Default true. */
-  useVad?: boolean;
-  preRollMs?: number;
-  postRollMs?: number;
-  /** Override the Whisper.cpp loader at runtime */
-  whisperConfig?: {
-    glueUrl?: string;
-    modelUrl?: string;
-    cacheName?: string;
-  };
-}
-
-export interface TranscribeSegment {
-  startMs: number;
-  endMs: number;
-  text: string;
-}
-
-export type TranscribeResponse =
-  | {
-      ok: true;
-      text: string;
-      segments: TranscribeSegment[];
-      language?: string;
-      /** Clip metadata so the caller can attach it to a card. */
-      clip: AudioClipResponse;
-    }
-  | { ok: false; error: string; transient?: boolean };
-
 export type AiProvider = 'openai' | 'anthropic' | 'google-ai' | 'disabled';
 
 /**

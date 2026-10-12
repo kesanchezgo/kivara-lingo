@@ -8,7 +8,7 @@
  * bit after. We want to tighten the clip to the actual spoken phrase so:
  *
  *   - the Anki audio sounds clean (no leading silence or trailing music),
- *   - Whisper.cpp gets a well-bounded segment to transcribe, and
+ *   - the transcript step gets a well-bounded segment, and
  *   - we can answer the "speech is over" question for the auto-capture
  *     mode without forcing the user to wait for the next cue.
  *

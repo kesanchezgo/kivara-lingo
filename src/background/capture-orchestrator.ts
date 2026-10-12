@@ -354,7 +354,7 @@ async function resolveAudio(
 
   // VAD-on-extract trims the WebM/Opus chunk down to actual speech and
   // re-encodes as 16 kHz mono WAV — Anki plays it, file size is small and
-  // the same PCM is what Whisper.cpp will consume in the ASR fallback path.
+  // the same PCM is what the clip carries to Anki.
   const useVad = capture.endDetect === 'vad';
   const clip = await extractAudioClip(start, end, {
     // MP3 keeps Anki's media folder and AnkiWeb sync small (~10× smaller

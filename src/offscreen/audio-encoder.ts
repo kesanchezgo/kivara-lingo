@@ -13,14 +13,14 @@ import lamejs from '@breezystack/lamejs';
  *   1. Plays in Anki's bundled mpv (so the user can hear the cue while
  *      reviewing). mpv handles WebM/Opus, MP3 and WAV out of the box.
  *   2. Has predictable size / sample rate, so we can also feed it to
- *      Whisper.cpp (16 kHz mono PCM) for the on-device ASR path.
+ *      the Anki field and any downstream consumer expects 16 kHz mono.
  *   3. Doesn't require shipping or pulling a heavyweight encoder. Browsers
  *      can decode anything they record (via `AudioContext`) but the only
  *      encoder they expose is the original `MediaRecorder` — i.e., still
  *      WebM/Opus. There is no public browser MP3 encoder.
  *
  * WAV/PCM hits all three: trivial to write by hand (RIFF + PCM samples),
- * Anki plays it, and the same PCM buffer feeds straight into Whisper.
+ * Anki plays it, and the samples are the extension's canonical PCM form.
  *
  * `convertBlobToWav` is the one entry point. It decodes the recorded blob,
  * downmixes to mono, resamples to a target rate (default 16 kHz) and writes

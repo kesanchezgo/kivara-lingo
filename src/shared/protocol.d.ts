@@ -10,8 +10,6 @@ import type {
   AudioCaptureStatus,
   TranslateRequest,
   TranslateResponse,
-  TranscribeRequest,
-  TranscribeResponse,
   TtsSpeakRequest,
   TtsResponse,
   AiEnrichRequest,
@@ -37,7 +35,6 @@ declare module 'webext-bridge' {
     STOP_AUDIO_CAPTURE: ProtocolWithReturn<Record<string, never>, { ok: boolean }>;
     AUDIO_CAPTURE_STATUS: ProtocolWithReturn<Record<string, never>, AudioCaptureStatus>;
     EXTRACT_AUDIO_CLIP: ProtocolWithReturn<{ startMs: number; endMs: number }, AudioClipResponse>;
-    TRANSCRIBE_AUDIO_CLIP: ProtocolWithReturn<TranscribeRequest, TranscribeResponse>;
     TRANSLATE: ProtocolWithReturn<TranslateRequest, TranslateResponse>;
     TTS_SPEAK: ProtocolWithReturn<TtsSpeakRequest, TtsResponse>;
     AI_ENRICH: ProtocolWithReturn<AiEnrichRequest, AiEnrichResponse>;

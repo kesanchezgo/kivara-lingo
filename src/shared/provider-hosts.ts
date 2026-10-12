@@ -101,8 +101,6 @@ export const PROVIDER_HOSTS: Record<string, string[]> = {
     'https://codeload.github.com/*',
   ],
 
-  // ── ASR (retirado salvo KIVARA_WHISPER=1) ───────────────────────────────
-  'asr:huggingface': ['https://huggingface.co/*', 'https://cdn-lfs.huggingface.co/*'],
 };
 
 import type { useSyncExternalStore } from 'react';

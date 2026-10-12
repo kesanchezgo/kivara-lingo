@@ -6,8 +6,8 @@ import React, {
 } from 'react';
 import { t } from '../../../shared/i18n';
 import {
-  Keyboard, EyeOff, Wand2, SlidersHorizontal, BookOpen, Languages, Volume2, Sparkles, Mic2,
-  Globe, Zap, KeyRound, Heart, Coffee, Github,
+  Keyboard, EyeOff, Wand2, SlidersHorizontal, BookOpen, Languages, Sparkles,
+  Globe, Zap, KeyRound, Heart, Coffee, Github, Mic2,
 } from 'lucide-react';
 import { useKivaraStore } from '../../../shared/store';
 import type { PremiumTtsProvider, TranslateProvider } from '../../../shared/types';
@@ -24,7 +24,7 @@ import { InfoHint } from '../InfoHint';
 import { DictPacksSection } from './DictPacksSection';
 import { VipSection } from './VipSection';
 import { AiByokSection } from './AiByokSection';
-import { Accordion, CompactSlider, DonateBtn, NestedAccordion, PaypalIcon, QuickRow, Row, SegmentedControl, Toggle, WhisperAsrSection } from './settings-primitives';
+import { Accordion, CompactSlider, DonateBtn, NestedAccordion, PaypalIcon, QuickRow, Row, SegmentedControl, Toggle } from './settings-primitives';
 
 /**
  * Settings tab — restructured per the design mock:
@@ -34,7 +34,7 @@ import { Accordion, CompactSlider, DonateBtn, NestedAccordion, PaypalIcon, Quick
  *  - "Captura avanzada" only appears when autoMode is OFF.
  *  - Idioma is its own always-visible card (you can't translate without
  *    knowing source/target).
- *  - Everything else (Traducción, Diccionarios, IA, TTS, ASR, Limpieza,
+ *  - Everything else (Traducción, Diccionarios, IA, TTS, Limpieza,
  *    Sincronización, Atajos) collapses into Accordions with a compact
  *    summary line so the panel feels far less crowded by default.
  *
@@ -52,8 +52,7 @@ export function SettingsTab({
 }: { initialSection?: string; initialNonce?: number } = {}) {
   const {
     capture, setCapture, cleanup, setCleanup, mode, setMode,
-    translate, setTranslate, asr, setAsr, ai, setAi, tts, setTts,
-    vip,
+    translate, setTranslate, ai, setAi, tts, setTts, vip,
   } = useKivaraStore();
 
   // Sub-section open/closed state. Each accordion key is a stable string
@@ -540,18 +539,6 @@ export function SettingsTab({
           description={t('perm.intro')}
         >
           <HostPermissionsRow />
-        </Accordion>
-        {/* ── Whisper ASR (on-device) ────────────────────────────────── */}
-        <Accordion
-          icon={<Volume2 size={10} />}
-          title={t('set.whisperTitle')}
-          summary={asr.enabled ? asr.model : 'desactivada'}
-          summaryColor={asr.enabled ? 'text-indigo-500 dark:text-indigo-400' : undefined}
-          open={isOpen('asr')}
-          onToggle={() => toggle('asr')}
-          description={t('set.whisperDesc')}
-        >
-          <WhisperAsrSection />
         </Accordion>
         {/* ── Limpieza visual ────────────────────────────────────────── */}
         <Accordion

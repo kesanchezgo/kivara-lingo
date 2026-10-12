@@ -9,7 +9,6 @@ import type {
   CaptureSettings,
   CleanupSettings,
   TranslateSettings,
-  AsrSettings,
   AiSettings,
   TtsSettings,
   OnboardingState,
@@ -102,11 +101,6 @@ export const DEFAULT_TRANSLATE: TranslateSettings = {
   showDualSubtitle: true,
   // Off by default — see TranslateSettings.autoSelectSourceAudio docstring.
   autoSelectSourceAudio: false,
-};
-
-export const DEFAULT_ASR: AsrSettings = {
-  enabled: false,
-  model: 'tiny',
 };
 
 export const DEFAULT_AI: AiSettings = {
@@ -253,7 +247,6 @@ export interface KivaraState {
   capture: CaptureSettings;
   cleanup: CleanupSettings;
   translate: TranslateSettings;
-  asr: AsrSettings;
   ai: AiSettings;
   vip: VipSettings;
   tts: TtsSettings;
@@ -274,7 +267,6 @@ export interface KivaraState {
   setCapture: (c: CaptureSettings | ((prev: CaptureSettings) => CaptureSettings)) => void;
   setCleanup: (c: CleanupSettings | ((prev: CleanupSettings) => CleanupSettings)) => void;
   setTranslate: (t: TranslateSettings | ((prev: TranslateSettings) => TranslateSettings)) => void;
-  setAsr: (a: AsrSettings | ((prev: AsrSettings) => AsrSettings)) => void;
   setAi: (a: AiSettings | ((prev: AiSettings) => AiSettings)) => void;
   setVip: (v: VipSettings | ((prev: VipSettings) => VipSettings)) => void;
   setTts: (t: TtsSettings | ((prev: TtsSettings) => TtsSettings)) => void;
@@ -753,7 +745,6 @@ function mergePersisted(persistedState: unknown, currentState: KivaraState): Kiv
         ? persisted.translate!.premiumChain
         : DEFAULT_TRANSLATE.premiumChain,
     },
-    asr: { ...DEFAULT_ASR, ...(persisted.asr ?? {}) },
     ai: { ...DEFAULT_AI, ...(persisted.ai ?? {}) },
     vip: { ...DEFAULT_VIP, ...(persisted.vip ?? {}) },
     tts: { ...DEFAULT_TTS, ...(persisted.tts ?? {}) },
@@ -778,7 +769,6 @@ export const useKivaraStore = create<KivaraState>()(
       capture: DEFAULT_CAPTURE,
       cleanup: DEFAULT_CLEANUP,
       translate: DEFAULT_TRANSLATE,
-      asr: DEFAULT_ASR,
       ai: DEFAULT_AI,
       vip: DEFAULT_VIP,
       tts: DEFAULT_TTS,
@@ -813,10 +803,6 @@ export const useKivaraStore = create<KivaraState>()(
       setTranslate: (t) =>
         set((state) => ({
           translate: typeof t === 'function' ? t(state.translate) : t,
-        })),
-      setAsr: (a) =>
-        set((state) => ({
-          asr: typeof a === 'function' ? a(state.asr) : a,
         })),
       setAi: (a) =>
         set((state) => ({
@@ -862,7 +848,6 @@ export const useKivaraStore = create<KivaraState>()(
         capture: state.capture,
         cleanup: state.cleanup,
         translate: state.translate,
-        asr: state.asr,
         ai: state.ai,
         vip: state.vip,
         tts: state.tts,

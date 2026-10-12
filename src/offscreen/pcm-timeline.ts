@@ -67,7 +67,7 @@ export function resampleLinear(
  * buffer is filled by a `ScriptProcessorNode`, which a backgrounded/throttled
  * tab (common while streaming) can starve — dropping callbacks and leaving
  * time gaps between chunks. Concatenating survivors back-to-back would
- * compress the audio in time and desync VAD/Whisper against the requested
+ * compress the audio in time and desync the VAD against the requested
  * window. Instead we allocate the full window up front (silence) and paste
  * each chunk at `recordedAt - sliceStart`, so gaps stay as silence and the
  * clip's duration always equals `sliceEnd - sliceStart`.
