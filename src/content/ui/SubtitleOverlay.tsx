@@ -581,7 +581,7 @@ export function SubtitleOverlay({
             </div>
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-1.5">
-                <span className="text-white text-xs font-semibold">Capturando audio</span>
+                <span className="text-white text-xs font-semibold">{t('overlay.captureAudio')}</span>
                 <span className="text-[9px] uppercase tracking-wider font-bold text-indigo-300 bg-indigo-500/20 px-1.5 py-0.5 rounded">VAD</span>
               </div>
               <div className="flex gap-[3px] items-end h-3">
@@ -600,7 +600,7 @@ export function SubtitleOverlay({
             </div>
             <div className="flex items-center gap-1 text-[10px] text-zinc-400 ml-1 pl-3 border-l border-zinc-700/60">
               <Camera size={11} className="text-emerald-400" />
-              <span>Frame ✓</span>
+              <span>{t('overlay.frameDone')}</span>
             </div>
           </div>
         </div>
@@ -706,7 +706,7 @@ export function SubtitleOverlay({
               onMouseDown={(e) => e.preventDefault()}
               onClick={handleCopy}
               className="p-1.5 text-zinc-300 hover:text-white hover:bg-zinc-700/50 rounded-md transition-colors"
-              title="Copiar texto"
+              title={t('overlay.copySentenceTitle')}
             >
               {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
             </button>
