@@ -868,10 +868,10 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     }
   }, [activeCue?.end, adapter, videoElement]);
 
-  const handleSaveCard = async (token: string | undefined, sentence: string) => {
-    if (!enabled) return;
+  const handleSaveCard = async (token: string | undefined, sentence: string): Promise<CreateCardResponse> => {
+    if (!enabled) return { ok: false, error: 'disabled' };
     const tokenValue = token?.trim() || sentence.trim();
-    if (!tokenValue) return;
+    if (!tokenValue) return { ok: false, error: 'no token' };
 
     const saveToastId = toast.loading(t('app.savingCard'), {
       description: t('app.preparingSave'),
@@ -923,11 +923,14 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
         });
       } else {
         toast.error(response?.error ?? t('app.ankiSaveError'), { id: saveToastId });
+        return response ?? { ok: false, error: 'unknown' };
       }
     } catch (err) {
       const reason = err instanceof Error ? err.message : t('app.unknownReason');
       toast.error(`${t('app.ankiSaveError')}: ${reason}`, { id: saveToastId });
+      return { ok: false, error: reason };
     }
+    return { ok: false, error: 'unhandled' };
   };
 
   const overlayPortal = useMemo(() => {
@@ -954,6 +957,14 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   }, [
     activeCue,
     altCue,
+    // Fetched asynchronously on mount when Anki wakes; a fresh Set must
+    // re-rerender the overlay or the green "saved" highlights silently
+    // stay empty until something else (deck change, manual save) bumps
+    // one of the other deps. Also captured here so handleSaveCard's
+    // `ankiMapping` stays current after the user switches decks without
+    // requiring a save-tick event to trigger the refresh.
+    initialSavedWords,
+    ankiMapping,
     enabled,
     subtitlesVisible,
     isDarkMode,

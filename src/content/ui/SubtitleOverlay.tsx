@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { t } from '../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
 import { Volume1, Copy, Check, Quote, AudioLines, Camera, Link2, GraduationCap, BookOpenCheck } from 'lucide-react';
-import type { SubtitleStyles, Mode, TranslateResponse } from '../../shared/types';
+import type { SubtitleStyles, Mode, TranslateResponse, CreateCardResponse } from '../../shared/types';
 import { tokenizeSentence } from '../nlp/tokenize';
 import { lookupDictionary } from '../nlp/dictionary';
 import { eventPathIsEditable } from '../utils/keyboard';
@@ -34,7 +34,12 @@ export interface SubtitleOverlayProps {
   } | null;
   mode: Mode;
   saveRequestKey?: number | null;
-  onSaveCard: (token: string | undefined, sentence: string) => void;
+  /** Save the given token + sentence as an Anki note. Returns the
+   * CreateCardResponse envelope so the caller can await a real outcome
+   * rather than assuming success (the old signature returned void, so a
+   * failed addNote was rendered as a green "saved" word — see the note
+   * in handleSaveToken). */
+  onSaveCard: (token: string | undefined, sentence: string) => Promise<CreateCardResponse>;
   onTokenHoverChange?: (hovered: boolean) => void;
   /** Words already in the user's Anki deck — pre-fetched at mount so they
    *  show the green "saved" highlight from the first frame. */
@@ -405,8 +410,19 @@ export function SubtitleOverlay({
         restoreTimersRef.current.push(second);
       }, 220);
       restoreTimersRef.current.push(first);
-      onSaveCard(token, targetSentence);
-      setSavedTokens((prev) => new Set(prev).add(token.toLowerCase()));
+      // Await the save before marking the word green. The overlay used
+      // to mutate `savedTokens` unconditionally, which marked the word
+      // "saved" even when Anki was down and every addNote had failed —
+      // the user checked the deck, the word was missing, and the UI had
+      // already said otherwise. Now the green only lands when App has
+      // confirmed the note was created.
+      void onSaveCard(token, targetSentence).then((result) => {
+        if (result?.ok) {
+          setSavedTokens((prev) => new Set(prev).add(token.toLowerCase()));
+        }
+        // On failure: leave the word un-marked. The failure toast in
+        // handleSaveCard explains the why.
+      });
     },
     [onSaveCard, targetSentence],
   );

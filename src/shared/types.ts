@@ -941,6 +941,7 @@ export interface CreateCardResponse {
   noteId?: number;
   error?: string;
   warnings?: string[];
+  fields?: Record<string, string>;
 }
 
 /**
