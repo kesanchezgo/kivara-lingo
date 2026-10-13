@@ -160,7 +160,7 @@ async function callAnthropic(
   if (!settings.apiKey)
     return { ok: false, error: 'Anthropic API key missing', provider: 'anthropic' };
   const body = {
-    model: settings.model || 'claude-3-5-haiku-latest',
+    model: settings.model || 'claude-haiku-4-5',
     max_tokens: 800,
     messages: [{ role: 'user', content: buildPrompt(req) }],
   };

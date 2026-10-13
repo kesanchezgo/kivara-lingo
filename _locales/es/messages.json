@@ -1,0 +1,34 @@
+{
+  "extensionName": {
+    "message": "Kivara Lingo — Aprende viendo",
+    "description": "Extension name shown in chrome://extensions and the toolbar tooltip."
+  },
+  "extensionDescription": {
+    "message": "Aprende idiomas mientras ves tus series: subtítulos traducidos, pronunciación, captura de audio y tarjetas Anki desde el vídeo.",
+    "description": "One-line description shown on the extensions page and the Web Store listing."
+  },
+  "commandSaveWord": {
+    "message": "Guardar palabra o selección actual en Anki",
+    "description": "Keyboard command description (Ctrl+Shift+S)."
+  },
+  "commandSaveWordAlt": {
+    "message": "Atajo alternativo para guardar (sin colisión con «Guardar página»). Asígnalo en chrome://extensions/shortcuts si prefieres otro.",
+    "description": "Keyboard command description for the unbound alternative save shortcut."
+  },
+  "commandToggleSubtitles": {
+    "message": "Mostrar u ocultar los subtítulos de Kivara",
+    "description": "Keyboard command description (Alt+C)."
+  },
+  "commandRepeatCue": {
+    "message": "Repetir la frase del subtítulo actual",
+    "description": "Keyboard command description (Alt+R)."
+  },
+  "commandRecaptureFrame": {
+    "message": "Volver a capturar el fotograma y actualizar la última tarjeta de Anki (por defecto Alt+V, configurable en la página)",
+    "description": "Keyboard command description for the unbound recapture shortcut."
+  },
+  "commandTogglePanel": {
+    "message": "Abrir o cerrar el panel de Kivara",
+    "description": "Keyboard command description (Alt+K)."
+  }
+}

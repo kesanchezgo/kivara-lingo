@@ -160,6 +160,13 @@ export function isEncrypted(value: string | undefined | null): boolean {
  * invent a fake prefix here because callers treat prefixed values as
  * ciphertext and would try to decrypt garbage.
  */
+export class SecretEncryptionUnavailableError extends Error {
+  constructor(readonly cause?: unknown) {
+    super('Cifrado no disponible: la clave no se guardó en texto plano.');
+    this.name = 'SecretEncryptionUnavailableError';
+  }
+}
+
 export async function encryptSecret(plaintext: string): Promise<string> {
   if (!plaintext) return '';
   if (isEncrypted(plaintext)) return plaintext; // idempotent
@@ -178,8 +185,10 @@ export async function encryptSecret(plaintext: string): Promise<string> {
     blob.set(cipherBytes, iv.length);
     return PREFIX + toBase64(blob);
   } catch (err) {
-    console.warn('[Kivara secret-store] encrypt failed, storing plaintext', err);
-    return plaintext;
+    // Refuse to store plaintext. PRIVACY.md promises keys are written
+    // encrypted; saving it cleartext because WebCrypto was unavailable
+    // broke that promise silently. Callers must propagate or migrate.
+    throw new SecretEncryptionUnavailableError(err);
   }
 }
 
@@ -484,18 +493,16 @@ async function saveSecrets(
       await io.set(toLocal); // MUST succeed before we blank sync — never
       // destroy the only copy of a key because local storage hiccuped.
     } catch (err) {
-      console.warn('[Kivara secret-store] local slot write failed, falling back to inline encryption', err);
-      // Fallback = the OLD behavior: encrypt in place in the sync blob.
-      // State stays safe to persist: never plaintext, never blanked.
+      console.warn('[Kivara secret-store] local slot write failed, refusing the save', err);
+      // No inline-encryption fallback: if WebCrypto is unavailable the
+      // fallback would have written the plaintext key into the sync blob,
+      // which PRIVACY.md promises never happens. Refuse instead — the
+      // caller keeps its in-memory copy and retries on the next save tick.
       // The explicitClear flag is KEPT (not consumed): the tombstone never
       // landed, so the next save must still honour the user's Quitar.
-      for (const { section, field, plain } of written) {
-        if (!plain || isEncrypted(plain)) continue;
-        const node = state[section];
-        if (!node || typeof node !== 'object') continue;
-        (node as Record<string, unknown>)[field] = await encryptSecret(plain);
-      }
-      return false;
+      throw err instanceof SecretEncryptionUnavailableError
+        ? err
+        : new Error('local slot write failed');
     }
     for (const { section, field, plain } of written) {
       const key = secretSlotKey(section, field);
@@ -554,7 +561,12 @@ async function loadSecrets(
       // migrate it so the next save blanks it from sync.
       const plain = await decryptSecret(legacy);
       rec[field] = plain;
-      migrate[key] = isEncrypted(plain) ? legacy : await encryptSecret(plain);
+      // Never write plaintext: on encryption failure the legacy value stays
+      // put in the sync blob and this key is simply not migrated this run.
+      migrate[key] = isEncrypted(plain)
+        ? legacy
+        : await encryptSecret(plain).catch(() => undefined);
+      if (migrate[key] === undefined) delete migrate[key];
       // Baseline is registered ONLY after the migration write below
       // succeeds. If io.set fails and we had already recorded `plain`, the
       // next save would see value === baseline, skip the slot write, and

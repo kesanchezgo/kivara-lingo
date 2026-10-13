@@ -505,7 +505,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
             <button
               onClick={() => setPreviewSide(previewSide === 'front' ? 'back' : 'front')}
               className="p-1 rounded-md text-zinc-400 hover:text-indigo-400 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all duration-300 hover:rotate-180"
-              title="Voltear"
+              title={t('cards.flip')}
             >
               <RotateCcw size={11} />
             </button>
@@ -521,8 +521,8 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
 
         <div className="flex items-center justify-between gap-2 mt-2 px-0.5">
           <div className="flex items-center gap-1">
-            <QualityBadge icon={<Volume2 size={9} />} label="Audio" detail="VAD" />
-            <QualityBadge icon={<Camera size={9} />} label="Frame" detail="centro" />
+            <QualityBadge icon={<Volume2 size={9} />} label={t('cards.audioBadge')} detail={t('cards.vadCenter')} />
+            <QualityBadge icon={<Camera size={9} />} label={t('cards.frameBadge')} detail={t('cards.vadCenter')} />
           </div>
           <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-mono">
             {mappedCount}/{ankiFields.length} · 14KB
@@ -634,7 +634,7 @@ function FrontTemplate({ mockData }: { mockData: CardsTabProps['mockData'] }) {
         <button
           className="rounded-full flex items-center justify-center transition-colors bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/25"
           style={{ width: 26, height: 26 }}
-          title="Reproducir audio"
+          title={t('cards.playAudio')}
         >
           <Volume2 size={11} />
         </button>
@@ -664,7 +664,7 @@ function BackTemplate({ mockData }: { mockData: CardsTabProps['mockData'] }) {
         <button
           className="rounded-full flex items-center justify-center shrink-0 transition-colors bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/25"
           style={{ width: 24, height: 24 }}
-          title="Reproducir audio"
+          title={t('cards.playAudio')}
         >
           <Volume2 size={10} />
         </button>

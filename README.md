@@ -32,7 +32,7 @@ pnpm install
 # Build de producción → dist/
 pnpm build
 
-# Tests (441/441 passing)
+# Tests (728/728 passing)
 pnpm vitest run
 
 # Build del diccionario bundled (si modificas data/)
@@ -142,7 +142,7 @@ OpenAI / Anthropic / Google Gemini — genera definición contextual, sinónimos
 | Provider | Modelo sugerido |
 |---|---|
 | OpenAI | `gpt-4o-mini` |
-| Anthropic | `claude-3-5-haiku-latest` |
+| Anthropic | `claude-haiku-4-5` |
 | Google Gemini | `gemini-2.5-flash` (default) |
 
 ---
@@ -221,7 +221,7 @@ La ruta de audio sí está completa y es el valor que ya se usa hoy: captura de 
 ## Tests
 
 ```bash
-pnpm vitest run   # 441/441 tests passing
+pnpm vitest run   # 728/728 tests passing
 ```
 
 Los tests cubren: tokenizador, MWE, lematización, parsers de fuentes de enriquecimiento, ranking por acepción, cadena de traducción, VAD, encoder WAV, utilidades compartidas y contrato de provenance por campo.

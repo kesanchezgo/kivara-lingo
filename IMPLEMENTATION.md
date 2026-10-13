@@ -161,11 +161,12 @@ Extensión de navegador que se monta sobre reproductores de streaming y conviert
 | Inyectar UI sobre la página | `content_scripts` + **Shadow DOM** | El Shadow DOM aísla los estilos del CSS de Netflix/YouTube. Renderizar React dentro de un host shadow. |
 | Capturar audio de la pestaña | `chrome.tabCapture.capture()` | Devuelve un `MediaStream`. Solo funciona si la pestaña tiene el foco y el usuario activa la extensión. |
 | Capturar frame del video | `<video>.captureStream()` + `OffscreenCanvas` | Dibujar el frame y exportar como `Blob` PNG. Más barato que `chrome.tabs.captureVisibleTab` (que captura toda la pestaña). |
-| Inyectar JS en el contexto MAIN | `chrome.scripting.executeScript({ world: 'MAIN' })` | Necesario para acceder al `<video>` element y a las APIs internas de Netflix (algunos players lo aíslan). |
+| Inyectar JS en el contexto MAIN | `content_scripts` con `world: 'MAIN'` | Sin el permiso `scripting`: el manifiesto declara un content script aparte con `world: "MAIN"` y `run_at: "document_start"`, así no hace falta `chrome.scripting.executeScript`. |
 | Storage de settings | `chrome.storage.sync` (≤100KB) | Para preferencias del usuario. Sincroniza entre dispositivos. |
 | Storage de caché | `chrome.storage.local` o **IndexedDB** | Para diccionarios, audio cacheado, screenshots. IndexedDB para >5MB. |
 | Atajos | `commands` en manifest | `Ctrl+Shift+S`, `Alt+C`, etc. Configurables por el usuario en `chrome://extensions/shortcuts`. |
-| Comunicación con AnkiConnect | `fetch('http://127.0.0.1:8765')` desde service worker | Localhost no requiere CORS desde una extensión con el host permission correcto. || Offscreen audio decoding | `chrome.offscreen.createDocument()` | MV3 service workers no tienen DOM ni Audio API; usar offscreen document para procesar audio. |
+| Comunicación con AnkiConnect | `fetch('http://127.0.0.1:8765')` desde service worker | Localhost no requiere CORS desde una extensión con el host permission correcto. |
+| Decodificar audio sin bloquear el SW | `chrome.offscreen.createDocument()` | MV3 service workers no tienen DOM ni Audio API; el offscreen document procesa el audio. |
 
 ### 3.4 Servicios externos (todos opcionales, con fallback)
 
@@ -268,98 +269,25 @@ kivara-lingo-extension/
 
 ---
 
-## 5. Manifest V3 — configuración exacta
+## 5. Manifest V3
 
-```json
-{
-  "manifest_version": 3,
-  "_not_shipped": "Manifiesto de DISEÑO del MVP; el que se empaqueta es manifest.json en la raíz. Se conserva como referencia de por qué existe cada permiso.",
-  "name": "Kivara Lingo",
-  "version": "0.1.0",
-  "description": "Aprende idiomas mientras ves tu serie favorita.",
-  "icons": {
-    "16": "assets/icons/16.png",
-    "32": "assets/icons/32.png",
-    "48": "assets/icons/48.png",
-    "128": "assets/icons/128.png"
-  },
-  "action": {
-    "default_popup": "popup/index.html",
-    "default_icon": "assets/icons/32.png",
-    "default_title": "Kivara Lingo"
-  },
-  "background": {
-    "service_worker": "background/service-worker.js",
-    "type": "module"
-  },
-  "options_ui": {
-    "page": "options/index.html",
-    "open_in_tab": true
-  },
-  "content_scripts": [
-    {
-      "matches": [
-        "*://*.netflix.com/*",
-        "*://*.youtube.com/*",
-        "*://*.disneyplus.com/*",
-        "*://*.hbomax.com/*",
-        "*://*.max.com/*",
-        "*://*.primevideo.com/*"
-      ],
-      "js": ["content/index.js"],
-      "run_at": "document_idle",
-      "all_frames": false
-    }
-  ],
-  "permissions": [
-    "storage",
-    "tabCapture",
-    "scripting",
-    "offscreen",
-    "activeTab"
-  ],
-  "host_permissions": [
-    "http://127.0.0.1:8765/*",
-    "https://api-free.deepl.com/*",
-    "https://translation.googleapis.com/*"
-  ],
-  "commands": {
-    "save-card": {
-      "suggested_key": { "default": "Ctrl+Shift+S", "mac": "Command+Shift+S" },
-      "description": "Guardar tarjeta de la palabra/expresión bajo el cursor"
-    },
-    "toggle-subtitles": {
-      "suggested_key": { "default": "Alt+C" },
-      "description": "Mostrar / ocultar subtítulos de Kivara"
-    },
-    "repeat-line": {
-      "suggested_key": { "default": "Alt+R" },
-      "description": "Repetir el último cue"
-    },
-    "recapture-frame": {
-      "suggested_key": { "default": "Alt+V" },
-      "description": "Re-capturar el fotograma del cue actual"
-    },
-    "toggle-panel": {
-      "suggested_key": { "default": "Alt+K" },
-      "description": "Abrir / cerrar panel de Kivara"
-    }
-  },
-  "web_accessible_resources": [
-    {
-      "resources": ["assets/*", "offscreen/offscreen.html"],
-      "matches": ["<all_urls>"]
-    }
-  ]
-}
-```
+El manifest real vive en [manifest.json](manifest.json) y es la unica fuente de verdad. Lo de abajo son las decisiones de por que existe cada entrada, no una copia que pueda desincronizarse: si cambia el manifest, este texto se revisa con el.
 
-**Notas críticas:**
+| Clave | Estado | Comentario |
+|---|---|---|
+| version | 0.2.0 | La misma que package.json; se revisan juntas en cada release. |
+| permissions | storage, cookies, activeTab, tabCapture, offscreen, alarms, tts, declarativeNetRequestWithHostAccess | Ninguna de mas y ninguna usada sin declarar. scripting NO existe: el contexto MAIN se inyecta con world MAIN en content_scripts. |
+| host_permissions | 18 entradas | Streaming + Anki en loopback (127.0.0.1, localhost, [::1]). Diccionarios y APIs van en optional_host_permissions (78) y se conceden a demanda. |
+| declarativeNetRequestWithHostAccess | - | Reescribe el origen de AnkiConnect a un puerto propio; la regla se limita con initiatorDomains a la propia extension. |
+| web_accessible_resources | src/assets/dictionaries/* | Acotado a los 6 hosts de streaming a proposito, no all_urls: asi la CSP y la politica de la tienda no lo objetan. |
+| commands | 6 | save_word (Ctrl+Shift+S / Cmd+Shift+S), save_word_alt (sin suggested_key, porque Chrome limita a 4), toggle_subtitles (Alt+C), repeat_cue (Alt+R), recapture_frame (sin suggested_key; Alt+V se configura en la pagina), toggle_panel (Alt+K). Todos con clave mac. |
 
-- `tabCapture` requiere que el usuario invoque la extensión (clic en el icono) o un atajo. No se puede capturar audio "en silencio".
-- `host_permissions` para `127.0.0.1:8765` evita CORS contra AnkiConnect.
-- `all_frames: false` para no inyectarse en iframes de anuncios.
-- Si se publica en Firefox, añadir `"browser_specific_settings": { "gecko": { "id": "kivara-lingo@kivara.app" } }`.
+**Notas criticas:**
+
+- tabCapture / activeTab requieren que el usuario invoque la extension (clic en el icono o atajo). No hay captura silenciosa.
+- Los host_permissions de loopback evitan el CORS contra AnkiConnect.
+- all_frames false en los dos content scripts para no inyectarse en iframes de anuncios.
+- El interceptor MAIN va en content_scripts con world MAIN y run_at document_start; el de ISOLATED va con document_idle y monta la UI.
 
 ---
 
@@ -638,7 +566,7 @@ Nueva capa opcional implementada en Bloques 1-3. Vive en `src/background/ai-prov
 | Provider | Endpoint | Modelo default sugerido |
 |---|---|---|
 | OpenAI | `POST https://api.openai.com/v1/chat/completions` (`response_format: { type: 'json_object' }`) | `gpt-4o-mini` |
-| Anthropic | `POST https://api.anthropic.com/v1/messages` (`anthropic-version: 2023-06-01`) | `claude-3-5-haiku-latest` |
+| Anthropic | `POST https://api.anthropic.com/v1/messages` (`anthropic-version: 2023-06-01`) | `claude-haiku-4-5` |
 | Google Gemini | `POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}` (`responseMimeType: application/json`, `thinkingConfig.thinkingBudget: 0`) | `gemini-2.5-flash` |
 | `disabled` | — | — (default; no se hacen requests) |
 
@@ -1108,4 +1036,4 @@ La AI anterior dejó cuatro entregas diferidas. Estado actualizado:
 
 ---
 
-**Última actualización:** 2026-05-14 · **Versión del prototipo de referencia:** 0.1.0
+**Última actualización:** 2026-10-12 · **Versión del prototipo de referencia:** 0.2.0

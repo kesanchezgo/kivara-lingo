@@ -36,7 +36,7 @@ export function DoneStep({ completedAt, onComplete }: { completedAt: number | nu
           onClick={onComplete}
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 shadow-sm hover:shadow-md hover:shadow-indigo-500/25 transition-all"
         >
-          <span style={{ fontSize: 14, fontWeight: 600 }}>Ir al reproductor</span>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>{t('onb.goToPlayer')}</span>
           <ExternalLink size={14} />
         </button>
       </div>

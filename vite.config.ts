@@ -6,6 +6,23 @@ import react from '@vitejs/plugin-react'
 import { crx } from '@crxjs/vite-plugin'
 import manifest from './manifest.json'
 
+/**
+ * `_locales/` is not an entry point, so nothing in the graph pulls it into
+ * dist/ — Chrome then reads the name/description/command strings as literal
+ * "__MSG_…__". Copy the folder verbatim into the build output.
+ */
+function copyLocalesPlugin() {
+  return {
+    name: 'kivara-copy-locales',
+    apply: 'build' as const,
+    closeBundle() {
+      const from = path.resolve(__dirname, '_locales');
+      const to = path.resolve(__dirname, 'dist/_locales');
+      fsSync.cpSync(from, to, { recursive: true });
+    },
+  };
+}
+
 function figmaAssetResolver() {
   return {
     name: 'figma-asset-resolver',
@@ -102,6 +119,7 @@ export default defineConfig({
      * in that same build — see `workletUrlPlugin`.
      */
     workletUrlPlugin(),
+    copyLocalesPlugin(),
   ],
   resolve: {
     alias: {

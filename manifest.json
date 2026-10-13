@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Kivara Lingo",
+  "default_locale": "en",
+  "name": "__MSG_extensionName__",
   "version": "0.2.0",
-  "description": "Learn languages while watching your favorite shows.",
+  "description": "__MSG_extensionDescription__",
   "homepage_url": "https://github.com/kesanchezgo/kivara-lingo",
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
@@ -109,34 +110,34 @@
         "default": "Ctrl+Shift+S",
         "mac": "Command+Shift+S"
       },
-      "description": "Guardar palabra / selección actual en Anki"
+      "description": "__MSG_commandSaveWord__"
     },
     "save_word_alt": {
-      "description": "Atajo alternativo (sin colisión con \"Guardar página\"). Asígnalo en chrome://extensions/shortcuts si prefieres otro atajo."
+      "description": "__MSG_commandSaveWordAlt__"
     },
     "toggle_subtitles": {
       "suggested_key": {
         "default": "Alt+C",
         "mac": "Alt+C"
       },
-      "description": "Toggle subtitles visibility"
+      "description": "__MSG_commandToggleSubtitles__"
     },
     "repeat_cue": {
       "suggested_key": {
         "default": "Alt+R",
         "mac": "Alt+R"
       },
-      "description": "Repeat current subtitle phrase"
+      "description": "__MSG_commandRepeatCue__"
     },
     "recapture_frame": {
-      "description": "Re-capturar frame y actualizar la última tarjeta Anki (por defecto Alt+V, configurable en la página)"
+      "description": "__MSG_commandRecaptureFrame__"
     },
     "toggle_panel": {
       "suggested_key": {
         "default": "Alt+K",
         "mac": "Alt+K"
       },
-      "description": "Open / close Kivara panel"
+      "description": "__MSG_commandTogglePanel__"
     }
   },
   "icons": {

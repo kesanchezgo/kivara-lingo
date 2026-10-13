@@ -10,7 +10,21 @@ import { bumpMountGen, enqueueMount, readMountGen } from './mount-queue';
 import { setYomitanHeadwords } from './nlp/yomitan-headwords';
 import { updateOverlayParent, type RestoreState } from './fullscreen-overlay-core';
 
-console.log('[Kivara Lingo] content script injected on', window.location.hostname);
+/**
+ * Debug logging, off unless `kivaraDebug` is set in local storage by the
+ * options page. A production build ships silent.
+ */
+let DEBUG = false;
+try {
+  chrome.storage.local.get({ kivaraDebug: false }).then((v) => {
+    DEBUG = Boolean((v as { kivaraDebug?: boolean }).kivaraDebug);
+  });
+} catch {
+  // storage unavailable (non-extension context, tests) — stay silent
+}
+function dbg(...args: unknown[]): void {
+  if (DEBUG) console.log(...args);
+}
 
 /**
  * Hydrate the in-memory headword cache used by the tokenizer so words
@@ -380,7 +394,7 @@ async function init() {
   const gen = readMountGen();
   const result = await waitForVideo();
   if (!result) {
-    console.log('[Kivara Lingo] no <video> element on this page yet — staying idle');
+    dbg('[Kivara Lingo] no <video> element on this page yet — staying idle');
     return;
   }
   const { video, container } = result;

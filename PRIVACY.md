@@ -8,7 +8,7 @@ datos salen del navegador del usuario, adónde van y qué NO se hace con ellos.
 | Dato | Dónde | Notas |
 |---|---|---|
 | Ajustes de la app | `chrome.storage.sync` | Sincronizado con la cuenta Chrome del usuario. Los campos de secreto (API keys) van SIEMPRE en blanco en este blob. |
-| API keys del usuario (DeepL, Google, OpenAI, Anthropic, Gemini, ElevenLabs, Unsplash, Pixabay, WordReference, AnkiConnect) | `chrome.storage.local`, cifradas (`enc:v1:`) | Solo las lee este dispositivo. Se borran por completo al pulsar «Quitar» (se escribe una tumba `__cleared__`, no un campo vacío, para que no reaparezcan). |
+| API keys del usuario (DeepL, Google, OpenAI, Anthropic, Gemini, ElevenLabs, Unsplash, Pixabay, WordReference, AnkiConnect) | `chrome.storage.local`, cifradas (`enc:v1:`) | Solo las lee este dispositivo. Se borran por completo al pulsar «Quitar» (se escribe una tumba `__cleared__`, no un campo vacío, para que no reaparezcan). Si el cifrado no está disponible (WebCrypto bloqueado o roto), la clave NO se guarda en ningún sitio: se rechaza el guardado y la extensión avisa, en lugar de escribirla en texto plano. |
 | Caché de diccionarios, traducciones, enriquecimiento, media | `chrome.storage.local` / IndexedDB | Datos locales derivados de consultas públicas. `vip_cache` se poda. |
 | Notas ya creadas (ledger de idempotencia) | IndexedDB local | Evita tarjetas duplicadas. |
 | Contadores de telemetría (opt-in) | Local; nunca se envían a servidores ajenos | Ver abajo. |
@@ -91,7 +91,7 @@ Solo cuando el usuario dispara una función concreta:
 | `storage` | Ajustes, claves cifradas y cachés. |
 | `cookies` | Solo para poner la cookie de paso de WordReference. |
 | `tabCapture` | Capturar el audio de la pestaña para los clips de las tarjetas. |
-| `activeTab` | Capturar el fotograma del vídeo al guardar la tarjeta. |
+| `activeTab` | Autorizar la captura de audio de la pestaña cuando el usuario invoca la extensión (atajo de teclado o clic en el icono). El audio se lee con `chrome.tabCapture.getMediaStreamId`; sin este permiso la extensión no puede acceder al stream de la pestaña. |
 | `offscreen` | Decodificar/recortar audio sin bloquear el service worker. |
 | `alarms` | Reintentar tarjetas pendientes. |
 | `tts` | Pronunciación cuando la API de audio falla. |

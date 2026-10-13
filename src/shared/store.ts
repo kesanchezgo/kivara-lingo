@@ -424,10 +424,13 @@ function publishSyncWriteStatus(next: Partial<SyncWriteStatus>): void {
   }
 }
 
-/** SAVE: extract secrets into local slots. `pushSecretsToLocal` handles
- * both outcomes internally — slots written (state blanked) or local write
- * failed (state inline-encrypted as a fallback). Either way the JSON is
- * safe to persist: never plaintext, never a lost key. */
+/** SAVE: extract secrets into local slots. `pushSecretsToLocal` writes the
+ * slots and blanks the state; the persisted JSON is therefore never
+ * plaintext. If encryption or the local write is unavailable it throws
+ * `SecretEncryptionUnavailableError` or 'local slot write failed', and we
+ * return `raw` untouched: skipping this persist tick is safe (the key is
+ * still in memory and the next tick retries), whereas writing would either
+ * persist plaintext or lose the only copy. */
 async function sealForSync(raw: string): Promise<string> {
   let parsed: { state?: Record<string, Record<string, unknown>> };
   try {
@@ -438,7 +441,12 @@ async function sealForSync(raw: string): Promise<string> {
   const state = parsed?.state;
   if (!state || typeof state !== 'object') return raw;
 
-  await pushSecretsToLocal(state);
+  try {
+    await pushSecretsToLocal(state);
+  } catch (err) {
+    console.error('[Kivara] save refused: secrets stay in memory until encryption works', err);
+    return raw;
+  }
   try {
     return JSON.stringify(parsed);
   } catch {

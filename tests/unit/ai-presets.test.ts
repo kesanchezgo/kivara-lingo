@@ -59,7 +59,7 @@ describe('getAiPreset', () => {
 describe('pickModelForProvider', () => {
   it('falls back to the preset default when the current model is empty', () => {
     expect(pickModelForProvider('openai', '')).toBe('gpt-4o-mini');
-    expect(pickModelForProvider('anthropic', '')).toBe('claude-3-5-haiku-latest');
+    expect(pickModelForProvider('anthropic', '')).toBe('claude-haiku-4-5');
     expect(pickModelForProvider('google-ai', '')).toBe('gemini-2.5-flash');
   });
 
@@ -67,7 +67,9 @@ describe('pickModelForProvider', () => {
     expect(pickModelForProvider('openai', 'gpt-5-turbo')).toBe('gpt-5-turbo');
     expect(pickModelForProvider('openai', 'o1-mini')).toBe('o1-mini');
     expect(pickModelForProvider('anthropic', 'claude-4-opus')).toBe('claude-4-opus');
-    expect(pickModelForProvider('google-ai', 'gemini-2.0-pro')).toBe('gemini-2.0-pro');
+    expect(pickModelForProvider('google-ai', 'gemini-1.5-pro-example')).toBe(
+      'gemini-1.5-pro-example',
+    );
     expect(pickModelForProvider('google-ai', 'models/gemini-1.5-flash')).toBe(
       'models/gemini-1.5-flash',
     );
@@ -75,8 +77,8 @@ describe('pickModelForProvider', () => {
 
   it('replaces a mismatched model id with the new provider default', () => {
     expect(pickModelForProvider('openai', 'gemini-1.5-flash')).toBe('gpt-4o-mini');
-    expect(pickModelForProvider('anthropic', 'gpt-4o-mini')).toBe('claude-3-5-haiku-latest');
-    expect(pickModelForProvider('google-ai', 'claude-3-5-sonnet')).toBe('gemini-2.5-flash');
+    expect(pickModelForProvider('anthropic', 'gpt-4o-mini')).toBe('claude-haiku-4-5');
+    expect(pickModelForProvider('google-ai', 'claude-haiku-wrong-provider')).toBe('gemini-2.5-flash');
   });
 
   it('trims surrounding whitespace before deciding', () => {
@@ -86,6 +88,6 @@ describe('pickModelForProvider', () => {
 
   it('is case-insensitive when matching prefixes', () => {
     expect(pickModelForProvider('openai', 'GPT-4o-mini')).toBe('GPT-4o-mini');
-    expect(pickModelForProvider('anthropic', 'Claude-3-5-Haiku')).toBe('Claude-3-5-Haiku');
+    expect(pickModelForProvider('anthropic', 'Claude-Haiku-4-5')).toBe('Claude-Haiku-4-5');
   });
 });

@@ -166,9 +166,9 @@ export function VipSection() {
           {t('vip.standardDesc')}</div>
       </div>
 
-      <SubGroup title="Standard · diccionario y relaciones" hint={t('vip.apisJson')} sources={STD_DICT_SOURCES} vip={vip} setKey={setKey} />
+      <SubGroup title={t('vip.stdDictTitle')} hint={t('vip.apisJson')} sources={STD_DICT_SOURCES} vip={vip} setKey={setKey} />
       <SubGroup title={t('vip.stdBilingualTitle')} hint={t('vip.tatoebaHint')} sources={STD_BILINGUAL_SOURCES} vip={vip} setKey={setKey} />
-      <SubGroup title="Standard · audio" hint={t('vip.pronunciation')} sources={STD_AUDIO_SOURCES} vip={vip} setKey={setKey} />
+      <SubGroup title={t('vip.stdAudioTitle')} hint={t('vip.pronunciation')} sources={STD_AUDIO_SOURCES} vip={vip} setKey={setKey} />
       <SubGroup title={t('vip.standardImagesLabel')} hint={t('vip.standardImagesHint')} sources={STD_IMAGE_SOURCES} vip={vip} setKey={setKey} />
       <SubGroup title={t('vip.standardEtymVideoLabel')} hint={t('vip.etymVideoHint')} sources={STD_ETY_VIDEO} vip={vip} setKey={setKey} />
 
@@ -197,9 +197,9 @@ export function VipSection() {
 
       {vip.enabled && (
         <>
-          <SubGroup title="VIP · diccionarios comerciales" hint={t('vip.commercialDictHint')} sources={VIP_DICT_SOURCES} vip={vip} setKey={setKey} />
-          <SubGroup title={t('vip.vipBilingualTitle')} hint="Reverso/Linguee/PROMT/WordRef/SpanishDict — equivalencias y pares EN-ES." sources={VIP_BILINGUAL_SOURCES} vip={vip} setKey={setKey} />
-          <SubGroup title="VIP · audio (premium)" hint={t('vip.vipAudioHint')} sources={VIP_AUDIO_SOURCES} vip={vip} setKey={setKey} />
+          <SubGroup title={t('vip.vipDictTitle')} hint={t('vip.commercialDictHint')} sources={VIP_DICT_SOURCES} vip={vip} setKey={setKey} />
+          <SubGroup title={t('vip.vipBilingualTitle')} hint={t('vip.vipBilingualHint')} sources={VIP_BILINGUAL_SOURCES} vip={vip} setKey={setKey} />
+          <SubGroup title={t('vip.vipAudioTitle')} hint={t('vip.vipAudioHint')} sources={VIP_AUDIO_SOURCES} vip={vip} setKey={setKey} />
           <SubGroup title={t('vip.vipImagesLabel')} hint={t('vip.vipImagesHint')} sources={VIP_IMAGE_SOURCES} vip={vip} setKey={setKey} />
 
           {/* Optional API keys for Unsplash + Pixabay — both are free
@@ -220,7 +220,7 @@ export function VipSection() {
               <SecretKeyInput
                 stored={vip.unsplashAccessKey}
                 onChange={(v) => setKey('unsplashAccessKey', v)}
-                placeholder="(opcional)"
+                placeholder={t('vip.optional')}
                 section="vip"
                 field="unsplashAccessKey"
               />

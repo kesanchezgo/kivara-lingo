@@ -53,7 +53,21 @@ import { listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackS
 import { t } from '../shared/i18n';
 import { fetchGuarded, validateDictPackInstallRequest } from '../shared/net-guard';
 
-console.log('[Kivara Lingo] service worker booting');
+/**
+ * Debug logging, off unless the user turns it on. The flag lives in
+ * `chrome.storage.local` under `kivaraDebug` (written by the options page);
+ * a production build ships silent, and nothing here prints a key or a full
+ * secret. `console.warn` / `console.error` calls stay unconditional — they
+ * are failures, not chatter.
+ */
+let DEBUG = false;
+chrome.storage.local.get({ kivaraDebug: false }).then((v) => {
+  DEBUG = Boolean((v as { kivaraDebug?: boolean }).kivaraDebug);
+});
+
+function dbg(...args: unknown[]): void {
+  if (DEBUG) console.log(...args);
+}
 
 const RETRY_ALARM = 'kivara-lingo-retry-pending';
 const OFFSCREEN_KEEPALIVE_ALARM = 'kivara-lingo-offscreen-keepalive';
@@ -311,7 +325,7 @@ onMessage('CREATE_CARD', async ({ data }) => {
     // A new word just landed — drop the saved-words cache for this deck so
     // the green highlight picks it up without waiting for the 60 s TTL.
     invalidateSavedWordsCache(mapping.deckName);
-    console.log('[Kivara Lingo] note created:', response.noteId);
+    dbg('[Kivara Lingo] note created:', response.noteId);
   } else {
     console.warn('[Kivara Lingo] note failed:', response.error);
   }
@@ -812,13 +826,13 @@ async function broadcastDictPacksChanged() {
 }
 
 chrome.commands.onCommand.addListener(async (command: string) => {
-  console.log('[Kivara Lingo] command:', command);
+  dbg('[Kivara Lingo] command:', command);
   await broadcastToActive({ type: 'RUN_COMMAND', command });
 });
 
 // First-run onboarding: open the onboarding page when the user first installs.
 chrome.runtime.onInstalled.addListener(async (details) => {
-  console.log('[Kivara Lingo] installed / updated', details.reason);
+  dbg('[Kivara Lingo] installed / updated', details.reason);
   if (details.reason === 'install') {
     try {
       await chrome.tabs.create({
@@ -882,7 +896,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     const [mapping, capture] = await Promise.all([loadMapping(), loadCaptureSettings()]);
     const { retried, succeeded } = await retryPendingNotes(mapping, capture);
     if (retried > 0) {
-      console.log('[Kivara Lingo] retry pending notes', { retried, succeeded });
+      dbg('[Kivara Lingo] retry pending notes', { retried, succeeded });
     }
   } catch (err) {
     console.warn('[Kivara Lingo] retry alarm failed', err);
@@ -1034,9 +1048,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   // and lets us report progress back via tab broadcast.
   //
   // Deliberate limits, all three:
-  //  • WHO may ask — `sender.id === chrome.runtime.id` only. A web page cannot
-  //    claim our id, so no site (and no content script it reached) can make
-  //    the service worker download a host of its choosing.
+  //  • WHO may ask — the download entry point is UI-only (side panel and
+  //    options page) and, crucially, the manifest declares no
+  //    `externally_connectable`, so no web page can open a port to this
+  //    worker at all. The `sender.id` check below is defence in depth, not
+  //    the boundary: a page-side content script that posts a message is
+  //    what it actually filters, and it CAN reach the SW.
   //  • WHERE we may go — public HTTPS only. The SW's host_permissions reach
   //    far beyond any page, so an ungated download is a port scanner pointed
   //    at the user's own machine and LAN.

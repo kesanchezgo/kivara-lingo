@@ -26,6 +26,7 @@ import {
   encryptSecret,
   decryptSecret,
   isEncrypted,
+  SecretEncryptionUnavailableError,
   hasHiddenSecret,
   resolveSecret,
   __resetSecretSlotsForTests,
@@ -180,17 +181,36 @@ describe('secret slots', () => {
     expect(state.tts.elevenLabsApiKey).toBe(garbage);
   });
 
-  it('falls back to inline encryption when the local write fails', async () => {
+  it('refuses the save (no plaintext) when the local write fails', async () => {
     const io = makeIO();
     io.failWrites = true;
     const state = stateWith({ ai: { apiKey: 'sk-must-not-leak' } });
 
-    const ok = await pushSecretsToLocal(state, io);
-    expect(ok).toBe(false);
-    // The fallback path must encrypt INLINE (old behavior) — never blank,
-    // never plaintext. This mirrors store.ts sealForSync's fallback.
-    expect(isEncrypted(state.ai.apiKey as string)).toBe(true);
-    expect(state.ai.apiKey).not.toBe('sk-must-not-leak');
+    // The old behavior encrypted the key inline into the sync blob; any
+    // failure path now refuses, because a refused save leaves the key in
+    // memory for the next tick while a persisted blob never carries it.
+    await expect(pushSecretsToLocal(state, io)).rejects.toThrow();
+    expect(io.data.has(secretSlotKey('ai', 'apiKey'))).toBe(false);
+  });
+
+  it('refuses the save when encryption itself is unavailable', async () => {
+    const io = makeIO();
+    const state = stateWith({ ai: { apiKey: 'sk-must-not-leak' } });
+    const subtle = crypto.subtle;
+    Object.defineProperty(crypto, 'subtle', {
+      configurable: true,
+      value: { encrypt: async () => { throw new Error('no subtle'); } },
+    });
+    try {
+      await expect(pushSecretsToLocal(state, io)).rejects.toBeInstanceOf(
+        SecretEncryptionUnavailableError,
+      );
+      // Nothing was written anywhere: no slot, and no plaintext to persist.
+      expect(io.data.has(secretSlotKey('ai', 'apiKey'))).toBe(false);
+      expect(state.ai.apiKey).toBe('sk-must-not-leak');
+    } finally {
+      Object.defineProperty(crypto, 'subtle', { configurable: true, value: subtle });
+    }
   });
 
   it("explicit clear ('') drops the slot", async () => {

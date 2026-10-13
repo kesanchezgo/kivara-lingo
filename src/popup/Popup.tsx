@@ -143,9 +143,10 @@ export function Popup() {
   // object. The review caught the earlier version testing a copy of those rules
   // while Popup ran its own, so the test drives THIS hook now.
   //
-  // TODO(kivara-lingo#27): the underlying "first dispatch after a cold worker"
-  // belongs to stream.ts, which owns the port protocol; that commit replaces or
-  // removes this patch AND closes #27, its issue.
+  // kivara-lingo#27 (CLOSED) wanted this to move into the background's
+  // stream.ts, which owns the port protocol. It did not: the first-dispatch
+  // behaviour still lives here, deliberately — closing the issue was the
+  // decision, and re-raising it would re-open a settled design argument.
   usePingRetry({
     status: ping.status,
     // One opening cycle = one url+key. The budget resets when this changes, so

@@ -70,7 +70,7 @@ export const AI_PRESETS: AiPreset[] = [
     provider: 'anthropic',
     label: 'Anthropic Claude',
     tagline: t('aipreset.claudeTagline'),
-    defaultModel: 'claude-3-5-haiku-latest',
+    defaultModel: 'claude-haiku-4-5',
     getKeyUrl: 'https://console.anthropic.com/settings/keys',
     pricingNote: t('aipreset.claudePricing'),
     hasFreeTier: true,

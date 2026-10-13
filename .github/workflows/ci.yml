@@ -90,4 +90,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint || true # informational: does not fail the pipeline
+      # `--max-warnings=29` freezes today's warning count: the run fails on
+      # any NEW warning (or on any error, which already fails), so the trend
+      # can only go down. Lower the number as warnings are fixed.
+      - run: pnpm lint --max-warnings=29

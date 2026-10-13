@@ -77,7 +77,7 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
           </button>
         </div>
 
-        {/* Tipografía */}
+        {/* t(`sub.typography`) */}
         <Section icon={<Type size={10} />} title={t('subs.typography')}>
           <Row label={t('subs.size')} value={`${styles.fontSize}px`} onReset={resetOf('fontSize')}>
             <input
@@ -89,7 +89,7 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
             />
           </Row>
 
-          <Row label="Color" onReset={resetOf('color')}>
+          <Row label={t('sub.color')} onReset={resetOf('color')}>
             <div className="flex gap-1.5">
               {['#FFFFFF', '#FCD34D', '#A7F3D0', '#FECACA', '#E9D5FF'].map((color) => {
                 const selected = styles.color === color;
@@ -113,7 +113,7 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
             </div>
           </Row>
 
-          <Row label="Peso" onReset={resetOf('fontWeight')}>
+          <Row label={t('sub.weight')} onReset={resetOf('fontWeight')}>
             <SegmentedControl
               options={[{ v: 'normal', l: 'Normal' }, { v: 'bold', l: 'Bold' }, { v: '900', l: 'Black' }]}
               value={styles.fontWeight}
@@ -121,7 +121,7 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
             />
           </Row>
 
-          <Row label="Sombra" value={styles.textShadow > 0 ? `${styles.textShadow}%` : 'Off'} onReset={resetOf('textShadow')}>
+          <Row label={t('sub.shadow')} value={styles.textShadow > 0 ? `${styles.textShadow}%` : t('sub.off')} onReset={resetOf('textShadow')}>
             <input
               type="range"
               min={0} max={100} step={5}
@@ -133,8 +133,8 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
         </Section>
 
         {/* Fondo */}
-        <Section icon={<Palette size={10} />} title="Fondo">
-          <Row label="Color" onReset={resetOf('backgroundColor')}>
+        <Section icon={<Palette size={10} />} title={t('sub.background')}>
+          <Row label={t('sub.color')} onReset={resetOf('backgroundColor')}>
             <div className="flex gap-1.5">
               {['#000000', '#18181B', '#1E3A8A', '#831843'].map((color) => {
                 const selected = styles.backgroundColor === color;
@@ -150,7 +150,7 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
                       transition: 'transform 150ms, border-color 150ms',
                       outline: 'none', cursor: 'pointer', padding: 0,
                     }}
-                    aria-label={`Fondo ${color}`}
+                    aria-label={t('sub.ariaColor', { color })}
                     title={color}
                   />
                 );
@@ -158,7 +158,7 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
             </div>
           </Row>
 
-          <Row label="Opacidad" value={`${styles.backgroundOpacity}%`} onReset={resetOf('backgroundOpacity')}>
+          <Row label={t('sub.opacity')} value={`${styles.backgroundOpacity}%`} onReset={resetOf('backgroundOpacity')}>
             <input
               type="range"
               min="0" max="100"
@@ -168,7 +168,7 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
             />
           </Row>
 
-          <Row label="Opacidad en hover" value={`${styles.hoverOpacity}%`} onReset={resetOf('hoverOpacity')}>
+          <Row label={t('sub.hoverOpacity')} value={`${styles.hoverOpacity}%`} onReset={resetOf('hoverOpacity')}>
             <input
               type="range"
               min="0" max="100"
@@ -179,16 +179,16 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
           </Row>
 
           <ToggleRow
-            label="Difuminar fondo en hover"
+            label={t('sub.blurBgHover')}
             checked={styles.hoverBlur}
             onChange={(v) => updateStyle('hoverBlur', v)}
             onReset={resetOf('hoverBlur')}
           />
         </Section>
 
-        {/* Posición */}
+        {/* t(`sub.position`) */}
         <Section icon={<AlignVerticalSpaceBetween size={10} />} title={t('subs.position')}>
-          <Row label="Preset" onReset={resetOf('position')}>
+          <Row label={t('sub.preset')} onReset={resetOf('position')}>
             <SegmentedControl
               options={[
                 { v: 'top', l: 'Arriba' },
@@ -202,7 +202,7 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
               }}
             />
           </Row>
-          <Row label="Altura" value={`${styles.verticalOffset ?? 85}%`} onReset={resetOf('verticalOffset')}>
+          <Row label={t('sub.height')} value={`${styles.verticalOffset ?? 85}%`} onReset={resetOf('verticalOffset')}>
             <div className="relative">
               <input
                 type="range"

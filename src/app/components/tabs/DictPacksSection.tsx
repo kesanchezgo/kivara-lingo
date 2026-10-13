@@ -563,7 +563,7 @@ export function DictPacksSection() {
                     type="button"
                     onClick={() => void onDelete(pack)}
                     className="p-1 rounded text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
-                    title="Eliminar"
+                    title={t('dict.deleteTitle')}
                   >
                     <Trash2 size={12} />
                   </button>
@@ -577,7 +577,7 @@ export function DictPacksSection() {
       {/* ── Importar manualmente ──────────────────────────────────────────── */}
       <SubSection
         icon={<Upload size={10} />}
-        title="Importar manualmente"
+        title={t('dict.importManual')}
         hint={t('dict.manualImportHint')}
       >
         <div className="space-y-2">
@@ -618,7 +618,7 @@ export function DictPacksSection() {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={importing}
                 className="flex-1 text-[11px] font-medium px-2 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/10 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title="Importar archivo local (Yomitan .zip, StarDict .zip o CSV/TSV)"
+                title={t('dict.importFile')}
               >
                 {importing ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
                 Archivo local
@@ -667,7 +667,7 @@ export function DictPacksSection() {
                   type="button"
                   onClick={() => csvFileInputRef.current?.click()}
                   className="text-[10px] px-1.5 py-1 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1"
-                  title="Cargar archivo CSV/TSV"
+                  title={t('dict.loadCsv')}
                 >
                   <Upload size={10} />
                   Archivo
@@ -717,7 +717,7 @@ export function DictPacksSection() {
       {/* ── Cobertura local (colapsable) ──────────────────────────────────── */}
       <SubSection
         icon={<BarChart3 size={10} />}
-        title="Cobertura local"
+        title={t('dict.localCoverage')}
         collapsible
         open={coverageOpen}
         onToggle={() => setCoverageOpen((v) => !v)}

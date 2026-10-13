@@ -150,7 +150,7 @@ export function AiByokSection() {
   return (
     <div className="space-y-3">
       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug">
-        {t('set.byokIntro')}<span className="font-medium text-zinc-700 dark:text-zinc-300">Tu key vive solo en tu navegador</span> {t('set.byokNeverUpload')}</p>
+        {t('set.byokIntro')}<span className="font-medium text-zinc-700 dark:text-zinc-300">{t('set.byokLocal')}</span> {t('set.byokNeverUpload')}</p>
 
       <ul className="grid grid-cols-1 gap-1.5">
         {AI_PRESETS.map((preset) => {
@@ -248,7 +248,7 @@ export function AiByokSection() {
             </div>
           </Row>
           <Row
-            label="Modelo"
+            label={t('set.modelLabel')}
             hint={t('set.modelPresetHint')}
           >
             {(() => {
@@ -336,10 +336,10 @@ export function AiByokSection() {
           </div>
 
           <div className="rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/40 p-2 space-y-1.5">
-            <Row label="Enriquecer al guardar">
+            <Row label={t('ai.enrichOnSave')}>
               <Toggle on={ai.enrichOnSave} onChange={(v) => setAi({ ...ai, enrichOnSave: v })} />
             </Row>
-            <Row label="Enriquecer en hover">
+            <Row label={t('ai.enrichOnHover')}>
               <Toggle on={ai.enrichOnHover} onChange={(v) => setAi({ ...ai, enrichOnHover: v })} />
             </Row>
             <Row label={t('set.aiMnemonic')}>
@@ -353,7 +353,7 @@ export function AiByokSection() {
                 <Toggle on={ai.enableDalleFallback === true} onChange={(v) => setAi({ ...ai, enableDalleFallback: v })} />
               </Row>
             )}
-            <Row label="Idioma nativo (override)">
+            <Row label={t('ai.nativeLangOverride')}>
               <input
                 type="text"
                 value={ai.nativeLanguage ?? ''}
