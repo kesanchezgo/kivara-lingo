@@ -166,7 +166,15 @@ async function fetchOnce(
       while (true) {
         idleReject = null;
         const idle = new Promise<never>((_resolve, reject) => {
-          idleReject = () => reject(new Error(`no bytes for ${staleTimeoutMs} ms`));
+          // Reject with the SAME object the abort path throws: whichever
+          // promise wins the race can never surface the raw
+          // "no bytes for N ms" to the user, only the locale-shaped message.
+          idleReject = () =>
+            reject(
+              new FetchAbortedError(
+                `El servidor dejó de enviar datos durante más de ${Math.round(staleTimeoutMs / 1000)} s. Comprueba la conexión y vuelve a intentarlo.`,
+              ),
+            );
         });
         const { done, value } = await Promise.race([reader.read(), idle]);
         if (done) break;

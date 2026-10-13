@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
 import { AnkiMapping, FieldSource } from '../../types';
@@ -138,7 +138,18 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
     [fieldsByModel, mapping.modelName],
   );
 
+  // Sequence guard + unmount guard for the whole probe: `refreshAnki` runs on
+  // mount AND every 5 s while disconnected, so two passes are always in
+  // flight (mount, the URL just landed; retry, a moment later). The slower
+  // reply used to overwrite the state of the faster one, and a reply landing
+  // after the tab went away set state on an unmounted component.
+  const probesRef = useRef(0);
+  const mountedRef = useRef(true);
+  const markSeq = () => ++probesRef.current;
+  const isCurrent = (seq: number) => mountedRef.current && seq === probesRef.current;
+
   async function refreshAnki() {
+    const seq = markSeq();
     setConn('connecting');
     setPingCode(null);
     setPingError(null);
@@ -148,6 +159,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
         { url: mapping.ankiUrl, apiKey: mapping.apiKey },
         'background',
       )) as AnkiPingResponse;
+      if (!isCurrent(seq)) return;
       if (!ping?.ok) {
         setConn('error');
         setPingCode(ping?.code ?? null);
@@ -161,6 +173,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
         { url: mapping.ankiUrl, apiKey: mapping.apiKey },
         'background',
       )) as AnkiListsResponse;
+      if (!isCurrent(seq)) return;
       setDecks(lists.decks ?? []);
       setModels(lists.models ?? []);
       if (lists.models?.length) {
@@ -171,19 +184,28 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
               { url: mapping.ankiUrl, apiKey: mapping.apiKey, modelName: m },
               'background',
             )) as AnkiFieldsResponse;
+            if (!isCurrent(seq)) return;
             setFieldsByModel((prev) => ({ ...prev, [m]: res.fields ?? [] }));
           }),
         );
       }
-      setConn('connected');
+      if (isCurrent(seq)) setConn('connected');
     } catch (err) {
+      if (!isCurrent(seq)) return;
       setConn('error');
       setPingError(err instanceof Error ? err.message : 'unknown error');
     }
   }
 
   useEffect(() => {
+    mountedRef.current = true;
+    // Mount-only on purpose: `refreshAnki` reads the LIVE mapping on every
+    // pass, so re-running it when the mapping changes would turn every edit
+    // into a network round trip.
     void refreshAnki();
+    return () => {
+      mountedRef.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

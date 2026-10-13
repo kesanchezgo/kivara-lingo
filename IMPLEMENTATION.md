@@ -1,6 +1,13 @@
 # Kivara Lingo — Especificación de implementación
 
-> Documento dirigido a la IA / equipo que implementará la extensión real a partir del prototipo de UI/UX. Este documento es la **única fuente de verdad** sobre qué hay que construir, con qué tecnologías y cómo cada pieza encaja con el resto.
+> **Estado: HISTÓRICO.** Este documento se escribió cuando `src/app/` era un
+> prototipo de UI y la extensión no existía. Ahora la extensión SÍ existe y
+> este texto la contradice: `manifest.json` es la fuente de verdad de permisos,
+> atajos y hosts; `src/shared/store.ts` de los defaults; `docs/ENRICHMENT.md` de
+> las fuentes; `tests/unit/` de los tiempos reales (el "timeout de 5 s" que
+> aparece abajo son 30 s en el código). Se conserva porque explica el *porqué*
+> del arranque de la arquitectura y por qué se retiró el ASR on-device, no
+> para copiar de aquí datos. Ante una duda, manda el código y su test.
 
 **Audiencia:** ingeniero (humano o IA) con experiencia en TypeScript, React y APIs de navegador. No asume conocimiento previo del dominio (subtítulos, Anki, ASR).
 

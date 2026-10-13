@@ -102,7 +102,10 @@ export function Onboarding() {
       if (afterPingId !== pingIdRef.current) return;
       setPing({ status: 'error', error: err instanceof Error ? err.message : 'unknown' });
     } finally {
-      setBusy(false);
+      // Only the LATEST request owns the busy flag: the earlier one used to
+      // clear it while the newer one was still running, so the button looked
+      // idle while the wrong list was in flight.
+      if (afterPingId === pingIdRef.current) setBusy(false);
     }
   }
 
