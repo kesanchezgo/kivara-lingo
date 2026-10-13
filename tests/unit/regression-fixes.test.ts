@@ -125,24 +125,29 @@ describe('write actions do NOT fall back to sibling URL (#21)', () => {
 });
 
 describe('destination-check-before-status-reads (#20)', () => {
-  it('a redirect that landed on loopback throws even when the body looks fine', async () => {
+  it('a redirect that landed on a private host is refused as a URL error, not as HTTP 404', async () => {
     // Constructed Response whose `url` is a private address (this is
     // shape-of a redirect chain's landing response). `fetchMediaWithLimits`
     // calls assertResponseDestination FIRST (with body-cancelled on
-    // refusal); reverting to status-first means the 200 body is served
-    // and the loopback is exposed through a "successful" media read.
+    // refusal); reverting to status-first means the 404 surfaces and the
+    // fact that the body came back from a private host is never reported.
     vi.stubGlobal('fetch', vi.fn(async () => {
-      const r = new Response('<html>private landing</html>', {
-        status: 200,
-        headers: { 'content-type': 'text/html' },
-      });
+      const r = new Response(null, { status: 404 });
       Object.defineProperty(r, 'url', { value: 'http://127.0.0.1/landed', configurable: true });
       return r;
     }));
-    const { fetchMediaWithLimits } = await import('../../src/shared/net-guard');
-    await expect(
-      fetchMediaWithLimits('https://example.com/ok.png', { timeoutMs: 500, maxBytes: 1024 }),
-    ).rejects.toThrow(/loopback|https|private|no permit|not allowed|blockable/i);
+    const { fetchMediaWithLimits, UrlNotAllowedError } = await import('../../src/shared/net-guard');
+    // Order-sensitive in the strict direction: the thrown error is the
+    // destination refusal (`UrlNotAllowedError`), never the plain
+    // `HTTP 404` a status-first implementation would raise.
+    let caught: unknown = null;
+    try {
+      await fetchMediaWithLimits('https://example.com/ok.png', { timeoutMs: 500, maxBytes: 1024 });
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(UrlNotAllowedError);
+    expect((caught as Error).message).not.toMatch(/HTTP\s*404/i);
   });
 });
 
@@ -243,5 +248,50 @@ describe('adapter lifecycle (#2/#3)', () => {
     expect(cueListeners.length).toBe(afterBoth - 1); // only a1's own
     a2.destroy!();
     expect(cueListeners.length).toBe(afterBoth - 2); // both gone, not double
+  });
+});
+
+describe('RUN_COMMAND_GATE covers every mutating case (#6-2)', () => {
+  // Consistency between the gate SET and the switch's cases: the audit
+  // caught `repeat_phrase` reachable in the switch but absent from the
+  // gate, so a RUN_COMMAND message could seek the video with the
+  // extension off. Dropping any case (or the whole gate) turns this red
+  // without needing to render the panel in happy-dom.
+  const appSrc = readFileSync('src/content/ui/App.tsx', 'utf8');
+
+  function setLiteral(): string {
+    const m = appSrc.match(
+      /const RUN_COMMAND_GATE[\s\S]*?new Set\(\[([\s\S]*?)\]\)/,
+    );
+    expect(m, 'RUN_COMMAND_GATE declaration not found').not.toBeNull();
+    return m![1];
+  }
+
+  function quoted(src: string): string[] {
+    return [...src.matchAll(/'([^']+)'/g)].map((x) => x[1]);
+  }
+
+  it('every gated case is in the gate, and nothing gated is dead', () => {
+    const gate = new Set(quoted(setLiteral()));
+    const switchStart = appSrc.indexOf("msg?.type === 'RUN_COMMAND'");
+    expect(switchStart).toBeGreaterThan(-1);
+    const switchSrc = appSrc.slice(switchStart, switchStart + 6000);
+    const cases = quoted(switchSrc.match(/case '[^']+':/g)!.join(','));
+    expect(cases.length).toBeGreaterThan(3);
+    for (const c of cases) {
+      if (c === 'toggle_panel') continue; // intentionally exempt
+      expect(gate, `case '${c}' is not in RUN_COMMAND_GATE`).toContain(c);
+    }
+    for (const g of gate) {
+      expect(cases, `gate entry '${g}' has no case`).toContain(g);
+    }
+  });
+
+  it('every handler that acts on a shortcut consults the enabled toggle first', () => {
+    // Three paths must all read the toggle before touching the video:
+    // the in-page keydown, the chrome.commands RUN_COMMAND listener and
+    // the kivara-repeat-cue event the overlay button dispatches.
+    const checks = appSrc.match(/!useKivaraStore\.getState\(\)\.enabled/g) ?? [];
+    expect(checks.length).toBeGreaterThanOrEqual(3);
   });
 });
