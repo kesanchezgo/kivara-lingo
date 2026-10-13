@@ -358,9 +358,21 @@ export interface SyncWriteStatus {
   failed: boolean;
   /** Unsynchronised local edits were replaced by a remote change. */
   discarded: boolean;
+  /**
+   * A save was REFUSED because a secret could not be encrypted, so the
+   * credential the user just typed is in memory only. `failed` cannot carry
+   * it: that flag means the write failed with a state change the user could
+   * retry, and this one is the opposite — NOT writing is the correct
+   * behaviour, and the user needs to know the key is not saved.
+   */
+  secretSaveRefused: boolean;
 }
 
-let syncWriteStatus: SyncWriteStatus = { failed: false, discarded: false };
+let syncWriteStatus: SyncWriteStatus = {
+  failed: false,
+  discarded: false,
+  secretSaveRefused: false,
+};
 const syncWriteListeners = new Set<(status: SyncWriteStatus) => void>();
 
 /** Current sync-write status. The object identity changes ONLY when a flag
@@ -394,6 +406,13 @@ export function dismissSyncDiscarded(): void {
   publishSyncWriteStatus({ discarded: false });
 }
 
+/** Acknowledge the "this key was not saved" notice. The key IS still in
+ * memory, so nothing is lost — the user just needs to know it is not
+ * durable yet, and retrying encryption happens on the next save attempt. */
+export function dismissSecretSaveRefused(): void {
+  publishSyncWriteStatus({ secretSaveRefused: false });
+}
+
 /**
  * Publish a new status. `failed` and `discarded` can't both be read as
  * "pending": a remote change consumed the pending blob, so it reports the
@@ -411,7 +430,11 @@ export function dismissSyncDiscarded(): void {
  */
 function publishSyncWriteStatus(next: Partial<SyncWriteStatus>): void {
   const merged: SyncWriteStatus = { ...syncWriteStatus, ...next };
-  if (merged.failed === syncWriteStatus.failed && merged.discarded === syncWriteStatus.discarded) {
+  if (
+    merged.failed === syncWriteStatus.failed &&
+    merged.discarded === syncWriteStatus.discarded &&
+    merged.secretSaveRefused === syncWriteStatus.secretSaveRefused
+  ) {
     return;
   }
   syncWriteStatus = merged;
@@ -424,18 +447,30 @@ function publishSyncWriteStatus(next: Partial<SyncWriteStatus>): void {
   }
 }
 
-/** SAVE: extract secrets into local slots. `pushSecretsToLocal` writes the
- * slots and blanks the state; the persisted JSON is therefore never
- * plaintext. If encryption or the local write is unavailable it throws
- * `SecretEncryptionUnavailableError` or 'local slot write failed', and we
- * return `raw` untouched: skipping this persist tick is safe (the key is
- * still in memory and the next tick retries), whereas writing would either
- * persist plaintext or lose the only copy. */
-async function sealForSync(raw: string): Promise<string> {
+/**
+ * SAVE: extract secrets into local slots. Returns `null` to mean "do NOT
+ * write this blob".
+ *
+ * `pushSecretsToLocal` writes the slots and blanks the state, so the
+ * persisted JSON is never plaintext. When it throws — encryption unavailable,
+ * or the local write refused — the CALLER MUST NOT WRITE: the JSON in hand
+ * still carries the keys verbatim, and sending it to chrome.storage.sync
+ * would push a cleartext credential to Chrome's servers and to every device
+ * on the account. That is the exact promise `PRIVACY.md` makes ("the key
+ * travels encrypted"), and the previous version returned `raw` right back
+ * into `setItem`, which wrote it.
+ *
+ * `null` therefore means: skip this persist tick entirely, leave the
+ * one-shot status raised so the UI can tell the user, and keep the value in
+ * memory so the next tick retries.
+ */
+async function sealForSync(raw: string): Promise<string | null> {
   let parsed: { state?: Record<string, Record<string, unknown>> };
   try {
     parsed = JSON.parse(raw);
   } catch {
+    // Unparseable JSON is not our blob; writing it can only be our own bug,
+    // but it carries no secrets either, so pass it through unchanged.
     return raw;
   }
   const state = parsed?.state;
@@ -445,7 +480,7 @@ async function sealForSync(raw: string): Promise<string> {
     await pushSecretsToLocal(state);
   } catch (err) {
     console.error('[Kivara] save refused: secrets stay in memory until encryption works', err);
-    return raw;
+    return null;
   }
   try {
     return JSON.stringify(parsed);
@@ -520,11 +555,24 @@ export function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage
       }
     },
     async setItem(name: string, value: string): Promise<void> {
-      let sealed = value;
+      let sealed: string | null;
       try {
         sealed = await sealForSync(value);
       } catch {
-        sealed = value;
+        // A throw out of the sealer is the same situation as a `null`: the
+        // blob in hand may still carry a secret, so it is NOT written.
+        sealed = null;
+      }
+      if (sealed === null) {
+        // Do not write, do not arm the no-op guard, and do not touch
+        // `lastSealedContent` — leaving it claiming storage holds this blob
+        // would let the NEXT identical state skip its own write and the save
+        // would never be retried. The state stays in memory (zustand holds
+        // it, and the fallback already has an older read-only copy), so
+        // nothing is lost; the user just gets a notice instead of a silent
+        // success that isn't one.
+        publishSyncWriteStatus({ secretSaveRefused: true });
+        return;
       }
       // NO-OP GUARD: the state is byte-identical to what this context already
       // sent. Most of those writes carry no app change at all — `partialize`
@@ -545,7 +593,9 @@ export function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage
       rememberOwnSyncWrite(`${area}:${name}`, toStore);
       // Write-through: the fallback always mirrors our latest write so a
       // later rehydrate in THIS context reads our value even if the chrome
-      // write is still in flight or failed silently.
+      // write is still in flight or failed silently. It never sees a plaintext
+      // secret: this line is past the `sealed === null` bail-out, which is the
+      // only path that ever carries one.
       try {
         fallbackStorage.set(name, toStore);
       } catch {
@@ -716,6 +766,10 @@ const RETIRED_AI_MODELS: Record<string, string> = {
   'claude-3-5-haiku-latest': 'claude-haiku-4-5',
   'claude-3-5-sonnet-latest': 'claude-sonnet-4-6',
   'gemini-2.0-flash': 'gemini-2.5-flash',
+  // Gemini 1.5 both sizes: withdrawn from the API (404), and the onboarding
+  // tile offered 1.5 Flash until this pass, so snapshots exist with it.
+  'gemini-1.5-flash': 'gemini-2.5-flash',
+  'gemini-1.5-pro': 'gemini-2.5-pro',
 };
 
 /**
@@ -723,8 +777,13 @@ const RETIRED_AI_MODELS: Record<string, string> = {
  * to call on every hydrate: the mapping is a lookup, so there is no "user
  * preference" here to lose — every source id in the left column is a model
  * the provider no longer serves.
+ *
+ * Exported for the service worker: `loadAiSettings` reads the persisted
+ * snapshot directly for speed and never goes through `persist`, so a
+ * version-less read of an un-migrated profile used to hand a withdrawn id
+ * to the provider.
  */
-function liveAiModel<T extends { model?: string }>(ai: T): T {
+export function liveAiModel<T extends { model?: string }>(ai: T): T {
   const model = ai.model;
   if (typeof model === 'string' && RETIRED_AI_MODELS[model]) {
     return { ...ai, model: RETIRED_AI_MODELS[model] };

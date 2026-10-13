@@ -167,6 +167,7 @@ export function SidePanel({
   const positionRef = useRef<PanelPosition>(position);
   const [isDragging, setIsDragging] = useState(false);
   const dragStateRef = useRef<{
+    moved: boolean;
     startX: number;
     startY: number;
     originLeft: number;
@@ -181,9 +182,11 @@ export function SidePanel({
     const onResize = () => {
       setPosition((prev) => {
         const next = clampPosition(prev);
-        if (next.top !== prev.top || next.left !== prev.left) {
-          setPersistedPosition(next);
-        }
+        // Read the raw value, never a setState updater: the persist write is a
+        // side effect and React may run the updater twice, which wrote the
+        // position to storage twice per resize.
+        positionRef.current = next;
+        setPersistedPosition(next);
         return next;
       });
     };
@@ -212,6 +215,7 @@ export function SidePanel({
       e.preventDefault();
       setIsDragging(true);
       dragStateRef.current = {
+        moved: false,
         startX: e.clientX,
         startY: e.clientY,
         originLeft: position.left,
@@ -233,19 +237,20 @@ export function SidePanel({
         top: start.originTop + (e.clientY - start.startY),
       });
       setPosition(next);
+      start.moved = true;
       // The mirror ref makes the raw value readable from an event handler
-      // (mouseup) without going through a setState updater — see onUp.
+      // (mouseup) without going through a setState updater — see the note in
+      // onUp about why the write cannot live inside an updater.
       positionRef.current = next;
     };
     const onUp = () => {
       setIsDragging(false);
+      const start = dragStateRef.current;
       dragStateRef.current = null;
-      // Persist only on drop so chrome.storage isn't hammered with writes.
-      // The write happens OUTSIDE the updater: a setState callback must be
-      // pure, and React is free to invoke it twice (StrictMode, a replayed
-      // render) — which would double-write the position on every drop.
-      const final = positionRef.current;
-      if (final) setPersistedPosition(final);
+      // Persist only on a real move: a plain click on the handle used to
+      // write the position anyway, and the next clamp then "snapped" the
+      // panel back — which read as the header click having moved it.
+      if (start?.moved) setPersistedPosition(positionRef.current);
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);

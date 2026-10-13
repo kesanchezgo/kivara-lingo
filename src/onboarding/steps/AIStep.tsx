@@ -3,6 +3,7 @@ import { t } from '../../shared/i18n';
 import { Sparkles, CheckCircle2, Ban, Mic, Zap, Brain, KeyRound, AlertTriangle, Cpu } from 'lucide-react';
 import type { AiProvider } from '../../shared/types';
 import { MODELS_BY_PROVIDER } from '../../shared/ai-models';
+import { getAiPreset } from '../../shared/ai-presets';
 import { StepSection, ToggleRow } from './StepSection';
 
 /* ─── AIStep ──────────────────────────────────────────────────────────────── */
@@ -25,6 +26,12 @@ export function AIStep({
   aiProvider, setAiProvider, aiApiKey, setAiApiKey, aiModel, setAiModel,
   aiEnrichOnSave, setAiEnrichOnSave, aiEnrichOnHover, setAiEnrichOnHover, isDarkMode,
 }: AIStepProps) {
+  /** The preset's suggested model for a provider — the same table the SETTINGS
+   *  tab uses, so a withdrawn id is retired in one place and never offered
+   *  here by accident. */
+  const defaultModelFor = (provider: AiProvider): string =>
+    getAiPreset(provider)?.defaultModel ?? '';
+
   type ProviderTile = {
     value: AiProvider;
     label: string;
@@ -34,10 +41,15 @@ export function AIStep({
     defaultModel?: string;
   };
   const providers: ProviderTile[] = [
-    { value: 'disabled',  label: t('onb.noAi'),          tag: 'Solo diccionarios',   icon: <Ban size={18} />,      tone: 'zinc' },
+    { value: 'disabled',  label: t('onb.noAi'),          tag: t('onb.aiDictsOnly'),   icon: <Ban size={18} />,      tone: 'zinc' },
     { value: 'openai',    label: 'OpenAI',          tag: 'GPT-4o mini',         icon: <Sparkles size={18} />, tone: 'emerald', defaultModel: 'gpt-4o-mini' },
     { value: 'anthropic', label: 'Anthropic',       tag: 'Claude Haiku',        icon: <Brain size={18} />,    tone: 'amber',   defaultModel: 'claude-haiku-4-5' },
-    { value: 'google-ai', label: 'Google Gemini',   tag: 'Gemini 1.5 Flash',    icon: <Zap size={18} />,      tone: 'sky',     defaultModel: 'gemini-1.5-flash' },
+    // The model comes from the preset table, NOT from a literal here. The
+    // tile used to offer `gemini-1.5-flash`, which Google has withdrawn: the
+    // API answers 404 and every enrichment from this step failed with a
+    // message about an unknown model. One source of truth also means the next
+    // withdrawal is a single edit in ai-presets.ts.
+    { value: 'google-ai', label: 'Google Gemini',   tag: 'Gemini 2.5 Flash',    icon: <Zap size={18} />,      tone: 'sky',     defaultModel: defaultModelFor('google-ai') },
   ];
 
   const toneClasses: Record<ProviderTile['tone'], { ring: string; bg: string; iconBg: string; iconText: string; label: string }> = {

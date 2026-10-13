@@ -237,18 +237,19 @@ export interface MediaFetch {
 }
 
 /**
- * Read a response body with a deadline of its own.
+ * Read the body through its OWN reader, so expiry can cancel it.
  *
- * A timeout around `fetch()` only covers the HEADERS: the promise resolves
- * when they arrive, so everything that follows — `res.text()`,
- * `res.arrayBuffer()`, `res.blob()` — is unbounded. A server that answers
- * with headers and then trickles the body forever (or sends one byte a
- * minute) pins the request open until Chrome kills the worker, and the
- * caller has no way to notice.
+ * The race-against-`res.text()` shape this replaced could not cancel
+ * anything: `res.text()` marks the body used the moment it is called, so the
+ * `bodyUsed` guard afterwards was always false and the `cancel()` that
+ * disarms the transfer never ran — the request stayed open until Chrome killed
+ * the worker, and (as a second symptom) calling `cancel()` on a body that a
+ * pending read still holds returns a REJECTED promise nobody handles, which
+ * is the "Uncaught (in promise)" line in the service-worker console. Reading
+ * by hand gives a handle to cancel.
  *
- * On expiry this CANCELS the body, which is what actually breaks the pending
- * read; aborting the fetch's own controller does not, because the stream was
- * already handed over.
+ * `reader.cancel()` settles the read with a rejection; the partial buffer
+ * read so far is left with the connection released.
  */
 export async function readBodyBounded(
   res: Response,
@@ -258,31 +259,53 @@ export async function readBodyBounded(
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     return res.text();
   }
-  if (res.bodyUsed) return res.text();
+  const body = res.body;
+  if (!body) return res.text();
+
+  const reader = body.getReader();
   let timer: ReturnType<typeof setTimeout> | null = null;
+  let expired = false;
+  const decode = new TextDecoder();
+
+  const onIdle = () => {
+    expired = true;
+    // Swallow the rejection: cancel() is how a stalled stream is told to
+    // stop, and the promise it returns never interesting to anyone.
+    void reader.cancel(new Error(`${what} timed out`)).catch(() => {});
+  };
+
   try {
-    return await Promise.race([
-      res.text(),
-      new Promise<never>((_resolve, reject) => {
-        timer = setTimeout(
-          () => reject(new Error(`${what} exceeded ${Math.round(timeoutMs)} ms`)),
-          timeoutMs,
-        );
-      }),
-    ]);
+    const read = await new Promise<Uint8Array[]>((resolve, reject) => {
+      timer = setTimeout(() => {
+        onIdle();
+        // Settle the promise here as well as cancelling the reader: a stalled
+        // `read()` is not guaranteed to REJECT when cancelled (happy-dom's
+        // stream implementation leaves it pending forever), and a body-read
+        // helper that can hang is the bug we are fixing.
+        reject(new Error(`${what} timed out`));
+      }, timeoutMs);
+      const chunks: Uint8Array[] = [];
+      const pump = () => {
+        reader
+          .read()
+          .then(({ done, value }) => {
+            if (done) {
+              resolve(chunks);
+              return;
+            }
+            if (value) chunks.push(value);
+            pump();
+          })
+          .catch(reject);
+      };
+      pump();
+    });
+    return read.map((c) => decode.decode(c, { stream: true })).join('') + decode.decode();
   } finally {
     if (timer) clearTimeout(timer);
-    // Cancelling a body that was already consumed is fine, but cancelling one
-    // that `res.text()` is STILL reading throws "ReadableStream is locked" —
-    // which is exactly the case here on the timeout branch, where text() never
-    // finished. Only touch the body when nothing is reading it.
-    if (!res.bodyUsed) {
-      try {
-        void res.body?.cancel();
-      } catch {
-        /* already closed */
-      }
-    }
+    // ALWAYS release, also on the success path: a read body with a live lock
+    // keeps the connection up for nothing.
+    if (!expired) void reader.cancel().catch(() => {});
   }
 }
 
@@ -295,27 +318,53 @@ export async function readBytesBounded(
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     return res.arrayBuffer();
   }
-  if (res.bodyUsed) return res.arrayBuffer();
+  const body = res.body;
+  if (!body) return res.arrayBuffer();
+
+  const reader = body.getReader();
   let timer: ReturnType<typeof setTimeout> | null = null;
+  let expired = false;
+
+  const onIdle = () => {
+    expired = true;
+    void reader.cancel(new Error(`${what} timed out`)).catch(() => {});
+  };
+
   try {
-    return await Promise.race([
-      res.arrayBuffer(),
-      new Promise<never>((_resolve, reject) => {
-        timer = setTimeout(
-          () => reject(new Error(`${what} exceeded ${Math.round(timeoutMs)} ms`)),
-          timeoutMs,
-        );
-      }),
-    ]);
+    const chunks = await new Promise<Uint8Array[]>((resolve, reject) => {
+      timer = setTimeout(() => {
+        onIdle();
+        // Same reason as the text variant: settle the promise instead of
+        // trusting a cancelled read to reject on its own.
+        reject(new Error(`${what} timed out`));
+      }, timeoutMs);
+      const acc: Uint8Array[] = [];
+      const pump = () => {
+        reader
+          .read()
+          .then(({ done, value }) => {
+            if (done) {
+              resolve(acc);
+              return;
+            }
+            if (value) acc.push(value);
+            pump();
+          })
+          .catch(reject);
+      };
+      pump();
+    });
+    const total = chunks.reduce((n, c) => n + c.byteLength, 0);
+    const out = new Uint8Array(total);
+    let off = 0;
+    for (const c of chunks) {
+      out.set(c, off);
+      off += c.byteLength;
+    }
+    return out.buffer;
   } finally {
     if (timer) clearTimeout(timer);
-    if (!res.bodyUsed) {
-      try {
-        void res.body?.cancel();
-      } catch {
-        /* already closed */
-      }
-    }
+    if (!expired) void reader.cancel().catch(() => {});
   }
 }
 

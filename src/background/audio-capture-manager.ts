@@ -37,6 +37,13 @@ let lastError: string | undefined;
 /** Refcount for one-shot consumers (TTS / ASR) that need a brief lifetime. */
 let oneShotRefs = 0;
 
+/**
+ * Monotonic stamp of the last start. A stop compares against it: a stop that
+ * returns after a newer start began must not zero `activeTabId` out from
+ * under the live capture, nor schedule the document's close.
+ */
+let captureToken = 0;
+
 async function hasOffscreenDocument(): Promise<boolean> {
   // chrome.offscreen.hasDocument was renamed; both exist in different versions
   const api = chrome.offscreen as unknown as {
@@ -244,16 +251,45 @@ interface OffscreenResponse<T = unknown> {
   data?: T;
 }
 
+const OFFSCREEN_RPC_TIMEOUT_MS = 15_000;
+
+/**
+ * One round trip to the offscreen document, with a deadline.
+ *
+ * `chrome.runtime.sendMessage` never calls the callback when the document is
+ * gone or wedged — the promise it is wrapped in stayed PENDING forever, and
+ * with it the `oneShotRefs` refcount, so `closeOffscreenIfIdle` forever saw a
+ * phantom consumer and the live document was never released. 15 s is far above
+ * any real response (the heaviest payload takes under a second) and far below
+ * a service worker's own lifetime budget.
+ */
 function sendToOffscreen<T = unknown>(message: Record<string, unknown>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(message, (response) => {
-      const err = chrome.runtime.lastError;
-      if (err) {
-        reject(new Error(err.message));
-        return;
-      }
-      resolve(response as T);
-    });
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error('el documento offscreen no respondió'));
+    }, OFFSCREEN_RPC_TIMEOUT_MS);
+
+    try {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        const err = chrome.runtime.lastError;
+        if (err) {
+          reject(new Error(err.message));
+          return;
+        }
+        resolve(response as T);
+      });
+    } catch (err) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(err instanceof Error ? err : new Error(String(err)));
+    }
   });
 }
 
@@ -286,32 +322,26 @@ export async function startAudioCapture(
   // capture had just been started inside: the start then fails with a
   // "document not found" that has nothing to do with the user's action.
   oneShotRefs += 1;
+  // Stamp the attempt. `++`, not a read: each start supersedes every earlier
+  // stop, so a stop in flight when this starts reads itself stale and leaves
+  // the new session alone (that ordering bug was: stop's finally zeroed
+  // `activeTabId` of the capture that had just begun and closed its document).
+  captureToken += 1;
+  const token = captureToken;
   try {
-    await ensureOffscreen();
-    const streamId = streamIdOverride ?? (await getStreamId(tabId));
-    const result = await sendToOffscreen<OffscreenResponse & { mimeType?: string }>({
-      type: 'OFFSCREEN_START_AUDIO_CAPTURE',
-      streamId,
-      bufferSizeSec,
-      ...(pcmPath ? { pcmPath } : {}),
-    });
-    if (!result?.ok) {
-      lastError = result?.error || 'offscreen reported failure';
+    // NOT wrapped in the offscreen lock: the lock is not reentrant, and
+    // `ensureOffscreen()` takes it itself — a start inside the lock deadlocked
+    // with the open, and every capture silently timed out. The token IS the
+    // guard against a stale stop, so ordering is preserved without nesting.
+    const outcome = await startCaptureInner(tabId, bufferSizeSec, streamIdOverride, pcmPath);
+    if (!outcome.ok) {
+      lastError = 'offscreen reported failure';
       activeTabId = null;
       activeMimeType = undefined;
       await clearStoredSession();
       return { ok: false, error: lastError };
     }
-    activeTabId = tabId;
-    activeMimeType = result.mimeType;
-    lastError = undefined;
-    await saveStoredSession({
-      active: true,
-      tabId,
-      mimeType: activeMimeType,
-      startedAt: Date.now(),
-    });
-    return { ok: true, mimeType: activeMimeType };
+    return { ok: true, mimeType: outcome.mimeType };
   } catch (err) {
     const reason = err instanceof Error ? err.message : 'unknown';
     lastError = reason;
@@ -321,15 +351,50 @@ export async function startAudioCapture(
     return { ok: false, error: reason };
   } finally {
     oneShotRefs = Math.max(0, oneShotRefs - 1);
-    // Released AFTER the session is recorded, so the document this came from is
-    // abandoned only if the capture is not actually stored — the normal
+    // Released AFTER the session is recorded, so the document this came from
+    // is abandoned only if the capture is not actually stored — the normal
     // success path ends with `loadStoredSession()` true and a close attempt
     // that returns early.
     void closeOffscreenIfIdle();
+    void token;
   }
 }
 
+async function startCaptureInner(
+  tabId: number,
+  bufferSizeSec: number,
+  streamIdOverride?: string,
+  /** E2E-only capture-path override; forwarded verbatim to the offscreen. */
+  pcmPath?: 'audio-worklet' | 'script-processor',
+): Promise<{ ok: boolean; mimeType?: string }> {
+  await ensureOffscreen();
+  const streamId = streamIdOverride ?? (await getStreamId(tabId));
+  const result = await sendToOffscreen<OffscreenResponse & { mimeType?: string }>({
+    type: 'OFFSCREEN_START_AUDIO_CAPTURE',
+    streamId,
+    bufferSizeSec,
+    ...(pcmPath ? { pcmPath } : {}),
+  });
+  if (!result?.ok) return { ok: false };
+  activeTabId = tabId;
+  activeMimeType = result.mimeType;
+  // ONLY after the state above is recorded: that is what makes the session
+  // readable for `closeOffscreenIfIdle` (and for every consumer) in one write.
+  await saveStoredSession({
+    active: true,
+    tabId,
+    mimeType: result.mimeType,
+    startedAt: Date.now(),
+  });
+  lastError = undefined;
+  return { ok: true, mimeType: result.mimeType };
+}
+
 export async function stopAudioCapture(): Promise<void> {
+  // Read the CURRENT stamp, so a start that began while this stop was in
+  // flight (or during it) reads as a different token and leaves the live
+  // session untouched.
+  const token = captureToken;
   try {
     if (await hasOffscreenDocument()) {
       await sendToOffscreen({ type: 'OFFSCREEN_STOP_AUDIO_CAPTURE' });
@@ -337,10 +402,12 @@ export async function stopAudioCapture(): Promise<void> {
   } catch (err) {
     console.warn('[Kivara Lingo] failed to stop offscreen', err);
   } finally {
-    activeTabId = null;
-    activeMimeType = undefined;
+    if (captureToken === token) {
+      activeTabId = null;
+      activeMimeType = undefined;
+    }
     await clearStoredSession();
-    await closeOffscreenIfIdle();
+    void closeOffscreenIfIdle();
   }
 }
 

@@ -233,14 +233,16 @@ describe('chrome.storage.sync persist adapter', () => {
     const mod = await import('../../src/shared/store');
     const storage = mod.makeChromeStorage('sync');
 
-    expect(mod.getSyncWriteStatus()).toEqual({ failed: false, discarded: false });
-    const seen: Array<{ failed: boolean; discarded: boolean }> = [];
+    expect(mod.getSyncWriteStatus()).toEqual({ failed: false, discarded: false, secretSaveRefused: false });
+    const seen: Array<{ failed: boolean; discarded: boolean; secretSaveRefused: boolean }> = [];
     const unsubscribe = mod.subscribeSyncWriteStatus((status) => seen.push(status));
 
     env.failSets = true;
     await storage.setItem(SYNC_KEY, blob('A')); // chrome.storage rejects
     expect(mod.getSyncWriteFailed()).toBe(true);
-    expect(seen).toEqual([{ failed: true, discarded: false }]);
+    expect(seen).toEqual([
+      { failed: true, discarded: false, secretSaveRefused: false },
+    ]);
     // The blob was still kept locally, so a retry is possible.
     expect(await markerOf(await storage.getItem(SYNC_KEY))).toBe('A');
 
@@ -249,8 +251,8 @@ describe('chrome.storage.sync persist adapter', () => {
     expect(retried).toBe(true);
     expect(mod.getSyncWriteFailed()).toBe(false);
     expect(seen).toEqual([
-      { failed: true, discarded: false },
-      { failed: false, discarded: false },
+      { failed: true, discarded: false, secretSaveRefused: false },
+      { failed: false, discarded: false, secretSaveRefused: false },
     ]);
     // The retry really wrote the sealed blob — tag intact (still ours, so its
     // echo is not mistaken for a remote change), secrets already blanked.

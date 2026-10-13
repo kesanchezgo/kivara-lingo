@@ -105,8 +105,11 @@ async function fetchOnce(
   // 120 s ceiling on the whole transfer: the EN→EN pack (127 MB) needs more
   // than 8.5 Mbit/s just to survive it, so slow-but-working connections were
   // aborted mid-stream and every retry restarted from byte 0. The whole body
-  // is bounded by the inactivity timer below, re-armed on every chunk.
+  // is unbounded only until the first gap, after which the inactivity window
+  // below re-arms on every chunk received.
   const headerTimer = setTimeout(() => controller.abort(), headerTimeoutMs);
+  // Recorded so the catch can say WHICH clock fired (see the abort message).
+  let staleFired = false;
 
   try {
     const response = await fetch(url, {
@@ -117,6 +120,10 @@ async function fetchOnce(
     clearTimeout(headerTimer);
 
     if (!response.ok) {
+      // Release the connection BEFORE the caller retries: a 5xx body nobody
+      // reads stays attached until GC, and the retry then waits on a socket
+      // the client still considers busy on its side.
+      void response.body?.cancel().catch(() => {});
       throw new FetchHttpError(response.status, response.statusText);
     }
 
@@ -143,6 +150,7 @@ async function fetchOnce(
     const armStaleTimer = () => {
       if (staleTimer) clearTimeout(staleTimer);
       staleTimer = setTimeout(() => {
+        staleFired = true;
         controller.abort();
         idleReject?.();
       }, staleTimeoutMs);
@@ -187,8 +195,15 @@ async function fetchOnce(
     return merged.buffer;
   } catch (err) {
     if ((err as { name?: string })?.name === 'AbortError') {
+      // The original message from a bare `abort()` is "signal is aborted
+      // without reason", which told the user nothing about which clock fired.
+      // Both cases are named, and the idle one points at the connection
+      // rather than at the request.
+      const stalled = staleFired;
       throw new FetchAbortedError(
-        `La descarga se agotó (${Math.round(headerTimeoutMs / 1000)}s sin respuesta del servidor o sin actividad).`,
+        stalled
+          ? `La descarga se detuvo: el servidor dejó de enviar datos durante más de ${Math.round(staleTimeoutMs / 1000)} s. Comprueba la conexión y vuelve a intentarlo.`
+          : `El servidor no respondió en ${Math.round(headerTimeoutMs / 1000)} s. Vuelve a intentarlo.`,
       );
     }
     throw err;

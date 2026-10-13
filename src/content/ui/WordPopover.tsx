@@ -275,6 +275,9 @@ function useResolveWord(
     return () => {
       closed = true;
       stream.close();
+      // A pronunciation that outlives its own word: the popover unmounts on
+      // the next hover, and the audio kept playing over the NEW card.
+      stopPronunciation();
     };
   }, [token, sentence, sourceLang, includeAi]);
 
@@ -1100,6 +1103,29 @@ type PronunciationSource = { url: string; source?: string | null };
  *    the failure toast-attached catch fall straight to the synthetic voice.
  *    A 404 on Cambridge should not cost the user the Forvo recording.
  */
+/**
+ * The pronunciation currently playing, and a token that identifies the CHAIN
+ * it belongs to. Two quick clicks on "pronounce" used to start two `Audio`
+ * objects; the first one kept going after the second started, so the word
+ * came out twice and overlapping. A module-scope token also makes the late
+ * `onExhausted` from a superseded chain a no-op — otherwise a stale failure
+ * fell through to the synthetic voice while a real recording was already
+ * playing.
+ */
+let activePronunciation: HTMLAudioElement | null = null;
+let chainToken = 0;
+
+function stopPronunciation(): void {
+  chainToken += 1;
+  const audio = activePronunciation;
+  activePronunciation = null;
+  try {
+    audio?.pause();
+  } catch {
+    /* no-op */
+  }
+}
+
 function playPronunciation(
   ordered: PronunciationSource[],
   onExhausted: () => void,
@@ -1108,23 +1134,32 @@ function playPronunciation(
     onExhausted();
     return;
   }
-  const [head, ...rest] = ordered;
-  const audio = new Audio();
-  audio.src = head.url;
-  audio.play().catch(() => {
-    // Ignore the failures of an older attempt already in flight: only the
-    // LAST url in the chain gets to call `onExhausted`.
-    try {
-      audio.pause();
-    } catch {
-      /* no-op */
+  // Supersede whatever was playing, then claim the new token.
+  stopPronunciation();
+  const mine = ++chainToken;
+
+  const attempt = (candidates: PronunciationSource[]) => {
+    if (candidates.length === 0) {
+      // Still ours? A newer press has taken over, and its chain is the one
+      // that decides what happens next.
+      if (mine === chainToken) onExhausted();
+      return;
     }
-    if (rest.length === 0) {
-      onExhausted();
-    } else {
-      playPronunciation(rest, onExhausted);
-    }
-  });
+    const [head, ...rest] = candidates;
+    const audio = new Audio();
+    activePronunciation = audio;
+    audio.src = head.url;
+    audio.play().catch(() => {
+      if (mine !== chainToken) return;
+      try {
+        audio.pause();
+      } catch {
+        /* no-op */
+      }
+      attempt(rest);
+    });
+  };
+  attempt(ordered);
 }
 
 function SkeletonLine({ width }: { width: string }) {

@@ -5,6 +5,7 @@ import { speakViaOffscreen } from './audio-capture-manager';
 import { getAiSettings } from './ai-enrich';
 import { DEFAULT_TTS, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
 import { resolveSecret } from '../shared/secret-store';
+import { readBytesBounded } from '../shared/net-guard';
 
 /** Read the persisted TTS settings from chrome.storage.sync. Decrypts
  *  the ElevenLabs API key transparently. */
@@ -93,25 +94,13 @@ async function withBodyDeadline<T>(
   read: () => Promise<T>,
   timeoutMs: number,
 ): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  try {
-    return await Promise.race([
-      read(),
-      new Promise<never>((_resolve, reject) => {
-        timer = setTimeout(
-          () => reject(new Error(`body read exceeded ${Math.round(timeoutMs / 1000)} s`)),
-          timeoutMs,
-        );
-      }),
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-    try {
-      void resp.body?.cancel();
-    } catch {
-      /* already consumed or closed */
-    }
-  }
+  // `read` is no longer used: the blob is produced through the shared reader,
+  // which is the only variant that can cancel the stream on expiry. The
+  // parameter stays so the call sites keep reading the same way.
+  void read;
+  const bytes = new Uint8Array(await readBytesBounded(resp, timeoutMs, 'TTS body'));
+  const blob = new Blob([bytes], { type: resp.headers.get('content-type') ?? 'audio/mpeg' });
+  return blob as unknown as T;
 }
 
 function blobToDataUrl(blob: Blob): Promise<string> {

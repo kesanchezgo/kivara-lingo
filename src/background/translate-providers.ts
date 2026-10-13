@@ -1,6 +1,7 @@
 /// <reference types="chrome" />
 
 import type { TranslateProvider, TranslateSettings } from '../shared/types';
+import { assertPublicHttpUrl, readBodyBounded } from '../shared/net-guard';
 
 export interface ProviderResult {
   ok: true;
@@ -23,40 +24,23 @@ export interface ProviderError {
 const TIMEOUT_MS = 5000;
 
 /**
- * Read a response body under its own deadline, as text.
+ * Read a response body under its own deadline and parse it.
  *
  * `withTimeout` clears its clock in `finally`, i.e. the moment the headers
- * land — every `res.json()` below was therefore unbounded. A provider that
- * answers with headers and then stalls the body pinned the translation call
- * until Chrome killed the worker. On expiry the body is CANCELLED, which is
- * what breaks the pending read; aborting the fetch's controller cannot, since
- * the stream is already handed over.
+ * land — every `res.json()` below was therefore unbounded. The race against a
+ * hand-rolled `res.text()` that this used before could not cancel anything
+ * (the body is marked used the instant `text()` starts, so `cancel()` was
+ * always on a locked stream: a rejected promise nobody handled). The shared
+ * reader owns its handles, so expiry cancels for real and a stalled handshake
+ * is fatal instead of being silently retried from the same dead connection.
  */
 async function readBounded<JSONLike>(
   res: Response,
   parse: (text: string) => JSONLike,
   what = 'body',
 ): Promise<JSONLike> {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  try {
-    const text = await Promise.race([
-      res.text(),
-      new Promise<never>((_resolve, reject) => {
-        timer = setTimeout(
-          () => reject(new Error(`${what} read exceeded ${Math.round(TIMEOUT_MS / 1000)} s`)),
-          TIMEOUT_MS,
-        );
-      }),
-    ]);
-    return parse(text);
-  } finally {
-    if (timer) clearTimeout(timer);
-    try {
-      void res.body?.cancel();
-    } catch {
-      /* consumed or already closed */
-    }
-  }
+  const text = await readBodyBounded(res, TIMEOUT_MS, what);
+  return parse(text);
 }
 
 /** Where the response must land: the origin that was asked for. */

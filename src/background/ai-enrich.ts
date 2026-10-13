@@ -1,6 +1,6 @@
 /// <reference types="chrome" />
 
-import { DEFAULT_AI, DEFAULT_TRANSLATE, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
+import { DEFAULT_AI, DEFAULT_TRANSLATE, PERSIST_STORE_KEY as STORE_KEY, liveAiModel } from '../shared/store';
 import { aiCacheKey, getDB } from '../shared/db';
 import { normalizeTtlDays } from '../shared/cache-ttl';
 import type {
@@ -25,7 +25,11 @@ async function loadAiSettings(): Promise<AiSettings> {
     const parsed = JSON.parse(value);
     const ai = parsed?.state?.ai ?? parsed?.ai;
     if (ai && typeof ai === 'object') {
-      const merged: AiSettings = { ...DEFAULT_AI, ...ai };
+      // Same rule the persist `merge` applies, here because this path reads
+      // the snapshot directly and never goes through it: a profile that never
+      // took the migration still handed `gemini-1.5-flash` to an API that
+      // answers 404 on every call.
+      const merged: AiSettings = { ...DEFAULT_AI, ...liveAiModel(ai as { model?: string }) };
       // Secrets live in local slots now (see secret-store.ts): resolveSecret
       // reads + decrypts the slot, falls back to the legacy blob value, and
       // returns '' when unreadable so we never send `enc:v1:` to a provider.

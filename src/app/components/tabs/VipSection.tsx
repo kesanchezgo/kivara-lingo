@@ -61,10 +61,10 @@ const STD_AUDIO_SOURCES: SourceMeta[] = [
 ];
 
 const STD_IMAGE_SOURCES: SourceMeta[] = [
-  { key: 'bingImages', label: 'Bing Images', hint: t('vip.ddgImagesDesc') },
+  { key: 'bingImages', label: 'Bing Images', hint: t('vip.bingImagesDesc') },
   { key: 'openverse', label: 'Openverse', hint: t('vip.openverseDesc') },
   { key: 'wikimediaCommons', label: 'Wikimedia Commons', hint: t('vip.commonsDesc') },
-  { key: 'duckduckgoImages', label: 'DuckDuckGo Images', hint: t('vip.bingImagesDesc') },
+  { key: 'duckduckgoImages', label: 'DuckDuckGo Images', hint: t('vip.ddgImagesDesc') },
 ];
 
 const STD_ETY_VIDEO: SourceMeta[] = [

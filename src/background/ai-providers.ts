@@ -1,5 +1,4 @@
-/// <reference types="chrome" />
-
+import { assertPublicHttpUrl, readBodyBounded } from '../shared/net-guard';
 import type {
   AiEnrichRequest,
   AiEnrichment,
@@ -42,39 +41,24 @@ function withTimeout(
 }
 
 /**
- * Read a response body under its own deadline and return the TEXT.
+ * Thin alias over `net-guard.readBodyBounded`, kept so each call site reads
+ * with its own deadline and its own reason string.
  *
- * `withTimeout`'s clock stops when the headers arrive, so every
- * `resp.json()` below used to be unbounded: a provider that answered with
- * headers and then stalled the body pinned the call until Chrome killed the
- * worker (no toast, no error). On expiry this cancels the body, which is what
- * actually breaks the pending read — aborting the fetch's controller cannot,
- * since the stream has already been handed over.
+ * `withTimeout`'s clock stops when the headers arrive, so every `resp.json()`
+ * below used to be unbounded: a provider that answered with headers and then
+ * stalled the body pinned the call until Chrome killed the worker, with no
+ * toast and no error. The guard reads through a reader it owns, so on expiry
+ * it can `cancel()` the stream — an abort on the fetch's controller cannot,
+ * because the stream was already handed over, and `cancel()` on a body a
+ * pending `text()` still holds is exactly the "Uncaught (in promise)" line
+ * the previous shape produced.
  */
 async function readBounded(
   resp: Response,
   timeoutMs: number,
   what: string,
 ): Promise<string> {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  try {
-    return await Promise.race([
-      resp.text(),
-      new Promise<never>((_resolve, reject) => {
-        timer = setTimeout(
-          () => reject(new Error(`${what} exceeded ${Math.round(timeoutMs / 1000)} s`)),
-          timeoutMs,
-        );
-      }),
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-    try {
-      void resp.body?.cancel();
-    } catch {
-      /* consumed or already closed */
-    }
-  }
+  return readBodyBounded(resp, timeoutMs, what);
 }
 
 /**

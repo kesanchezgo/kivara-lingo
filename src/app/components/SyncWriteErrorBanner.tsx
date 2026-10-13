@@ -14,16 +14,48 @@
  * edits a remote change already replaced (not retryable — only explanatory).
  */
 import { useSyncExternalStore } from 'react';
-import { RefreshCw, X } from 'lucide-react';
+import { ShieldAlert, RefreshCw, X } from 'lucide-react';
 import { t } from '../../shared/i18n';
-import { getSyncWriteStatus, subscribeSyncWriteStatus, retrySyncWrite, dismissSyncDiscarded } from '../../shared/store';
+import {
+  getSyncWriteStatus,
+  subscribeSyncWriteStatus,
+  retrySyncWrite,
+  dismissSyncDiscarded,
+  dismissSecretSaveRefused,
+} from '../../shared/store';
 
 export function SyncWriteErrorBanner({ compact = false }: { compact?: boolean }) {
   const status = useSyncExternalStore(
     subscribeSyncWriteStatus,
     getSyncWriteStatus,
-    () => ({ failed: false, discarded: false }),
+    () => ({ failed: false, discarded: false, secretSaveRefused: false }),
   );
+  // A REFUSED save outranks everything else: the credential the user just
+  // typed is in memory only, and the alternative to telling them is letting
+  // them believe it saved and reload the page into a silent break.
+  if (status.secretSaveRefused) {
+    return (
+      <div
+        role="alert"
+        className={
+          compact
+            ? 'flex items-start gap-1.5 rounded-lg border border-rose-200/80 dark:border-rose-500/30 bg-rose-50/70 dark:bg-rose-500/10 px-2.5 py-1.5 text-[10.5px] leading-snug text-rose-800 dark:text-rose-300'
+            : 'flex items-start gap-2 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/70 dark:bg-rose-500/10 px-3 py-2 text-[11px] leading-snug text-rose-800 dark:text-rose-300'
+        }
+      >
+        <ShieldAlert size={13} className="shrink-0 mt-px" />
+        <span className="flex-1 min-w-0">{t('storage.secretSaveRefused')}</span>
+        <button
+          type="button"
+          onClick={() => dismissSecretSaveRefused()}
+          title={t('storage.syncDismiss')}
+          className="shrink-0 p-1 rounded-md text-rose-600 dark:text-rose-300 hover:bg-rose-100/70 dark:hover:bg-rose-500/15 transition-colors"
+        >
+          <X size={11} />
+        </button>
+      </div>
+    );
+  }
   // Discarded outranks failed: a remote change consumed the pending blob, so
   // a retry would send nothing — only the explanation is left.
   if (status.discarded) {

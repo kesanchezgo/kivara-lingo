@@ -1,5 +1,16 @@
 import { SubtitleSource, SubtitleCue, CueListener } from './types';
 
+/** Small order-sensitive string hash. Only used to fold the cue text into the
+ *  cue identity so a caption that GROWS changes it; not a cryptographic value. */
+function hashText(text: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
 export function attachGenericHtml5(video: HTMLVideoElement): SubtitleSource {
   const listeners: CueListener[] = [];
   let currentActiveCue: SubtitleCue | null = null;
@@ -29,11 +40,12 @@ export function attachGenericHtml5(video: HTMLVideoElement): SubtitleSource {
         return;
       }
       currentActiveCue = {
-        // STABLE id: derived from the cue window, never `Math.random()`. A
-        // per-change random id made every cue a NEW object to the overlay —
-        // hover state reset and the translation was re-requested for a line
-        // that had not changed at all.
-        id: `${firstStart}-${lastEnd}`,
+        // STABLE id derived from the cue window AND the text: the window
+        // alone does not change when a player ADDS a cue to the current
+        // window (a two-line caption arriving as two VTTCues with the same
+        // start/end), so the identity looked unchanged while the rendered
+        // line had actually grown — and the hover/translate state went stale.
+        id: `${firstStart}-${lastEnd}-${hashText(texts.join('\n'))}`,
         start: firstStart,
         end: lastEnd,
         text: texts.join('\n'),

@@ -529,7 +529,14 @@ async function handleNavigation() {
     // Without this, a stale adapter was mounted over the current one — the
     // exact "two adapters on the same <video>" window the queue exists to
     // prevent, reproduced from the wrong side of the await.
-    if (gen !== readMountGen()) return;
+    if (gen !== readMountGen()) {
+      // The adapter we just built attaches a cuechange listener, a poll and
+      // (on YouTube) a style node. Returning without destroying it leaked all
+      // of that per superseded navigation: every replaced navigation left one
+      // dead adapter listening on a <video> nobody renders.
+      adapter?.destroy?.();
+      return;
+    }
     // SPA navigated to a different video — drop any subtitle tracks the bus
     // cached from the previous one. Without this, the dual-caption lookup
     // would happily return cues from video A while we're watching video B

@@ -45,6 +45,9 @@ export function Onboarding() {
   const [direction, setDirection] = useState<1 | -1>(1);
   /** Last ping request issued, so a late reply from a superseded one is dropped. */
   const pingIdRef = useRef(0);
+  /** Last field-list request issued — the same idea, per model switch. */
+  const fieldIdRef = useRef(0);
+  const fieldQueueId = () => ++fieldIdRef.current;
   const [ping, setPing] = useState<{ status: 'idle' | 'pinging' | 'ok' | 'error'; version?: number; error?: string }>({ status: 'idle' });
   const [decks, setDecks] = useState<string[] | null>(null);
   const [models, setModels] = useState<string[] | null>(null);
@@ -103,16 +106,21 @@ export function Onboarding() {
     }
   }
 
-  async function loadFields(modelName: string) {
+  async function loadFields(modelName: string, afterQueueId = fieldIdRef.current) {
+    const id = fieldQueueId();
     setBusy(true);
     try {
       const r = (await sendMessage('ANKI_FIELDS', { url, apiKey, modelName }, 'background')) as AnkiFieldsResponse;
+      // Tagged, like the pings: the user switches model while the field list
+      // for the previous one is still in flight, and the stale reply set
+      // `modelName` BACK to a model they had already moved away from.
+      if (id !== fieldIdRef.current) return;
       if (r.fields?.length) {
         setFields(r.fields);
         // FUNCTIONAL update: this runs after an await, and `ankiMapping` was
         // captured when the effect started. Spreading the captured object
-        // wrote back every edit the user made in between (deck name, another
-        // mapping) — the same trap `CardsTab` avoids by writing `(prev) =>`.
+        // wrote back every edit the user made in between — the same trap
+        // `CardsTab` avoids with `(prev) =>`.
         setAnkiMapping((prev) => ({
           ...prev,
           modelName,
@@ -122,10 +130,15 @@ export function Onboarding() {
         setFields([]);
       }
     } catch (err) {
+      if (id !== fieldIdRef.current) return;
       setFields([]);
       setPing({ status: 'error', error: err instanceof Error ? err.message : 'unknown' });
     } finally {
-      setBusy(false);
+      // Only the LATEST queued request owns the busy flag: the earlier one
+      // used to clear it while the newer one was still running, so the button
+      // looked idle while the wrong field list was being fetched.
+      if (id === fieldIdRef.current) setBusy(false);
+      void afterQueueId;
     }
   }
 

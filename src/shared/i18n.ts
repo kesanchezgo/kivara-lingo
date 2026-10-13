@@ -49,6 +49,7 @@ const es: Dict = {
   'key.hideTitle': 'Ocultar',
 
   // ── storage failures ─────────────────────────────────────────────────
+  'storage.secretSaveRefused': 'No se pudo cifrar tu API key, así que no se guardó (quedó solo en esta pestaña). Comprueba que el navegador permita WebCrypto y vuelve a guardarla.',
   'storage.syncWriteFailed': 'No se pudo guardar en chrome.storage.sync (cuota llena o sincronización desactivada). Los ajustes se conservan solo en este dispositivo: libera espacio o vuelve a activar la sincronización de Chrome.',
   'storage.syncRetry': 'Reintentar guardado',
   'storage.syncDiscarded': 'Los cambios que no llegaron a sincronizarse en este dispositivo se reemplazaron por los de otro dispositivo.',
@@ -368,6 +369,7 @@ const es: Dict = {
   'set.providerLibreTranslate': 'LibreTranslate',
   'set.providerDeepl': 'DeepL',
   'set.providerGoogleCloud': 'Google Cloud Translate',
+  'onb.aiDictsOnly': 'Solo diccionarios',
   'onb.dictsOffline': 'Diccionarios sin conexión',
   'onb.learning': 'Aprendo',
   'onb.nativeLang': 'Nativo',
@@ -713,6 +715,7 @@ const en: Dict = {
   'key.showTitle': 'Show what is typed',
   'key.hideTitle': 'Hide',
 
+  'storage.secretSaveRefused': 'Your API key could not be encrypted, so it was not saved (it lives in this tab only). Check that the browser allows WebCrypto and save it again.',
   'storage.syncWriteFailed': 'Could not write to chrome.storage.sync (quota full or sync turned off). Settings are kept on this device only — free up space or turn Chrome sync back on.',
   'storage.syncRetry': 'Retry save',
   'storage.syncDiscarded': 'Changes that never reached sync on this device were replaced by another device.',
@@ -1029,6 +1032,7 @@ const en: Dict = {
   'set.providerLibreTranslate': 'LibreTranslate',
   'set.providerDeepl': 'DeepL',
   'set.providerGoogleCloud': 'Google Cloud Translate',
+  'onb.aiDictsOnly': 'Dictionaries only',
   'onb.dictsOffline': 'Offline dictionaries',
   'onb.learning': 'Learning',
   'onb.nativeLang': 'Native',
