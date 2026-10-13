@@ -162,6 +162,9 @@ export function SidePanel({
   const [position, setPosition] = useState<PanelPosition>(() =>
     clampPosition(persistedPosition ?? defaultPopupPosition()),
   );
+  /** Raw mirror of `position`, readable from an event handler without
+   *  reaching through a setState updater (see the mouseup persistence). */
+  const positionRef = useRef<PanelPosition>(position);
   const [isDragging, setIsDragging] = useState(false);
   const dragStateRef = useRef<{
     startX: number;
@@ -230,15 +233,19 @@ export function SidePanel({
         top: start.originTop + (e.clientY - start.startY),
       });
       setPosition(next);
+      // The mirror ref makes the raw value readable from an event handler
+      // (mouseup) without going through a setState updater — see onUp.
+      positionRef.current = next;
     };
     const onUp = () => {
       setIsDragging(false);
       dragStateRef.current = null;
       // Persist only on drop so chrome.storage isn't hammered with writes.
-      setPosition((p) => {
-        setPersistedPosition(p);
-        return p;
-      });
+      // The write happens OUTSIDE the updater: a setState callback must be
+      // pure, and React is free to invoke it twice (StrictMode, a replayed
+      // render) — which would double-write the position on every drop.
+      const final = positionRef.current;
+      if (final) setPersistedPosition(final);
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
@@ -325,7 +332,7 @@ export function SidePanel({
               <button
                 onClick={onClose}
                 className="p-1.5 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"
-                title="Cerrar panel"
+                title={t('panel.closeTitle')}
               >
                 <X size={16} />
               </button>

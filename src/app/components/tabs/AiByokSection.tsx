@@ -271,7 +271,7 @@ export function AiByokSection() {
                     }}
                     className="sl-select w-full"
                   >
-                    <option value="">— Selecciona un modelo —</option>
+                    <option value="">{t("ai.selectModel")}</option>
                     {presets.map((m) => (
                       <option key={m.value} value={m.value}>
                         {m.label} · {m.tag}

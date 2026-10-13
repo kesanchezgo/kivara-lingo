@@ -159,7 +159,7 @@ Extensión de navegador que se monta sobre reproductores de streaming y conviert
 | Necesidad | API | Detalles |
 |---|---|---|
 | Inyectar UI sobre la página | `content_scripts` + **Shadow DOM** | El Shadow DOM aísla los estilos del CSS de Netflix/YouTube. Renderizar React dentro de un host shadow. |
-| Capturar audio de la pestaña | `chrome.tabCapture.capture()` | Devuelve un `MediaStream`. Solo funciona si la pestaña tiene el foco y el usuario activa la extensión. |
+| Capturar audio de la pestaña | `chrome.tabCapture.getMediaStreamId` | Devuelve un `MediaStream` por pestaña. Requiere que el usuario invoque la extensión (clic en el icono) o un atajo: `activeTab` + `tabCapture` compran esa autorización, y la captura "silenciosa" no existe. |
 | Capturar frame del video | `<video>.captureStream()` + `OffscreenCanvas` | Dibujar el frame y exportar como `Blob` PNG. Más barato que `chrome.tabs.captureVisibleTab` (que captura toda la pestaña). |
 | Inyectar JS en el contexto MAIN | `content_scripts` con `world: 'MAIN'` | Sin el permiso `scripting`: el manifiesto declara un content script aparte con `world: "MAIN"` y `run_at: "document_start"`, así no hace falta `chrome.scripting.executeScript`. |
 | Storage de settings | `chrome.storage.sync` (≤100KB) | Para preferencias del usuario. Sincroniza entre dispositivos. |
@@ -280,7 +280,7 @@ El manifest real vive en [manifest.json](manifest.json) y es la unica fuente de 
 | host_permissions | 18 entradas | Streaming + Anki en loopback (127.0.0.1, localhost, [::1]). Diccionarios y APIs van en optional_host_permissions (78) y se conceden a demanda. |
 | declarativeNetRequestWithHostAccess | - | Reescribe el origen de AnkiConnect a un puerto propio; la regla se limita con initiatorDomains a la propia extension. |
 | web_accessible_resources | src/assets/dictionaries/* | Acotado a los 6 hosts de streaming a proposito, no all_urls: asi la CSP y la politica de la tienda no lo objetan. |
-| commands | 6 | save_word (Ctrl+Shift+S / Cmd+Shift+S), save_word_alt (sin suggested_key, porque Chrome limita a 4), toggle_subtitles (Alt+C), repeat_cue (Alt+R), recapture_frame (sin suggested_key; Alt+V se configura en la pagina), toggle_panel (Alt+K). Todos con clave mac. |
+| commands | 6 | save_word (Ctrl+Shift+S / Cmd+Shift+S), save_word_alt (sin `suggested_key`, porque Chrome limita a 4), toggle_subtitles (Alt+C), repeat_cue (Alt+R), recapture_frame (sin `suggested_key`; Alt+V se configura en la pagina), toggle_panel (Alt+K). Clave `mac` presente en save_word, toggle_subtitles, repeat_cue y toggle_panel; `recapture_frame` y `save_word_alt` se enlazan sin ella. |
 
 **Notas criticas:**
 
@@ -467,7 +467,7 @@ await chrome.offscreen.createDocument({
 });
 ```
 
-**WAV vs MP3:** la implementación actual emite WAV PCM 16 kHz mono. AnkiConnect lo acepta sin problema y es la forma canónica de PCM de la extensión. Convertir a MP3 requeriría una dependencia adicional (`lamejs`) que se ha evitado intencionalmente — el WAV ronda los ~32 kB/seg, suficientemente compacto para tarjetas de 2-5 s. Ver `audio-encoder.ts` para el header RIFF escrito a mano.
+**WAV vs MP3:** la implementación usa **MP3 por defecto** (`encodeMp3Mono` con `@breezystack/lamejs`) y cae a WAV PCM 16 kHz mono si el cargador falla. El WAV sigue siendo la forma canónica de PCM de la extensión; ver `audio-encoder.ts` para el header RIFF escrito a mano y `offscreen/audio-processor.ts` para el trato del fallo de carga.
 
 ### 8.3 Voice Activity Detection (VAD)
 
@@ -598,7 +598,7 @@ Nueva capa opcional implementada en Bloques 1-3. Vive en `src/background/ai-prov
 
 ### 9.7 Popover progresivo — 3 oleadas
 
-Nuevo mensaje `RESOLVE_WORD` (`src/shared/messages.ts` + `protocol.d.ts`) que el SW resuelve secuencialmente y devuelve como array `ResolveWordWave[]`:
+Nuevo mensaje `RESOLVE_WORD`, enviado vía `webext-bridge` (no hay `src/shared/messages.ts`: la mensajería es tipada por ese paquete y por `protocol.d.ts`, que sí existe), que el SW resuelve secuencialmente y devuelve como array `ResolveWordWave[]`:
 
 1. **Oleada local** (`stage: 'local'`): `lookupDictionary(token, sourceLang)` — instantánea, no requiere red.
 2. **Oleada remota** (`stage: 'remote'`): si la oleada local devolvió `null`, se invoca `translateText()` (DeepL/Google/LibreTranslate/offline según settings). Cache hit → ~10 ms; miss → ~200-400 ms.
@@ -1001,17 +1001,16 @@ La AI anterior dejó cuatro entregas diferidas. Estado actualizado:
 | **Conversión a MP3** | ⚠️ Sustituido por **WAV PCM 16 kHz mono** (sin nuevas deps) | `src/offscreen/audio-encoder.ts` |
 | **Fallback TTS por SpeechSynthesis** | ✅ Implementado (chrome.tts → offscreen SpeechSynthesis) | `src/offscreen/tts-fallback.ts`, `src/background/tts.ts::speak` |
 
-**Sobre la sustitución MP3 → WAV:** la decisión de no introducir `lamejs` (~75 kB minified) viene del requisito "sin dependencias nuevas". WAV PCM 16 kHz mono:
+**Sobre MP3 y WAV:** `@breezystack/lamejs` sí está en el árbol y el clip por defecto es MP3 (≈10× más pequeño); WAV PCM 16 kHz mono es el fallo-seguro cuando no se puede cargar el codificador.
 
-- Es lo que consume el clip de Anki — evita una doble conversión.
+- Es lo que consume el clip de Anki como fallo-seguro; el camino normal es MP3 con `encodeMp3Mono` (`@breezystack/lamejs`), misma firma que `encodeWavMono`.
 - AnkiConnect acepta `wav` igual que `mp3` (`storeMediaFile` no impone formato).
-- 32 kB/segundo · 3s típicos por cue = ~96 kB por tarjeta. Para una colección de 5000 tarjetas, ~480 MB — aceptable.
-- Si el usuario necesita MP3 más adelante, basta con añadir `lamejs` y un `encodeMp3Mono` al lado de `encodeWavMono` con la misma firma.
+- WAV: 32 kB/segundo · 3s típicos por cue = ~96 kB por tarjeta. MP3 a 64 kbps: ~24 kB por tarjeta.
 
 **Cambios estructurales que habilitan la Fase 3:**
 
-- `offscreen/audio-processor.ts` reescrito para multiplexar tres consumidores del offscreen document: rolling-buffer (USER_MEDIA), TTS playback (AUDIO_PLAYBACK), ASR (compute). Refcount en `audio-capture-manager.ts` para no cerrar el offscreen mientras una transcripción sigue corriendo.
-- Nueva ruta `TRANSCRIBE_AUDIO_CLIP` (content/popup → SW → offscreen) en `messages.ts` + `protocol.d.ts` + service worker handler.
+- `offscreen/audio-processor.ts` reescrito para multiplexar tres consumidores del offscreen document: rolling-buffer (USER_MEDIA), TTS playback (AUDIO_PLAYBACK) y compute. Refcount en `audio-capture-manager.ts` para no cerrar el offscreen mientras una tarea sigue corriendo.
+- La ruta `TRANSCRIBE_AUDIO_CLIP` y su entrada en `src/shared/messages.ts`/`protocol.d.ts` **ya no existen**: el ASR se retiró (§9.5). La mensajería vive en `webext-bridge` y no en esos archivos.
 - `capture-orchestrator.ts` ahora respeta `captureSettings.preRoll`, `postRoll` y `endDetect` (`vad` | `cue`) en todas las invocaciones, incluyendo el reintento de notas pendientes.
 - `extForMime` actualizado para devolver `wav` cuando el offscreen entrega audio en ese formato.
 

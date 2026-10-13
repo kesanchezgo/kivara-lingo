@@ -949,19 +949,19 @@ export function WordPopover({
                 )}
                 {resolved.ai.collocations.length > 0 && (
                   <div>
-                    <span className="text-zinc-500">Colocaciones: </span>
+                    <span className="text-zinc-500">{t('wp.collocations')}: </span>
                     {resolved.ai.collocations.join(', ')}
                   </div>
                 )}
                 {resolved.ai.nuancedTranslation && (
                   <div>
-                    <span className="text-zinc-500">Matiz: </span>
+                    <span className="text-zinc-500">{t('wp.nuance')}: </span>
                     {resolved.ai.nuancedTranslation}
                   </div>
                 )}
                 {resolved.ai.register && (
                   <div>
-                    <span className="text-zinc-500">Registro: </span>
+                    <span className="text-zinc-500">{t('wp.register')}: </span>
                     {resolved.ai.register}
                   </div>
                 )}
@@ -1039,14 +1039,14 @@ export function WordPopover({
         <div className="flex items-stretch border-t border-zinc-800/60 bg-zinc-900/40">
           <PopoverAction
             icon={<BookOpen size={11} />}
-            label="Definir"
+            label={t('wp.define')}
             href={defineUrl}
-            title="Abrir en Cambridge / WordReference"
+            title={t('wp.openInDictionary')}
           />
           <PopoverDivider />
           <PopoverAction
             icon={<Search size={11} />}
-            label="Buscar"
+            label={t('wp.search')}
             href={searchUrl}
             title={t('popover.searchGoogleTitle')}
           />
@@ -1144,7 +1144,7 @@ function SkeletonLine({ width }: { width: string }) {
  */
 function LoadingCard({ hasSentence }: { hasSentence: boolean }) {
   return (
-    <div className="space-y-2.5 py-0.5" aria-busy="true" aria-label="Cargando">
+    <div className="space-y-2.5 py-0.5" aria-busy="true" aria-label={t('wp.loading')}>
       {/* translation line */}
       <SkeletonLine width="60%" />
       {/* bilingual / pos line */}

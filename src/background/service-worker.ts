@@ -47,27 +47,13 @@ import { installResolveWordPort } from './enrichment/stream';
 import { clearEnrichmentCache, clearMemEnrichmentCache } from './enrichment/orchestrator';
 
 /** Deep-link section for OPEN_SETTINGS (see the handler below). */
-const OPEN_SETTINGS_SECTION_KEY = 'kivara:open-settings-section';
+import { dbg, dbgOnce } from '../shared/debug-log';
+
 import { getCacheStats, clearCaches } from './cache-admin';
 import { listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';
 import { t } from '../shared/i18n';
 import { fetchGuarded, validateDictPackInstallRequest } from '../shared/net-guard';
-
-/**
- * Debug logging, off unless the user turns it on. The flag lives in
- * `chrome.storage.local` under `kivaraDebug` (written by the options page);
- * a production build ships silent, and nothing here prints a key or a full
- * secret. `console.warn` / `console.error` calls stay unconditional — they
- * are failures, not chatter.
- */
-let DEBUG = false;
-chrome.storage.local.get({ kivaraDebug: false }).then((v) => {
-  DEBUG = Boolean((v as { kivaraDebug?: boolean }).kivaraDebug);
-});
-
-function dbg(...args: unknown[]): void {
-  if (DEBUG) console.log(...args);
-}
+const OPEN_SETTINGS_SECTION_KEY = 'kivara:open-settings-section';
 
 const RETRY_ALARM = 'kivara-lingo-retry-pending';
 const OFFSCREEN_KEEPALIVE_ALARM = 'kivara-lingo-offscreen-keepalive';

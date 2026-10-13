@@ -52,7 +52,7 @@ export function AIStep({
 
   return (
     <StepSection
-      title="Enriquecimiento IA (opcional)"
+      title={t('onb.aiEnrichmentOptional')}
       subtitle={t('onb.aiStepDesc')}
     >
       {/* Provider tiles */}
@@ -123,7 +123,7 @@ export function AIStep({
                     onChange={(e) => setAiModel(e.target.value)}
                     className="sl-select sl-lg w-full font-mono"
                   >
-                    <option value="">— Selecciona un modelo —</option>
+                    <option value="">{t("ai.selectModel")}</option>
                     {opts.map((m) => (
                       <option key={m.value} value={m.value}>{m.label} · {m.tag}</option>
                     ))}
@@ -139,7 +139,7 @@ export function AIStep({
           </div>
           <div className="p-4">
             <ToggleRow
-              label="Enriquecer al guardar"
+              label={t("ai.enrichOnSave")}
               description={t('onb.enrichOnSaveDesc')}
               on={aiEnrichOnSave}
               onChange={setAiEnrichOnSave}

@@ -88,7 +88,24 @@ export function SubtitleOverlay({
   // (SPA navigation, panel closed) each one fires `setState` on a tree React
   // has already torn down — a warning per cue, and on a streaming tab that
   // remounts constantly it is a steady stream of them.
-  const restoreTimersRef = useRef<number[]>([]);
+/**
+ * Timers the component must cancel if it unmounts first.
+ *
+ * A fixed array would grow without bound: every save pushes one, every copy
+ * pushes one, and a long session with Anki open pushes hundreds. The two
+ * nested capture timers are self-limiting, so a small ring with a hard cap
+ * is enough — and the unmount cleanup drains it.
+ */
+const RESTORE_TIMER_CAPACITY = 32;
+
+const restoreTimersRef = useRef<number[]>([]);
+function trackRestoreTimer(id: number): void {
+  const ring = restoreTimersRef.current;
+  ring.push(id);
+  // Drop the oldest beyond capacity. Those timers are already elapsed by
+  // then (0.2–2 s), so dropping one is a no-op for correctness.
+  if (ring.length > RESTORE_TIMER_CAPACITY) ring.splice(0, ring.length - RESTORE_TIMER_CAPACITY);
+}
   const wordHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Tracks the *dictionary key* of the currently hovered token so the Alt /
   // Ctrl+Shift+S handlers can act on the actual word/MWE. Kept in sync with
@@ -160,14 +177,16 @@ export function SubtitleOverlay({
     };
     const up = (e: KeyboardEvent) => {
       if (e.key !== 'Alt') return;
-      setAltExpandedKey((prev) => {
-        if (prev !== null) {
-          e.preventDefault();
-          // Re-set the hover to the MWE key so the next Alt press finds it
-          hoveredKeyRef.current = prev;
-        }
-        return null;
-      });
+      // Called OUTSIDE the updater on purpose. A `setState(prev => { … })`
+      // callback must be pure: React may invoke it twice (StrictMode, a
+      // re-render replay), which runs the `preventDefault` it contains
+      // against an event that has already been default-prevented.
+      if (altExpandedKey !== null) {
+        e.preventDefault();
+        // Re-set the hover to the MWE key so the next Alt press finds it
+        hoveredKeyRef.current = altExpandedKey;
+      }
+      setAltExpandedKey(null);
     };
     const blur = () => setAltExpandedKey(null);
     const visibility = () => {
@@ -184,7 +203,9 @@ export function SubtitleOverlay({
       window.removeEventListener('blur', blur);
       document.removeEventListener('visibilitychange', visibility);
     };
-  }, [expandedMWEs]);
+    // `altExpandedKey` is read from the closure (see the note in `up`), so
+    // the handler has to be re-registered when it changes.
+  }, [expandedMWEs, altExpandedKey]);
 
   const effectiveExpanded = useMemo(() => {
     if (!altExpandedKey) return expandedMWEs;
@@ -425,9 +446,9 @@ export function SubtitleOverlay({
       const first = window.setTimeout(() => {
         setCaptureState('audio');
         const second = window.setTimeout(() => setCaptureState('idle'), 900);
-        restoreTimersRef.current.push(second);
+        trackRestoreTimer(second);
       }, 220);
-      restoreTimersRef.current.push(first);
+      trackRestoreTimer(first);
       // Await the save before marking the word green. The overlay used
       // to mutate `savedTokens` unconditionally, which marked the word
       // "saved" even when Anki was down and every addNote had failed —
@@ -484,7 +505,7 @@ export function SubtitleOverlay({
     }
     setCopied(true);
     const id = window.setTimeout(() => setCopied(false), 2000);
-    restoreTimersRef.current.push(id);
+    trackRestoreTimer(id);
   };
 
   if (!cue || !targetSentence.trim()) return null;
@@ -544,7 +565,7 @@ export function SubtitleOverlay({
             className="bg-amber-500/15 backdrop-blur-md text-amber-200 text-[11px] font-medium px-2 py-1 rounded-full shadow-lg flex items-center gap-1 hover:bg-amber-500/25 transition-colors border border-amber-400/30"
             title={t('overlay.rejoinAllTitle')}
           >
-            <Link2 size={11} /> Unir expresiones
+            <Link2 size={11} /> {t('ovl.joinMwe')}
           </button>
         )}
         <button
@@ -600,7 +621,7 @@ export function SubtitleOverlay({
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-1.5">
                 <span className="text-white text-xs font-semibold">{t('overlay.captureAudio')}</span>
-                <span className="text-[9px] uppercase tracking-wider font-bold text-indigo-300 bg-indigo-500/20 px-1.5 py-0.5 rounded">VAD</span>
+                <span className="text-[9px] uppercase tracking-wider font-bold text-indigo-300 bg-indigo-500/20 px-1.5 py-0.5 rounded">{t('ovl.vad')}</span>
               </div>
               <div className="flex gap-[3px] items-end h-3">
                 {[0.5, 1, 0.7, 0.4, 0.85, 0.6, 0.9, 0.5].map((h, i) => (
@@ -704,7 +725,7 @@ export function SubtitleOverlay({
               isHovered && hoveredId === null ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0 pointer-events-none'
             }`}
           >
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500 px-2">Frase</span>
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500 px-2">{t('ovl.phrase')}</span>
             <div className="w-px h-3.5 bg-zinc-700/80" />
             <button
               tabIndex={-1}
@@ -739,7 +760,7 @@ export function SubtitleOverlay({
               className="flex items-center gap-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-medium px-2 py-1 rounded transition-colors"
               title={t('overlay.saveSentenceTitle')}
             >
-              <Quote size={11} /> Guardar frase
+              <Quote size={11} /> {t('ovl.savePhrase')}
             </button>
             <div className="w-px h-3.5 bg-zinc-700/80" />
             <span className="text-[9px] text-zinc-500 px-2 hidden sm:flex items-center gap-1">

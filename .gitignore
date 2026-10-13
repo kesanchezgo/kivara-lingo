@@ -97,8 +97,14 @@ yarn.lock
 postman/
 .postman/
 
+# Lint reports (regenerable via `pnpm lint:report`)
+lint-report.json
+
 # Regenerable runtime audit JSONs (evidence snapshots; fixtures/ ARE tracked for tests)
 docs/reports/runtime/*.json
+
+# Probe runs — regenerable diagnostics produced by `pnpm test:probe`
+docs/reports/**/*probe*.json
 
 # Private agent workspace prompt (not project code)
 AGENTS.md

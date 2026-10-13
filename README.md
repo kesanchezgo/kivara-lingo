@@ -111,7 +111,7 @@ Datos bundled que viajan con la extensión (chunk dictionary ~2.3 MB tras el tri
 | Asset | Entradas | Qué aporta |
 |---|---:|---|
 | `en.json` | 4 151 | Traducción, bilingüe, monolingüe, IPA, nivel, ejemplos |
-| `en-extensions.json` | 357 | Phrasals, idioms, cognados |
+| `en-extensions.json` | 362 | Phrasals, idioms, cognados |
 | `en-cefr.json` | 4 951 | Nivel CEFR (A2–C2) |
 | `en-idioms.json` | 1 614 HOT | Idioms NTC de uso frecuente en subtítulos (trim 2026-10-07; COLD 12.7k como candidatas lazy-load) |
 | `en.json` (MWEs) | 150 | MWEs curados |
@@ -121,15 +121,17 @@ Datos bundled que viajan con la extensión (chunk dictionary ~2.3 MB tras el tri
 | `en-mwe-index.json` | 13 501 | Índice de frases Wiktionary (idioms + phrasals + proverbs) |
 | Curado propio | 7 verbos | Pares verbo-objeto offline (`run fast`, `forget your keys`, `know the answer`…) |
 
-### Standard (24 fuentes, siempre activo, sin clave)
+### Standard (siempre activo, sin clave)
 
-Free Dictionary API · Datamuse · Wiktionary REST · **Wiktionary HTML** (etimología + sinónimos + antónimos + términos relacionados, con fallback phrasal) · WiktionaryAPI (freedictionaryapi.com) · WiktAPI · Britannica Dictionary · Moby Thesaurus · **Thesaurus.com** (antónimos para sustantivos técnicos/abstractos) · **WordHippo** (antónimos para MWEs/phrasals/idioms) · **The Idioms** (etimología de idioms) · Etymonline · Tatoeba · Lingua Libre · Google TTS · Bing Images · Openverse · Wikimedia Commons · DuckDuckGo Images · YouGlish · MyMemory · Lingva · Bundled · Yomitan packs · WordNet
+Free Dictionary API · Datamuse · Wiktionary REST · **Wiktionary HTML** (etimología + sinónimos + antónimos + términos relacionados, con fallback phrasal) · WiktionaryAPI (freedictionaryapi.com) · WiktAPI · Moby Thesaurus · **Thesaurus.com** (antónimos para sustantivos técnicos/abstractos) · **WordHippo** (antónimos para MWEs/phrasals/idioms) · **The Idioms** (etimología de idioms) · Etymonline · Tatoeba · Lingua Libre · Google TTS (solo la palabra) · Bing Images · Openverse · Wikimedia Commons · DuckDuckGo Images · YouGlish · Bundled · Yomitan packs · WordNet
+
+> El número exacto de fuentes vive en `SOURCE_TIERS` (`src/background/enrichment/source-tiers.ts`), no en este párrafo: MyMemory y Lingva son traductores, no fuentes de enriquecimiento, y Britannica Dictionary es editorial con gate VIP.
 
 **Cobertura medida (corpus 15 tokens × 2 tiers, 30 tarjetas, 0 errores, 2026-10-07):** Standard traducción/definición/ejemplos 15/15, IPA 13/15 (15/15 con packs), syn 9/15, coll 7/15; VIP syn 10/15, coll 8/15, ant 7/15. Vacío controlado donde toca (slang, determinantes, técnico sin antónimo). Ver `docs/reports/final-quality/enrichment-final-2026-10-07.md`.
 
-### VIP (17 fuentes + 1 reserva, toggle en Settings)
+### VIP (toggle en Settings; BYOK donde se indica)
 
-Cambridge · Oxford Learner's · Longman · Dictionary.com (reemplaza al toggle legacy `collins`) · Merriam-Webster · Merriam-Webster Thesaurus · Ozdic (Oxford Collocations) · PONS · bab.la · dict.cc · Reverso · Linguee · PROMT.One Contexts · WordReference · SpanishDict · Forvo · **Unsplash (BYOK)** · **Pixabay (BYOK opcional)**
+Cambridge · Oxford Learner's · Longman · Dictionary.com (reemplaza al toggle legacy `collins`) · Merriam-Webster · Merriam-Webster Thesaurus · Ozdic (Oxford Collocations) · PONS · bab.la · dict.cc · Reverso · Linguee · PROMT.One Contexts · WordReference · SpanishDict · Forvo · **Britannica Dictionary** (editorial) · **Unsplash (BYOK)** · **Pixabay (BYOK opcional)**
 
 > Nota: el toggle `oxfordCollocations` es un pack local (no fuente de red) y hoy resuelve a `null` — queda como reserva para un futuro pack dedicado.
 

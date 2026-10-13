@@ -6,25 +6,10 @@ import type { SubtitleSource } from './platform-adapters/types';
 import type { Mount as OverlayMount } from './fullscreen-overlay-core';
 import { useKivaraStore } from '../shared/store';
 import { clearBus, reprocessLastDashManifest } from './platform-adapters/intercepted-bus';
+import { dbg, dbgOnce } from '../shared/debug-log';
 import { bumpMountGen, enqueueMount, readMountGen } from './mount-queue';
 import { setYomitanHeadwords } from './nlp/yomitan-headwords';
 import { updateOverlayParent, type RestoreState } from './fullscreen-overlay-core';
-
-/**
- * Debug logging, off unless `kivaraDebug` is set in local storage by the
- * options page. A production build ships silent.
- */
-let DEBUG = false;
-try {
-  chrome.storage.local.get({ kivaraDebug: false }).then((v) => {
-    DEBUG = Boolean((v as { kivaraDebug?: boolean }).kivaraDebug);
-  });
-} catch {
-  // storage unavailable (non-extension context, tests) — stay silent
-}
-function dbg(...args: unknown[]): void {
-  if (DEBUG) console.log(...args);
-}
 
 /**
  * Hydrate the in-memory headword cache used by the tokenizer so words

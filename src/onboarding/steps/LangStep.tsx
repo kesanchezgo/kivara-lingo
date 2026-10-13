@@ -44,7 +44,7 @@ export function LangStep({
       <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
         <SlotCard
           icon={<GraduationCap size={13} />}
-          label="Aprendo"
+          label={t('onb.learning')}
           lang={learning}
           active={activeSlot === 'source'}
           accent="indigo"
@@ -53,14 +53,14 @@ export function LangStep({
         <button
           type="button"
           onClick={swap}
-          title="Intercambiar idiomas"
+          title={t('onb.swapLangs')}
           className="self-center w-9 h-9 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:shadow-md hover:shadow-indigo-500/10 transition-all flex items-center justify-center active:scale-95"
         >
           <ArrowLeftRight size={14} />
         </button>
         <SlotCard
           icon={<Languages size={13} />}
-          label="Nativo"
+          label={t('onb.nativeLang')}
           lang={native}
           active={activeSlot === 'target'}
           accent="emerald"
@@ -101,12 +101,12 @@ export function LangStep({
               {/* Role badges in the corner — quietly show both assignments */}
               <div className="absolute top-1.5 right-1.5 flex gap-0.5">
                 {isLearning && (
-                  <span title="Aprendo" className="w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+                  <span title={t('onb.learning')} className="w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-sm">
                     <GraduationCap size={9} strokeWidth={2.5} />
                   </span>
                 )}
                 {isNative && (
-                  <span title="Nativo" className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                  <span title={t('onb.nativeLang')} className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-sm">
                     <Languages size={9} strokeWidth={2.5} />
                   </span>
                 )}

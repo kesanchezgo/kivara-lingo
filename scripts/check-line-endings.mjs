@@ -17,7 +17,7 @@
  *   node scripts/check-line-endings.mjs
  */
 
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 
 const ROOT = process.cwd();
 
@@ -26,42 +26,96 @@ const SKIP = /(^|\/)(node_modules|dist|test-results|coverage)\//;
 /**
  * Generated corpora, out of scope.
  *
- * `src/assets/**` comes from `npm run dict:build` / the wordnet and MWE
- * converters: their writers decide the trailing byte, and the convention being
- * enforced here is about files a person edits. Touching 34 multi-megabyte
- * blobs to append one byte would swamp every future diff for no user value.
+ *  - `src/assets/**` comes from `npm run dict:build` / the wordnet and MWE
+ *    converters: their writers decide the trailing byte, and the convention
+ *    being enforced here is about files a person edits. Touching 34
+ *    multi-megabyte blobs to append one byte would swamp every future diff
+ *    for no user value.
+ *  - `docs/reports/**` is the audit and probe output (the corpus tools write
+ *    it, nobody hand-edits it) — same reasoning. They are also ~11 MB of
+ *    history; re-stamping byte one of every file would be pure diff noise.
+ *
  * If the generators ever bother to emit it, this list gets shorter.
  */
-const GENERATED = /^src\/assets\//;
+const GENERATED = /^(src\/assets\/|docs\/reports\/)/;
 
-const out = execFileSync('git', ['ls-files', '--eol'], {
+/**
+ * Read `git ls-files -s`: `mode sha stage\t<path>`, filtered to tracked text
+ * files. The `-text` marker comes from `--eol`, which we cannot mix into
+ * `-s`, so the two listings are joined on path.
+ */
+const staged = execFileSync('git', ['ls-files', '-s'], {
   cwd: ROOT,
   encoding: 'utf8',
   maxBuffer: 64 * 1024 * 1024,
 });
 
+const eol = execFileSync('git', ['ls-files', '--eol'], {
+  cwd: ROOT,
+  encoding: 'utf8',
+  maxBuffer: 64 * 1024 * 1024,
+});
+
+/** path → true when Git stores it as binary (no line-ending convention). */
+const binary = new Set();
+for (const line of eol.split('\n')) {
+  const m = /^i\/([-\w]+)\s+w\/([-\w]+)\s+attr\/(\S*)\s+(.*)$/.exec(line);
+  if (!m) continue;
+  if (m[3].includes('-text')) binary.add(m[4]);
+}
+
+/** Shas for the text files we care about, in `git cat-file --batch` order. */
+const blobs = [];
+for (const line of staged.split('\n')) {
+  const m = /^(\d+) ([0-9a-f]+) \d\t(.*)$/.exec(line);
+  if (!m) continue;
+  const path = m[3];
+  if (SKIP.test(path) || GENERATED.test(path) || binary.has(path)) continue;
+  blobs.push({ sha: m[2], path });
+}
+
+/**
+ * Read every blob in ONE `git cat-file --batch`.
+ *
+ * This is the point of the whole rewrite: `git ls-files --eol` reports `i/lf`
+ * for a multi-line file that is missing its FINAL newline — the byte is simply
+ * not part of any line ending, so the eol column says nothing about it. The
+ * old version of this script therefore could not see the very defect it was
+ * written for. Reading the stored blob and checking its LAST byte is what
+ * actually detects it, and the same pass catches a stored CRLF (`\r\n`) that
+ * `autocrlf` would otherwise normalise silently on stage.
+ */
+const batch = spawnSync('git', ['cat-file', '--batch'], {
+  cwd: ROOT,
+  input: Buffer.from(blobs.map((b) => b.sha).join('\n') + '\n', 'utf8'),
+  maxBuffer: 1024 * 1024 * 1024,
+});
+
 const offenders = [];
-let checked = 0;
-
-for (const line of out.split('\n')) {
-  // `i/<eol> w/<eol> attr/<attrs> <tab> <path>`, or `i/-text` for binary.
-  const match = /^i\/([-\w]+)\s+w\/([-\w]+)\s+attr\/(\S*)\s+(.*)$/.exec(line);
-  if (!match) continue;
-  const [, indexEol, , attrs, rel] = match;
-  if (SKIP.test(rel)) continue;
-  if (GENERATED.test(rel)) continue;
-  if (attrs.includes('-text')) continue; // Binary: no line-ending convention.
-
-  checked += 1;
-  // The stored bytes. `i/crlf` and `i/mixed` are real violations; `i/none`
-  // means the blob has no final newline, which `.editorconfig` forbids.
-  if (indexEol === 'crlf' || indexEol === 'mixed') {
-    offenders.push(`${rel}: stored as ${indexEol.toUpperCase()} (expected LF)`);
-  } else if (indexEol === 'none') {
-    offenders.push(`${rel}: no final newline`);
+let cursor = 0;
+const out = batch.stdout;
+/** Byte offsets must be read in latin1 so each byte is one character. */
+const text = out.toString('latin1');
+for (let i = 0; i < blobs.length; i += 1) {
+  const { sha, path } = blobs[i];
+  const headerEnd = text.indexOf('\n', cursor);
+  if (headerEnd === -1) break;
+  const header = text.slice(cursor, headerEnd);
+  const [, size] = / (\d+)\n?$/.exec(header) ?? [];
+  if (size === undefined) {
+    cursor = headerEnd + 1;
+    continue; // missing blob — reported by git itself
   }
-  // `w/crlf` is normal here and NOT reported: autocrlf converts back on commit,
-  // so the working tree is not where the convention lives.
+  const start = headerEnd + 1;
+  const bytes = out.subarray(start, start + Number(size));
+  cursor = start + Number(size) + 1; // trailing LF after the payload
+  if (bytes.length === 0) continue;
+  const lastByte = bytes[bytes.length - 1];
+  if (lastByte !== 0x0a) {
+    offenders.push(`${path}: no final newline`);
+  } else if (bytes.includes(0x0d)) {
+    offenders.push(`${path}: stored CR (CRLF) inside an LF blob`);
+  }
 }
 
 if (offenders.length) {
@@ -73,4 +127,4 @@ if (offenders.length) {
   process.exit(1);
 }
 
-console.log(`line-endings: ${checked} tracked text files clean (LF, one final newline).`);
+console.log(`line-endings: ${blobs.length} tracked text files clean (LF, one final newline).`);

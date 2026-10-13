@@ -202,7 +202,7 @@ export function SettingsTab({
           {/* audioSource removed (audit #11, part 2): nothing in background
               or content reads capture.audioSource — the segmented control
               was a no-op UI. */}
-          <Row label="Buffer rolling" value={`${bufferSize}s`} hint={t('set.bufferDesc')}>
+          <Row label={t('set.rollingBuffer')} value={`${bufferSize}s`} hint={t('set.bufferDesc')}>
             <input
               type="range" min={10} max={60} step={5} value={bufferSize}
               onChange={(e) => setBufferSize(Number(e.target.value))}
@@ -275,7 +275,7 @@ export function SettingsTab({
           onToggle={() => toggle('translate')}
           description={t('set.translateDesc')}
         >
-          <Row label="Modo" hint={translate.mode === 'chain' ? t('set.chainHint') : t('set.singleHint')}>
+          <Row label={t('set.mode')} hint={translate.mode === 'chain' ? t('set.chainHint') : t('set.singleHint')}>
             <SegmentedControl
               options={[{ v: 'chain', l: t('set.chain') }, { v: 'single', l: t('set.single') }]}
               value={translate.mode}
@@ -285,7 +285,7 @@ export function SettingsTab({
 
           {translate.mode === 'chain' && (
             <>
-              <Row label="Nivel free (MyMemory, Lingva)">
+              <Row label={t('set.tierFree')}>
                 <Toggle
                   on={translate.tiersEnabled.free}
                   onChange={(v) =>
@@ -296,7 +296,7 @@ export function SettingsTab({
                   }
                 />
               </Row>
-              <Row label="Nivel premium (DeepL, Google…)">
+              <Row label={t('set.tierPremium')}>
                 <Toggle
                   on={translate.tiersEnabled.premium}
                   onChange={(v) =>
@@ -310,7 +310,7 @@ export function SettingsTab({
             </>
           )}
           {translate.mode === 'single' && (
-            <Row label="Proveedor">
+            <Row label={t('set.provider')}>
               <select
                 value={translate.provider}
                 onChange={(e) => {
@@ -322,7 +322,7 @@ export function SettingsTab({
                 }}
                 className="sl-select w-full"
               >
-                <option value="offline">Offline (diccionario local)</option>
+                <option value="offline">{t("set.providerOffline")}</option>
                 <option value="mymemory">MyMemory (free)</option>
                 <option value="lingva">Lingva (free)</option>
                 <option value="libretranslate">LibreTranslate</option>
@@ -338,7 +338,7 @@ export function SettingsTab({
             open={isOpen('translate-tokens')}
             onToggle={() => toggle('translate-tokens')}
           >
-            <Row label="MyMemory email (opcional)">
+            <Row label={t('set.mymemoryEmail')}>
               <input
                 type="email"
                 value={translate.myMemoryEmail}
@@ -347,7 +347,7 @@ export function SettingsTab({
                 className="sl-input w-full"
               />
             </Row>
-            <Row label="Lingva URL">
+            <Row label={t('set.lingvaUrl')}>
               <input
                 type="text"
                 value={translate.lingvaUrl}
@@ -356,7 +356,7 @@ export function SettingsTab({
                 className="sl-input sl-mono w-full"
               />
             </Row>
-            <Row label="DeepL API key">
+            <Row label={t('set.deeplKey')}>
               <SecretKeyInput
                 stored={translate.deeplToken}
                 onChange={(v) => setTranslate({ ...translate, deeplToken: v })}
@@ -365,7 +365,7 @@ export function SettingsTab({
                 field="deeplToken"
               />
             </Row>
-            <Row label="Google Cloud API key">
+            <Row label={t('set.googleCloudKey')}>
               <SecretKeyInput
                 stored={translate.googleToken}
                 onChange={(v) => setTranslate({ ...translate, googleToken: v })}
@@ -374,7 +374,7 @@ export function SettingsTab({
                 field="googleToken"
               />
             </Row>
-            <Row label="LibreTranslate URL">
+            <Row label={t('set.libreTranslateUrl')}>
               <input
                 type="text"
                 value={translate.libreTranslateUrl}
@@ -383,7 +383,7 @@ export function SettingsTab({
                 className="sl-input sl-mono w-full"
               />
             </Row>
-            <Row label="LibreTranslate key">
+            <Row label={t('set.libreTranslateKey')}>
               <SecretKeyInput
                 stored={translate.libreTranslateToken}
                 onChange={(v) => setTranslate({ ...translate, libreTranslateToken: v })}
@@ -459,7 +459,7 @@ export function SettingsTab({
           onToggle={() => toggle('tts')}
           description={t('set.ttsDesc')}
         >
-          <Row label="Proveedor">
+          <Row label={t('set.provider')}>
             <select
               value={tts.provider}
               onChange={(e) => {
@@ -478,7 +478,7 @@ export function SettingsTab({
           </Row>
           {(tts.provider === 'auto' || tts.provider === 'elevenlabs') && (
             <>
-              <Row label="ElevenLabs · API key">
+              <Row label={t('set.elevenLabsKey')}>
                 <SecretKeyInput
                   stored={tts.elevenLabsApiKey}
                   onChange={(v) => setTts({ ...tts, elevenLabsApiKey: v })}
@@ -487,7 +487,7 @@ export function SettingsTab({
                   field="elevenLabsApiKey"
                 />
               </Row>
-              <Row label="ElevenLabs · Voice ID">
+              <Row label={t('set.elevenLabsVoiceId')}>
                 <input
                   type="text"
                   value={tts.elevenLabsVoiceId}
@@ -496,15 +496,15 @@ export function SettingsTab({
                   className="sl-input w-full"
                 />
               </Row>
-              <Row label="ElevenLabs · Modelo">
+              <Row label={t('set.elevenLabsModel')}>
                 <select
                   value={tts.elevenLabsModelId}
                   onChange={(e) => setTts({ ...tts, elevenLabsModelId: e.target.value })}
                   className="sl-select w-full"
                 >
-                  <option value="eleven_multilingual_v2">eleven_multilingual_v2 (29 idiomas)</option>
+                  <option value="eleven_multilingual_v2">{t("set.elevenMultilingual")}</option>
                   <option value="eleven_turbo_v2_5">{t('set.ttsModelCheap')}</option>
-                  <option value="eleven_monolingual_v1">eleven_monolingual_v1 (solo EN)</option>
+                  <option value="eleven_monolingual_v1">{t("set.elevenMonolingual")}</option>
                 </select>
               </Row>
             </>

@@ -365,7 +365,7 @@ export function Popup() {
             <span className={`text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ${
               enabled ? 'bg-white/15 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500'
             }`}>
-              {enabled ? 'ON' : 'OFF'}
+              {enabled ? t('popup.on') : t('popup.off')}
             </span>
           </button>
 

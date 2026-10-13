@@ -20,7 +20,6 @@ function src(id: string): EnrichmentSource {
   return {
     id,
     label: id,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     enrich: async () => ({}) as never,
   } as unknown as EnrichmentSource;
 }

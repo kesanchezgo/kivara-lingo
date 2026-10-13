@@ -29,7 +29,7 @@ export function MappingStep({
 }: MappingStepProps) {
   return (
     <StepSection
-      title="Mazo, modelo y campos"
+      title={t('onb.deckModelFields')}
       subtitle={t('onb.deckStepDesc')}
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

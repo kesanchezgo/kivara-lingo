@@ -36,9 +36,9 @@ export function ShortcutEditor({ compact = false }: ShortcutEditorProps) {
             type="button"
             onClick={() => { resetAll(); setWarning(null); }}
             className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 inline-flex items-center gap-1 transition-colors"
-            title={t('key.resetAllTitle')}
+            title={t('sc.resetAllLabel')}
           >
-            <RotateCcw size={10} /> Reset
+            <RotateCcw size={10} /> {t('sc.resetLabel')}
           </button>
         </div>
       )}
@@ -87,7 +87,7 @@ export function ShortcutEditor({ compact = false }: ShortcutEditorProps) {
                   const conflict = findConflict(combo, def.id);
                   if (conflict) {
                     const other = SHORTCUT_DEFS.find((s) => s.id === conflict)?.label ?? conflict;
-                    setWarning({ id: def.id, msg: `Ya usado por "${other}"` });
+                    setWarning({ id: def.id, msg: t('sc.alreadyUsedBy', { other }) });
                     setCapturingId(null);
                     return;
                   }
@@ -103,7 +103,7 @@ export function ShortcutEditor({ compact = false }: ShortcutEditorProps) {
                   type="button"
                   onClick={() => { resetOne(def.id); setWarning(null); }}
                   className="text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors shrink-0"
-                  title={`Restaurar a ${def.defaultCombo}`}
+                  title={t('sc.restoreTo', { combo: def.defaultCombo })}
                 >
                   <RotateCcw size={11} />
                 </button>

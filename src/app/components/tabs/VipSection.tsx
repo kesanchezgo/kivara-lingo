@@ -152,7 +152,7 @@ export function VipSection() {
         <ul className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-snug space-y-0.5 ml-1">
           <li>• Dict. curado (4 151 entradas) + extensiones</li>
           <li>• Oxford 3000/5000 CEFR (4 950 niveles A2/B2)</li>
-          <li>• Phrasal Academic Lexicon (672 frases)</li>
+          <li>• {t("vip.phrasalAcademicNote")}</li>
           <li>• Academic Collocation List (2 469 chunks)</li>
           <li>{t('vip.fernaldLine')}</li>
         </ul>
@@ -409,7 +409,7 @@ function CacheManager() {
       </div>
 
       {buckets === null ? (
-        <div className="text-[10.5px] text-zinc-500 italic">Cargando…</div>
+        <div className="text-[10.5px] text-zinc-500 italic">{t("common.loading")}</div>
       ) : total === 0 ? (
         <div className="text-[10.5px] text-zinc-500 italic">{t('vip.cacheEmpty')}</div>
       ) : (
@@ -440,7 +440,7 @@ function CacheManager() {
       ) : (
         <div className="space-y-1.5">
           <div className="text-[10.5px] text-amber-700 dark:text-amber-400 leading-snug">
-            {t('vip.clearCacheWarn')}<strong className="font-medium"> No</strong> {t('vip.clearCacheSafePost')}</div>
+            {t('vip.clearCacheWarn')}<strong className="font-medium"> {t('common.no')}</strong> {t('vip.clearCacheSafePost')}</div>
           <div className="flex gap-1.5">
             <button
               type="button"

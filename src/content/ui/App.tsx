@@ -9,6 +9,7 @@ import { applyCleanupCss } from './cleanup-css';
 import { useKivaraStore } from '../../shared/store';
 import { captureFrame, captureBestFrame } from '../capture/frame';
 import { comboFromEvent, normalizeCombo, readManifestCombos } from '../../shared/shortcuts';
+import { dbgOnce } from '../../shared/debug-log';
 import { getShadowRoot, overKivaraZone } from '../shadow-host';
 import { eventPathIsEditable } from '../utils/keyboard';
 import type {
@@ -765,10 +766,11 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
           void video.play().catch(() => {});
         }
       } else {
-        // Custom combo that matches NO configured action (e.g. it equals
-        // another action's default the user moved away from): ignore loudly
-        // in dev instead of silently swallowing the keypress.
-        console.debug('[Kivara Lingo] unmapped custom combo:', combo);
+        // This branch is only reached when nothing matched, so it cannot
+        // double-report. One ping per genuinely-unmapped keypress — the same
+        // guard the service worker uses: still loud in dev, silent in a
+        // production build.
+        dbgOnce('[Kivara Lingo] unmapped custom combo:', combo);
       }
     };
     window.addEventListener('keydown', onKeyDown, true);

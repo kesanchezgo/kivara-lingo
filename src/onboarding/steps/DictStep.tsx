@@ -139,7 +139,7 @@ export function DictStep() {
 
   return (
     <StepSection
-      title="Diccionarios offline"
+      title={t('onb.dictsOffline')}
       subtitle={t('onb.recommendedPacks')}
     >
       <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/25 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-500/10 dark:to-zinc-900 p-4 flex gap-3">

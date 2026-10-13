@@ -313,7 +313,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
             />
           </Row>
 
-          <Row label={<span className="flex items-center gap-1"><Database size={10} className="text-zinc-400" />Mazo</span>}>
+          <Row label={<span className="flex items-center gap-1"><Database size={10} className="text-zinc-400" />{t("cards.deck")}</span>}>
             <select
               value={mapping.deckName}
               onChange={(e) => setMapping({ ...mapping, deckName: e.target.value })}
@@ -346,7 +346,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
           title={<>{t('cards.mappingTitle')} · <span className="font-mono normal-case">{mapping.modelName}</span></>}
           hint={
             <>
-              {t('cards.fieldEachStart')}<em>note type</em> {t('cards.fieldFillWith')}<strong>fuente</strong> {t('cards.fieldAutoDetect')}<span className="font-mono">word</span> → Palabra, <span className="font-mono">sentence audio</span> {t('cards.fieldNoMatch')}<em>Manual</em> {t('cards.fieldAssignSelf')}</>
+              {t('cards.fieldEachStart')}<em>note type</em> {t('cards.fieldFillWith')}<strong>{t('cards.fieldSource')}</strong> {t('cards.fieldAutoDetect')}<span className="font-mono">word</span> → {t('cards.fieldSourceWord')}, <span className="font-mono">sentence audio</span> {t('cards.fieldNoMatch')}<em>Manual</em> {t('cards.fieldAssignSelf')}</>
           }
           headerRight={
             <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-500">

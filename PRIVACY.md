@@ -38,8 +38,9 @@ Solo cuando el usuario dispara una función concreta:
      sustituye aquí (sí es un error audible y explicable, no un silencio).
    - **Pronunciación de la palabra suelta** — cuando diccionarios y
      ElevenLabs no devuelven una grabación humana, la extensión pide a
-     `translate.google.com/translate_tts` un MP3 de esa palabra. Es la
-     única petición a Google, y lleva solo la palabra, nunca la frase.
+     `translate.google.com/translate_tts` un MP3 de esa palabra. En la
+     pronunciación es la única petición a Google, y lleva solo la palabra,
+     nunca la frase (la traducción usa otros proveedores).
 
 ## Qué NO hace
 
@@ -93,7 +94,7 @@ Solo cuando el usuario dispara una función concreta:
 | `tabCapture` | Capturar el audio de la pestaña para los clips de las tarjetas. |
 | `activeTab` | Autorizar la captura de audio de la pestaña cuando el usuario invoca la extensión (atajo de teclado o clic en el icono). El audio se lee con `chrome.tabCapture.getMediaStreamId`; sin este permiso la extensión no puede acceder al stream de la pestaña. |
 | `offscreen` | Decodificar/recortar audio sin bloquear el service worker. |
-| `alarms` | Reintentar tarjetas pendientes. |
+| `alarms` | Dos trabajos en segundo plano: reintentar tarjetas pendientes y el keepalive del documento offscreen (para que Chrome no lo cierre a los 30 s mientras se graba audio). |
 | `tts` | Pronunciación cuando la API de audio falla. |
 | `declarativeNetRequestWithHostAccess` | Reescribir el origen de AnkiConnect en un puerto propio. La regla solo modifica peticiones iniciadas por la propia extensión (`initiatorDomains`), así que ninguna página puede aprovecharla; y el destino se limita a loopback. |
 | `host_permissions` (18) | Streaming (subtítulos) y AnkiConnect en loopback, incluido `[::1]` (IPv6 loopback, `http://[::1]:8765/*` y `http://[::1]/*`). Los diccionarios y las APIs de traducción NO están aquí: son `optional_host_permissions` concedidos a demanda. |

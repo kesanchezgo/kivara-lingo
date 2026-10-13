@@ -261,8 +261,11 @@ interface PackStatsDailyRow {
 - [ ] **Auto-detect ZIP vs Yomitan vs StarDict**: hoy el usuario elige por
       botón. Inspeccionar el contenido del ZIP (`index.json` → yomitan,
       `*.ifo` → stardict) y rutear automáticamente.
-- [ ] **i18n del panel**: todos los strings hoy están en español. Extraer a
-      `src/shared/i18n/<locale>.ts` y wire un selector EN/ES en options.
+- [x] **i18n del panel**: ~~todos los strings hoy están en español~~ Ya está
+      hecho: `src/shared/i18n.ts` con un diccionario ES y otro EN, el idioma se
+      detecta con `chrome.i18n.getUILanguage()` y el propio manifest está
+      localizado (`_locales/` + `__MSG_*__`). `tests/unit/i18n-no-literals.test.ts`
+      impide que vuelvan a aparecer cadenas en español fuera de los diccionarios.
 - [ ] **Mover backlog a issues de GitHub**: este `.md` está bien para una
       sesión continua, pero ítems individuales convienen como issues.
 
