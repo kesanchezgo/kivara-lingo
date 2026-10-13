@@ -467,7 +467,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     };
     // Only the adapter and the target language. `activeCue` is read
     // through `activeCueRef` so the 20 Hz interval is CREATED ONCE per
-    // mount, not re- Created on every cue boundary (the old deps carried
+    // mount, not recreated on every cue boundary (the old deps carried
     // `activeCue`, so Netflix/YouTube — one cue per second for the whole
     // movie — tore down and set up the interval a thousand times an
     // episode).

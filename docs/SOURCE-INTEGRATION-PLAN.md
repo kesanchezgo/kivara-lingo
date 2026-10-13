@@ -105,8 +105,12 @@ Goal: native audio when possible, reliable fallback otherwise.
 Target ranking:
 
 ```text
-Forvo / Oxford-Cambridge-Longman / FreeDictionary / LinguaLibre / Google TTS fallback
+Forvo / Oxford-Cambridge-Longman / FreeDictionary / LinguaLibre / Google TTS (single word only)
 ```
+
+Google TTS sits last in that chain and only speaks the isolated word — it
+never reads the sentence. Sentence and card audio goes to OpenAI or
+ElevenLabs with the user's own key.
 
 ## Integration gates
 

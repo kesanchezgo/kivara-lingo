@@ -190,16 +190,25 @@ describe('adapter lifecycle (#2/#3)', () => {
       language: 'en',
       hideNativeCss: '.player-timedtext { display: none }',
     });
+    const stylesAfterA1 = Array.from(document.querySelectorAll('style'));
     const a2 = createInterceptedAdapter({
       platform: 'netflix',
       language: 'en',
       hideNativeCss: '.player-timedtext { display: none }',
     });
     expect(document.querySelectorAll('style').length).toBe(before + 2);
+    // The node a2 owns: the one that appeared, not one of the pre-existing
+    // heads. Snapshot the live list so the assertion below is about a2's
+    // concrete element — `document.querySelector('style')` would happily
+    // answer about the FIRST style in the document, which is a false pass.
+    const a2Style = Array.from(document.querySelectorAll('style')).find(
+      (s) => !stylesAfterA1.includes(s),
+    );
+    expect(a2Style).toBeDefined();
 
     a1.destroy!();
     expect(document.querySelectorAll('style').length).toBe(before + 1);
-    expect(document.querySelector('style')!.isConnected).toBe(true);
+    expect(a2Style!.isConnected).toBe(true);
 
     a2.destroy!();
     expect(document.querySelectorAll('style').length).toBe(before);

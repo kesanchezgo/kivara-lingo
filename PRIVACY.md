@@ -38,8 +38,8 @@ Solo cuando el usuario dispara una función concreta:
      sustituye aquí (sí es un error audible y explicable, no un silencio).
    - **Pronunciación de la palabra suelta** — cuando diccionarios y
      ElevenLabs no devuelven una grabación humana, la extensión pide a
-     `translate.google.com/translate_tts` un MP3 de esa palabra — que es
-     la única ruta por la que una frase no viaja a Google.
+     `translate.google.com/translate_tts` un MP3 de esa palabra. Es la
+     única petición a Google, y lleva solo la palabra, nunca la frase.
 
 ## Qué NO hace
 

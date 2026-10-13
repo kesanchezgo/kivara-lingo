@@ -46,7 +46,9 @@ If the video is paused before cue end:
 If temporary playback fails:
 
 - preserve the user's paused position,
-- use sentence TTS fallback,
+- fall back to sentence TTS rendered from OpenAI or ElevenLabs with the
+  user's own API key (Google TTS pronounces only single words and never
+  the full sentence),
 - never save a silent or partial live clip as if it were correct.
 
 ## Field semantics for the default KivaraLingo model

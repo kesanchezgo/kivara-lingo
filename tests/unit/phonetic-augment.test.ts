@@ -49,9 +49,11 @@ type FetchPlan = FetchOk | FetchNotOk | { throws: Error };
 
 function mountFetch(plans: FetchPlan[]): { calls: string[]; restore: () => void } {
   const calls: string[] = [];
-  const original = globalThis.fetch;
   let i = 0;
-  globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+  // vi.stubGlobal, not a raw `globalThis.fetch =` swap: vitest.config now
+  // runs with `unstubGlobals: true`, which restores stubs between files
+  // and stops a leaked fetch mock from poisoning the next suite.
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
     calls.push(typeof input === 'string' ? input : input.toString());
     const plan = plans[i] ?? plans[plans.length - 1];
     i += 1;
@@ -64,11 +66,11 @@ function mountFetch(plans: FetchPlan[]): { calls: string[]; restore: () => void 
       status: 200,
       json: async () => plan.payload,
     } as Response;
-  }) as unknown as typeof fetch;
+  }));
   return {
     calls,
     restore: () => {
-      globalThis.fetch = original;
+      vi.unstubAllGlobals();
     },
   };
 }
@@ -244,9 +246,8 @@ describe('getMissingPhonetic', () => {
     const fetchPromise = new Promise<Response>((r) => {
       resolveFetch = r;
     });
-    const original = globalThis.fetch;
     const fetchSpy = vi.fn(() => fetchPromise);
-    globalThis.fetch = fetchSpy as unknown as typeof fetch;
+    vi.stubGlobal('fetch', fetchSpy);
     try {
       const a = getMissingPhonetic('coalesce', 'en');
       const b = getMissingPhonetic('coalesce', 'en');
@@ -262,7 +263,7 @@ describe('getMissingPhonetic', () => {
       expect(rc).toBe('/koʊ/');
       expect(fetchSpy).toHaveBeenCalledTimes(1);
     } finally {
-      globalThis.fetch = original;
+      vi.unstubAllGlobals();
     }
   });
 });
