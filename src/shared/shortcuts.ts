@@ -5,7 +5,7 @@
  * agree on the same combo for "Save card", "Toggle subtitles", etc. The IDs
  * map to (in order):
  *
- *  - `save`    — `save_word` chrome command (manifest.json), default Ctrl+S.
+ *  - `save`    — `save_word` chrome command (manifest.json), default Ctrl+Shift+S.
  *  - `toggle`  — `toggle_subtitles`, default Alt+C.
  *  - `replay`  — `repeat_cue`, default Alt+R.
  *  - `recap`   — `recapture_frame` command (manifest.json, NO suggested_key:

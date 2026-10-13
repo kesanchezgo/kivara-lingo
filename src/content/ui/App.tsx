@@ -590,22 +590,46 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   // User-customisable in-page hotkeys. The chrome.commands API can't be
   // re-bound programmatically, so the combos the user edits in SettingsTab
   // live in `store.shortcuts` and are honoured HERE via a capture-phase
-  // keydown listener. Manifest commands (Ctrl+S / Alt+C / Alt+R / Alt+K)
+  // keydown listener. Manifest commands (Ctrl+Shift+S / Alt+C / Alt+R / Alt+K)
   // still arrive as RUN_COMMAND messages below.
   //
   // Double-fire guard: we compare against the LIVE bindings from
-  // chrome.commands.getAll() (cached, refreshed on focus/visibilitychange),
-  // not a hardcoded default list — otherwise a user who remaps a manifest
-  // command in chrome://extensions to the same combo as their custom action
-  // gets both actions at once, and Mac Command+S vs Ctrl+S drift breaks the
-  // skip. The listener effect itself is registered ONCE (empty deps):
-  // activeCue/videoElement flow through refs so rebinding on every cue
-  // change can't stack duplicate listeners.
+  // `chrome.runtime.getManifest().commands` (cached into
+  // `manifestCombosRef` on mount, then refreshed from
+  // chrome.commands.getAll() via the SW's GET_COMMANDS). A hardcoded
+  // default drift decays: the manifest says `Ctrl+Shift+S`, not `Ctrl+S`,
+  // `Command+S` is not a canonical token (the right one is `Meta+S`).
+  // Missing `Ctrl+Shift+S` in the initial Set let a save fire twice per
+  // press — once from this handler and once via SW `RUN_COMMAND`.
   const activeCueRef = useRef(activeCue);
   activeCueRef.current = activeCue;
   const videoElementRef = useRef(videoElement);
   videoElementRef.current = videoElement;
-  const manifestCombosRef = useRef<Set<string>>(new Set(['Ctrl+S', 'Command+S', 'Alt+C', 'Alt+R', 'Alt+K']));
+  // Initialized from the REAL manifest commands rather than a finger-typed
+  // list: the text was wrong (`Command+S` is not a canonical form; the real
+  // name is `Meta+S`), AND it was missing `Ctrl+Shift+S` (which IS what the
+  // manifest actually ships for `save_word`). Until `GET_COMMANDS` fills
+  // this — the launch of a cold SW — a stub Set used to allow Ctrl+Shift+S
+  // through to the in-page handler, where the SW was ALSO receiving it via
+  // `chrome.commands` → `RUN_COMMAND`. Two cards created per save. Now the
+  // initial Set is what the manifest itself declares.
+  const initialManifestCombos = (() => {
+    const out = new Set<string>();
+    try {
+      const commands = (chrome.runtime.getManifest() as { commands?: Record<string, { suggested_key?: { default?: string } }> }).commands ?? {};
+      for (const def of Object.values(commands)) {
+        const key = def.suggested_key?.default;
+        if (key) out.add(normalizeCombo(key));
+      }
+    } catch {
+      // Fall back to what the SW also prints in Chrome's shortcut page.
+    }
+    // Even if the manifest somehow lacks it, these are the ones we know
+    // ship. normalizeCombo makes them canonical in both places.
+    for (const c of ['Ctrl+Shift+S', 'Alt+C', 'Alt+R', 'Alt+K']) out.add(normalizeCombo(c));
+    return out;
+  })();
+  const manifestCombosRef = useRef<Set<string>>(initialManifestCombos);
   useEffect(() => {
     let cancelled = false;
     let lastFetch = 0;
@@ -763,12 +787,17 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       // whole extension off. The toggle_panel is intentionally exempt
       // (it is the same `chrome.action` click path a user takes when
       // opening the preferences) but the other six commands are gated.
-      const COMMANDS_GATED_BY_ENABLED = new Set([
+      // Commands whose execution is gated by the `enabled` toggle.
+      // Module-level constant — the audit flagged it being rebuilt on
+      // every message. `repeat_phrase` is NOT in here because it is a
+      // legacy alias — `repeat_cue` is what the manifest actually
+      // declares.
+      const RUN_COMMANDS_GATED_BY_ENABLED = new Set([
         'save_word', 'save_word_alt',
-        'toggle_subtitles', 'repeat_cue', 'repeat_phrase',
+        'toggle_subtitles', 'repeat_cue',
         'recapture_frame',
       ]);
-      if (msg?.type === 'RUN_COMMAND' && COMMANDS_GATED_BY_ENABLED.has(msg.command ?? '')) {
+      if (msg?.type === 'RUN_COMMAND' && RUN_COMMANDS_GATED_BY_ENABLED.has(msg.command ?? '')) {
         if (!useKivaraStore.getState().enabled) return;
       }
       if (msg?.type === 'TOGGLE_PANEL') {
@@ -965,6 +994,13 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
           description: `${tokenValue} → ${ankiMapping.deckName}${warningSuffix}`,
           duration: 3200,
         });
+        // THIS WAS THE BUG: right after showing the success toast the
+        // function fell off the end and landed in the shared
+        // `return { ok: false, error: 'unhandled' }` — so every CREATED
+        // card appeared to the caller as a failure. In SubtitleOverlay's
+        // `handleSaveToken` that meant the token NEVER got the green
+        // "saved" highlight, because it only paints when result.ok is true.
+        return { ok: true, noteId: response.noteId, warnings: response.warnings };
       } else {
         toast.error(response?.error ?? t('app.ankiSaveError'), { id: saveToastId });
         return response ?? { ok: false, error: 'unknown' };
@@ -1006,9 +1042,21 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     // stay empty until something else (deck change, manual save) bumps
     // one of the other deps. Also captured here so handleSaveCard's
     // `ankiMapping` stays current after the user switches decks without
-    // requiring a save-tick event to trigger the refresh.
+    // deps kept EXPLICIT and CONTIGUOUS — a fix for the audit's #10:
+    // `initialSavedWords`, `ankiMapping`, `handleSaveCard`,
+    // `videoElement`, `adapter` and `ensureSubtitleAudioReady` were
+    // missing before, which meant: a new fetch resolved but the memo did
+    // NOT recompute, so the overlay kept showing the empty green-token
+    // state; `handleSaveCard` held on to the PREVIOUS ankiMapping
+    // closure and appended to the wrong deck until an unrelated event
+    // forced a refresh. `handleSaveCard` itself is `useCallback`-wrapped,
+    // so including it (and the functions it closes over) is safe.
     initialSavedWords,
     ankiMapping,
+    handleSaveCard,
+    videoElement,
+    adapter,
+    ensureSubtitleAudioReady,
     enabled,
     subtitlesVisible,
     isDarkMode,

@@ -5,8 +5,6 @@ export type {
   FieldSource,
   AnkiMapping,
   Mode,
-  AudioSource,
-  FrameMoment,
   EndDetect,
   CaptureSettings,
   CleanupSettings,

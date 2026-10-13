@@ -67,9 +67,10 @@ Solo cuando el usuario dispara una función concreta:
   propia. Lo que sí queda cerrado: URLs privadas literales, redirecciones a
   privado, y toda la ruta de paquetes de diccionario. Mitigarlo del todo
   exigiría un proxy de resolución; no está en el alcance.
-- **Lista de hosts**: el manifest declara 16 hosts fijos (streaming + Anki en
-  loopback) y los de diccionarios/APIs viven en `optional_host_permissions`
-  (80 grupos, uno por origen): no se solicitan hasta que el usuario activa la
+- **Lista de hosts**: el manifest declara 18 hosts fijos (streaming + Anki en
+  loopback, incluido `http://[::1]:8765/*` y `http://[::1]/*`) y los de
+  diccionarios/APIs viven en `optional_host_permissions`
+  (79 entradas, una por origen): no se solicitan hasta que el usuario activa la
   fuente o pulsa «Conceder» en Ajustes → Permisos, y se pueden revocar igual.
   Las URL de Anki se restringen además a loopback (ver más abajo).
 - **Telemetría**: se contabiliza en local (porcentaje de enriquecimiento que

@@ -53,9 +53,6 @@ export const DEFAULT_ANKI_MAPPING: AnkiMapping = {
 };
 
 export const DEFAULT_CAPTURE: CaptureSettings = {
-  autoMode: true,
-  audioSource: 'tab',
-  frameMoment: 'center',
   endDetect: 'vad',
   bufferSize: 30,
   preRoll: 300,
@@ -751,7 +748,20 @@ function mergePersisted(persistedState: unknown, currentState: KivaraState): Kiv
     panelPosition: persisted.panelPosition ?? DEFAULT_PANEL_POSITION,
     onboarding: { ...DEFAULT_ONBOARDING, ...(persisted.onboarding ?? {}) },
     telemetry: { ...DEFAULT_TELEMETRY, ...(persisted.telemetry ?? {}) },
-    shortcuts: { ...DEFAULT_SHORTCUTS, ...(persisted.shortcuts ?? {}) },
+    shortcuts: (() => {
+      const merged = { ...DEFAULT_SHORTCUTS, ...(persisted.shortcuts ?? {}) };
+      // Migration: the shipped default for `save` used to be Ctrl+S while
+      // the manifest now ships Ctrl+Shift+S. A user with the persisted
+      // Ctrl+S in their store could fall into a double-save — the SW
+      // fires save_word for Ctrl+Shift+S but the in-page handler ALSO
+      // fires for Ctrl+S, and the old guard Set did not cover
+      // Ctrl+Shift+S. Auto-migrate the exact old default to the new one;
+      // anything else (a real user customization) is preserved.
+      if (merged.save === 'Ctrl+S' || merged.save === 'ctrl+s') {
+        merged.save = DEFAULT_SHORTCUTS.save;
+      }
+      return merged;
+    })(),
   };
 }
 

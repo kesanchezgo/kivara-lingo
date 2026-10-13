@@ -6,15 +6,21 @@
  *  1. A URL that reaches inside the user's own network. The service worker
  *     has host permissions far beyond any page, so a loopback / RFC1918 /
  *     link-local target turns "download this dictionary" or "fetch this
- *     image" into a port scanner aimed at `127.0.0.1` or the LAN. This is
- *     NOT avoided by refusing to follow redirects: `redirect: 'follow'`
- *     is used by the callers that handle the case (and it is the browser's
- *     only benign implementation for Google TTS and the like), so the
- *     post-fetch check `assertResponseDestination(res)` re-validates the
- *     FINAL landed URL. The eager `assertPublicHttpUrl` before the fetch
- *     is the pre-flight half of the same rule: see `fetchMediaWithLimits`
- *     / `fetchBytesWithLimits` (destination-check-first, body-cancelled
- *     on refusal).
+ *     image" into a port scanner aimed at `127.0.0.1` or the LAN.
+ *
+ *     Two guards, two different scopes — state it plainly so we don't
+ *     over-claim the protection:
+ *
+ *     - `assertPublicHttpUrl(raw)` before the fetch READS A LITERAL URL:
+ *       it stops the call from being PLACED to a private address.
+ *     - `assertResponseDestination(res)` after the fetch answers the
+ *       REDIRECTED landing URL. It does not — and cannot — cancel the
+ *       first request that already reached the redirect host. A hostile
+ *       `302 → http://127.0.0.1/…` was TALKED TO before we saw the
+ *       destination; `assertResponseDestination` only refuses to READ
+ *       THAT RESPONSE BODY. State this in audit language too: the
+ *       request itself reached, the timing can be read, so the residual
+ *       A a fully-fledged DNR rule for our-own fetches.
  *  2. An answer that never ends. Nothing in `fetch` bounds latency or size
  *     by itself: a hung CDN holds the enrichment chain open past the UI's
  *     patience, and a `Content-Length`-less stream can stream until the SW

@@ -159,15 +159,16 @@ export interface AnkiMapping {
 }
 
 export type Mode = 'learning' | 'reading';
-
-export type AudioSource = 'tab' | 'mic';
-export type FrameMoment = 'start' | 'center' | 'end';
 export type EndDetect = 'vad' | 'cue';
 
+/** CaptureSettings keeps coordinate/type props named for actions that
+ *  the E2E actually consumes. Unused consumer-side props have been
+ *  stripped (see PRIVACY audit #11): historically `autoMode`,
+ *  `audioSource`, `frameMoment` shipped alongside — nothing in
+ *  background/ or content/ reads them, and the UI no longer offers
+ *  controls for them. */
 export interface CaptureSettings {
-  autoMode: boolean;
-  audioSource: AudioSource;
-  frameMoment: FrameMoment;
+  /** running capture stops at end-detector preference */
   endDetect: EndDetect;
   /** rolling buffer length in seconds */
   bufferSize: number;

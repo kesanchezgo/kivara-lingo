@@ -26,7 +26,14 @@ export function attachYouTube(): SubtitleSource | null {
   let activeTrack: TextTrack | null = null;
   let pollHandle: number | null = null;
 
-  const HIDE_STYLE_ID = 'kivara-lingo-yt-hide';
+  // Per-adapter OWNED style node. Previously the id was shared
+  // (`kivara-lingo-yt-hide`), and showNativeSubtitles/destroy looked it
+  // up by ID and removed it, which would nuke the node of a SIBLING
+  // adapter on the same <video>. That is exactly what the review's #3
+  // catches: an adapter that DIES (including init's new bail-out path)
+  // was removing the hide-style the surviving adapter was still using,
+  // and native captions came back. Now every adapter has its own.
+  let ownStyle: HTMLStyleElement | null = null;
 
   function emit(cue: SubtitleCue | null) {
     currentActiveCue = cue;
@@ -216,15 +223,15 @@ export function attachYouTube(): SubtitleSource | null {
   startPolling();
 
   function ensureHideStyle() {
-    if (document.getElementById(HIDE_STYLE_ID)) return;
+    if (ownStyle) return;
     const style = document.createElement('style');
-    style.id = HIDE_STYLE_ID;
     style.textContent = [
       '.ytp-caption-window-container { opacity: 0 !important; pointer-events: none !important; }',
       '.caption-window { opacity: 0 !important; pointer-events: none !important; }',
       'video::cue { opacity: 0 !important; }',
     ].join('\n');
     document.head.appendChild(style);
+    ownStyle = style;
   }
 
   return {
@@ -247,8 +254,10 @@ export function attachYouTube(): SubtitleSource | null {
       if (activeTrack) activeTrack.mode = 'hidden';
     },
     showNativeSubtitles() {
-      const style = document.getElementById(HIDE_STYLE_ID);
-      if (style) style.remove();
+      if (ownStyle) {
+        ownStyle.remove();
+        ownStyle = null;
+      }
       if (activeTrack) activeTrack.mode = 'showing';
     },
     destroy() {
@@ -271,7 +280,14 @@ export function attachYouTube(): SubtitleSource | null {
         video.textTracks.removeEventListener('addtrack', tryAttach);
         video.textTracks.removeEventListener('change', tryAttach);
       }
-      document.getElementById(HIDE_STYLE_ID)?.remove();
+      // Only OUR OWN style node — not a lookup by shared ID, which is
+      // what the review's #3 flagged: a sibling adapter on the same
+      // <video> still has its hide-style inserted, and looking it up by
+      // ID-and-killing-it would let native captions reappear.
+      if (ownStyle) {
+        ownStyle.remove();
+        ownStyle = null;
+      }
       listeners.length = 0;
       currentActiveCue = null;
     },

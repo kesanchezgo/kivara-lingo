@@ -125,12 +125,6 @@ export function SettingsTab({
     .join(' · ');
 
   // Flatten store paths to local handlers so the JSX stays readable.
-  const autoMode = capture.autoMode;
-  const setAutoMode = (v: boolean) => setCapture({ ...capture, autoMode: v });
-  const audioSource = capture.audioSource;
-  const setAudioSource = (v: typeof capture.audioSource) => setCapture({ ...capture, audioSource: v });
-  const frameMoment = capture.frameMoment;
-  const setFrameMoment = (v: typeof capture.frameMoment) => setCapture({ ...capture, frameMoment: v });
   const endDetect = capture.endDetect;
   const setEndDetect = (v: typeof capture.endDetect) => setCapture({ ...capture, endDetect: v });
   const bufferSize = capture.bufferSize;
@@ -357,7 +351,7 @@ export function SettingsTab({
                 type="text"
                 value={translate.lingvaUrl}
                 onChange={(e) => setTranslate({ ...translate, lingvaUrl: e.target.value })}
-                placeholder="https://lingva.thedaviddelta.com"
+                placeholder="https://lingva.lunar.icu"
                 className="sl-input sl-mono w-full"
               />
             </Row>

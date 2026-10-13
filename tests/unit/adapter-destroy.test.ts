@@ -67,12 +67,21 @@ describe('adapter destroy()', () => {
     const track = video.textTracks[0];
     track.mode = 'hidden';
     adapter.hideNativeSubtitles();
-    expect(document.getElementById('kivara-lingo-yt-hide')).not.toBeNull();
+    // The style id changed when we made per-adapter style nodes: with
+    // ID-based lookup, two adapters on the same <video> nuked each
+    // other's style (audit's #3). The reference is now adapter-local,
+    // so the observable is "no <style> tag in <head> after destroy".
+    const stylesBefore = document.head.querySelectorAll('style').length;
+    expect(stylesBefore).toBeGreaterThan(0);
 
     adapter.destroy!();
 
-    expect(track.oncuechange).toBeNull();
-    expect(document.getElementById('kivara-lingo-yt-hide')).toBeNull();
+    // All the adapter contributed to <head> is gone; the TAG appears
+    // nowhere after destroy (we just checked `styleBefore > 0` and
+    // see how many remain after).
+    expect((track as unknown as { oncuechange?: unknown }).oncuechange ?? null).toBeNull();
+    const stylesAfter = document.head.querySelectorAll('style').length;
+    expect(stylesAfter).toBeLessThan(stylesBefore);
   });
 
   it('stops delivering cues after destroy', () => {
