@@ -27,18 +27,17 @@
  *     the createVirtualTrack() helper that hydrates a real TextTrack
  *     through addEventListener so dispatchEvent actually lands.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { ankiConnect } from '../../src/background/anki-connect';
 import { attachGenericHtml5 } from '../../src/content/platform-adapters/generic-html5';
 import { attachYouTube } from '../../src/content/platform-adapters/youtube';
 
-const ORIGINAL_FETCH = globalThis.fetch as unknown;
-
-afterEach(() => {
-  globalThis.fetch = ORIGINAL_FETCH as never;
-  vi.restoreAllMocks();
-});
+// No global stash of `fetch` in afterEach: vitest.config now has
+// `restoreMocks: true` + `unstubGlobals: true`, which unwrap
+// vi.fn/vi.spyOn between tests automatically. Anything that mutates
+// globalThis.fetch, though, needs explicit care — see the #20 test
+// below which wraps the swap in try/finally.
 
 describe('source guards', () => {
   it('service-worker background modules use bare setTimeout/clearTimeout', () => {

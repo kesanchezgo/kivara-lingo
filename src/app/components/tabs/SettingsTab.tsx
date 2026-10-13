@@ -29,9 +29,10 @@ import { Accordion, CompactSlider, DonateBtn, NestedAccordion, PaypalIcon, Quick
 /**
  * Settings tab — restructured per the design mock:
  *
- *  - t('set.quickAccess') QuickRow strip at the top (autoMode, modo lectura,
+ *  - t('set.quickAccess') QuickRow strip at the top (modo lectura,
  *    subtítulo bilingüe). These are the toggles users flip most often.
- *  - "Captura avanzada" only appears when autoMode is OFF.
+ *  - "Captura avanzada" is always visible — it holds the values
+ *    (bufferSize, endDetect) that background/content actually read.
  *  - Idioma is its own always-visible card (you can't translate without
  *    knowing source/target).
  *  - Everything else (Traducción, Diccionarios, IA, TTS, Limpieza,

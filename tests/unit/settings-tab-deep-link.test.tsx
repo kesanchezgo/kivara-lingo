@@ -14,7 +14,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../src/shared/store', () => {
   const state = {
-    capture: { autoMode: false, audioSource: 'mic', bufferSize: 300 },
+    capture: { endDetect: 'vad', bufferSize: 300, preRoll: 300, postRoll: 400, cueMerge: 300 },
     cleanup: { hideUI: false, hideShadows: false },
     mode: 'learning',
     translate: { provider: 'google', mode: 'single', tiersEnabled: { free: true, premium: false } },

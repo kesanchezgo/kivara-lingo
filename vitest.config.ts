@@ -30,8 +30,17 @@ export default defineConfig({
     // defect unfalsifiable — Vitest attributes the rejection to whichever task
     // was running when the rejection surfaced, so the file named in the report
     // was never the file that left the promise dangling. See the long note in
-    // tests/setup.ts. Reading `unhandledErrors` in the JSON reporter gives the
+    // tests/setup.ts. Reading `unhandledRejection` (JSON reporter) gives the
     // real stack.
     dangerouslyIgnoreUnhandledErrors: false,
+    // LEASES that keep the previous test's stubs and mocks from bleeding
+    // into the next test's view of the world. The reviewer's explicit
+    // request: this round had `fetch` stubs filtering across files;
+    // `restoreMocks: true` rolls any `vi.fn`/`vi.spyOn` created inside a
+    // `vi.restoreAllMocks`-less test back to its unwrapped state between
+    // tests automatically, and `unstubGlobals: true` drops `vi.stubGlobal`
+    // listeners.
+    restoreMocks: true,
+    unstubGlobals: true,
   },
 });

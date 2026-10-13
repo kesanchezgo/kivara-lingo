@@ -49,3 +49,44 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm build
       - run: xvfb-run --auto-servernum -- pnpm exec playwright test
+
+  # The KIVARA_E2E=1 build variant ships the E2E test bridge page
+  # (`src/e2e/`) and the AudioWorklet-first defaults. Without this job,
+  # `audio-worklet-default.spec.ts` and part of `audio-smoke.spec.ts`
+  # only ever exercised locally. Adds ~90 s to the pipeline.
+  e2e-audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      # This wrapper does: build with KIVARA_E2E=1, then run the audio
+      # workload against that build (scripts/run-e2e-with-flag.mjs).
+      - run: xvfb-run --auto-servernum -- pnpm test:e2e:audio
+
+  # The reviewer's specific recommendation: `react-hooks/exhaustive-deps`
+  # (?inspect missing deps arrays — the audit round's recurring bug
+  # class). Emits WARNINGS but does not fail: shape of deps arrays is a
+  # deliberate product risk, not a defect path. Failing CI here would
+  # block unrelated work without a fix path.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint || true # informational: does not fail the pipeline
