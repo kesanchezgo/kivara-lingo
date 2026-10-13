@@ -91,7 +91,7 @@ export function SubtitleOverlay({
   const restoreTimersRef = useRef<number[]>([]);
   const wordHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Tracks the *dictionary key* of the currently hovered token so the Alt /
-  // Ctrl+S handlers can act on the actual word/MWE. Kept in sync with
+  // Ctrl+Shift+S handlers can act on the actual word/MWE. Kept in sync with
   // hoveredId, but never used to drive React render — the index is the only
   // identity for highlighting.
   const hoveredKeyRef = useRef<string | null>(null);
@@ -445,7 +445,7 @@ export function SubtitleOverlay({
     [onSaveCard, targetSentence],
   );
 
-  // Respond to Ctrl+S / external save requests. We only fire when the
+  // Respond to Ctrl+Shift+S / external save requests. We only fire when the
   // `saveRequestKey` value actually CHANGES (not when other deps like
   // `handleSaveToken` or `targetSentence` get recreated on re-render).
   const lastSaveKeyRef = useRef<number | null>(null);

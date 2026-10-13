@@ -748,20 +748,16 @@ function mergePersisted(persistedState: unknown, currentState: KivaraState): Kiv
     panelPosition: persisted.panelPosition ?? DEFAULT_PANEL_POSITION,
     onboarding: { ...DEFAULT_ONBOARDING, ...(persisted.onboarding ?? {}) },
     telemetry: { ...DEFAULT_TELEMETRY, ...(persisted.telemetry ?? {}) },
-    shortcuts: (() => {
-      const merged = { ...DEFAULT_SHORTCUTS, ...(persisted.shortcuts ?? {}) };
-      // Migration: the shipped default for `save` used to be Ctrl+S while
-      // the manifest now ships Ctrl+Shift+S. A user with the persisted
-      // Ctrl+S in their store could fall into a double-save — the SW
-      // fires save_word for Ctrl+Shift+S but the in-page handler ALSO
-      // fires for Ctrl+S, and the old guard Set did not cover
-      // Ctrl+Shift+S. Auto-migrate the exact old default to the new one;
-      // anything else (a real user customization) is preserved.
-      if (merged.save === 'Ctrl+S' || merged.save === 'ctrl+s') {
-        merged.save = DEFAULT_SHORTCUTS.save;
-      }
-      return merged;
-    })(),
+    shortcuts: { ...DEFAULT_SHORTCUTS, ...(persisted.shortcuts ?? {}) },
+    // Migration that used to live here: it auto-promoted Ctrl+S to
+    // Ctrl+Shift+S on every persist merge. The review's #4 caught the
+    // problems: (a) it ran on EVERY load, not once, so a user who
+    // deliberately reassigns to Ctrl+S was reset on refresh; (b) the
+    // rationale was wrong: Ctrl+S in the in-page handler and
+    // Ctrl+Shift+S in the manifest (which goes via RUN_COMMAND) do NOT
+    // double-fire — they are distinct combos — so there was never a
+    // prevent-at-all-costs rule to serve here. If a future migration is
+    // needed, do it once via a versioned `migrate` call in `persist`.
   };
 }
 

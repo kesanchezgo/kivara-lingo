@@ -1,24 +1,31 @@
 /**
  * Tests where reverting the fix turns the test red.
  *
- * The review's criterion: revert the fix → the test must fail. The ones
- * I wrote before did not meet it — they tested behavior that existed
- * unchanged. This is the replacement.
+ * The review's criterion: revert the fix → the test must fail. This
+ * file is the replacement for the previous iteration that tested
+ * unchanged behavior.
  *
  * Covers:
- *  #1 `handleSaveCard`'s SUCCESS path returns `{ ok: true }`. Reverting
- *     to the code I had (falling off the `if` branch to `return { ok:
- *     false }` at the bottom) turns the overlay-side pin red.
+ *  #1 `handleSaveCard`'s SUCCESS path — see `overlay-trait-tests` which
+ *     exercises it through the overlay save flow (the unit here is
+ *     documented as such — see bullet under App.tsx:1060).
  *  #2 TTS in a ServiceWorker scope (no `window`). The implementation
  *     uses bare `setTimeout`/`clearTimeout`; reviewing the source with
  *     a guard catches a re-+reintroduction of `window.` in the SW.
  *  #3 `ankiConnect.ping('127.0.0.1:8765')` — a scheme-less URL —
- *     normalizes before validation. Reverting to `validate-then-
- *     normalize` throws LOOPBACK_REFUSED.
+ *     normalizes-before-validating. Reverting to validate-then-normalize
+ *     throws LOOPBACK_REFUSED.
  *  #3(y) Killing one YouTube adapter on a shared <video> does not remove
- *     a sibling-injected style node — the audit's #3-again finding.
- *  #6 (adapter sibling). Two generic adapters on one <video>; the
- *     dying one only removes ITS OWN cue listener, not the sibling's.
+ *     a sibling-injected style node — the audit's #3-again finding. Applies
+ *     intercepted-adapter.ts too (same fix there).
+ *  #20 A response whose final `res.url` lands on loopback is refused
+ *     before res.ok is examined (the destination-check-first rule).
+ *  #21 A write (`allowFallbackRetry: false`) does NOT retry on the
+ *     sibling URL — restoring this as the review specifically said.
+ *  #6 (adapter sibling). Two generic adapters on one <video>; the dying
+ *     one only removes ITS OWN cue listener, not the sibling's. Includes
+ *     the createVirtualTrack() helper that hydrates a real TextTrack
+ *     through addEventListener so dispatchEvent actually lands.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -76,6 +83,62 @@ describe('ankiConnect.ping normalizes before validating (#9)', () => {
     const result = await ankiConnect.ping('https://evil.example.com');
     expect(result.ok).toBe(false);
     expect(calls.length).toBe(0);
+  });
+});
+
+describe('write actions do NOT fall back to sibling URL (#21)', () => {
+  it('addNote fires exactly one fetch on write failure', async () => {
+    // ping('127.0.0.1') tries localhost as a sibling fallback (2 calls).
+    // addNote has `allowFallbackRetry: false` → exactly 1 call. Restoring
+    // the old filter (which let everything past for non-TIMEOUT errors)
+    // makes this go red with 2 calls.
+    const calls: string[] = [];
+    (globalThis as unknown as { fetch: unknown }).fetch = vi.fn(async (url: string) => {
+      calls.push(url);
+      throw new Error('transport failure');
+    });
+    await expect(
+      ankiConnect.addNote({ deckName: 'd', modelName: 'm', fields: { a: 'b' } }, 'http://127.0.0.1:8765'),
+    ).rejects.toThrow();
+    expect(calls.length).toBe(1);
+  });
+
+  it('read actions DO fall back to sibling URL for resilience', async () => {
+    const calls: string[] = [];
+    (globalThis as unknown as { fetch: unknown }).fetch = vi.fn(async (url: string) => {
+      calls.push(url);
+      throw new Error('transport failure');
+    });
+    const result = await ankiConnect.ping('http://127.0.0.1:8765');
+    expect(result.ok).toBe(false);
+    expect(calls.length).toBe(2); // primary + localhost sibling
+  });
+});
+
+describe('destination-check-before-status-reads (#20)', () => {
+  it('a redirect that landed on loopback throws even when the body looks fine', async () => {
+    // Constructed Response whose `url` is a private address (this is
+    // shape-of a redirect chain's landing response). `fetchMediaWithLimits`
+    // calls assertResponseDestination FIRST (with body-cancelled on
+    // refusal); reverting to status-first means the 200 body is served
+    // and the loopback is exposed through a "successful" media read.
+    const originalFetch = globalThis.fetch;
+    (globalThis as unknown as { fetch: unknown }).fetch = vi.fn(async () => {
+      const r = new Response('<html>private landing</html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      });
+      Object.defineProperty(r, 'url', { value: 'http://127.0.0.1/landed', configurable: true });
+      return r;
+    });
+    try {
+      const { fetchMediaWithLimits } = await import('../../src/shared/net-guard');
+      await expect(
+        fetchMediaWithLimits('https://example.com/ok.png', { timeoutMs: 500, maxBytes: 1024 }),
+      ).rejects.toThrow(/loopback|https|private|no permit|not allowed|blockable/i);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });
 

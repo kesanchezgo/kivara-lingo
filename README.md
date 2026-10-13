@@ -17,7 +17,7 @@
 - **Tarjetas Anki en un clic**: vía AnkiConnect, con mapeo configurable de campos. Incluye el audio exacto de la frase (ring buffer + VAD, fallback TTS avisado) y el mejor fotograma del cue (con fallback a imagen web). `Alt+V` re-captura el frame.
 - **Caché inteligente**: LRU en memoria (300 entradas) + IndexedDB con TTL configurable. Re-hover = ~0 ms.
 - **Modo Lectura**: oculta toda la UI de aprendizaje y deja solo subtítulos estilizados.
-- **Atajos de teclado**: `Ctrl+S` guardar, `Alt+C` toggle subtítulos, `Alt+R` repetir frase, `Alt+V` re-capturar frame, `Alt+K` toggle panel. Combos de página personalizables en Settings (los comandos Chrome se re-asignan en `chrome://extensions/shortcuts`).
+- **Atajos de teclado**: `Ctrl+Shift+S` guardar, `Alt+C` toggle subtítulos, `Alt+R` repetir frase, `Alt+V` re-capturar frame, `Alt+K` toggle panel. Combos de página personalizables en Settings (los comandos Chrome se re-asignan en `chrome://extensions/shortcuts`).
 - **Tema claro y oscuro**, panel acoplado o flotante.
 - **UI bilingüe ES/EN**: `src/shared/i18n.ts` con 436 claves por idioma; el idioma se detecta vía `chrome.i18n.getUILanguage()` con fallback a español.
 

@@ -25,11 +25,17 @@ export interface InterceptedAdapterOptions {
   getVideo?(): HTMLVideoElement | null;
 }
 
-function injectStyle(id: string, css: string): HTMLStyleElement | null {
+/**
+ * Build the hide-native style for a platform. The node is PER-ADAPTER
+ * (no id): two adapters running on the same page during a navigation
+ * churn would otherwise re-use, and one dying would remove, the OTHER's
+ * style node — the native captions came back mid-transition. This is
+ * the same pattern as `ownStyle` in youtube.ts; the review explicitly
+ * flagged the shared-id variant here.
+ */
+function buildHideStyle(css: string): HTMLStyleElement | null {
   if (!css) return null;
-  if (document.getElementById(id)) return document.getElementById(id) as HTMLStyleElement;
   const style = document.createElement('style');
-  style.id = id;
   style.textContent = css;
   document.documentElement.appendChild(style);
   return style;
@@ -202,7 +208,7 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
   startPolling();
 
   if (opts.hideNativeCss) {
-    hideStyle = injectStyle(`kivara-hide-native-${opts.platform}`, opts.hideNativeCss);
+    hideStyle = buildHideStyle(opts.hideNativeCss);
   }
 
   try {
@@ -229,7 +235,7 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
     },
     hideNativeSubtitles() {
       if (opts.hideNativeCss && !hideStyle) {
-        hideStyle = injectStyle(`kivara-hide-native-${opts.platform}`, opts.hideNativeCss);
+        hideStyle = buildHideStyle(opts.hideNativeCss);
       }
     },
     showNativeSubtitles() {

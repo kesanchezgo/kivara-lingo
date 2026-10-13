@@ -7,7 +7,7 @@ import { requestHosts, revokeHosts, ensureProviderHosts, permissionsApiAvailable
 import { providerHosts } from '../../shared/provider-hosts';
 
 /**
- * The UI half of `optional_host_permissions` — 79 origins, one per group,
+ * The UI half of `optional_host_permissions` — 78 origins, one per group,
  * all of them grantable only from a user gesture.
  *
  * Manual-review justification was ~96 hosts on the surface; the count is

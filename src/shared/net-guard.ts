@@ -17,10 +17,10 @@
  *       REDIRECTED landing URL. It does not — and cannot — cancel the
  *       first request that already reached the redirect host. A hostile
  *       `302 → http://127.0.0.1/…` was TALKED TO before we saw the
- *       destination; `assertResponseDestination` only refuses to READ
- *       THAT RESPONSE BODY. State this in audit language too: the
- *       request itself reached, the timing can be read, so the residual
- *       A a fully-fledged DNR rule for our-own fetches.
+ *       destination; the guard only refuses to READ THAT RESPONSE BODY.
+ *       The request itself reached, its timing can be read, the residual
+ *       threat requires a fully-fledged DNR rule scoped to our-own
+ *       fetches. PRIVACY.md records this trade-off deliberately.
  *  2. An answer that never ends. Nothing in `fetch` bounds latency or size
  *     by itself: a hung CDN holds the enrichment chain open past the UI's
  *     patience, and a `Content-Length`-less stream can stream until the SW

@@ -70,6 +70,51 @@ async function waitForVideoTime(
   });
 }
 
+/**
+ * Manifest commands that respect the store's `enabled` toggle.
+ *
+ * Module-level: the review caught `repeat_phrase` (a legacy alias of
+ * `repeat_cue`) left OUT of the gate while its `case` was still in the
+ * switch — a `repeat_phrase` message could seek the video with the
+ * extension off. To retire the alias means deleting the `case` AND this
+ * entry together.
+ */
+const RUN_COMMAND_GATE: ReadonlySet<string> = new Set([
+  'save_word', 'save_word_alt',
+  'toggle_subtitles', 'repeat_cue', 'repeat_phrase',
+  'recapture_frame',
+]);
+
+/**
+ * Build the initial SET of manifest-command combos that the in-page
+ * handler must NOT re-handle (they arrive from the SW as RUN_COMMAND).
+ * Called lazily once per App mount.
+ *
+ * Reads BOTH `default` AND `mac` from `suggested_key`: a manifest ships
+ * per-platform variants (`{ default: 'Ctrl+Shift+S', mac:
+ * 'Command+Shift+S' }`). Only-default left a Mac machine with
+ * `Meta+Shift+S` absent from the set during cold-start — a save could
+ * double-fire before GET_COMMANDS repopulated it.
+ */
+function buildManifestCommandSet(): Set<string> {
+  const out = new Set<string>();
+  try {
+    const commands = (chrome.runtime.getManifest() as {
+      commands?: Record<string, { suggested_key?: { default?: string; mac?: string } }>;
+    }).commands ?? {};
+    for (const def of Object.values(commands)) {
+      const keys = [def.suggested_key?.default, def.suggested_key?.mac];
+      for (const k of keys) if (k) out.add(normalizeCombo(k));
+    }
+  } catch {
+    // Fall back to the known defaults (below).
+  }
+  for (const c of ['Ctrl+Shift+S', 'Command+Shift+S', 'Alt+C', 'Alt+R', 'Alt+K']) {
+    out.add(normalizeCombo(c));
+  }
+  return out;
+}
+
 export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   const {
     enabled,
@@ -611,25 +656,20 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   // manifest actually ships for `save_word`). Until `GET_COMMANDS` fills
   // this — the launch of a cold SW — a stub Set used to allow Ctrl+Shift+S
   // through to the in-page handler, where the SW was ALSO receiving it via
-  // `chrome.commands` → `RUN_COMMAND`. Two cards created per save. Now the
-  // initial Set is what the manifest itself declares.
-  const initialManifestCombos = (() => {
-    const out = new Set<string>();
-    try {
-      const commands = (chrome.runtime.getManifest() as { commands?: Record<string, { suggested_key?: { default?: string } }> }).commands ?? {};
-      for (const def of Object.values(commands)) {
-        const key = def.suggested_key?.default;
-        if (key) out.add(normalizeCombo(key));
-      }
-    } catch {
-      // Fall back to what the SW also prints in Chrome's shortcut page.
-    }
-    // Even if the manifest somehow lacks it, these are the ones we know
-    // ship. normalizeCombo makes them canonical in both places.
-    for (const c of ['Ctrl+Shift+S', 'Alt+C', 'Alt+R', 'Alt+K']) out.add(normalizeCombo(c));
-    return out;
-  })();
-  const manifestCombosRef = useRef<Set<string>>(initialManifestCombos);
+  // `chrome.commands` → `RUN_COMMAND`. Two cards created per save.
+  //
+  // Read BOTH `default` and `mac`: a manifest ships per-platform variants
+  // (`suggested_key: { default: 'Ctrl+Shift+S', mac: 'Command+Shift+S' }`).
+  // Only-default left a Mac machine with `Meta+Shift+S` missing from the
+  // Set until GET_COMMANDS filled it — a save could double-fire in the
+  // cold-start window.
+  //
+  // Lazy init: `useRef(fn())` runs the IIFE on every render unless we
+  // pass the initializer function itself.
+  const manifestCombosRef = useRef<Set<string> | null>(null);
+  if (manifestCombosRef.current === null) {
+    manifestCombosRef.current = buildManifestCommandSet();
+  }
   useEffect(() => {
     let cancelled = false;
     let lastFetch = 0;
@@ -652,6 +692,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
             if (c.shortcut) next.add(normalizeCombo(c.shortcut));
           }
           if (next.size) manifestCombosRef.current = next;
+        else if (manifestCombosRef.current !== null) manifestCombosRef.current = next;
         });
       } catch {
         // ignore — fall back to the static defaults above
@@ -671,7 +712,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       // Gated on the master `enabled` toggle from the very first line:
       // the review (#6-2) caught that the previous handler had no such
       // check, so with the extension disabled the user could still
-      // trigger `repeat_cue` (seek), save-word (Ctrl+S), toggle
+      // trigger `repeat_cue` (seek), save-word (Ctrl+Shift+S), toggle
       // subtitles — EVERYTHING — via a keypress aimed at the page. The
       // chrome.commands path goes through RUN_COMMAND (toggle_subtitles
       // etc), but the in-page handler ALSO handled them and had no gate.
@@ -684,11 +725,11 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       if (!combo) return;
       // A combo currently owned by a manifest command fires via
       // chrome.commands → RUN_COMMAND; handling it here too would double-fire.
-      if (manifestCombosRef.current.has(normalizeCombo(combo))) return;
+      if (manifestCombosRef.current?.has(normalizeCombo(combo))) return;
       const map = useKivaraStore.getState().shortcuts;
       const video = videoElementRef.current;
       const cue = activeCueRef.current;
-      // The map is USER-CUSTOMIZED: a raw 'Ctrl+S' typed string compares
+      // The map is USER-CUSTOMIZED: a raw 'Ctrl+Shift+S' typed string compares
       // fine, but a user-rebound 'command+s' (mac default) or 'ctrl+ shift+k'
       // stored in the persisted state does NOT match the canonical 'Meta+S'
       // that comboFromEvent produces. Normalize BOTH sides of the check —
@@ -783,21 +824,11 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       // Same gate as the in-page handler (#6-2 from the review): a
       // chrome.commands message from the service worker fires VERBATIM
       // even when the user disabled the extension from Settings, so
-      // Alt+R used to seek the video and Ctrl+S saved a word with the
+      // Alt+R used to seek the video and Ctrl+Shift+S saved a word with the
       // whole extension off. The toggle_panel is intentionally exempt
       // (it is the same `chrome.action` click path a user takes when
       // opening the preferences) but the other six commands are gated.
-      // Commands whose execution is gated by the `enabled` toggle.
-      // Module-level constant — the audit flagged it being rebuilt on
-      // every message. `repeat_phrase` is NOT in here because it is a
-      // legacy alias — `repeat_cue` is what the manifest actually
-      // declares.
-      const RUN_COMMANDS_GATED_BY_ENABLED = new Set([
-        'save_word', 'save_word_alt',
-        'toggle_subtitles', 'repeat_cue',
-        'recapture_frame',
-      ]);
-      if (msg?.type === 'RUN_COMMAND' && RUN_COMMANDS_GATED_BY_ENABLED.has(msg.command ?? '')) {
+      if (msg?.type === 'RUN_COMMAND' && RUN_COMMAND_GATE.has(msg.command ?? '')) {
         if (!useKivaraStore.getState().enabled) return;
       }
       if (msg?.type === 'TOGGLE_PANEL') {
@@ -811,7 +842,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
           case 'save_word':
           case 'save_word_alt':
             // Tier 1.5: keep two commands wired to the same handler so the
-            // user can bind whichever combo (Ctrl+S or Ctrl+Shift+S, etc.)
+            // user can bind whichever combo (Ctrl+Shift+S or Ctrl+S, etc.)
             // doesn't collide with the host page / browser on their setup.
             setSaveTick(Date.now());
             break;
@@ -941,10 +972,11 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     }
   }, [activeCue?.end, adapter, videoElement]);
 
-  const handleSaveCard = async (token: string | undefined, sentence: string): Promise<CreateCardResponse> => {
-    if (!enabled) return { ok: false, error: 'disabled' };
-    const tokenValue = token?.trim() || sentence.trim();
-    if (!tokenValue) return { ok: false, error: 'no token' };
+  const handleSaveCard = useCallback(
+    async (token: string | undefined, sentence: string): Promise<CreateCardResponse> => {
+      if (!enabled) return { ok: false, error: 'disabled' };
+      const tokenValue = token?.trim() || sentence.trim();
+      if (!tokenValue) return { ok: false, error: 'no token' };
 
     const saveToastId = toast.loading(t('app.savingCard'), {
       description: t('app.preparingSave'),
@@ -1010,8 +1042,17 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       toast.error(`${t('app.ankiSaveError')}: ${reason}`, { id: saveToastId });
       return { ok: false, error: reason };
     }
+    // Unreachable: both branches of the earlier if return inside try.
+    // Kept as a type-narrowing stopgap so a future fallthrough cannot
+    // silently return undefined.
     return { ok: false, error: 'unhandled' };
-  };
+  },
+  // deps: everything handleSaveCard touches at closure time.
+  // SubtitleOverlay's useMemo also lists handleSaveCard — its identity
+  // must change when ankiMapping or cue change, which keeps the overlay
+  // consistent when deck/adapter/config change.
+  [enabled, activeCue, videoElement, adapter, ensureSubtitleAudioReady, ankiMapping],
+);
 
   const overlayPortal = useMemo(() => {
     if (!videoOverlayRoot || !enabled || !subtitlesVisible) return null;
@@ -1037,11 +1078,6 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   }, [
     activeCue,
     altCue,
-    // Fetched asynchronously on mount when Anki wakes; a fresh Set must
-    // re-rerender the overlay or the green "saved" highlights silently
-    // stay empty until something else (deck change, manual save) bumps
-    // one of the other deps. Also captured here so handleSaveCard's
-    // `ankiMapping` stays current after the user switches decks without
     // deps kept EXPLICIT and CONTIGUOUS — a fix for the audit's #10:
     // `initialSavedWords`, `ankiMapping`, `handleSaveCard`,
     // `videoElement`, `adapter` and `ensureSubtitleAudioReady` were
@@ -1049,8 +1085,10 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     // NOT recompute, so the overlay kept showing the empty green-token
     // state; `handleSaveCard` held on to the PREVIOUS ankiMapping
     // closure and appended to the wrong deck until an unrelated event
-    // forced a refresh. `handleSaveCard` itself is `useCallback`-wrapped,
-    // so including it (and the functions it closes over) is safe.
+    // forced a refresh. handleSaveCard is `useCallback`-wrapped with
+    // exactly this deps list AND the functions it closes over, so
+    // including it here is a no-op when nothing changes and a refresh
+    // when deck or adapter change.
     initialSavedWords,
     ankiMapping,
     handleSaveCard,

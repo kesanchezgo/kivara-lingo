@@ -31,7 +31,7 @@ Solo cuando el usuario dispara una función concreta:
    incrustarlas en la tarjeta. Todo con `credentials: 'omit'`: las cookies
    del usuario NO viajan (excepción: `wordreference.com`, que requiere poner
    su propia cookie de paso para que responda).
-6. **TTS (opt-in)** — la frase a ElevenLabs o a la API de OpenAI.
+6. **TTS (opt-in)** — la frase a la voz del catálogo: OpenAI u ElevenLabs con API key propia, o Google TTS como fallback automático cuando las anteriores no responden.
 
 ## Qué NO hace
 
@@ -70,7 +70,7 @@ Solo cuando el usuario dispara una función concreta:
 - **Lista de hosts**: el manifest declara 18 hosts fijos (streaming + Anki en
   loopback, incluido `http://[::1]:8765/*` y `http://[::1]/*`) y los de
   diccionarios/APIs viven en `optional_host_permissions`
-  (79 entradas, una por origen): no se solicitan hasta que el usuario activa la
+  (78 entradas, una por origen): no se solicitan hasta que el usuario activa la
   fuente o pulsa «Conceder» en Ajustes → Permisos, y se pueden revocar igual.
   Las URL de Anki se restringen además a loopback (ver más abajo).
 - **Telemetría**: se contabiliza en local (porcentaje de enriquecimiento que
