@@ -417,17 +417,84 @@ export async function fetchTextWithLimits(
 }
 
 /**
+ * Wrap `stream` so each chunk resets an inactivity deadline. The HEADER
+ * deadline lives in `fetchGuarded`; this one covers the body, and it is the
+ * only correct shape for a big download: a total deadline (the 120 s this
+ * used to be) implies an 8.5 Mbit/s floor for a 127 MB pack, so ordinary
+ * connections always died mid-body. Only an actual stall is fatal now.
+ *
+ * The stall ERRORS the readable — aborting the fetch alone is not enough,
+ * because by the time a body has been handed to the caller the underlying
+ * abort does not reliably break a stream that is parked inside a `pull`.
+ */
+function tapWithIdleTimeout(
+  stream: ReadableStream<Uint8Array>,
+  idleTimeoutMs: number,
+  abort: () => void,
+): { stream: ReadableStream<Uint8Array>; dispose: () => void } {
+  const reader = stream.getReader();
+  let out: ReadableStreamDefaultController<Uint8Array> | null = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  const arm = () => {
+    if (timer != null) clearTimeout(timer);
+    if (idleTimeoutMs <= 0) return;
+    timer = setTimeout(() => {
+      timer = null;
+      try {
+        out?.error(new Error(`stream idle for ${idleTimeoutMs} ms`));
+      } catch {
+        /* controller already closed */
+      }
+      abort();
+    }, idleTimeoutMs);
+  };
+  arm();
+
+  const wrapped = new ReadableStream<Uint8Array>({
+    start(controller) {
+      out = controller;
+    },
+    async pull(controller) {
+      const { value, done } = await reader.read();
+      if (done) {
+        controller.close();
+        return;
+      }
+      arm();
+      controller.enqueue(value!);
+    },
+    cancel(reason) {
+      return reader.cancel(reason);
+    },
+  });
+
+  return {
+    stream: wrapped,
+    dispose: () => {
+      if (timer != null) clearTimeout(timer);
+      timer = null;
+    },
+  };
+}
+
+/**
  * GET `raw` for the pack installer, following redirects.
  *
- * Returns `{ response, done }` instead of the bare response so the CALLER
- * decides when the timeout is disarmed: the installer reports progress while
- * draining a body that can be 127 MB, so clearing the deadline in a `finally`
- * here left that download without one.
+ * Two clocks, both able to give up early but neither able to kill a healthy
+ * download:
+ *  • `headerTimeoutMs` — the response must resolve within it;
+ *  • `idleTimeoutMs` — reset by every byte of the body (see
+ *    `tapWithIdleTimeout`).
+ *
+ * `done()` disarms the idle clock; the caller MUST call it once it has
+ * drained (or abandoned) the body.
  */
 export async function fetchGuarded(
   raw: string,
   opts: {
-    timeoutMs: number;
+    headerTimeoutMs: number;
+    idleTimeoutMs?: number;
     headers?: Record<string, string>;
     credentials?: RequestCredentials;
     signal?: AbortSignal;
@@ -435,7 +502,16 @@ export async function fetchGuarded(
 ): Promise<{ response: Response; done: () => void }> {
   const allowHttp = isHttpUrl(raw);
   assertPublicHttpUrl(raw, { allowHttp });
-  const composed = composeSignals(opts.timeoutMs, opts.signal);
+  const controller = new AbortController();
+  let idleTap: { dispose: () => void } | null = null;
+  const headerTimer = setTimeout(() => controller.abort(), opts.headerTimeoutMs);
+  const forwardAbort = () => controller.abort();
+  opts.signal?.addEventListener('abort', forwardAbort, { once: true });
+  const cleanup = () => {
+    clearTimeout(headerTimer);
+    opts.signal?.removeEventListener('abort', forwardAbort);
+    idleTap?.dispose();
+  };
   let res: Response;
   try {
     res = await fetch(raw, {
@@ -444,20 +520,39 @@ export async function fetchGuarded(
       cache: 'no-store',
       redirect: 'follow',
       headers: opts.headers,
-      signal: composed.signal,
+      signal: controller.signal,
     });
     // Destination BEFORE status: a `302` to a private host arriving as a 200
     // must never be reported as HTTP 404 — that number is itself a probe
     // result for whoever sent the URL.
     assertResponseDestination(res, allowHttp);
   } catch (err) {
-    composed.cleanup();
+    cleanup();
     throw err;
   }
+  // Headers are in: from here the header clock must stop, or the body read
+  // inherits a deadline it was never sized for.
+  clearTimeout(headerTimer);
   if (!res.ok) {
-    composed.cleanup();
+    opts.signal?.removeEventListener('abort', forwardAbort);
     await res.body?.cancel().catch(() => {});
     throw new Error(`HTTP ${res.status}`);
   }
-  return { response: res, done: () => composed.cleanup() };
+  if (res.body && opts.idleTimeoutMs) {
+    const tapped = tapWithIdleTimeout(
+      res.body,
+      opts.idleTimeoutMs,
+      () => controller.abort(),
+    );
+    idleTap = tapped;
+    res = new Response(tapped.stream, {
+      status: res.status,
+      statusText: res.statusText,
+      headers: res.headers,
+    });
+  }
+  return {
+    response: res,
+    done: () => cleanup(),
+  };
 }

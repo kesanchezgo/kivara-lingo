@@ -68,30 +68,33 @@ let ensureOffscreenPromise: Promise<void> | null = null;
 async function ensureOffscreen(): Promise<void> {
   // Single-flight lock: concurrent callers (capture start + TTS fallback +
   // transcription) used to race hasDocument → createDocument, and the loser
-  // threw when the document already existed.
+  // threw when the document already existed. Wrapped in the shared mutex so
+  // an open can never interleave with a close.
   if (ensureOffscreenPromise) return ensureOffscreenPromise;
   ensureOffscreenPromise = (async () => {
-    if (await hasOffscreenDocument()) return;
-    // We list every reason we use across the whole app so a single offscreen
-    // document can serve capture (USER_MEDIA), TTS fallback (AUDIO_PLAYBACK)
-    // and speech synthesis (WORKERS-friendly compute).
-    const reasons = [
-      'USER_MEDIA',
-      'AUDIO_PLAYBACK',
-      'WORKERS',
-    ] as chrome.offscreen.Reason[];
-    try {
-      await chrome.offscreen.createDocument({
-        url: OFFSCREEN_URL,
-        reasons,
-        justification:
-          'Tab audio capture, on-device speech synthesis (TTS fallback) for language learning cards.',
-      });
-    } catch (err) {
-      // Lost the race with another context that created it first — not fatal.
+    await withOffscreenLock(async () => {
       if (await hasOffscreenDocument()) return;
-      throw err;
-    }
+      // We list every reason we use across the whole app so a single offscreen
+      // document can serve capture (USER_MEDIA), TTS fallback (AUDIO_PLAYBACK)
+      // and speech synthesis (WORKERS-friendly compute).
+      const reasons = [
+        'USER_MEDIA',
+        'AUDIO_PLAYBACK',
+        'WORKERS',
+      ] as chrome.offscreen.Reason[];
+      try {
+        await chrome.offscreen.createDocument({
+          url: OFFSCREEN_URL,
+          reasons,
+          justification:
+            'Tab audio capture, on-device speech synthesis (TTS fallback) for language learning cards.',
+        });
+      } catch (err) {
+        // Lost the race with another context that created it first — not fatal.
+        if (await hasOffscreenDocument()) return;
+        throw err;
+      }
+    });
   })();
   try {
     await ensureOffscreenPromise;
@@ -174,13 +177,45 @@ async function hydrateCaptureSession(): Promise<boolean> {
   return true;
 }
 
+/**
+ * The close path has to win the race it used to lose: `oneShotRefs` and the
+ * stored session were read, then TWO awaits happened before
+ * `closeDocument()`, and a TTS or capture that started in that window got
+ * "Receiving end does not exist".
+ *
+ * A process-wide mutex serialises open and close, so the check and the close
+ * are atomic with respect to any `ensureOffscreen` that starts inside the
+ * window. `withOffscreenLock` wraps the reader side too, which makes the
+ * ordering total rather than best-effort.
+ */
+let offscreenLock: Promise<void> = Promise.resolve();
+function withOffscreenLock<T>(fn: () => Promise<T>): Promise<T> {
+  const run = offscreenLock.then(fn, fn);
+  // The chain must survive a rejected task: a failure releases the lock and
+  // keeps the next waiter in line instead of poisoning the queue.
+  offscreenLock = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
 async function closeOffscreenIfIdle(): Promise<void> {
   if (activeTabId != null) return; // capture still active
   if (await loadStoredSession()) return; // capture survived a SW restart
   if (oneShotRefs > 0) return; // another one-shot in flight
   if (!(await hasOffscreenDocument())) return;
   try {
-    await chrome.offscreen.closeDocument();
+    // Re-checked INSIDE the lock: whatever started during the awaits above
+    // either finished (its ref is gone, so closing is right) or is queued
+    // behind us and will recreate the document.
+    await withOffscreenLock(async () => {
+      if (activeTabId != null) return;
+      if (await loadStoredSession()) return;
+      if (oneShotRefs > 0) return;
+      if (!(await hasOffscreenDocument())) return;
+      await chrome.offscreen.closeDocument();
+    });
   } catch (err) {
     console.warn('[Kivara Lingo] closeOffscreenIfIdle failed', err);
   }

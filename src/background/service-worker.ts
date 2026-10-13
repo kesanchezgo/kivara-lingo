@@ -886,8 +886,12 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       }
       await chrome.runtime.sendMessage({ type: 'OFFSCREEN_STATUS' });
     } catch {
-      // If the message fails, the offscreen is gone. Clear alarm.
+      // The offscreen document is gone, so the stale-state bug bites here:
+      // `activeTabId` and the stored session still say "capturing", the UI
+      // stays in its recording state and the next card saves a frame with
+      // no audio. Clear the alarm AND tear the capture state down.
       await chrome.alarms.clear(OFFSCREEN_KEEPALIVE_ALARM);
+      await stopAudioCapture().catch(() => {});
     }
     return;
   }
@@ -1057,12 +1061,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   //  • WHERE we may go — public HTTPS only. The SW's host_permissions reach
   //    far beyond any page, so an ungated download is a port scanner pointed
   //    at the user's own machine and LAN.
-  //  • HOW LONG and HOW MUCH — an overall timeout plus a byte cap, enforced
-  //    against the ACTUAL stream and not just the declared length.
-  // The curated catalogue is one HTTPS CDN; the "importar manualmente" box
-  // accepts any public HTTPS URL that serves a Yomitan zip, self-hosted or
-  // not. Local files are NOT reachable here by design.
-  const DICT_PACK_TIMEOUT_MS = 120_000;
+  //  • HOW LONG — a HEADER deadline (the response must arrive) plus an
+  //    INACTIVITY deadline on the body, both enforced against the ACTUAL
+  //    stream. A single total timeout (the original 120 s) sized the download
+  //    as "127 MB in two minutes", i.e. an 8.5 Mbit/s floor, so the EN→EN
+  //    pack failed on any ordinary connection. Only a stall is fatal now.
+  //  • HOW MUCH — the byte cap above, against the actual stream and not just
+  //    the declared length.
+  const DICT_PACK_HEADER_TIMEOUT_MS = 30_000;
+  const DICT_PACK_IDLE_TIMEOUT_MS = 30_000;
   const DICT_PACK_MAX_BYTES = 512 * 1024 * 1024;
   if (message?.type === 'INSTALL_DICT_PACK_FROM_URL' && typeof message.url === 'string') {
     void (async () => {
@@ -1091,7 +1098,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         // taking longer than the timeout still needs a deadline.
         const abort = new AbortController();
         const downloadSignal = abort.signal;
-        const downloadTimer = setTimeout(() => abort.abort(), DICT_PACK_TIMEOUT_MS);
+        const downloadTimer = setTimeout(
+          () => abort.abort(),
+          DICT_PACK_HEADER_TIMEOUT_MS,
+        );
         const stopDownloadTimer = () => clearTimeout(downloadTimer);
         if (reject) {
           reportProgress({ stage: 'error', error: reject });
@@ -1115,7 +1125,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         let downloadDone: () => void = () => {};
         try {
           const guarded = await fetchGuarded(url, {
-            timeoutMs: DICT_PACK_TIMEOUT_MS,
+            headerTimeoutMs: DICT_PACK_HEADER_TIMEOUT_MS,
+            idleTimeoutMs: DICT_PACK_IDLE_TIMEOUT_MS,
             signal: downloadSignal,
           });
           res = guarded.response;
@@ -1137,6 +1148,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           const totalHeader = res.headers.get('content-length');
           const total = totalHeader ? parseInt(totalHeader, 10) || 0 : 0;
           if (total > DICT_PACK_MAX_BYTES) {
+            finishDownload();
+            reportProgress({
+              stage: 'error',
+              error: `Paquete demasiado grande (${total} bytes > ${DICT_PACK_MAX_BYTES})`,
+            });
             sendResponse({
               ok: false,
               error: `Paquete demasiado grande (${total} bytes > ${DICT_PACK_MAX_BYTES})`,
@@ -1168,6 +1184,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
               received += value.length;
               if (received > DICT_PACK_MAX_BYTES) {
                 await reader.cancel().catch(() => {});
+                finishDownload();
+                reportProgress({ stage: 'error', error: 'Paquete demasiado grande' });
                 sendResponse({ ok: false, error: 'Paquete demasiado grande' });
                 return;
               }
@@ -1175,15 +1193,19 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
               reportProgress({ stage: 'downloading', received, total });
             }
           }
-          // Concatenate the downloaded chunks into a single Uint8Array.
-          // We can't avoid this allocation for fflate's Unzip — even the
-          // streaming API needs the bytes — but we drop `chunks` right
-          // after so the GC can reclaim the duplicated copies.
+          // Concatenate. A single up-front allocation plus `set` calls keeps
+          // the peak at `size + one chunk`; the previous shape held every
+          // chunk AND a full `merged` copy at the same time, which for the
+          // 127 MB EN→EN pack peaked near a gigabyte and killed the worker
+          // on modest machines.
           const merged = new Uint8Array(received);
-          let off = 0;
-          for (const c of chunks) {
-            merged.set(c, off);
-            off += c.length;
+          {
+            let off = 0;
+            for (let i = 0; i < chunks.length; i += 1) {
+              merged.set(chunks[i], off);
+              off += chunks[i].length;
+              chunks[i] = new Uint8Array(0); // release each copy as we go
+            }
           }
           chunks.length = 0;
           reportProgress({

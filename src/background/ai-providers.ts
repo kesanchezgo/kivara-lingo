@@ -7,7 +7,17 @@ import type {
   AiSettings,
 } from '../shared/types';
 
-const TIMEOUT_MS = 5000;
+/**
+ * Per-call deadlines, in milliseconds.
+ *
+ * One global 5 s value was the original design and it is wrong for the two
+ * things this module actually calls: DALL-E routinely takes 10–20 s to
+ * return an image, and Anthropic with 800 max_tokens for a rich enrichment
+ * regularly blows past 5 s as well. Both failed every time, which read to
+ * the user as "the key is bad" rather than "we gave up too early".
+ */
+export const AI_TIMEOUT_CHAT_MS = 30_000;
+export const AI_TIMEOUT_IMAGE_MS = 60_000;
 
 /**
  * The raw enrichment payload returned by every provider. The wrapper in
@@ -19,9 +29,13 @@ export type AiProviderResult =
   | { ok: true; data: AiEnrichmentPayload }
   | { ok: false; error: string; provider: AiProvider };
 
-function withTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+function withTimeout(
+  input: RequestInfo | URL,
+  timeoutMs: number,
+  init?: RequestInit,
+): Promise<Response> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   return fetch(input, { ...init, signal: controller.signal }).finally(() =>
     clearTimeout(timeout),
   );
@@ -112,7 +126,7 @@ async function callOpenAi(
   };
   let resp: Response;
   try {
-    resp = await withTimeout('https://api.openai.com/v1/chat/completions', {
+    resp = await withTimeout('https://api.openai.com/v1/chat/completions', AI_TIMEOUT_CHAT_MS, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${settings.apiKey}`,
@@ -166,7 +180,7 @@ async function callAnthropic(
   };
   let resp: Response;
   try {
-    resp = await withTimeout('https://api.anthropic.com/v1/messages', {
+    resp = await withTimeout('https://api.anthropic.com/v1/messages', AI_TIMEOUT_CHAT_MS, {
       method: 'POST',
       headers: {
         'x-api-key': settings.apiKey,
@@ -243,7 +257,7 @@ async function callGemini(
   };
   let resp: Response;
   try {
-    resp = await withTimeout(url, {
+    resp = await withTimeout(url, AI_TIMEOUT_CHAT_MS, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -338,7 +352,7 @@ export async function generateAiImage(
   }
   let resp: Response;
   try {
-    resp = await withTimeout('https://api.openai.com/v1/images/generations', {
+    resp = await withTimeout('https://api.openai.com/v1/images/generations', AI_TIMEOUT_IMAGE_MS, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

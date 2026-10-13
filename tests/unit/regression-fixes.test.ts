@@ -280,11 +280,20 @@ describe('RUN_COMMAND_GATE covers every mutating case (#6-2)', () => {
     return [...src.matchAll(/'([^']+)'/g)].map((x) => x[1]);
   }
 
+  /** The RUN_COMMAND switch, bounded by real anchors instead of a magic
+   *  character count — the old fixed 6000-char window silently depended on
+   *  file layout and would drift as the handler grows. */
+  function runCommandSwitch(): string {
+    const start = appSrc.indexOf("msg?.type === 'RUN_COMMAND'");
+    expect(start, 'RUN_COMMAND listener not found').toBeGreaterThan(-1);
+    const end = appSrc.indexOf('const onRecaptureEvent', start);
+    expect(end, 'switch terminator anchor not found').toBeGreaterThan(start);
+    return appSrc.slice(start, end);
+  }
+
   it('every gated case is in the gate, and nothing gated is dead', () => {
     const gate = new Set(quoted(setLiteral()));
-    const switchStart = appSrc.indexOf("msg?.type === 'RUN_COMMAND'");
-    expect(switchStart).toBeGreaterThan(-1);
-    const switchSrc = appSrc.slice(switchStart, switchStart + 6000);
+    const switchSrc = runCommandSwitch();
     const cases = quoted(switchSrc.match(/case '[^']+':/g)!.join(','));
     expect(cases.length).toBeGreaterThan(3);
     for (const c of cases) {
@@ -294,6 +303,18 @@ describe('RUN_COMMAND_GATE covers every mutating case (#6-2)', () => {
     for (const g of gate) {
       expect(cases, `gate entry '${g}' has no case`).toContain(g);
     }
+  });
+
+  it('the in-page keydown bails on auto-repeat and IME composition', () => {
+    // Holding Ctrl+Shift+S fired one keydown per ~33 ms, so a held press
+    // created a card each time and Alt+R re-seeked on every repeat. The
+    // manifest path fires once per press, which is why only this handler
+    // needed the guard.
+    const start = appSrc.indexOf('const onKeyDown');
+    expect(start).toBeGreaterThan(-1);
+    const end = appSrc.indexOf('window.addEventListener', start);
+    const handler = appSrc.slice(start, end);
+    expect(handler).toMatch(/if\s*\(\s*e\.repeat\s*\|\|\s*e\.isComposing\s*\)\s*return/);
   });
 
   it('every handler that acts on a shortcut consults the enabled toggle first', () => {

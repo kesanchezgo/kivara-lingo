@@ -701,6 +701,68 @@ export async function retrySyncWrite(): Promise<boolean> {
 }
 
 /**
+ * Bumped whenever a persisted snapshot needs a one-off rewrite. Bump this
+ * AND add to this table in the same commit; anything not listed here stays
+ * untouched.
+ */
+export const STORE_VERSION = 2;
+/**
+ * Model ids the providers have retired, mapped to the closest live one.
+ * `anthropic-version: 2023-06-01` plus these bodies get a hard error from
+ * the API, so a user who picked one before they were removed would save a
+ * card and get nothing but a failure toast.
+ */
+const RETIRED_AI_MODELS: Record<string, string> = {
+  'claude-3-5-haiku-latest': 'claude-haiku-4-5',
+  'claude-3-5-sonnet-latest': 'claude-sonnet-4-6',
+  'gemini-2.0-flash': 'gemini-2.5-flash',
+};
+
+/**
+ * Rewrite a retired model id to the closest live one. Idempotent, and safe
+ * to call on every hydrate: the mapping is a lookup, so there is no "user
+ * preference" here to lose — every source id in the left column is a model
+ * the provider no longer serves.
+ */
+function liveAiModel<T extends { model?: string }>(ai: T): T {
+  const model = ai.model;
+  if (typeof model === 'string' && RETIRED_AI_MODELS[model]) {
+    return { ...ai, model: RETIRED_AI_MODELS[model] };
+  }
+  return ai;
+}
+
+/**
+ * One-shot rewrites of older persisted state. Runs exactly once per version
+ * bump (zustand records the version alongside the snapshot), so unlike the
+ * old merge-time migration it cannot fight the user's own later choices.
+ *
+ * SHAPE: zustand's `migrate` receives the ALREADY-UNWRAPPED state — storage
+ * holds `{ state, version }` and `persist` hands over `state`. The first cut
+ * read `persisted.state?.ai` and therefore never fired, while its unit test
+ * stayed green because it fed that same wrong shape. The hydrate tests in
+ * `store-ai-model-migration.test.ts` drive the real persist pipeline so the
+ * shape cannot drift again.
+ *
+ * Version 2 (not 1): version 1 shipped broken in c2c00bb and still stamped
+ * `version: 1` into every snapshot, so "below 2" is exactly the set of
+ * profiles that need this.
+ */
+export function migrateStoreState(
+  persisted: unknown,
+  fromVersion: number,
+): unknown {
+  if (fromVersion >= STORE_VERSION || persisted == null || typeof persisted !== 'object') {
+    return persisted;
+  }
+  const state = persisted as { ai?: { model?: unknown } };
+  if (state.ai && typeof state.ai === 'object') {
+    state.ai = liveAiModel(state.ai as { model?: string });
+  }
+  return persisted;
+}
+
+/**
  * Defensive merge for persisted state. Zustand's default shallow merge only
  * fills in MISSING top-level keys — it doesn't recurse, so a snapshot saved
  * before a `translate.tiersEnabled` field existed will load with
@@ -712,19 +774,22 @@ export async function retrySyncWrite(): Promise<boolean> {
  */
 function mergePersisted(persistedState: unknown, currentState: KivaraState): KivaraState {
   const persisted = (persistedState ?? {}) as Partial<KivaraState>;
-  // Normalize the VIP block's ttl BEFORE the spread: a value persisted by
-  // an older build (or hand-edited) can be 0, -5, NaN or 9999, and a bad ttl
-  // either wipes the cache or never expires it. Clamp on hydrate, once, here.
-  // Non-mutating: the incoming persisted object is not ours to write.
-  // If vip is present, spread it — but add a normalized cacheTtlDays to the
-  // flowing vip object. This leaves the input `persisted` untouched.
-  const vip = persisted.vip && typeof persisted.vip === 'object'
-    ? { ...persisted.vip, cacheTtlDays: normalizeTtlDays(persisted.vip.cacheTtlDays) }
-    : undefined;
+  // The VIP block, defaults merged, with the ttl normalized. A value
+  // persisted by an older build (or hand-edited) can be 0, -5, NaN or 9999,
+  // and a bad ttl either wipes the cache or never expires it.
+  //
+  // Clamping happens HERE and this object is the only one the return spreads
+  // — the previous shape applied `{...DEFAULT_VIP, ...persisted.vip}` further
+  // down the same object literal, which re-clobbered the clamp (P1.2). One
+  // vip key, one source of truth.
+  const vip: KivaraState['vip'] = {
+    ...DEFAULT_VIP,
+    ...(persisted.vip && typeof persisted.vip === 'object' ? persisted.vip : {}),
+    cacheTtlDays: normalizeTtlDays(persisted.vip?.cacheTtlDays),
+  };
   return {
     ...currentState,
     ...persisted,
-    ...(vip ? { vip } : {}),
     subtitleStyles: { ...DEFAULT_SUBTITLE_STYLES, ...(persisted.subtitleStyles ?? {}) },
     ankiMapping: {
       ...DEFAULT_ANKI_MAPPING,
@@ -750,8 +815,8 @@ function mergePersisted(persistedState: unknown, currentState: KivaraState): Kiv
         ? persisted.translate!.premiumChain
         : DEFAULT_TRANSLATE.premiumChain,
     },
-    ai: { ...DEFAULT_AI, ...(persisted.ai ?? {}) },
-    vip: { ...DEFAULT_VIP, ...(persisted.vip ?? {}) },
+    ai: liveAiModel({ ...DEFAULT_AI, ...(persisted.ai ?? {}) }),
+    vip,
     tts: { ...DEFAULT_TTS, ...(persisted.tts ?? {}) },
     panelPosition: persisted.panelPosition ?? DEFAULT_PANEL_POSITION,
     onboarding: { ...DEFAULT_ONBOARDING, ...(persisted.onboarding ?? {}) },
@@ -765,47 +830,6 @@ function mergePersisted(persistedState: unknown, currentState: KivaraState): Kiv
     // sync and the migrate hook in `persist` owns anything that has to
     // change an existing snapshot once — see RETIRED_AI_MODELS below.
   };
-}
-
-/**
- * Bumped whenever a persisted snapshot needs a one-off rewrite. Bump this
- * AND add to this table in the same commit; anything not listed here stays
- * untouched.
- */
-export const STORE_VERSION = 1;
-/**
- * Model ids the providers have retired, mapped to the closest live one.
- * `anthropic-version: 2023-06-01` plus these bodies get a hard error from
- * the API, so a user who picked one before they were removed would save a
- * card and get nothing but a failure toast.
- */
-const RETIRED_AI_MODELS: Record<string, string> = {
-  'claude-3-5-haiku-latest': 'claude-haiku-4-5',
-  'claude-3-5-sonnet-latest': 'claude-sonnet-4-6',
-  'gemini-2.0-flash': 'gemini-2.5-flash',
-};
-
-/**
- * One-shot rewrites of older persisted state. Runs exactly once per version
- * bump (zustand records the version with the snapshot), so unlike the old
- * merge-time migration it cannot fight the user's own later choices.
- *
- * Exported so the migration can be tested against the real rule rather than
- * a mirror of it — `store-ai-model-migration.test.ts`.
- */
-export function migrateStoreState(
-  persisted: unknown,
-  fromVersion: number,
-): unknown {
-  if (fromVersion >= STORE_VERSION || persisted == null || typeof persisted !== 'object') {
-    return persisted;
-  }
-  const next = persisted as { state?: Record<string, Record<string, unknown>> };
-  const ai = next.state?.ai;
-  if (ai && typeof ai.model === 'string' && RETIRED_AI_MODELS[ai.model]) {
-    ai.model = RETIRED_AI_MODELS[ai.model];
-  }
-  return persisted;
 }
 
 export const useKivaraStore = create<KivaraState>()(

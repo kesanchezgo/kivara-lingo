@@ -722,6 +722,15 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       // chrome.commands path goes through RUN_COMMAND (toggle_subtitles
       // etc), but the in-page handler ALSO handled them and had no gate.
       if (!useKivaraStore.getState().enabled) return;
+      // Auto-repeat and IME composition, both of which used to sneak a
+      // handler through. `e.repeat` is true for every keydown after the
+      // first while the user HOLDS the combo — Chrome fires them every
+      // ~33 ms — so a held Ctrl+Shift+S created one card per repeat and
+      // Alt+R re-seeked on each one. The manifest path does not have this
+      // problem (chrome.commands fires once per press), so this was purely
+      // the in-page handler's bug. `isComposing` covers the middle of a
+      // dead-key or IME sequence.
+      if (e.repeat || e.isComposing) return;
       // composedPath, not `e.target`: inside the panel's shadow root the
       // reported target is the host element, so a tagName check would miss
       // the input the user is typing in and fire shortcuts mid-sentence.
