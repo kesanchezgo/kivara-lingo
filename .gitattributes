@@ -1,0 +1,38 @@
+# Text files: LF in the repo, whatever the OS does on checkout.
+* text=auto eol=lf
+
+# Bundled data, dictionaries and corpora. They are generated (`npm run
+# dict:build`, the wordnet/MWE converters) and their writers decide the
+# trailing byte; touching 30+ multi-megabyte blobs to append one byte would
+# swamp every future diff. `scripts/check-line-endings.mjs` matches this
+# list and skips the same roots.
+src/assets/** linguist-generated=true -text -diff
+
+# Audit and probe output, regenerable diagnostics.
+docs/reports/** linguist-generated=true -text -diff
+
+# Real binaries, so git never tries to normalise them as text (without this,
+# `git ls-files --eol` reports plain bytes as `i/-text` with an empty attr
+# column, which the line-endings check used to read as "missing newline").
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.icns binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.mp3 binary
+*.wav binary
+*.ogg binary
+*.zip binary
+*.gz binary
+*.pdf binary
+*.crx binary
+*.pem binary
+*.zip binary
+*.xpi binary

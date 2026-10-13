@@ -61,7 +61,25 @@ const binary = new Set();
 for (const line of eol.split('\n')) {
   const m = /^i\/([-\w]+)\s+w\/([-\w]+)\s+attr\/(\S*)\s+(.*)$/.exec(line);
   if (!m) continue;
-  if (m[3].includes('-text')) binary.add(m[4]);
+  // `attr/-text` is the attribute, NOT a reliable binary marker: without a
+  // `.gitattributes` in the tree git decides binary-ness by sniffing the
+  // BLOB and reports plain binaries as `i/-text` with an EMPTY attr column.
+  // Trusting that column alone would grade a versioned PNG (outside
+  // src/assets, where nothing forces the attribute) as "no final newline".
+  if (m[3].includes('-text') || m[1] === '-text') binary.add(m[4]);
+}
+
+/**
+ * Byte-sniff fallback, done in the same batch pass below: a blob whose first
+ * 8000 bytes contain a NUL is binary, whatever the attribute column said.
+ * That is git's own heuristic and covers every case `attr/` misses.
+ */
+const NUL_WINDOW = 8000;
+
+function looksBinary(bytes) {
+  const n = Math.min(bytes.length, NUL_WINDOW);
+  for (let i = 0; i < n; i += 1) if (bytes[i] === 0) return true;
+  return false;
 }
 
 /** Shas for the text files we care about, in `git cat-file --batch` order. */
@@ -110,6 +128,9 @@ for (let i = 0; i < blobs.length; i += 1) {
   const bytes = out.subarray(start, start + Number(size));
   cursor = start + Number(size) + 1; // trailing LF after the payload
   if (bytes.length === 0) continue;
+  // The NUL sniff runs here, not on the index: an empty binary (0 bytes) is
+  // skipped above, and a text file never contains a NUL in its first 8 KB.
+  if (looksBinary(bytes)) continue;
   const lastByte = bytes[bytes.length - 1];
   if (lastByte !== 0x0a) {
     offenders.push(`${path}: no final newline`);
