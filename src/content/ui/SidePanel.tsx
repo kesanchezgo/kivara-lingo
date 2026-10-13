@@ -165,6 +165,18 @@ export function SidePanel({
   /** Raw mirror of `position`, readable from an event handler without
    *  reaching through a setState updater (see the mouseup persistence). */
   const positionRef = useRef<PanelPosition>(position);
+  /** Trailing-edge debounce for the STORED position. 500 ms is far longer than
+   *  a resize burst and short enough that the panel still settles on the
+   *  persisted value when the window stops moving. */
+  const RESIZE_DEBOUNCE_MS = 500;
+  const resizeTimerRef = useRef<number | null>(null);
+  const setPersistedPositionDebounced = useCallback((next: PanelPosition) => {
+    if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+    resizeTimerRef.current = window.setTimeout(() => {
+      resizeTimerRef.current = null;
+      setPersistedPosition(next);
+    }, RESIZE_DEBOUNCE_MS);
+  }, [setPersistedPosition]);
   const [isDragging, setIsDragging] = useState(false);
   const dragStateRef = useRef<{
     moved: boolean;
@@ -179,29 +191,46 @@ export function SidePanel({
   // coordinates.
   useEffect(() => {
     if (!isPopupMode) return;
+    const flushResize = () => {
+      // Compute and persist OUTSIDE the state updater entirely. Two reasons:
+      //  • a `setState(prev => …)` callback must be pure — React may run it
+      //    twice, so the storage write used to happen twice per resize;
+      //  • a debounced write keeps the burst inside chrome.storage's budget:
+      //    `resize` fires dozens of times per second while a drag handle is
+      //    used, and sync allows 120 writes per minute.
+      const next = clampPosition(positionRef.current);
+      positionRef.current = next;
+      setPosition(next);
+      setPersistedPositionDebounced(next);
+    };
+    // Trailing-edge debounce: the clamped value settles a moment after the
+    // last resize, and writing once at 500 ms cannot overflow the quota no
+    // matter how fast the window is dragged. The position shown on screen is
+    // immediate (setPosition above); only the STORAGED value is delayed.
     const onResize = () => {
-      setPosition((prev) => {
-        const next = clampPosition(prev);
-        // Read the raw value, never a setState updater: the persist write is a
-        // side effect and React may run the updater twice, which wrote the
-        // position to storage twice per resize.
-        positionRef.current = next;
-        setPersistedPosition(next);
-        return next;
-      });
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+      resizeTimerRef.current = window.setTimeout(flushResize, RESIZE_DEBOUNCE_MS);
     };
     window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [isPopupMode, setPersistedPosition]);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+      // Nothing in flight lost: the last computed value was already held.
+    };
+    // The debounced writer is listed: it is a stable `useCallback` over a
+    // store setter, so the effect re-runs only if the store itself changes.
+  }, [isPopupMode, setPersistedPosition, setPersistedPositionDebounced]);
 
   // Sync persisted → local position when popup mode is re-entered. Also
   // re-clamp the persisted value (in case the previous session was on a
-  // larger monitor).
+  // larger monitor) and MIRRORS it into the ref, which every later write
+  // reads (a ref that skips this update writes back coordinates from before);
+  // this effect also re-clamps when the viewport changes size.
   useEffect(() => {
     if (!isPopupMode) return;
-    setPosition((prev) =>
-      clampPosition(persistedPosition ?? prev ?? defaultPopupPosition()),
-    );
+    const clamped = clampPosition(persistedPosition ?? defaultPopupPosition());
+    positionRef.current = clamped;
+    setPosition(clamped);
   }, [isPopupMode, persistedPosition]);
 
   const handleDragStart = useCallback(

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { RotateCcw, AlertTriangle, Keyboard as KeyboardIcon } from 'lucide-react';
 import { useShortcuts } from '../hooks/useShortcuts';
-import { SHORTCUT_DEFS, comboFromEvent, comboHasRequiredModifier, parseCombo } from '../../shared/shortcuts';
+import { SHORTCUT_DEFS, comboFromEvent, comboHasRequiredModifier, normalizeCombo, parseCombo } from '../../shared/shortcuts';
 import { t } from '../../shared/i18n';
 
 interface ShortcutEditorProps {
@@ -73,18 +73,25 @@ export function ShortcutEditor({ compact = false }: ShortcutEditorProps) {
                   setWarning({ id: def.id, msg: t('sc.needsModifier') });
                 }}
                 onCapture={(combo) => {
+                  // The manifest owns this chord (chrome.commands) — UNLESS it
+                  // is the chord THIS action already ships with. Re-picking
+                  // your own default used to be refused with "already used",
+                  // which reads as broken: Alt+C on "Toggle subtitles" said
+                  // Chrome had it, while Chrome had it *for this very action*.
+                  const ownDefault =
+                    normalizeCombo(combo) === normalizeCombo(def.defaultCombo);
                   // Chrome owns this chord (chrome.commands). Binding it in
                   // the editor used to be accepted silently, and the two
                   // handlers — manifest RUN_COMMAND and our in-page one —
                   // could both fire during cold start: one save per press,
                   // or a seek the user never asked for.
-                  const manifestOwned = findManifestConflict(combo);
+                  const manifestOwned = ownDefault ? null : findManifestConflict(combo);
                   if (manifestOwned) {
                     setWarning({ id: def.id, msg: t('sc.usedByChrome', { combo: manifestOwned }) });
                     setCapturingId(null);
                     return;
                   }
-                  const conflict = findConflict(combo, def.id);
+                  const conflict = ownDefault ? null : findConflict(combo, def.id);
                   if (conflict) {
                     const other = SHORTCUT_DEFS.find((s) => s.id === conflict)?.label ?? conflict;
                     setWarning({ id: def.id, msg: t('sc.alreadyUsedBy', { other }) });

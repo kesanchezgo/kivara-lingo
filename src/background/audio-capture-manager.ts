@@ -312,37 +312,71 @@ export async function startAudioCapture(
   /** E2E-only capture-path override; forwarded verbatim to the offscreen. */
   pcmPath?: 'audio-worklet' | 'script-processor',
 ): Promise<{ ok: boolean; mimeType?: string; error?: string }> {
-  // A ref is held for the WHOLE start, including the async gaps — `getStreamId`,
-  // the offscreen round trip and the `storage.session` write.
-  //
-  // `closeOffscreenIfIdle` only knows "capture is active" once `activeTabId`
-  // is set, which happens AFTER the offscreen acknowledges. In that window the
-  // extension looks idle, so a TTS one-shot finishing concurrently would
-  // release its own ref, see `oneShotRefs === 0`, and close the document the
-  // capture had just been started inside: the start then fails with a
-  // "document not found" that has nothing to do with the user's action.
+  // A ref is held for the WHOLE start, including the async gaps: the offscreen
+  // open, `getStreamId`, the round trip and the `storage.session` write — a
+  // TTS one-shot finishing mid-start would otherwise look idle and close the
+  // document this start had just opened.
   oneShotRefs += 1;
-  // Stamp the attempt. `++`, not a read: each start supersedes every earlier
-  // stop, so a stop in flight when this starts reads itself stale and leaves
-  // the new session alone (that ordering bug was: stop's finally zeroed
-  // `activeTabId` of the capture that had just begun and closed its document).
+  // Every bump supersedes every earlier token — including an earlier START,
+  // which is the case the whole loop below exists for. A stop that lands
+  // while this start is still awaiting cannot pre-empt post-mortem, so the
+  // token is re-read after EACH await, not only in the finally.
   captureToken += 1;
   const token = captureToken;
+  const stale = () => token !== captureToken;
+
   try {
-    // NOT wrapped in the offscreen lock: the lock is not reentrant, and
-    // `ensureOffscreen()` takes it itself — a start inside the lock deadlocked
-    // with the open, and every capture silently timed out. The token IS the
-    // guard against a stale stop, so ordering is preserved without nesting.
-    const outcome = await startCaptureInner(tabId, bufferSizeSec, streamIdOverride, pcmPath);
-    if (!outcome.ok) {
-      lastError = 'offscreen reported failure';
+    // NOT wrapped in the offscreen lock: the lock is not reentrant and
+    // `ensureOffscreen()` takes it itself, so a start inside the lock
+    // deadlocked with the open until the e2e suite caught it. The token
+    // alone preserves the ordering.
+    await ensureOffscreen();
+    if (stale()) return superseded();
+
+    const streamId = streamIdOverride ?? (await getStreamId(tabId));
+    if (stale()) return superseded();
+
+    const result = await sendToOffscreen<OffscreenResponse & { mimeType?: string }>({
+      type: 'OFFSCREEN_START_AUDIO_CAPTURE',
+      streamId,
+      bufferSizeSec,
+      ...(pcmPath ? { pcmPath } : {}),
+    });
+    if (stale()) {
+      // The offscreen IS now recording (the RPC landed) but a stop already
+      // ran, so the user's intent is stop: tell the document instead of
+      // leaving it capturing into a session nobody owns.
+      await sendToOffscreen({ type: 'OFFSCREEN_STOP_AUDIO_CAPTURE' }).catch(() => {});
+      return superseded();
+    }
+    if (!result?.ok) {
+      if (stale()) return superseded();
+      lastError = result?.error || 'offscreen reported failure';
       activeTabId = null;
       activeMimeType = undefined;
       await clearStoredSession();
       return { ok: false, error: lastError };
     }
-    return { ok: true, mimeType: outcome.mimeType };
+    if (stale()) return superseded();
+
+    activeTabId = tabId;
+    activeMimeType = result.mimeType;
+    // ONLY after the state above is recorded: one write, so
+    // `closeOffscreenIfIdle` and every consumer see a coherent session.
+    await saveStoredSession({
+      active: true,
+      tabId,
+      mimeType: activeMimeType,
+      startedAt: Date.now(),
+    });
+    if (stale()) return superseded();
+    lastError = undefined;
+    return { ok: true, mimeType: result.mimeType };
   } catch (err) {
+    // A newer start or stop owns the state; clearing it here would zero
+    // `activeTabId` out from under a capture that is already running, and
+    // `closeOffscreenIfIdle` would then close ITS document.
+    if (stale()) return superseded();
     const reason = err instanceof Error ? err.message : 'unknown';
     lastError = reason;
     activeTabId = null;
@@ -351,50 +385,29 @@ export async function startAudioCapture(
     return { ok: false, error: reason };
   } finally {
     oneShotRefs = Math.max(0, oneShotRefs - 1);
-    // Released AFTER the session is recorded, so the document this came from
-    // is abandoned only if the capture is not actually stored — the normal
-    // success path ends with `loadStoredSession()` true and a close attempt
-    // that returns early.
+    // Released AFTER the session is recorded: the normal success path ends
+    // with a stored session, so the close attempt returns early.
     void closeOffscreenIfIdle();
-    void token;
   }
 }
 
-async function startCaptureInner(
-  tabId: number,
-  bufferSizeSec: number,
-  streamIdOverride?: string,
-  /** E2E-only capture-path override; forwarded verbatim to the offscreen. */
-  pcmPath?: 'audio-worklet' | 'script-processor',
-): Promise<{ ok: boolean; mimeType?: string }> {
-  await ensureOffscreen();
-  const streamId = streamIdOverride ?? (await getStreamId(tabId));
-  const result = await sendToOffscreen<OffscreenResponse & { mimeType?: string }>({
-    type: 'OFFSCREEN_START_AUDIO_CAPTURE',
-    streamId,
-    bufferSizeSec,
-    ...(pcmPath ? { pcmPath } : {}),
-  });
-  if (!result?.ok) return { ok: false };
-  activeTabId = tabId;
-  activeMimeType = result.mimeType;
-  // ONLY after the state above is recorded: that is what makes the session
-  // readable for `closeOffscreenIfIdle` (and for every consumer) in one write.
-  await saveStoredSession({
-    active: true,
-    tabId,
-    mimeType: result.mimeType,
-    startedAt: Date.now(),
-  });
-  lastError = undefined;
-  return { ok: true, mimeType: result.mimeType };
+/**
+ * A start whose token was superseded (a stop, or another start, ran while it
+ * was awaiting) reports failure WITHOUT touching shared state: whoever
+ * superseded it owns the session, the flags and the document now.
+ */
+function superseded(): { ok: false; error: string } {
+  return { ok: false, error: 'capture start superseded' };
 }
 
 export async function stopAudioCapture(): Promise<void> {
-  // Read the CURRENT stamp, so a start that began while this stop was in
-  // flight (or during it) reads as a different token and leaves the live
-  // session untouched.
-  const token = captureToken;
+  // BUMP first, not read: a start still awaiting its round trip holds the
+  // OLD token, so it reads itself stale, sends the OFFSCREEN_STOP for the
+  // capture it had just started, and leaves the flags alone (they belong to
+  // this call). Reading instead of bumping let a stop during a start be
+  // pre-empted by the state the start wrote afterwards: the tab kept
+  // recording while the UI said it had stopped.
+  captureToken += 1;
   try {
     if (await hasOffscreenDocument()) {
       await sendToOffscreen({ type: 'OFFSCREEN_STOP_AUDIO_CAPTURE' });
@@ -402,10 +415,8 @@ export async function stopAudioCapture(): Promise<void> {
   } catch (err) {
     console.warn('[Kivara Lingo] failed to stop offscreen', err);
   } finally {
-    if (captureToken === token) {
-      activeTabId = null;
-      activeMimeType = undefined;
-    }
+    activeTabId = null;
+    activeMimeType = undefined;
     await clearStoredSession();
     void closeOffscreenIfIdle();
   }

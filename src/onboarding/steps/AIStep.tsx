@@ -4,6 +4,7 @@ import { Sparkles, CheckCircle2, Ban, Mic, Zap, Brain, KeyRound, AlertTriangle, 
 import type { AiProvider } from '../../shared/types';
 import { MODELS_BY_PROVIDER } from '../../shared/ai-models';
 import { getAiPreset } from '../../shared/ai-presets';
+import { SyncWriteErrorBanner } from '../../app/components/SyncWriteErrorBanner';
 import { StepSection, ToggleRow } from './StepSection';
 
 /* ─── AIStep ──────────────────────────────────────────────────────────────── */
@@ -120,6 +121,10 @@ export function AIStep({
                 <AlertTriangle size={11} />
                 {t('onb.noKeyNote')}</p>
             )}
+            {/* The key is entered here, so the "could not be encrypted, not
+                saved" refusal belongs here too: onboarding used to have no
+                banner at all, and the user typed a key into a void. */}
+            <SyncWriteErrorBanner compact />
           </div>
           <div className="p-4 space-y-1.5">
             <label className="flex items-center gap-1.5 text-[12px] font-semibold text-zinc-700 dark:text-zinc-300">

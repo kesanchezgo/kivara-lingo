@@ -212,9 +212,11 @@ export const DEFAULT_ONBOARDING: OnboardingState = {
 };
 
 export const DEFAULT_TELEMETRY: TelemetrySettings = {
-  // Local-only by design — no data leaves the device — so the default is
-  // “on”. The user can flip it off in the dict-packs panel.
-  enabled: true,
+  // Local-only by design — no data leaves the device — but the docs and the
+  // store copy both say "(opt-in)", and a reviewer comparing the two would
+  // read the code as the truth. Off by default matches what the user is told;
+  // the dict-packs panel flips it on.
+  enabled: false,
 };
 
 /**
@@ -605,7 +607,11 @@ export function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage
         if (typeof chrome !== 'undefined' && chrome.storage?.[area]) {
           await chrome.storage[area].set({ [name]: toStore });
           pendingUnsynced.delete(`${area}:${name}`); // the blob is durable now
-          publishSyncWriteStatus({ failed: false, discarded: false }); // durable again
+          // Durable again — that also clears a previous "this key was not
+          // saved" refusal: the encryption that failed then worked on this
+          // write, and leaving the notice up would accuse a save that
+          // succeeded.
+          publishSyncWriteStatus({ failed: false, discarded: false, secretSaveRefused: false });
           return;
         }
       } catch (err) {
@@ -644,7 +650,7 @@ export function makeChromeStorage(area: 'sync' | 'local' = 'sync'): StateStorage
           ownSyncWrites.delete(`${area}:${name}`);
           lastSealedContent.delete(name);
           pendingUnsynced.delete(`${area}:${name}`);
-          publishSyncWriteStatus({ failed: false });
+          publishSyncWriteStatus({ failed: false, secretSaveRefused: false });
           return;
         }
       } catch (err) {
