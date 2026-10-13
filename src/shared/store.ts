@@ -762,11 +762,50 @@ function mergePersisted(persistedState: unknown, currentState: KivaraState): Kiv
     // problems: (a) it ran on EVERY load, not once, so a user who
     // deliberately reassigns to Ctrl+S was reset on refresh; (b) the
     // rationale was wrong: Ctrl+S in the in-page handler and
-    // Ctrl+Shift+S in the manifest (which goes via RUN_COMMAND) do NOT
-    // double-fire — they are distinct combos — so there was never a
-    // prevent-at-all-costs rule to serve here. If a future migration is
-    // needed, do it once via a versioned `migrate` call in `persist`.
+    // sync and the migrate hook in `persist` owns anything that has to
+    // change an existing snapshot once — see RETIRED_AI_MODELS below.
   };
+}
+
+/**
+ * Bumped whenever a persisted snapshot needs a one-off rewrite. Bump this
+ * AND add to this table in the same commit; anything not listed here stays
+ * untouched.
+ */
+export const STORE_VERSION = 1;
+/**
+ * Model ids the providers have retired, mapped to the closest live one.
+ * `anthropic-version: 2023-06-01` plus these bodies get a hard error from
+ * the API, so a user who picked one before they were removed would save a
+ * card and get nothing but a failure toast.
+ */
+const RETIRED_AI_MODELS: Record<string, string> = {
+  'claude-3-5-haiku-latest': 'claude-haiku-4-5',
+  'claude-3-5-sonnet-latest': 'claude-sonnet-4-6',
+  'gemini-2.0-flash': 'gemini-2.5-flash',
+};
+
+/**
+ * One-shot rewrites of older persisted state. Runs exactly once per version
+ * bump (zustand records the version with the snapshot), so unlike the old
+ * merge-time migration it cannot fight the user's own later choices.
+ *
+ * Exported so the migration can be tested against the real rule rather than
+ * a mirror of it — `store-ai-model-migration.test.ts`.
+ */
+export function migrateStoreState(
+  persisted: unknown,
+  fromVersion: number,
+): unknown {
+  if (fromVersion >= STORE_VERSION || persisted == null || typeof persisted !== 'object') {
+    return persisted;
+  }
+  const next = persisted as { state?: Record<string, Record<string, unknown>> };
+  const ai = next.state?.ai;
+  if (ai && typeof ai.model === 'string' && RETIRED_AI_MODELS[ai.model]) {
+    ai.model = RETIRED_AI_MODELS[ai.model];
+  }
+  return persisted;
 }
 
 export const useKivaraStore = create<KivaraState>()(
@@ -873,6 +912,8 @@ export const useKivaraStore = create<KivaraState>()(
       // Deep-merge defaults into the persisted slice so a snapshot saved by an
       // older build (e.g. missing translate.tiersEnabled) doesn't crash the
       // panel with `Cannot read properties of undefined (reading 'free')`.
+      version: STORE_VERSION,
+      migrate: (persisted, fromVersion) => migrateStoreState(persisted, fromVersion),
       merge: (persisted, current) => mergePersisted(persisted, current as KivaraState),
     },
   ),

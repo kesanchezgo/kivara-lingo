@@ -148,17 +148,15 @@ export function isEncrypted(value: string | undefined | null): boolean {
 /**
  * Encrypt a plaintext secret. Empty string passes through unchanged so
  * "no key configured" stays distinguishable from "key configured but
- * encrypted to empty bytes". On crypto failure, returns the original
- * plaintext (it's still safer than crashing the whole settings save —
- * the worst case is a key that wasn't encrypted, not a key that was
- * lost).
+ * encrypted to empty bytes".
  *
- * MARKING: an unencrypted result is self-identifying — it does NOT carry
- * the `enc:v1:` prefix, so `isEncrypted()` (and therefore every reader)
- * can tell "stored plaintext because crypto was unavailable" from real
- * ciphertext. The failure is also warned on the console above. We do NOT
- * invent a fake prefix here because callers treat prefixed values as
- * ciphertext and would try to decrypt garbage.
+ * FAILURE: throws `SecretEncryptionUnavailableError`. It used to catch the
+ * WebCrypto failure and return the plaintext, which silently persisted a
+ * cleartext API key while the privacy policy promised ciphertext — the
+ * worst case it was protecting against (a lost key) became the norm, and
+ * the user got no signal at all. Refusing means the save fails loudly and
+ * the key simply isn't stored; `sealForSync` skips that persist tick and
+ * the value stays in memory for the next attempt.
  */
 export class SecretEncryptionUnavailableError extends Error {
   constructor(readonly cause?: unknown) {
