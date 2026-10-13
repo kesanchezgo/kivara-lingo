@@ -42,6 +42,42 @@ function withTimeout(
 }
 
 /**
+ * Read a response body under its own deadline and return the TEXT.
+ *
+ * `withTimeout`'s clock stops when the headers arrive, so every
+ * `resp.json()` below used to be unbounded: a provider that answered with
+ * headers and then stalled the body pinned the call until Chrome killed the
+ * worker (no toast, no error). On expiry this cancels the body, which is what
+ * actually breaks the pending read — aborting the fetch's controller cannot,
+ * since the stream has already been handed over.
+ */
+async function readBounded(
+  resp: Response,
+  timeoutMs: number,
+  what: string,
+): Promise<string> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      resp.text(),
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`${what} exceeded ${Math.round(timeoutMs / 1000)} s`)),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+    try {
+      void resp.body?.cancel();
+    } catch {
+      /* consumed or already closed */
+    }
+  }
+}
+
+/**
  * The shared prompt used across providers. Producing JSON shaped exactly like
  * `AiEnrichmentPayload` keeps parsing trivial.
  */
@@ -146,7 +182,7 @@ async function callOpenAi(
   }
   let json: unknown;
   try {
-    json = await resp.json();
+    json = JSON.parse(await readBounded(resp, AI_TIMEOUT_CHAT_MS, 'OpenAI body'));
   } catch {
     return { ok: false, error: 'OpenAI returned non-JSON body', provider: 'openai' };
   }
@@ -205,7 +241,7 @@ async function callAnthropic(
   }
   let json: unknown;
   try {
-    json = await resp.json();
+    json = JSON.parse(await readBounded(resp, AI_TIMEOUT_CHAT_MS, 'Anthropic body'));
   } catch {
     return { ok: false, error: 'Anthropic returned non-JSON body', provider: 'anthropic' };
   }
@@ -274,7 +310,7 @@ async function callGemini(
   }
   let json: unknown;
   try {
-    json = await resp.json();
+    json = JSON.parse(await readBounded(resp, AI_TIMEOUT_CHAT_MS, 'Gemini body'));
   } catch {
     return { ok: false, error: 'Gemini returned non-JSON body', provider: 'google-ai' };
   }
@@ -371,12 +407,12 @@ export async function generateAiImage(
     return { ok: false, error: (err as Error).message };
   }
   if (!resp.ok) {
-    const body = await resp.text().catch(() => '');
+    const body = await readBounded(resp, AI_TIMEOUT_IMAGE_MS, 'OpenAI image error body').catch(() => '');
     return { ok: false, error: `OpenAI ${resp.status}: ${body.slice(0, 160)}` };
   }
   let data: unknown;
   try {
-    data = await resp.json();
+    data = JSON.parse(await readBounded(resp, AI_TIMEOUT_IMAGE_MS, 'OpenAI image body'));
   } catch {
     return { ok: false, error: 'OpenAI returned non-JSON' };
   }

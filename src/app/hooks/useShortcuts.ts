@@ -1,10 +1,6 @@
 import { useCallback } from 'react';
 import { useKivaraStore } from '../../shared/store';
-import {
-  DEFAULT_SHORTCUT_MAP,
-  SHORTCUT_DEFS,
-  type ShortcutMap,
-} from '../../shared/shortcuts';
+import { SHORTCUT_DEFS, DEFAULT_SHORTCUT_MAP, normalizeCombo, readManifestCombos, type ShortcutMap } from '../../shared/shortcuts';
 
 /**
  * Read-and-edit hook for the user-customisable shortcut map.
@@ -41,12 +37,36 @@ export function useShortcuts() {
     (combo: string, exceptId?: string): string | null => {
       for (const def of SHORTCUT_DEFS) {
         if (def.id === exceptId) continue;
-        if (map[def.id] === combo) return def.id;
+        // NORMALIZED on both sides. The raw map holds whatever the user or an
+        // older build typed ("command+s" from the mac default, "Ctrl+S"), and
+        // the captured combo is canonical ("Meta+S"), so a verbatim compare
+        // let a user bind the same chord twice — the second one silently
+        // shadowing the first, and in the manifest case firing BOTH handlers.
+        if (map[def.id] && normalizeCombo(map[def.id]) === normalizeCombo(combo)) return def.id;
       }
       return null;
     },
     [map],
   );
 
-  return { map, setShortcut, resetOne, resetAll, findConflict };
+  /**
+   * Combos Chrome itself owns (`chrome.commands`). Binding one in the editor
+   * produced a silent double-fire: the manifest path fired RUN_COMMAND while
+   * the in-page handler ALSO matched, because App.tsx discards any combo
+   * present in `manifestCombosRef` and the conflict check knew nothing about
+   * them. The editor now refuses them with a reason.
+   */
+  const findManifestConflict = useCallback(
+    (combo: string): string | null => {
+      const want = normalizeCombo(combo);
+      const owned = readManifestCombos();
+      for (const c of owned) {
+        if (c === want) return c;
+      }
+      return null;
+    },
+    [],
+  );
+
+  return { map, setShortcut, resetOne, resetAll, findConflict, findManifestConflict };
 }

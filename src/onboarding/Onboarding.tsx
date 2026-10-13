@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { t } from '../shared/i18n';
 import {
   STEPS as OB_STEPS,
@@ -43,6 +43,8 @@ export function Onboarding() {
 
   const [step, setStep] = useState<StepId>('welcome');
   const [direction, setDirection] = useState<1 | -1>(1);
+  /** Last ping request issued, so a late reply from a superseded one is dropped. */
+  const pingIdRef = useRef(0);
   const [ping, setPing] = useState<{ status: 'idle' | 'pinging' | 'ok' | 'error'; version?: number; error?: string }>({ status: 'idle' });
   const [decks, setDecks] = useState<string[] | null>(null);
   const [models, setModels] = useState<string[] | null>(null);
@@ -59,31 +61,42 @@ export function Onboarding() {
   const apiKey = ankiMapping.apiKey;
 
   async function runPing() {
+    // Tag the run so a stale response cannot overwrite a newer one. The user
+    // edits the URL while a previous ping is still in flight (Anki cold
+    // takes seconds), and two ticks ago that older `.ok` would land on top
+    // of the newer attempt's state — the wizard moved on to a connection
+    // that no longer matched what was typed.
+    const id = pingIdRef.current + 1;
+    pingIdRef.current = id;
     setPing({ status: 'pinging' });
     try {
       const r = (await sendMessage('ANKI_PING', { url, apiKey }, 'background')) as AnkiPingResponse;
+      if (id !== pingIdRef.current) return; // superseded while waiting
       if (r.ok) {
         setPing({ status: 'ok', version: r.version });
         // Eagerly load decks + models so the next step is ready instantly.
-        void loadDecksAndModels();
+        void loadDecksAndModels(id);
       } else {
         setPing({ status: 'error', error: r.error });
       }
     } catch (err) {
+      if (id !== pingIdRef.current) return; // superseded while waiting
       setPing({ status: 'error', error: err instanceof Error ? err.message : 'unknown' });
     }
   }
 
-  async function loadDecksAndModels() {
+  async function loadDecksAndModels(afterPingId = pingIdRef.current) {
     setBusy(true);
     try {
       const r = (await sendMessage('ANKI_DECKS', { url, apiKey }, 'background')) as AnkiListsResponse;
+      if (afterPingId !== pingIdRef.current) return; // a newer ping owns the state
       if (r.decks) setDecks(r.decks);
       if (r.models) setModels(r.models);
     } catch (err) {
       // An unhandled rejection here took the whole onboarding wizard down on a
       // cold Anki: the promise from `sendMessage` was floating, so a failed
       // ping on entry left the user on a broken step with no way back.
+      if (afterPingId !== pingIdRef.current) return;
       setPing({ status: 'error', error: err instanceof Error ? err.message : 'unknown' });
     } finally {
       setBusy(false);

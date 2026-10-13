@@ -483,6 +483,24 @@ async function stopCapture(): Promise<void> {
   recordingStartedAt = 0;
 }
 
+/**
+ * Wall-clock start of the assembled WebM blob.
+ *
+ * `buildWebmBlob` always prepends the recorder header, so the blob's first
+ * media timestamp is the START of the first buffered chunk — `recordedAt`
+ * minus its own timeslice, because `recordedAt` is when that chunk was
+ * delivered (the END of its slice). Any window translation into clip-local ms
+ * has to use this, not `chunks[0].recordedAt`.
+ */
+function webmClipOriginMs(): number {
+  const first = chunks[0];
+  if (!first) return 0;
+  const span = Number.isFinite(first.durationMs) && first.durationMs > 0
+    ? first.durationMs
+    : TIMESLICE_MS;
+  return Math.max(0, first.recordedAt - span);
+}
+
 /** Build a self-contained WebM blob that is contiguous up to sliceEnd. */
 function buildWebmBlob(_sliceStart: number, sliceEnd: number): Blob | null {
   if (!chunks.length) return null;
@@ -637,12 +655,15 @@ async function extractClip(opts: ExtractOptions): Promise<ExtractedClip> {
   try {
     const decoded = await convertBlobToWav(webmBlob, { targetSampleRate: TARGET_SAMPLE_RATE });
 
-    // The decoded buffer is anchored at the start of the FIRST chunk in
-    // the rolling buffer (because we always prepend the header). Translate
-    // the requested window into "clip-local ms" so VAD only looks at the
-    // relevant region.
-    const clipLocalStart = Math.max(0, sliceStart - chunks[0].recordedAt);
-    const clipLocalEnd = Math.min(decoded.durationMs, sliceEnd - chunks[0].recordedAt);
+    // The decoded buffer is anchored at the START of the first buffered
+    // chunk, which is `recordedAt - durationMs`: `recordedAt` is when the
+    // chunk was handed over, i.e. the END of its own timeslice. Anchoring on
+    // `recordedAt` shifted the whole window one timeslice forward, so the
+    // clip started ~1-2 TIMESLICE late and carried the tail of the previous
+    // sentence instead of the one being saved.
+    const clipOriginMs = webmClipOriginMs();
+    const clipLocalStart = Math.max(0, sliceStart - clipOriginMs);
+    const clipLocalEnd = Math.min(decoded.durationMs, sliceEnd - clipOriginMs);
 
     let speechStartMs = clipLocalStart;
     let speechEndMs = clipLocalEnd;

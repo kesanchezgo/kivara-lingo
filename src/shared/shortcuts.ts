@@ -91,6 +91,45 @@ export function comboFromEvent(
   return [...ordered, key].join('+');
 }
 
+/**
+ * True when the event carries at least one real modifier (Ctrl, Alt or
+ * Meta). Shift alone does not count: `Shift+K` must not become a shortcut,
+ * because typing a capital letter anywhere on YouTube then fired save-word
+ * instead of producing the character.
+ *
+ * Used by the shortcut editor to REJECT modifier-less captures.
+ */
+export function comboHasRequiredModifier(e: KeyboardEvent | React.KeyboardEvent): boolean {
+  return Boolean(e.ctrlKey || e.altKey || e.metaKey);
+}
+
+/**
+ * The set of combos Chrome itself handles (`chrome.commands`), normalized.
+ *
+ * Shared so the shortcut editor can REFUSE one of them: an in-page binding
+ * for a manifest chord makes App.tsx discard it (it waits for RUN_COMMAND) —
+ * or worse, in the cold-start window it double-fires, one save per path.
+ */
+export function readManifestCombos(): string[] {
+  const out = new Set<string>();
+  try {
+    const commands = (chrome.runtime.getManifest() as {
+      commands?: Record<string, { suggested_key?: { default?: string; mac?: string } }>;
+    }).commands ?? {};
+    for (const def of Object.values(commands)) {
+      for (const k of [def.suggested_key?.default, def.suggested_key?.mac]) {
+        if (k) out.add(normalizeCombo(k));
+      }
+    }
+  } catch {
+    // No chrome API (tests, non-extension host) — fall back to the known set.
+  }
+  for (const c of ['Ctrl+Shift+S', 'Command+Shift+S', 'Alt+C', 'Alt+R', 'Alt+K']) {
+    out.add(normalizeCombo(c));
+  }
+  return [...out];
+}
+
 export function parseCombo(combo: string): string[] {
   return combo.split('+').map((k) => k.trim()).filter(Boolean);
 }

@@ -18,7 +18,7 @@
  * semantics.
  */
 
-import { assertPublicHttpUrl } from '../../shared/net-guard';
+import { assertPublicHttpUrl, readBodyBounded } from '../../shared/net-guard';
 
 export const DEFAULT_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
@@ -45,7 +45,17 @@ interface FetchOptions {
   credentials?: RequestCredentials;
   /** Observe the status before non-2xx responses are reduced to `null`. */
   onResponse?: (response: Response) => void;
+  /**
+   * Deadline for the BODY. A `fetch()` timeout covers only the headers, so
+   * without this the body read is unbounded — a server that sends headers and
+   * then stalls holds the source open until Chrome kills the worker.
+   */
+  bodyTimeoutMs?: number;
 }
+
+/** Default body deadline when the caller does not pin one. */
+export const DEFAULT_BODY_TIMEOUT_MS = 20_000;
+const BODY_TIMEOUT_MS = DEFAULT_BODY_TIMEOUT_MS;
 
 /** Race a fetch against a timeout. Throws AbortError on cancellation. */
 export async function fetchWithTimeout(
@@ -176,7 +186,12 @@ export async function fetchHtml(
   const res = await fetchWithTimeout(url, opts);
   if (!res) return null;
   try {
-    const body = await res.text();
+    // `fetchWithTimeout`'s clock stops when the headers land, so this read is
+    // the unbounded half: a server that answers with headers and then
+    // trickles the body forever used to hold the source open until Chrome
+    // killed the worker. `readBodyBounded` gives the body its own deadline
+    // and cancels the stream when it expires.
+    const body = await readBodyBounded(res, opts.bodyTimeoutMs ?? BODY_TIMEOUT_MS);
     logFetchDiagnostic('html-body', {
       url,
       finalUrl: res.url,
@@ -201,7 +216,12 @@ export async function fetchJson<T = unknown>(
   const res = await fetchWithTimeout(url, opts);
   if (!res) return null;
   try {
-    return (await res.json()) as T;
+    const body = await readBodyBounded(res, opts.bodyTimeoutMs ?? BODY_TIMEOUT_MS, 'JSON body read');
+    try {
+      return JSON.parse(body) as T;
+    } catch {
+      return null;
+    }
   } catch {
     return null;
   }

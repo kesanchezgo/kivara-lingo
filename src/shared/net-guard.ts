@@ -237,6 +237,89 @@ export interface MediaFetch {
 }
 
 /**
+ * Read a response body with a deadline of its own.
+ *
+ * A timeout around `fetch()` only covers the HEADERS: the promise resolves
+ * when they arrive, so everything that follows — `res.text()`,
+ * `res.arrayBuffer()`, `res.blob()` — is unbounded. A server that answers
+ * with headers and then trickles the body forever (or sends one byte a
+ * minute) pins the request open until Chrome kills the worker, and the
+ * caller has no way to notice.
+ *
+ * On expiry this CANCELS the body, which is what actually breaks the pending
+ * read; aborting the fetch's own controller does not, because the stream was
+ * already handed over.
+ */
+export async function readBodyBounded(
+  res: Response,
+  timeoutMs: number,
+  what = 'body read',
+): Promise<string> {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    return res.text();
+  }
+  if (res.bodyUsed) return res.text();
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      res.text(),
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`${what} exceeded ${Math.round(timeoutMs)} ms`)),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+    // Cancelling a body that was already consumed is fine, but cancelling one
+    // that `res.text()` is STILL reading throws "ReadableStream is locked" —
+    // which is exactly the case here on the timeout branch, where text() never
+    // finished. Only touch the body when nothing is reading it.
+    if (!res.bodyUsed) {
+      try {
+        void res.body?.cancel();
+      } catch {
+        /* already closed */
+      }
+    }
+  }
+}
+
+/** Bytes variant of `readBodyBounded`, same deadline contract. */
+export async function readBytesBounded(
+  res: Response,
+  timeoutMs: number,
+  what = 'body read',
+): Promise<ArrayBuffer> {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    return res.arrayBuffer();
+  }
+  if (res.bodyUsed) return res.arrayBuffer();
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      res.arrayBuffer(),
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`${what} exceeded ${Math.round(timeoutMs)} ms`)),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+    if (!res.bodyUsed) {
+      try {
+        void res.body?.cancel();
+      } catch {
+        /* already closed */
+      }
+    }
+  }
+}
+
+/**
  * GET one media URL: guarded redirects, size cap, and the response type.
  * Throws on a blocked/invalid URL, a timeout, a size overrun or a non-2xx.
  */

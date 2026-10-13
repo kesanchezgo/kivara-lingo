@@ -419,16 +419,13 @@ async function init() {
 }
 
 function observeNavigation() {
-  // YouTube SPA navigation
-  document.addEventListener('yt-navigate-finish', () => {
-    setTimeout(handleNavigation, 600);
-  });
+  // YouTube SPA navigation. Coalesced: YouTube fires `yt-navigate-finish`
+  // AND a pushState burst for the SAME navigation, so the two paths used to
+  // run `handleNavigation` twice or three times per click — each one waiting
+  // for a video, re-detecting the adapter and possibly remounting.
+  document.addEventListener('yt-navigate-finish', () => scheduleNavigation(600));
 
   // Generic SPA fallback: watch URL changes via popstate / pushState patching.
-  // The patch itself used to be dispatched per call — YouTube pushes a few
-  // times per navigation, so handleNavigation (which waits for a video, walks
-  // the adapter and remounts) ran several times in parallel per click. One
-  // leading-edge dispatch, plus a trailing one, keeps the invariant.
   const origPush = history.pushState;
   history.pushState = function (...args) {
     const result = origPush.apply(this, args);
@@ -442,7 +439,34 @@ function observeNavigation() {
     return result;
   };
   window.addEventListener('popstate', scheduleLocationChange);
-  window.addEventListener('kivara-locationchange', () => setTimeout(handleNavigation, 600));
+  window.addEventListener('kivara-locationchange', () => scheduleNavigation(600));
+}
+
+/**
+ * One navigation task per ACTUAL navigation, across triggers.
+ *
+ * A YouTube click produces `yt-navigate-finish` plus a pushState burst, i.e.
+ * two or three triggers for one navigation; the URL is identical for all of
+ * them. A pending task for the same URL inside the window absorbs the extra
+ * triggers — a genuinely different URL resets the window and gets its own
+ * wait.
+ */
+let navTimer: number | null = null;
+let navUrl = '';
+let navAt = 0;
+const NAV_COALESCE_MS = 900;
+
+function scheduleNavigation(delayMs: number): void {
+  const url = location.href;
+  const now = Date.now();
+  if (navTimer != null && url === navUrl && now - navAt < NAV_COALESCE_MS) return;
+  if (navTimer != null) clearTimeout(navTimer);
+  navUrl = url;
+  navAt = now;
+  navTimer = window.setTimeout(() => {
+    navTimer = null;
+    void handleNavigation();
+  }, delayMs);
 }
 
 /**
@@ -515,6 +539,12 @@ async function handleNavigation() {
     // and listeners piling up per navigation. Now a task that decides not
     // to mount never pays for the adapter it did not use.
     const adapter = await detectPlatform();
+    // Generation re-check AFTER the await: another navigation may have run
+    // (or a task may have been queued) while `detectPlatform` walked the DOM.
+    // Without this, a stale adapter was mounted over the current one — the
+    // exact "two adapters on the same <video>" window the queue exists to
+    // prevent, reproduced from the wrong side of the await.
+    if (gen !== readMountGen()) return;
     // SPA navigated to a different video — drop any subtitle tracks the bus
     // cached from the previous one. Without this, the dual-caption lookup
     // would happily return cues from video A while we're watching video B

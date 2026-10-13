@@ -9,25 +9,36 @@ export function attachGenericHtml5(video: HTMLVideoElement): SubtitleSource {
     if (!activeTrack) return;
     const activeCues = activeTrack.activeCues;
     if (activeCues && activeCues.length > 0) {
-      const nativeCue = activeCues[0] as VTTCue;
-      // `align` on a VTTCue is one of 'start' | 'center' | 'end' | 'left'
-      // | 'right'. We pass it through verbatim; the overlay decides whether
-      // to honor it (settings → "Mantener alineación nativa").
-      const rawAlign = (nativeCue as VTTCue).align as
-        | 'start'
-        | 'center'
-        | 'end'
-        | 'left'
-        | 'right'
-        | undefined;
+      // Merge EVERY active cue, the way YouTube does. A player that splits a
+      // line across two VTTCues used to render only `activeCues[0]`, so half
+      // of each bilingual line silently disappeared.
+      const texts: string[] = [];
+      let firstStart = Infinity;
+      let lastEnd = 0;
+      let rawAlign: VTTCue['align'] | undefined;
+      for (let i = 0; i < activeCues.length; i += 1) {
+        const nativeCue = activeCues[i] as VTTCue;
+        if (typeof nativeCue.text === 'string' && nativeCue.text) texts.push(nativeCue.text);
+        firstStart = Math.min(firstStart, nativeCue.startTime * 1000);
+        lastEnd = Math.max(lastEnd, nativeCue.endTime * 1000);
+        if (!rawAlign && nativeCue.align) rawAlign = nativeCue.align;
+      }
+      if (texts.length === 0 || !Number.isFinite(firstStart)) {
+        currentActiveCue = null;
+        listeners.forEach(l => l([]));
+        return;
+      }
       currentActiveCue = {
-        id: nativeCue.id || Math.random().toString(),
-        start: nativeCue.startTime * 1000,
-        end: nativeCue.endTime * 1000,
-        // Sometimes VTTCue text has HTML tags like <i>, let's clean them, but for MVP keep raw:
-        text: nativeCue.text,
+        // STABLE id: derived from the cue window, never `Math.random()`. A
+        // per-change random id made every cue a NEW object to the overlay —
+        // hover state reset and the translation was re-requested for a line
+        // that had not changed at all.
+        id: `${firstStart}-${lastEnd}`,
+        start: firstStart,
+        end: lastEnd,
+        text: texts.join('\n'),
         language: activeTrack.language || 'en',
-        align: rawAlign,
+        align: rawAlign as SubtitleCue['align'],
       };
       listeners.forEach(l => l([currentActiveCue!]));
     } else {

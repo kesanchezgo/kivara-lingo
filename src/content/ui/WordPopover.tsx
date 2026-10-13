@@ -547,6 +547,7 @@ export function WordPopover({
   const handleSpeak = (e: React.MouseEvent) => {
     e.stopPropagation();
     releaseFocus(e);
+    releaseFocus(e);
     // Priority chain for headword pronunciation:
     //   1. Audio URLs collected by the multi-source enrichment chain
     //      (Cambridge MP3, Oxford MP3, Forvo, Lingua Libre, Free
@@ -562,14 +563,15 @@ export function WordPopover({
         ...audioSources.filter((a) => a.source !== 'googleTtsFallback'),
         ...audioSources.filter((a) => a.source === 'googleTtsFallback'),
       ];
-      // Pick the first URL we can play; on failure, fall through to TTS.
-      const audio = new Audio();
-      audio.crossOrigin = 'anonymous';
-      audio.src = ordered[0].url;
-      audio.play().catch(() => {
-        // Audio fetch / decode failed (CORS, 404, expired CDN). Drop
-        // through to the speech synthesizer so the user still hears
-        // something.
+      // Walk the chain instead of committing to the first URL:
+      //   • Cambridge/Oxford/Forvo CDNs mostly DO send CORS headers, but IGNORING
+      //     that leaves them unplayable the moment one is missing — the old code
+      //     set `crossOrigin='anonymous'` and asked for no alternative, so a
+      //     CORS-less pronunciation silently became the synthetic voice.
+      //   • No `crossOrigin` means the media element fetches without CORS. That
+      //     is the correct mode here: the element never reads pixels or samples,
+      //     so a media file served without CORS headers is still playable.
+      playPronunciation(ordered, () => {
         try {
           if ('speechSynthesis' in window) {
             const utter = new SpeechSynthesisUtterance(cleanHeadword);
@@ -583,7 +585,7 @@ export function WordPopover({
         }
       });
       return;
-    }
+  }
     // First try the SpeechSynthesis API directly — it works offline and
     // doesn't need extension permissions. Fall back to the background's
     // chrome.tts fallback if the user has it disabled.
@@ -1082,6 +1084,47 @@ export function WordPopover({
       <div className="absolute left-0 right-0 top-full h-3" aria-hidden="true" />
     </div>
   );
+}
+
+type PronunciationSource = { url: string; source?: string | null };
+
+/**
+ * Walk the pronunciation chain until one URL actually plays.
+ *
+ * Two properties matter here:
+ *  • No `crossOrigin`. The element only ever plays the file — it never reads
+ *    pixels or samples — so CORS is irrelevant, and asking for it makes a CDN
+ *    that omits the headers refuse to play at all. That is why a human
+ *    recording almost never sounded.
+ *  • Try the NEXT url on failure. The old code asked for `ordered[0]` and let
+ *    the failure toast-attached catch fall straight to the synthetic voice.
+ *    A 404 on Cambridge should not cost the user the Forvo recording.
+ */
+function playPronunciation(
+  ordered: PronunciationSource[],
+  onExhausted: () => void,
+): void {
+  if (ordered.length === 0) {
+    onExhausted();
+    return;
+  }
+  const [head, ...rest] = ordered;
+  const audio = new Audio();
+  audio.src = head.url;
+  audio.play().catch(() => {
+    // Ignore the failures of an older attempt already in flight: only the
+    // LAST url in the chain gets to call `onExhausted`.
+    try {
+      audio.pause();
+    } catch {
+      /* no-op */
+    }
+    if (rest.length === 0) {
+      onExhausted();
+    } else {
+      playPronunciation(rest, onExhausted);
+    }
+  });
 }
 
 function SkeletonLine({ width }: { width: string }) {

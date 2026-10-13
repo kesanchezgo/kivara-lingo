@@ -77,6 +77,43 @@ export type GenerateTtsResult =
 const OPENAI_TTS_TIMEOUT_MS = 8000;
 const ELEVENLABS_TTS_TIMEOUT_MS = 12000;
 
+/**
+ * Give a body read its own deadline. The `timeout` TIMEOUT around the fetch
+ * only covers the headers — it is cleared the moment the response resolves —
+ * so both providers above used to read `resp.blob()` completely unbounded:
+ * a server that answered with headers and then stalled the audio stream held
+ * the call open until Chrome killed the worker, with no toast and no clue.
+ *
+ * On expiry the response body is cancelled, which is what actually breaks the
+ * pending read (aborting the fetch's own controller cannot, the stream is
+ * already handed over).
+ */
+async function withBodyDeadline<T>(
+  resp: Response,
+  read: () => Promise<T>,
+  timeoutMs: number,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      read(),
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`body read exceeded ${Math.round(timeoutMs / 1000)} s`)),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+    try {
+      void resp.body?.cancel();
+    } catch {
+      /* already consumed or closed */
+    }
+  }
+}
+
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -181,7 +218,7 @@ async function generateViaElevenLabs(
     return { ok: false, error: detail };
   }
   try {
-    const blob = await resp.blob();
+    const blob = await withBodyDeadline(resp, () => resp.blob(), ELEVENLABS_TTS_TIMEOUT_MS);
     const dataUrl = await blobToDataUrl(blob);
     return { ok: true, dataUrl, mime: blob.type || 'audio/mpeg' };
   } catch (err) {
@@ -231,7 +268,7 @@ async function generateViaOpenAi(text: string): Promise<GenerateTtsResult> {
     return { ok: false, error: `OpenAI TTS ${resp.status}` };
   }
   try {
-    const blob = await resp.blob();
+    const blob = await withBodyDeadline(resp, () => resp.blob(), OPENAI_TTS_TIMEOUT_MS);
     const dataUrl = await blobToDataUrl(blob);
     return { ok: true, dataUrl, mime: blob.type || 'audio/mpeg' };
   } catch (err) {

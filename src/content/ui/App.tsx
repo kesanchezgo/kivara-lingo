@@ -8,7 +8,7 @@ import { SubtitleOverlay } from './SubtitleOverlay';
 import { applyCleanupCss } from './cleanup-css';
 import { useKivaraStore } from '../../shared/store';
 import { captureFrame, captureBestFrame } from '../capture/frame';
-import { comboFromEvent, normalizeCombo } from '../../shared/shortcuts';
+import { comboFromEvent, normalizeCombo, readManifestCombos } from '../../shared/shortcuts';
 import { getShadowRoot, overKivaraZone } from '../shadow-host';
 import { eventPathIsEditable } from '../utils/keyboard';
 import type {
@@ -91,33 +91,19 @@ const RUN_COMMAND_GATE: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Build the initial SET of manifest-command combos that the in-page
- * handler must NOT re-handle (they arrive from the SW as RUN_COMMAND).
- * Called lazily once per App mount.
+ * Build the initial SET of manifest-command combos that the in-page handler
+ * must NOT re-handle (they arrive from the SW as RUN_COMMAND). Called lazily
+ * once per App mount. Shares the source of truth with the shortcut editor,
+ * which must refuse the same chords — see `readManifestCombos`.
  *
  * Reads BOTH `default` AND `mac` from `suggested_key`: a manifest ships
  * per-platform variants (`{ default: 'Ctrl+Shift+S', mac:
- * 'Command+Shift+S' }`). Only-default left a Mac machine with
- * `Meta+Shift+S` absent from the set during cold-start — a save could
- * double-fire before GET_COMMANDS repopulated it.
+ * 'Command+Shift+S' }`). Only-default left a Mac machine with `Meta+Shift+S`
+ * absent from the set during cold-start — a save could double-fire before
+ * GET_COMMANDS repopulated it.
  */
 function buildManifestCommandSet(): Set<string> {
-  const out = new Set<string>();
-  try {
-    const commands = (chrome.runtime.getManifest() as {
-      commands?: Record<string, { suggested_key?: { default?: string; mac?: string } }>;
-    }).commands ?? {};
-    for (const def of Object.values(commands)) {
-      const keys = [def.suggested_key?.default, def.suggested_key?.mac];
-      for (const k of keys) if (k) out.add(normalizeCombo(k));
-    }
-  } catch {
-    // Fall back to the known defaults (below).
-  }
-  for (const c of ['Ctrl+Shift+S', 'Command+Shift+S', 'Alt+C', 'Alt+R', 'Alt+K']) {
-    out.add(normalizeCombo(c));
-  }
-  return out;
+  return new Set(readManifestCombos());
 }
 
 export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {

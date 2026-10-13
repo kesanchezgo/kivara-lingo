@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { RotateCcw, AlertTriangle, Keyboard as KeyboardIcon } from 'lucide-react';
 import { useShortcuts } from '../hooks/useShortcuts';
-import { SHORTCUT_DEFS, comboFromEvent, parseCombo } from '../../shared/shortcuts';
+import { SHORTCUT_DEFS, comboFromEvent, comboHasRequiredModifier, parseCombo } from '../../shared/shortcuts';
 import { t } from '../../shared/i18n';
 
 interface ShortcutEditorProps {
@@ -21,7 +21,7 @@ interface ShortcutEditorProps {
  * recargar.
  */
 export function ShortcutEditor({ compact = false }: ShortcutEditorProps) {
-  const { map, setShortcut, resetOne, resetAll, findConflict } = useShortcuts();
+  const { map, setShortcut, resetOne, resetAll, findConflict, findManifestConflict } = useShortcuts();
   const [capturingId, setCapturingId] = useState<string | null>(null);
   const [warning, setWarning] = useState<{ id: string; msg: string } | null>(null);
 
@@ -66,7 +66,24 @@ export function ShortcutEditor({ compact = false }: ShortcutEditorProps) {
                 combo={current}
                 capturing={capturing}
                 onStart={() => { setCapturingId(def.id); setWarning(null); }}
+                onRejectModifierLess={() => {
+                  // Stay in capture mode so the user can press again with a
+                  // modifier; the message says what is missing instead of
+                  // silently ignoring the keypress.
+                  setWarning({ id: def.id, msg: t('sc.needsModifier') });
+                }}
                 onCapture={(combo) => {
+                  // Chrome owns this chord (chrome.commands). Binding it in
+                  // the editor used to be accepted silently, and the two
+                  // handlers — manifest RUN_COMMAND and our in-page one —
+                  // could both fire during cold start: one save per press,
+                  // or a seek the user never asked for.
+                  const manifestOwned = findManifestConflict(combo);
+                  if (manifestOwned) {
+                    setWarning({ id: def.id, msg: t('sc.usedByChrome', { combo: manifestOwned }) });
+                    setCapturingId(null);
+                    return;
+                  }
                   const conflict = findConflict(combo, def.id);
                   if (conflict) {
                     const other = SHORTCUT_DEFS.find((s) => s.id === conflict)?.label ?? conflict;
@@ -106,10 +123,12 @@ interface KeyCaptureButtonProps {
   onCapture: (combo: string) => void;
   onCancel: () => void;
   onClear: () => void;
+  /** A pressed key with no real modifier: shown instead of binding it. */
+  onRejectModifierLess: () => void;
 }
 
 function KeyCaptureButton({
-  combo, capturing, onStart, onCapture, onCancel, onClear,
+  combo, capturing, onStart, onCapture, onCancel, onClear, onRejectModifierLess,
 }: KeyCaptureButtonProps) {
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -121,12 +140,20 @@ function KeyCaptureButton({
       e.stopPropagation();
       if (e.key === 'Escape') { onCancel(); return; }
       if (e.key === 'Backspace' || e.key === 'Delete') { onClear(); return; }
+      // A combo without Ctrl / Alt / Meta is not a shortcut, it is a keypress:
+      // binding `K` or `Space` ran save-word / repeat-cue while the user was
+      // typing a capital letter on YouTube, because the in-page handler fires
+      // before the page sees the character.
+      if (!comboHasRequiredModifier(e)) {
+        onRejectModifierLess();
+        return;
+      }
       const next = comboFromEvent(e);
       if (next) onCapture(next);
     };
     window.addEventListener('keydown', onKeyDown, true);
     return () => window.removeEventListener('keydown', onKeyDown, true);
-  }, [capturing, onCancel, onCapture, onClear]);
+  }, [capturing, onCancel, onCapture, onClear, onRejectModifierLess]);
 
   const keys = combo ? parseCombo(combo) : [];
 

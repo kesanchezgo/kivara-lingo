@@ -22,6 +22,43 @@ export interface ProviderError {
 
 const TIMEOUT_MS = 5000;
 
+/**
+ * Read a response body under its own deadline, as text.
+ *
+ * `withTimeout` clears its clock in `finally`, i.e. the moment the headers
+ * land — every `res.json()` below was therefore unbounded. A provider that
+ * answers with headers and then stalls the body pinned the translation call
+ * until Chrome killed the worker. On expiry the body is CANCELLED, which is
+ * what breaks the pending read; aborting the fetch's controller cannot, since
+ * the stream is already handed over.
+ */
+async function readBounded<JSONLike>(
+  res: Response,
+  parse: (text: string) => JSONLike,
+  what = 'body',
+): Promise<JSONLike> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  try {
+    const text = await Promise.race([
+      res.text(),
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`${what} read exceeded ${Math.round(TIMEOUT_MS / 1000)} s`)),
+          TIMEOUT_MS,
+        );
+      }),
+    ]);
+    return parse(text);
+  } finally {
+    if (timer) clearTimeout(timer);
+    try {
+      void res.body?.cancel();
+    } catch {
+      /* consumed or already closed */
+    }
+  }
+}
+
 /** Where the response must land: the origin that was asked for. */
 export function sameOrigin(asked: string, landed: string): boolean {
   try {
@@ -119,7 +156,7 @@ async function callDeepL(
         transient: res.status >= 500 || res.status === 429,
       };
     }
-    const json = (await res.json()) as { translations?: Array<{ text: string }> };
+    const json = await readBounded(res, (t) => JSON.parse(t) as { translations?: Array<{ text: string }> });
     const translated = json.translations?.[0]?.text?.trim();
     if (!translated) return { ok: false, error: 'DeepL empty response', provider: 'deepl' };
     return { ok: true, translatedText: translated, provider: 'deepl' };
@@ -161,9 +198,9 @@ async function callGoogle(
         transient: res.status >= 500 || res.status === 429,
       };
     }
-    const json = (await res.json()) as {
+    const json = await readBounded(res, (t) => JSON.parse(t) as {
       data?: { translations?: Array<{ translatedText: string }> };
-    };
+    });
     const translated = json.data?.translations?.[0]?.translatedText?.trim();
     if (!translated) return { ok: false, error: 'Google empty response', provider: 'google' };
     return { ok: true, translatedText: translated, provider: 'google' };
@@ -205,7 +242,7 @@ async function callLibreTranslate(
         transient: res.status >= 500 || res.status === 429,
       };
     }
-    const json = (await res.json()) as { translatedText?: string };
+    const json = await readBounded(res, (t) => JSON.parse(t) as { translatedText?: string });
     if (!json.translatedText) {
       return { ok: false, error: 'LibreTranslate empty response', provider: 'libretranslate' };
     }
@@ -253,11 +290,11 @@ async function callMyMemory(
         transient: res.status >= 500 || res.status === 429,
       };
     }
-    const json = (await res.json()) as {
+    const json = await readBounded(res, (t) => JSON.parse(t) as {
       responseStatus?: number | string;
       responseDetails?: string;
       responseData?: { translatedText?: string };
-    };
+    });
     const status = Number(json.responseStatus ?? 0);
     if (status && status >= 400) {
       return {
@@ -359,7 +396,7 @@ async function callLingva(
         anyTransient = anyTransient || res.status >= 500 || res.status === 429;
         continue;
       }
-      const json = (await res.json()) as { translation?: string };
+      const json = await readBounded(res, (t) => JSON.parse(t) as { translation?: string });
       const translated = json.translation?.trim();
       if (!translated) {
         lastError = `Lingva empty response (${host})`;
