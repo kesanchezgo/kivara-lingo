@@ -130,6 +130,46 @@ export function readManifestCombos(): string[] {
   return [...out];
 }
 
+/**
+ * What Chrome has ACTUALLY bound, read through `chrome.commands.getAll()`.
+ *
+ * The manifest's `suggested_key` is only what the page ASKED for: a user who
+ * rebinds in `chrome://extensions/shortcuts` changes the live value, and the
+ * editor comparing the stale suggestion would accept a chord the content
+ * script already owns — the two handlers then both fire, one save per press.
+ *
+ * Answers live commands only, keyed by command name, with the shortcut
+ * normalized; a command Chrome reports with no shortcut is absent.
+ */
+export async function readLiveManifestCommands(): Promise<Record<string, string>> {
+  const owned: Record<string, string> = {};
+  try {
+    const commands = await chrome.commands.getAll();
+    for (const command of commands) {
+      if (!command.name) continue;
+      const shortcut = command.shortcut ?? '';
+      if (!shortcut.trim()) continue;
+      owned[command.name] = normalizeCombo(shortcut);
+    }
+  } catch {
+    // No chrome.commands (tests, non-extension context): the manifest's own
+    // suggestion is the best information available.
+    try {
+      const manifest = chrome.runtime.getManifest() as {
+        commands?: Record<string, { suggested_key?: { default?: string; mac?: string } }>;
+      };
+      for (const [name, def] of Object.entries(manifest.commands ?? {})) {
+        for (const k of [def.suggested_key?.default, def.suggested_key?.mac]) {
+          if (k) owned[name] = normalizeCombo(k);
+        }
+      }
+    } catch {
+      /* nothing available */
+    }
+  }
+  return owned;
+}
+
 export function parseCombo(combo: string): string[] {
   return combo.split('+').map((k) => k.trim()).filter(Boolean);
 }

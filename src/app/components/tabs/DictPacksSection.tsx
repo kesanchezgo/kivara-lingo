@@ -970,7 +970,7 @@ function TopPacksSection({ stats, packs, idlePackIds }: TopPacksSectionProps) {
     <div className="space-y-1">
       <div className="flex items-center gap-1.5 px-0.5">
         <Trophy size={10} className="text-amber-500" />
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex-1">Top packs</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex-1">{t('dictpack.topPacks')}</span>
         <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-500">{totalHits.toLocaleString()} hits</span>
       </div>
       <ol className="space-y-1">

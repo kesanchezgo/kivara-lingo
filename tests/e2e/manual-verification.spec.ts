@@ -74,7 +74,11 @@ async function openSettingsAiKey(page: Page): Promise<ReturnType<Page['locator']
   // `tab`, not `button`: the panel's section switch is an ARIA tab bar now
   // (role="tablist"/"tab"/"tabpanel"), which is what makes the panel legible
   // to assistive tech — the test has to speak the same language.
-  await page.getByRole('tab', { name: 'Settings', exact: true }).click();
+  // The panel's tab labels follow chrome.i18n.getUILanguage(), and the fixture
+  // pins the browser to Spanish (--lang=es) on purpose — so the accessible
+  // name here is 'Ajustes', not 'Settings'. Selecting by the stable id that
+  // never got localized keeps the spec honest either way.
+  await page.locator('#kivara-panel-tab-settings').click();
   await page.getByRole('button', { name: /IA premium/ }).click();
   await page.locator('ul li button').first().click();
   return page.locator('xpath=//button[@title="Mostrar lo escrito"]/preceding-sibling::input');

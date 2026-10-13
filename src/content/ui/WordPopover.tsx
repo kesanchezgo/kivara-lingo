@@ -708,7 +708,7 @@ export function WordPopover({
               )}
               {isSaved && (
                 <span className="flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/10 ring-1 ring-emerald-500/25 px-1 py-px rounded shrink-0">
-                  <Check size={9} strokeWidth={3} /> En tu mazo
+                  <Check size={9} strokeWidth={3} /> {t('wp.inYourDeck')}
                 </span>
               )}
             </div>
@@ -757,7 +757,7 @@ export function WordPopover({
           {meta.examples && meta.examples.length > 0 && (
             <div className="mt-1.5 space-y-1">
               <div className="text-[9px] uppercase tracking-wider text-zinc-500 font-semibold">
-                Ejemplos
+                {t('wp.examples')}
               </div>
               {meta.examples.slice(0, 2).map((ex, i) => (
                 <div
@@ -826,7 +826,7 @@ export function WordPopover({
             return (
               <div className="mt-1 flex flex-wrap items-baseline gap-1">
                 <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-semibold mr-1">
-                  Frecuencia
+                  {t('wp.frequency')}
                 </span>
                 <span
                   key={`${winner.source}:${winner.scale}:${winner.value}`}
@@ -891,7 +891,7 @@ export function WordPopover({
           )}
           {resolved.remoteError && !meta.translation && (
             <div className="text-[10px] text-rose-300/80 normal-case">
-              No se pudo traducir: {resolved.remoteError}
+              {t('wp.translateFailed')}: {resolved.remoteError}
             </div>
           )}
           {/* Provider attribution — same pattern Trancy/Language Reactor use.
@@ -1062,7 +1062,7 @@ export function WordPopover({
               className="flex-1 flex items-center justify-center gap-1 px-2 py-2 text-[11px] font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/15 transition-colors normal-case"
               title={t('popover.alreadySaved')}
             >
-              <Eye size={12} /> Ver en Anki
+              <Eye size={12} /> {t('wp.seeInAnki')}
             </button>
           ) : (
             <button
@@ -1071,7 +1071,7 @@ export function WordPopover({
               onClick={(e) => { releaseFocus(e); onSave(e, canonicalToken); }}
               className="flex-1 flex items-center justify-center gap-1 px-2 py-2 text-[11px] font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors normal-case"
             >
-              <Plus size={12} /> Guardar
+              <Plus size={12} /> {t('wp.save')}
             </button>
           )}
         </div>

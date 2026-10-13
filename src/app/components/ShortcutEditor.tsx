@@ -72,7 +72,7 @@ export function ShortcutEditor({ compact = false }: ShortcutEditorProps) {
                   // silently ignoring the keypress.
                   setWarning({ id: def.id, msg: t('sc.needsModifier') });
                 }}
-                onCapture={(combo) => {
+                onCapture={async (combo) => {
                   // The manifest owns this chord (chrome.commands) — UNLESS it
                   // is the chord THIS action already ships with. Re-picking
                   // your own default used to be refused with "already used",
@@ -80,12 +80,12 @@ export function ShortcutEditor({ compact = false }: ShortcutEditorProps) {
                   // Chrome had it, while Chrome had it *for this very action*.
                   const ownDefault =
                     normalizeCombo(combo) === normalizeCombo(def.defaultCombo);
-                  // Chrome owns this chord (chrome.commands). Binding it in
-                  // the editor used to be accepted silently, and the two
-                  // handlers — manifest RUN_COMMAND and our in-page one —
-                  // could both fire during cold start: one save per press,
-                  // or a seek the user never asked for.
-                  const manifestOwned = ownDefault ? null : findManifestConflict(combo);
+                  // Chrome owns this chord — and what it owns is the LIVE
+                  // answer from chrome.commands.getAll(), not the manifest's
+                  // suggestion, so a user who rebound everything in
+                  // chrome://extensions/shortcuts still gets a consistent
+                  // editor and page.
+                  const manifestOwned = ownDefault ? null : await findManifestConflict(combo);
                   if (manifestOwned) {
                     setWarning({ id: def.id, msg: t('sc.usedByChrome', { combo: manifestOwned }) });
                     setCapturingId(null);
@@ -158,8 +158,25 @@ function KeyCaptureButton({
       const next = comboFromEvent(e);
       if (next) onCapture(next);
     };
+    // Capture mode is a modal state: a blur (click elsewhere, another
+    // extension's popup) or a mousepress outside the button silently leaves
+    // it armed, and the user's NEXT keystroke anywhere — a page search box,
+    // a YouTube shortcut — lands as the new binding. Same for a plain click.
+    const onMaybeEnd = (e: Event) => {
+      const target = e.target as Node | null;
+      if (!btnRef.current) return;
+      if (target && btnRef.current.contains(target)) return;
+      onCancel();
+    };
     window.addEventListener('keydown', onKeyDown, true);
-    return () => window.removeEventListener('keydown', onKeyDown, true);
+    window.addEventListener('blur', onCancel);
+    const outsideClick = (e: MouseEvent) => onMaybeEnd(e);
+    setTimeout(() => window.addEventListener('mousedown', outsideClick, true), 0);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true);
+      window.removeEventListener('blur', onCancel);
+      window.removeEventListener('mousedown', outsideClick, true);
+    };
   }, [capturing, onCancel, onCapture, onClear, onRejectModifierLess]);
 
   const keys = combo ? parseCombo(combo) : [];

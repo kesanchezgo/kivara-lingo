@@ -148,7 +148,7 @@ export function DictStep() {
         </div>
         <div className="text-[12px] text-indigo-900 dark:text-indigo-100 leading-relaxed space-y-1 min-w-0">
           <p className="text-[12.5px]">
-            <strong className="font-semibold">Cobertura local ~98%</strong> {t('onb.coverageVs')}</p>
+            <strong className="font-semibold">{t('onb.localCoverage')}</strong> {t('onb.coverageVs')}</p>
           <p className="text-[11.5px] text-indigo-700/80 dark:text-indigo-200/70">
             {t('onb.storedLocalNote', { path: `${t('nav.settings')} → ${t('set.sectionOfflineDicts')}` })}</p>
         </div>

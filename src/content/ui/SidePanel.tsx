@@ -349,7 +349,7 @@ export function SidePanel({
           <button 
             onClick={toggleDarkMode}
             className="p-1.5 text-zinc-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
-            title={isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+            title={isDarkMode ? t('panel.lightMode') : t('panel.darkMode')}
           >
             {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
           </button>
@@ -357,7 +357,7 @@ export function SidePanel({
               <button
                 onClick={togglePopupMode}
                 className="p-1.5 text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-md transition-colors"
-                title={isPopupMode ? 'Anclar al lateral' : t('panel.openFloating')}
+                title={isPopupMode ? t('panel.dockToSide') : t('panel.openFloating')}
               >
                 {isPopupMode ? <LayoutGrid size={16} /> : <ExternalLink size={16} />}
               </button>
@@ -382,9 +382,9 @@ export function SidePanel({
       >
         {(() => {
           const TABS = [
-            { id: 'subtitles', label: 'Subtitles', icon: Subtitles },
-            { id: 'cards',     label: 'Cards',     icon: LayoutGrid },
-            { id: 'settings',  label: 'Settings',  icon: Settings },
+            { id: 'subtitles', label: t('panel.tabSubtitles'), icon: Subtitles },
+            { id: 'cards',     label: t('panel.tabCards'),     icon: LayoutGrid },
+            { id: 'settings',  label: t('panel.tabSettings'),  icon: Settings },
           ] as const;
           const tabIndex = TABS.findIndex((t) => t.id === activeTab);
           return (
@@ -413,9 +413,22 @@ export function SidePanel({
                     e.preventDefault();
                     const next = (tabIndex + dir + TABS.length) % TABS.length;
                     setActiveTab(TABS[next].id as any);
-                    requestAnimationFrame(() =>
-                      document.getElementById(`kivara-panel-tab-${TABS[next].id}`)?.focus(),
-                    );
+                    // Focus the NEXT tab through the EVENENTITY target's own
+                    // document, not `document.getElementById`: the whole panel
+                    // lives inside a shadow root (and on YouTube a closed one),
+                    // where the global document cannot see these buttons. The
+                    // lookup returned null and the roving focus died on every
+                    // streaming page. `e.currentTarget.getRootNode()` is the
+                    // document or the shadow root the button actually lives in.
+                    requestAnimationFrame(() => {
+                      const root = e.currentTarget.getRootNode();
+                      const nextId = `kivara-panel-tab-${TABS[next].id}`;
+                      const shadow = root as ShadowRoot | null;
+                      const host = root instanceof Document
+                        ? root.getElementById(nextId)
+                        : (shadow?.querySelector?.(`[id="${nextId}"]`) as HTMLButtonElement | null);
+                      host?.focus();
+                    });
                   }}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors relative ${
                     activeTab === tab.id

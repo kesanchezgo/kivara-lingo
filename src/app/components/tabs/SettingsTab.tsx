@@ -323,7 +323,7 @@ export function SettingsTab({
                 className="sl-select w-full"
               >
                 <option value="offline">{t("set.providerOffline")}</option>
-                <option value="mymemory">MyMemory (free)</option>
+                <option value="mymemory">{t('set.providerMyMemory')}</option>
                 <option value="lingva">Lingva (free)</option>
                 <option value="libretranslate">LibreTranslate</option>
                 <option value="deepl">DeepL</option>
@@ -470,7 +470,7 @@ export function SettingsTab({
               }}
               className="sl-select w-full"
             >
-              <option value="auto">Auto (ElevenLabs ▸ OpenAI ▸ template)</option>
+              <option value="auto">{t('set.ttsAuto')}</option>
               <option value="elevenlabs">ElevenLabs</option>
               <option value="openai">OpenAI tts-1</option>
               <option value="disabled">{t('set.deactivatedTemplate')}</option>

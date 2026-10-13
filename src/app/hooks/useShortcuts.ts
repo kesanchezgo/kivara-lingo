@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useKivaraStore } from '../../shared/store';
-import { SHORTCUT_DEFS, DEFAULT_SHORTCUT_MAP, normalizeCombo, readManifestCombos, type ShortcutMap } from '../../shared/shortcuts';
+import { SHORTCUT_DEFS, DEFAULT_SHORTCUT_MAP, normalizeCombo, readLiveManifestCommands, type ShortcutMap } from '../../shared/shortcuts';
 
 /**
  * Read-and-edit hook for the user-customisable shortcut map.
@@ -55,11 +55,19 @@ export function useShortcuts() {
    * the in-page handler ALSO matched, because App.tsx discards any combo
    * present in `manifestCombosRef` and the conflict check knew nothing about
    * them. The editor now refuses them with a reason.
+   *
+   * The manifest's `suggested_key` is only what the page ASKED for. A user who
+   * rebinds in `chrome://extensions/shortcuts` changes the live value, and the
+   * in-page gate discards whatever is in `manifestCombosRef` — which is built
+   * from `GET_COMMANDS`, i.e. the LIVE answer. The editor therefore has to read
+   * the live answer too: `readLiveManifestCommands()` is async (that is the
+   * cost of matching what the content script actually sees), so this returns a
+   * promise and the callers await it.
    */
   const findManifestConflict = useCallback(
-    (combo: string): string | null => {
+    async (combo: string): Promise<string | null> => {
       const want = normalizeCombo(combo);
-      const owned = readManifestCombos();
+      const owned = Object.values(await readLiveManifestCommands());
       for (const c of owned) {
         if (c === want) return c;
       }

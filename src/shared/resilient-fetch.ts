@@ -101,12 +101,12 @@ async function fetchOnce(
   onProgress?: (received: number, total: number) => void,
 ): Promise<ArrayBuffer> {
   const controller = new AbortController();
-  // HEADER deadline only. This used to cover the body too, which means a
-  // 120 s ceiling on the whole transfer: the EN→EN pack (127 MB) needs more
-  // than 8.5 Mbit/s just to survive it, so slow-but-working connections were
-  // aborted mid-stream and every retry restarted from byte 0. The whole body
-  // is unbounded only until the first gap, after which the inactivity window
-  // below re-arms on every chunk received.
+  // HEADER deadline only. `fetch` clears its own clock the moment the
+  // response resolves, so everything that follows — reader.read(), the body
+  // — is unbounded. This used to cover the whole transfer, which put a 120 s
+  // ceiling on the EN→EN pack (127 MB) and aborted it mid-stream at anything
+  // under 8.5 Mbit/s, restarting every retry from byte 0. The floor is
+  // inactivity, re-armed below on EVERY chunk received.
   const headerTimer = setTimeout(() => controller.abort(), headerTimeoutMs);
   // Recorded so the catch can say WHICH clock fired (see the abort message).
   let staleFired = false;
