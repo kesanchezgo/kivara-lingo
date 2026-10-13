@@ -681,7 +681,7 @@ function BackTemplate({ mockData }: { mockData: CardsTabProps['mockData'] }) {
       <div className="relative rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700" style={{ height: 72 }}>
         <img
           src="https://images.unsplash.com/photo-1574923930958-9b653a0e5148?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400&q=80"
-          alt="Escena"
+          alt={t('cards.sceneImage')}
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />

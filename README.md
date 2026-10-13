@@ -13,13 +13,13 @@
 - **Subtítulos personalizables**: tamaño, color, peso, sombra, fondo, opacidad y posición (arriba / medio / abajo).
 - **Tokenización inteligente con MWE**: detecta expresiones multi-palabra (*these days*, *kick the bucket*, *look up*) usando un índice de 13 501 frases de Wiktionary + lematización de inflexiones (*kicked the bucket* → *kick the bucket*).
 - **Popover con resolución en streaming**: la información esencial aparece en < 1 s (datos locales + traducción); el resto llega en fases mientras ves la serie. Un footer "buscando más…" indica que el enriquecimiento sigue en curso.
-- **Enriquecimiento multi-fuente**: 24 fuentes Standard de red (siempre activas, sin clave) + 17 fuentes VIP (toggle) + capa de IA opcional. Palabra polisémica resuelta por acepción de la frase (`run` empresa → `dirigir`, no `correr`).
+- **Enriquecimiento multi-fuente**: fuentes Standard de red (siempre activas, sin clave) + fuentes VIP (toggle, BYOK donde aplica) + capa de IA opcional. Palabra polisémica resuelta por acepción de la frase (`run` empresa → `dirigir`, no `correr`).
 - **Tarjetas Anki en un clic**: vía AnkiConnect, con mapeo configurable de campos. Incluye el audio exacto de la frase (ring buffer + VAD, fallback TTS avisado) y el mejor fotograma del cue (con fallback a imagen web). `Alt+V` re-captura el frame.
 - **Caché inteligente**: LRU en memoria (300 entradas) + IndexedDB con TTL configurable. Re-hover = ~0 ms.
 - **Modo Lectura**: oculta toda la UI de aprendizaje y deja solo subtítulos estilizados.
 - **Atajos de teclado**: `Ctrl+Shift+S` guardar, `Alt+C` toggle subtítulos, `Alt+R` repetir frase, `Alt+V` re-capturar frame, `Alt+K` toggle panel. Combos de página personalizables en Settings (los comandos Chrome se re-asignan en `chrome://extensions/shortcuts`).
 - **Tema claro y oscuro**, panel acoplado o flotante.
-- **UI bilingüe ES/EN**: `src/shared/i18n.ts` con 544 claves por idioma; el idioma se detecta vía `chrome.i18n.getUILanguage()` con fallback a español.
+- **UI bilingüe ES/EN**: `src/shared/i18n.ts` con claves ES/EN pareadas; el idioma se detecta vía `chrome.i18n.getUILanguage()` con fallback a español.
 
 ---
 
@@ -32,7 +32,7 @@ pnpm install
 # Build de producción → dist/
 pnpm build
 
-# Tests (728/728 passing)
+# Tests (753/753 passing)
 pnpm vitest run
 
 # Build del diccionario bundled (si modificas data/)
@@ -155,7 +155,7 @@ OpenAI / Anthropic / Google Gemini — genera definición contextual, sinónimos
 
 Abre el panel → **Settings → Enriquecimiento (VIP)**:
 
-- Activa el master toggle para habilitar las 17 fuentes VIP.
+- Activa el master toggle para habilitar las fuentes VIP.
 - Cada fuente tiene su propio checkbox.
 - **Unsplash**: requiere clave gratuita de [unsplash.com/developers](https://unsplash.com/developers) (50 req/h Demo).
 - **Pixabay**: clave opcional de [pixabay.com/api/docs](https://pixabay.com/api/docs) (100 req/min). Sin clave usa scraping.
@@ -223,7 +223,7 @@ La ruta de audio sí está completa y es el valor que ya se usa hoy: captura de 
 ## Tests
 
 ```bash
-pnpm vitest run   # 728/728 tests passing
+pnpm vitest run   # 753/753 tests passing
 ```
 
 Los tests cubren: tokenizador, MWE, lematización, parsers de fuentes de enriquecimiento, ranking por acepción, cadena de traducción, VAD, encoder WAV, utilidades compartidas y contrato de provenance por campo.

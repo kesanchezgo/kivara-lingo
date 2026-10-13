@@ -89,7 +89,7 @@ export function MappingStep({
               }}
               className="text-[11.5px] text-indigo-600 dark:text-indigo-400 hover:underline"
             >
-              {deckCreateMode ? '← Elegir mazo existente' : t('onb.createDeck')}
+              {deckCreateMode ? t('onb.chooseExistingDeck') : t('onb.createDeck')}
             </button>
           </div>
         </div>
@@ -147,7 +147,7 @@ export function MappingStep({
                 }}
                 className="text-[11.5px] text-indigo-600 dark:text-indigo-400 hover:underline"
               >
-                {modelCreateMode ? '← Elegir existente' : t('onb.createModel')}
+                {modelCreateMode ? t('onb.chooseExistingModel') : t('onb.createModel')}
               </button>
               {busy && (
                 <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-500">

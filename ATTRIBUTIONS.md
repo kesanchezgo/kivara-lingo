@@ -40,12 +40,15 @@ Oxford 3000, B2 para Oxford 5000) que usa `dictionary.ts` para rellenar
 
 ### NTC's American Idioms Dictionary
 
-`src/assets/dictionaries/en-idioms.json` — 21 866 expresiones idiomáticas con
-definición y ejemplo, filtradas a frases de sentido único y uso común.
+`src/assets/dictionaries/en-idioms.json` — 1 618 expresiones idiomáticas con
+definición y ejemplo; 1 614 en el corte HOT que se envía y el resto (COLD)
+como candidatas de carga diferida.
 
 - Origen: `zaghloul404/englishidioms` (material de investigación / CC0).
-- Uso: detección de idioms y glosas en inglés. Atribución conservada aquí y en
-  el `_meta` del propio JSON.
+- Modificaciones: filtrado a frases de sentido único y uso común, y marcado
+  HOT/COLD según el corpus de subtítulos.
+- Uso: detección de idioms y glosas en inglés. Atribución conservada aquí y
+  en el propio archivo.
 
 ### Academic Collocation List (ACL)
 

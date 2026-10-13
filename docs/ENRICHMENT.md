@@ -222,7 +222,7 @@ Tested against both flows using **all** Standard resources (bundled JSONs, Yomit
 19. duckduckgo-images
 20. youglish
 
-**VIP tier (17 fuentes — commercial-dict scrapes, translation memory + BYOK):**
+**VIP tier (fuentes editoriales + BYOK, toggle en Ajustes):**
 
 1. Cambridge English-Spanish
 2. Oxford Learner's

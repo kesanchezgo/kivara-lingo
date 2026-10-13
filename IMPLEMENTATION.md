@@ -594,7 +594,14 @@ Nueva capa opcional implementada en Bloques 1-3. Vive en `src/background/ai-prov
 
 - `ai-definition`, `ai-synonyms`, `ai-collocations`, `ai-nuance`, `ai-register`. Visibles en `CardsTab` con badge fucsia y descripciones específicas.
 
-**Tokens en `chrome.storage.sync`**: la `apiKey` viaja por el mismo store persistido que `googleToken`/`deeplToken`. Nunca se commitea; el `SettingsTab` muestra un warning rojo si el provider está activo pero la key está vacía.
+**Claves de proveedor** (`ai-definition`, `ai-synonyms`, `ai-collocations`,
+`ai-nuance`, `ai-register`, visibles en `CardsTab` con badge fucsia y
+descripciones específicas). La `apiKey` **ya no viaja por el store
+persistido** de `sync`: vive cifrada (`enc:v1:`) en un slot de
+`chrome.storage.local`, y `sync` solo lleva los campos en blanco. Si el
+cifrado no está disponible, el guardado se rechaza por completo antes de
+llegar a `sync`. Nunca se commitea; `SettingsTab` sigue mostrando el aviso
+rojo cuando el provider está activo y la key está vacía.
 
 ### 9.7 Popover progresivo — 3 oleadas
 

@@ -8,7 +8,8 @@ datos salen del navegador del usuario, adónde van y qué NO se hace con ellos.
 | Dato | Dónde | Notas |
 |---|---|---|
 | Ajustes de la app | `chrome.storage.sync` | Sincronizado con la cuenta Chrome del usuario. Los campos de secreto (API keys) van SIEMPRE en blanco en este blob. |
-| API keys del usuario (DeepL, Google, OpenAI, Anthropic, Gemini, ElevenLabs, Unsplash, Pixabay, WordReference, AnkiConnect) | `chrome.storage.local`, cifradas (`enc:v1:`) | Solo las lee este dispositivo. Se borran por completo al pulsar «Quitar» (se escribe una tumba `__cleared__`, no un campo vacío, para que no reaparezcan). Si el cifrado no está disponible (WebCrypto bloqueado o roto), la clave NO se guarda en ningún sitio: se rechaza el guardado y la extensión avisa, en lugar de escribirla en texto plano. |
+| API keys del usuario (DeepL, Google, OpenAI, Anthropic, Gemini, ElevenLabs, Unsplash, Pixabay, AnkiConnect) | `chrome.storage.local`, cifradas (`enc:v1:`) | Solo las lee este dispositivo. Se borran por completo al pulsar «Quitar» (se escribe una tumba `__cleared__`, no un campo vacío, para que no reaparezcan). Si el cifrado no está disponible (WebCrypto bloqueado o roto), la clave NO se guarda en ningún sitio —`chrome.storage.sync` no recibe el blob— y la extensión avisa en el panel y en Ajustes, en lugar de escribirla en texto plano. |
+| LibreTranslate (URL del usuario) | `chrome.storage.local` | URL configurada en Ajustes; se usa tal cual, sin validación de host público (es lo que permite una instancia propia en la LAN). |
 | Caché de diccionarios, traducciones, enriquecimiento, media | `chrome.storage.local` / IndexedDB | Datos locales derivados de consultas públicas. `vip_cache` se poda. |
 | Notas ya creadas (ledger de idempotencia) | IndexedDB local | Evita tarjetas duplicadas. |
 | Contadores de telemetría (opt-in) | Local; nunca se envían a servidores ajenos | Ver abajo. |
@@ -24,13 +25,18 @@ Solo cuando el usuario dispara una función concreta:
    (Cambridge, Merriam-Webster, WordReference, Tatoeba, Forvo, Wikimedia…).
 3. **IA (opt-in)** — palabra + frase al proveedor elegido (OpenAI /
    Anthropic / Gemini). Apagado por defecto.
-4. **Anki** — las tarjetas a `http://127.0.0.1` / `http://localhost`
-   (AnkiConnect), solo en el puerto configurado. La URL se comprueba en el
-   punto de uso y se rechaza si no apunta a esta máquina.
+4. **Anki** — las tarjetas a `http://127.0.0.1`, `http://localhost` o
+   `http://[::1]` (AnkiConnect), solo en el puerto configurado. La URL se
+   comprueba en el punto de uso (después de normalizarla, así una entrada sin
+   esquema como `127.0.0.1:8765` sigue siendo válida) y se rechaza si no
+   apunta a esta máquina.
 5. **Imagen / audio** — las URLs que esas mismas respuestas devuelven, para
    incrustarlas en la tarjeta. Todo con `credentials: 'omit'`: las cookies
-   del usuario NO viajan (excepción: `wordreference.com`, que requiere poner
-   su propia cookie de paso para que responda).
+   del usuario NO viajan, con DOS salvedades que conviene conocer:
+   `wordreference.com`, que exige poner su propia cookie de paso para que
+   responda (por eso está el permiso `cookies`), y `youtube.com`, cuyos
+   ficheros de subtítulos se piden con `credentials: 'include'` porque sin
+   cookie YouTube responde 404 a la pista de subtítulos.
 6. **TTS (opt-in), dos rutas distintas:**
    - **Frase y tarjeta completa** — se envía la frase a **OpenAI** o a
      **ElevenLabs**, con la API key que el usuario introduce en Ajustes.
@@ -47,7 +53,9 @@ Solo cuando el usuario dispara una función concreta:
 - Sin servidores propios. No existe backend de Kivara: nada se recopila ni se envía a
   kivara.dev ni a ningún dominio del autor.
 - Sin analítica de terceros, sin píxeles, sin reporte de errores remoto.
-- Sin `credentials: 'include'` generalizado (ver arriba).
+- Sin `credentials: 'include'` salvo en `youtube.com` (los ficheros de
+  subtítulos los exigen así) y en la cookie de paso de WordReference. Las
+  cookies del usuario no salen del navegador en ningún otro caso.
 - Sin descargas remotas sin límites donde importa: los medios que entran en
   las tarjetas (imagen, audio de palabra) y los paquetes de diccionario se
   descargan dentro del service worker con

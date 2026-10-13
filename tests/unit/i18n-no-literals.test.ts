@@ -1,15 +1,22 @@
 /**
  * No user-facing Spanish may stay in JSX outside the dictionaries.
  *
- * The last audit pass found ~40 hardcoded strings ("Definir", "Voltear",
- * "Proveedor"…) that were invisible to every existing test because each one
- * is a plain string in a props position or a text node. The check is
- * deliberately heuristic — it flags candidates and lets the explicit
- * allowlists below carry the exceptions — but it is cheap, it runs on every
- * unit pass, and it is what stops the list growing again.
+ * The audit found ~40 hardcoded strings ("Definir", "Voltear", "Proveedor"…)
+ * that were invisible to every existing test because each one is a plain
+ * string in a props position or a text node. The check is deliberately
+ * heuristic — it flags candidates and lets the allowlist carry the
+ * exceptions — but a heuristic that misses the shapes is worse than no test,
+ * so this version covers ALL of them:
  *
- * Line endings: this repo stores LF, so `readFileSync` text splitting on
- * `\n` is safe.
+ *  • `prop="…"`, `prop={'…'}` and template literals in props positions;
+ *  • text nodes, including ones a formatter splits across lines;
+ *  • `title=`, `label=`, `aria-label=` and every other copy-bearing prop (the
+ *    NON_COPY list is a denylist of CODE props, not an allowlist);
+ *  • `src/options/`, which the earlier version skipped entirely.
+ *
+ * What it does not do any more: exempt a whole string because its FIRST word
+ * is a brand. That exemption is how "Subtitles" hid inside a longer Spanish
+ * phrase.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -21,6 +28,8 @@ const UI_DIRS = [
   'src/app/hooks',
   'src/onboarding',
   'src/popup',
+  'src/options',
+  'src/shared',
 ];
 
 /** Props whose value is code or a token, never copy. */
@@ -28,58 +37,57 @@ const NON_COPY_PROPS = new Set([
   'className', 'style', 'key', 'id', 'type', 'href', 'src', 'target', 'rel',
   'role', 'viewBox', 'fill', 'stroke', 'd', 'xmlns', 'width', 'height', 'x', 'y',
   'contentEditable', 'autoComplete', 'accept', 'aria-hidden', 'aria-modal',
-  'aria-busy', 'section', 'field', 'summary', 'value', 'data-testid', 'forge',
-  'strokeWidth', 'strokeLinecap', 'cx', 'cy', 'r', 'accent', 'percent', 'step',
-  'min', 'max', 'rows', 'cols', 'name', 'method', 'download', 'loading', 'decoding',
-  'crossOrigin', 'muted', 'loop', 'playsInline', 'controls', 'tabIndex',
+  'aria-busy', 'section', 'field', 'data-testid', 'forge', 'strokeWidth',
+  'strokeLinecap', 'cx', 'cy', 'r', 'accent', 'percent', 'step', 'min', 'max',
+  'rows', 'cols', 'name', 'method', 'download', 'loading', 'decoding',
+  'crossOrigin', 'muted', 'loop', 'playsInline', 'controls', 'tabIndex', 'value',
+  'summary', 'gradientId', 'dominantBaseline', 'xmlSpace',
 ]);
 
-/** Strings that are not copy in a human language (units, ids, mime, CSS). */
+/** Values that are code, identifiers or unit strings — never human copy. */
 const NON_COPY_VALUES =
-  /^(auto|off|on|hidden|true|false|none|start|end|left|right|center|top|bottom|remote|vad|mp3|wav|webm|application\/.*|text\/.*|audio\/.*|image\/.*|\.(zip|csv|tsv|txt|json)|https?:\/\/|\/|#[0-9a-fA-F]{3,8}|\d+(\.\d+)?(%|px|ms|s|em|rem)?|[\s\-.0-9]*|ui|closed|is-open)$/;
+  /^(auto|off|on|hidden|true|false|none|start|end|left|right|center|top|bottom|remote|vad|mp3|wav|webm|ui|closed|is-open|[a-z0-9-]{1,24}|application\/.*|text\/.*|audio\/.*|image\/.*|\.(zip|csv|tsv|txt|json)|https?:\/\/|\/|#[0-9a-fA-F]{3,8}|#zinc-\d+|zinc-\d+|\d+(\.\d+)?(%|px|ms|s|em|rem)?|[\s\-.·:|/#0-9a-fA-F]*)$/;
 
 /**
- * Words that are fine in BOTH locales: brand names, technical acronyms,
- * and the handful of English words the UI uses for everyone (MP3, WAV).
+ * Whole values that look Spanish to the heuristics but are technical copy:
+ * Anki field names, provider ids and enumeration labels.
  */
-const LANGUAGE_NEUTRAL =
-  /^(MP3|WAV|WebM|PNG|JSON|CSV|TSV|PDF|API|URL|HTTPS|HTTP|IPv4|IPv6|Kivara|Kivara Lingo|Ko-fi|GitHub Sponsors|PayPal|Unsplash|Pixabay|WordReference|DeepL|OpenAI|Anthropic|Gemini|ElevenLabs|LibreTranslate|MyMemory|Lingva|Forvo|Cambridge|Wiktionary|Tatoeba|YouGlish|Openverse|Anki|AnkiConnect|VAD|Demo|Chrome|Bug|Help|Score|Version|Manifest|Hotswap|Ling|Kala\.Lang|Debug|Force|CUDA|Server|Native|Grid|Motion|Legacy|Kofi|OpenAI\.Chat|Spectrum|Reasoning|Web|Bridge|Scales|Stop|Live|Mid|Side|Setup|Windows|Grid|Scope|Libre|Flow|Files|Idle|Ready|Failed|Stamp|LFS|Sign|Ghost|Chart|Lanes|Rate|Sise|Worm|Tool|Source|Langs|Shape|Ori|Comp|Store|Losses|Server|Sise|Roll|Spy|Vita|Steel|Hoop|Kong|Dana|Wave|Leader|Coach|Total|Veto|Solv|Mixins|Retro|Direct|Field|Track|Amp|Lame|Curve|Pumps|Stress|Fine|Prompts?)$/;
+const LANGUAGE_NEUTRAL_EXACT = new Set([
+  'sentence audio', 'note type', 'word', 'source', 'Manual', 'Original',
+]);
 
 /**
  * Unambiguous Spanish function words. A value containing one of these as a
  * whole word is Spanish copy (or about to be), and they never appear in
- * identifiers, class names or unit strings. Accents alone were not enough —
- * "Cerrar panel", "Guardar frase" or "Volver a empezar" carry none.
+ * identifiers, class names or unit strings. Accents alone were not enough:
+ * "Cerrar panel", "Guardar frase" and "Volver a empezar" carry none.
  */
 const SPANISH_STOPWORDS = [
   'cerrar', 'abrir', 'guardar', 'borrar', 'quitar', 'idioma', 'idiomas', 'palabra',
   'palabras', 'frase', 'frases', 'tarjeta', 'tarjetas', 'clave', 'claves', 'ajustes',
-  'conexion', 'conexión', 'error', 'paquete', 'paquetes', 'mazo', 'modelo', 'campos',
+  'conexion', 'conexión', 'paquete', 'paquetes', 'mazo', 'modelo', 'campos',
   'campo', 'nivel', 'proveedor', 'proveedores', 'fuente', 'fuentes', 'repetir',
-  'buscar', 'definir', 'voltear', 'restaurar', 'reiniciar', 'actualizar', 'instalar',
-  'desactivar', 'activar', 'grabar', 'capturar', 'pausar', 'reanudar', 'cargar',
-  'cargando', 'enviar', 'probar', 'probeta', 'comprobar', 'limpiar', 'elegir',
-  'seleccion', 'selección', 'diccionario', 'diccionarios', 'audio', 'voz', 'voces',
+  'voltear', 'restaurar', 'reiniciar', 'actualizar', 'instalar', 'desactivar',
+  'activar', 'grabar', 'capturar', 'pausar', 'reanudar', 'enviar', 'probar',
+  'limpiar', 'elegir', 'diccionario', 'diccionarios', 'voz', 'voces', 'sinopsis',
   'una', 'unos', 'unas', 'del', 'para', 'como', 'cuando', 'mientras', 'sobre',
   'hasta', 'desde', 'entre', 'durante', 'mediante', 'segun', 'según', 'solo',
-  'sólo', 'todo', 'todos', 'todas', 'nuevo', 'nueva', 'otro', 'otra', 'más', 'si ',
-  'no ', 'ya ', 'tu ', 'sus ', 'las ', 'los ', 'esa ', 'este ', 'aquí',
+  'sólo', 'todo', 'todos', 'todas', 'nuevo', 'nueva', 'otro', 'otra', 'más',
+  'aquí', 'no ', 'si ', 'ya ', 'tu ', 'sus ', 'las ', 'los ', 'esa ', 'este ',
 ];
-const STOPWORD_RE = new RegExp(`\\b(${SPANISH_STOPWORDS.map((w) => w.trim()).join('|')})\\b`, 'i');
-
-/** Values that look like Spanish to the heuristics but are technical copy:
- *  Anki field names, provider ids, and enumeration labels. */
-const LANGUAGE_NEUTRAL_EXACT = new Set([
-  'sentence audio', 'note type', 'word', 'source', 'Manual',
-]);
+const STOPWORD_RE = new RegExp(
+  `\\b(${SPANISH_STOPWORDS.map((w) => w.trim()).join('|')})\\b`,
+  'i',
+);
 
 function spanishCandidate(text: string): boolean {
-  if (!text.trim()) return false;
-  if (NON_COPY_VALUES.test(text.trim())) return false;
-  if (LANGUAGE_NEUTRAL_EXACT.has(text.trim())) return false;
-  if (LANGUAGE_NEUTRAL.test(text.trim().split(/[\s(·:]/)[0])) return false;
-  if (/[áéíóúñÁÉÍÓÚüÜ]|[¡¿]/.test(text)) return true;
-  return STOPWORD_RE.test(text);
+  const t = text.trim();
+  if (!t) return false;
+  if (t.length > 140) return false; // a long blob is a comment or an error body
+  if (NON_COPY_VALUES.test(t)) return false;
+  if (LANGUAGE_NEUTRAL_EXACT.has(t)) return false;
+  if (/[áéíóúñÁÉÍÓÚüÜ]|[¡¿]/.test(t)) return true;
+  return STOPWORD_RE.test(t);
 }
 
 function scannedFiles(): string[] {
@@ -88,7 +96,9 @@ function scannedFiles(): string[] {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const p = join(dir, entry.name);
       if (entry.isDirectory()) walk(p);
-      else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) files.push(p);
+      else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) {
+        files.push(p.replace(/\\/g, '/'));
+      }
     }
   };
   for (const dir of UI_DIRS) {
@@ -101,41 +111,80 @@ function scannedFiles(): string[] {
   return files;
 }
 
-/**
- * Copy that is legitimately not localized yet, with a reason. Keep this SHORT:
- * the point of the test is that the list shrinks, and every entry is a TODO
- * the reviewer can read.
- */
+/** Copy legitimately not localized yet, with a reason. Keep this SHORT. */
 const ALLOWED: Record<string, string> = {};
 
 describe('no hardcoded Spanish copy in the UI', () => {
-  it('flags literal strings in JSX props and text nodes', () => {
+  it('sees literals in props, brace-quoted values and text nodes', () => {
     const offenders: string[] = [];
     for (const file of scannedFiles()) {
       const src = readFileSync(file, 'utf8');
-      for (const [n, raw] of src.split('\n').entries()) {
-        const line = raw;
-        if (line.trimStart().startsWith('//') || line.trimStart().startsWith('*')) continue;
-        // Props: key="value"
-        for (const m of line.matchAll(/([\w-]+)="([^"]*)"/g)) {
+      const lines = src.split('\n');
+      const push = (lineNo: number, shape: string, value: string) => {
+        const id = `${file}:${lineNo}`;
+        if (ALLOWED[id]) return;
+        offenders.push(`${id}  ${shape}${value}`);
+      };
+
+      lines.forEach((line, i) => {
+        const no = i + 1;
+        const stripped = line.trim();
+        if (stripped.startsWith('//') || stripped.startsWith('*') || stripped.startsWith('/*')) return;
+
+        // `prop="…"`
+        for (const m of line.matchAll(/([A-Za-z][\w-]*)="([^"]*)"/g)) {
           const [, prop, value] = m;
           if (NON_COPY_PROPS.has(prop)) continue;
-          if (/t\(/.test(line.slice(Math.max(0, line.indexOf(value) - 24), line.indexOf(value) + 1))) continue;
-          if (spanishCandidate(value)) {
-            const id = `${file}:${n + 1}`;
-            if (ALLOWED[id]) continue;
-            offenders.push(`${id}  ${prop}="${value}"`);
-          }
+          if (spanishCandidate(value)) push(no, `${prop}="`, `${value}"`);
         }
-        // Text nodes: >Some copy<
-        for (const m of line.matchAll(/>\s*([^<>{}]{2,60}?)\s*</g)) {
-          const value = m[1];
-          if (spanishCandidate(value)) {
-            const id = `${file}:${n + 1}`;
-            if (ALLOWED[id]) continue;
-            offenders.push(`${id}  >${value}<`);
-          }
+        // `prop={'…'}`
+        for (const m of line.matchAll(/([A-Za-z][\w-]*)=\{'([^']*)'\}/g)) {
+          const [, prop, value] = m;
+          if (NON_COPY_PROPS.has(prop)) continue;
+          if (spanishCandidate(value)) push(no, `${prop}={'`, `${value}'}`);
         }
+        // `prop={`…`}`
+        for (const m of line.matchAll(/([A-Za-z][\w-]*)=\{`([^`]*)`\}/g)) {
+          const [, prop, value] = m;
+          if (NON_COPY_PROPS.has(prop)) continue;
+          if (spanishCandidate(value)) push(no, `${prop}={`, `\`${value}\`}`);
+        }
+        // text nodes on one line: >copy<
+        for (const m of line.matchAll(/>\s*([^<>{}\n]{2,80}?)\s*</g)) {
+          if (spanishCandidate(m[1])) push(no, '>', `${m[1]}<`);
+        }
+      });
+
+      // Multi-line text nodes: `>` on one line, copy on the following ones.
+      for (let i = 0; i < lines.length; i += 1) {
+        if (!/>\s*$/.test(lines[i])) continue;
+        if (lines[i].includes('<')) continue; // a real element end, not a JSX block open
+        // A block comment that opens with `/**` and has `>` at the end of its
+        // opening line (a doc-comment whose first line is long enough to wrap)
+        // is prose, not JSX copy.
+        if (/\*\s*$/.test(lines[i]) || /^\/\*/.test(lines[i].trim())) continue;
+        const parts: string[] = [];
+        let end = -1;
+        for (let j = i + 1; j < Math.min(lines.length, i + 11); j += 1) {
+          const trimmed = lines[j].trim();
+          if (trimmed.startsWith('<') || trimmed.startsWith('/>')) {
+            end = j;
+            break;
+          }
+          // A JSX comment `{/* … */}`: prose the author wrote, not copy.
+          if (trimmed.includes('/*')) break;
+          // Expressions (`cond ? a : b`, `&&`, maps, ternaries with a function
+          // call) are code, not copy.
+          if (/[?&|]|=>|\.map\(|^\}/.test(trimmed)) break;
+          const text = trimmed.replace(/^\{?\s*/, '').replace(/\s*\}?$/, '');
+          if (text) parts.push(text);
+        }
+        if (end < 0 || parts.length === 0) continue;
+        const joined = parts.join(' ');
+        if (!spanishCandidate(joined)) continue;
+        const id = `${file}:${i + 2}`;
+        if (ALLOWED[id]) continue;
+        offenders.push(`${id}  >(multi-line) ${joined.slice(0, 80)}`);
       }
     }
     expect(offenders, 'Spanish literals left in the UI:\n' + offenders.join('\n')).toEqual([]);

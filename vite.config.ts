@@ -96,11 +96,12 @@ export default defineConfig({
     // Single version source: manifest.json. Popup/options read it at build
     // time instead of hardcoding "v0.2", so the three can never drift.
     __APP_VERSION__: JSON.stringify(manifest.version),
-    // Build-time E2E flag. Only `KIVARA_E2E=1 pnpm build` (what the Playwright
-    // fixture runs) flips it on, and it is the ONLY thing that compiles the
-    // e2e bridge page into the bundle (see src/background/service-worker.ts
-    // and src/e2e/index.ts). A production build has no reference to it: the
-    // e2e dist guard greps for both the page and the listener to prove that.
+    // Build-time E2E flag. Only `pnpm test:e2e:audio` (which sets KIVARA_E2E=1
+    // through `scripts/run-e2e-with-flag.mjs`, the same wrapper CI uses) flips
+    // it on, and it is the ONLY thing that compiles the e2e bridge page into
+    // the bundle (see src/background/service-worker.ts and src/e2e/index.ts).
+    // A production build has no reference to it: the e2e dist guard greps for
+    // both the page and the listener to prove that.
     __E2E__: JSON.stringify(process.env.KIVARA_E2E === '1'),
   },
   plugins: [

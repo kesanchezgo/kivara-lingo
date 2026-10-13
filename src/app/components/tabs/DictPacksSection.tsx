@@ -766,7 +766,7 @@ export function DictPacksSection() {
               className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
               title={t('dict.clearCountersTitle')}
             >
-              Reiniciar
+              {t('dict.reset')}
             </button>
           </div>
           <input

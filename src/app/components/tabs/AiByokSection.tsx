@@ -207,9 +207,9 @@ export function AiByokSection() {
                   target="_blank"
                   rel="noreferrer"
                   className="shrink-0 inline-flex items-center gap-1 text-[10px] px-1.5 py-1 rounded border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                  title={`Abrir ${preset.getKeyUrl}`}
+                  title={t('ai.openKeyUrl')}
                 >
-                  Obtener key
+                  {t('ai.getKey')}
                   <ExternalLink size={9} />
                 </a>
               </div>
@@ -315,7 +315,7 @@ export function AiByokSection() {
               onClick={disable}
               className="text-[10px] text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 underline-offset-2 hover:underline"
             >
-              Desactivar IA
+              {t('ai.disableAi')}
             </button>
             {test.state === 'idle' && ai.apiKey.trim() && (
               <span className="text-[10px] text-zinc-400 dark:text-zinc-500">

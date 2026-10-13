@@ -701,7 +701,7 @@ export function WordPopover({
               {meta.level && (
                 <span
                   className={`text-[9px] font-bold uppercase tracking-wider ring-1 px-1 py-px rounded shrink-0 ${levelClasses(meta.level)}`}
-                  title={`Nivel CEFR ${meta.level.toUpperCase()}`}
+                  title={t('wp.cefrLevel', { level: meta.level.toUpperCase() })}
                 >
                   {meta.level.toUpperCase()}
                 </span>
@@ -847,7 +847,7 @@ export function WordPopover({
           {meta.vip?.examples && meta.vip.examples.length > 0 && (
             <div className="mt-2 space-y-1">
               <div className="text-[9px] uppercase tracking-wider text-fuchsia-300/90 font-semibold">
-                Ejemplos VIP
+                {t('wp.vipExamples')}
               </div>
               {meta.vip.examples.slice(0, 3).map((ex, i) => (
                 <div

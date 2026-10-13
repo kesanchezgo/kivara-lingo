@@ -77,7 +77,7 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
           </button>
         </div>
 
-        {/* t(`sub.typography`) */}
+        {/* keyed `subs.typography`; `sub.typography` was the legacy id */}
         <Section icon={<Type size={10} />} title={t('subs.typography')}>
           <Row label={t('subs.size')} value={`${styles.fontSize}px`} onReset={resetOf('fontSize')}>
             <input
@@ -186,7 +186,7 @@ export function SubtitlesTab({ styles, setStyles }: SubtitlesTabProps) {
           />
         </Section>
 
-        {/* t(`sub.position`) */}
+        {/* keyed `subs.position`; `sub.position` was the legacy id */}
         <Section icon={<AlignVerticalSpaceBetween size={10} />} title={t('subs.position')}>
           <Row label={t('sub.preset')} onReset={resetOf('position')}>
             <SegmentedControl
