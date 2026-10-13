@@ -58,15 +58,42 @@ colocaciones más frecuentes del inglés académico.
 - Modificaciones: mapeo a headword y descarte de las colocaciones por debajo
   del umbral que usa la extensión.
 
-### MWEs / phrasal verbs (índice propio)
+### MWEs de Wiktionary (índice de títulos)
 
-`src/assets/mwes/en-mwe-index.json` y `src/assets/mwes/en.json` — índice de
-expresiones multi-palabra del proyecto (phrasal verbs, idioms, MWE académicas)
-con sus traducciones.
+`src/assets/mwes/en-mwe-index.json` — **unas 13 500 títulos de expresiones
+multi-palabra** (idioms, phrasal verbs, proverbs) que el tokenizador usa para
+reconocer un span como MWE. El archivo contiene solo los títulos, en minúsculas
+y deduplicados.
 
-- Obra propia: ensamblada a partir de las fuentes citadas arriba, de la lista
-  de phrasals del diccionario base y de revisión manual. No incorpora texto con
-  copyright de un producto comercial más allá de lo indicado.
+- **Fuente:** Wiktionary (en.wiktionary.org), enumeración de las categorías
+  `Category:English_idioms`, `Category:English_phrasal_verbs` y
+  `Category:English_proverbs`, que es exactamente lo que consulta
+  `scripts/build-mwe-index.cjs`.
+- **Licencia: CC BY-SA 4.0**
+  (https://creativecommons.org/licenses/by-sa/4.0/).
+- **Modificación:** se conservan únicamente los títulos, normalizados a
+  minúsculas y deduplicados. Nada más del artículo de Wiktionary se distribuye.
+- **Aviso de ShareAlike:** este archivo concreto se distribuye bajo CC BY-SA 4.0,
+  **no** bajo la licencia MIT del código de la extensión; la obligación de
+  ShareAlike viaja con él.
+
+### Oxford Phrasal Academic Lexicon
+
+`src/assets/mwes/en-phrasal-academic.json` — MWE académicas de alta frecuencia
+con su token, nivel y traducción.
+
+- Origen: lista pública `jnoodle/English-Vocabulary-Word-List` (lista curada de
+  acceso público; declarada en el `_meta` del propio JSON).
+- Uso: que el tokenizador trate el chunk académico como una unidad.
+
+### Diccionario MWE del proyecto
+
+`src/assets/mwes/en.json` — glosas, traducciones y ejemplos de phrasal verbs y
+MWE.
+
+- Obra propia: redactado por el proyecto. No contiene texto de Wiktionary ni de
+  Oxford; el índice de títulos de Wiktionary es una lista aparte
+  (`en-mwe-index.json`) con su propia licencia.
 
 ### Tesauro overlay
 
@@ -93,5 +120,11 @@ licencia. Esta lista no altera la de cada paquete.
 
 ## 2. Código de terceros
 
-Dependencias de npm, enumeradas en `package.json` con sus licencias. La
-extensión es software MIT: consulta `LICENSE` en la raíz.
+Dependencias de npm, enumeradas en `package.json` con sus licencias.
+
+## 3. Licencia del paquete
+
+El **código** de la extensión es MIT (ver `LICENSE`). Los **datos** no: cada
+conjunto lingüístico conserva la licencia indicada arriba, y
+`src/assets/mwes/en-mwe-index.json` (Wiktionary) se distribuye bajo CC BY-SA
+4.0 con la obligación de ShareAlike que eso implica.

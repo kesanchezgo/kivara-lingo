@@ -236,6 +236,8 @@ Los tests cubren: tokenizador, MWE, lematización, parsers de fuentes de enrique
 
 ## Licencia
 
-MIT — ver [LICENSE](LICENSE). Los datos lingüísticos de terceros que se
-distribuyen en el paquete (WordNet, listas de nivel, idioms, colocaciones
-académicas, tesauro) tienen cada uno su licencia: [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
+MIT para el **código** (ver [LICENSE](LICENSE)). Los datos lingüísticos de
+terceros que se distribuyen en el paquete (WordNet en CC BY 4.0, el índice MWE
+de Wiktionary en CC BY-SA 4.0, Oxford, idioms, colocaciones académicas, tesauro)
+tienen cada uno su licencia: [ATTRIBUTIONS.md](ATTRIBUTIONS.md). Al construir
+desde el repo, esas licencias van contigo en el paquete.
