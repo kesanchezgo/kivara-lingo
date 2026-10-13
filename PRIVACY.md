@@ -9,10 +9,10 @@ datos salen del navegador del usuario, adónde van y qué NO se hace con ellos.
 |---|---|---|
 | Ajustes de la app | `chrome.storage.sync` | Sincronizado con la cuenta Chrome del usuario. Los campos de secreto (API keys) van SIEMPRE en blanco en este blob. |
 | API keys del usuario (DeepL, Google, OpenAI, Anthropic, Gemini, ElevenLabs, Unsplash, Pixabay, AnkiConnect) | `chrome.storage.local`, cifradas (`enc:v1:`) | Solo las lee este dispositivo. Se borran por completo al pulsar «Quitar» (se escribe una tumba `__cleared__`, no un campo vacío, para que no reaparezcan). Si el cifrado no está disponible (WebCrypto bloqueado o roto), la clave NO se guarda en ningún sitio —`chrome.storage.sync` no recibe el blob— y la extensión avisa en el panel y en Ajustes, en lugar de escribirla en texto plano. |
-| LibreTranslate (URL del usuario) | `chrome.storage.local` | URL configurada en Ajustes; se usa tal cual, sin validación de host público (es lo que permite una instancia propia en la LAN). |
+| LibreTranslate (URL y key del usuario) | `chrome.storage.sync` (los campos de ajuste, con la key VACÍA — encrypted secrets live in local) | La URL se configura en Ajustes y se usa tal cual, sin validación de host público (es lo que permite una instancia propia en la LAN). |
 | Caché de diccionarios, traducciones, enriquecimiento, media | `chrome.storage.local` / IndexedDB | Datos locales derivados de consultas públicas. `vip_cache` se poda. |
 | Notas ya creadas (ledger de idempotencia) | IndexedDB local | Evita tarjetas duplicadas. |
-| Contadores de telemetría (opt-in) | Local; nunca se envían a servidores ajenos | Ver abajo. |
+| Contadores de telemetría (opt-in, DESACTIVADA por defecto) | Local; nunca se envían a servidores ajenos | Ver abajo. |
 
 ## Qué sale del navegador
 
@@ -71,7 +71,8 @@ Solo cuando el usuario dispara una función concreta:
   lugar de empaquetarse (issue #30): un glue remoto no puede cargar jamás desde
   una página de la extensión. La CSP declara además `'wasm-unsafe-eval'` para
   que cualquier módulo WASM futuro siga compilable sin relajar el resto.
-- **Anki remoto no soportado**: el permiso cubre `127.0.0.1` y `localhost` en
+- **Anki remoto no soportado**: el permiso cubre `127.0.0.1`, `localhost` y
+  `[::1]` (loopback IPv6, en `http://[::1]:8765/*` y `http://[::1]/*`) en
   cualquier puerto; un Anki en otra máquina queda fuera a propósito (ver
   `IMPLEMENTATION.md` §11.0).
 
@@ -90,7 +91,8 @@ Solo cuando el usuario dispara una función concreta:
   (78 entradas, una por origen): no se solicitan hasta que el usuario activa la
   fuente o pulsa «Conceder» en Ajustes → Permisos, y se pueden revocar igual.
   Las URL de Anki se restringen además a loopback (ver más abajo).
-- **Telemetría**: se contabiliza en local (porcentaje de enriquecimiento que
+- **Telemetría**: DESACTIVADA por defecto (`enabled: false` en el store). Si la
+  activas, se contabiliza en local (porcentaje de enriquecimiento que funciona
   requirió red, fallos de proveedores). Nunca se envía fuera del dispositivo.
 
 ## Permisos que pide y por qué

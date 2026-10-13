@@ -8,7 +8,10 @@ export default defineConfig({
   // unresolvable identifier.
   define: {
     __E2E__: JSON.stringify(process.env.KIVARA_E2E === '1'),
-    // Same value as vite.config.ts, for Popup/options imports under vitest.
+    // The same NAME vite.config.ts defines, with a test value — a module that
+    // reads it must not throw on an unresolvable identifier under vitest. The
+    // VALUE differs on purpose: the browser build feeds it manifest.version,
+    // and a test asserting on it would be asserting on the manifest.
     __APP_VERSION__: JSON.stringify('test'),
   },
   resolve: {
@@ -39,15 +42,15 @@ export default defineConfig({
     // the next test's view of the world. The reviewer's explicit request —
     // a previous round leaked `fetch` stubs across files.
     //
-    // Three separate leashes, because they cover three different shapes:
-    //  • `restoreMocks` re-wraps `vi.spyOn` (calls `mockRestore`) but does
-    //    NOT touch a bare `vi.fn()`, whose calls persist;
-    //  • `clearMocks` empties calls AND implementations of every `vi.fn`
-    //    between tests — the piece `restoreMocks` misses;
-    //  • `unstubGlobals` removes `vi.stubGlobal` substitutions and their
-    //    requestAnimationFrames.
-    // Together they mean "each test starts from a clean slate" whether the
-    // previous test used a spy, a mock or a global stub.
+    // Three leashes, because they cover three different shapes:
+    //  • `restoreMocks` re-wraps `vi.spyOn` (calls `mockRestore`) — it does
+    //    NOT touch a bare `vi.fn()`, whose recorded calls persist;
+    //  • `clearMocks` empties the recorded CALLS and results of every mock
+    //    between tests. It does NOT remove the implementation (that is
+    //    `mockReset`, which would erase every factory this suite relies on) —
+    //    saying otherwise made me look for a leak in the wrong place once;
+    //  • `unstubGlobals` removes `vi.stubGlobal` substitutions, so a stubbed
+    //    `fetch` can't be hiding behind the next test.
     restoreMocks: true,
     clearMocks: true,
     unstubGlobals: true,

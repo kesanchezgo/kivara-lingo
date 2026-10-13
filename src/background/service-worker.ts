@@ -1135,14 +1135,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           const total = totalHeader ? parseInt(totalHeader, 10) || 0 : 0;
           if (total > DICT_PACK_MAX_BYTES) {
             finishDownload();
-            reportProgress({
-              stage: 'error',
-              error: `Paquete demasiado grande (${total} bytes > ${DICT_PACK_MAX_BYTES})`,
-            });
-            sendResponse({
-              ok: false,
-              error: `Paquete demasiado grande (${total} bytes > ${DICT_PACK_MAX_BYTES})`,
-            });
+            const packTooBig = t('dictpack.packTooLarge', { total, max: DICT_PACK_MAX_BYTES });
+            reportProgress({ stage: 'error', error: packTooBig });
+            sendResponse({ ok: false, error: packTooBig });
             return;
           }
           const reader = res.body?.getReader();
@@ -1171,8 +1166,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
               if (received > DICT_PACK_MAX_BYTES) {
                 await reader.cancel().catch(() => {});
                 finishDownload();
-                reportProgress({ stage: 'error', error: 'Paquete demasiado grande' });
-                sendResponse({ ok: false, error: 'Paquete demasiado grande' });
+                reportProgress({ stage: 'error', error: t('dictpack.packTooLargeShort') });
+                sendResponse({ ok: false, error: t('dictpack.packTooLargeShort') });
                 return;
               }
               chunks.push(value);

@@ -30,6 +30,11 @@ const UI_DIRS = [
   'src/popup',
   'src/options',
   'src/shared',
+  // Added after the service worker was found shipping Spanish to every
+  // surface that reaches chrome.i18n: the guard was only auditing the
+  // React tree, which is where the old list happened to live.
+  'src/background',
+  'src/content',
 ];
 
 /** Props whose value is code or a token, never copy. */
