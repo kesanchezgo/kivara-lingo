@@ -12,7 +12,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 /** Poll instead of sleeping a fixed 20 ms: under a loaded machine (CI with two
  * jobs running) the boot refresh can take longer, and a fixed sleep flaked.
- * Budget matches the 20 s timeout declared on the tests that import the SW. */
+ * 50 tries × 50 ms is a 2.5 s budget, far above the fastest boot sequence
+ * — it polls for an observable state change, so a real failure still fails
+ * within a second. */
 async function waitFor(predicate: () => boolean, tries = 50): Promise<void> {
   for (let i = 0; i < tries; i += 1) {
     if (predicate()) return;

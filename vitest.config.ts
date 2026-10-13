@@ -8,6 +8,8 @@ export default defineConfig({
   // unresolvable identifier.
   define: {
     __E2E__: JSON.stringify(process.env.KIVARA_E2E === '1'),
+    // Same value as vite.config.ts, for Popup/options imports under vitest.
+    __APP_VERSION__: JSON.stringify('test'),
   },
   resolve: {
     alias: {
@@ -33,14 +35,21 @@ export default defineConfig({
     // tests/setup.ts. Reading `unhandledRejection` (JSON reporter) gives the
     // real stack.
     dangerouslyIgnoreUnhandledErrors: false,
-    // LEASES that keep the previous test's stubs and mocks from bleeding
-    // into the next test's view of the world. The reviewer's explicit
-    // request: this round had `fetch` stubs filtering across files;
-    // `restoreMocks: true` rolls any `vi.fn`/`vi.spyOn` created inside a
-    // `vi.restoreAllMocks`-less test back to its unwrapped state between
-    // tests automatically, and `unstubGlobals: true` drops `vi.stubGlobal`
-    // listeners.
+    // LEAKS GOODBYE: the previous test's stubs and mocks must not bleed into
+    // the next test's view of the world. The reviewer's explicit request —
+    // a previous round leaked `fetch` stubs across files.
+    //
+    // Three separate leashes, because they cover three different shapes:
+    //  • `restoreMocks` re-wraps `vi.spyOn` (calls `mockRestore`) but does
+    //    NOT touch a bare `vi.fn()`, whose calls persist;
+    //  • `clearMocks` empties calls AND implementations of every `vi.fn`
+    //    between tests — the piece `restoreMocks` misses;
+    //  • `unstubGlobals` removes `vi.stubGlobal` substitutions and their
+    //    requestAnimationFrames.
+    // Together they mean "each test starts from a clean slate" whether the
+    // previous test used a spy, a mock or a global stub.
     restoreMocks: true,
+    clearMocks: true,
     unstubGlobals: true,
   },
 });
