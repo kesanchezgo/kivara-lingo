@@ -78,11 +78,16 @@ async function waitForVideoTime(
  * switch — a `repeat_phrase` message could seek the video with the
  * extension off. To retire the alias means deleting the `case` AND this
  * entry together.
+ *
+ * `toggle_panel` is intentionally exempt (Alt+K is the same click path a
+ * user takes to open preferences), and `show_translation` is gated too
+ * even though its case is a no-op today, so a future implementation
+ * cannot bypass the toggle.
  */
 const RUN_COMMAND_GATE: ReadonlySet<string> = new Set([
   'save_word', 'save_word_alt',
   'toggle_subtitles', 'repeat_cue', 'repeat_phrase',
-  'recapture_frame',
+  'recapture_frame', 'show_translation',
 ]);
 
 /**
@@ -664,8 +669,8 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   // Set until GET_COMMANDS filled it — a save could double-fire in the
   // cold-start window.
   //
-  // Lazy init: `useRef(fn())` runs the IIFE on every render unless we
-  // pass the initializer function itself.
+  // Lazy init: the ref is null on first render, so the set is built once
+  // and again only if a later refresh arrives empty.
   const manifestCombosRef = useRef<Set<string> | null>(null);
   if (manifestCombosRef.current === null) {
     manifestCombosRef.current = buildManifestCommandSet();
@@ -764,7 +769,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
           video.currentTime = cue.start / 1000;
           void video.play().catch(() => {});
         }
-      } else if (combo && !Object.values(map).some((m) => normalizeCombo(m ?? '') === combo)) {
+      } else {
         // Custom combo that matches NO configured action (e.g. it equals
         // another action's default the user moved away from): ignore loudly
         // in dev instead of silently swallowing the keypress.
@@ -825,9 +830,10 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       // chrome.commands message from the service worker fires VERBATIM
       // even when the user disabled the extension from Settings, so
       // Alt+R used to seek the video and Ctrl+Shift+S saved a word with the
-      // whole extension off. The toggle_panel is intentionally exempt
-      // (it is the same `chrome.action` click path a user takes when
-      // opening the preferences) but the other six commands are gated.
+      // whole extension off. `toggle_panel` is intentionally exempt (it is
+      // the same `chrome.action` click path a user takes when opening the
+      // preferences) but every other manifest command is gated — see
+      // RUN_COMMAND_GATE.
       if (msg?.type === 'RUN_COMMAND' && RUN_COMMAND_GATE.has(msg.command ?? '')) {
         if (!useKivaraStore.getState().enabled) return;
       }

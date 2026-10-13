@@ -6,38 +6,48 @@
  * unchanged behavior.
  *
  * Covers:
- *  #1 `handleSaveCard`'s SUCCESS path — see `overlay-trait-tests` which
- *     exercises it through the overlay save flow (the unit here is
- *     documented as such — see bullet under App.tsx:1060).
+ *  #1 `handleSaveCard`'s SUCCESS path — see `overlay-save-flow.test.tsx`,
+ *     which drives the real SubtitleOverlay save flow and asserts the
+ *     token only paints the "saved" style when the promise resolved ok.
  *  #2 TTS in a ServiceWorker scope (no `window`). The implementation
  *     uses bare `setTimeout`/`clearTimeout`; reviewing the source with
- *     a guard catches a re-+reintroduction of `window.` in the SW.
- *  #3 `ankiConnect.ping('127.0.0.1:8765')` — a scheme-less URL —
+ *     a guard catches a re-introduction of `window.` in the SW.
+ *  #9 `ankiConnect.ping('127.0.0.1:8765')` — a scheme-less URL —
  *     normalizes-before-validating. Reverting to validate-then-normalize
  *     throws LOOPBACK_REFUSED.
  *  #3(y) Killing one YouTube adapter on a shared <video> does not remove
- *     a sibling-injected style node — the audit's #3-again finding. Applies
- *     intercepted-adapter.ts too (same fix there).
+ *     a sibling-injected style node — the audit's #3-again finding. The
+ *     same holds for the generic `createInterceptedAdapter` factory.
  *  #20 A response whose final `res.url` lands on loopback is refused
  *     before res.ok is examined (the destination-check-first rule).
  *  #21 A write (`allowFallbackRetry: false`) does NOT retry on the
  *     sibling URL — restoring this as the review specifically said.
  *  #6 (adapter sibling). Two generic adapters on one <video>; the dying
- *     one only removes ITS OWN cue listener, not the sibling's. Includes
- *     the createVirtualTrack() helper that hydrates a real TextTrack
- *     through addEventListener so dispatchEvent actually lands.
+ *     one only removes ITS OWN cue listener, not the sibling's. The
+ *     fake TextTrack records every addEventListener callback so
+ *     destroying one adapter provably leaves the other bound.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { ankiConnect } from '../../src/background/anki-connect';
 import { attachGenericHtml5 } from '../../src/content/platform-adapters/generic-html5';
 import { attachYouTube } from '../../src/content/platform-adapters/youtube';
+import { createInterceptedAdapter } from '../../src/content/platform-adapters/intercepted-adapter';
+import { clearBus } from '../../src/content/platform-adapters/intercepted-bus';
 
 // No global stash of `fetch` in afterEach: vitest.config now has
 // `restoreMocks: true` + `unstubGlobals: true`, which unwrap
 // vi.fn/vi.spyOn between tests automatically. Anything that mutates
 // globalThis.fetch, though, needs explicit care — see the #20 test
 // below which wraps the swap in try/finally.
+
+// The adapter tests append real <video> elements to document.body; a
+// leftover node leaks into the next test (and into any DOM-querying
+// suite that runs after this file in the same worker).
+afterEach(() => {
+  document.querySelectorAll('video').forEach((v) => v.remove());
+  document.querySelectorAll('style').forEach((s) => s.remove());
+});
 
 describe('source guards', () => {
   it('service-worker background modules use bare setTimeout/clearTimeout', () => {
@@ -61,13 +71,13 @@ describe('source guards', () => {
 describe('ankiConnect.ping normalizes before validating (#9)', () => {
   it('accepts a scheme-less loopback URL, which normalizeUrl expands', async () => {
     const calls: string[] = [];
-    (globalThis as unknown as { fetch: unknown }).fetch = vi.fn(async (url: string) => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
       calls.push(url);
       return new Response('{"result":6,"error":null}', {
         status: 200,
         headers: { 'content-type': 'application/json' },
       }) as unknown as Response;
-    });
+    }));
     const result = await ankiConnect.ping('127.0.0.1:8765');
     expect(result.ok).toBe(true);
     expect(calls[0]).toContain('http://127.0.0.1:8765');
@@ -75,10 +85,10 @@ describe('ankiConnect.ping normalizes before validating (#9)', () => {
 
   it('refuses a remote host BEFORE fetching it', async () => {
     const calls: string[] = [];
-    (globalThis as unknown as { fetch: unknown }).fetch = vi.fn(async (url: string) => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
       calls.push(url);
       throw new Error('should not be reached');
-    });
+    }));
     const result = await ankiConnect.ping('https://evil.example.com');
     expect(result.ok).toBe(false);
     expect(calls.length).toBe(0);
@@ -92,10 +102,10 @@ describe('write actions do NOT fall back to sibling URL (#21)', () => {
     // the old filter (which let everything past for non-TIMEOUT errors)
     // makes this go red with 2 calls.
     const calls: string[] = [];
-    (globalThis as unknown as { fetch: unknown }).fetch = vi.fn(async (url: string) => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
       calls.push(url);
       throw new Error('transport failure');
-    });
+    }));
     await expect(
       ankiConnect.addNote({ deckName: 'd', modelName: 'm', fields: { a: 'b' } }, 'http://127.0.0.1:8765'),
     ).rejects.toThrow();
@@ -104,10 +114,10 @@ describe('write actions do NOT fall back to sibling URL (#21)', () => {
 
   it('read actions DO fall back to sibling URL for resilience', async () => {
     const calls: string[] = [];
-    (globalThis as unknown as { fetch: unknown }).fetch = vi.fn(async (url: string) => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
       calls.push(url);
       throw new Error('transport failure');
-    });
+    }));
     const result = await ankiConnect.ping('http://127.0.0.1:8765');
     expect(result.ok).toBe(false);
     expect(calls.length).toBe(2); // primary + localhost sibling
@@ -121,23 +131,18 @@ describe('destination-check-before-status-reads (#20)', () => {
     // calls assertResponseDestination FIRST (with body-cancelled on
     // refusal); reverting to status-first means the 200 body is served
     // and the loopback is exposed through a "successful" media read.
-    const originalFetch = globalThis.fetch;
-    (globalThis as unknown as { fetch: unknown }).fetch = vi.fn(async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => {
       const r = new Response('<html>private landing</html>', {
         status: 200,
         headers: { 'content-type': 'text/html' },
       });
       Object.defineProperty(r, 'url', { value: 'http://127.0.0.1/landed', configurable: true });
       return r;
-    });
-    try {
-      const { fetchMediaWithLimits } = await import('../../src/shared/net-guard');
-      await expect(
-        fetchMediaWithLimits('https://example.com/ok.png', { timeoutMs: 500, maxBytes: 1024 }),
-      ).rejects.toThrow(/loopback|https|private|no permit|not allowed|blockable/i);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
+    }));
+    const { fetchMediaWithLimits } = await import('../../src/shared/net-guard');
+    await expect(
+      fetchMediaWithLimits('https://example.com/ok.png', { timeoutMs: 500, maxBytes: 1024 }),
+    ).rejects.toThrow(/loopback|https|private|no permit|not allowed|blockable/i);
   });
 });
 
@@ -164,6 +169,35 @@ describe('adapter lifecycle (#2/#3)', () => {
     // the sibling's node survives.
     expect(document.getElementById(styleId)).not.toBeNull();
     document.getElementById(styleId)?.remove();
+  });
+
+  it('intercepted adapter destroys only its own hide-native style, sibling stays connected', () => {
+    // Same finding as the YouTube one, on the generic factory used by
+    // Netflix / Disney+ / Max / Prime. `buildHideStyle` creates a fresh
+    // <style> per adapter (no id); reverting to a shared-id find-and-
+    // remove means the dying adapter strips the surviving one's node and
+    // the native captions come back mid-navigation.
+    clearBus();
+    const before = document.querySelectorAll('style').length;
+
+    const a1 = createInterceptedAdapter({
+      platform: 'netflix',
+      language: 'en',
+      hideNativeCss: '.player-timedtext { display: none }',
+    });
+    const a2 = createInterceptedAdapter({
+      platform: 'netflix',
+      language: 'en',
+      hideNativeCss: '.player-timedtext { display: none }',
+    });
+    expect(document.querySelectorAll('style').length).toBe(before + 2);
+
+    a1.destroy!();
+    expect(document.querySelectorAll('style').length).toBe(before + 1);
+    expect(document.querySelector('style')!.isConnected).toBe(true);
+
+    a2.destroy!();
+    expect(document.querySelectorAll('style').length).toBe(before);
   });
 
   it('generic adapter destroy removes only its own cue listener, leaves the sibling bound', () => {

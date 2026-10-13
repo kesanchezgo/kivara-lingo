@@ -164,7 +164,7 @@ Extensión de navegador que se monta sobre reproductores de streaming y conviert
 | Inyectar JS en el contexto MAIN | `chrome.scripting.executeScript({ world: 'MAIN' })` | Necesario para acceder al `<video>` element y a las APIs internas de Netflix (algunos players lo aíslan). |
 | Storage de settings | `chrome.storage.sync` (≤100KB) | Para preferencias del usuario. Sincroniza entre dispositivos. |
 | Storage de caché | `chrome.storage.local` o **IndexedDB** | Para diccionarios, audio cacheado, screenshots. IndexedDB para >5MB. |
-| Atajos | `commands` en manifest | `Ctrl+S`, `Alt+C`, etc. Configurables por el usuario en `chrome://extensions/shortcuts`. |
+| Atajos | `commands` en manifest | `Ctrl+Shift+S`, `Alt+C`, etc. Configurables por el usuario en `chrome://extensions/shortcuts`. |
 | Comunicación con AnkiConnect | `fetch('http://127.0.0.1:8765')` desde service worker | Localhost no requiere CORS desde una extensión con el host permission correcto. || Offscreen audio decoding | `chrome.offscreen.createDocument()` | MV3 service workers no tienen DOM ni Audio API; usar offscreen document para procesar audio. |
 
 ### 3.4 Servicios externos (todos opcionales, con fallback)
@@ -325,7 +325,7 @@ kivara-lingo-extension/
   ],
   "commands": {
     "save-card": {
-      "suggested_key": { "default": "Ctrl+S", "mac": "Command+S" },
+      "suggested_key": { "default": "Ctrl+Shift+S", "mac": "Command+Shift+S" },
       "description": "Guardar tarjeta de la palabra/expresión bajo el cursor"
     },
     "toggle-subtitles": {

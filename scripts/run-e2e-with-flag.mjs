@@ -24,6 +24,12 @@ function run(args) {
   return res.status ?? 1;
 }
 
-// The audio smoke spec only exists because of the bridge page, so building
-// with the flag first and running only that spec is the smoke's own loop.
-process.exit(run(['npx', 'vite', 'build']) || run(['npx', 'playwright', 'test', 'tests/e2e/audio-smoke.spec.ts']));
+// Build with the flag, then run the specs that only exist in an E2E-
+// flagged build: the AudioWorklet-default choice lives in
+// `shipped-capabilities.spec.ts` and the smoke is in `audio-smoke.spec.ts`.
+process.exit(run(['npx', 'vite', 'build'])
+  || run([
+    'npx', 'playwright', 'test',
+    'tests/e2e/audio-smoke.spec.ts',
+    'tests/e2e/shipped-capabilities.spec.ts',
+  ]));

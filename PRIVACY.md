@@ -31,7 +31,15 @@ Solo cuando el usuario dispara una función concreta:
    incrustarlas en la tarjeta. Todo con `credentials: 'omit'`: las cookies
    del usuario NO viajan (excepción: `wordreference.com`, que requiere poner
    su propia cookie de paso para que responda).
-6. **TTS (opt-in)** — la frase a la voz del catálogo: OpenAI u ElevenLabs con API key propia, o Google TTS como fallback automático cuando las anteriores no responden.
+6. **TTS (opt-in), dos rutas distintas:**
+   - **Frase y tarjeta completa** — se envía la frase a **OpenAI** o a
+     **ElevenLabs**, con la API key que el usuario introduce en Ajustes.
+     Si esas fallan, el botón reproduce un error; Google TTS no se
+     sustituye aquí (sí es un error audible y explicable, no un silencio).
+   - **Pronunciación de la palabra suelta** — cuando diccionarios y
+     ElevenLabs no devuelven una grabación humana, la extensión pide a
+     `translate.google.com/translate_tts` un MP3 de esa palabra — que es
+     la única ruta por la que una frase no viaja a Google.
 
 ## Qué NO hace
 

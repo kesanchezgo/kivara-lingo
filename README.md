@@ -19,7 +19,7 @@
 - **Modo Lectura**: oculta toda la UI de aprendizaje y deja solo subtítulos estilizados.
 - **Atajos de teclado**: `Ctrl+Shift+S` guardar, `Alt+C` toggle subtítulos, `Alt+R` repetir frase, `Alt+V` re-capturar frame, `Alt+K` toggle panel. Combos de página personalizables en Settings (los comandos Chrome se re-asignan en `chrome://extensions/shortcuts`).
 - **Tema claro y oscuro**, panel acoplado o flotante.
-- **UI bilingüe ES/EN**: `src/shared/i18n.ts` con 436 claves por idioma; el idioma se detecta vía `chrome.i18n.getUILanguage()` con fallback a español.
+- **UI bilingüe ES/EN**: `src/shared/i18n.ts` con 544 claves por idioma; el idioma se detecta vía `chrome.i18n.getUILanguage()` con fallback a español.
 
 ---
 
