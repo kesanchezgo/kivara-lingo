@@ -30,7 +30,11 @@ jobs:
       # before the build starts.
       - run: node scripts/check-line-endings.mjs
       - run: pnpm test
-      - run: pnpm exec tsc --noEmit
+      # TWO projects: `app` sees only chrome + vite/client, so a stray
+      # `process.env` or a test global in src is now a type ERROR rather than
+      # a passing lie; `node` adds the node/vitest globals for scripts and
+      # tests. `typecheck` runs both.
+      - run: pnpm typecheck
 
   e2e:
     runs-on: ubuntu-latest

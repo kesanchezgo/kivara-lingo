@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": false,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    /**
+     * Extension-realm types ONLY.
+     *
+     * `node` and `vitest/globals` used to be declared here as well, which let
+     * a source file reach for `process.env`, `__dirname` or a bare `describe`
+     * and still typecheck. That is the defect this split removes: there is no
+     * `process` in a service worker, and a test global visible to `src` means
+     * a test is hiding inside the bundle.
+     *
+     * Two projects, side by side, rather than project references: a reference
+     * requires `composite`, a composite project must emit, and emitting
+     * declarations for a tree Vite bundles brings its own noise (the bundled
+     * JSON corpora under `src/assets`, each one a separate "not in the file
+     * list" complaint). Plain duplicate file lists check with no emit and
+     * still give each side a different `types` set, which is the point.
+     */
+    "types": ["chrome", "vite/client"],
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": ["src"]
+}

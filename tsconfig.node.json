@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": false,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "tsBuildInfoFile": "./node_modules/.cache/tsconfig.node.tsbuildinfo",
+    /**
+     * Node and vitest globals live HERE, where they are true: the config
+     * files and the scripts run under Node, and the tests run under Vitest.
+     * `chrome` stays available because the tests stub the API.
+     *
+     * `src` is listed too because the audit scripts import the enrichment
+     * modules to drive them; the interesting difference from tsconfig.app is
+     * only in `types`, so the overlap costs a second pass and buys nothing.
+     */
+    "types": ["chrome", "vite/client", "node", "vitest/globals"]
+  },
+  "include": ["scripts", "tests", "src", "*.config.ts", "*.config.mjs", "*.config.js", "vite.config.ts"]
+}

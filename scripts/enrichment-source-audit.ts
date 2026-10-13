@@ -48,19 +48,33 @@ const chromeProbe = {
   cookies: {
     getAll: async () => [],
     getAllCookieStores: async () => [{ id: '0', tabIds: [] }],
-    set: async () => undefined,
+    set: async () => null,
   },
   declarativeNetRequest: { updateSessionRules: async () => undefined },
   storage: {
     local: {
-      get: async (key: string) => ({ [key]: probeStorage[key] }),
+      // Cast rather than hand-implementing the overload set: the real
+      // signature is `get(keys?) | get(keys, cb) | get(cb)`, and the probe
+      // only ever uses the first. Casting keeps the stub honest about being
+      // a stub instead of pretending to cover every overload.
+      get: (async (key: string) => ({ [key]: probeStorage[key] })) as unknown as typeof chrome.storage.local.get,
       set: async (values: Record<string, unknown>) => { Object.assign(probeStorage, values); },
       remove: async (key: string) => { delete probeStorage[key]; },
     },
   },
 };
 if (!('chrome' in globalThis)) {
-  (globalThis as typeof globalThis & { chrome: typeof chromeProbe }).chrome = chromeProbe;
+  // A PARTIAL stub, deliberately: only the surface this probe touches. Typed
+  // per-namespace (a Pick of each) rather than as `typeof chrome`, because
+  // the audit neither has nor needs the other 60+ namespaces — claiming
+  // otherwise made `tsc -p tsconfig.node.json` fail on a lie.
+  type ChromeProbe = {
+    runtime: Pick<typeof chrome.runtime, 'getURL'>;
+    cookies: Pick<typeof chrome.cookies, 'getAll' | 'getAllCookieStores' | 'set'>;
+    declarativeNetRequest: Pick<typeof chrome.declarativeNetRequest, 'updateSessionRules'>;
+    storage: { local: Pick<typeof chrome.storage.local, 'get' | 'set' | 'remove'> };
+  };
+  (globalThis as unknown as { chrome: ChromeProbe }).chrome = chromeProbe;
 }
 
 const standard: EnrichmentSource[] = [
