@@ -9,8 +9,8 @@ needing any API key from the user.
 | Tier | Always on? | # fuentes | Sources |
 |---|---|:---:|---|
 | **Local** | ✅ | — | Bundled `en.json` + `en-extensions` + `en-idioms` (14 318 NTC idioms) + Oxford 3000/5000 CEFR + Oxford Phrasal Academic Lexicon + Academic Collocation List + Fernald Thesaurus 1896 + MWE index (13 501 frases) + Yomitan packs (`kty-en-es`, `kty-en-en`, `kty-en-ipa`, `kty-es-en`, `kty-es-es`) |
-| **Standard** | ✅ | **20 de red** | free-dictionary · datamuse · wiktionary-rest · **wiktionary-html** (etymology + synonyms + antonyms + related terms, scoped to English section, phrasal fallback) · wiktionary-api (freedictionaryapi.com) · **wiktapi** · **britannica-dictionary** · moby-thesaurus · **thesaurus-com** · **wordhippo** · **the-idioms** · etymonline · tatoeba · lingua-libre · google-tts · bing-images · openverse · wikimedia-commons · duckduckgo-images · youglish. Los bundles y packs Yomitan se suman localmente. |
-| **VIP** | toggle in Settings | **17** | cambridge · oxford-learners · longman · **dictionary-com** · merriam-webster · **ozdic** (Oxford Collocations) · **pons** · **bab.la** · **dict.cc** · reverso · linguee · **promt-context** · wordreference · spanishdict · forvo · **unsplash (BYOK)** · **pixabay (BYOK opt.)** |
+| **Standard** | ✅ | **22 de red** | free-dictionary · datamuse · wiktionary-rest · **wiktionary-html** (etymology + synonyms + antonyms + related terms, scoped to English section, phrasal fallback) · wiktionary-api (freedictionaryapi.com) · **wiktapi** · **britannica-dictionary** · moby-thesaurus · **thesaurus-com** · **wordhippo** · **the-idioms** · etymonline · tatoeba · lingua-libre · google-tts · bing-images · openverse · wikimedia-commons · duckduckgo-images · youglish. Los bundles y packs Yomitan se suman localmente. |
+| **VIP** | toggle in Settings | **20** | cambridge · oxford-learners · longman · **dictionary-com** · merriam-webster · **ozdic** (Oxford Collocations) · **pons** · **bab.la** · **dict.cc** · reverso · linguee · **promt-context** · wordreference · spanishdict · forvo · **unsplash (BYOK)** · **pixabay (BYOK opt.)** |
 | **AI** | toggle + API key | — | OpenAI / Anthropic / Gemini — genera definición contextual, sinónimos, colocaciones, registro, **mnemónico**, **etimología**, y **imagen DALL-E 3** (solo OpenAI, opt-in via `enableDalleFallback`, ~$0.04/tarjeta) |
 
 Every source is independent: a Cambridge timeout never blocks Reverso.
@@ -41,7 +41,7 @@ resolve-word.ts (src/background/resolve-word.ts)
         │    → emite { phase: 'translation' }  │ paralelo
         │                                       │
         ├── fase: enrichment  (~300–2000 ms)   │
-        │    fan-out a 20–36 fuentes de red     │
+        │    fan-out a las fuentes activas     │
         │    purpose: 'popover' → excluye 6     │
         │    fuentes de imagen + cap 2.5 s      │
         │    purpose: 'card' → todas + timeout  │
@@ -70,7 +70,7 @@ resolve-word.ts (src/background/resolve-word.ts)
 |---|---|---|
 | **Bundled overlays** | Settings → "Enriquecimiento (Standard + VIP)" → top info panel (read-only) | Always active. Shipped with the extension as ~250 KB of JSON. |
 | **Yomitan packs** | Settings → "Diccionarios offline" | Each pack has `Instalar` / `Eliminar` / on/off toggle. |
-| **Standard tier** (20 fuentes de red + datos locales) | Settings → "Enriquecimiento" → "Estándar (gratis, siempre activo)" | All default-on. Each source individually disable-able from a checkbox. Runs **regardless** of VIP master switch. |
+| **Standard tier** (fuentes sin gate VIP + datos locales) | Settings → "Enriquecimiento" → "Estándar (gratis, siempre activo)" | All default-on. Each source individually disable-able from a checkbox. Runs **regardless** of VIP master switch. |
 | **VIP tier** (14 diccionarios/contexto/audio + 2 BYOK) | Settings → "Enriquecimiento" → master toggle → groups | Master switch off by default. Once on, every source defaults on with individual checkboxes grouped by category. |
 | **BYOK API keys** (Unsplash, Pixabay) | Settings → "Enriquecimiento" → "Claves API opcionales" | Optional inputs. Without keys: Unsplash is inactive (Anubis gate), Pixabay falls back to scraping. With keys: official APIs (more reliable). |
 | **AI provider + flags** | Settings → "IA premium" | Provider + API key, `enrichOnHover`, `enrichOnSave`, `preferAiMnemonic`, `preferAiEtymology`, `enableDalleFallback` (only visible when provider = `openai`). |
@@ -303,9 +303,11 @@ Two image sources benefit from a one-time BYOK signup:
 | Pixabay | 100 req/min, 5000/h | `pixabay.com/api/?key=...` | https://pixabay.com/api/docs/ |
 
 Keys are stored encrypted at rest (AES-GCM via `secret-store.ts`) in
-`chrome.storage.sync` alongside the OpenAI / Anthropic / DeepL keys.
-The orchestrator passes them through the `EnrichmentContext` so each
-source picks them up at call time.
+`chrome.storage.LOCAL` slots (`kivara-secret:v1:*`), NOT alongside the
+OpenAI / Anthropic / DeepL keys: `chrome.storage.sync` carries the settings
+blob with every secret field BLANKED, so nothing sensitive replicates to the
+user's Chrome account. The orchestrator passes them through the
+`EnrichmentContext` so each source picks them up at call time.
 
 ## Performance
 
@@ -357,7 +359,10 @@ Verified 2026-05-23 with `gemini-2.5-flash` and a real card prompt:
 Defaults updated:
 
 - `src/shared/ai-presets.ts` → Gemini default model = `gemini-2.5-flash`
-- `src/shared/ai-models.ts` → picker shows 2.5/3.0/3.5 family models
+- `src/shared/ai-models.ts` → picker shows the CURRENT family only (Gemini
+  2.5, Claude 4.x Haiku/Sonnet/Opus, OpenAI GPT-4o mini). The 3.0/3.5
+  families named in the original text were withdrawn and are listed in
+  `RETIRED_AI_MODELS` (`store.ts`) so old snapshots map onto a live model.
 - `src/background/ai-providers.ts` → `callGemini()` always sends
   `maxOutputTokens: 1500` + `thinkingConfig.thinkingBudget: 0`
 
@@ -420,7 +425,9 @@ Fix:
 4. Add a checkbox in `src/app/components/tabs/VipSection.tsx` under
    the right `SubGroup`.
 5. Add a label in `formatSource()` of `src/content/ui/WordPopover.tsx`.
-6. Add the host to `manifest.json` `host_permissions`.
+6. Add the host to `manifest.json` `optional_host_permissions` (los proveedores
+   van ahi, NO en `host_permissions`: concederlos solo bajo demanda es lo que
+   permite que una ausencia de clave no genere el dialogo de la tienda).
 
 ## Anki field sources
 

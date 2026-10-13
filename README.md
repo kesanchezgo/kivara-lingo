@@ -1,6 +1,6 @@
 # Kivara Lingo
 
-> Aprende idiomas mientras ves tu serie favorita. Subtítulos personalizables, popover enriquecido con 41 fuentes de red + diccionarios offline, tarjetas Anki en un clic con frame y audio exacto de la frase.
+> Aprende idiomas mientras ves tu serie favorita. Subtítulos personalizables, popover enriquecido con el orquestador de enriquecimiento (vease SOURCE_TIERS para el recuento exacto)rios offline, tarjetas Anki en un clic con frame y audio exacto de la frase.
 
 **Kivara Lingo** es una extensión Chrome real (Manifest V3) que se monta sobre reproductores de streaming (Netflix, HBO Max, Disney+, YouTube, Prime Video) y convierte sus subtítulos en una herramienta de aprendizaje de vocabulario integrada con Anki. Al pasar el ratón sobre una palabra o expresión multi-palabra obtienes fonética, traducción, sinónimos, antónimos, colocaciones, etimología e imágenes; con un clic generas una tarjeta Anki con el audio exacto de la frase y el fotograma del momento (las imágenes web quedan como fallback).
 
@@ -70,7 +70,7 @@ El build usa **Vite + `@crxjs/vite-plugin`** y produce la carpeta `dist/` lista 
 │  Service Worker (src/background/)                           │
 │  ├── resolve-word.ts      fases: local→translation→         │
 │  │                        enrichment→ai→done (streaming)    │
-│  ├── enrichment/          orquestador + 41 fuentes             │
+│  ├── enrichment/          orquestador de fuentes                   │
 │  ├── translate-providers  MyMemory ∥ Lingva (raced)         │
 │  ├── anki-connect.ts      proxy CORS-free a AnkiConnect     │
 │  ├── ai-providers.ts      OpenAI / Anthropic / Gemini       │
@@ -94,7 +94,7 @@ El content script abre un puerto al service worker y recibe fases a medida que e
 |---|---|---|
 | `local` | datos bundled + Yomitan packs | < 1 ms |
 | `translation` | traducción (MyMemory ∥ Lingva) | ~200–500 ms |
-| `enrichment` | 41 fuentes en paralelo | ~300–2000 ms |
+| `enrichment` | orquestador fan-out | ~300–2000 ms |
 | `ai` | mnemónico, etimología, registro | ~1–3 s (si activo) |
 | `done` | señal de fin | — |
 
@@ -112,8 +112,8 @@ Datos bundled que viajan con la extensión (chunk dictionary ~2.3 MB tras el tri
 |---|---:|---|
 | `en.json` | 4 151 | Traducción, bilingüe, monolingüe, IPA, nivel, ejemplos |
 | `en-extensions.json` | 362 | Phrasals, idioms, cognados |
-| `en-cefr.json` | 4 951 | Nivel CEFR (A2–C2) |
-| `en-idioms.json` | 1 614 HOT | Idioms NTC de uso frecuente en subtítulos (trim 2026-10-07; COLD 12.7k como candidatas lazy-load) |
+| `en-cefr.json` | 4 950 | Nivel CEFR (A2–C2) |
+| `en-idioms.json` | 1 617 | Idioms NTC (el `_note` del archivo es metadatos, no una entrada; medido 2026-10-13) |
 | `en.json` (MWEs) | 150 | MWEs curados |
 | `en-phrasal-academic.json` | 673 | Oxford Phrasal Academic Lexicon |
 | `academic-collocation-list.json` | 472 | Colocaciones académicas |
