@@ -576,8 +576,10 @@ export async function importYomitanPackFromUrl(
  * (shouldn't happen for URLs in host_permissions, but kept as safety net).
  *
  * Retries up to 3 times with exponential backoff (1s → 3s → 9s).
- * Per-attempt timeout: 120s for large packs, 60s for normal ones.
- * Stale connection detection: aborts if no bytes arrive for 15s.
+ * `timeoutMs` is a HEADER deadline (the response must arrive); the body is
+ * bounded by inactivity instead of a total, so a 127 MB pack on a slow link
+ * keeps streaming instead of being killed at 120 s. A silent connection is
+ * still fatal after 15 s.
  */
 async function fetchPackBytes(
   url: string,
@@ -586,7 +588,7 @@ async function fetchPackBytes(
   const { fetchWithRetry } = await import('../../shared/resilient-fetch');
   return fetchWithRetry(url, {
     maxRetries: 3,
-    timeoutMs: 120_000,
+    headerTimeoutMs: 120_000,
     staleTimeoutMs: 15_000,
     onProgress,
   });

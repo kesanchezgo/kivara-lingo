@@ -9,8 +9,12 @@
  * Behaviour:
  *  - Up to `maxRetries` attempts (default 3) with exponential backoff
  *    (1s → 3s → 9s between retries).
- *  - Per-attempt timeout (default 60s). If the server stops sending bytes
- *    for longer than `staleTimeoutMs` (default 15s), the attempt is aborted.
+ *  - `headerTimeoutMs` bounds the RESPONSE HEADERS only (default 60s). The
+ *    body has no total deadline: if the server stops sending bytes for
+ *    longer than `staleTimeoutMs` (default 15s) the attempt is aborted —
+ *    which is what a stall actually is. The old per-attempt TOTAL timeout
+ *    made a 127 MB pack unrescuable on anything but a fast link, and every
+ *    retry restarted from byte 0.
  *  - Optional `onProgress(received, total)` callback fired on each chunk.
  *  - Network errors and HTTP 5xx trigger a retry. HTTP 4xx (client errors)
  *    fail immediately — retrying won't help.
@@ -21,6 +25,13 @@
 
 export interface ResilientFetchOptions {
   maxRetries?: number;
+  /**
+   * Deadline for the RESPONSE HEADERS. The body is not covered by it: a pack
+   * that streams for an hour on a slow link is a healthy transfer, and
+   * bounding it made the EN→EN download fail on any ordinary connection.
+   */
+  headerTimeoutMs?: number;
+  /** @deprecated use `headerTimeoutMs` — the old name implied body coverage. */
   timeoutMs?: number;
   staleTimeoutMs?: number;
   onProgress?: (receivedBytes: number, totalBytes: number) => void;
@@ -43,7 +54,8 @@ export class FetchHttpError extends Error {
 }
 
 const DEFAULT_MAX_RETRIES = 3;
-const DEFAULT_TIMEOUT_MS = 60_000;
+/** Headers must arrive within this; the body is bounded by inactivity. */
+const DEFAULT_HEADER_TIMEOUT_MS = 60_000;
 const DEFAULT_STALE_TIMEOUT_MS = 15_000;
 const BACKOFF_BASE_MS = 1_000;
 const BACKOFF_MULTIPLIER = 3;
@@ -53,7 +65,7 @@ export async function fetchWithRetry(
   options: ResilientFetchOptions = {},
 ): Promise<ArrayBuffer> {
   const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const headerTimeoutMs = options.headerTimeoutMs ?? options.timeoutMs ?? DEFAULT_HEADER_TIMEOUT_MS;
   const staleTimeoutMs = options.staleTimeoutMs ?? DEFAULT_STALE_TIMEOUT_MS;
   const onProgress = options.onProgress;
 
@@ -65,7 +77,7 @@ export async function fetchWithRetry(
       await sleep(delay);
     }
     try {
-      const result = await fetchOnce(url, timeoutMs, staleTimeoutMs, onProgress);
+      const result = await fetchOnce(url, headerTimeoutMs, staleTimeoutMs, onProgress);
       return result;
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
@@ -84,18 +96,25 @@ export async function fetchWithRetry(
 
 async function fetchOnce(
   url: string,
-  timeoutMs: number,
+  headerTimeoutMs: number,
   staleTimeoutMs: number,
   onProgress?: (received: number, total: number) => void,
 ): Promise<ArrayBuffer> {
   const controller = new AbortController();
-  const overallTimer = setTimeout(() => controller.abort(), timeoutMs);
+  // HEADER deadline only. This used to cover the body too, which means a
+  // 120 s ceiling on the whole transfer: the EN→EN pack (127 MB) needs more
+  // than 8.5 Mbit/s just to survive it, so slow-but-working connections were
+  // aborted mid-stream and every retry restarted from byte 0. The whole body
+  // is bounded by the inactivity timer below, re-armed on every chunk.
+  const headerTimer = setTimeout(() => controller.abort(), headerTimeoutMs);
 
   try {
     const response = await fetch(url, {
       signal: controller.signal,
       redirect: 'follow',
     });
+    // Headers are in — from here only inactivity can kill this attempt.
+    clearTimeout(headerTimer);
 
     if (!response.ok) {
       throw new FetchHttpError(response.status, response.statusText);
@@ -114,45 +133,67 @@ async function fetchOnce(
     const chunks: Uint8Array[] = [];
     let received = 0;
     let staleTimer: ReturnType<typeof setTimeout> | null = null;
+    let idleReject: (() => void) | null = null;
 
-    const resetStaleTimer = () => {
+    /** Re-arm: the timer now refuses the CURRENT read rather than only
+     *  aborting the controller. Relying on `controller.abort()` alone cannot
+     *  break a body that has already been handed over (and, in tests, a
+     *  synthetic stream is bound to no controller at all), so the read is
+     *  raced against the idle promise explicitly. */
+    const armStaleTimer = () => {
       if (staleTimer) clearTimeout(staleTimer);
       staleTimer = setTimeout(() => {
         controller.abort();
+        idleReject?.();
       }, staleTimeoutMs);
     };
 
-    resetStaleTimer();
+    // NOT cleaned up by hand on every exit path: the `finally` covers a throw
+    // out of the read too, which is how the previous version leaked an armed
+    // timer (and a controller that could abort a retry already waiting on its
+    // backoff).
+    armStaleTimer();
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (value) {
-        chunks.push(value);
-        received += value.byteLength;
-        resetStaleTimer();
-        onProgress?.(received, total);
+    try {
+      while (true) {
+        idleReject = null;
+        const idle = new Promise<never>((_resolve, reject) => {
+          idleReject = () => reject(new Error(`no bytes for ${staleTimeoutMs} ms`));
+        });
+        const { done, value } = await Promise.race([reader.read(), idle]);
+        if (done) break;
+        if (value) {
+          chunks.push(value);
+          received += value.byteLength;
+          armStaleTimer();
+          onProgress?.(received, total);
+        }
       }
+    } finally {
+      if (staleTimer) clearTimeout(staleTimer);
+      staleTimer = null;
+      idleReject = null;
     }
 
-    if (staleTimer) clearTimeout(staleTimer);
-
     const merged = new Uint8Array(received);
-    let offset = 0;
-    for (const chunk of chunks) {
-      merged.set(chunk, offset);
-      offset += chunk.byteLength;
+    {
+      let offset = 0;
+      for (let i = 0; i < chunks.length; i += 1) {
+        merged.set(chunks[i], offset);
+        offset += chunks[i].byteLength;
+        chunks[i] = new Uint8Array(0); // release each copy as it is copied
+      }
     }
     return merged.buffer;
   } catch (err) {
     if ((err as { name?: string })?.name === 'AbortError') {
       throw new FetchAbortedError(
-        `La descarga se agotó después de ${Math.round(timeoutMs / 1000)}s o el servidor dejó de responder.`,
+        `La descarga se agotó (${Math.round(headerTimeoutMs / 1000)}s sin respuesta del servidor o sin actividad).`,
       );
     }
     throw err;
   } finally {
-    clearTimeout(overallTimer);
+    clearTimeout(headerTimer);
   }
 }
 

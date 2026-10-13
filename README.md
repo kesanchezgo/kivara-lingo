@@ -236,4 +236,6 @@ Los tests cubren: tokenizador, MWE, lematización, parsers de fuentes de enrique
 
 ## Licencia
 
-Por definir.
+MIT — ver [LICENSE](LICENSE). Los datos lingüísticos de terceros que se
+distribuyen en el paquete (WordNet, listas de nivel, idioms, colocaciones
+académicas, tesauro) tienen cada uno su licencia: [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
