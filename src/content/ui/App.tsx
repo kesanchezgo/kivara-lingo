@@ -13,6 +13,7 @@ import { captureFrame, captureBestFrame } from '../capture/frame';
 import { comboFromEvent, normalizeCombo, readManifestCombos } from '../../shared/shortcuts';
 import { dbgOnce } from '../../shared/debug-log';
 import { getShadowRoot, overKivaraZone } from '../shadow-host';
+import { PortalContainerProvider } from '../../ui/portal';
 import { eventPathIsEditable } from '../utils/keyboard';
 import type {
   AnkiAddContextResponse,
@@ -62,6 +63,15 @@ interface AppProps {
   adapter: SubtitleSource | null;
   videoElement: HTMLVideoElement | null;
   videoOverlayRoot?: HTMLElement | null;
+  /**
+   * The portal container of the VIDEO shadow root (shadow-host.ts). The
+   * overlay subtree is portaled out of the panel's provider scope, so it
+   * re-provides this: a portal opened INSIDE the overlay (InfoHint hint,
+   * dialog) must land in the video host's root — which rides with the host
+   * when fullscreen-overlay-core re-parents it — not in the panel's
+   * container.
+   */
+  videoPortalContainer?: HTMLElement | null;
 }
 
 interface SubtitleAudioAnchor {
@@ -123,7 +133,7 @@ function buildManifestCommandSet(): Set<string> {
   return new Set(readManifestCombos());
 }
 
-export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
+export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContainer }: AppProps) {
   const {
     enabled,
     subtitlesVisible,
@@ -1357,33 +1367,40 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   const overlayPortal = useMemo(() => {
     if (!videoOverlayRoot || !enabled || !subtitlesVisible) return null;
     return createPortal(
-      <div
-        data-popover-boundary
-        className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'dark' : ''}`}
-        style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}
-      >
-        <SubtitleOverlay
-          subtitleStyles={subtitleStyles}
-          cue={activeCue}
-          altCue={altCue}
-          mode={mode}
-          saveRequestKey={saveTick}
-          onSaveCard={handleSaveCard}
-          onSeeInAnki={handleSeeInAnki}
-          onAddContext={handleAddContext}
-          onTokenHoverChange={handleTokenHoverChange}
-          initialSavedWords={initialSavedWords}
-          playing={playing}
-          expandedMWEs={expandedMWEs}
-          setExpandedMWEs={setExpandedMWEs}
-          capturing={captureView !== null}
-          study={studyBinding}
-          // The rail is the only place an explanation renders, so hide the action
+      // Re-provide the VIDEO host's portal container for this subtree: it
+      // lives in a different shadow root than the panel tree, and a portal
+      // opened inside it (InfoHint hint, dialog) must follow the video host —
+      // which fullscreen-overlay-core keeps inside the player, and the player
+      // is what the site fullscreenes.
+      <PortalContainerProvider container={videoPortalContainer ?? null}>
+        <div
+          data-popover-boundary
+          className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'dark' : ''}`}
+          style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}
+        >
+          <SubtitleOverlay
+            subtitleStyles={subtitleStyles}
+            cue={activeCue}
+            altCue={altCue}
+            mode={mode}
+            saveRequestKey={saveTick}
+            onSaveCard={handleSaveCard}
+            onSeeInAnki={handleSeeInAnki}
+            onAddContext={handleAddContext}
+            onTokenHoverChange={handleTokenHoverChange}
+            initialSavedWords={initialSavedWords}
+            playing={playing}
+            expandedMWEs={expandedMWEs}
+            setExpandedMWEs={setExpandedMWEs}
+            capturing={captureView !== null}
+            study={studyBinding}
+            // The rail is the only place an explanation renders, so hide the action
 // while the rail cannot be visible (panel docked in place of it).
-          onExplain={aiOn && (!panelOpen || isPopupMode) ? requestExplain : undefined}
-        />
-        <CaptureOverlay view={captureView} cardTheme={subtitleStyles.cardTheme ?? 'dark'} />
-      </div>,
+            onExplain={aiOn && (!panelOpen || isPopupMode) ? requestExplain : undefined}
+          />
+          <CaptureOverlay view={captureView} cardTheme={subtitleStyles.cardTheme ?? 'dark'} />
+        </div>
+      </PortalContainerProvider>,
       videoOverlayRoot,
     );
   }, [
@@ -1407,6 +1424,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     handleAddContext,
     videoElement,
     adapter,
+    videoPortalContainer,
     ensureSubtitleAudioReady,
     enabled,
     subtitlesVisible,
@@ -1442,30 +1460,35 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
           over the player, like the site's bar. */}
       {enabled && videoOverlayRoot &&
         createPortal(
-          <div className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'dark' : ''}`}>
-            <StudyBar
-              enabled={enabled}
-              playing={playing}
-              onTogglePlay={studyPlayback.togglePlay}
-              onPrev={studyPlayback.prev}
-              onReplay={studyPlayback.replay}
-              onReplaySlow={studyPlayback.replaySlow}
-              onNext={studyPlayback.next}
-              autoPause={study.autoPauseCue}
-              onToggleAutoPause={() => {
-                const next = !useKivaraStore.getState().study.autoPauseCue;
-                setStudy((prev) => ({ ...prev, autoPauseCue: next }));
-              }}
-              loop={studyPlayback.loop}
-              onToggleLoop={() => studyPlayback.setLoop(!studyPlayback.loop)}
-              speed={studyPlayback.speed}
-              onSpeed={studyPlayback.setSpeed}
-              railOpen={railOpen}
-              onToggleRail={() => railOpenStore.set(!railOpen)}
-              panelOpen={panelOpen}
-              onTogglePanel={() => setPanelOpen(!panelOpen)}
-            />
-          </div>,
+          // Same re-provision as the overlay portal above: portals opened from
+          // the StudyBar must land in the VIDEO host's root, which stays inside
+          // the fullscreened player.
+          <PortalContainerProvider container={videoPortalContainer ?? null}>
+            <div className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'dark' : ''}`}>
+              <StudyBar
+                enabled={enabled}
+                playing={playing}
+                onTogglePlay={studyPlayback.togglePlay}
+                onPrev={studyPlayback.prev}
+                onReplay={studyPlayback.replay}
+                onReplaySlow={studyPlayback.replaySlow}
+                onNext={studyPlayback.next}
+                autoPause={study.autoPauseCue}
+                onToggleAutoPause={() => {
+                  const next = !useKivaraStore.getState().study.autoPauseCue;
+                  setStudy((prev) => ({ ...prev, autoPauseCue: next }));
+                }}
+                loop={studyPlayback.loop}
+                onToggleLoop={() => railOpenStore.set(!railOpen)}
+                speed={studyPlayback.speed}
+                onSpeed={studyPlayback.setSpeed}
+                railOpen={railOpen}
+                onToggleRail={() => railOpenStore.set(!railOpen)}
+                panelOpen={panelOpen}
+                onTogglePanel={() => setPanelOpen(!panelOpen)}
+              />
+            </div>
+          </PortalContainerProvider>,
           videoOverlayRoot,
         )}
 

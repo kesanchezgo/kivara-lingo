@@ -57,6 +57,8 @@ const HOST_ID = 'kivara-lingo-host';
 const VIDEO_HOST_ID = 'kivara-lingo-video-host';
 const REACT_ROOT_ID = 'kivara-lingo-react-root';
 const VIDEO_REACT_ROOT_ID = 'kivara-lingo-video-react-root';
+const PORTAL_ROOT_ID = 'kivara-lingo-portal-root';
+const VIDEO_PORTAL_ROOT_ID = 'kivara-lingo-video-portal-root';
 
 /**
  * Runs once per page. Drops a Dark Reader lock meta and removes any legacy
@@ -271,7 +273,34 @@ export class ShadowHost {
     }
     shadowRoot.appendChild(reactRoot);
 
-    return { hostElement, shadowRoot, reactRoot };
+    // ── Layer 3: portal container ─────────────────────────────────────────
+    // The node React portals (InfoHint tooltip, toasts, dialogs) mount into,
+    // handed to `PortalContainerProvider` by the mount call site. It MUST
+    // live inside the shadow root: a portal to `document.body` leaves the
+    // closed boundary entirely — the page's CSS and Dark Reader repaint it,
+    // and native fullscreen renders only the fullscreen element's subtree, so
+    // body-level content disappears. As a child of the shadow root it
+    // re-parents WITH the host when fullscreen-overlay-core moves it into
+    // (and back out of) the fullscreen element — a shadow tree travels with
+    // its host element, so portalled UI stays visible in fullscreen.
+    // Appended AFTER the react root: siblings paint in DOM order, so
+    // portalled content stacks above the in-place tree at equal z-index.
+    const portalContainer = document.createElement('div');
+    portalContainer.id = options.isOverlay ? VIDEO_PORTAL_ROOT_ID : PORTAL_ROOT_ID;
+    if (!options.isOverlay) {
+      // Portalled dialogs and popovers must receive clicks (the host itself
+      // stays pointer-events: none); the InfoHint tooltip opts out itself.
+      portalContainer.style.pointerEvents = 'auto';
+    } else {
+      // Mirror the overlay react root: the portalled wrapper decides what
+      // receives pointer events, exactly as it does inside the react root.
+      portalContainer.style.position = 'absolute';
+      portalContainer.style.inset = '0';
+      portalContainer.style.pointerEvents = 'none';
+    }
+    shadowRoot.appendChild(portalContainer);
+
+    return { hostElement, shadowRoot, reactRoot, portalContainer };
   }
 }
 
