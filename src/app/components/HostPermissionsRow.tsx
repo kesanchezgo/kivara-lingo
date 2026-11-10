@@ -53,7 +53,7 @@ const GROUPS: PermissionGroup[] = [
     id: 'ai',
     label: t('perm.groupAi'),
     hint: t('perm.groupAiHint'),
-    providers: ['ai:openai', 'ai:anthropic', 'ai:google-ai'],
+    providers: ['ai:openai', 'ai:anthropic', 'ai:google-ai', 'ai:openai-compatible'],
   },
   {
     id: 'tts',

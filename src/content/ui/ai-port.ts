@@ -1,24 +1,25 @@
 /**
- * The "Explain sentence" port for F6 (docs/REDESIGN-V2.md §7 F6/F7).
+ * Real `AiPort` for the content script (docs/REDESIGN-V2.md §4.2, §7 F7).
  *
- * F6 ships the view and the wiring: the button appears only when
- * `aiConfigured(store.ai)` is true, and pressing it calls this port. The
- * request itself is F7 (`AI_EXPLAIN_SENTENCE`, `callAiJson`, Dexie
- * `explain_cache`). Until then the port answers with a typed, named error so
- * the view shows a legible message instead of a spinner that never resolves.
- *
- * Replacing this file with the real client is the whole F7 connection — the
- * view does not change.
+ * The view never talks to a provider: it asks the service worker for
+ * `AI_EXPLAIN_SENTENCE`, which owns the settings, the call (`callAiJson`) and
+ * the Dexie `explain_cache`. The content script only carries the request, so
+ * no key and no IndexedDB handle ever live on the page's side.
  */
+import { sendMessage } from 'webext-bridge/content-script';
 import type { AiPort } from '../../ui/ports/ai';
+import type { AiExplainResponse } from '../../shared/types';
 
-/** Stable error message: tests and logs can assert on this exact string. */
-export const AI_EXPLAIN_NOT_IMPLEMENTED = 'AI explain is implemented in F7';
-
-export function createInertAiPort(): AiPort {
+export function createAiPort(): AiPort {
   return {
-    explainSentence() {
-      return Promise.reject(new Error(AI_EXPLAIN_NOT_IMPLEMENTED));
+    async explainSentence(input) {
+      const response = (await sendMessage(
+        'AI_EXPLAIN_SENTENCE',
+        input,
+        'background',
+      )) as AiExplainResponse;
+      if (!response.ok) throw new Error(response.error);
+      return response.data;
     },
   };
 }

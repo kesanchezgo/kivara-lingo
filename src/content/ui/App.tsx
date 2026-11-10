@@ -35,7 +35,7 @@ import { applyColumnsCss, RAIL_WIDTH_PX } from './columns-css';
 import { railOpenStore, railViewStore } from './ui-state';
 import { useChromeLocal } from '../../ui/hooks/useChromeLocal';
 import { aiConfigured } from '../../shared/ai-configured';
-import { createInertAiPort } from './ai-port';
+import { createAiPort } from './ai-port';
 
 /**
  * Find the Anki field name (key in fieldSources) currently mapped to the
@@ -267,7 +267,16 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   // AI is wired to the F7 port: the explain action only appears when the user
   // configured a provider + key.
   const aiOn = aiConfigured(ai);
-  const aiPort = useMemo(() => createInertAiPort(), []);
+  const aiPort = useMemo(() => createAiPort(), []);
+  // The overlay's ✦ opens the same explanation the rail renders. A tick (not
+  // an index) lets the rail keep owning the open/close state, exactly as a
+  // click on its own row does.
+  const [explainTick, setExplainTick] = useState(0);
+  const requestExplain = useCallback(() => {
+    railViewStore.set('lines');
+    railOpenStore.set(true);
+    setExplainTick((tick) => tick + 1);
+  }, []);
   // Cue under the playhead, for the rail. App re-renders when the adapter
   // publishes a new cue, so this is a cheap read, not a poll.
   const activeCueIndex = cueIndexAt(
@@ -1369,6 +1378,9 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
           setExpandedMWEs={setExpandedMWEs}
           capturing={captureView !== null}
           study={studyBinding}
+          // The rail is the only place an explanation renders, so hide the action
+// while the rail cannot be visible (panel docked in place of it).
+          onExplain={aiOn && (!panelOpen || isPopupMode) ? requestExplain : undefined}
         />
         <CaptureOverlay view={captureView} cardTheme={subtitleStyles.cardTheme ?? 'dark'} />
       </div>,
@@ -1408,6 +1420,10 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     expandedMWEs,
     captureView,
     studyBinding,
+    aiOn,
+    requestExplain,
+    panelOpen,
+    isPopupMode,
   ]);
 
   return (
@@ -1494,6 +1510,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
             onStudyPause={studyPlayback.pauseForStudy}
             onStudyResume={studyPlayback.resumeIfKivaraPaused}
             ai={aiOn ? aiPort : null}
+            explainRequest={explainTick}
             uiLang={currentLocale()}
             nativeLang={useKivaraStore.getState().translate.targetLanguage}
             panelOpen={panelOpen}

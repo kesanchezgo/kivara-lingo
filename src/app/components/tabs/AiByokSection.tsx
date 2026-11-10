@@ -4,15 +4,25 @@ import { sendMessage } from 'webext-bridge/content-script';
 import { t, fmtDays } from '../../../shared/i18n';
 import { richText } from '../../../shared/i18n/rich';
 import { useKivaraStore } from '../../../shared/store';
-import type { AiEnrichResponse } from '../../../shared/types';
+import type { AiApiFormat, AiEnrichResponse, AiSettings } from '../../../shared/types';
 import {
   AI_PRESETS,
   getAiPreset,
   pickModelForProvider,
   type ConfigurableAiProvider,
 } from '../../../shared/ai-presets';
-import { MODELS_BY_PROVIDER } from '../../../shared/ai-models';
-import { ensureProviderHosts } from '../../../shared/host-permissions';
+import {
+  API_FORMATS,
+  MODELS_BY_PROVIDER,
+  OPENAI_COMPATIBLE_PRESETS,
+  endpointPath,
+} from '../../../shared/ai-models';
+import { compatibleHostFor } from '../../../shared/provider-hosts';
+import {
+  ensureProviderHosts,
+  permissionsApiAvailable,
+  requestHosts,
+} from '../../../shared/host-permissions';
 import { SecretKeyInput } from '../SecretKeyInput';
 import { InfoHint } from '../InfoHint';
 import {
@@ -55,9 +65,21 @@ export function AiByokSection() {
   const lastValidatedKey = useRef<string | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /**
+   * A loopback compatible endpoint is keyless (Ollama, LM Studio). Everything
+   * else needs its key before a validation call is worth sending.
+   */
+  const compatKeyless =
+    ai.provider === 'openai-compatible' &&
+    Boolean(compatibleHostFor(ai.baseUrl ?? '')?.startsWith('http://'));
+  const canValidate =
+    ai.provider === 'openai-compatible'
+      ? Boolean((ai.baseUrl ?? '').trim()) && Boolean(ai.model.trim()) && (compatKeyless || Boolean(ai.apiKey.trim()))
+      : Boolean(ai.apiKey.trim());
+
   const buildValidationKey = useCallback(
-    () => `${ai.provider}|${ai.model}|${ai.apiKey}`,
-    [ai.provider, ai.model, ai.apiKey],
+    () => `${ai.provider}|${ai.model}|${ai.baseUrl ?? ''}|${ai.apiFormat ?? ''}|${ai.apiKey}`,
+    [ai.provider, ai.model, ai.baseUrl, ai.apiFormat, ai.apiKey],
   );
 
   function selectPreset(provider: ConfigurableAiProvider) {
@@ -65,6 +87,18 @@ export function AiByokSection() {
     if (!preset) return;
     lastValidatedKey.current = null;
     setTest({ state: 'idle' });
+    if (provider === 'openai-compatible') {
+      // The curated endpoints come next; the tile itself asks for nothing.
+      // The permission prompt belongs to the gesture that saves ONE origin
+      // (H13/D7), not to selecting the group.
+      setAi({
+        ...ai,
+        provider,
+        apiFormat: ai.apiFormat ?? 'openai-chat',
+        model: pickModelForProvider(provider, ai.model),
+      });
+      return;
+    }
     setAi({
       ...ai,
       provider,
@@ -87,8 +121,8 @@ export function AiByokSection() {
   }
 
   const runTest = useCallback(async () => {
-    if (ai.provider === 'disabled' || !ai.apiKey.trim()) return;
-    const validationKey = `${ai.provider}|${ai.model}|${ai.apiKey}`;
+    if (ai.provider === 'disabled' || !canValidate) return;
+    const validationKey = `${ai.provider}|${ai.model}|${ai.baseUrl ?? ''}|${ai.apiFormat ?? ''}|${ai.apiKey}`;
     setTest({ state: 'testing' });
     try {
       const response = (await sendMessage(
@@ -120,14 +154,24 @@ export function AiByokSection() {
         error: err instanceof Error ? err.message : 'unknown error',
       });
     }
-  }, [ai.apiKey, ai.model, ai.nativeLanguage, ai.provider, translate.sourceLang, translate.targetLanguage]);
+  }, [
+    ai.apiFormat,
+    ai.apiKey,
+    ai.baseUrl,
+    ai.model,
+    ai.nativeLanguage,
+    ai.provider,
+    canValidate,
+    translate.sourceLang,
+    translate.targetLanguage,
+  ]);
 
   useEffect(() => {
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
       debounceTimer.current = null;
     }
-    if (ai.provider === 'disabled' || !ai.apiKey.trim()) {
+    if (ai.provider === 'disabled' || !canValidate) {
       if (test.state !== 'idle') setTest({ state: 'idle' });
       return;
     }
@@ -214,6 +258,16 @@ export function AiByokSection() {
 
       {activePreset ? (
         <div className="space-y-2">
+          {activePreset.provider === 'openai-compatible' && (
+            <CompatEndpoint
+              ai={ai}
+              setAi={(next) => {
+                setAi(next);
+                setTest({ state: 'idle' });
+              }}
+              onError={(error) => setTest({ state: 'error', error })}
+            />
+          )}
           <Row
             label={
               <span className="inline-flex items-center gap-1.5">
@@ -221,6 +275,7 @@ export function AiByokSection() {
                 API key · {activePreset.label}
               </span>
             }
+            hint={activePreset.provider === 'openai-compatible' ? t('aicompat.keyOptional') : undefined}
           >
             <SecretKeyInput
               stored={ai.apiKey}
@@ -230,15 +285,36 @@ export function AiByokSection() {
                   ? 'sk-...'
                   : activePreset.provider === 'anthropic'
                     ? 'sk-ant-...'
-                    : 'AIza...'
+                    : activePreset.provider === 'openai-compatible'
+                      ? 'sk-...'
+                      : 'AIza...'
               }
               showToggle
               section="ai"
               field="apiKey"
             />
           </Row>
-          <Row label={t('set.modelLabel')} hint={t('set.modelPresetHint')}>
-            {(() => {
+          <Row
+            label={t('set.modelLabel')}
+            hint={
+              activePreset.provider === 'openai-compatible'
+                ? t('aicompat.modelHint')
+                : t('set.modelPresetHint')
+            }
+          >
+            {activePreset.provider === 'openai-compatible' ? (
+              // Every curated endpoint names its own models: a fixed select
+              // would offer ids the endpoint does not serve.
+              <input
+                type="text"
+                value={ai.model === '__custom__' ? '' : ai.model}
+                onChange={(e) => setAi({ ...ai, model: e.target.value })}
+                placeholder="deepseek-chat · mistral-small-latest · llama3.1:8b"
+                className={`${inputCls} font-mono text-[12px] w-full`}
+                spellCheck={false}
+                autoComplete="off"
+              />
+            ) : (() => {
               const presets = MODELS_BY_PROVIDER[activePreset.provider] ?? [];
               const isCustom =
                 ai.model === '__custom__' ||
@@ -284,14 +360,14 @@ export function AiByokSection() {
             <Button
               variant="soft"
               onClick={() => void runTest()}
-              disabled={!ai.apiKey.trim() || test.state === 'testing'}
+              disabled={!canValidate || test.state === 'testing'}
               icon={test.state === 'testing' ? <Loader2 size={11} className="animate-spin" /> : <Zap size={11} />}
             >
               {test.state === 'testing' ? t('set.testing') : t('set.testConnection')}
             </Button>
             <Button variant="ghost" onClick={disable}>{t('ai.disableAi')}</Button>
           </div>
-          {test.state === 'idle' && ai.apiKey.trim() && (
+          {test.state === 'idle' && canValidate && (
             <p className="flex items-center gap-1 text-[12px] text-zinc-400 dark:text-zinc-500 px-0.5">
               <Info size={10} /> {t('set.keyAutoValidate')}
             </p>
@@ -346,7 +422,7 @@ export function AiByokSection() {
             </Row>
           </div>
 
-          {!ai.apiKey.trim() && (
+          {!ai.apiKey.trim() && !compatKeyless && (
             <Callout tone="warning" icon={<AlertTriangle size={12} />}>{t('set.missingKeyWarn')}</Callout>
           )}
         </div>
@@ -364,5 +440,128 @@ function ToggleLine({ label, on, onChange }: { label: string; on: boolean; onCha
     <QuickRow label={label}>
       <Toggle on={on} onChange={onChange} ariaLabel={label} />
     </QuickRow>
+  );
+}
+
+/**
+ * The `openai-compatible` endpoint editor (F7, H13/D7).
+ *
+ * Curated templates fill the base URL and the wire format; the model stays a
+ * free-form id because each endpoint serves its own. "Save endpoint" is the
+ * gesture that asks for host access: `requestHosts` calls
+ * `chrome.permissions.request` before awaiting anything, so the prompt is
+ * still attached to the click. In the content-script panel the permissions
+ * API does not exist at all, so the panel points at Options instead of
+ * pretending a request happened (same rule as `HostPermissionsRow`).
+ */
+function CompatEndpoint({
+  ai,
+  setAi,
+  onError,
+}: {
+  ai: AiSettings;
+  setAi: (next: AiSettings) => void;
+  onError: (error: string) => void;
+}) {
+  const url = (ai.baseUrl ?? '').trim().replace(/\/+$/, '');
+  const format: AiApiFormat = ai.apiFormat ?? 'openai-chat';
+  const curated = OPENAI_COMPATIBLE_PRESETS.find((p) => p.baseUrl.replace(/\/+$/, '') === url);
+
+  const save = () => {
+    const pattern = compatibleHostFor(url);
+    if (!pattern) {
+      onError(t('aicompat.notCurated'));
+      return;
+    }
+    if (!permissionsApiAvailable()) {
+      void sendMessage('OPEN_SETTINGS', { section: 'permissions' }, 'background').catch(() => {
+        // No worker reachable from this context either.
+      });
+      return;
+    }
+    void requestHosts([pattern]).then((missing) => {
+      if (missing.length > 0) {
+        onError(t('perm.needHost', { path: `${t('nav.settings')} → ${t('set.sectionHostAccess')}` }));
+      }
+    });
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="space-y-1">
+        <SubLabel hint={t('aicompat.previewHint')}>{t('aicompat.preview')}</SubLabel>
+        <div className="flex flex-wrap gap-1.5 -mt-1.5">
+          {OPENAI_COMPATIBLE_PRESETS.map((preset) => {
+            const active = preset.baseUrl.replace(/\/+$/, '') === url;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() =>
+                  setAi({
+                    ...ai,
+                    baseUrl: preset.baseUrl,
+                    apiFormat: preset.format,
+                    model: preset.model || ai.model,
+                  })
+                }
+                className={`inline-flex items-center h-6 px-2 rounded-full text-[11px] font-medium ring-1 kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${
+                  active
+                    ? 'bg-indigo-50 dark:bg-indigo-500/[0.12] text-indigo-700 dark:text-indigo-300 ring-indigo-300 dark:ring-indigo-500/50'
+                    : 'text-zinc-600 dark:text-zinc-300 ring-zinc-200 dark:ring-zinc-700 hover:bg-zinc-900/[0.04] dark:hover:bg-white/[0.06]'
+                }`}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <Row
+        label={t('aicompat.baseUrl')}
+        hint={url ? t('aicompat.baseUrlHint', { url: url + endpointPath(format) }) : undefined}
+      >
+        <div className="flex items-center gap-1.5">
+          <input
+            type="url"
+            value={ai.baseUrl ?? ''}
+            onChange={(e) => setAi({ ...ai, baseUrl: e.target.value })}
+            placeholder="https://openrouter.ai/api/v1"
+            className={`${inputCls} font-mono text-[12px] w-full min-w-0`}
+            spellCheck={false}
+            autoComplete="off"
+          />
+          <Button variant="soft" onClick={save}>{t('aicompat.save')}</Button>
+        </div>
+      </Row>
+
+      <Row label={t('aicompat.format')} hint={t('aicompat.formatHint')}>
+        <Select
+          value={format}
+          onChange={(e) => setAi({ ...ai, apiFormat: e.target.value as AiApiFormat })}
+          className="w-full"
+        >
+          {API_FORMATS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label} ({option.path})
+            </option>
+          ))}
+        </Select>
+      </Row>
+
+      {curated?.getKeyUrl && (
+        <a
+          href={curated.getKeyUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[12px] font-medium text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/[0.08] dark:hover:bg-indigo-400/[0.12] kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+        >
+          {t('ai.getKey')} · {curated.label}
+          <ExternalLink size={14} />
+        </a>
+      )}
+    </div>
   );
 }

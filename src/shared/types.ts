@@ -658,6 +658,44 @@ export type AiEnrichResponse =
   | { ok: true; data: AiEnrichment }
   | { ok: false; error: string; provider: AiProvider };
 
+/**
+ * Structured answer for "Explain sentence" (docs/REDESIGN-V2.md §10).
+ *
+ * Produced by `AI_EXPLAIN_SENTENCE` in the service worker and rendered by
+ * `SentenceExplain.tsx`. `sound` empty means the section is not shown.
+ */
+export interface SentenceExplanation {
+  /** What the line means in this scene. ≤ 220 characters. */
+  meaning: string;
+  /** The one or two structures a learner would trip on. ≤ 400 characters. */
+  grammar: string;
+  /** Multi-word expressions actually present in the line. ≤ 4. */
+  expressions: { text: string; gloss: string }[];
+  /** Connected-speech notes. ≤ 4; `[]` when there is nothing notable. */
+  sound: { phrase: string; sounds: string; note?: string }[];
+}
+
+/** Request payload of `AI_EXPLAIN_SENTENCE`. */
+export interface AiExplainRequest {
+  /** Previous subtitle line, for disambiguation only. */
+  prev?: string;
+  /** The line to explain. */
+  line: string;
+  /** Next subtitle line, for disambiguation only. */
+  next?: string;
+  /** Subtitle language (BCP-47 / ISO 639-1). */
+  lang: string;
+  /** Language of the app UI: all prose is written in it. */
+  uiLang: string;
+  /** User's native language: expression glosses are written in it. */
+  nativeLang: string;
+}
+
+/** Response payload of `AI_EXPLAIN_SENTENCE`. */
+export type AiExplainResponse =
+  | { ok: true; data: SentenceExplanation; cached?: boolean }
+  | { ok: false; error: string; cached?: boolean };
+
 /** Streaming-style resolution for the WordPopover */
 export interface ResolveWordRequest {
   token: string;

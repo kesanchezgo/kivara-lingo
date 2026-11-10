@@ -28,6 +28,7 @@ import { tokenizeSentence } from '../nlp/tokenize';
 import { lookupDictionary } from '../nlp/dictionary';
 import { eventPathIsEditable } from '../utils/keyboard';
 import { useKivaraStore } from '../../shared/store';
+import { aiConfigured } from '../../shared/ai-configured';
 import { WordPopover } from './WordPopover';
 import { markOf, markAttrs, markContainerAttrs } from './wordMarks';
 import { WordStatusSelector } from './WordStatusSelector';
@@ -156,6 +157,9 @@ export function SubtitleOverlay({
   const includeAi = useKivaraStore(
     (s) => s.ai.provider !== 'disabled' && !!s.ai.apiKey && s.ai.enrichOnHover,
   );
+  // Explain is a separate capability from hover enrichment: it is available
+  // whenever the AI is configured (F7), even with enrichOnHover off.
+  const explainReady = useKivaraStore((s) => aiConfigured(s.ai));
   const nativeLanguage = useKivaraStore((s) => s.translate.targetLanguage || 'es');
 
   const targetSentence = cue?.text ?? '';
@@ -668,7 +672,7 @@ export function SubtitleOverlay({
           >
             {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
           </button>
-          {includeAi && onExplain && (
+          {explainReady && onExplain && (
             <button
               type="button"
               tabIndex={toolbarOpen ? 0 : -1}

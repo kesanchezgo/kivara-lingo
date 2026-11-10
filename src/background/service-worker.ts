@@ -4,6 +4,8 @@ import { onMessage } from 'webext-bridge/background';
 import type {
   AiEnrichRequest,
   AiEnrichResponse,
+  AiExplainRequest,
+  AiExplainResponse,
   AnkiAddContextRequest,
   AnkiAddContextResponse,
   AnkiBrowseRequest,
@@ -38,6 +40,7 @@ import type {
   TtsResponse,
   DictionaryEntry,
 } from '../shared/types';
+import { explainSentence } from './ai-explain';
 import { ankiConnect } from './anki-connect';
 import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator';
 import { addContextToNote, browseNote, deleteNote, wordIntervals } from './card-actions';
@@ -785,6 +788,17 @@ onMessage('TTS_SPEAK', async ({ data }) => {
 onMessage('AI_ENRICH', async ({ data }) => {
   const request = data as unknown as AiEnrichRequest;
   const response: AiEnrichResponse = await enrichWithAi(request);
+  return asJson(response);
+});
+
+/**
+ * "Explain sentence" (F7). Cached in Dexie v7 `explain_cache` for
+ * `ai.cacheTtlDays`; unreadable answers come back as an error and are not
+ * stored, so the next press retries.
+ */
+onMessage('AI_EXPLAIN_SENTENCE', async ({ data }) => {
+  const request = data as unknown as AiExplainRequest;
+  const response: AiExplainResponse = await explainSentence(request);
   return asJson(response);
 });
 

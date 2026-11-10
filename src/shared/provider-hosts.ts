@@ -29,6 +29,20 @@ export const PROVIDER_HOSTS: Record<string, string[]> = {
   'ai:anthropic': ['https://api.anthropic.com/*'],
   'ai:google-ai': ['https://generativelanguage.googleapis.com/*'],
   'ai:elevenlabs': ['https://api.elevenlabs.io/*'],
+  // Curated `openai-compatible` endpoints (H13/D7). The list is closed on
+  // purpose: an arbitrary URL would mean asking for a wildcard over every
+  // HTTPS host, which the Chrome Web Store review treats as broad browsing
+  // access. Every entry here has its twin in optional_host_permissions.
+  'ai:openai-compatible': [
+    'https://openrouter.ai/*',
+    'https://api.groq.com/*',
+    'https://api.deepseek.com/*',
+    'https://api.mistral.ai/*',
+    'https://api.together.xyz/*',
+    'https://api.x.ai/*',
+    'http://localhost/*',
+    'http://127.0.0.1/*',
+  ],
 
   // ── TTS ─────────────────────────────────────────────────────────────────
   'tts:google': ['https://translate.google.com/*', 'https://www.google.com/*'],
@@ -121,4 +135,40 @@ export function hostsForProviders(ids: readonly string[]): string[] {
 /** All known provider origins — the manifest's optional list, in practice. */
 export function allProviderHosts(): string[] {
   return hostsForProviders(Object.keys(PROVIDER_HOSTS));
+}
+
+/**
+ * Curated `openai-compatible` origins, in the same order as the manifest.
+ *
+ * Exported on its own so the settings UI and the provider module read the same
+ * closed list: an endpoint outside it is refused before a request is made.
+ */
+export const OPENAI_COMPATIBLE_HOSTS: readonly string[] = PROVIDER_HOSTS['ai:openai-compatible'];
+
+/**
+ * Manifest pattern that covers `rawUrl`, or null when the endpoint is not on
+ * the curated list.
+ *
+ * This is the only URL → permission mapping the compatible provider has: the
+ * UI passes the result to `requestHosts` inside the click that saves the
+ * endpoint, and `ai-providers.ts` refuses anything that maps to null. A
+ * portless curated pattern (the loopback ones) covers any port, which is how
+ * `localhost:11434` and `127.0.0.1:1234` share one entry each.
+ */
+export function compatibleHostFor(rawUrl: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(rawUrl.trim());
+  } catch {
+    return null;
+  }
+  if (url.username || url.password || !url.hostname) return null;
+  for (const pattern of OPENAI_COMPATIBLE_HOSTS) {
+    const curated = new URL(pattern.slice(0, -'/*'.length));
+    if (curated.protocol !== url.protocol) continue;
+    if (curated.hostname !== url.hostname) continue;
+    if (curated.port && curated.port !== url.port) continue;
+    return pattern;
+  }
+  return null;
 }

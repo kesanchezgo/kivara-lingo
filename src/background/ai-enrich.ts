@@ -79,7 +79,9 @@ export async function enrichWithAi(req: AiEnrichRequest): Promise<AiEnrichRespon
   if (settings.provider === 'disabled') {
     return { ok: false, error: 'AI disabled', provider: 'disabled' };
   }
-  if (!settings.apiKey) {
+  // Loopback compatible endpoints (Ollama, LM Studio) are keyless; a hosted
+// provider still needs its key before a call is worth making.
+  if (!settings.apiKey && settings.provider !== 'openai-compatible') {
     return { ok: false, error: 'API key missing', provider: settings.provider };
   }
 

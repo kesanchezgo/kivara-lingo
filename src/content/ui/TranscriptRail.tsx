@@ -93,6 +93,11 @@ export interface TranscriptRailProps {
   onStudyPause(): void;
   onStudyResume(): void;
   ai: AiPort | null;
+  /**
+   * A monotonically increasing tick: when it changes, open the explanation of
+   * the active line (the overlay's ✦ action, docs/REDESIGN-V2.md §7 F7).
+   */
+  explainRequest?: number;
   uiLang: string;
   nativeLang: string;
   panelOpen: boolean;
@@ -107,8 +112,8 @@ export function TranscriptRail(props: TranscriptRailProps) {
     cues, activeIndex, lang, study, newMarks, savedWords, media, view, onViewChange,
     onSeek, onReplay, onReplaySlow, capturing = false, autoPause, onToggleAutoPause,
     loop, onToggleLoop, speed, onSpeed, playing, pauseOnExplain, onStudyPause,
-    onStudyResume, ai, uiLang, nativeLang, panelOpen, onTogglePanel, isDarkMode,
-    onToggleDarkMode, onClose,
+    onStudyResume, ai, explainRequest = 0, uiLang, nativeLang, panelOpen, onTogglePanel,
+    isDarkMode, onToggleDarkMode, onClose,
   } = props;
 
   const [explainLine, setExplainLine] = useState<number | null>(null);
@@ -132,6 +137,17 @@ export function TranscriptRail(props: TranscriptRailProps) {
   useEffect(() => {
     if (playing) setExplainPaused(false);
   }, [playing]);
+
+  // The overlay's ✦ asks for the active line's explanation: the same open
+  // action as pressing that row's sparkle, so pausing and the toggle match.
+  // Keyed on the tick on purpose — every new press must reopen, even if the
+  // same line was already open.
+  useEffect(() => {
+    if (explainRequest <= 0 || ai === null) return;
+    if (activeIndex < 0 || activeIndex >= cues.length) return;
+    setExplainLine(activeIndex);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [explainRequest]);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
