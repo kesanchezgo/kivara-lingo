@@ -379,34 +379,117 @@ declare global {
    * else's seek.
    *
    * `videoPlayer.seek()` takes MILLISECONDS on every Netflix build we have
-   * seen, and `getPlayerByIndex(0)` is the session player. Both are read
-   * defensively: a DOM revision that moves the API answers an error instead
-   * of throwing into the page's console.
+   * seen. Routes are tried in order, first match wins:
+   *   1. The documented player API — `getAllPlayerSessionIds()` +
+   *      `getVideoPlayerBySessionId(id).seek(ms)`, preferring the session
+   *      that reports the active video.
+   *   2. `getPlayerByIndex(0)` — the pre-session fallback, unchanged.
+   *   3. `getAllPlayerStates()[0]` — second pre-session fallback, unchanged.
+   *   4. `seek` straight on the `videoPlayer` facade — last resort.
+   * Everything is read defensively: a DOM revision that moves the API answers
+   * an error instead of throwing into the page's console.
    */
   const PLAYBACK_CMD = 'kivara-lingo:playback';
   const PLAYBACK_RESULT = 'kivara-lingo:playback-result';
 
   interface NetflixVideoPlayer {
     seek?: (ms: number) => void;
+    /** Documented on current builds; used to pick the active session. */
+    isPlaying?: () => boolean;
+  }
+  interface NetflixVideoPlayerApi {
+    getPlayerByIndex?: (index: number) => NetflixVideoPlayer | undefined;
+    getAllPlayerStates?: () => NetflixVideoPlayer[];
+    getAllPlayerSessionIds?: () => string[];
+    getVideoPlayerBySessionId?: (id: string) => NetflixVideoPlayer | undefined;
+    getPlayingSessionId?: () => string | undefined;
+    seek?: (ms: number) => void;
   }
   interface NetflixPlayerApp {
     getAPI?: () => {
-      videoPlayer?: {
-        getPlayerByIndex?: (index: number) => NetflixVideoPlayer | undefined;
-        getAllPlayerStates?: () => NetflixVideoPlayer[];
-        seek?: (ms: number) => void;
-      };
+      videoPlayer?: NetflixVideoPlayerApi;
     };
   }
+  type NetflixWindow = Window & {
+    netflix?: { appContext?: { state?: { playerApp?: NetflixPlayerApp } } };
+  };
 
+  function videoPlayerApi(): NetflixVideoPlayerApi | null {
+    try {
+      return (
+        (window as NetflixWindow).netflix?.appContext?.state?.playerApp?.getAPI?.()?.videoPlayer ??
+        null
+      );
+    } catch {
+      // API moved or not ready yet — the caller gets a legible refusal.
+      return null;
+    }
+  }
+
+  /**
+   * Route 1 — the documented Netflix player API. Enumerates
+   * `getAllPlayerSessionIds()` and resolves the player that owns the active
+   * video. Netflix keeps several sessions alive across episode / profile
+   * switches, so the id is picked in preference order: the one the API itself
+   * reports as playing (`getPlayingSessionId`), then one whose player reports
+   * `isPlaying()`, then the first id with a usable player. Returns `null`
+   * when the route yields nothing — the caller falls back to the older
+   * routes, unchanged.
+   */
+  function netflixSessionPlayer(): NetflixVideoPlayer | null {
+    const videoPlayer = videoPlayerApi();
+    if (!videoPlayer) return null;
+    const getSessionIds = videoPlayer.getAllPlayerSessionIds;
+    const getPlayerBySessionId = videoPlayer.getVideoPlayerBySessionId;
+    if (typeof getSessionIds !== 'function' || typeof getPlayerBySessionId !== 'function') {
+      return null;
+    }
+    let sessionIds: string[];
+    try {
+      sessionIds = getSessionIds.call(videoPlayer) ?? [];
+    } catch {
+      return null;
+    }
+    if (!Array.isArray(sessionIds) || sessionIds.length === 0) return null;
+    const resolvePlayer = (id: string): NetflixVideoPlayer | null => {
+      try {
+        const player = getPlayerBySessionId.call(videoPlayer, id);
+        return player && typeof player.seek === 'function' ? player : null;
+      } catch {
+        return null;
+      }
+    };
+    let reportedPlayingId: string | undefined;
+    try {
+      if (typeof videoPlayer.getPlayingSessionId === 'function') {
+        reportedPlayingId = videoPlayer.getPlayingSessionId();
+      }
+    } catch {
+      reportedPlayingId = undefined;
+    }
+    if (typeof reportedPlayingId === 'string') {
+      const player = resolvePlayer(reportedPlayingId);
+      if (player) return player;
+    }
+    for (const id of sessionIds) {
+      const player = resolvePlayer(id);
+      try {
+        if (player && typeof player.isPlaying === 'function' && player.isPlaying()) return player;
+      } catch {
+        // A player that throws on `isPlaying` is skipped, not fatal.
+      }
+    }
+    for (const id of sessionIds) {
+      const player = resolvePlayer(id);
+      if (player) return player;
+    }
+    return null;
+  }
+
+  /** Routes 2-4 — the pre-session fallbacks, in the order they always ran. */
   function netflixPlayer(): NetflixVideoPlayer | null {
     try {
-      const api = (
-        window as Window & {
-          netflix?: { appContext?: { state?: { playerApp?: NetflixPlayerApp } } };
-        }
-      ).netflix?.appContext?.state?.playerApp?.getAPI?.();
-      const videoPlayer = api?.videoPlayer;
+      const videoPlayer = videoPlayerApi();
       if (!videoPlayer) return null;
       const byIndex = videoPlayer.getPlayerByIndex?.(0);
       if (byIndex) return byIndex;
@@ -444,13 +527,27 @@ declare global {
       reply(false, 'unsupported command');
       return;
     }
+    const timeMs = Math.max(0, data.timeMs);
+    // Route 1 first: the documented session-id API. Any throw in that path —
+    // resolution or the seek itself — falls through to the backup routes,
+    // which run exactly as they did before this route existed.
+    try {
+      const sessionPlayer = netflixSessionPlayer();
+      if (sessionPlayer?.seek) {
+        sessionPlayer.seek(timeMs);
+        reply(true);
+        return;
+      }
+    } catch {
+      // The documented API half-works — let the fallbacks decide.
+    }
     const player = netflixPlayer();
     if (!player?.seek) {
       reply(false, 'player API unavailable');
       return;
     }
     try {
-      player.seek(Math.max(0, data.timeMs));
+      player.seek(timeMs);
       reply(true);
     } catch (err) {
       reply(false, err instanceof Error ? err.message : String(err));
