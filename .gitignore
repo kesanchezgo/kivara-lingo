@@ -86,7 +86,9 @@ test.mjs
 *.xpi
 web-ext-artifacts/
 
-# Design mock reference (local only, not part of the source)
+# Design mock reference (local only, not part of the source).
+# The prototype lives in `.mock/` (renamed from `mock/`); keep both patterns ignored.
+.mock/
 mock/
 
 # Avoid mixing package managers — the project is on pnpm (pnpm-lock.yaml).
