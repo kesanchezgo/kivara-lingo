@@ -30,6 +30,8 @@ import { eventPathIsEditable } from '../utils/keyboard';
 import { useKivaraStore } from '../../shared/store';
 import { WordPopover } from './WordPopover';
 import { markOf, markAttrs, markContainerAttrs } from './wordMarks';
+import { WordStatusSelector } from './WordStatusSelector';
+import type { StudyBinding } from './study';
 
 export interface SubtitleOverlayProps {
   subtitleStyles: SubtitleStyles;
@@ -76,6 +78,12 @@ export interface SubtitleOverlayProps {
   capturing?: boolean;
   /** Explain this line (AI). The button only renders when both exist. */
   onExplain?: () => void;
+  /**
+   * Study profile of the subtitle language (F5): resolves each token's status,
+   * feeds the word card's status selector and knows which words already have
+   * an Anki card. Absent, the overlay draws only the expression bracket (F3).
+   */
+  study?: StudyBinding;
 }
 
 const hexToRgb = (hex: string) => {
@@ -104,6 +112,7 @@ export function SubtitleOverlay({
   setExpandedMWEs: controlledSetExpanded,
   capturing = false,
   onExplain,
+  study,
 }: SubtitleOverlayProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -726,8 +735,11 @@ export function SubtitleOverlay({
                   );
                 }
                 const isTokHovered = hoveredKey === tok.key && hoveredIdx === i;
-                const isSaved = savedTokens.has(tok.key.toLowerCase());
-                const mark = markOf(tok);
+                // The Anki cache of the profile (F5) adds to the pre-fetched
+                // saved words: either way, an Anki word is not saved twice.
+                const studyKey = tok.lemma ?? tok.key;
+                const isSaved = savedTokens.has(tok.key.toLowerCase()) || !!study?.inAnki(studyKey);
+                const mark = markOf(tok, study?.statusOf);
                 // The status mark draws the underline; here only hover,
                 // selection and the saved/learned accents.
                 const stateCls = inSelection
@@ -859,6 +871,16 @@ export function SubtitleOverlay({
                         onAddContext={onAddContext
                           ? (e) => { e.stopPropagation(); onAddContext(tok.key, targetSentence); }
                           : undefined}
+                        statusSlot={study && tok.kind !== 'proper-noun-known' ? (
+                          <WordStatusSelector
+                            token={tok.text}
+                            status={mark.status ?? 'new'}
+                            detail={study.detailOf(studyKey)}
+                            isSaved={isSaved}
+                            onChange={(status) => study.setStatus(studyKey, status)}
+                            onClear={() => study.setStatus(studyKey, null)}
+                          />
+                        ) : undefined}
                       />
                     )}
                   </span>

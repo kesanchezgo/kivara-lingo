@@ -1,22 +1,27 @@
 /**
  * Word marks for the subtitle overlay (ported from the prototype,
- * docs/REDESIGN-V2.md §5.1).
+ * docs/REDESIGN-V2.md §5.1, §7 F5).
  *
  * The mark is the ONLY visual the overlay adds to a token: the text keeps the
  * colour the user chose in Subtitles and the state is read from the underline
  * (colour AND pattern, per theme.css). Two independent axes:
  *
  *  - type: an expression (MWE) carries a bracket under all of its words;
- *  - status: new / learning / known tints that bracket or draws a dotted line.
+ *  - status: new / learning / known tints that bracket or draws a dotted line
+ *    (known draws nothing).
  *
- * F3 ships the TYPE axis only. The status axis needs the per-language word
- * state that lands in F5, so `markOf` deliberately returns no status yet: the
- * CSS already understands `data-ws`, and adding it in F5 is a one-line change
- * here, not a view rewrite.
+ * The status comes from the per-language profile (mark > Anki > estimate). It
+ * is passed as a resolver instead of read here, so this module stays free of
+ * storage and React.
+ *
+ * Reconciliation with the tokenizer taxonomy: the tokenizer also has a
+ * `mastered` kind (an explicit «already learned» set). In v2 «mastered» IS the
+ * «known» status — `markOf` maps it to `known` whether or not a resolver is
+ * present, so the two taxonomies cannot drift apart again.
  */
 import type { Token } from '../nlp/tokenize';
 
-/** Word state once F5 adds per-language storage. */
+/** Word state (same union as the study layer). */
 export type WordStatus = 'new' | 'learning' | 'known';
 
 /** How a never-seen word is underlined (study.newMarks). */
@@ -28,9 +33,21 @@ export interface TokenMark {
   expr: boolean;
 }
 
-/** Type-only mark for a tokenizer token. F5 adds `status`. */
-export function markOf(tok: Token): TokenMark {
-  return { expr: tok.kind === 'mwe' };
+/** Kinds that carry a word status: vocabulary the learner can mark. */
+const MARKABLE = new Set<Token['kind']>(['mwe', 'known', 'unknown', 'mastered']);
+
+/**
+ * Mark of a tokenizer token. `statusOf` resolves the profile's status by
+ * lemma; without it only the type axis is drawn (F3 behaviour).
+ */
+export function markOf(tok: Token, statusOf?: (tokenKey: string) => WordStatus): TokenMark {
+  const expr = tok.kind === 'mwe';
+  // «mastered» is the tokenizer's explicit learned set: it IS «known», with or
+  // without a profile resolver.
+  if (tok.kind === 'mastered') return { status: 'known', expr };
+  if (!statusOf || !MARKABLE.has(tok.kind)) return { expr };
+  // The tokenizer already resolved the lemma; its key is the citation form.
+  return { status: statusOf(tok.lemma ?? tok.key), expr };
 }
 
 export function markAttrs(mark: TokenMark): Record<string, string | undefined> {

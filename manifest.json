@@ -79,7 +79,8 @@
     {
       "resources": [
         "src/assets/dictionaries/*",
-        "src/assets/fonts/*"
+        "src/assets/fonts/*",
+        "src/assets/frequency/*"
       ],
       "matches": [
         "*://*.youtube.com/*",

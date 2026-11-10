@@ -26,6 +26,7 @@ import { getActiveTrackCues, getTrackByLanguage, onTrack } from '../platform-ada
 import { buildPreviewData } from '../../shared/preview-data';
 import { buildCardTags, newCardId } from '../../shared/cards';
 import { buildExactNoteQuery } from '../../shared/anki-search';
+import { recordCardSaved, useWordStudy, type StudyBinding } from './study';
 
 /**
  * Find the Anki field name (key in fieldSources) currently mapped to the
@@ -204,6 +205,9 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   const [altCue, setAltCue] = useState<ActiveCue | null>(null);
   const [saveTick, setSaveTick] = useState<number | null>(null);
   const cueLanguageRef = useRef('en');
+  // Same value as a state: the study profile follows the subtitle language, so
+  // it must re-render when the track changes (the ref does not).
+  const [cueLanguage, setCueLanguage] = useState('en');
   // Tracks whether we (not the user, not the platform) requested the current
   // pause. We only resume if we ourselves paused — otherwise we'd fight with
   // the platform's own buffer / focus-loss / ad-break pauses.
@@ -217,6 +221,20 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   // which on platforms like HBO Max can lose track when the popover paints
   // outside the parent's bounding box.
   const cursorOverKivaraRef = useRef(false);
+
+  // Word status + level of the profile of the SUBTITLE language (F5): watching
+// English captions uses the English profile even while another language is
+// configured in Settings. `profileLangOf` folds `en-US` into `en`.
+  const wordStudy = useWordStudy(cueLanguage);
+  // One stable binding for SubtitleOverlay: the individual resolvers are
+  // already memoised, so the overlay's memo does not recompute on every render.
+  const studyBinding = useMemo<StudyBinding>(() => ({
+    statusOf: wordStudy.statusOf,
+    detailOf: wordStudy.detailOf,
+    setStatus: wordStudy.setStatus,
+    inAnki: wordStudy.inAnki,
+    userStatusOf: wordStudy.userStatusOf,
+  }), [wordStudy.statusOf, wordStudy.detailOf, wordStudy.setStatus, wordStudy.inAnki, wordStudy.userStatusOf]);
 
   // Apply the "Limpieza visual" CSS whenever the toggles change. The CSS is
   // platform-aware (the matching selectors live in cleanup-css.ts) so the
@@ -287,6 +305,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       }
       const first = cues[0];
       cueLanguageRef.current = first.language || 'en';
+      setCueLanguage(cueLanguageRef.current);
       setActiveCue({
         id: first.id,
         text: first.text,
@@ -326,6 +345,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     const initialCue = adapter.getActiveCue?.();
     if (initialCue) {
       cueLanguageRef.current = initialCue.language || 'en';
+      setCueLanguage(cueLanguageRef.current);
       setActiveCue({
         id: initialCue.id,
         text: initialCue.text,
@@ -1107,6 +1127,10 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
               duration: 3200,
             });
             if (studyNow.sounds) playSound('saved');
+            // F5: the word now has a card. A «known» hand mark gives way to
+            // it (the word becomes learning), the interval is cached at 0 and
+            // a background refresh reads the real one from Anki.
+            recordCardSaved(lang, tokenValue);
             // The success path must RETURN its own envelope: falling through
             // used to report every created card as a failure, so the green
             // "saved" highlight never painted.
@@ -1215,6 +1239,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
           expandedMWEs={expandedMWEs}
           setExpandedMWEs={setExpandedMWEs}
           capturing={captureView !== null}
+          study={studyBinding}
         />
         <CaptureOverlay view={captureView} cardTheme={subtitleStyles.cardTheme ?? 'dark'} />
       </div>,
@@ -1253,6 +1278,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     playing,
     expandedMWEs,
     captureView,
+    studyBinding,
   ]);
 
   return (

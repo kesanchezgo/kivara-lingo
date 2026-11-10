@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
-import { Type, Palette, AlignVerticalSpaceBetween, RotateCcw, AlignLeft } from '../../../ui/icons';
-import { t } from '../../../shared/i18n';
+import { Type, Palette, AlignVerticalSpaceBetween, RotateCcw, AlignLeft, GraduationCap } from '../../../ui/icons';
+import { t, fmtNumber, useLocale } from '../../../shared/i18n';
 import { DEFAULT_STUDY, DEFAULT_SUBTITLE_STYLES, useKivaraStore } from '../../../shared/store';
 import type { SubtitleStyles } from '../../../shared/types';
 import { Slider } from '../../../ui/primitives/controls';
 import {
-  FOCUS, Group, SegmentedControl, Toggle, ValueRow as Row, tx, ui,
+  FOCUS, Group, NavRow, SegmentedControl, Toggle, ValueRow as Row, tx, ui,
 } from './settings-primitives';
+import { MARK_INK, StatusGlyph } from '../../../content/ui/wordMarks';
+import { useWordStudy } from '../../../content/ui/study';
+import type { WordStatus } from '../../../shared/study/wordStatus';
 
 /**
  * Subtitles — appearance of the overlay (and of the word card through
- * `cardTheme`) plus the new-word mark style.
+ * `cardTheme`) plus the word marks: the legend, the new-word drawing and a way
+ * into the Vocabulary tab.
  *
  * The study MODES (translation visibility, listen first, auto-pause) live in
  * Preferences: they change playback, not typography. Inspiration for the
@@ -19,13 +23,21 @@ import {
 export function SubtitlesTab({
   styles,
   setStyles,
+  onOpenVocab,
 }: {
   styles: SubtitleStyles;
   setStyles: (styles: SubtitleStyles) => void;
+  /** Jump to the Vocabulary tab (the level row); absent on hosts without tabs. */
+  onOpenVocab?: () => void;
 }) {
   const [nativeFormatOpen, setNativeFormatOpen] = useState(false);
   const study = useKivaraStore((s) => s.study);
   const setStudy = useKivaraStore((s) => s.setStudy);
+  const wordStudy = useWordStudy();
+  const locale = useLocale();
+  const langName = locale === 'es'
+    ? t(`lang.${wordStudy.lang}`).toLocaleLowerCase('es')
+    : t(`lang.${wordStudy.lang}`);
 
   const updateStyle = <K extends keyof SubtitleStyles>(key: K, value: SubtitleStyles[K]) => {
     setStyles({ ...styles, [key]: value });
@@ -259,20 +271,44 @@ export function SubtitlesTab({
           </Row>
         </Group>
 
-        {/* New-word marks. Only how a never-seen word is drawn — the word
-            STATUS itself arrives with F5, so there is no legend here yet. */}
-        <Group icon={<Type size={13} />} title={t('ws.sectionTitle')} hint={t('ws.sectionHint')}>
+        {/* Word status. One legend for the whole app: the Vocabulary tab shows
+            the coverage bar with the same status names, not another legend. */}
+        <Group icon={<GraduationCap size={13} />} title={t('ws.sectionTitle')} hint={t('ws.sectionHint')}>
+          <Row label={t('ws.marks')}>
+            <div role="list" aria-label={t('ws.legendAria')} className={`${MARK_INK} grid grid-cols-2 gap-x-4 gap-y-3`}>
+              <LegendItem status="learning" label={t('ws.learning')} meta={t('ws.learningMeta')} />
+              <LegendItem status="new" label={t('ws.new')} meta={t('ws.newMeta')} />
+              <LegendItem status="known" label={t('ws.known')} meta={t('ws.knownMeta')} />
+              <LegendItem status="known" expr label={t('ws.expression')} meta={t('ws.exprMeta')} />
+            </div>
+          </Row>
+
+          {/* Only the drawing of the new words: it changes neither their status
+              nor the «learning» line. */}
           <Row label={t('ws.newMarks')} hint={t('ws.newMarksHint')} onReset={resetNewMarks}>
             <SegmentedControl
               ariaLabel={t('ws.newMarksAria')}
+              className={MARK_INK}
               options={[
-                { v: 'dotted', l: t('ws.newMarksDotted') },
+                { v: 'dotted', l: t('ws.newMarksDotted'), icon: <StatusGlyph status="new" /> },
                 { v: 'none', l: t('ws.newMarksNone') },
               ]}
               value={study.newMarks}
               onChange={(v) => setStudy({ ...study, newMarks: v })}
             />
           </Row>
+
+          {/* Level, self-assessment, check and coverage live in their tab: here only the way in. */}
+          <NavRow
+            data-open-vocab
+            label={t('ws.levelIn', { lang: langName })}
+            description={wordStudy.estimator.provisional
+              ? t('ws.levelRef', { level: wordStudy.estimator.level })
+              : `${wordStudy.estimator.level} · ${t(`ws.level.${wordStudy.estimator.level}`)} · ≈\u00a0${fmtNumber(wordStudy.estimator.total)} ${t('ws.words')}`}
+            where={t('ws.openVocab')}
+            title={t('ws.openVocabTitle')}
+            onClick={() => onOpenVocab?.()}
+          />
         </Group>
 
         {/* Native format — collapsible */}
@@ -336,6 +372,19 @@ function ToggleRow({
         )}
         <Toggle on={checked} onChange={onChange} ariaLabel={label} />
       </div>
+    </div>
+  );
+}
+
+/** One legend row: the mark (same drawing as the subtitle) plus its name and note. */
+function LegendItem({ status, expr, label, meta }: { status: WordStatus; expr?: boolean; label: string; meta: string }) {
+  return (
+    <div role="listitem" className="grid grid-cols-[12px_minmax(0,1fr)] gap-x-2.5 items-start">
+      <span className="h-[18px] flex items-center"><StatusGlyph status={status} expr={expr} /></span>
+      <span className="min-w-0">
+        <span className={`${tx.label} block truncate`}>{label}</span>
+        <span className="block text-[12px] leading-4 text-zinc-500 dark:text-zinc-400 truncate">{meta}</span>
+      </span>
     </div>
   );
 }

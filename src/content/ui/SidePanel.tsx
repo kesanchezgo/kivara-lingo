@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Subtitles, LayoutGrid, Settings, X, ExternalLink, Moon, Sun, GripVertical,
+  Subtitles, LayoutGrid, Settings, X, ExternalLink, Moon, Sun, GripVertical, GraduationCap,
 } from '../../ui/icons';
 import { BrandGlyph } from '../../ui/BrandGlyph';
 import { t } from '../../shared/i18n';
@@ -20,9 +20,10 @@ import type { CardPreviewData } from '../../app/components/tabs/CardPreview';
  * all tabs kept mounted); the drag, the clamp, the persisted position and the
  * deep link are the repo's.
  *
- * Tabs: Subtitles · Cards · Preferences — the repo's current set — plus
- * Vocabulary, defined but filtered out while `VOCAB_TAB_ENABLED` is false
- * (F5 flips that constant; nothing else changes).
+ * Tabs: Subtitles · Vocabulary · Cards · Preferences. Vocabulary lands in F5:
+ * the word-status store, the level estimator and the check are real, so the
+ * tab is enabled and only the episode coverage waits for F6 (it needs the full
+ * subtitle track).
  */
 
 interface SidePanelProps {
@@ -133,11 +134,11 @@ export function SidePanel({
 
   const tabs: Array<{ id: PanelTab; label: string; icon: typeof Subtitles }> = [
     { id: 'subtitles', label: t('panel.tabSubtitles'), icon: Subtitles },
+    ...(VOCAB_TAB_ENABLED
+      ? [{ id: 'vocab' as PanelTab, label: t('panel.tabVocab'), icon: GraduationCap }]
+      : []),
     { id: 'cards', label: t('panel.tabCards'), icon: LayoutGrid },
     { id: 'settings', label: t('panel.tabSettings'), icon: Settings },
-    ...(VOCAB_TAB_ENABLED
-      ? [{ id: 'vocab' as PanelTab, label: t('panel.tabVocab'), icon: Subtitles }]
-      : []),
   ];
   const tabIndex = tabs.findIndex((tab) => tab.id === activeTab);
   const pendingCards = useRecentCards().filter(isPending).length;
@@ -393,7 +394,7 @@ export function SidePanel({
           className="flex-1 min-h-0 overflow-hidden outline-none border-t border-zinc-900/[0.06] dark:border-white/[0.06] bg-zinc-50/80 dark:bg-transparent"
         >
           {tab.id === 'subtitles' && (
-            <SubtitlesTab styles={styles} setStyles={setStyles} />
+            <SubtitlesTab styles={styles} setStyles={setStyles} onOpenVocab={() => selectTab('vocab')} />
           )}
           {tab.id === 'cards' && (
             <CardsTab mapping={mapping} setMapping={setMapping} mockData={mockData} />
@@ -405,7 +406,7 @@ export function SidePanel({
               onOpenTab={(target) => selectTab(target === 'vocab' ? 'vocab' : target)}
             />
           )}
-          {tab.id === 'vocab' && <VocabTab />}
+          {tab.id === 'vocab' && <VocabTab onOpenCards={() => selectTab('cards')} />}
         </div>
       ))}
     </div>
