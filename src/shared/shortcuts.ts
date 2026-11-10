@@ -21,7 +21,7 @@
  * contract.
  */
 import type React from 'react';
-import { t } from './i18n';
+import { t } from './i18n/core';
 
 export interface ShortcutDef {
   id: string;

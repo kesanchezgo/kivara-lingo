@@ -22,7 +22,7 @@ import { formatFrequencyBand, pickFrequencyWinner } from '../shared/frequency';
 import { getVipSettings, loadTranslateTargetLang } from './vip-settings';
 import { computeCueWindow, shouldFallbackToTts, waitForCueTailMs } from './cue-window';
 import { fetchMediaWithLimits, mediaExtFor } from '../shared/net-guard';
-import { t } from '../shared/i18n';
+import { t } from '../shared/i18n/sw';
 
 /** Outbound media downloads come from scraped pages, so they are bounded:
  * a hung CDN must not hold the card open, and a giant body must not be

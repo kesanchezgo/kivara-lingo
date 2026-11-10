@@ -47,7 +47,7 @@ export const test = base.extend<ExtensionFixtures>({
       locale: 'es-ES',
       args: [
         // Pin the browser UI language: `chrome.i18n.getUILanguage()` is what
-        // src/shared/i18n.ts keys off, and without this the suite inherits
+        // src/shared/i18n/locale keys off, and without this the suite inherits
         // whatever the machine or runner reports — the same spec would then
         // assert Spanish here and English elsewhere.
         '--lang=es',

@@ -17,7 +17,7 @@
  * stats accumulated before they toggled it off.
  */
 import { getDB, type PackStatsRow } from './db';
-import { t } from './i18n';
+import { t } from './i18n/core';
 
 export const BUNDLE_PACK_ID = 'bundle';
 export const REMOTE_PACK_ID = 'remote';

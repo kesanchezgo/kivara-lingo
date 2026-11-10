@@ -18,7 +18,7 @@
 
 import { getDB } from '../shared/db';
 import { clearMemEnrichmentCache } from './enrichment/orchestrator';
-import { t } from '../shared/i18n';
+import { t } from '../shared/i18n/sw';
 
 export interface CacheBucketStats {
   /** Stable id used by the clear API. */

@@ -125,6 +125,26 @@ licencia. Esta lista no altera la de cada paquete.
 
 Dependencias de npm, enumeradas en `package.json` con sus licencias.
 
+### Inter (tipografía variable)
+
+`src/assets/fonts/kivara-inter-*.woff2` — subconjuntos `latin` y `latin-ext`
+de Inter, empaquetados dentro de la extensión y registrados en tiempo de
+ejecución con la API `FontFace` bajo el nombre `Kivara Inter` (ver
+`src/ui/fonts.ts`). Se sirve en local a propósito: ninguna pantalla de
+streaming hace una petición a Google Fonts (ver `PRIVACY.md`).
+
+- © 2016–presente The Inter Project Authors (https://github.com/rsms/inter).
+- Licencia: SIL Open Font License 1.1 — https://openfontlicense.org
+- Subconjuntos: build oficial de Fontsource (`@fontsource-variable/inter`).
+
+### Phosphor Icons
+
+Los iconos de la interfaz son de Phosphor Icons, envueltos por
+`src/ui/icons.tsx` detrás de la API estilo lucide que usan los componentes.
+
+- © Phosphor Icons (https://phosphoricons.com).
+- Licencia: MIT.
+
 ## 3. Licencia del paquete
 
 El **código** de la extensión es MIT (ver `LICENSE`). Los **datos** no: cada

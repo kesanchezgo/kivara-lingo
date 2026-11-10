@@ -112,7 +112,7 @@ describe('SettingsTab behavior across the split', () => {
   it('requests provider hosts from the provider control gesture', async () => {
     const request = vi.mocked(chrome.permissions.request);
     await mountSettings();
-    fireEvent.click(screen.getByRole('button', { name: /TTS premium/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Voz premium/i }));
     const selects = screen.getAllByRole('combobox');
     const select = selects.find((node) => (node as HTMLSelectElement).value === 'auto') as HTMLSelectElement;
     expect(select).toBeDefined();

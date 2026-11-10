@@ -4,6 +4,7 @@
   "license": "MIT",
   "version": "0.2.0",
   "type": "module",
+  "packageManager": "pnpm@11.1.2",
   "scripts": {
     "build": "vite build",
     "dev": "vite",
@@ -22,6 +23,7 @@
   },
   "dependencies": {
     "@breezystack/lamejs": "^1.2.7",
+    "@phosphor-icons/react": "^2.1.10",
     "dexie": "^4.4.2",
     "fflate": "^0.8.3",
     "franc-min": "6.2.0",

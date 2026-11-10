@@ -78,7 +78,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "src/assets/dictionaries/*"
+        "src/assets/dictionaries/*",
+        "src/assets/fonts/*"
       ],
       "matches": [
         "*://*.youtube.com/*",

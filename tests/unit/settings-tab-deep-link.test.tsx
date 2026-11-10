@@ -68,7 +68,7 @@ function expandedByTitle(titleFragment: string): boolean {
 }
 
 const permOpen = () => expandedByTitle('Acceso a sitios');
-const ttsOpen = () => expandedByTitle('TTS premium');
+const ttsOpen = () => expandedByTitle('Voz premium');
 
 describe('Settings accordions under a deep link', () => {
   beforeEach(() => {

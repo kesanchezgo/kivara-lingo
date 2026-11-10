@@ -9,7 +9,7 @@
  * picker UX. The custom-text input below the select handles the long tail.
  */
 import type { AiProvider } from './types';
-import { t } from './i18n';
+import { t } from './i18n/core';
 
 export interface AiModelOption {
   /** Exact model id sent to the provider. */

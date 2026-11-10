@@ -51,7 +51,7 @@ import { dbg, dbgOnce } from '../shared/debug-log';
 
 import { getCacheStats, clearCaches } from './cache-admin';
 import { listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';
-import { t } from '../shared/i18n';
+import { t } from '../shared/i18n/sw';
 import { fetchGuarded, validateDictPackInstallRequest } from '../shared/net-guard';
 const OPEN_SETTINGS_SECTION_KEY = 'kivara:open-settings-section';
 

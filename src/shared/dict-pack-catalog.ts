@@ -1,4 +1,4 @@
-import { t } from './i18n';
+import { t } from './i18n/core';
 /**
  * Curated catalogue of high-quality Wiktionary-derived packs published weekly
  * by the kaikki-to-yomitan project.

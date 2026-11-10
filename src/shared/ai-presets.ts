@@ -17,7 +17,7 @@
  * both consume the same source of truth.
  */
 import type { AiProvider } from './types';
-import { t } from './i18n';
+import { t } from './i18n/core';
 
 export type ConfigurableAiProvider = Exclude<AiProvider, 'disabled'>;
 

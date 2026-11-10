@@ -9,7 +9,11 @@
    * Components that need to pin font-family inline (because they portal
    * out of the React tree) reference var(--kvl-font-sans) so any future
    * tweak only happens here. */
-  --kvl-font-sans: ui-sans-serif, system-ui, -apple-system,
+  /* 'Kivara Inter' is registered at runtime with FontFace (see
+   * content/ui/fonts.ts) so the family resolves inside the closed shadow
+   * root, where a document-level @font-face would not reach. The system
+   * stack stays as the fallback for pages and browsers the font fails on. */
+  --kvl-font-sans: 'Kivara Inter', ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
     "Segoe UI Symbol";
@@ -479,3 +483,145 @@
   }
 }
 
+/* ── Kivara Lingo UI shell ────────────────────────────────────────────── */
+.kvl-ui {
+  font-family: 'Kivara Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.003em;
+}
+.kvl-scroll { scrollbar-width: thin; scrollbar-color: rgb(0 0 0 / 0.14) transparent; }
+.dark .kvl-scroll { scrollbar-color: rgb(255 255 255 / 0.12) transparent; }
+.kvl-scroll::-webkit-scrollbar { width: 8px; }
+.kvl-scroll::-webkit-scrollbar-track { background: transparent; }
+.kvl-scroll::-webkit-scrollbar-thumb { background: rgb(0 0 0 / 0.14); border-radius: 9999px; border: 2px solid transparent; background-clip: content-box; }
+.dark .kvl-scroll::-webkit-scrollbar-thumb { background-color: rgb(255 255 255 / 0.12); }
+/* Hints (?) discretos: dentro de una fila sólo aparecen al pasar el ratón o con foco. */
+.kvl-row .kvl-hint { opacity: 0; transition: opacity 150ms ease; }
+.kvl-row:hover .kvl-hint, .kvl-row:focus-within .kvl-hint, .kvl-hint:focus-within { opacity: 1; }
+@media (hover: none) and (pointer: coarse) { .kvl-row .kvl-hint { opacity: 1; } }
+
+/* ── Kivara Lingo motion system ────────────────────────────────────────
+ * Una sola curva y tres duraciones para panel, transcripción, popup y onboarding.
+ *   fast 150ms (hover/press) · base 220ms (estado) · slow 320ms (entrada)
+ */
+:root {
+  --kvl-ease: cubic-bezier(.2, .8, .2, 1);
+  --kvl-spring: cubic-bezier(.34, 1.36, .64, 1);
+}
+
+/* Respuesta táctil al pulsar: todos los botones y opciones seleccionables. */
+.kvl-press { transition: background-color 150ms var(--kvl-ease), color 150ms var(--kvl-ease), box-shadow 150ms var(--kvl-ease), transform 150ms var(--kvl-ease), opacity 150ms var(--kvl-ease); }
+.kvl-press:not(:disabled):not([aria-disabled="true"]):active { transform: scale(.97); }
+
+/* Tarjetas seleccionables (onboarding, proveedores, packs): elevación sutil. */
+.kvl-lift { transition: box-shadow 220ms var(--kvl-ease), transform 220ms var(--kvl-ease), background-color 150ms var(--kvl-ease), border-color 150ms var(--kvl-ease); }
+@media (hover: hover) { .kvl-lift:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 6px 18px -10px rgb(16 24 40 / .22); } }
+.kvl-lift:not(:disabled):active { transform: translateY(0) scale(.99); }
+
+/* Píldora deslizante de los controles segmentados. */
+.kvl-seg-pill { transition: left 320ms var(--kvl-ease), width 320ms var(--kvl-ease); }
+
+/* Entrada escalonada del contenido al abrir una pestaña o paso. */
+@keyframes kvl-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.kvl-stagger > * { animation: kvl-rise 320ms var(--kvl-ease) both; }
+.kvl-stagger > *:nth-child(2) { animation-delay: 40ms; }
+.kvl-stagger > *:nth-child(3) { animation-delay: 80ms; }
+.kvl-stagger > *:nth-child(4) { animation-delay: 120ms; }
+.kvl-stagger > *:nth-child(5) { animation-delay: 160ms; }
+.kvl-stagger > *:nth-child(n+6) { animation-delay: 200ms; }
+
+/* El chevron de cualquier Select gira al abrirse. */
+[data-state="open"] > .kvl-chevron { transform: rotate(180deg); }
+.kvl-chevron { transition: transform 220ms var(--kvl-ease); }
+
+@media (prefers-reduced-motion: reduce) {
+  .kvl-press, .kvl-lift, .kvl-seg-pill, .kvl-chevron { transition: none !important; }
+  .kvl-lift:hover { transform: none !important; }
+  .kvl-stagger > *, .sl-animate-fade-up, .sl-animate-step-fwd, .sl-animate-step-back,
+  .sl-animate-celebrate, .sl-animate-badge-pop, .sl-animate-info-tip, .sl-animate-info-tip-up { animation: none !important; }
+}
+@keyframes kvl-shutter { 0% { background-color: rgb(255 255 255 / 0); } 30% { background-color: rgb(255 255 255 / 0.55); } 100% { background-color: rgb(255 255 255 / 0); } }
+
+/* ── Overlay: estado de palabra ─────────────────────────────────────────
+ * El texto conserva el color que elige el usuario; el estado sólo se lee en
+ * el subrayado, con color Y patrón (legible sin distinguir colores; azul y
+ * naranja es además el par seguro para daltonismo de la paleta Okabe-Ito).
+ * Jerarquía por prioridad de estudio, no por cantidad:
+ *   aprendiendo → línea continua naranja (la más visible: está en tu mazo y
+ *                 cada reencuentro en contexto refuerza la memoria)
+ *   nueva       → punteado cielo (convención web de «pasa el ratón para ver
+ *                 la definición», como <abbr>; discreto porque abunda)
+ *   conocida    → sin marca
+ * El tipo es independiente: una expresión (MWE) se agrupa con un corchete
+ * ⎣ ⎦ que hereda color y patrón del estado. Hover y selección: índigo.
+ */
+:root {
+  --kvl-ws-new: #38bdf8;
+  --kvl-ws-learning: #fb923c;
+  --kvl-ws-neutral: rgb(255 255 255 / 0.32);
+}
+.kvl-tok { position: relative; }
+.kvl-tok[data-ws]::after {
+  content: '';
+  position: absolute;
+  left: 0.1em;
+  right: 0.1em;
+  bottom: -0.02em;
+  height: max(2px, 0.075em);
+  border-radius: 9999px;
+  pointer-events: none;
+  transition: opacity 150ms var(--kvl-ease);
+}
+/* --kvl-ink-*: tinta para superficies del panel/tarjeta (mismo tono, más
+   oscuro sobre blanco); si no se define, se usa la del overlay (vídeo). */
+.kvl-tok[data-ws="new"] { --kvl-mark: var(--kvl-ink-new, var(--kvl-ws-new)); }
+.kvl-tok[data-ws="learning"] { --kvl-mark: var(--kvl-ink-learning, var(--kvl-ws-learning)); }
+.kvl-tok[data-ws="known"] { --kvl-mark: var(--kvl-ink-neutral, var(--kvl-ws-neutral)); }
+/* Aprendiendo: continua. */
+.kvl-tok[data-ws="learning"]::after { background: var(--kvl-mark); }
+/* Nueva: puntos redondos (radio = media altura de la línea). */
+.kvl-tok[data-ws="new"]:not([data-expr])::after {
+  height: max(2.5px, 0.085em);
+  border-radius: 0;
+  background: radial-gradient(circle closest-side, var(--kvl-mark) 88%, transparent) 0 0 / max(5px, 0.17em) 100% repeat-x;
+}
+.kvl-tok[data-ws="known"]:not([data-expr])::after { display: none; }
+/* Expresión: corchete inferior que abarca todas sus palabras. */
+.kvl-tok[data-expr][data-ws]::after {
+  height: 0.24em;
+  background: none;
+  border: max(2px, 0.075em) solid var(--kvl-mark);
+  border-top: 0;
+  border-radius: 0 0 0.1em 0.1em;
+}
+.kvl-tok[data-expr][data-ws="new"]::after { border-style: dotted; }
+/* «Palabras nuevas: Sin marca»: la palabra queda limpia; la expresión
+   conserva su corchete, en neutro, porque el tipo sigue importando.
+   Sólo cambia el dibujo: el estado (y la línea de «aprendiendo») no se toca. */
+[data-new-marks="none"] .kvl-tok[data-ws="new"]:not([data-expr])::after { display: none; }
+[data-new-marks="none"] .kvl-tok[data-expr][data-ws="new"] { --kvl-mark: var(--kvl-ink-neutral, var(--kvl-ws-neutral)); }
+[data-new-marks="none"] .kvl-tok[data-expr][data-ws="new"]::after { border-style: solid; }
+/* Con hover o selección manda el índigo: la marca se aparta. */
+.kvl-tok[data-active]::after { opacity: 0; }
+/* Transcripción: en las frases ya pasadas la marca se atenúa con el texto. */
+.kvl-past .kvl-tok::after { opacity: 0.55; }
+
+/* Glifo de estado (opciones del selector de la tarjeta de palabra): la misma
+   marca en miniatura. Conocida = sin línea, así que no lleva glifo. */
+.kvl-glyph { display: inline-block; width: 12px; height: 3px; flex-shrink: 0; }
+.kvl-glyph[data-ws="learning"] { background: var(--kvl-ink-learning, var(--kvl-ws-learning)); border-radius: 9999px; }
+.kvl-glyph[data-ws="new"] { background: radial-gradient(circle closest-side, var(--kvl-ink-new, var(--kvl-ws-new)) 88%, transparent) 0 0 / 4.5px 100% repeat-x; }
+.kvl-glyph[data-ws="known"]:not([data-expr]) { display: none; }
+/* Expresión: corchete en miniatura (neutro en la leyenda: el tipo no es un estado). */
+.kvl-glyph[data-expr] {
+  height: 4px;
+  background: none;
+  border: 1.5px solid var(--kvl-ink-neutral, var(--kvl-ws-neutral));
+  border-top: 0;
+  border-radius: 0 0 1.5px 1.5px;
+}
+/* Corchete con el color del estado (lista de palabras del episodio). */
+.kvl-glyph[data-expr][data-tint][data-ws="learning"] { border-color: var(--kvl-ink-learning, var(--kvl-ws-learning)); }
+.kvl-glyph[data-expr][data-tint][data-ws="new"] { border-color: var(--kvl-ink-new, var(--kvl-ws-new)); border-style: dotted; border-width: 2px; border-top: 0; }

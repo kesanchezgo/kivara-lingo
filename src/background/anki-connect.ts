@@ -1,4 +1,4 @@
-import { t } from '../shared/i18n';
+import { t } from '../shared/i18n/sw';
 import { isLoopbackAnkiUrl } from '../shared/anki-host';
 /// <reference types="chrome" />
 

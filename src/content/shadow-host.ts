@@ -44,6 +44,7 @@
 import globalsCss from '../styles/globals.css?inline';
 import themeCss from '../styles/theme.css?inline';
 import tailwindCss from '../styles/tailwind.css?inline';
+import { ensureKivaraInter } from '../ui/fonts';
 // Sonner ships its layout/animation CSS as a separate file. Sonner injects
 // it into `document.head` at runtime, but our React tree lives inside the
 // Shadow DOM where that head-level rule is invisible — without this import
@@ -230,6 +231,11 @@ export class ShadowHost {
     const shadowRoot = hostElement.attachShadow({ mode: 'closed' });
     shadowRoots.set(hostElement, shadowRoot);
 
+    // Inter has to be added to `document.fonts` from the content world: a
+    // @font-face declared in this stylesheet would not resolve inside the
+    // closed root. Fire and forget — the system stack is the fallback.
+    void ensureKivaraInter();
+
     // ── Layer 1: baseline stylesheet ─────────────────────────────────────
     // Pinned typography + Tailwind v4 token overrides + every --tw-* seed.
     // Lives BEFORE the main stylesheet so user-authored utilities can still
@@ -301,7 +307,7 @@ const BASELINE_CSS = `
      * pin font-family inline (popovers, subtitles, tooltips that portal
      * out of the React tree) should reference --kvl-font-sans so any
      * future tweak only happens here. */
-    --kvl-font-sans: ui-sans-serif, system-ui, -apple-system,
+    --kvl-font-sans: 'Kivara Inter', ui-sans-serif, system-ui, -apple-system,
       BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
       "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
       "Segoe UI Symbol";
