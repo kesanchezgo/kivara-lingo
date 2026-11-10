@@ -191,28 +191,24 @@ function nextPresentedFrame(video: HTMLVideoElement, timeoutMs = 120): Promise<v
   });
 }
 
-/** Seek a video to `seconds` and resolve once a fresh frame is presented.
- *  Falls back to a short timeout so a player that never fires `seeked`
- *  (or already sat at the target time) can't hang the save. */
-function seekTo(video: HTMLVideoElement, seconds: number): Promise<void> {
-  return new Promise((resolve) => {
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      video.removeEventListener('seeked', finish);
-      resolve();
-    };
-    video.addEventListener('seeked', finish, { once: true });
-    try {
-      video.currentTime = seconds;
-    } catch {
-      finish();
-      return;
-    }
-    // Safety net: some players decode a paused seek without emitting `seeked`.
-    void wait(220).then(finish);
-  });
+/** Seek through the platform PlaybackController, in milliseconds. */
+export type FrameSeek = (timeMs: number) => Promise<void>;
+
+/** Seek and resolve once a fresh frame is presented. The assignment itself is
+ *  the controller's job (Netflix never gets a `currentTime` write — M7375). */
+async function seekTo(
+  video: HTMLVideoElement,
+  seek: FrameSeek,
+  timeMs: number,
+): Promise<void> {
+  try {
+    await seek(timeMs);
+  } catch {
+    return;
+  }
+  // Give the compositor a beat to present the seeked frame before we read
+  // pixels, so we don't score a stale pre-seek frame.
+  await nextPresentedFrame(video);
 }
 
 /**
@@ -230,11 +226,16 @@ function seekTo(video: HTMLVideoElement, seconds: number): Promise<void> {
  *    (`requestVideoFrameCallback`) and re-sample without moving the playhead.
  *  - Return the highest-scoring usable frame; if none is usable, return
  *    `null` so the caller's web-image fallback can take over.
+ *
+ * Seeking is OPT-IN through `options.seek`. Platform adapters that cannot
+ * seek safely (Netflix: writing `currentTime` interrupts playback, M7375)
+ * simply omit it, and this function samples the frame that is already on
+ * screen — never the platform's playhead (docs/REDESIGN-V2.md §3 H2).
  */
 export async function captureBestFrame(
   video: HTMLVideoElement,
   cue?: { start?: number; end?: number },
-  options: { quality?: number; maxWidth?: number } = {},
+  options: { quality?: number; maxWidth?: number; seek?: FrameSeek } = {},
 ): Promise<string | null> {
   const dims = frameDimensions(video, options.maxWidth ?? 1280);
   if (!dims) return null;
@@ -273,8 +274,12 @@ export async function captureBestFrame(
   const afterPlaying = best();
   if (afterPlaying?.q.usable) return afterPlaying.dataUrl;
 
-  // 2b. Paused rescue path — only for a paused video with a known cue window.
+  // 2b. Paused rescue path — only for a paused video with a known cue window
+  // AND a seek function. Netflix passes none: sampling the current frame is
+  // the whole strategy there.
+  const seek = options.seek;
   const canSeek =
+    Boolean(seek) &&
     video.paused &&
     cue?.start != null &&
     cue?.end != null &&
@@ -282,36 +287,29 @@ export async function captureBestFrame(
     Number.isFinite(cue.end) &&
     cue.end > cue.start;
 
-  if (canSeek) {
-    const startS = (cue!.start as number) / 1000;
-    const endS = (cue!.end as number) / 1000;
-    const midS = (startS + endS) / 2;
-    const original = video.currentTime;
+  if (canSeek && seek) {
+    const startMs = cue!.start as number;
+    const endMs = cue!.end as number;
+    const middleMs = (startMs + endMs) / 2;
+    const originalMs = video.currentTime * 1000;
     // Sample distinct instants; a fade rarely spans the whole cue.
-    const samples = [midS, startS + 0.15, endS - 0.15].filter(
-      (s) => Number.isFinite(s) && Math.abs(s - original) > 0.08,
+    const samples = [middleMs, startMs + 150, endMs - 150].filter(
+      (instant) => Number.isFinite(instant) && Math.abs(instant - originalMs) > 80,
     );
     try {
-      for (const s of samples) {
-        await seekTo(video, s);
-        // Give the compositor a beat to present the seeked frame before we
-        // read pixels, so we don't score a stale pre-seek frame.
-        await nextPresentedFrame(video);
+      for (const instant of samples) {
+        await seekTo(video, seek, instant);
         await grabAndScore();
         if (best()?.q.usable) break; // stop early once we have a keeper
       }
     } finally {
       // Restore the playhead so the user sees exactly where they paused.
-      // Guard the assignment: if it throws we still don't want to leave the
-      // user parked on a rescue sample.
+      // Through the same controller: on a platform that refuses the seek we
+      // leave the playhead alone instead of writing it ourselves.
       try {
-        await seekTo(video, original);
+        await seek(originalMs);
       } catch {
-        try {
-          video.currentTime = original;
-        } catch {
-          /* nothing more we can safely do */
-        }
+        /* nothing more we can safely do */
       }
     }
   }

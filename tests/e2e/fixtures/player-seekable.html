@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Kivara e2e study player fixture</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #000;
+      }
+      #stage {
+        position: relative;
+        width: 640px;
+        height: 360px;
+        margin: 0 auto;
+      }
+      video {
+        width: 100%;
+        height: 100%;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <!--
+        A SEEKABLE synthetic clip: the canvas is recorded for ~6.5 s with
+        MediaRecorder and the resulting WebM becomes the video source. The
+        original fixture used `canvas.captureStream()` directly, which is live
+        and therefore NOT seekable — the study controls (previous/next, loop,
+        auto-pause) cannot be exercised on it.
+
+        The captions are the same VTT the smoke test uses (0–3 s, 3–6 s,
+        6–9 s); the clip is shorter than the last cue on purpose, nothing here
+        needs it.
+      -->
+      <video id="player" muted playsinline crossorigin="anonymous">
+        <track id="cues" kind="subtitles" srclang="en" label="English" default src="./cues.vtt" />
+      </video>
+    </div>
+
+    <script>
+      const canvas = document.createElement('canvas');
+      canvas.width = 640;
+      canvas.height = 360;
+      const ctx = canvas.getContext('2d');
+
+      let frame = 0;
+      let recorder = null;
+      function draw() {
+        const gradient = ctx.createLinearGradient(0, 0, 640, 360);
+        gradient.addColorStop(0, `hsl(${(frame * 4) % 360}, 80%, 50%)`);
+        gradient.addColorStop(1, `hsl(${(frame * 4 + 120) % 360}, 80%, 40%)`);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 640, 360);
+        ctx.fillStyle = '#fff';
+        ctx.font = '48px sans-serif';
+        ctx.fillText(`frame ${frame}`, 40, 200);
+        frame += 1;
+        if (!recorder || recorder.state === 'recording') requestAnimationFrame(draw);
+      }
+
+      const stream = canvas.captureStream(25);
+      draw();
+      const chunks = [];
+      recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) chunks.push(event.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const video = document.getElementById('player');
+        video.src = URL.createObjectURL(blob);
+        video.load();
+        video.addEventListener('loadedmetadata', () => {
+          window.__kivaraClipDuration = video.duration;
+          // Park the playhead at the first cue and start playing: the study
+          // behaviours are driven from here.
+          video.currentTime = 0.05;
+          video
+            .play()
+            .then(() => {
+              window.__kivaraFixtureReady = true;
+            })
+            .catch(() => {
+              window.__kivaraFixtureReady = 'play-rejected';
+            });
+        });
+      };
+      recorder.start();
+      setTimeout(() => recorder.stop(), 6500);
+    </script>
+  </body>
+</html>

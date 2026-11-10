@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { t } from '../../shared/i18n';
+import { t, currentLocale } from '../../shared/i18n';
 import { createPortal } from 'react-dom';
 import { Toaster, toast } from 'sonner';
 import { sendMessage } from 'webext-bridge/content-script';
@@ -27,6 +27,15 @@ import { buildPreviewData } from '../../shared/preview-data';
 import { buildCardTags, newCardId } from '../../shared/cards';
 import { buildExactNoteQuery } from '../../shared/anki-search';
 import { recordCardSaved, useWordStudy, type StudyBinding } from './study';
+import { useEpisode } from './useEpisode';
+import { cueIndexAt, useStudyPlayback } from './useStudyPlayback';
+import { TranscriptRail } from './TranscriptRail';
+import { StudyBar } from './StudyBar';
+import { applyColumnsCss, RAIL_WIDTH_PX } from './columns-css';
+import { railOpenStore, railViewStore } from './ui-state';
+import { useChromeLocal } from '../../ui/hooks/useChromeLocal';
+import { aiConfigured } from '../../shared/ai-configured';
+import { createInertAiPort } from './ai-port';
 
 /**
  * Find the Anki field name (key in fieldSources) currently mapped to the
@@ -125,12 +134,15 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     subtitleStyles,
     ankiMapping,
     cleanup,
+    study,
+    ai,
     setPanelOpen,
     setIsPopupMode,
     setIsDarkMode,
     setSubtitleStyles,
     setAnkiMapping,
     setSubtitlesVisible,
+    setStudy,
   } = useKivaraStore();
 
   const [activeCue, setActiveCue] = useState<ActiveCue | null>(null);
@@ -235,6 +247,63 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     inAnki: wordStudy.inAnki,
     userStatusOf: wordStudy.userStatusOf,
   }), [wordStudy.statusOf, wordStudy.detailOf, wordStudy.setStatus, wordStudy.inAnki, wordStudy.userStatusOf]);
+
+  // ── F6: the episode boundary, the study playback and the rail ────────────
+  // The full track comes from the adapter v2 (already seeked to the current
+  // platform's semantics); every jump below goes through `episode.controller`.
+  const episode = useEpisode(adapter);
+  const studyPlayback = useStudyPlayback({
+    controller: episode.controller,
+    cues: episode.cues,
+    video: videoElement,
+    pausedByKivara: kivaraPausedRef,
+    suspended: captureView !== null,
+  });
+  const railOpen = useChromeLocal(railOpenStore);
+  const railView = useChromeLocal(railViewStore);
+  // Latest study playback for the long-lived watchdog and key listeners.
+  const studyPlaybackRef = useRef(studyPlayback);
+  studyPlaybackRef.current = studyPlayback;
+  // AI is wired to the F7 port: the explain action only appears when the user
+  // configured a provider + key.
+  const aiOn = aiConfigured(ai);
+  const aiPort = useMemo(() => createInertAiPort(), []);
+  // Cue under the playhead, for the rail. App re-renders when the adapter
+  // publishes a new cue, so this is a cheap read, not a poll.
+  const activeCueIndex = cueIndexAt(
+    episode.cues,
+    adapter?.getCurrentTime?.() ?? (videoElement ? videoElement.currentTime * 1000 : 0),
+  );
+
+  // Reserve the column on the right (H11/D1). Removed when the rail closes so
+  // the player returns to its own layout.
+  const railVisible = enabled && railOpen && !(panelOpen && !isPopupMode);
+  /**
+   * Jump and play through the adapter's controller. A platform that refuses
+   * the seek (Netflix without its player API yet) leaves playback running
+   * instead of breaking the stream — nothing is written to the element.
+   */
+  const seekAndPlay = useCallback(
+    (timeMs: number) => {
+      const controller = episode.controller;
+      if (!controller) return;
+      void controller
+        .seek(timeMs)
+        .then(() => controller.play())
+        .catch(() => {});
+    },
+    [episode.controller],
+  );
+  useEffect(() => {
+    applyColumnsCss({
+      enabled: railVisible,
+      platform: adapter?.platform,
+      widthPx: RAIL_WIDTH_PX,
+    });
+    return () => {
+      applyColumnsCss({ enabled: false, platform: adapter?.platform });
+    };
+  }, [railVisible, adapter?.platform]);
 
   // Apply the "Limpieza visual" CSS whenever the toggles change. The CSS is
   // platform-aware (the matching selectors live in cleanup-css.ts) so the
@@ -632,6 +701,9 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
 
     const tickResume = () => {
       if (!kivaraPausedRef.current) return;
+      // An auto-pause at the end of the cue is a study decision, not a stuck
+      // hover: the watchdog must not undo it (F6).
+      if (studyPlaybackRef.current.autoPausedRef.current) return;
       if (!videoElement) return;
       if (!videoElement.paused) {
         kivaraPausedRef.current = false;
@@ -784,8 +856,6 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       // chrome.commands → RUN_COMMAND; handling it here too would double-fire.
       if (manifestCombosRef.current?.has(normalizeCombo(combo))) return;
       const map = useKivaraStore.getState().shortcuts;
-      const video = videoElementRef.current;
-      const cue = activeCueRef.current;
       // The map is USER-CUSTOMIZED: a raw 'Ctrl+Shift+S' typed string compares
       // fine, but a user-rebound 'command+s' (mac default) or 'ctrl+ shift+k'
       // stored in the persisted state does NOT match the canonical 'Meta+S'
@@ -797,6 +867,18 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       const normSave = map.save ? normalizeCombo(map.save) : null;
       const normToggle = map.toggle ? normalizeCombo(map.toggle) : null;
       const normReplay = map.replay ? normalizeCombo(map.replay) : null;
+      // F6 page shortcuts. Everything below talks to the PlaybackController
+      // through `studyPlayback`; no direct `currentTime` write is left in App.
+      const normPrev = map.prev ? normalizeCombo(map.prev) : null;
+      const normNext = map.next ? normalizeCombo(map.next) : null;
+      const normReplaySlow = map.replaySlow ? normalizeCombo(map.replaySlow) : null;
+      const normAutoPause = map.autoPause ? normalizeCombo(map.autoPause) : null;
+      const normLoop = map.loop ? normalizeCombo(map.loop) : null;
+      const normSlower = map.slower ? normalizeCombo(map.slower) : null;
+      const normFaster = map.faster ? normalizeCombo(map.faster) : null;
+      const normListenFirst = map.listenFirst ? normalizeCombo(map.listenFirst) : null;
+      const normRail = map.rail ? normalizeCombo(map.rail) : null;
+      const studyControl = studyPlaybackRef.current;
       if (normRecap && combo === normRecap) {
         e.preventDefault();
         e.stopPropagation();
@@ -817,10 +899,49 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       } else if (normReplay && combo === normReplay) {
         e.preventDefault();
         e.stopPropagation();
-        if (video && cue?.start != null) {
-          video.currentTime = cue.start / 1000;
-          void video.play().catch(() => {});
-        }
+        studyControl.replay();
+      } else if (normPrev && combo === normPrev) {
+        e.preventDefault();
+        e.stopPropagation();
+        studyControl.prev();
+      } else if (normNext && combo === normNext) {
+        e.preventDefault();
+        e.stopPropagation();
+        studyControl.next();
+      } else if (normReplaySlow && combo === normReplaySlow) {
+        e.preventDefault();
+        e.stopPropagation();
+        studyControl.replaySlow();
+      } else if (normAutoPause && combo === normAutoPause) {
+        e.preventDefault();
+        e.stopPropagation();
+        const state = useKivaraStore.getState();
+        const next = !state.study.autoPauseCue;
+        state.setStudy((prev) => ({ ...prev, autoPauseCue: next }));
+        toast.message(next ? t('rail.autoPause') : t('player.loopOff'), { duration: 1100 });
+      } else if (normLoop && combo === normLoop) {
+        e.preventDefault();
+        e.stopPropagation();
+        const next = !studyControl.loop;
+        studyControl.setLoop(next);
+        toast.message(next ? t('player.loopOn') : t('player.loopOff'), { duration: 1100 });
+      } else if (normSlower && combo === normSlower) {
+        e.preventDefault();
+        e.stopPropagation();
+        studyControl.stepSpeed(-1);
+      } else if (normFaster && combo === normFaster) {
+        e.preventDefault();
+        e.stopPropagation();
+        studyControl.stepSpeed(1);
+      } else if (normListenFirst && combo === normListenFirst) {
+        e.preventDefault();
+        e.stopPropagation();
+        const state = useKivaraStore.getState();
+        state.setStudy((prev) => ({ ...prev, listenFirst: !prev.listenFirst }));
+      } else if (normRail && combo === normRail) {
+        e.preventDefault();
+        e.stopPropagation();
+        railOpenStore.set(!railOpenStore.get());
       } else {
         // This branch is only reached when nothing matched, so it cannot
         // double-report. One ping per genuinely-unmapped keypress — the same
@@ -923,10 +1044,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
           // an alias for any external script that may still send it.
           case 'repeat_cue':
           case 'repeat_phrase':
-            if (videoElement && activeCue?.start != null) {
-              videoElement.currentTime = activeCue.start / 1000;
-              void videoElement.play().catch(() => {});
-            }
+            if (activeCue?.start != null) seekAndPlay(activeCue.start);
             break;
           case 'recapture_frame':
             doRecaptureFrame();
@@ -963,10 +1081,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       // should not seek the video either. See the review's #6-2 note on
       // the in-page and switch cases.
       if (!useKivaraStore.getState().enabled) return;
-      if (videoElement && activeCue?.start != null) {
-        videoElement.currentTime = activeCue.start / 1000;
-        void videoElement.play().catch(() => {});
-      }
+      if (activeCue?.start != null) seekAndPlay(activeCue.start);
     };
     window.addEventListener('kivara-repeat-cue', onRepeatCueEvent);
     return () => {
@@ -974,7 +1089,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       window.removeEventListener('kivara-recapture-frame', onRecaptureEvent);
       window.removeEventListener('kivara-repeat-cue', onRepeatCueEvent);
     };
-  }, [activeCue, setPanelOpen, videoElement]);
+  }, [activeCue, setPanelOpen, videoElement, seekAndPlay]);
 
   const ensureSubtitleAudioReady = useCallback(async (): Promise<SubtitleAudioAnchor> => {
     if (!videoElement || !activeCue?.end) {
@@ -993,8 +1108,19 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       };
     }
 
-    const originalTime = videoElement.currentTime;
+    const originalMs = videoElement.currentTime * 1000;
     const originalKivaraPaused = kivaraPausedRef.current;
+    // The rewind after the audio pass goes through the PlaybackController:
+    // on Netflix a `currentTime` write interrupts playback (M7375).
+    const restore = async () => {
+      const controller = episode.controller;
+      if (!controller) return;
+      try {
+        await controller.seek(originalMs);
+      } catch (err) {
+        console.warn('[Kivara Lingo] could not restore video time after audio capture', err);
+      }
+    };
     const targetSeconds = activeCue.end / 1000 + 0.25;
     const timeoutMs = Math.min(Math.max(remainingMs + 750, 1_000), 10_000);
 
@@ -1004,11 +1130,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       await waitForVideoTime(videoElement, targetSeconds, timeoutMs);
       const audioAnchor = videoElement.currentTime * 1000;
       videoElement.pause();
-      try {
-        videoElement.currentTime = originalTime;
-      } catch (err) {
-        console.warn('[Kivara Lingo] could not restore video time after audio capture', err);
-      }
+      await restore();
       kivaraPausedRef.current = originalKivaraPaused;
       return {
         videoTimeAtSave: audioAnchor,
@@ -1017,19 +1139,19 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     } catch (err) {
       try {
         if (!videoElement.paused) videoElement.pause();
-        videoElement.currentTime = originalTime;
       } catch {
-        // ignore restore failures
+        // ignore pause failures
       }
+      await restore();
       kivaraPausedRef.current = originalKivaraPaused;
       const reason = err instanceof Error ? err.message : 'no se pudo reproducir temporalmente';
       console.warn('[Kivara Lingo] subtitle audio completion failed; using TTS fallback', reason);
       return {
-        videoTimeAtSave: originalTime * 1000,
+        videoTimeAtSave: originalMs,
         videoPausedAtSave: true,
       };
     }
-  }, [activeCue?.end, adapter, videoElement]);
+  }, [activeCue?.end, adapter, videoElement, episode.controller]);
 
   const handleSaveCard = useCallback(
     async (token: string | undefined, sentence: string): Promise<CreateCardResponse> => {
@@ -1059,10 +1181,17 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
           // Best-frame capture: samples the cue window on a paused video to
           // dodge fades / transitions / spinners. Null when every candidate is
           // a dud, letting the orchestrator fall back to a web image.
-          frameDataUrl = await captureBestFrame(videoElement, {
-            start: activeCue?.start,
-            end: activeCue?.end,
-          });
+          frameDataUrl = await captureBestFrame(
+            videoElement,
+            { start: activeCue?.start, end: activeCue?.end },
+            {
+              // Netflix never gets a seek (M7375): sample the current frame.
+              seek:
+                adapter?.platform === 'netflix' || !episode.controller
+                  ? undefined
+                  : (timeMs) => episode.controller!.seek(timeMs),
+            },
+          );
         }
         setCaptureView((v) => (v ? { ...v, flash: true, frame: frameDataUrl ? 'ok' : 'failed' } : v));
         if (studyNow.sounds) playSound('shutter');
@@ -1162,7 +1291,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     // SubtitleOverlay's useMemo also lists handleSaveCard — its identity
     // must change when ankiMapping or cue change, which keeps the overlay
     // consistent when deck/adapter/config change.
-    [enabled, activeCue, videoElement, adapter, ensureSubtitleAudioReady, ankiMapping],
+    [enabled, activeCue, videoElement, adapter, ensureSubtitleAudioReady, ankiMapping, episode.controller],
   );
 
   /**
@@ -1291,6 +1420,90 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       </div>
 
       {overlayPortal}
+
+      {/* F6: the study bar lives in the player's overlay root, above the
+          platform's own controls (D2). Its visibility follows pointer activity
+          over the player, like the site's bar. */}
+      {enabled && videoOverlayRoot &&
+        createPortal(
+          <div className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'dark' : ''}`}>
+            <StudyBar
+              enabled={enabled}
+              playing={playing}
+              onTogglePlay={studyPlayback.togglePlay}
+              onPrev={studyPlayback.prev}
+              onReplay={studyPlayback.replay}
+              onReplaySlow={studyPlayback.replaySlow}
+              onNext={studyPlayback.next}
+              autoPause={study.autoPauseCue}
+              onToggleAutoPause={() => {
+                const next = !useKivaraStore.getState().study.autoPauseCue;
+                setStudy((prev) => ({ ...prev, autoPauseCue: next }));
+              }}
+              loop={studyPlayback.loop}
+              onToggleLoop={() => studyPlayback.setLoop(!studyPlayback.loop)}
+              speed={studyPlayback.speed}
+              onSpeed={studyPlayback.setSpeed}
+              railOpen={railOpen}
+              onToggleRail={() => railOpenStore.set(!railOpen)}
+              panelOpen={panelOpen}
+              onTogglePanel={() => setPanelOpen(!panelOpen)}
+            />
+          </div>,
+          videoOverlayRoot,
+        )}
+
+      {/* F6: the transcript column (D1). It reserves its width on the player
+          root through columns-css.ts, so it never covers the picture. */}
+      {railVisible && (
+        <div
+          className="pointer-events-auto"
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: RAIL_WIDTH_PX,
+          }}
+        >
+          <TranscriptRail
+            cues={episode.cues}
+            activeIndex={activeCueIndex}
+            lang={cueLanguage}
+            study={studyBinding}
+            newMarks={study.newMarks}
+            savedWords={initialSavedWords}
+            media={episode.media}
+            view={railView}
+            onViewChange={(view) => railViewStore.set(view)}
+            onSeek={(index) => studyPlayback.seekCue(index)}
+            onReplay={studyPlayback.replay}
+            onReplaySlow={studyPlayback.replaySlow}
+            capturing={captureView !== null}
+            autoPause={study.autoPauseCue}
+            onToggleAutoPause={() => {
+              const next = !useKivaraStore.getState().study.autoPauseCue;
+              setStudy((prev) => ({ ...prev, autoPauseCue: next }));
+            }}
+            loop={studyPlayback.loop}
+            onToggleLoop={() => studyPlayback.setLoop(!studyPlayback.loop)}
+            speed={studyPlayback.speed}
+            onSpeed={studyPlayback.setSpeed}
+            playing={playing}
+            pauseOnExplain={study.pauseOnLookup}
+            onStudyPause={studyPlayback.pauseForStudy}
+            onStudyResume={studyPlayback.resumeIfKivaraPaused}
+            ai={aiOn ? aiPort : null}
+            uiLang={currentLocale()}
+            nativeLang={useKivaraStore.getState().translate.targetLanguage}
+            panelOpen={panelOpen}
+            onTogglePanel={() => setPanelOpen(!panelOpen)}
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+            onClose={() => railOpenStore.set(false)}
+          />
+        </div>
+      )}
 
       {enabled && panelOpen && (
         <div

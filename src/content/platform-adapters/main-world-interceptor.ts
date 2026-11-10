@@ -369,5 +369,93 @@ declare global {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).XMLHttpRequest = PatchedXHR;
 
+  /* ── Playback control (F6 · docs/REDESIGN-V2.md §4.5) ────────────────────
+   *
+   * The ISOLATED adapter cannot move Netflix's playhead without breaking the
+   * stream (error M7375), so it asks this MAIN-world script to call the
+   * player API instead. The command arrives over the same postMessage
+   * channel as the subtitle tracks and carries the bus nonce; the answer goes
+   * back with the same nonce so a page script cannot acknowledge someone
+   * else's seek.
+   *
+   * `videoPlayer.seek()` takes MILLISECONDS on every Netflix build we have
+   * seen, and `getPlayerByIndex(0)` is the session player. Both are read
+   * defensively: a DOM revision that moves the API answers an error instead
+   * of throwing into the page's console.
+   */
+  const PLAYBACK_CMD = 'kivara-lingo:playback';
+  const PLAYBACK_RESULT = 'kivara-lingo:playback-result';
+
+  interface NetflixVideoPlayer {
+    seek?: (ms: number) => void;
+  }
+  interface NetflixPlayerApp {
+    getAPI?: () => {
+      videoPlayer?: {
+        getPlayerByIndex?: (index: number) => NetflixVideoPlayer | undefined;
+        getAllPlayerStates?: () => NetflixVideoPlayer[];
+        seek?: (ms: number) => void;
+      };
+    };
+  }
+
+  function netflixPlayer(): NetflixVideoPlayer | null {
+    try {
+      const api = (
+        window as Window & {
+          netflix?: { appContext?: { state?: { playerApp?: NetflixPlayerApp } } };
+        }
+      ).netflix?.appContext?.state?.playerApp?.getAPI?.();
+      const videoPlayer = api?.videoPlayer;
+      if (!videoPlayer) return null;
+      const byIndex = videoPlayer.getPlayerByIndex?.(0);
+      if (byIndex) return byIndex;
+      const states = videoPlayer.getAllPlayerStates?.();
+      if (states && states.length > 0) return states[0];
+      // Some builds expose `seek` straight on the videoPlayer facade.
+      if (typeof videoPlayer.seek === 'function') {
+        return { seek: (ms: number) => videoPlayer.seek?.(ms) };
+      }
+    } catch {
+      // API moved or not ready yet — the caller gets a legible refusal.
+    }
+    return null;
+  }
+
+  window.addEventListener('message', (event) => {
+    if (event.source !== window) return;
+    const data = event.data as
+      | { source?: unknown; id?: unknown; cmd?: unknown; timeMs?: unknown; nonce?: unknown }
+      | null;
+    if (!data || typeof data !== 'object' || data.source !== PLAYBACK_CMD) return;
+    if (data.nonce !== currentNonce()) return;
+    if (typeof data.id !== 'string') return;
+    const reply = (ok: boolean, error?: string) => {
+      try {
+        window.postMessage(
+          { source: PLAYBACK_RESULT, id: data.id, ok, error, nonce: currentNonce() },
+          '*',
+        );
+      } catch {
+        /* page is going away */
+      }
+    };
+    if (data.cmd !== 'seek' || typeof data.timeMs !== 'number') {
+      reply(false, 'unsupported command');
+      return;
+    }
+    const player = netflixPlayer();
+    if (!player?.seek) {
+      reply(false, 'player API unavailable');
+      return;
+    }
+    try {
+      player.seek(Math.max(0, data.timeMs));
+      reply(true);
+    } catch (err) {
+      reply(false, err instanceof Error ? err.message : String(err));
+    }
+  });
+
   console.log(TAG, 'fetch / XHR interception installed');
 })();

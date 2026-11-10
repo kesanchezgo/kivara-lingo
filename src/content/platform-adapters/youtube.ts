@@ -1,7 +1,9 @@
 import type { SubtitleSource, SubtitleCue, CueListener } from './types';
 import { getYouTubeMediaInfo } from './media-info';
 import { useKivaraStore } from '../../shared/store';
-import { getKnownLanguages, getTrackByLanguage } from './intercepted-bus';
+import { getActiveTrackCues, getKnownLanguages, getLastTrack, getTrackByLanguage, onTrack } from './intercepted-bus';
+import { createMediaPlaybackController } from './playback';
+import { cuesFromRawTrack, cuesFromTextTracks } from './tracks';
 
 /**
  * YouTube adapter.
@@ -35,6 +37,10 @@ export function attachYouTube(): SubtitleSource | null {
   // was removing the hide-style the surviving adapter was still using,
   // and native captions came back. Now every adapter has its own.
   let ownStyle: HTMLStyleElement | null = null;
+
+  /** F6: subscribers of the full track (the transcript rail and episode words). */
+  const trackCueListeners: Array<(cues: SubtitleCue[]) => void> = [];
+  let busUnsub: (() => void) | null = null;
 
   function emit(cue: SubtitleCue | null) {
     currentActiveCue = cue;
@@ -131,6 +137,9 @@ export function attachYouTube(): SubtitleSource | null {
     activeTrack = track;
     track.mode = 'hidden';
     track.addEventListener('cuechange', onCueChange);
+    // The full cue list arrives with the track's `load`; re-read it then so
+    // the transcript does not wait for the 1.5 s fallback poll.
+    track.addEventListener('load', notifyTrackListeners);
     onCueChange();
   }
 
@@ -214,11 +223,42 @@ export function attachYouTube(): SubtitleSource | null {
     if (track) bindTrack(track);
   }
 
+  /**
+   * Full track (F6). YouTube exposes the whole cue list on the `<track>` once
+   * captions are on; when the player renders captions from `/api/timedtext`
+   * without a TextTrack, the MAIN-world interceptor has the parsed track on
+   * the bus instead. Bus first (it also carries the translated track), then
+   * the element.
+   */
+  function fullTrack(): SubtitleCue[] {
+    const sourceLang = useKivaraStore.getState().translate.sourceLang || 'en';
+    const raw =
+      getTrackByLanguage(sourceLang)?.cues ?? getLastTrack()?.cues ?? getActiveTrackCues();
+    if (raw && raw.length > 0) {
+      return cuesFromRawTrack(raw, sourceLang, 'youtube');
+    }
+    return cuesFromTextTracks(video, sourceLang, 'youtube');
+  }
+
+  function notifyTrackListeners() {
+    const cues = fullTrack();
+    if (cues.length === 0) return;
+    trackCueListeners.forEach((listener) => {
+      try {
+        listener(cues);
+      } catch (err) {
+        console.warn('[Kivara Lingo] track listener threw', err);
+      }
+    });
+  }
+
   // Initial attempt + listen for added tracks
   tryAttach();
   if (video.textTracks?.addEventListener) {
     video.textTracks.addEventListener('addtrack', tryAttach);
     video.textTracks.addEventListener('change', tryAttach);
+    video.textTracks.addEventListener('addtrack', notifyTrackListeners);
+    video.textTracks.addEventListener('change', notifyTrackListeners);
   }
   // The DOM-based fallback always runs as a safety net.
   startPolling();
@@ -264,6 +304,37 @@ export function attachYouTube(): SubtitleSource | null {
     getMediaInfo() {
       return getYouTubeMediaInfo();
     },
+    getTrackCues() {
+      return fullTrack();
+    },
+    onTrackCues(cb) {
+      trackCueListeners.push(cb);
+      // The interceptor may publish a /api/timedtext track after mount (and
+      // the translated one later still): re-emit on every bus update.
+      if (!busUnsub) {
+        busUnsub = onTrack((track) => {
+          if (!track.cues?.length) return;
+          notifyTrackListeners();
+        });
+      }
+      const initial = fullTrack();
+      if (initial.length > 0) {
+        try {
+          cb(initial);
+        } catch {
+          /* keep the subscription */
+        }
+      }
+      return () => {
+        const index = trackCueListeners.indexOf(cb);
+        if (index !== -1) trackCueListeners.splice(index, 1);
+        if (trackCueListeners.length === 0 && busUnsub) {
+          busUnsub();
+          busUnsub = null;
+        }
+      };
+    },
+    playback: createMediaPlaybackController(() => video),
     destroy() {
       // A YouTube SPA navigation reuses the SAME <video>, so without this the
       // old adapter's 120 ms poll and its textTracks listeners keep running
@@ -278,12 +349,18 @@ export function attachYouTube(): SubtitleSource | null {
         // "oncuechange = null" (that could nuke a sibling adapter's
         // handler on the same shared <video>).
         activeTrack.removeEventListener('cuechange', onCueChange);
+        activeTrack.removeEventListener('load', notifyTrackListeners);
         activeTrack = null;
       }
       if (video.textTracks?.removeEventListener) {
         video.textTracks.removeEventListener('addtrack', tryAttach);
         video.textTracks.removeEventListener('change', tryAttach);
+        video.textTracks.removeEventListener('addtrack', notifyTrackListeners);
+        video.textTracks.removeEventListener('change', notifyTrackListeners);
       }
+      busUnsub?.();
+      busUnsub = null;
+      trackCueListeners.length = 0;
       // Only OUR OWN style node — not a lookup by shared ID, which is
       // what the review's #3 flagged: a sibling adapter on the same
       // <video> still has its hide-style inserted, and looking it up by

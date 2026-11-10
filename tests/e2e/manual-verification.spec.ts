@@ -11,6 +11,29 @@
  *  3. Two open tabs: "Quitar" in one, a setting change in the other → the
  *     key stays cleared.
  *
+ * ── F6 manual matrix (docs/REDESIGN-V2.md §8) ────────────────────────────
+ * The platform checks below cannot run in CI (signed-in accounts + DRM
+ * streams). Run them by hand on YouTube, Netflix, Max, Disney+ and Prime
+ * Video, windowed AND fullscreen, light AND dark:
+ *
+ *   [ ] Hover a word → card → save (frame + audio) still works.
+ *   [ ] Click a transcript line → jump with no M7375 / playback hiccup.
+ *       (Netflix: the seek goes through the MAIN player API; if the page
+ *       answers "player API unavailable", playback keeps running.)
+ *   [ ] Auto-pause (Alt+Q) stops at the cue end; resuming only undoes a pause
+ *       Kivara made (kivaraPausedRef), never the platform's own pause.
+ *   [ ] Loop (Alt+L) repeats the cue.
+ *   [ ] Speed 0.75 / 1 / 1.25 (Alt+, / Alt+.) applies and survives a seek.
+ *   [ ] Hold ⟲ (or Alt+Shift+R) plays the line once at 0.75× and pauses.
+ *   [ ] Previous / next (Alt+A / Alt+Z) move by line, not by page.
+ *   [ ] Columns: the rail shrinks the player and never covers the picture;
+ *       in fullscreen the rail is still reachable.
+ *   [ ] The study bar appears on pointer activity over the player and fades
+ *       like the site's own controls; the native bar is untouched (D2).
+ *   [ ] New page shortcuts do not collide with the site's or Chrome's:
+ *       Alt+Z (alt. Alt+X) instead of Alt+D, which Chrome owns on Windows.
+ *   [ ] With the extension disabled, no shortcut seeks or saves.
+ *
  * Locale note: fixtures.ts launches Chromium with `--lang=es`, so the UI
  * strings are pinned to the Spanish dictionary instead of inheriting the
  * machine's language. A regression in that pin shows up as a failing locator

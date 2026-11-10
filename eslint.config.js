@@ -97,14 +97,11 @@ export default [
     },
   },
   {
-    // H2: seeking must go through the platform PlaybackController. The two
-    // remaining call sites outside platform-adapters/** are replaced in F6.
+    // H2: seeking must go through the platform PlaybackController. F6 removed
+    // the last two exceptions (capture/frame.ts and ui/App.tsx), so the rule
+    // now applies to every content module outside platform-adapters/**.
     files: ['src/content/**/*.{ts,tsx}'],
-    ignores: [
-      'src/content/platform-adapters/**',
-      'src/content/capture/frame.ts',
-      'src/content/ui/App.tsx',
-    ],
+    ignores: ['src/content/platform-adapters/**'],
     rules: {
       'no-restricted-syntax': [
         'error',

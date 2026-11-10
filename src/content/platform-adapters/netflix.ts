@@ -28,6 +28,9 @@ export function createNetflixAdapter(): SubtitleSource {
     // pick English; the user can override in the panel.
     language: 'en',
     hideNativeCss: HIDE_NATIVE_CSS,
+    // Never `video.currentTime` on Netflix (error M7375): seeks go through the
+    // player API in the MAIN world (F6 · docs/REDESIGN-V2.md §4.5).
+    playback: 'netflix',
     getVideo: () => {
       // Prefer the in-watch container video; fall back to the first <video>.
       const watch = document.querySelector('.watch-video');

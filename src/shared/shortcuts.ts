@@ -35,6 +35,22 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
   { id: 'replay',  label: t('shortcut.replay'),        defaultCombo: 'Alt+R' },
   { id: 'recap',   label: t('shortcut.recap'),         defaultCombo: 'Alt+V' },
   { id: 'panel',   label: t('shortcut.panel'),         defaultCombo: 'Alt+K' },
+  // ── F6: the nine page shortcuts (docs/REDESIGN-V2.md §3 H15) ───────────
+  // Chrome allows at most four `suggested_key` entries per extension and the
+  // manifest already uses all four, so these live only in the in-page keydown
+  // handler (which honours `eventPathIsEditable`).
+  { id: 'prev',       label: t('shortcut.prev'),         defaultCombo: 'Alt+A' },
+  { id: 'replaySlow', label: t('shortcut.replaySlow'),   defaultCombo: 'Alt+Shift+R' },
+  // D9: Alt+D is Chrome's "focus the address bar" on Windows and Linux and the
+  // page never sees the keydown there. Alt+Z is the agreed replacement; a user
+  // who prefers Alt+X rebinds it in Settings (their choice is preserved).
+  { id: 'next',       label: t('shortcut.next'),         defaultCombo: 'Alt+Z' },
+  { id: 'autoPause',  label: t('shortcut.autoPause'),    defaultCombo: 'Alt+Q' },
+  { id: 'loop',       label: t('shortcut.loop'),         defaultCombo: 'Alt+L' },
+  { id: 'slower',     label: t('shortcut.slower'),       defaultCombo: 'Alt+,' },
+  { id: 'faster',     label: t('shortcut.faster'),       defaultCombo: 'Alt+.' },
+  { id: 'listenFirst', label: t('shortcut.listenFirst'), defaultCombo: 'Alt+H' },
+  { id: 'rail',       label: t('shortcut.rail'),         defaultCombo: 'Alt+T' },
 ];
 
 export type ShortcutMap = Record<string, string>;
@@ -78,6 +94,10 @@ export function comboFromEvent(
   const code = 'code' in e ? e.code : undefined;
   if (code?.startsWith('Key')) key = code.slice(3);
   else if (code?.startsWith('Digit')) key = code.slice(5);
+  // Physical comma/period: on macOS Option+, produces '≤' in `e.key`, so the
+  // speed shortcuts would never match without reading `code`.
+  else if (code === 'Comma') key = ',';
+  else if (code === 'Period') key = '.';
 
   if (key === null) {
     const raw = e.key;

@@ -1,5 +1,7 @@
 import { SubtitleSource, SubtitleCue, CueListener } from './types';
 import { getDomMediaInfo } from './media-info';
+import { createMediaPlaybackController } from './playback';
+import { cuesFromTextTracks } from './tracks';
 
 /** Small order-sensitive string hash. Only used to fold the cue text into the
  *  cue identity so a caption that GROWS changes it; not a cryptographic value. */
@@ -16,6 +18,23 @@ export function attachGenericHtml5(video: HTMLVideoElement): SubtitleSource {
   const listeners: CueListener[] = [];
   let currentActiveCue: SubtitleCue | null = null;
   let activeTrack: TextTrack | null = null;
+  /** F6: subscribers of the full track. */
+  const trackCueListeners: Array<(cues: SubtitleCue[]) => void> = [];
+
+  const fullTrack = (): SubtitleCue[] =>
+    cuesFromTextTracks(video, activeTrack?.language || 'en', 'generic');
+
+  const notifyTrackListeners = () => {
+    const cues = fullTrack();
+    if (cues.length === 0) return;
+    trackCueListeners.forEach((listener) => {
+      try {
+        listener(cues);
+      } catch {
+        /* one bad subscriber must not break the others */
+      }
+    });
+  };
 
   const handleCueChange = () => {
     if (!activeTrack) return;
@@ -74,6 +93,8 @@ export function attachGenericHtml5(video: HTMLVideoElement): SubtitleSource {
     track.addEventListener('cuechange', handleCueChange);
     // Trigger immediately in case there's already an active cue
     handleCueChange();
+    // The full track may have finished loading at the same moment.
+    notifyTrackListeners();
   };
 
   // Try to find existing
@@ -114,6 +135,25 @@ export function attachGenericHtml5(video: HTMLVideoElement): SubtitleSource {
     getMediaInfo() {
       return getDomMediaInfo('generic');
     },
+    getTrackCues() {
+      return fullTrack();
+    },
+    onTrackCues(cb) {
+      trackCueListeners.push(cb);
+      const initial = fullTrack();
+      if (initial.length > 0) {
+        try {
+          cb(initial);
+        } catch {
+          /* keep the subscription */
+        }
+      }
+      return () => {
+        const index = trackCueListeners.indexOf(cb);
+        if (index !== -1) trackCueListeners.splice(index, 1);
+      };
+    },
+    playback: createMediaPlaybackController(() => video),
     destroy() {
       // The generic adapter is used on any page with a <video>, and SPA
       // navigation there replaces the element. Unbinding the track and
@@ -125,6 +165,7 @@ export function attachGenericHtml5(video: HTMLVideoElement): SubtitleSource {
         activeTrack = null;
       }
       listeners.length = 0;
+      trackCueListeners.length = 0;
       currentActiveCue = null;
     }
   };
