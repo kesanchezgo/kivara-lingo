@@ -44,7 +44,7 @@ import { speak } from './tts';
 import { enrichWithAi } from './ai-enrich';
 import { resolveWordStreaming } from './resolve-word';
 import { installResolveWordPort } from './enrichment/stream';
-import { clearEnrichmentCache, clearMemEnrichmentCache } from './enrichment/orchestrator';
+import { clearEnrichmentCache, clearMemEnrichmentCache, getEnrichmentSourceHealth } from './enrichment/orchestrator';
 
 /** Deep-link section for OPEN_SETTINGS (see the handler below). */
 import { dbg, dbgOnce } from '../shared/debug-log';
@@ -657,6 +657,13 @@ onMessage('AI_ENRICH', async ({ data }) => {
   const response: AiEnrichResponse = await enrichWithAi(request);
   return asJson(response);
 });
+
+/**
+ * Per-source latency + last error from the enrichment fan-out (F2). Memory
+ * only: a worker restart empties the map and the UI reads that as "not
+ * tested yet".
+ */
+onMessage('ENRICH_SOURCE_HEALTH', async () => asJson(getEnrichmentSourceHealth()));
 
 /**
  * Three-wave token resolution for the popover. Performs the local dictionary

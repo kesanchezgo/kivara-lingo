@@ -40,7 +40,7 @@ vi.mock('../../src/shared/store', () => {
   store.setState = () => {};
   store.subscribe = () => () => {};
   store.getState = () => state;
-  return { useKivaraStore: store };
+  return { useKivaraStore: store, DEFAULT_STUDY: { translation: 'visible', listenFirst: false, autoPauseCue: false, pauseOnLookup: true, sounds: true, newMarks: 'dotted' } };
 });
 vi.mock('../../src/app/hooks/useShortcuts', () => ({ useShortcuts: () => ({ map: {} }) }));
 vi.mock('../../src/app/components/tabs/DictPacksSection', () => ({

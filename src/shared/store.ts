@@ -9,6 +9,7 @@ import type {
   CaptureSettings,
   CleanupSettings,
   TranslateSettings,
+  StudySettings,
   AiSettings,
   TtsSettings,
   OnboardingState,
@@ -63,6 +64,22 @@ export const DEFAULT_CAPTURE: CaptureSettings = {
 export const DEFAULT_CLEANUP: CleanupSettings = {
   hideUI: true,
   hideShadows: true,
+};
+
+/**
+ * Study defaults (store v3). They mirror what the pre-v3 build did, so the
+ * upgrade changes no visible behaviour:
+ *  • a dual-subtitle user keeps the translation visible;
+ *  • Kivara always paused while the card was open → `pauseOnLookup: true`;
+ *  • new words were always dotted.
+ */
+export const DEFAULT_STUDY: StudySettings = {
+  translation: 'visible',
+  listenFirst: false,
+  autoPauseCue: false,
+  pauseOnLookup: true,
+  sounds: true,
+  newMarks: 'dotted',
 };
 
 export const DEFAULT_TRANSLATE: TranslateSettings = {
@@ -246,6 +263,8 @@ export interface KivaraState {
   capture: CaptureSettings;
   cleanup: CleanupSettings;
   translate: TranslateSettings;
+  /** Study-mode preferences (store v3). */
+  study: StudySettings;
   ai: AiSettings;
   vip: VipSettings;
   tts: TtsSettings;
@@ -266,6 +285,7 @@ export interface KivaraState {
   setCapture: (c: CaptureSettings | ((prev: CaptureSettings) => CaptureSettings)) => void;
   setCleanup: (c: CleanupSettings | ((prev: CleanupSettings) => CleanupSettings)) => void;
   setTranslate: (t: TranslateSettings | ((prev: TranslateSettings) => TranslateSettings)) => void;
+  setStudy: (s: StudySettings | ((prev: StudySettings) => StudySettings)) => void;
   setAi: (a: AiSettings | ((prev: AiSettings) => AiSettings)) => void;
   setVip: (v: VipSettings | ((prev: VipSettings) => VipSettings)) => void;
   setTts: (t: TtsSettings | ((prev: TtsSettings) => TtsSettings)) => void;
@@ -761,7 +781,7 @@ export async function retrySyncWrite(): Promise<boolean> {
  * AND add to this table in the same commit; anything not listed here stays
  * untouched.
  */
-export const STORE_VERSION = 2;
+export const STORE_VERSION = 3;
 /**
  * Model ids the providers have retired, mapped to the closest live one.
  * `anthropic-version: 2023-06-01` plus these bodies get a hard error from
@@ -812,6 +832,12 @@ export function liveAiModel<T extends { model?: string }>(ai: T): T {
  * Version 2 (not 1): version 1 shipped broken in c2c00bb and still stamped
  * `version: 1` into every snapshot, so "below 2" is exactly the set of
  * profiles that need this.
+ *
+ * Version 3 adds the `study` slice and the per-language deck map. Both are
+ * derived from values that already existed in the snapshot, and every step
+ * checks for its own output first, so re-running the migration on an
+ * already-migrated state is a no-op (the version gate usually prevents the
+ * second run; a hand-edited snapshot version does not).
  */
 export function migrateStoreState(
   persisted: unknown,
@@ -820,10 +846,58 @@ export function migrateStoreState(
   if (fromVersion >= STORE_VERSION || persisted == null || typeof persisted !== 'object') {
     return persisted;
   }
-  const state = persisted as { ai?: { model?: unknown } };
+  const state = persisted as {
+    ai?: { model?: unknown };
+    translate?: { showDualSubtitle?: unknown; sourceLang?: unknown };
+    study?: unknown;
+    ankiMapping?: { deckName?: unknown; decks?: unknown };
+    shortcuts?: unknown;
+  };
   if (state.ai && typeof state.ai === 'object') {
     state.ai = liveAiModel(state.ai as { model?: string });
   }
+
+  // ── v2 → v3 ──────────────────────────────────────────────────────────────
+  // The old boolean could only express visible / hidden; `false` becomes
+  // `hidden`, everything else (including a snapshot that never had the field)
+  // keeps the translation visible, which is the pre-v3 render.
+  if (!state.study || typeof state.study !== 'object') {
+    state.study = {
+      translation: state.translate?.showDualSubtitle === false ? 'hidden' : 'visible',
+      listenFirst: false,
+      autoPauseCue: false,
+      pauseOnLookup: true,
+      sounds: true,
+      newMarks: 'dotted',
+    };
+  }
+
+  // One deck per language: the single `deckName` the profile already had
+  // becomes the deck of the language being learned (docs/REDESIGN-V2.md H9).
+  const mapping = state.ankiMapping;
+  if (mapping && typeof mapping === 'object') {
+    const hasDecks =
+      mapping.decks != null && typeof mapping.decks === 'object' && !Array.isArray(mapping.decks);
+    if (!hasDecks) {
+      const deckName = typeof mapping.deckName === 'string' ? mapping.deckName.trim() : '';
+      if (deckName) {
+        const lang =
+          typeof state.translate?.sourceLang === 'string' && state.translate.sourceLang
+            ? state.translate.sourceLang
+            : 'en';
+        mapping.decks = { [lang]: deckName };
+      }
+    }
+  }
+
+  // New shortcut actions land with their defaults; a combo the user
+  // personalised is never overwritten.
+  const shortcuts =
+    state.shortcuts && typeof state.shortcuts === 'object'
+      ? (state.shortcuts as Record<string, unknown>)
+      : {};
+  state.shortcuts = { ...DEFAULT_SHORTCUT_MAP, ...shortcuts };
+
   return persisted;
 }
 
@@ -866,6 +940,7 @@ function mergePersisted(persistedState: unknown, currentState: KivaraState): Kiv
     },
     capture: { ...DEFAULT_CAPTURE, ...(persisted.capture ?? {}) },
     cleanup: { ...DEFAULT_CLEANUP, ...(persisted.cleanup ?? {}) },
+    study: { ...DEFAULT_STUDY, ...(persisted.study ?? {}) },
     translate: {
       ...DEFAULT_TRANSLATE,
       ...(persisted.translate ?? {}),
@@ -911,6 +986,7 @@ export const useKivaraStore = create<KivaraState>()(
       capture: DEFAULT_CAPTURE,
       cleanup: DEFAULT_CLEANUP,
       translate: DEFAULT_TRANSLATE,
+      study: DEFAULT_STUDY,
       ai: DEFAULT_AI,
       vip: DEFAULT_VIP,
       tts: DEFAULT_TTS,
@@ -945,6 +1021,10 @@ export const useKivaraStore = create<KivaraState>()(
       setTranslate: (t) =>
         set((state) => ({
           translate: typeof t === 'function' ? t(state.translate) : t,
+        })),
+      setStudy: (s) =>
+        set((state) => ({
+          study: typeof s === 'function' ? s(state.study) : s,
         })),
       setAi: (a) =>
         set((state) => ({
@@ -990,6 +1070,7 @@ export const useKivaraStore = create<KivaraState>()(
         capture: state.capture,
         cleanup: state.cleanup,
         translate: state.translate,
+        study: state.study,
         ai: state.ai,
         vip: state.vip,
         tts: state.tts,

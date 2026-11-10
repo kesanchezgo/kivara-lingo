@@ -16,6 +16,7 @@ import type {
   AiEnrichResponse,
   ResolveWordRequest,
   ResolveWordResponse,
+  EnrichSourceHealthMap,
 } from './types';
 
 declare module 'webext-bridge' {
@@ -38,6 +39,7 @@ declare module 'webext-bridge' {
     TRANSLATE: ProtocolWithReturn<TranslateRequest, TranslateResponse>;
     TTS_SPEAK: ProtocolWithReturn<TtsSpeakRequest, TtsResponse>;
     AI_ENRICH: ProtocolWithReturn<AiEnrichRequest, AiEnrichResponse>;
+    ENRICH_SOURCE_HEALTH: ProtocolWithReturn<Record<string, never>, EnrichSourceHealthMap>;
     OPEN_SETTINGS: ProtocolWithReturn<{ section?: string }, { ok: boolean }>;
     RESOLVE_WORD: ProtocolWithReturn<ResolveWordRequest, ResolveWordResponse>;
   }

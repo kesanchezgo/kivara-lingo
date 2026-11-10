@@ -42,12 +42,16 @@ export const MODELS_BY_PROVIDER: Record<
     { value: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro',        tag: t('aimodel.topQuality') },
     { value: 'gemini-flash-latest',   label: 'Gemini Flash latest',   tag: t('aimodel.latestRolling') },
   ],
+  // Any base URL can host any model id, so the picker is a free-form input
+  // for this provider until F7 ships the curated endpoint list.
+  'openai-compatible': [],
 };
 
 export const PLACEHOLDER_BY_PROVIDER: Record<Exclude<AiProvider, 'disabled'>, string> = {
   openai: 'sk-...',
   anthropic: 'sk-ant-...',
   'google-ai': 'AIza...',
+  'openai-compatible': 'sk-...',
 };
 
 /**
@@ -61,4 +65,5 @@ export const DEFAULT_MODEL_BY_PROVIDER: Record<Exclude<AiProvider, 'disabled'>, 
   openai: 'gpt-4o-mini',
   anthropic: 'claude-haiku-4-5',
   'google-ai': 'gemini-2.5-flash',
+  'openai-compatible': '',
 };

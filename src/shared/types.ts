@@ -33,6 +33,39 @@ export interface SubtitleStyles {
    * busy scenes don't bleed through onto the popover. Default true.
    */
   hoverBlur: boolean;
+  /**
+   * Palette of the word card / popover surface. `auto` follows the page
+   * theme. Added in store v3 (docs/REDESIGN-V2.md §4.4); absent means dark,
+   * which is what every pre-v3 build rendered.
+   */
+  cardTheme?: 'dark' | 'light' | 'auto';
+}
+
+/** How the second subtitle line (the native translation) is rendered. */
+export type TranslationMode = 'visible' | 'blur' | 'hidden';
+
+/**
+ * Study preferences (store v3). Small enough to ride in the synced settings
+ * blob; the per-language word status that grows without bound lives in
+ * chrome.storage.local instead (docs/REDESIGN-V2.md §4.3).
+ */
+export interface StudySettings {
+  /**
+   * Replaces `translate.showDualSubtitle`: three states instead of a boolean,
+   * because the mock's middle state (blurred until hover) has no boolean
+   * equivalent.
+   */
+  translation: TranslationMode;
+  /** Play the line once before revealing the text. */
+  listenFirst: boolean;
+  /** Pause at the end of every cue. */
+  autoPauseCue: boolean;
+  /** Pause while the word card is open. */
+  pauseOnLookup: boolean;
+  /** UI confirmation sounds. */
+  sounds: boolean;
+  /** How a never-seen word is underlined: dotted mark or nothing. */
+  newMarks: 'dotted' | 'none';
 }
 
 /** Native cue alignment as preserved by the parser/adapter. */
@@ -99,6 +132,8 @@ export type FieldSource =
   | 'mnemonic'
   | 'image'
   | 'video-link'
+  | 'cloze'
+  | 'source'
   | 'manual';
 
 export interface AudioClipResponse {
@@ -156,6 +191,18 @@ export interface AnkiMapping {
   modelName: string;
   /** key = exact Anki field name, value = source */
   fieldSources: Record<string, FieldSource>;
+  /**
+   * One deck per study language (BCP-47 → deck name). `deckName` stays as the
+   * read fallback for snapshots written before store v3; new cards resolve
+   * their deck from here by the cue language.
+   */
+  decks?: Record<string, string>;
+  /**
+   * Version of the auto-detection rules that produced `fieldSources`. When it
+   * trails the rules shipped by the build, the mapping can be re-detected
+   * without guessing whether the user chose the sources by hand.
+   */
+  fieldRulesVersion?: number;
 }
 
 export type Mode = 'learning' | 'reading';
@@ -287,7 +334,14 @@ export interface TranslateSettings {
   autoSelectSourceAudio: boolean;
 }
 
-export type AiProvider = 'openai' | 'anthropic' | 'google-ai' | 'disabled';
+export type AiProvider = 'openai' | 'anthropic' | 'google-ai' | 'openai-compatible' | 'disabled';
+
+/**
+ * Wire format of an `openai-compatible` endpoint. `openai-chat` is the
+ * de-facto standard (`/chat/completions`); `anthropic-messages` covers the
+ * providers that expose Claude's message shape under a custom base URL.
+ */
+export type AiApiFormat = 'openai-chat' | 'anthropic-messages';
 
 /**
  * Premium TTS providers that emit a downloadable audio blob (so we can
@@ -357,6 +411,13 @@ export interface AiSettings {
    * surprise charges.
    */
   enableDalleFallback: boolean;
+  /**
+   * Base URL of an `openai-compatible` endpoint (F7 wires the calls; the
+   * fields are persisted from F2 so a saved profile survives the upgrade).
+   */
+  baseUrl?: string;
+  /** Wire format used against `baseUrl`. */
+  apiFormat?: AiApiFormat;
 }
 
 /**
@@ -984,3 +1045,24 @@ export interface AnkiListsResponse {
 export interface AnkiFieldsResponse {
   fields: string[];
 }
+
+/**
+ * Per-source health of the enrichment chain, kept in the service worker's
+ * memory (docs/REDESIGN-V2.md §3 H8). The VIP tab renders it as a dot plus a
+ * one-line reason so a source that silently stopped returning data is
+ * visible without opening DevTools.
+ */
+export type EnrichSourceHealthState = 'ok' | 'slow' | 'error';
+
+export interface EnrichSourceHealth {
+  state: EnrichSourceHealthState;
+  /** Last successful (or failed) round trip, in milliseconds. */
+  latencyMs?: number;
+  /** Last failure message, truncated by the orchestrator. */
+  lastError?: string;
+  /** Epoch ms of the observation. */
+  at: number;
+}
+
+/** Keyed by source id (`cambridge`, `wordnet`, ...). */
+export type EnrichSourceHealthMap = Record<string, EnrichSourceHealth>;

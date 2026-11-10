@@ -122,8 +122,7 @@ export default [
     ignores: [
       'src/ui/icons.tsx',
       // Existing views still on lucide; F3/F9 replace them and this list
-      // disappears with the dependency.
-      'src/content/ui/SidePanel.tsx',
+      // disappears with the dependency. SidePanel left the list in F2.
       'src/content/ui/SubtitleOverlay.tsx',
       'src/content/ui/WordPopover.tsx',
     ],
