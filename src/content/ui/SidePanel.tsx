@@ -368,10 +368,12 @@ export function SidePanel({
               <span className="truncate">{tab.label}</span>
               {tab.id === 'cards' && pendingCards > 0 && (
                 <span
-                  className="w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-amber-400 shrink-0 -ml-0.5"
+                  className="min-w-[15px] h-[15px] px-1 rounded-full bg-amber-500 dark:bg-amber-400 text-white dark:text-zinc-950 text-[9px] font-bold leading-[15px] text-center tabular-nums shrink-0 -ml-0.5"
                   title={t('recent.queuedCount', { n: pendingCards })}
                   aria-label={t('recent.queuedCount', { n: pendingCards })}
-                />
+                >
+                  {pendingCards}
+                </span>
               )}
             </button>
           ))}

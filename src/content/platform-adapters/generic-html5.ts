@@ -1,4 +1,5 @@
 import { SubtitleSource, SubtitleCue, CueListener } from './types';
+import { getDomMediaInfo } from './media-info';
 
 /** Small order-sensitive string hash. Only used to fold the cue text into the
  *  cue identity so a caption that GROWS changes it; not a cryptographic value. */
@@ -109,6 +110,9 @@ export function attachGenericHtml5(video: HTMLVideoElement): SubtitleSource {
     },
     showNativeSubtitles() {
       if (activeTrack) activeTrack.mode = 'showing';
+    },
+    getMediaInfo() {
+      return getDomMediaInfo('generic');
     },
     destroy() {
       // The generic adapter is used on any page with a <video>, and SPA

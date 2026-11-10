@@ -15,6 +15,8 @@ import { dbgOnce } from '../../shared/debug-log';
 import { getShadowRoot, overKivaraZone } from '../shadow-host';
 import { eventPathIsEditable } from '../utils/keyboard';
 import type {
+  AnkiAddContextResponse,
+  AnkiBrowseResponse,
   CreateCardRequest,
   CreateCardResponse,
   FieldSource,
@@ -22,6 +24,8 @@ import type {
 import type { SubtitleSource } from '../platform-adapters/types';
 import { getActiveTrackCues, getTrackByLanguage, onTrack } from '../platform-adapters/intercepted-bus';
 import { buildPreviewData } from '../../shared/preview-data';
+import { buildCardTags, newCardId } from '../../shared/cards';
+import { buildExactNoteQuery } from '../../shared/anki-search';
 
 /**
  * Find the Anki field name (key in fieldSources) currently mapped to the
@@ -159,9 +163,10 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
         } catch {
           // ignore — fall through with whatever state we have
         }
-        const { ankiMapping } = useKivaraStore.getState();
-        if (!ankiMapping.deckName) return;
-        const cached = savedWordsCacheRef.current.get(ankiMapping.deckName);
+        const { ankiMapping, translate } = useKivaraStore.getState();
+        const activeDeck = ankiMapping.decks?.[translate.sourceLang] ?? ankiMapping.deckName;
+        if (!activeDeck) return;
+        const cached = savedWordsCacheRef.current.get(activeDeck);
         if (cached) {
           if (!cancelled) setInitialSavedWords(cached);
           return;
@@ -171,12 +176,12 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
         )?.[0] ?? 'Front';
         const response = (await sendMessage(
           'ANKI_SAVED_WORDS',
-          { deckName: ankiMapping.deckName, fieldName },
+          { deckName: activeDeck, fieldName },
           'background',
         )) as { words?: string[] } | undefined;
         if (!cancelled && Array.isArray(response?.words)) {
           const next = new Set(response.words.map((w) => String(w).toLowerCase()));
-          savedWordsCacheRef.current.set(ankiMapping.deckName, next);
+          savedWordsCacheRef.current.set(activeDeck, next);
           setInitialSavedWords(next);
         }
       } catch {
@@ -1061,15 +1066,24 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
 
         const audioAnchor = await ensureSubtitleAudioReady();
 
+        const lang = cueLanguageRef.current;
+        const activeDeck = ankiMapping.decks?.[lang] ?? ankiMapping.deckName;
+        const media = adapter?.getMediaInfo?.();
+        const kind = tokenValue.trim().split(/\s+/).length > 1 ? 'expression' : 'word';
         const request: CreateCardRequest = {
           token: tokenValue,
           sentence,
+          cardId: newCardId(),
+          kind,
+          lang,
+          deck: activeDeck,
+          media,
           frame: frameDataUrl ?? undefined,
           cueStart: activeCue?.start,
           cueEnd: activeCue?.end,
           videoTimeAtSave: audioAnchor.videoTimeAtSave,
           videoPausedAtSave: audioAnchor.videoPausedAtSave,
-          language: cueLanguageRef.current,
+          language: lang,
           platform: adapter?.platform,
         };
 
@@ -1089,7 +1103,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
               : '';
             toast.success(t('app.cardSaved'), {
               id: saveToastId,
-              description: `${tokenValue} → ${ankiMapping.deckName}${warningSuffix}`,
+              description: `${tokenValue} → ${activeDeck}${warningSuffix}`,
               duration: 3200,
             });
             if (studyNow.sounds) playSound('saved');
@@ -1127,6 +1141,57 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     [enabled, activeCue, videoElement, adapter, ensureSubtitleAudioReady, ankiMapping],
   );
 
+  /**
+   * "See in Anki" from the word card: open the user's browser on the note
+   * that holds this headword. Built with the same exact-query helper the
+   * save path uses, so quotes/asterisks in a token cannot widen the search.
+   */
+  const handleSeeInAnki = useCallback(async (token: string) => {
+    const lang = cueLanguageRef.current;
+    const deck = ankiMapping.decks?.[lang] ?? ankiMapping.deckName;
+    const fieldName = Object.entries(ankiMapping.fieldSources ?? {}).find(
+      ([, source]) => source === 'selection',
+    )?.[0] ?? 'Front';
+    const query = buildExactNoteQuery({
+      deckName: deck,
+      modelName: ankiMapping.modelName,
+      fieldName,
+      value: token,
+    });
+    if (!query) {
+      toast.error(t('wp.openInAnkiFailed'));
+      return;
+    }
+    const res = (await sendMessage('ANKI_BROWSE', { query }, 'background')) as AnkiBrowseResponse;
+    if (res?.ok) toast(t('wp.openedInAnki'), { description: token, duration: 2200 });
+    else toast.error(t('wp.openInAnkiFailed'), { description: res?.error });
+  }, [ankiMapping]);
+
+  /**
+   * "Add this scene": attach the current line (and its tags) to the note the
+   * word already has, instead of creating a duplicate card.
+   */
+  const handleAddContext = useCallback(async (token: string, sentence: string) => {
+    const lang = cueLanguageRef.current;
+    const deck = ankiMapping.decks?.[lang] ?? ankiMapping.deckName;
+    const media = adapter?.getMediaInfo?.();
+    const fieldName = Object.entries(ankiMapping.fieldSources ?? {}).find(
+      ([, source]) => source === 'selection',
+    )?.[0] ?? 'Front';
+    const res = (await sendMessage('ANKI_ADD_CONTEXT', {
+      token,
+      sentence,
+      deck,
+      fieldName,
+      tags: buildCardTags('word', media, lang),
+    }, 'background')) as AnkiAddContextResponse;
+    if (res?.ok) {
+      toast.success(t('queue.contextAdded'), { description: token, duration: 2200 });
+    } else {
+      toast.error(t('wp.openInAnkiFailed'), { description: res?.error });
+    }
+  }, [adapter, ankiMapping]);
+
   const overlayPortal = useMemo(() => {
     if (!videoOverlayRoot || !enabled || !subtitlesVisible) return null;
     return createPortal(
@@ -1142,6 +1207,8 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
           mode={mode}
           saveRequestKey={saveTick}
           onSaveCard={handleSaveCard}
+          onSeeInAnki={handleSeeInAnki}
+          onAddContext={handleAddContext}
           onTokenHoverChange={handleTokenHoverChange}
           initialSavedWords={initialSavedWords}
           playing={playing}
@@ -1170,6 +1237,8 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     initialSavedWords,
     ankiMapping,
     handleSaveCard,
+    handleSeeInAnki,
+    handleAddContext,
     videoElement,
     adapter,
     ensureSubtitleAudioReady,

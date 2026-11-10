@@ -56,6 +56,10 @@ export interface WordPopoverProps {
   onToggleExpand: () => void;
   onRejoinParent: (parent: string) => void;
   onSave: (e: React.MouseEvent, token: string) => void;
+  /** Saved token: open the Anki browser on its note (F4). */
+  onSeeInAnki?: (e: React.MouseEvent) => void;
+  /** Saved token: attach this scene to the existing note (F4). */
+  onAddContext?: (e: React.MouseEvent) => void;
   /** F5 hook point: the status selector mounts here. */
   statusSlot?: React.ReactNode;
 }
@@ -430,6 +434,8 @@ export function WordPopover({
   onToggleExpand,
   onRejoinParent,
   onSave,
+  onSeeInAnki,
+  onAddContext,
   statusSlot,
 }: WordPopoverProps) {
   const canonicalToken = lookupToken ?? token;
@@ -849,6 +855,19 @@ export function WordPopover({
         {/* F5 hook point: the word-status selector mounts here. */}
         {statusSlot}
 
+        {isSaved && onAddContext && (
+          <div className="flex items-center justify-end gap-3 px-3 py-1.5 border-t border-zinc-900/[0.06] dark:border-white/[0.06] bg-white/30 dark:bg-zinc-900/30">
+            <button
+              type="button"
+              onClick={onAddContext}
+              title={t('popover.addSceneTitle')}
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-700 dark:text-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-200 normal-case"
+            >
+              <Plus size={10} /> {t('popover.addScene')}
+            </button>
+          </div>
+        )}
+
         {/* Action row */}
         <div className="flex items-stretch border-t border-zinc-900/[0.06] dark:border-white/[0.06] bg-white/40 dark:bg-zinc-900/40">
           <PopoverAction
@@ -868,9 +887,8 @@ export function WordPopover({
           {isSaved ? (
             <button
               type="button"
-              aria-disabled="true"
-              onClick={(e) => e.stopPropagation()}
-              className="flex-1 flex items-center justify-center gap-1.5 px-2 h-10 text-[12px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 cursor-default normal-case"
+              onClick={onSeeInAnki ?? ((e) => e.stopPropagation())}
+              className="flex-1 flex items-center justify-center gap-1.5 px-2 h-10 text-[12px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/15 transition-colors normal-case"
               title={t('popover.alreadySaved')}
             >
               <Eye size={12} /> {t('wp.seeInAnki')}

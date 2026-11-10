@@ -1,3 +1,7 @@
+import type { MediaInfo, MediaPlatform } from '../../shared/types';
+
+export type { MediaInfo };
+
 export interface SubtitleCue {
   id: string;
   start: number;
@@ -18,7 +22,7 @@ export interface SubtitleCue {
 export type CueListener = (cues: SubtitleCue[]) => void;
 
 export interface SubtitleSource {
-  platform: 'netflix' | 'youtube' | 'disney' | 'hbo' | 'prime' | 'generic';
+  platform: MediaPlatform;
 
   onCueChange(listener: CueListener): void;
   getCurrentTime(): number;
@@ -27,6 +31,13 @@ export interface SubtitleSource {
 
   hideNativeSubtitles(): void;
   showNativeSubtitles(): void;
+
+  /**
+   * Best-effort episode metadata for the card tags and the Anki `source`
+   * field (docs/REDESIGN-V2.md §4.5). Every adapter implements it; a page
+   * that cannot tell us more falls back to `document.title`.
+   */
+  getMediaInfo?(): MediaInfo;
 
   /**
    * Release everything the adapter owns: polling intervals, bus

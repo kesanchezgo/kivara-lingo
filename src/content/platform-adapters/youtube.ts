@@ -1,4 +1,5 @@
 import type { SubtitleSource, SubtitleCue, CueListener } from './types';
+import { getYouTubeMediaInfo } from './media-info';
 import { useKivaraStore } from '../../shared/store';
 import { getKnownLanguages, getTrackByLanguage } from './intercepted-bus';
 
@@ -259,6 +260,9 @@ export function attachYouTube(): SubtitleSource | null {
         ownStyle = null;
       }
       if (activeTrack) activeTrack.mode = 'showing';
+    },
+    getMediaInfo() {
+      return getYouTubeMediaInfo();
     },
     destroy() {
       // A YouTube SPA navigation reuses the SAME <video>, so without this the

@@ -3,8 +3,8 @@
 /** CEFR level of a segment or of a study profile. */
 export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
 
-/** Kind of card the user can save. */
-export type CardKind = 'word' | 'expression' | 'sentence' | 'selection';
+/** Kind of card the user can save. `cloze` is the F4 card flavour. */
+export type CardKind = 'word' | 'expression' | 'sentence' | 'selection' | 'cloze';
 
 /** Anki mapping settings read by the deck helpers (subset of the full settings type). */
 export interface AnkiMapping {

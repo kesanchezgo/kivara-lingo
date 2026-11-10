@@ -11,7 +11,7 @@ import {
   onTrack,
   type InterceptedTrack,
 } from './intercepted-bus';
-import type { CueListener, SubtitleCue, SubtitleSource } from './types';
+import type { CueListener, MediaInfo, SubtitleCue, SubtitleSource } from './types';
 
 export interface InterceptedAdapterOptions {
   platform: SubtitleSource['platform'];
@@ -23,6 +23,8 @@ export interface InterceptedAdapterOptions {
   onMount?(): void;
   /** Override to find the active video element */
   getVideo?(): HTMLVideoElement | null;
+  /** Best-effort episode metadata for the card tags (F4). */
+  getMediaInfo?(): MediaInfo;
 }
 
 /**
@@ -273,6 +275,7 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
     getAvailableAltLanguages() {
       return getKnownLanguages();
     },
+    ...(opts.getMediaInfo ? { getMediaInfo: opts.getMediaInfo } : {}),
     destroy() {
       // Everything this context started, undone. Anything left running would
       // survive a SPA navigation — see SubtitleSource.destroy.

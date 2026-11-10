@@ -255,6 +255,22 @@ export interface AnkiPingOk { ok: true; version: number; }
 export interface AnkiPingErr { ok: false; error: string; code?: AnkiErrorCode; }
 export type AnkiPingResult = AnkiPingOk | AnkiPingErr;
 
+/** Subset of AnkiConnect's `cardsInfo` response the extension reads. */
+export interface AnkiCardInfo {
+  cardId: number;
+  noteId: number;
+  deckName: string;
+  modelName: string;
+  fields: Record<string, { value: string; order: number }>;
+  /** Current interval in days. */
+  interval: number;
+  factor: number;
+  reps: number;
+  lapses: number;
+  queue: number;
+  due: number;
+}
+
 export const ankiConnect = {
   async ping(url?: string, apiKey?: string): Promise<AnkiPingResult> {
     try {
@@ -350,6 +366,38 @@ export const ankiConnect = {
    */
   async notesInfo(notes: number[], url?: string, apiKey?: string): Promise<Array<{ noteId: number; fields: Record<string, { value: string }> }>> {
     return invoke<Array<{ noteId: number; fields: Record<string, { value: string }> }>>('notesInfo', { notes }, { url, apiKey });
+  },
+
+  /**
+   * Delete notes by id (Undo). Idempotent on Anki's side: a note that no
+   * longer exists is not an error there, so the caller can treat the undo as
+   * complete. A write — never replayed on the loopback fallback.
+   */
+  async deleteNotes(notes: number[], url?: string, apiKey?: string): Promise<null> {
+    return invoke<null>('deleteNotes', { notes }, { url, apiKey, allowFallbackRetry: false });
+  },
+
+  /** Add tags to existing notes without touching their fields. */
+  async addTags(tags: string[], notes: number[], url?: string, apiKey?: string): Promise<null> {
+    return invoke<null>('addTags', { tags, notes }, { url, apiKey, allowFallbackRetry: false });
+  },
+
+  /**
+   * Open Anki's own browser on a search. Returns the matching note ids on
+   * recent AnkiConnect versions; the UI only needs the side effect.
+   */
+  async guiBrowse(query: string, url?: string, apiKey?: string): Promise<number[]> {
+    return invoke<number[]>('guiBrowse', { query }, { url, apiKey, allowFallbackRetry: false });
+  },
+
+  /** Find card ids matching a query (read-only). */
+  async findCards(query: string, url?: string, apiKey?: string): Promise<number[]> {
+    return invoke<number[]>('findCards', { query }, { url, apiKey });
+  },
+
+  /** Card scheduling data (interval/reps/lapses) plus the note fields. */
+  async cardsInfo(cards: number[], url?: string, apiKey?: string): Promise<AnkiCardInfo[]> {
+    return invoke<AnkiCardInfo[]>('cardsInfo', { cards }, { url, apiKey });
   },
 };
 

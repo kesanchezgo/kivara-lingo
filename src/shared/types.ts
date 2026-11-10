@@ -973,9 +973,47 @@ export interface CaptureContext {
   vip?: VipEnrichment;
 }
 
+/** Platform id every adapter reports and every card tag understands. */
+export type MediaPlatform = 'netflix' | 'youtube' | 'disney' | 'hbo' | 'prime' | 'generic';
+
+/**
+ * Best-effort episode metadata for a playing piece of media
+ * (docs/REDESIGN-V2.md §4.5). The card tags, the transcript header and the
+ * Anki `source` field all read from here.
+ */
+export interface MediaInfo {
+  platform: MediaPlatform;
+  title: string;
+  series?: string;
+  season?: number;
+  episode?: number;
+  url: string;
+}
+
+/** Card flavours F4 can create (docs/REDESIGN-V2.md §7 F4). */
+export type CreateCardKind = 'word' | 'expression' | 'cloze';
+
 export interface CreateCardRequest {
   token: string;
   sentence: string;
+  /**
+   * Registry id the service worker assigned before sending. Optional so
+   * legacy callers keep working; when present the SW mirrors the card into
+   * `kvl:cards.recent` across every state transition.
+   */
+  cardId?: string;
+  /** Card flavour. Defaults to `expression` when the token is multi-word. */
+  kind?: CreateCardKind;
+  /** BCP-47 language of the cue. `language` stays as the legacy spelling. */
+  lang?: string;
+  /** Target deck. Empty falls back to `ankiMapping.decks[lang] ?? deckName`. */
+  deck?: string;
+  /** Episode metadata captured from the platform adapter (F4). */
+  media?: MediaInfo;
+  /** Pre-built cloze text; when absent the orchestrator wraps the token. */
+  cloze?: string;
+  /** Neighbouring subtitle lines, kept for the card's context fields. */
+  contextLines?: { prev?: string; next?: string };
   /** The native-language translation of the full sentence (from dual subtitle
    *  or MT provider). Filled by the content script when available. */
   sentenceTranslation?: string;
@@ -994,6 +1032,7 @@ export interface CreateCardRequest {
   videoTimeAtSave?: number;
   /** Whether the media element was paused when the user triggered save. */
   videoPausedAtSave?: boolean;
+  /** Legacy BCP-47 spelling; read only when `lang` is absent. */
   language?: string;
   platform?: string;
 }
@@ -1004,7 +1043,54 @@ export interface CreateCardResponse {
   error?: string;
   warnings?: string[];
   fields?: Record<string, string>;
+  /**
+   * The card could not reach Anki but is sitting in the retry queue
+   * (transport-level failure). Absent/false for permanent failures.
+   */
+  queued?: boolean;
 }
+
+/* ── F4 Anki / card-registry messages (docs/REDESIGN-V2.md §4.6) ────────── */
+
+/** Undo: delete one note by id. */
+export interface AnkiDeleteNoteRequest { noteId: number; }
+export interface AnkiDeleteNoteResponse {
+  ok: boolean;
+  error?: string;
+  /** True when the note was already gone — the undo goal is still met. */
+  gone?: boolean;
+}
+
+/** Add this scene: attach another sentence/context to an existing note. */
+export interface AnkiAddContextRequest {
+  /** Resolved note id, or omitted when the caller only knows the headword. */
+  noteId?: number;
+  /** Headword used to resolve `noteId` through `findCards` when absent. */
+  token?: string;
+  sentence: string;
+  frame?: string;
+  audio?: string;
+  tags: string[];
+  /** Deck used to narrow the headword lookup. */
+  deck?: string;
+  /** Field that holds the headword, used to narrow the lookup. */
+  fieldName?: string;
+}
+export interface AnkiAddContextResponse { ok: boolean; noteId?: number; error?: string; }
+
+/** See in Anki: open the browser on a note id or a raw query. */
+export interface AnkiBrowseRequest { noteId?: number; query?: string; }
+export interface AnkiBrowseResponse { ok: boolean; noteIds?: number[]; error?: string; }
+
+/** Interval (days) per headword, read from `cardsInfo`. */
+export interface AnkiWordIntervalsRequest { lang: string; deck: string; fieldName: string; }
+export interface AnkiWordIntervalsResponse { words: Record<string, number>; }
+
+export interface CardRetryRequest { id: string; }
+export interface CardRetryResponse { ok: boolean; noteId?: number; error?: string; }
+export interface CardRetryAllResponse { ok: boolean; retried: number; succeeded: number; }
+export interface CardDismissRequest { id: string; }
+export interface CardDismissResponse { ok: boolean; }
 
 /**
  * Re-capture / update the frame of an existing Anki note.

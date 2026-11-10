@@ -11,6 +11,7 @@
  *    subtitle rendering containers
  */
 import { createInterceptedAdapter } from './intercepted-adapter';
+import { getDomMediaInfo } from './media-info';
 import type { SubtitleSource } from './types';
 
 const HIDE_NATIVE_CSS = `
@@ -35,5 +36,17 @@ export function createNetflixAdapter(): SubtitleSource {
         document.querySelector<HTMLVideoElement>('video')
       );
     },
+    getMediaInfo: () => getDomMediaInfo('netflix', {
+      titleSelectors: [
+        '[data-uia="video-title"] h4',
+        '.video-title h4',
+        '.ellipsize-text h4',
+        '[data-uia="video-title"]',
+      ],
+      seriesSelectors: ['.video-title h4', '.ellipsize-text h4'],
+      episodeSelectors: ['[data-uia="video-title"] span', '.video-title span'],
+      titlePrefixes: ['Watch '],
+      titleSuffixes: [' | Netflix', ' - Netflix'],
+    }),
   });
 }

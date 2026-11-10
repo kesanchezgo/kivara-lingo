@@ -59,6 +59,10 @@ export interface SubtitleOverlayProps {
   /** Save the given token + sentence as an Anki note. Resolves with the real
    * envelope so the saved highlight only lands on a confirmed note. */
   onSaveCard: (token: string | undefined, sentence: string) => Promise<CreateCardResponse>;
+  /** "See in Anki" for a saved token (F4). */
+  onSeeInAnki?: (token: string) => void;
+  /** "Add this scene" to the note a saved token already has (F4). */
+  onAddContext?: (token: string, sentence: string) => void;
   /** True while a lookup/card is open; App decides whether to pause. */
   onTokenHoverChange?: (hovered: boolean) => void;
   /** Words already in Anki, pre-fetched at mount. */
@@ -91,6 +95,8 @@ export function SubtitleOverlay({
   mode,
   saveRequestKey,
   onSaveCard,
+  onSeeInAnki,
+  onAddContext,
   onTokenHoverChange,
   initialSavedWords,
   playing = false,
@@ -847,6 +853,12 @@ export function SubtitleOverlay({
                           e.stopPropagation();
                           handleSaveToken(value);
                         }}
+                        onSeeInAnki={onSeeInAnki
+                          ? (e) => { e.stopPropagation(); onSeeInAnki(tok.key); }
+                          : undefined}
+                        onAddContext={onAddContext
+                          ? (e) => { e.stopPropagation(); onAddContext(tok.key, targetSentence); }
+                          : undefined}
                       />
                     )}
                   </span>

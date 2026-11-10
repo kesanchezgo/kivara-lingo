@@ -6,6 +6,7 @@
  * video anchor + native subtitle hide.
  */
 import { createInterceptedAdapter } from './intercepted-adapter';
+import { getDomMediaInfo } from './media-info';
 import type { SubtitleSource } from './types';
 
 const HIDE_NATIVE_CSS = `
@@ -32,5 +33,15 @@ export function createPrimeVideoAdapter(): SubtitleSource {
         document.querySelector<HTMLVideoElement>('video')
       );
     },
+    getMediaInfo: () => getDomMediaInfo('prime', {
+      titleSelectors: [
+        '.atvwebplayersdk-title-text',
+        '[data-testid="title"]',
+        '.webPlayerSDKContainer h1',
+      ],
+      seriesSelectors: ['.atvwebplayersdk-title-text', '[data-testid="series-title"]'],
+      episodeSelectors: ['.atvwebplayersdk-subtitle-text', '[data-testid="subtitle"]'],
+      titleSuffixes: [' | Prime Video', ' - Prime Video', ' | Amazon.com'],
+    }),
   });
 }

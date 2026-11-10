@@ -11,9 +11,16 @@ import { sendMessage } from 'webext-bridge/options';
 import { useKivaraStore } from '../shared/store';
 import type { Ports } from '../ui/ports/PortsProvider';
 import type {
+  AnkiAddContextResponse,
+  AnkiBrowseResponse,
+  AnkiDeleteNoteResponse,
   AnkiFieldsResponse,
   AnkiListsResponse,
   AnkiPingResponse,
+  AnkiWordIntervalsResponse,
+  CardDismissResponse,
+  CardRetryAllResponse,
+  CardRetryResponse,
   CreateCardResponse,
 } from '../shared/types';
 import type { DictPackInfo } from '../ui/ports/types';
@@ -53,21 +60,50 @@ export function createOptionsPorts(): Ports {
           {
             token: input.word,
             sentence: input.sentence,
-            language: input.lang,
-            platform: input.media?.platform,
+            kind: input.kind,
+            lang: input.lang,
+            deck: input.deck,
+            media: input.media,
+            cloze: input.cloze,
+            contextLines: input.contextLines,
           },
           'background',
         )) as CreateCardResponse;
         if (!res.ok) throw new Error(res.error ?? 'CREATE_CARD failed');
         return res.noteId ?? 0;
       },
-      undo: notYet('F4'),
-      addContext: notYet('F4'),
-      browse: notYet('F4'),
-      wordIntervals: notYet('F4'),
-      retry: notYet('F4'),
-      retryAll: notYet('F4'),
-      dismiss: notYet('F4'),
+      undo: async (noteId) => {
+        const res = (await sendMessage('ANKI_DELETE_NOTE', { noteId }, 'background')) as AnkiDeleteNoteResponse;
+        if (!res.ok) throw new Error(res.error ?? 'ANKI_DELETE_NOTE failed');
+      },
+      addContext: async (input) => {
+        const res = (await sendMessage('ANKI_ADD_CONTEXT', input, 'background')) as AnkiAddContextResponse;
+        if (!res.ok) throw new Error(res.error ?? 'ANKI_ADD_CONTEXT failed');
+      },
+      browse: async (query) => {
+        const res = (await sendMessage('ANKI_BROWSE', query, 'background')) as AnkiBrowseResponse;
+        if (!res.ok) throw new Error(res.error ?? 'ANKI_BROWSE failed');
+      },
+      wordIntervals: async (lang, deck, fieldName) => {
+        const res = (await sendMessage(
+          'ANKI_WORD_INTERVALS',
+          { lang, deck, fieldName },
+          'background',
+        )) as AnkiWordIntervalsResponse;
+        return res.words ?? {};
+      },
+      retry: async (id) => {
+        const res = (await sendMessage('CARD_RETRY', { id }, 'background')) as CardRetryResponse;
+        if (!res.ok) throw new Error(res.error ?? 'CARD_RETRY failed');
+      },
+      retryAll: async () => {
+        const res = (await sendMessage('CARD_RETRY_ALL', {}, 'background')) as CardRetryAllResponse;
+        if (!res.ok) throw new Error('CARD_RETRY_ALL failed');
+      },
+      dismiss: async (id) => {
+        const res = (await sendMessage('CARD_DISMISS', { id }, 'background')) as CardDismissResponse;
+        if (!res.ok) throw new Error('CARD_DISMISS failed');
+      },
     },
     packs: {
       list: async () => {

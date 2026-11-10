@@ -22,7 +22,7 @@ import type { CardKind } from './types';
  * comes up again in another series or platform adds its tags to the same note
  * (cardQueue · addContextToCard).
  */
-export type Platform = 'netflix' | 'max' | 'disney' | 'prime' | 'youtube' | 'crunchyroll';
+export type Platform = 'netflix' | 'max' | 'disney' | 'prime' | 'youtube' | 'crunchyroll' | 'generic';
 
 /** Visible name and tag of each platform (Max became HBO Max again in 2025). */
 export const PLATFORMS: Record<Platform, { name: string; slug: string }> = {
@@ -32,6 +32,7 @@ export const PLATFORMS: Record<Platform, { name: string; slug: string }> = {
   prime: { name: 'Prime Video', slug: 'prime_video' },
   youtube: { name: 'YouTube', slug: 'youtube' },
   crunchyroll: { name: 'Crunchyroll', slug: 'crunchyroll' },
+  generic: { name: 'Web', slug: 'web' },
 };
 const isPlatform = (v: unknown): v is Platform => typeof v === 'string' && v in PLATFORMS;
 

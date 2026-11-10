@@ -6,6 +6,7 @@
  * anchoring the overlay over the player and hiding the native captions.
  */
 import { createInterceptedAdapter } from './intercepted-adapter';
+import { getDomMediaInfo } from './media-info';
 import type { SubtitleSource } from './types';
 
 /**
@@ -62,5 +63,16 @@ export function createHboMaxAdapter(): SubtitleSource {
     language: 'en',
     hideNativeCss: HIDE_NATIVE_CSS,
     getVideo: () => document.querySelector<HTMLVideoElement>('video'),
+    getMediaInfo: () => getDomMediaInfo('hbo', {
+      titleSelectors: [
+        '[data-testid="player-ux-title"]',
+        '[data-testid="video-title"]',
+        '.player-title',
+        'h1',
+      ],
+      seriesSelectors: ['[data-testid="player-ux-series-title"]', '.series-title'],
+      episodeSelectors: ['[data-testid="player-ux-episode-title"]', '.episode-title'],
+      titleSuffixes: [' | HBO Max', ' | Max'],
+    }),
   });
 }
