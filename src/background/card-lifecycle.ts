@@ -8,6 +8,7 @@
  */
 
 import type {
+  AnkiDeleteNoteResponse,
   AnkiMapping,
   CaptureSettings,
   CardDismissResponse,
@@ -18,8 +19,10 @@ import type {
 } from '../shared/types';
 import { beginRetry, isPending, mediaFromSource, type RecentCard } from '../shared/cards';
 import { getDB } from '../shared/db';
+import { profileLangOf, removeAnkiWord } from '../shared/study/wordStatus';
 import { cardRegistry } from './card-registry';
 import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator';
+import { deleteNote } from './card-actions';
 
 function mappingForCard(mapping: AnkiMapping, card: RecentCard): AnkiMapping {
   return {
@@ -156,4 +159,26 @@ export async function dismissCard(id: string): Promise<CardDismissResponse> {
     // No queue readable: the registry removal is still the user's intent.
   }
   return { ok: true };
+}
+
+/**
+ * Undo: delete the note in Anki, drop the registry row, and remove the word
+ * from the F5 interval cache (`removeAnkiWord`) so it flips back to
+ * «new/estimate» at once — the next refresh would remove it anyway, but a
+ * deleted card must not read as «learning» until then. The registry row is
+ * the only place that knows which language the card was saved for, so it is
+ * read BEFORE the removal discards it. A note deleted by hand (`gone`) is
+ * the same user goal and takes the same path.
+ */
+export async function undoDeleteNote(
+  noteId: number,
+  mapping: AnkiMapping,
+): Promise<AnkiDeleteNoteResponse> {
+  const known = await cardRegistry.findByNoteId(noteId);
+  const result = await deleteNote(noteId, mapping);
+  if (result.ok) {
+    await cardRegistry.removeByNoteId(noteId);
+    if (known) removeAnkiWord(profileLangOf(known.lang), known.word);
+  }
+  return result;
 }

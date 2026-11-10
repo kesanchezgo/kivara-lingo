@@ -43,8 +43,8 @@ import type {
 import { explainSentence } from './ai-explain';
 import { ankiConnect } from './anki-connect';
 import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator';
-import { addContextToNote, browseNote, deleteNote, wordIntervals } from './card-actions';
-import { dismissCard, retryAllCards, retryCard } from './card-lifecycle';
+import { addContextToNote, browseNote, wordIntervals } from './card-actions';
+import { dismissCard, retryAllCards, retryCard, undoDeleteNote } from './card-lifecycle';
 import { cardRegistry } from './card-registry';
 import {
   buildCardTags,
@@ -379,15 +379,15 @@ onMessage('CREATE_CARD', async ({ data }) => {
 
 /**
  * ANKI_DELETE_NOTE: Undo. Removes the registry row whether Anki still has the
- * note or not — a note deleted by hand is the same user goal.
+ * note or not — a note deleted by hand is the same user goal — and drops the
+ * word from the F5 interval cache so it flips back to «new/estimate» at once.
  */
 onMessage('ANKI_DELETE_NOTE', async ({ data }) => {
   const request = data as { noteId?: number };
   if (request?.noteId == null) return asJson({ ok: false, error: 'noteId missing' } satisfies AnkiDeleteNoteResponse);
   const mapping = await loadMapping();
   await refreshAnkiOriginRules(mapping.ankiUrl);
-  const result = await deleteNote(request.noteId, mapping);
-  if (result.ok) await cardRegistry.removeByNoteId(request.noteId);
+  const result = await undoDeleteNote(request.noteId, mapping);
   return asJson(result);
 });
 
@@ -416,8 +416,9 @@ onMessage('ANKI_BROWSE', async ({ data }) => {
 });
 
 /**
- * ANKI_WORD_INTERVALS: interval (days) per headword read from `cardsInfo`.
- * F5 owns caching and the word-status precedence; F4 only ships the message.
+ * ANKI_WORD_INTERVALS: word → interval (days) SNAPSHOT read from the deck
+ * (`findCards` → `getIntervals` → field-filtered `cardsInfo`). F5 owns the
+ * cache: `ok: true` replaces it, `ok: false` keeps it and marks it stale.
  */
 onMessage('ANKI_WORD_INTERVALS', async ({ data }) => {
   const request = data as unknown as AnkiWordIntervalsRequest;

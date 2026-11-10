@@ -144,6 +144,11 @@ export function VocabTab({ onOpenCards }: {
                   {summary.total
                     ? t('ws.ankiCounts', { mature: fmtNumber(summary.mature), learning: fmtNumber(summary.learning) })
                     : t('ws.ankiNone')}
+                  {/* The last refresh failed: the numbers are the kept cache, so
+                      «none» may really mean «unreachable». Say it honestly. */}
+                  {study.coverage.state === 'stale' && (
+                    <span className="text-amber-700 dark:text-amber-400"> · {t('cards.offline')}</span>
+                  )}
                   {queued > 0 && <span className="text-amber-700 dark:text-amber-400"> · {t('recent.queuedCount', { n: queued })}</span>}
                 </>
               )}

@@ -10,14 +10,15 @@
  *     `onChanged` from another context is adopted (a second tab sees it);
  *   • saving a card turns a «known» hand mark into the card (`learning`), and
  *     the word is never saved twice because it is now in Anki;
- *   • the interval refresh is incremental: an unchanged answer does not
- *     re-notify or rewrite.
+ *   • the interval refresh is a SNAPSHOT: the cached map is replaced, a word
+ *     that left Anki disappears, marks are untouched, and an unchanged answer
+ *     does not re-notify or rewrite.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  ankiSummaryOf, applyVocabTest, hydrateStudy, isInAnki, mergeAnkiIntervals,
-  migrateToLanguageProfiles, noteCardSaved, resetStudyStores, setSelfLevel, setWordStatus,
-  studyStores,
+  ankiSummaryOf, applyVocabTest, hydrateStudy, isInAnki, migrateToLanguageProfiles,
+  noteCardSaved, removeAnkiWord, replaceAnkiIntervals, resetStudyStores, setSelfLevel,
+  setWordStatus, studyStores,
   type LocalStorageArea,
 } from '../../src/shared/study/wordStatus';
 
@@ -151,33 +152,71 @@ describe('word status storage', () => {
     expect(isInAnki('en', 'sane')).toBe(true);
   });
 
-  it('refreshes intervals incrementally: an unchanged answer is not rewritten', async () => {
+  it('replaces the cached map with the snapshot: a word absent from Anki disappears', async () => {
     const { set } = installChrome();
     resetStudyStores();
     const anki = studyStores('en').anki;
 
-    mergeAnkiIntervals('en', { day: 0, time: 30 });
+    replaceAnkiIntervals('en', { day: 0, time: 30 });
     await anki.flush();
     expect(set).toHaveBeenCalledTimes(1);
     expect(anki.get()).toEqual({ day: { interval: 0 }, time: { interval: 30 } });
 
-    // Same answer: the value is identical, so no write reaches storage.
-    mergeAnkiIntervals('en', { day: 0, time: 30 });
+    // The snapshot is the whole truth: `day` is no longer in the answer, so it
+    // leaves the cache instead of keeping its stale value.
+    replaceAnkiIntervals('en', { time: 45 });
+    await anki.flush();
+    expect(set).toHaveBeenCalledTimes(2);
+    expect(anki.get()).toEqual({ time: { interval: 45 } });
+  });
+
+  it('does not rewrite storage when the snapshot equals the cache', async () => {
+    const { set } = installChrome();
+    resetStudyStores();
+    const anki = studyStores('en').anki;
+
+    replaceAnkiIntervals('en', { day: 0, time: 30 });
     await anki.flush();
     expect(set).toHaveBeenCalledTimes(1);
 
-    // One changed value: one write with both entries (the untouched one kept).
-    mergeAnkiIntervals('en', { time: 45 });
+    replaceAnkiIntervals('en', { day: 0, time: 30 });
     await anki.flush();
-    expect(set).toHaveBeenCalledTimes(2);
-    expect(anki.get()).toEqual({ day: { interval: 0 }, time: { interval: 45 } });
+    expect(set).toHaveBeenCalledTimes(1);
+    expect(anki.get()).toEqual({ day: { interval: 0 }, time: { interval: 30 } });
   });
 
-  it('ignores malformed intervals instead of poisoning the cache', () => {
+  it('a snapshot never touches the user marks', () => {
     installChrome();
     resetStudyStores();
-    mergeAnkiIntervals('en', { day: Number.NaN, time: -2, sane: 21 } as unknown as Record<string, number>);
+    setWordStatus('en', 'old', 'known');
+    replaceAnkiIntervals('en', { sane: 21 });
+    expect(studyStores('en').status.get()).toEqual({ old: 'known' });
     expect(studyStores('en').anki.get()).toEqual({ sane: { interval: 21 } });
+  });
+
+  it('ignores malformed intervals instead of poisoning the snapshot', () => {
+    installChrome();
+    resetStudyStores();
+    replaceAnkiIntervals('en', { day: Number.NaN, time: -2, sane: 21 } as unknown as Record<string, number>);
+    expect(studyStores('en').anki.get()).toEqual({ sane: { interval: 21 } });
+  });
+
+  it('undo removes the word from the cache (removeAnkiWord), marks untouched', () => {
+    installChrome();
+    resetStudyStores();
+    setWordStatus('en', 'sane', 'new');
+    replaceAnkiIntervals('en', { sane: 12, time: 30 });
+    expect(isInAnki('en', 'sane')).toBe(true);
+
+    removeAnkiWord('en', 'sane');
+
+    expect(studyStores('en').anki.get()).toEqual({ time: { interval: 30 } });
+    expect(isInAnki('en', 'sane')).toBe(false);
+    // The hand mark is not the Anki cache — undo never deletes it.
+    expect(studyStores('en').status.get()).toEqual({ sane: 'new' });
+    // Same normalization as the cache keys: «Sane» hits «sane».
+    removeAnkiWord('en', 'Time');
+    expect(studyStores('en').anki.get()).toEqual({});
   });
 });
 

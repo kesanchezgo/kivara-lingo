@@ -90,7 +90,10 @@ export function createOptionsPorts(): Ports {
           { lang, deck, fieldName },
           'background',
         )) as AnkiWordIntervalsResponse;
-        return res.words ?? {};
+        // `ok: false` is a failed query, not an empty deck — same contract as
+        // the rest of the port: throw instead of answering an empty map.
+        if (!res.ok) throw new Error(res.error ?? 'ANKI_WORD_INTERVALS failed');
+        return res.words;
       },
       retry: async (id) => {
         const res = (await sendMessage('CARD_RETRY', { id }, 'background')) as CardRetryResponse;

@@ -242,27 +242,40 @@ export function removeAnkiWord(lang: string, tokenKey: string): void {
 }
 
 /**
- * Apply `ANKI_WORD_INTERVALS` incrementally: only entries whose interval
- * changed are rewritten, and a word absent from the answer keeps its cached
- * value (the fetch may be partial or Anki may be unreachable).
+ * Profile id of a cue language: the two-letter code, so `en-US` and `en`
+ * share one profile. There is one profile per language being learned, not per
+ * track tag. Lives in the pure layer so the service worker (undo path) folds
+ * a registry language the same way the content script does.
  */
-export function mergeAnkiIntervals(lang: string, words: Record<string, number>): void {
-  const updates: Record<string, AnkiCard> = {};
+export function profileLangOf(lang: string): string {
+  const base = (lang || 'en').trim().toLowerCase().slice(0, 2);
+  return base || 'en';
+}
+
+/** Interval cache equality: same words, same values. */
+function sameAnkiCache(a: Record<string, AnkiCard>, b: Record<string, AnkiCard>): boolean {
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((k) => a[k].interval === b[k]?.interval);
+}
+
+/**
+ * Apply an `ANKI_WORD_INTERVALS` SNAPSHOT: the response is the complete
+ * picture of the deck, so the cached map is REPLACED, not merged — a word
+ * that left Anki (note deleted by hand) disappears instead of haunting the
+ * panel forever. User marks are NOT touched: they live in their own store
+ * and only a user action clears them.
+ *
+ * Only reached with `{ ok: true }` — a failed query (`{ ok: false }`) never
+ * calls this, so the previous cache survives an unreachable Anki intact.
+ */
+export function replaceAnkiIntervals(lang: string, words: Record<string, number>): void {
+  const next: Record<string, AnkiCard> = {};
   for (const [word, interval] of Object.entries(words)) {
     if (typeof interval !== 'number' || !Number.isFinite(interval) || interval < 0) continue;
-    updates[normalizeStatusKey(word)] = { interval };
+    next[normalizeStatusKey(word)] = { interval };
   }
-  if (!Object.keys(updates).length) return;
-  studyStores(lang).anki.set((prev) => {
-    let changed = false;
-    const next = { ...prev };
-    for (const [k, card] of Object.entries(updates)) {
-      if (next[k]?.interval === card.interval) continue;
-      next[k] = card;
-      changed = true;
-    }
-    return changed ? next : prev;
-  });
+  studyStores(lang).anki.set((prev) => (sameAnkiCache(prev, next) ? prev : next));
 }
 
 /**

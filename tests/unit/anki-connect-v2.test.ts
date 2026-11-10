@@ -61,6 +61,28 @@ describe('ankiConnect F4 actions', () => {
     expect(info[0].interval).toBe(21);
   });
 
+  it('getIntervals posts the card ids and answers per card', async () => {
+    const calls = stubFetch([0, 42, -600]);
+    const intervals = await ankiConnect.getIntervals([7, 8, 9]);
+    expect(calls[0]).toMatchObject({ action: 'getIntervals', params: { cards: [7, 8, 9] } });
+    // Signed AnkiConnect units: 0 = never learned, 42 days, -600 SECONDS.
+    expect(intervals).toEqual([0, 42, -600]);
+  });
+
+  it('cardFieldsInfo posts the explicit field request', async () => {
+    const calls = stubFetch([{ noteId: 2, fields: { Word: { value: 'sane', order: 0 } } }, {}]);
+    const info = await ankiConnect.cardFieldsInfo([1, 2], ['noteId', 'fields']);
+    // Same `cardsInfo` action, but with the `fields` selection attached so
+    // the full card record never crosses the wire.
+    expect(calls[0]).toMatchObject({
+      action: 'cardsInfo',
+      params: { cards: [1, 2], fields: ['noteId', 'fields'] },
+    });
+    expect(info[0].noteId).toBe(2);
+    expect(info[0].fields?.Word.value).toBe('sane');
+    expect(info[1]).toEqual({}); // missing card → empty record
+  });
+
   it('refuses a non-loopback URL before fetching', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);

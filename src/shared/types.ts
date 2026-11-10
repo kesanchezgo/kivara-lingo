@@ -1120,9 +1120,20 @@ export interface AnkiAddContextResponse { ok: boolean; noteId?: number; error?: 
 export interface AnkiBrowseRequest { noteId?: number; query?: string; }
 export interface AnkiBrowseResponse { ok: boolean; noteIds?: number[]; error?: string; }
 
-/** Interval (days) per headword, read from `cardsInfo`. */
+/**
+ * Interval (days) per headword, read from the deck as a SNAPSHOT.
+ *
+ * The answer is a discriminated union on purpose: an error must be
+ * distinguishable from an empty deck.
+ *   `ok: true`  — the deck was read completely; `words` REPLACES the caller's
+ *                 cached map and may be empty (empty deck).
+ *   `ok: false` — the Anki query failed; the caller KEEPS its cached map and
+ *                 marks it stale.
+ */
 export interface AnkiWordIntervalsRequest { lang: string; deck: string; fieldName: string; }
-export interface AnkiWordIntervalsResponse { words: Record<string, number>; }
+export interface AnkiWordIntervalsOk { ok: true; words: Record<string, number>; }
+export interface AnkiWordIntervalsErr { ok: false; error: string; }
+export type AnkiWordIntervalsResponse = AnkiWordIntervalsOk | AnkiWordIntervalsErr;
 
 export interface CardRetryRequest { id: string; }
 export interface CardRetryResponse { ok: boolean; noteId?: number; error?: string; }

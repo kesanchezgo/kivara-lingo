@@ -16,7 +16,7 @@ import type {
   AnkiMapping,
 } from '../shared/types';
 import { buildExactNoteQuery, escapeAnkiSearchTerm } from '../shared/anki-search';
-import { ankiConnect, AnkiConnectError, dataUrlToBase64, type AnkiCardInfo } from './anki-connect';
+import { ankiConnect, AnkiConnectError, dataUrlToBase64, type AnkiCardFieldsInfo } from './anki-connect';
 
 function escapeHtml(text: string): string {
   return text
@@ -195,30 +195,115 @@ export async function browseNote(
   }
 }
 
-/** Word → interval (days), for the F5 word-status layer. */
+/**
+ * ANKI_WORD_INTERVALS: word → interval (days) SNAPSHOT for the F5 word-status
+ * layer (docs/REDESIGN-V2.md §7 F5).
+ *
+ * Call order on AnkiConnect v6:
+ *   1. `findCards('deck:"…"')` — EVERY card id of the deck, in ONE unbounded
+ *      call. AnkiConnect pages matches internally server-side, so the answer
+ *      covers the whole deck; nothing is cut here on purpose (the old path
+ *      sliced to the last 5000 cards and silently dropped the rest).
+ *   2. `getIntervals(cards)` — latest recorded interval per card, in request
+ *      order. Positive values are DAYS; negative values are SECONDS (learning
+ *      steps under one day) and read as 0 days.
+ *   3. `cardsInfo(cards, fields: ['noteId', 'fields'])` — only the note id and
+ *      the note fields are requested, so the full card record
+ *      (question/answer/css/scheduling) never crosses the wire.
+ *
+ * Why step 3 is `cardsInfo` with an explicit field list and not `notesInfo`:
+ * on AnkiConnect v6 `notesInfo(notes, query)` has NO field filter — it answers
+ * with each note's full payload (tags, note type, card lists), exactly what
+ * must not be pulled — and `cardsToNotes` folds cards that share a note,
+ * which would break the positional card→word mapping. `cardsInfo` is the one
+ * action whose `fields` parameter accepts an explicit selection.
+ *
+ * Steps 2 and 3 page the SAME id order in fixed batches; every batch must
+ * succeed, so the answer either covers every card or fails loudly as
+ * `{ ok: false, error }`. A partial map is never returned and never silently
+ * truncated.
+ *
+ * Error contract (the caller `refreshAnkiIntervals` relies on it):
+ *   `{ ok: true, words }`  — the deck was read COMPLETELY; `words` may be
+ *                            empty (empty deck) and REPLACES the cached map;
+ *   `{ ok: false, error }` — the query failed; the caller KEEPS its cache and
+ *                            marks it stale.
+ */
+const INTERVALS_READ_BATCH = 1000;
+
+/** Signed `getIntervals` value (days, or seconds when negative) → days. */
+function intervalDays(raw: unknown): number {
+  if (typeof raw !== 'number' || !Number.isFinite(raw) || raw <= 0) return 0;
+  return raw;
+}
+
+/** The card's headword from the explicitly requested note fields. */
+function headwordOf(fields: AnkiCardFieldsInfo['fields'], fieldName: string): string {
+  if (!fields) return '';
+  const field = fields[fieldName] ?? Object.values(fields)[0];
+  return plainText(field?.value ?? '');
+}
+
+/** Step 2: latest interval (days) per card, batched over the fixed id order. */
+async function readIntervals(cards: number[], mapping: AnkiMapping): Promise<number[]> {
+  const out: number[] = [];
+  for (let start = 0; start < cards.length; start += INTERVALS_READ_BATCH) {
+    const batch = cards.slice(start, start + INTERVALS_READ_BATCH);
+    const part = await ankiConnect.getIntervals(batch, mapping.ankiUrl, mapping.apiKey);
+    if (!Array.isArray(part) || part.length !== batch.length) {
+      throw new AnkiConnectError('getIntervals returned fewer intervals than cards.', 'ANKI');
+    }
+    for (const raw of part) out.push(intervalDays(raw));
+  }
+  return out;
+}
+
+/** Step 3: note id + note fields per card, batched over the fixed id order. */
+async function readCardFields(cards: number[], mapping: AnkiMapping): Promise<AnkiCardFieldsInfo[]> {
+  const out: AnkiCardFieldsInfo[] = [];
+  for (let start = 0; start < cards.length; start += INTERVALS_READ_BATCH) {
+    const batch = cards.slice(start, start + INTERVALS_READ_BATCH);
+    const part = await ankiConnect.cardFieldsInfo(batch, ['noteId', 'fields'], mapping.ankiUrl, mapping.apiKey);
+    if (!Array.isArray(part) || part.length !== batch.length) {
+      throw new AnkiConnectError('cardsInfo returned fewer records than cards.', 'ANKI');
+    }
+    out.push(...part);
+  }
+  return out;
+}
+
 export async function wordIntervals(
   deck: string,
   fieldName: string,
   mapping: AnkiMapping,
 ): Promise<AnkiWordIntervalsResponse> {
-  if (!deck.trim() || !fieldName.trim()) return { words: {} };
+  // No deck configured reads as an empty deck: there is nothing to query, so
+  // an honest empty snapshot (the cache is replaced with {}) beats an error.
+  if (!deck.trim() || !fieldName.trim()) return { ok: true, words: {} };
   try {
     const cards = await ankiConnect.findCards(
       `deck:"${escapeAnkiSearchTerm(deck)}"`,
       mapping.ankiUrl,
       mapping.apiKey,
     );
-    if (cards.length === 0) return { words: {} };
-    const infos = await ankiConnect.cardsInfo(cards.slice(-5000), mapping.ankiUrl, mapping.apiKey);
-    const words: Record<string, number> = {};
-    for (const info of infos as AnkiCardInfo[]) {
-      const field = info.fields[fieldName] ?? Object.values(info.fields)[0];
-      const word = plainText(field?.value ?? '');
-      if (!word) continue;
-      words[word] = typeof info.interval === 'number' ? info.interval : 0;
+    if (!Array.isArray(cards)) {
+      throw new AnkiConnectError('findCards did not return a card list.', 'ANKI');
     }
-    return { words };
-  } catch {
-    return { words: {} };
+    if (cards.length === 0) return { ok: true, words: {} };
+
+    const intervals = await readIntervals(cards, mapping);
+    const infos = await readCardFields(cards, mapping);
+
+    const words: Record<string, number> = {};
+    for (let i = 0; i < cards.length; i += 1) {
+      const word = headwordOf(infos[i]?.fields, fieldName);
+      if (!word) continue;
+      // Max: a word with several cards (duplicate notes, generated cards)
+      // counts by its most advanced card.
+      words[word] = Math.max(words[word] ?? 0, intervals[i]);
+    }
+    return { ok: true, words };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'wordIntervals failed' };
   }
 }

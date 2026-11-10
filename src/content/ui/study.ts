@@ -21,9 +21,9 @@ import { lookupDictionary } from '../nlp/dictionary';
 import { falseFriendOf } from '../../shared/study/falseFriends';
 import { frequency, hasFrequencyList, type FrequencyRanks } from '../../shared/study/frequency';
 import {
-  ankiSummaryOf, applyVocabTest, buildEstimator, estimateWithTest, hydrateStudy, mergeAnkiIntervals,
-  noteCardSaved, normalizeStatusKey, resolveDetailed, setSelfLevel, setWordStatus, startRange,
-  studyStores,
+  ankiSummaryOf, applyVocabTest, buildEstimator, estimateWithTest, hydrateStudy,
+  noteCardSaved, normalizeStatusKey, profileLangOf, replaceAnkiIntervals, resolveDetailed,
+  setSelfLevel, setWordStatus, startRange, studyStores,
   type AnkiCard, type AnkiSummary, type Estimator, type StatusDetail, type StudyWords,
   type WordStatus,
 } from '../../shared/study/wordStatus';
@@ -45,13 +45,10 @@ export interface StudyBinding {
 
 /**
  * Profile id of a cue language: the two-letter code, so `en-US` and `en`
- * share one profile. There is one profile per language being learned, not per
- * track tag.
+ * share one profile. Canonical fold lives in the pure study layer (the
+ * service worker's undo path needs it too); re-exported here for the views.
  */
-export function profileLangOf(lang: string): string {
-  const base = (lang || 'en').trim().toLowerCase().slice(0, 2);
-  return base || 'en';
-}
+export { profileLangOf };
 
 /**
  * Lexicon features over the bundled dictionary and the frequency list.
@@ -105,14 +102,53 @@ function fieldNameFromMapping(mapping: { fieldSources?: Record<string, unknown> 
   return found?.[0] ?? 'Front';
 }
 
+/**
+ * How the last `ANKI_WORD_INTERVALS` round trip went, per profile language.
+ * An ERROR is not an EMPTY DECK: `stale` says the cached map survived a
+ * failed query, so the F5 panel can say «unreachable» instead of «none» —
+ * an empty cache with `fresh` really means the deck is empty. In-memory on
+ * purpose: the next mount fires a refresh, so persisting the flag would only
+ * show yesterday's outage as today's truth.
+ */
+export type AnkiCoverageState = 'fresh' | 'stale' | 'unknown';
+export interface AnkiCoverage {
+  state: AnkiCoverageState;
+  /** `ok: false` error from the service worker, when the state is stale. */
+  error?: string;
+}
+
+const UNKNOWN_COVERAGE: AnkiCoverage = { state: 'unknown' };
+const coverageByLang = new Map<string, AnkiCoverage>();
+const coverageListeners = new Set<() => void>();
+
+/** Coverage of a profile's last refresh; `unknown` before the first one. */
+export function getAnkiCoverage(lang: string): AnkiCoverage {
+  return coverageByLang.get(lang) ?? UNKNOWN_COVERAGE;
+}
+
+/** Subscribe to coverage changes (React-safe: stable snapshot references). */
+export function subscribeAnkiCoverage(listener: () => void): () => void {
+  coverageListeners.add(listener);
+  return () => { coverageListeners.delete(listener); };
+}
+
+function setAnkiCoverage(lang: string, next: AnkiCoverage): void {
+  const prev = coverageByLang.get(lang);
+  if (prev && prev.state === next.state && prev.error === next.error) return;
+  coverageByLang.set(lang, next);
+  for (const listener of coverageListeners) listener();
+}
+
 const refreshing = new Map<string, Promise<void>>();
 
 /**
  * Refresh the cached Anki intervals for a language (`ANKI_WORD_INTERVALS`).
- * Incremental on purpose: the service worker answers with the current
- * interval per headword and `mergeAnkiIntervals` rewrites only the entries
- * whose value changed. Called when the panel mounts and after every save; a
- * failed call keeps the cached values.
+ * The answer is a SNAPSHOT: `{ ok: true }` REPLACES the cached map with
+ * `replaceAnkiIntervals` (a word that left Anki disappears), while
+ * `{ ok: false }` — or a thrown message — is an unreachable Anki, NOT an
+ * empty deck: the cache stays as-is and the coverage flag flips to `stale`
+ * so the panel can say «offline» instead of «no cards». Called when the
+ * panel mounts and after every save.
  */
 export function refreshAnkiIntervals(lang: string): Promise<void> {
   if (!hasExtensionRuntime()) return Promise.resolve();
@@ -128,9 +164,15 @@ export function refreshAnkiIntervals(lang: string): Promise<void> {
         { lang, deck, fieldName: fieldNameFromMapping(ankiMapping) },
         'background',
       )) as AnkiWordIntervalsResponse;
-      if (response?.words) mergeAnkiIntervals(lang, response.words);
+      if (response.ok) {
+        replaceAnkiIntervals(lang, response.words);
+        setAnkiCoverage(lang, { state: 'fresh' });
+      } else {
+        setAnkiCoverage(lang, { state: 'stale', error: response.error });
+      }
     } catch {
       // Anki unreachable (closed, wrong URL): the cached intervals stay.
+      setAnkiCoverage(lang, { state: 'stale' });
     } finally {
       refreshing.delete(lang);
     }
@@ -173,6 +215,8 @@ export interface WordStudy extends StudyBinding {
   /** Level if the self-assessment were A1 / C2, to say how much it still weighs. */
   range: { low: Estimator; high: Estimator };
   summary: AnkiSummary;
+  /** How the last interval refresh went: `fresh`, `stale` (unreachable) or `unknown`. */
+  coverage: AnkiCoverage;
   /** The user's own mark, without Anki or the estimate. */
   userStatusOf(tokenKey: string): WordStatus | undefined;
   setSelfLevel(level: StudyLevel | null): void;
@@ -221,6 +265,7 @@ export function useWordStudy(langArg?: string): WordStudy {
     [marks, profile, anki, l1, words],
   );
   const summary = useMemo(() => ankiSummaryOf(anki), [anki]);
+  const coverage = useSyncExternalStore(subscribeAnkiCoverage, () => getAnkiCoverage(lang));
 
   const detailOf = useCallback(
     (tokenKey: string) => resolveDetailed(marks, tokenKey, anki, estimator),
@@ -254,7 +299,7 @@ export function useWordStudy(langArg?: string): WordStudy {
   const refreshAnki = useCallback(() => refreshAnkiIntervals(lang), [lang]);
 
   return {
-    lang, l1, ready, marks, anki, profile, estimator, range, summary,
+    lang, l1, ready, marks, anki, profile, estimator, range, summary, coverage,
     statusOf, detailOf, setStatus, inAnki, userStatusOf,
     setSelfLevel: changeSelfLevel, applyTest: saveTest, previewTest, refreshAnki,
   };

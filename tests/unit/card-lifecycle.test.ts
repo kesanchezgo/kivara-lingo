@@ -2,8 +2,9 @@
  * F4 card lifecycle commands (docs/REDESIGN-V2.md §4.6, H10).
  *
  * The registry is the UI's source of truth; the Dexie row is the engine's
- * retry slot. These tests cover the three commands that move a card between
- * them: retry one, retry all and dismiss.
+ * retry slot. These tests cover the commands that move a card between them:
+ * retry one, retry all, dismiss and undo (delete), which also drops the word
+ * from the F5 interval cache.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RecentCard } from '../../src/shared/cards';
@@ -20,6 +21,8 @@ interface FakeRegistry {
   get: ReturnType<typeof vi.fn>;
   patch: ReturnType<typeof vi.fn>;
   remove: ReturnType<typeof vi.fn>;
+  findByNoteId: ReturnType<typeof vi.fn>;
+  removeByNoteId: ReturnType<typeof vi.fn>;
 }
 
 function card(overrides: Partial<RecentCard> = {}): RecentCard {
@@ -39,10 +42,33 @@ function card(overrides: Partial<RecentCard> = {}): RecentCard {
   };
 }
 
+/** Minimal chrome.storage.local the F5 interval cache (wordStatus) writes to. */
+function installStorage(): Record<string, unknown> {
+  const stored: Record<string, unknown> = {};
+  (globalThis as unknown as { chrome: { storage: Record<string, unknown> } }).chrome = {
+    storage: {
+      local: {
+        get: vi.fn(async (keys: string | string[]) => {
+          const out: Record<string, unknown> = {};
+          for (const key of Array.isArray(keys) ? keys : [keys]) if (key in stored) out[key] = stored[key];
+          return out;
+        }),
+        set: vi.fn(async (items: Record<string, unknown>) => { Object.assign(stored, items); }),
+        remove: vi.fn(async (keys: string | string[]) => {
+          for (const key of Array.isArray(keys) ? keys : [keys]) delete stored[key];
+        }),
+      },
+      onChanged: { addListener: vi.fn() },
+    },
+  };
+  return stored;
+}
+
 function setup(options: {
   cards?: RecentCard[];
   rows?: Row[];
   result?: { ok: boolean; noteId?: number; error?: string };
+  deleteResult?: { ok: boolean; error?: string; gone?: boolean };
 } = {}) {
   const cards = options.cards ?? [card()];
   const rows = options.rows ?? [{ id: 10, request: { cardId: 'card-1', token: 'sane', deck: 'English vocabulary', lang: 'en' }, retries: 1 }];
@@ -51,13 +77,22 @@ function setup(options: {
     get: vi.fn(async (id: string) => cards.find((c) => c.id === id)),
     patch: vi.fn(async () => cards[0]),
     remove: vi.fn(async () => undefined),
+    findByNoteId: vi.fn(async (noteId: number) => cards.find((c) => c.noteId === noteId)),
+    removeByNoteId: vi.fn(async () => undefined),
   };
   const createCardFromRequest = vi.fn(async () => options.result ?? { ok: true, noteId: 900 });
   const retryPendingNotes = vi.fn(async () => ({ retried: 1, succeeded: 1 }));
+  const deleteNote = vi.fn(async () => options.deleteResult ?? { ok: true });
   const pendingDelete = vi.fn(async () => undefined);
   const pendingUpdate = vi.fn(async () => undefined);
   vi.doMock('../../src/background/card-registry', () => ({ cardRegistry: registry }));
   vi.doMock('../../src/background/capture-orchestrator', () => ({ createCardFromRequest, retryPendingNotes }));
+  vi.doMock('../../src/background/card-actions', () => ({
+    deleteNote,
+    addContextToNote: vi.fn(),
+    browseNote: vi.fn(),
+    wordIntervals: vi.fn(),
+  }));
   vi.doMock('../../src/shared/db', () => ({
     getDB: () => ({
       pending_notes: {
@@ -68,7 +103,7 @@ function setup(options: {
     }),
   }));
 
-  return { registry, createCardFromRequest, retryPendingNotes, pendingDelete, pendingUpdate, rows, cards };
+  return { registry, createCardFromRequest, retryPendingNotes, deleteNote, pendingDelete, pendingUpdate, rows, cards };
 }
 
 const MAPPING = {
@@ -173,5 +208,63 @@ describe('dismissCard', () => {
     await dismissCard('card-1');
     expect(f.pendingDelete).toHaveBeenCalledTimes(1);
     expect(f.pendingDelete).toHaveBeenCalledWith(10);
+  });
+});
+
+describe('undoDeleteNote (Undo)', () => {
+  it('deletes the note, drops the registry row and removes the word from the interval cache', async () => {
+    installStorage();
+    const f = setup({ cards: [card({ status: 'saved', noteId: 77 })] });
+    // The F5 cache holds the word the undo must flip back to «new/estimate».
+    const { replaceAnkiIntervals, studyStores } = await import('../../src/shared/study/wordStatus');
+    replaceAnkiIntervals('en', { sane: 12, time: 30 });
+
+    const { undoDeleteNote } = await import('../../src/background/card-lifecycle');
+    const res = await undoDeleteNote(77, MAPPING as never);
+
+    expect(res).toEqual({ ok: true });
+    expect(f.deleteNote).toHaveBeenCalledWith(77, MAPPING);
+    expect(f.registry.removeByNoteId).toHaveBeenCalledWith(77);
+    // The word leaves the cache at once; the other words keep their intervals.
+    expect(studyStores('en').anki.get()).toEqual({ time: { interval: 30 } });
+  });
+
+  it('reads the language from the registry row (en-US folds to the en profile)', async () => {
+    installStorage();
+    const f = setup({ cards: [card({ status: 'saved', noteId: 77, lang: 'en-US', word: 'Sane' })] });
+    const { replaceAnkiIntervals, studyStores } = await import('../../src/shared/study/wordStatus');
+    replaceAnkiIntervals('en', { sane: 12 });
+
+    const { undoDeleteNote } = await import('../../src/background/card-lifecycle');
+    await undoDeleteNote(77, MAPPING as never);
+
+    expect(f.registry.findByNoteId).toHaveBeenCalledWith(77);
+    expect(studyStores('en').anki.get()).toEqual({});
+  });
+
+  it('keeps the word when the delete fails', async () => {
+    installStorage();
+    const f = setup({ cards: [card({ status: 'saved', noteId: 77 })], deleteResult: { ok: false, error: 'Anki is closed' } });
+    const { replaceAnkiIntervals, studyStores } = await import('../../src/shared/study/wordStatus');
+    replaceAnkiIntervals('en', { sane: 12 });
+
+    const { undoDeleteNote } = await import('../../src/background/card-lifecycle');
+    const res = await undoDeleteNote(77, MAPPING as never);
+
+    expect(res).toMatchObject({ ok: false, error: 'Anki is closed' });
+    expect(f.registry.removeByNoteId).not.toHaveBeenCalled();
+    expect(studyStores('en').anki.get()).toEqual({ sane: { interval: 12 } });
+  });
+
+  it('an already-deleted note is still a complete undo (gone)', async () => {
+    installStorage();
+    const f = setup({ cards: [card({ status: 'saved', noteId: 77 })], deleteResult: { ok: true, gone: true } });
+    const { replaceAnkiIntervals, studyStores } = await import('../../src/shared/study/wordStatus');
+    replaceAnkiIntervals('en', { sane: 12 });
+
+    const { undoDeleteNote } = await import('../../src/background/card-lifecycle');
+    await expect(undoDeleteNote(77, MAPPING as never)).resolves.toEqual({ ok: true, gone: true });
+    expect(f.registry.removeByNoteId).toHaveBeenCalledWith(77);
+    expect(studyStores('en').anki.get()).toEqual({});
   });
 });

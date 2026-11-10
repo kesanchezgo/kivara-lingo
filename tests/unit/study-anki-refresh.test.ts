@@ -1,18 +1,20 @@
 /**
- * F5 gate: `ANKI_WORD_INTERVALS` refreshes the cached intervals incrementally
- * (docs/REDESIGN-V2.md §6/§7 F5).
+ * F5 gate: `ANKI_WORD_INTERVALS` answers a SNAPSHOT and the caller applies it
+ * as one (docs/REDESIGN-V2.md §6/§7 F5).
  *
  * On save the card is registered with interval 0 immediately (so the card is
- * never created twice and the word reads «learning» at once), and a background
- * call reads the real interval. The request uses the deck of the language
- * being learned and the field mapped to `selection`, and the answer is merged
- * value by value.
+ * never created twice and the word reads «learning» at once), and a
+ * background call replaces the cache with the deck snapshot. An error is NOT
+ * an empty deck: `ok: false` (or a thrown message) keeps the cached map and
+ * flips the coverage flag to `stale`; `{ ok: true, words: {} }` really
+ * replaces it with nothing. The request uses the deck of the language being
+ * learned and the field mapped to `selection`.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sendMessage } from 'webext-bridge/content-script';
 import { useKivaraStore } from '../../src/shared/store';
-import { recordCardSaved, refreshAnkiIntervals } from '../../src/content/ui/study';
-import { resetStudyStores, studyStores } from '../../src/shared/study/wordStatus';
+import { getAnkiCoverage, recordCardSaved, refreshAnkiIntervals } from '../../src/content/ui/study';
+import { replaceAnkiIntervals, resetStudyStores, setWordStatus, studyStores } from '../../src/shared/study/wordStatus';
 import { DEFAULT_ANKI_MAPPING } from '../../src/shared/store';
 
 const send = vi.mocked(sendMessage);
@@ -50,8 +52,8 @@ beforeEach(() => {
 });
 
 describe('refresh after a save', () => {
-  it('registers the card at once and merges the real interval afterwards', async () => {
-    send.mockResolvedValueOnce({ words: { sane: 42 } });
+  it('registers the card at once and replaces the cache with the snapshot afterwards', async () => {
+    send.mockResolvedValueOnce({ ok: true, words: { sane: 42 } });
     recordCardSaved('en', 'sane');
 
     // The interval is written before the round trip returns.
@@ -65,11 +67,58 @@ describe('refresh after a save', () => {
       { lang: 'en', deck: 'English deck', fieldName: 'Front' },
       'background',
     );
+    expect(getAnkiCoverage('en')).toEqual({ state: 'fresh' });
+  });
+});
+
+describe('snapshot semantics', () => {
+  it('a word absent from the snapshot disappears; the user mark survives', async () => {
+    replaceAnkiIntervals('en', { sane: 40, old: 100 });
+    setWordStatus('en', 'old', 'known');
+
+    send.mockResolvedValueOnce({ ok: true, words: { sane: 41 } });
+    await refreshAnkiIntervals('en');
+
+    expect(studyStores('en').anki.get()).toEqual({ sane: { interval: 41 } });
+    // Marks live in their own store: only the Anki-derived map was replaced.
+    expect(studyStores('en').status.get()).toEqual({ old: 'known' });
   });
 
-  it('keeps the cached values when Anki is unreachable', async () => {
+  it('an empty deck replaces the cache with nothing and reads fresh', async () => {
+    replaceAnkiIntervals('en', { sane: 40 });
+
+    send.mockResolvedValueOnce({ ok: true, words: {} });
+    await refreshAnkiIntervals('en');
+
+    // Empty is a real answer here: the deck was read and holds nothing.
+    expect(studyStores('en').anki.get()).toEqual({});
+    expect(getAnkiCoverage('en')).toEqual({ state: 'fresh' });
+  });
+});
+
+describe('error vs empty deck', () => {
+  it('an ok:false answer keeps the cache and flags it stale with the error', async () => {
+    replaceAnkiIntervals('en', { sane: 40 });
+
+    send.mockResolvedValueOnce({ ok: false, error: 'Anki is closed' });
+    await refreshAnkiIntervals('en');
+
+    // Failed query ≠ empty deck: the cached intervals survive untouched.
+    expect(studyStores('en').anki.get()).toEqual({ sane: { interval: 40 } });
+    expect(getAnkiCoverage('en')).toEqual({ state: 'stale', error: 'Anki is closed' });
+  });
+
+  it('a thrown message keeps the cache and flags it stale', async () => {
+    replaceAnkiIntervals('en', { sane: 40 });
+
     send.mockRejectedValueOnce(new Error('ECONNREFUSED'));
     await expect(refreshAnkiIntervals('en')).resolves.toBeUndefined();
-    expect(studyStores('en').anki.get()).toEqual({});
+
+    expect(studyStores('en').anki.get()).toEqual({ sane: { interval: 40 } });
+    expect(getAnkiCoverage('en')).toEqual({ state: 'stale' });
+  });
+
+  it('coverage starts unknown before the first refresh', () => {
+    expect(getAnkiCoverage('fr')).toEqual({ state: 'unknown' });
   });
 });
