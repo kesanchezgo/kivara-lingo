@@ -33,7 +33,13 @@ export function defaultDeckName(lang: string): string {
   return t('cards.deckDefault', { lang: t(`lang.${lang}`) });
 }
 
-export function migrateDecks(m: AnkiMapping, lang: string): AnkiMapping {
+/**
+ * Generic over the caller's mapping shape: the settings type and the ported
+ * study subset are structurally compatible, and returning the caller's own
+ * type keeps `setAnkiMapping` (which requires every settings field) typed
+ * without a cast at the call site.
+ */
+export function migrateDecks<T extends AnkiMapping>(m: T, lang: string): T {
   if (m.decks) return m;
   const chosen = !!m.deckName && m.deckName !== DEFAULT_DECK_NAME;
   return { ...m, decks: chosen ? { [lang]: m.deckName } : {} };
@@ -44,12 +50,12 @@ export function deckFor(m: AnkiMapping, lang: string): string {
   return migrateDecks(m, lang).decks?.[lang] ?? defaultDeckName(lang);
 }
 
-export function withDeck(m: AnkiMapping, lang: string, deck: string): AnkiMapping {
+export function withDeck<T extends AnkiMapping>(m: T, lang: string, deck: string): T {
   const base = migrateDecks(m, lang);
   return { ...base, decks: { ...base.decks, [lang]: deck } };
 }
 
 /** Pins a language's default name (if it has no saved deck yet). Returns the same object when nothing changes. */
-export function pinDeck(m: AnkiMapping, lang: string): AnkiMapping {
+export function pinDeck<T extends AnkiMapping>(m: T, lang: string): T {
   return m.decks?.[lang] ? m : withDeck(m, lang, deckFor(m, lang));
 }

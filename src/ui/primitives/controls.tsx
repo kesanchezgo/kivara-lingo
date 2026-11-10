@@ -63,6 +63,8 @@ export interface SelectProps {
   disabled?: boolean;
   placeholder?: string;
   id?: string;
+  /** Stable hook for behavior tests (passed through to the native select). */
+  'data-testid'?: string;
   'aria-label'?: string;
   'aria-labelledby'?: string;
 }

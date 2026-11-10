@@ -1,3 +1,4 @@
+/* One slot of the language pair (F8; prototype view). */
 import React from 'react';
 import type { LangMeta } from './LangMeta';
 
@@ -11,30 +12,22 @@ export function SlotCard({
   accent: 'indigo' | 'emerald';
   onClick: () => void;
 }) {
-  const accentClasses = active
-    ? accent === 'indigo'
-      ? 'border-transparent ring-2 ring-indigo-500/70 dark:ring-indigo-400/70 bg-indigo-50/70 dark:bg-indigo-500/10'
-      : 'border-transparent ring-2 ring-emerald-500/70 dark:ring-emerald-400/70 bg-emerald-50/70 dark:bg-emerald-500/10'
-    : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700';
-  const labelColor = accent === 'indigo'
-    ? 'text-indigo-700 dark:text-indigo-300'
-    : 'text-emerald-700 dark:text-emerald-300';
+  const tone = accent === 'indigo'
+    ? { label: 'text-indigo-600 dark:text-indigo-300', bg: 'bg-indigo-50/60 dark:bg-indigo-500/[0.07]', bar: 'bg-indigo-500' }
+    : { label: 'text-emerald-600 dark:text-emerald-300', bg: 'bg-emerald-50/60 dark:bg-emerald-500/[0.06]', bar: 'bg-emerald-500' };
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`text-left rounded-xl border p-3 transition-all ${accentClasses}`}
+      className={`relative flex flex-col items-center text-center px-6 pt-5 pb-6 transition-colors duration-200 ${active ? tone.bg : 'hover:bg-zinc-50 dark:hover:bg-white/[0.02]'}`}
     >
-      <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${labelColor}`}>
-        {icon}<span>{label}</span>
-      </div>
-      <div className="mt-1.5 flex items-center gap-2.5">
-        <span className="text-2xl leading-none select-none" aria-hidden>{lang.flag}</span>
-        <div className="min-w-0">
-          <div className="text-[14px] font-semibold text-zinc-900 dark:text-zinc-50 leading-tight truncate">{lang.name}</div>
-          <div className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-tight truncate">{lang.native}</div>
-        </div>
-      </div>
+      <span className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${active ? tone.label : 'text-zinc-500 dark:text-zinc-400'}`}>
+        {icon}{label}
+      </span>
+      <span className="mt-3 text-[34px] leading-none select-none" aria-hidden>{lang.flag}</span>
+      <span className="mt-3 text-[17px] font-semibold tracking-[-0.01em] text-zinc-900 dark:text-white leading-tight">{lang.name}</span>
+      <span className="mt-0.5 text-[12px] text-zinc-500 dark:text-zinc-400">{lang.native}</span>
+      <span aria-hidden className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-[3px] rounded-t-full transition-all duration-300 ${active ? `w-12 ${tone.bar}` : 'w-0 bg-transparent'}`} />
     </button>
   );
 }

@@ -1,13 +1,24 @@
-import React from 'react';
+/**
+ * Mapping step — deck, note type and field mapping (F8; prototype view, repo
+ * field rules).
+ *
+ * The deck is the one of the language chosen in the Lang/Level steps
+ * (`mapping.decks[lang]`), never a single global deck: level, marks and the
+ * check belong to the language, and changing the deck must not move them.
+ * The gate in `steps.ts` reads that same per-language entry.
+ */
 import { t } from '../../shared/i18n';
-import { CheckCircle2, AlertTriangle, Loader2, Play, ArrowLeftRight, LayoutGrid, ListChecks, Wand2 } from 'lucide-react';
+import { CheckCircle2, Loader2, ChevronRight, LayoutGrid, Wand2, ListChecks, ArrowLeft } from '../../ui/icons';
 import type { AnkiMapping, FieldSource } from '../../shared/types';
-import { SOURCE_BADGE } from './badges';
 import { detectFieldSource } from '../../shared/anki-field-detect';
+import { deckFor, withDeck } from '../../shared/study/decks';
+import { Button } from '../../ui/primitives/settings-primitives';
+import { Select, inputLgCls } from '../../ui/primitives/controls';
 import { StepSection } from './StepSection';
 
-
 export interface MappingStepProps {
+  /** Language being learned: the deck chosen here is ITS deck. */
+  lang: string;
   mapping: AnkiMapping;
   setMapping: (m: AnkiMapping) => void;
   decks: string[] | null;
@@ -23,89 +34,102 @@ export interface MappingStepProps {
 }
 
 export function MappingStep({
-  mapping, setMapping, decks, models, fields, busy,
+  lang, mapping, setMapping, decks, models, fields, busy,
   deckCreateMode, setDeckCreateMode, modelCreateMode, setModelCreateMode,
   onLoadDecks, onLoadFields,
 }: MappingStepProps) {
+  const deck = deckFor(mapping, lang);
+  const setDeck = (d: string) => setMapping(withDeck(mapping, lang, d));
+  const deckChosen = Boolean(mapping.decks?.[lang]);
+
   return (
     <StepSection
+      icon={<LayoutGrid size={20} />}
       title={t('onb.deckModelFields')}
       subtitle={t('onb.deckStepDesc')}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
-        {/* Mazo card */}
-        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-indigo-500/10 ring-1 ring-indigo-500/20 text-indigo-600 dark:text-indigo-300 flex items-center justify-center">
-              <LayoutGrid size={12} />
-            </div>
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">{t('onb.destDeck')}</span>
-            {mapping.deckName && !deckCreateMode && (
-              <CheckCircle2 size={12} className="ml-auto text-emerald-500" />
-            )}
+      <div
+        data-deck-for={lang}
+        className="rounded-2xl bg-white dark:bg-white/[0.03] ring-1 ring-zinc-900/[0.06] dark:ring-white/[0.06] shadow-[0_12px_32px_-18px_rgba(16,24,40,.25)] dark:shadow-none divide-y divide-zinc-900/[0.06] dark:divide-white/[0.06]"
+      >
+        {/* Deck */}
+        <div className="flex items-start gap-3 px-4 py-4">
+          <div className="w-8 h-8 rounded-lg bg-indigo-500/[0.08] dark:bg-indigo-400/[0.12] text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0 mt-1">
+            <LayoutGrid size={16} />
           </div>
-          <div className="p-3 space-y-2">
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
+                {t('onb.destDeck', { lang: t(`lang.${lang}`) })}
+              </span>
+              {deckChosen && !deckCreateMode && <CheckCircle2 size={13} className="text-emerald-500" />}
+            </div>
             <div className="flex gap-2">
               {deckCreateMode ? (
                 <input
                   type="text"
                   autoFocus
-                  value={mapping.deckName}
-                  onChange={(e) => setMapping({ ...mapping, deckName: e.target.value })}
+                  value={deck}
+                  onChange={(e) => setDeck(e.target.value)}
                   placeholder={t('onb.newDeckPlaceholder')}
-                  className="sl-input sl-lg flex-1"
+                  className={`${inputLgCls} flex-1`}
                 />
               ) : (
-                <select
+                <Select
                   data-testid="onboarding-deck-select"
-                  aria-label={t('onb.destDeck')}
-                  value={decks?.includes(mapping.deckName) ? mapping.deckName : ''}
-                  onChange={(e) => setMapping({ ...mapping, deckName: e.target.value })}
+                  aria-label={t('onb.destDeck', { lang: t(`lang.${lang}`) })}
+                  value={decks?.includes(deck) ? deck : ''}
+                  onChange={(e) => setDeck(e.target.value)}
                   disabled={!decks || decks.length === 0}
-                  className="sl-select sl-lg flex-1"
+                  size="lg"
+                  className="flex-1"
                 >
-                  <option value="">{decks?.length ? '— Selecciona un mazo —' : 'Cargando…'}</option>
+                  <option value="">{decks?.length ? t('onb.selectDeck') : t('common.loading')}</option>
                   {(decks ?? []).map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
+                </Select>
               )}
-              <button
+              {/* Same loading convention as the rest: the text stays (accessible
+                  name and stable width) and the icon spins beside it. */}
+              <Button
+                variant="secondary"
                 onClick={onLoadDecks}
                 disabled={busy}
-                className="h-10 px-3.5 text-[12px] font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50 transition-colors shrink-0"
+                aria-busy={busy}
+                icon={busy ? <Loader2 size={13} className="animate-spin" /> : undefined}
               >
-                {busy ? <Loader2 size={13} className="animate-spin" /> : 'Refrescar'}
-              </button>
+                {t('onb.refresh')}
+              </Button>
             </div>
             <button
               type="button"
               onClick={() => {
                 if (deckCreateMode) {
                   setDeckCreateMode(false);
-                  if (decks && !decks.includes(mapping.deckName)) setMapping({ ...mapping, deckName: '' });
+                  if (decks && !decks.includes(deck)) setDeck('');
                 } else {
                   setDeckCreateMode(true);
                 }
               }}
-              className="text-[11.5px] text-indigo-600 dark:text-indigo-400 hover:underline"
+              className="text-[12px] text-indigo-600 dark:text-indigo-400 hover:underline"
             >
-              {deckCreateMode ? t('onb.chooseExistingDeck') : t('onb.createDeck')}
+              {deckCreateMode
+                ? <span className="inline-flex items-center gap-1"><ArrowLeft size={12} />{t('onb.chooseExistingDeck')}</span>
+                : t('onb.createDeck')}
             </button>
+            <p className="text-[12px] leading-[17px] text-zinc-500 dark:text-zinc-400" data-deck-hint>{t('cards.deckLangHint')}</p>
           </div>
         </div>
 
-        {/* Modelo card */}
-        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-emerald-500/10 ring-1 ring-emerald-500/20 text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
-              <ListChecks size={12} />
-            </div>
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">{t('onb.noteModelTitle')}</span>
-            {mapping.modelName && !modelCreateMode && (
-              <CheckCircle2 size={12} className="ml-auto text-emerald-500" />
-            )}
+        {/* Note type */}
+        <div className="flex items-start gap-3 px-4 py-4">
+          <div className="w-8 h-8 rounded-lg bg-indigo-500/[0.08] dark:bg-indigo-400/[0.12] text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0 mt-1">
+            <ListChecks size={16} />
           </div>
-          <div className="p-3 space-y-2">
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">{t('onb.noteModelTitle')}</span>
+              {mapping.modelName && !modelCreateMode && <CheckCircle2 size={13} className="text-emerald-500" />}
+            </div>
             {modelCreateMode ? (
               <input
                 type="text"
@@ -113,10 +137,10 @@ export function MappingStep({
                 value={mapping.modelName}
                 onChange={(e) => setMapping({ ...mapping, modelName: e.target.value })}
                 placeholder={t('onb.newModelPlaceholder')}
-                className="sl-input sl-lg w-full"
+                className={`${inputLgCls} w-full`}
               />
             ) : (
-              <select
+              <Select
                 data-testid="onboarding-model-select"
                 aria-label={t('onb.noteModelTitle')}
                 value={mapping.modelName}
@@ -126,13 +150,14 @@ export function MappingStep({
                   if (m) onLoadFields(m);
                 }}
                 disabled={!models || models.length === 0}
-                className="sl-select sl-lg w-full"
+                size="lg"
+                className="w-full"
               >
-                <option value="">{models?.length ? '— Selecciona un modelo —' : 'Cargando…'}</option>
+                <option value="">{models?.length ? t('ai.selectModel') : t('common.loading')}</option>
                 {(models ?? (mapping.modelName ? [mapping.modelName] : [])).map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
-              </select>
+              </Select>
             )}
             <div className="flex items-center gap-3 flex-wrap">
               <button
@@ -145,13 +170,15 @@ export function MappingStep({
                     setModelCreateMode(true);
                   }
                 }}
-                className="text-[11.5px] text-indigo-600 dark:text-indigo-400 hover:underline"
+                className="text-[12px] text-indigo-600 dark:text-indigo-400 hover:underline"
               >
-                {modelCreateMode ? t('onb.chooseExistingModel') : t('onb.createModel')}
+                {modelCreateMode
+                  ? <span className="inline-flex items-center gap-1"><ArrowLeft size={12} />{t('onb.chooseExistingModel')}</span>
+                  : t('onb.createModel')}
               </button>
               {busy && (
-                <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-500">
-                  <Loader2 size={11} className="animate-spin" /> {t('onb.loading')}
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-zinc-500">
+                  <Loader2 size={12} className="animate-spin" /> {t('onb.loading')}
                 </span>
               )}
             </div>
@@ -162,87 +189,85 @@ export function MappingStep({
       {/* Field mapping */}
       {fields && fields.length > 0 && (() => {
         const totalMapped = fields.filter((f) => (mapping.fieldSources[f] ?? 'manual') !== 'manual').length;
-        const autoCount = fields.filter((f) => (mapping.fieldSources[f] ?? 'manual') === detectFieldSource(f)).length;
+        const autoCount = fields.filter((f) => (mapping.fieldSources[f] ?? 'manual') !== 'manual' && mapping.fieldSources[f] === detectFieldSource(f)).length;
         return (
-          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 flex items-center gap-2 flex-wrap">
-              <div className="w-6 h-6 rounded-md bg-violet-500/10 ring-1 ring-violet-500/20 text-violet-600 dark:text-violet-300 flex items-center justify-center">
-                <Wand2 size={12} />
+          <>
+            <div className="flex items-end justify-between gap-3 px-1 pt-4">
+              <div>
+                <p className="text-[15px] font-semibold tracking-[-0.01em] text-zinc-900 dark:text-white">{t('onb.fieldMapTitle')}</p>
+                <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  {t('onb.mappedFmt', { done: totalMapped, total: fields.length })}
+                </p>
               </div>
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">{t('onb.fieldMapTitle')}</span>
-              <span className="text-[10px] text-zinc-400 dark:text-zinc-500">·</span>
-              <span className="text-[10.5px] text-zinc-500 dark:text-zinc-400">
-                {t('onb.mappedFmt', { done: totalMapped, total: fields.length })}
-              </span>
-              <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-full ring-1 ring-indigo-500/15">
-                <Wand2 size={9} /> {t('onb.autoDetectedFmt', { n: autoCount })}
+              <span className="inline-flex items-center gap-1 h-6 text-[11px] font-medium text-indigo-600 dark:text-indigo-300 bg-indigo-500/[0.08] dark:bg-indigo-400/[0.12] px-2 rounded-full">
+                <Wand2 size={12} /> {t('onb.autoDetectedFmt', { n: autoCount })}
               </span>
             </div>
-            <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-              {fields.map((field) => {
-                const current: FieldSource = mapping.fieldSources[field] ?? 'manual';
-                const isAuto = current === detectFieldSource(field);
-                const badge = SOURCE_BADGE[current] ?? SOURCE_BADGE['manual']!;
-                const isManual = current === 'manual';
-                return (
-                  <div key={field} className="flex items-center gap-3 px-4 py-2.5">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isManual ? 'bg-zinc-300 dark:bg-zinc-700' : 'bg-emerald-500'}`} />
-                    <div className="flex-1 min-w-0 flex items-center gap-2">
-                      <span className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200 truncate font-mono">{field}</span>
-                      {isAuto && !isManual && (
-                        <span className="text-[9px] font-semibold text-indigo-500 dark:text-indigo-400 shrink-0 inline-flex items-center gap-0.5">
-                          <Wand2 size={8} /> auto
-                        </span>
-                      )}
+            <div className="rounded-xl bg-white dark:bg-white/[0.03] ring-1 ring-zinc-900/[0.06] dark:ring-white/[0.06] shadow-[0_1px_2px_rgba(16,24,40,.04)] dark:shadow-none overflow-hidden">
+              <div className="divide-y divide-zinc-900/[0.06] dark:divide-white/[0.06]">
+                {fields.map((field) => {
+                  const current: FieldSource = mapping.fieldSources[field] ?? 'manual';
+                  const isAuto = current !== 'manual' && current === detectFieldSource(field);
+                  const isManual = current === 'manual';
+                  return (
+                    <div key={field} className="flex items-center gap-3 px-4 h-[52px]">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isManual ? 'bg-zinc-300 dark:bg-zinc-700' : 'bg-emerald-500'}`} />
+                      <div className="flex-1 min-w-0 flex items-center gap-2">
+                        <span className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200 truncate font-mono">{field}</span>
+                        {isAuto && (
+                          <span className="text-[12px] font-medium text-indigo-500 dark:text-indigo-400 shrink-0 inline-flex items-center gap-1">
+                            <Wand2 size={12} /> auto
+                          </span>
+                        )}
+                      </div>
+                      <ChevronRight size={14} className="text-zinc-300 dark:text-zinc-600 shrink-0" />
+                      <div className="w-[160px] shrink-0">
+                        <Select
+                          value={current}
+                          onChange={(e) => {
+                            // The repo's rule: 'manual' deletes the key so the Cards
+                            // tab's auto-detection keeps the semantics it had.
+                            const src = e.target.value as FieldSource;
+                            const next = { ...mapping.fieldSources };
+                            if (src === 'manual') delete next[field];
+                            else next[field] = src;
+                            setMapping({ ...mapping, fieldSources: next });
+                          }}
+                        >
+                        <option value="manual">{t('cards.noMapping')}</option>
+                        <option value="selection">{t('cards.wordSelection')}</option>
+                        <option value="cue">{t('cards.sentence')}</option>
+                        <option value="phonetic">{t('onb.fieldPhonetic')}</option>
+                        <option value="translation">{t('cards.translation')}</option>
+                        <option value="bilingual">{t('onb.bilingualOpt')}</option>
+                        <option value="monolingual">{t('onb.monolingualOpt')}</option>
+                        <option value="examples">{t('cards.examples')}</option>
+                        <option value="frame">{t('cards.pictureFrame')}</option>
+                        <option value="sentence-audio">{t('cards.sentenceAudio')}</option>
+                        <option value="word-audio">{t('cards.wordAudio')}</option>
+                        <option value="synonyms">{t('cards.synonyms')}</option>
+                        <option value="antonyms">{t('cards.antonyms')}</option>
+                        <option value="collocations">{t('cards.collocations')}</option>
+                        <option value="etymology">{t('cards.etymology')}</option>
+                        <option value="mnemonic">{t('cards.mnemonic')}</option>
+                        <option value="image">{t('cards.enrichedImage')}</option>
+                        <option value="video-link">{t('cards.videoLink')}</option>
+                        <option value="ai-definition">{t('cards.aiDefinitionLabel')}</option>
+                        <option value="ai-synonyms">{t('cards.aiSynonymsLabel')}</option>
+                        <option value="ai-collocations">{t('cards.aiCollocationsLabel')}</option>
+                        <option value="ai-nuance">{t('cards.aiNuanceLabel')}</option>
+                        <option value="ai-register">{t('cards.aiRegisterLabel')}</option>
+                        </Select>
+                      </div>
                     </div>
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md shrink-0 ${badge.color}`}>
-                      {badge.label}
-                    </span>
-                    <select
-                      value={current}
-                      onChange={(e) => {
-                        const src = e.target.value as FieldSource;
-                        const next = { ...mapping.fieldSources };
-                        if (src === 'manual') delete next[field];
-                        else next[field] = src;
-                        setMapping({ ...mapping, fieldSources: next });
-                      }}
-                      className="sl-select shrink-0"
-                      style={{ width: 160 }}
-                    >
-                      <option value="manual">{t('cards.noMapping')}</option>
-                      <option value="selection">{t('cards.wordSelection')}</option>
-                      <option value="cue">{t('cards.sentence')}</option>
-                      <option value="phonetic">{t('onb.fieldPhonetic')}</option>
-                      <option value="translation">{t('cards.translation')}</option>
-                      <option value="bilingual">{t('onb.bilingualOpt')}</option>
-                      <option value="monolingual">{t('onb.monolingualOpt')}</option>
-                      <option value="examples">{t('cards.examples')}</option>
-                      <option value="frame">{t('cards.pictureFrame')}</option>
-                      <option value="sentence-audio">{t('cards.sentenceAudio')}</option>
-                      <option value="word-audio">{t('cards.wordAudio')}</option>
-                      <option value="synonyms">{t('cards.synonyms')}</option>
-                      <option value="antonyms">{t('cards.antonyms')}</option>
-                      <option value="collocations">{t('cards.collocations')}</option>
-                      <option value="etymology">{t('cards.etymology')}</option>
-                      <option value="mnemonic">{t('cards.mnemonic')}</option>
-                      <option value="image">{t('cards.enrichedImage')}</option>
-                      <option value="video-link">{t('cards.videoLink')}</option>
-                      <option value="ai-definition">{t('cards.aiDefinitionLabel')}</option>
-                      <option value="ai-synonyms">{t('cards.aiSynonymsLabel')}</option>
-                      <option value="ai-collocations">{t('cards.aiCollocationsLabel')}</option>
-                      <option value="ai-nuance">{t('cards.aiNuanceLabel')}</option>
-                      <option value="ai-register">{t('cards.aiRegisterLabel')}</option>
-                    </select>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-            <div className="px-4 py-2.5 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/40 dark:bg-zinc-900/40">
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                {t('onb.autoDetectedNote')}</p>
-            </div>
-          </div>
+            <p className="text-center text-[12px] leading-[18px] text-zinc-500 dark:text-zinc-400 px-6 pt-1">
+              {t('onb.autoDetectedNote')}
+            </p>
+          </>
         );
       })()}
     </StepSection>
