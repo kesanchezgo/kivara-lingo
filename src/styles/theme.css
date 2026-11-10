@@ -139,6 +139,21 @@
     @apply border-border outline-ring/50;
   }
 
+  /**
+   * Visible focus floor (F9 accessibility pass). Components that draw their
+   * own ring (FOCUS in ui/primitives) opt out with Tailwind's `outline-none`;
+   * every other focusable node still gets a 2px indigo outline. Declared once
+   * here because a per-component sweep misses the next control added.
+   */
+  :where(a, button, [role="button"], input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+  }
+  .dark :where(a, button, [role="button"], input, select, textarea, summary, [tabindex]):focus-visible,
+  :host(.dark) :where(a, button, [role="button"], input, select, textarea, summary, [tabindex]):focus-visible {
+    outline-color: #818cf8;
+  }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -537,12 +552,20 @@
 .kvl-chevron { transition: transform 220ms var(--kvl-ease); }
 
 @media (prefers-reduced-motion: reduce) {
-  .kvl-press, .kvl-lift, .kvl-seg-pill, .kvl-chevron { transition: none !important; }
+  .kvl-press, .kvl-lift, .kvl-seg-pill, .kvl-chevron, .kvl-hint { transition: none !important; }
   .kvl-lift:hover { transform: none !important; }
-  .kvl-stagger > *, .sl-animate-fade-up, .sl-animate-step-fwd, .sl-animate-step-back,
+  .kvl-press:not(:disabled):not([aria-disabled="true"]):active,
+  .kvl-lift:not(:disabled):active { transform: none !important; }
+  .kvl-stagger > *, .kvl-pop-in, .kvl-shutter, .animate-ping,
+  .sl-animate-fade-up, .sl-animate-step-fwd, .sl-animate-step-back,
   .sl-animate-celebrate, .sl-animate-badge-pop, .sl-animate-info-tip, .sl-animate-info-tip-up { animation: none !important; }
+  .kvl-stagger > * { animation-delay: 0ms !important; }
 }
 @keyframes kvl-shutter { 0% { background-color: rgb(255 255 255 / 0); } 30% { background-color: rgb(255 255 255 / 0.55); } 100% { background-color: rgb(255 255 255 / 0); } }
+/* Capture flash (CaptureOverlay). Named so the reduced-motion block can
+ * switch it off; the old arbitrary `animate-[kvl-shutter_...]` class could not
+ * be targeted from a stylesheet without escaping. */
+.kvl-shutter { animation: kvl-shutter 260ms ease-out; }
 
 /* ── Overlay: estado de palabra ─────────────────────────────────────────
  * El texto conserva el color que elige el usuario; el estado sólo se lee en

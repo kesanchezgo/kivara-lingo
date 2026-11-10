@@ -27,11 +27,11 @@ import { ensureProviderHosts } from '../../../shared/host-permissions';
 import { consumeOpenSettingsSection } from '../../../shared/open-settings-section';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { ShortcutEditor } from '../ShortcutEditor';
-import { IconTile, Kbd, ui, tx } from './settings-primitives';
+import { IconTile, Kbd, ui, tx } from '../../../ui/primitives/settings-primitives';
 import {
   Accordion, DonateBtn, Field, NestedAccordion, PaypalIcon, QuickRow, Row,
   Section, SectionLabel, SegmentedControl, Toggle,
-} from './settings-primitives';
+} from '../../../ui/primitives/settings-primitives';
 import { Select, inputCls, Slider } from '../../../ui/primitives/controls';
 import { DictPacksSection } from './DictPacksSection';
 import { VipSection } from './VipSection';
@@ -245,7 +245,7 @@ export function SettingsTab({
       {/* Search — pinned at the top */}
       <div role="search" className="sticky top-0 z-20 px-4 pt-3 pb-2.5 bg-zinc-50/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-zinc-900/[0.04] dark:border-white/[0.04]">
         <div className="relative">
-          <Search size={14} aria-hidden="true" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 pointer-events-none" />
+          <Search size={14} aria-hidden="true" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-400 pointer-events-none" />
           <input
             ref={searchRef}
             type="search"
@@ -266,7 +266,7 @@ export function SettingsTab({
           <span className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
             {searching ? (
               <>
-                <span className="text-[11px] font-medium tabular-nums text-zinc-400 dark:text-zinc-500" aria-live="polite">
+                <span className="text-[11px] font-medium tabular-nums text-zinc-400 dark:text-zinc-400" aria-live="polite">
                   {resultCount + otherTabs.length === 1
                     ? t('set.searchResultOne')
                     : t('set.searchResults', { n: resultCount + otherTabs.length })}
@@ -327,7 +327,7 @@ export function SettingsTab({
                       {t(OTHER_TAB_TEXT[tab].desc)}
                     </span>
                   </span>
-                  <ChevronRight size={14} className="text-zinc-400 dark:text-zinc-500 shrink-0" />
+                  <ChevronRight size={14} className="text-zinc-400 dark:text-zinc-400 shrink-0" />
                 </button>
               ))}
             </div></div>

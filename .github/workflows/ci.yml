@@ -98,8 +98,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # `pnpm lint` covers `src/`, `tests/` and `scripts/` (see
-      # eslint.config.js). `--max-warnings=29` freezes today's warning count:
-      # the run fails on any NEW warning (or on any error, which already
-      # fails), so the trend can only go down. Lower the number as warnings
-      # are fixed. `react-hooks/rules-of-hooks` is an error outright.
-      - run: pnpm lint --max-warnings=29
+      # eslint.config.js). The local `lint` script pins the same
+      # `--max-warnings=24` (F9 lowered it from 29): the run fails on any NEW
+      # warning (or on any error, which already fails), so the trend can only
+      # go down. `react-hooks/rules-of-hooks` is an error outright.
+      - run: pnpm lint

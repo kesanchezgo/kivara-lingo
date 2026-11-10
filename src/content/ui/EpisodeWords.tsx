@@ -235,7 +235,7 @@ function EpisodeWordsView({ words, study, onSeek }: EpisodeWordsProps) {
                     </span>
                   )}
                   {word.level && <span className={META_BADGE} title={t('wp.cefrLevel', { level: word.level })}>{word.level}</span>}
-                  <span className="ml-auto shrink-0 text-[12px] tabular-nums text-zinc-400 dark:text-zinc-500" title={occurrences}>
+                  <span className="ml-auto shrink-0 text-[12px] tabular-nums text-zinc-400 dark:text-zinc-400" title={occurrences}>
                     <span aria-hidden="true">×{word.count}</span>
                     <span className="sr-only">{occurrences}</span>
                   </span>

@@ -23,7 +23,7 @@ import { useWordStudy } from '../../../content/ui/study';
 import { VocabTestDialog } from '../../../content/ui/VocabTestDialog';
 import { LevelLadder } from '../../../ui/LevelLadder';
 import { Select } from '../../../ui/primitives/controls';
-import { Badge, Button, Group, NavRow, Row, ui } from './settings-primitives';
+import { Badge, Button, Group, NavRow, Row, ui } from '../../../ui/primitives/settings-primitives';
 import { isPending, useRecentCards } from './RecentCards';
 import { MODEL, STUDY_LEVELS, type StudyLevel } from '../../../shared/study/lexicalModel';
 import { COMMITTED_BANK, scoreVocabCheck, withGlosses } from '../../../shared/study/vocabCheck';

@@ -4,7 +4,7 @@
     "description": "Extension name shown in chrome://extensions and the toolbar tooltip."
   },
   "extensionDescription": {
-    "message": "Aprende idiomas mientras ves tus series: subtítulos traducidos, pronunciación, captura de audio y tarjetas Anki desde el vídeo.",
+    "message": "Aprende idiomas mientras ves tus series: subtítulos traducidos, transcripción navegable, controles de estudio, estado de palabras y nivel, tarjetas Anki con audio y fotograma, y explicaciones de frases con tu propia IA.",
     "description": "One-line description shown on the extensions page and the Web Store listing."
   },
   "commandSaveWord": {

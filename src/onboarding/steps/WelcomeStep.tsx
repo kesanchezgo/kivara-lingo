@@ -64,7 +64,7 @@ export function WelcomeStep({ steps }: { steps: number }) {
             </div>
           </div>
         </div>
-        <figcaption className="text-center text-[12px] text-zinc-400 dark:text-zinc-500">{t('onb.previewCaption')}</figcaption>
+        <figcaption className="text-center text-[12px] text-zinc-400 dark:text-zinc-400">{t('onb.previewCaption')}</figcaption>
       </figure>
 
       {/* Benefits: same grouped list as the panel */}

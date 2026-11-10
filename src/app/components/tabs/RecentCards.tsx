@@ -12,7 +12,7 @@ import type {
 } from '../../../shared/types';
 import { MAX_CARD_RETRIES, isPending, type CardStatus, type RecentCard } from '../../../shared/cards';
 import { originLabel } from '../../../shared/study/cardTags';
-import { IconTile, SectionLabel, ui } from './settings-primitives';
+import { IconTile, SectionLabel, ui } from '../../../ui/primitives/settings-primitives';
 
 /**
  * Recent cards + retry queue (docs/REDESIGN-V2.md §3 H10, §7 F4).
@@ -188,12 +188,12 @@ function RecentRow({
             {card.word}
           </span>
           {kindLabel && (
-            <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 shrink-0">
+            <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 shrink-0">
               {kindLabel}
             </span>
           )}
           {showLang && (
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500 shrink-0">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-400 shrink-0">
               {card.lang}
             </span>
           )}

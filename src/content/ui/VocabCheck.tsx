@@ -179,7 +179,7 @@ export function VocabCheck({
                 <p className="flex items-baseline gap-2 mt-1">
                   {moved && (
                     <>
-                      <span className="text-[15px] font-semibold text-zinc-400 dark:text-zinc-500 tabular-nums">{before.level}</span>
+                      <span className="text-[15px] font-semibold text-zinc-400 dark:text-zinc-400 tabular-nums">{before.level}</span>
                       <ArrowRight size={14} className="self-center text-indigo-500 dark:text-indigo-400" aria-hidden="true" />
                     </>
                   )}
@@ -239,7 +239,7 @@ export function VocabCheck({
                     </span>
                     <span className="font-medium text-zinc-900 dark:text-zinc-50 truncate">{word}</span>
                     <span className="flex-1 min-w-0 text-zinc-500 dark:text-zinc-400 truncate">{glossOf(bank, word)}</span>
-                    <span className={`shrink-0 text-[12px] ${a === 'ok' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400 dark:text-zinc-500'}`}>
+                    <span className={`shrink-0 text-[12px] ${a === 'ok' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400 dark:text-zinc-400'}`}>
                       {a === 'ok' ? t('vc.checkOk') : a === 'idk' ? t('vc.idk') : t('vc.checkWrong')}
                     </span>
                   </li>
@@ -346,7 +346,7 @@ function Stat({ label, value, sub }: { label: string; value: string; sub: string
     <div className="min-w-0 rounded-xl px-3.5 py-3 ring-1 ring-zinc-900/[0.06] dark:ring-white/[0.06] bg-white dark:bg-white/[0.03] flex flex-col">
       <dt className="order-2 text-[12px] leading-4 text-zinc-500 dark:text-zinc-400">{label}</dt>
       <dd className="order-1 text-[15px] leading-5 font-semibold tabular-nums text-zinc-900 dark:text-zinc-50 truncate">{value}</dd>
-      <dd className="order-3 text-[11px] leading-4 mt-0.5 text-zinc-400 dark:text-zinc-500">{sub}</dd>
+      <dd className="order-3 text-[11px] leading-4 mt-0.5 text-zinc-400 dark:text-zinc-400">{sub}</dd>
     </div>
   );
 }

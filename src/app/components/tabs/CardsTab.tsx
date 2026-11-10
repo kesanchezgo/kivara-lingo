@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
-import { AnkiMapping, FieldSource } from '../../types';
+import type { AnkiMapping, FieldSource } from '../../../shared/types';
 import type {
   AnkiListsResponse,
   AnkiFieldsResponse,
@@ -379,7 +379,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
               {t('cards.fieldEachStart')}<em>note type</em> {t('cards.fieldFillWith')}<strong>{t('cards.fieldSource')}</strong> {t('cards.fieldAutoDetect')}<span className="font-mono">word</span> → {t('cards.fieldSourceWord')}, <span className="font-mono">sentence audio</span> {t('cards.fieldNoMatch')}<em>Manual</em> {t('cards.fieldAssignSelf')}</>
           }
           headerRight={
-            <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-500">
+            <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-400">
               {mappedCount}/{ankiFields.length}
             </span>
           }
@@ -394,7 +394,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
           )}
 
           {conn === 'connected' && ankiFields.length > 0 && allAuto && (
-            <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 dark:text-zinc-500 px-1">
+            <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 dark:text-zinc-400 px-1">
               <Wand2 size={10} className="text-indigo-400" />
               <span>{t('cards.autoMapActive')}</span>
             </div>
@@ -474,13 +474,13 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
                 >
                   <div className="overflow-hidden">
                     <div className="border-t border-zinc-200/60 dark:border-zinc-800/60 p-1.5 bg-white dark:bg-zinc-900 space-y-1">
-                      <div className="text-[10px] text-zinc-500 dark:text-zinc-500 px-1 leading-snug">
+                      <div className="text-[10px] text-zinc-500 dark:text-zinc-400 px-1 leading-snug">
                         {meta.description}
                       </div>
                       <div className="space-y-1.5">
                         {SOURCE_GROUPS.map((group) => (
                           <div key={group.label} className="space-y-1">
-                            <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 px-1">
+                            <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-400 px-1">
                               {group.label}
                             </div>
                             <div className="flex flex-wrap gap-1">
@@ -562,7 +562,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
             <QualityBadge icon={<Volume2 size={9} />} label={t('cards.audioBadge')} detail={t('cards.vadCenter')} />
             <QualityBadge icon={<Camera size={9} />} label={t('cards.frameBadge')} detail={t('cards.vadCenter')} />
           </div>
-          <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-mono">
+          <span className="text-[9px] text-zinc-400 dark:text-zinc-400 font-mono">
             {mappedCount}/{ankiFields.length} · 14KB
           </span>
         </div>
@@ -585,6 +585,10 @@ function Section({
   headerRight?: React.ReactNode;
   hint?: React.ReactNode;
 }) {
+  // The header is NOT a <button>: it holds an InfoHint (itself a focusable
+  // role="button") and nesting interactive controls is both an axe violation
+  // and a screen-reader trap. The row keeps click-to-toggle for the mouse; the
+  // chevron is the real button keyboard users Tab to.
   const header = (
     <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-zinc-50/60 dark:bg-zinc-900/60 border-b border-zinc-100 dark:border-zinc-800/60">
       <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
@@ -594,7 +598,15 @@ function Section({
       <span className="flex items-center gap-1.5">
         {headerRight}
         {collapsible && (
-          <ChevronDown size={12} className={`text-zinc-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+          <button
+            type="button"
+            aria-expanded={open}
+            onClick={(e) => { e.stopPropagation(); onToggle?.(); }}
+            className="inline-flex items-center justify-center rounded outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+          >
+            <span className="sr-only">{typeof title === 'string' ? title : t('panel.tabCards')}</span>
+            <ChevronDown size={12} aria-hidden="true" className={`text-zinc-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+          </button>
         )}
       </span>
     </div>
@@ -602,7 +614,7 @@ function Section({
   return (
     <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
       {collapsible
-        ? <button onClick={onToggle} className="w-full text-left hover:bg-zinc-100/40 dark:hover:bg-zinc-800/40 transition-colors">{header}</button>
+        ? <div onClick={onToggle} className="w-full text-left cursor-pointer hover:bg-zinc-100/40 dark:hover:bg-zinc-800/40 transition-colors">{header}</div>
         : header}
       {(!collapsible || open) && (
         <div className="p-2.5 space-y-2">{children}</div>

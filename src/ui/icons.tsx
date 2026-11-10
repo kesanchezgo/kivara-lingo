@@ -88,6 +88,7 @@ import {
   TextAlignLeft as PTextAlignLeft,
   Translate as PTranslate,
   Trash as PTrash,
+  Trophy as PTrophy,
   UploadSimple as PUploadSimple,
   Warning as PWarning,
   WarningCircle as PWarningCircle,
@@ -212,6 +213,7 @@ export const Subtitles = /*#__PURE__*/ wrap(PSubtitles, 'Subtitles');
 export const FilmSlate = /*#__PURE__*/ wrap(PFilmSlate, 'FilmSlate');
 export const Sun = /*#__PURE__*/ wrap(PSun, 'Sun');
 export const Trash2 = /*#__PURE__*/ wrap(PTrash, 'Trash2');
+export const Trophy = /*#__PURE__*/ wrap(PTrophy, 'Trophy');
 export const Type = /*#__PURE__*/ wrap(PTextAa, 'Type');
 export const Undo2 = /*#__PURE__*/ wrap(PArrowUUpLeft, 'Undo2');
 export const Upload = /*#__PURE__*/ wrap(PUploadSimple, 'Upload');

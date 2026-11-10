@@ -104,7 +104,7 @@ export function ShortcutEditor({ compact = false }: ShortcutEditorProps) {
                 <button
                   type="button"
                   onClick={() => { resetOne(def.id); setWarning(null); }}
-                  className={`w-7 h-7 inline-flex items-center justify-center rounded-lg text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] kvl-press shrink-0 ${FOCUS}`}
+                  className={`w-7 h-7 inline-flex items-center justify-center rounded-lg text-zinc-400 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] kvl-press shrink-0 ${FOCUS}`}
                   aria-label={t('sc.restoreTo', { combo: def.defaultCombo })}
                   title={t('sc.restoreTo', { combo: def.defaultCombo })}
                 >
@@ -193,7 +193,7 @@ function KeyCaptureButton({
           <KeyboardIcon size={14} /> {t('sc.pressCombo')}
         </span>
       ) : keys.length === 0 ? (
-        <span className="text-[12px] text-zinc-400 dark:text-zinc-500">{t('sc.unassigned')}</span>
+        <span className="text-[12px] text-zinc-400 dark:text-zinc-400">{t('sc.unassigned')}</span>
       ) : (
         keys.map((k, i) => (
           <React.Fragment key={`${k}-${i}`}>

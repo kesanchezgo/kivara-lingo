@@ -416,22 +416,22 @@ export function Onboarding() {
         {step !== 'done' && (
           <div className="flex items-center gap-3">
             {step === 'anki' && ping.status !== 'ok' && (
-              <span className="text-[12px] text-zinc-400 dark:text-zinc-500 hidden sm:block">
+              <span className="text-[12px] text-zinc-400 dark:text-zinc-400 hidden sm:block">
                 {t('onb.confirmAnki')}
               </span>
             )}
             {step === 'mapping' && !canAdvance && (
-              <span className="text-[12px] text-zinc-400 dark:text-zinc-500 hidden sm:block">
+              <span className="text-[12px] text-zinc-400 dark:text-zinc-400 hidden sm:block">
                 {t('onb.pickDeckModel')}
               </span>
             )}
             {step === 'level' && !canAdvance && (
-              <span className="text-[12px] text-zinc-400 dark:text-zinc-500 hidden sm:block">
+              <span className="text-[12px] text-zinc-400 dark:text-zinc-400 hidden sm:block">
                 {t('onb.pickLevel')}
               </span>
             )}
             {(step === 'dict' || step === 'ai') && (
-              <span className="text-[12px] text-zinc-400 dark:text-zinc-500 hidden sm:block">
+              <span className="text-[12px] text-zinc-400 dark:text-zinc-400 hidden sm:block">
                 {step === 'dict' ? t('onb.recommendedLater') : t('onb.optionalStep')}
               </span>
             )}

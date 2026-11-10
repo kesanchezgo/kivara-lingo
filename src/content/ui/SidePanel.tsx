@@ -12,7 +12,7 @@ import { CardsTab } from '../../app/components/tabs/CardsTab';
 import { SettingsTab } from '../../app/components/tabs/SettingsTab';
 import { VocabTab, VOCAB_TAB_ENABLED } from '../../app/components/tabs/VocabTab';
 import { useRecentCards, isPending } from '../../app/components/tabs/RecentCards';
-import { SegPill } from '../../ui/primitives/settings-primitives';
+import { SegPill, FOCUS } from '../../ui/primitives/settings-primitives';
 import type { CardPreviewData } from '../../app/components/tabs/CardPreview';
 
 /**
@@ -48,7 +48,7 @@ const POPUP_WIDTH = 440;
 const POPUP_HEIGHT = 640;
 const POPUP_PADDING = 8;
 
-const HEAD_BTN = 'w-7 h-7 inline-flex items-center justify-center rounded-lg text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40';
+const HEAD_BTN = 'w-7 h-7 inline-flex items-center justify-center rounded-lg text-zinc-400 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40';
 
 /** Default position with no stored one: top-right, inside the viewport. */
 function defaultPopupPosition(): PanelPosition {
@@ -293,7 +293,7 @@ export function SidePanel({
             <div className="text-[15px] leading-5 font-semibold tracking-[-0.01em] text-zinc-900 dark:text-white truncate">
               Kivara <span className="text-indigo-500 dark:text-indigo-400">Lingo</span>
             </div>
-            <div className="text-[12px] leading-tight text-zinc-500 truncate">{t('panel.subtitle')}</div>
+            <div className="text-[12px] leading-tight text-zinc-500 dark:text-zinc-400 truncate">{t('panel.subtitle')}</div>
           </div>
         </div>
         <div className="flex items-center gap-0.5">
@@ -391,7 +391,7 @@ export function SidePanel({
           aria-labelledby={`kivara-panel-tab-${tab.id}`}
           hidden={activeTab !== tab.id}
           tabIndex={0}
-          className="flex-1 min-h-0 overflow-hidden outline-none border-t border-zinc-900/[0.06] dark:border-white/[0.06] bg-zinc-50/80 dark:bg-transparent"
+          className={`flex-1 min-h-0 overflow-hidden ${FOCUS} border-t border-zinc-900/[0.06] dark:border-white/[0.06] bg-zinc-50/80 dark:bg-transparent`}
         >
           {tab.id === 'subtitles' && (
             <SubtitlesTab styles={styles} setStyles={setStyles} onOpenVocab={() => selectTab('vocab')} />

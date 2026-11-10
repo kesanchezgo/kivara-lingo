@@ -137,7 +137,7 @@ export function InfoHint({ text, size = 13, maxWidth = 240, className = '' }: In
           tabIndex={0}
           role="button"
           aria-label={t('info.more')}
-          className={`inline-flex items-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors cursor-help outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 rounded-full`}
+          className={`inline-flex items-center text-zinc-400 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors cursor-help outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 rounded-full`}
         >
           <Info size={size} strokeWidth={1.75} />
         </span>

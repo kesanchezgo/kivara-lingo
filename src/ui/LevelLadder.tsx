@@ -38,7 +38,7 @@ export function LevelLadder({ level, next, progress, muted = false }: {
         {STUDY_LEVELS.map((l) => (
           <span
             key={l}
-            className={`text-[11px] leading-4 tabular-nums ${l === level ? 'font-semibold text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-500'}`}
+            className={`text-[11px] leading-4 tabular-nums ${l === level ? 'font-semibold text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-400'}`}
           >
             {l}
           </span>

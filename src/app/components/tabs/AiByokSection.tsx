@@ -27,7 +27,7 @@ import { SecretKeyInput } from '../SecretKeyInput';
 import { InfoHint } from '../InfoHint';
 import {
   Badge, Button, Callout, ListGroup, QuickRow, Row, SubLabel, Toggle,
-} from './settings-primitives';
+} from '../../../ui/primitives/settings-primitives';
 import { Select, inputCls, Slider } from '../../../ui/primitives/controls';
 
 type AiTestStatus =
@@ -368,7 +368,7 @@ export function AiByokSection() {
             <Button variant="ghost" onClick={disable}>{t('ai.disableAi')}</Button>
           </div>
           {test.state === 'idle' && canValidate && (
-            <p className="flex items-center gap-1 text-[12px] text-zinc-400 dark:text-zinc-500 px-0.5">
+            <p className="flex items-center gap-1 text-[12px] text-zinc-400 dark:text-zinc-400 px-0.5">
               <Info size={10} /> {t('set.keyAutoValidate')}
             </p>
           )}
@@ -427,7 +427,7 @@ export function AiByokSection() {
           )}
         </div>
       ) : (
-        <p className="flex items-center gap-1 text-[12px] text-zinc-400 dark:text-zinc-500 px-0.5">
+        <p className="flex items-center gap-1 text-[12px] text-zinc-400 dark:text-zinc-400 px-0.5">
           {t('set.pickProviderShort')}<InfoHint text={t('set.pickProviderFirst')} />
         </p>
       )}

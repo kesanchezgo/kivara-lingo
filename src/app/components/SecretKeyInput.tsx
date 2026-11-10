@@ -147,7 +147,7 @@ export function SecretKeyInput({
   const effectivePlaceholder = hasStored && !dirty
     ? t('key.guarded')
     : (placeholder ?? '');
-  const iconBtn = 'w-6 h-6 inline-flex items-center justify-center rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40';
+  const iconBtn = 'w-6 h-6 inline-flex items-center justify-center rounded-md text-zinc-400 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40';
 
   return (
     <div className="w-full space-y-1">

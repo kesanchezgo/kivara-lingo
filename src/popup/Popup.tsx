@@ -340,7 +340,7 @@ export function Popup() {
           >
             {t('popup.theme', { mode: isDarkMode ? t('popup.theme.light') : t('popup.theme.dark') })}
           </button>
-          <span className="text-[12px] text-zinc-400 dark:text-zinc-500">©Kivara 2026</span>
+          <span className="text-[12px] text-zinc-400 dark:text-zinc-400">©Kivara 2026</span>
         </div>
       </div>
     </div>

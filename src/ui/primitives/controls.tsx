@@ -99,7 +99,7 @@ export function Select({
       <ChevronDown
         size={14}
         aria-hidden="true"
-        className="pointer-events-none absolute right-2.5 shrink-0 text-zinc-400 dark:text-zinc-500"
+        className="pointer-events-none absolute right-2.5 shrink-0 text-zinc-400 dark:text-zinc-400"
       />
     </span>
   );

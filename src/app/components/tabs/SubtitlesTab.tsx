@@ -6,7 +6,7 @@ import type { SubtitleStyles } from '../../../shared/types';
 import { Slider } from '../../../ui/primitives/controls';
 import {
   FOCUS, Group, NavRow, SegmentedControl, Toggle, ValueRow as Row, tx, ui,
-} from './settings-primitives';
+} from '../../../ui/primitives/settings-primitives';
 import { MARK_INK, StatusGlyph } from '../../../content/ui/wordMarks';
 import { useWordStudy } from '../../../content/ui/study';
 import type { WordStatus } from '../../../shared/study/wordStatus';
@@ -94,6 +94,7 @@ export function SubtitlesTab({
         >
           <Row label={t('subs.size')} value={`${styles.fontSize}px`} onReset={resetOf('fontSize')}>
             <Slider
+              aria-label={t('subs.size')}
               min={16}
               max={64}
               value={styles.fontSize}
@@ -143,6 +144,7 @@ export function SubtitlesTab({
             onReset={resetOf('textShadow')}
           >
             <Slider
+              aria-label={t('sub.shadow')}
               min={0}
               max={100}
               step={5}
@@ -179,6 +181,7 @@ export function SubtitlesTab({
 
           <Row label={t('sub.opacity')} value={`${styles.backgroundOpacity}%`} onReset={resetOf('backgroundOpacity')}>
             <Slider
+              aria-label={t('sub.opacity')}
               min={0}
               max={100}
               value={styles.backgroundOpacity}
@@ -189,6 +192,7 @@ export function SubtitlesTab({
 
           <Row label={t('sub.hoverOpacity')} value={`${styles.hoverOpacity}%`} onReset={resetOf('hoverOpacity')}>
             <Slider
+              aria-label={t('sub.hoverOpacity')}
               min={0}
               max={100}
               value={styles.hoverOpacity}
@@ -243,6 +247,7 @@ export function SubtitlesTab({
           <Row label={t('sub.height')} value={`${styles.verticalOffset ?? 85}%`} onReset={resetPosition}>
             <div className="relative">
               <Slider
+                aria-label={t('sub.height')}
                 min={5}
                 max={95}
                 step={1}
@@ -264,7 +269,7 @@ export function SubtitlesTab({
                   />
                 ))}
               </div>
-              <div className="flex justify-between text-[12px] text-zinc-400 dark:text-zinc-500 mt-1.5 px-0.5">
+              <div className="flex justify-between text-[12px] text-zinc-400 dark:text-zinc-400 mt-1.5 px-0.5">
                 <span>{t('sub.posTop')}</span><span>{t('sub.posMiddle')}</span><span>{t('sub.posBottom')}</span>
               </div>
             </div>
@@ -365,7 +370,7 @@ function ToggleRow({
             onClick={onReset}
             title={t('subs.resetValueTitle')}
             aria-label={t('subs.resetValueTitle')}
-            className="opacity-0 group-hover/row:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity w-6 h-6 inline-flex items-center justify-center rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.06]"
+            className="opacity-0 group-hover/row:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity w-6 h-6 inline-flex items-center justify-center rounded-md text-zinc-400 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.06]"
           >
             <RotateCcw size={12} />
           </button>

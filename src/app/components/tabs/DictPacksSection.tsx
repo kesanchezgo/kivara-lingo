@@ -39,7 +39,7 @@ import {
   Trash2, Upload, Power, PowerOff, Loader2,
   Download, FileText, Library, Trophy, ChevronDown, CheckCircle2, BarChart3, Link2, Sparkles,
   Package, Cloud, Ban,
-} from 'lucide-react';
+} from '../../../ui/icons';
 import type { DictPackRow, PackStatsRow } from '../../../shared/db';
 import { importCsvList } from '../../../content/nlp/csv-importer';
 import { autoImportDictFile } from '../../../content/nlp/dict-format-detect';
@@ -457,7 +457,7 @@ export function DictPacksSection() {
             if (cards.length === 0) return null;
             return (
               <div key={group} className="space-y-1">
-                <div className="text-[9px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500 px-1">
+                <div className="text-[9px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-400 px-1">
                   {GROUP_LABELS[group]}
                 </div>
                 <div className="space-y-1">
@@ -513,7 +513,7 @@ export function DictPacksSection() {
         icon={<CheckCircle2 size={10} />}
         title={t('dict.installedSection')}
         trailing={
-          <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-500">
+          <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-400">
             {loading ? '…' : packs.length}
           </span>
         }
@@ -726,7 +726,7 @@ export function DictPacksSection() {
             {t('dictpack.statsTitle')}<strong>100% local</strong> {t('dictpack.statsLocalDesc')}<em>bundle</em> {t('dictpack.statsBundled')}<em>pack</em> {t('dictpack.statsInstalled')}<em>remoto</em>{t('dictpack.statsMissPre')}<em>miss</em>{t('dictpack.statsUseful')}</>
         }
         trailing={
-          <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-500">
+          <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-400">
             {totals.total > 0 ? `${totals.total.toLocaleString()} lookups` : t('dict.noData')}
           </span>
         }
@@ -889,7 +889,7 @@ function CoverageStats({ totals }: { totals: CoverageTotals }) {
               })
             : <div className="w-full bg-zinc-200/40 dark:bg-zinc-800/40" />}
         </div>
-        <div className="flex items-center justify-between text-[9.5px] text-zinc-500 dark:text-zinc-500">
+        <div className="flex items-center justify-between text-[9.5px] text-zinc-500 dark:text-zinc-400">
           <span className="inline-flex items-center gap-1">
             <CheckCircle2 size={9} className="text-emerald-500" />
             <span className="tabular-nums">{hasData ? `${localPct}% local` : '— local'}</span>
@@ -915,7 +915,7 @@ function CoverageStats({ totals }: { totals: CoverageTotals }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-1">
                   <span className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300 leading-none">{m.label}</span>
-                  <span className="text-[9px] text-zinc-400 dark:text-zinc-500 tabular-nums ml-auto">{hasData ? `${pct}%` : '—'}</span>
+                  <span className="text-[9px] text-zinc-400 dark:text-zinc-400 tabular-nums ml-auto">{hasData ? `${pct}%` : '—'}</span>
                 </div>
                 <div className="text-[10.5px] font-mono tabular-nums text-zinc-800 dark:text-zinc-200 leading-tight">
                   {value.toLocaleString()}
@@ -927,7 +927,7 @@ function CoverageStats({ totals }: { totals: CoverageTotals }) {
       </ul>
 
       {!hasData && (
-        <div className="text-[9.5px] text-zinc-500 dark:text-zinc-500 italic leading-snug text-center pt-0.5">
+        <div className="text-[9.5px] text-zinc-500 dark:text-zinc-400 italic leading-snug text-center pt-0.5">
           {t('dictpack.noDataYet')}</div>
       )}
     </div>
@@ -971,7 +971,7 @@ function TopPacksSection({ stats, packs, idlePackIds }: TopPacksSectionProps) {
       <div className="flex items-center gap-1.5 px-0.5">
         <Trophy size={10} className="text-amber-500" />
         <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex-1">{t('dictpack.topPacks')}</span>
-        <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-500">{totalHits.toLocaleString()} hits</span>
+        <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-400">{totalHits.toLocaleString()} hits</span>
       </div>
       <ol className="space-y-1">
         {ranking.map((row, idx) => {
@@ -985,7 +985,7 @@ function TopPacksSection({ stats, packs, idlePackIds }: TopPacksSectionProps) {
               key={row.packId}
               className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2 py-1 flex items-center gap-2"
             >
-              <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 w-4 shrink-0 text-right tabular-nums">{idx + 1}</span>
+              <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-400 w-4 shrink-0 text-right tabular-nums">{idx + 1}</span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-1.5 flex-wrap">
                   <span className="text-[11px] font-medium text-zinc-800 dark:text-zinc-200 truncate">{title}</span>
@@ -999,7 +999,7 @@ function TopPacksSection({ stats, packs, idlePackIds }: TopPacksSectionProps) {
                     </span>
                   )}
                 </div>
-                <div className="text-[9px] text-zinc-500 dark:text-zinc-500 tabular-nums">
+                <div className="text-[9px] text-zinc-500 dark:text-zinc-400 tabular-nums">
                   {row.hits.toLocaleString()} hits · {share}%
                   {pack ? t('dict.packTermsCount', { count: pack.termCount.toLocaleString() }) : t('dict.packDeleted')}
                 </div>

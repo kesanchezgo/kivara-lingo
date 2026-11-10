@@ -435,7 +435,7 @@ export function TranscriptRail(props: TranscriptRailProps) {
                 <Search
                   size={14}
                   aria-hidden="true"
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 pointer-events-none"
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-400 pointer-events-none"
                 />
                 <input
                   ref={searchRef}
@@ -460,7 +460,7 @@ export function TranscriptRail(props: TranscriptRailProps) {
                 <span className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
                   {searching && (
                     <span
-                      className="text-[11px] font-medium tabular-nums text-zinc-400 dark:text-zinc-500 mr-1"
+                      className="text-[11px] font-medium tabular-nums text-zinc-400 dark:text-zinc-400 mr-1"
                       aria-live="polite"
                     >
                       {hitIdx >= 0
@@ -583,7 +583,7 @@ export function TranscriptRail(props: TranscriptRailProps) {
                         className={`w-9 text-[12px] tabular-nums shrink-0 ${
                           isActive
                             ? 'text-indigo-500 dark:text-indigo-400 font-medium'
-                            : 'text-zinc-400 dark:text-zinc-500'
+                            : 'text-zinc-400 dark:text-zinc-400'
                         }`}
                       >
                         {fmtTime(cue.start)}
@@ -594,7 +594,7 @@ export function TranscriptRail(props: TranscriptRailProps) {
                           isActive
                             ? 'text-zinc-900 dark:text-white'
                             : past
-                              ? 'text-zinc-400 dark:text-zinc-500'
+                              ? 'text-zinc-400 dark:text-zinc-400'
                               : 'text-zinc-700 dark:text-zinc-300'
                         }`}
                       >
@@ -778,7 +778,7 @@ function IconButton({
       className={`w-7 h-7 rounded-lg flex items-center justify-center kvl-press ${FOCUS} ${
         active
           ? 'text-indigo-500 dark:text-indigo-400 bg-indigo-500/10'
-          : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07]'
+          : 'text-zinc-400 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07]'
       }`}
     >
       {children}

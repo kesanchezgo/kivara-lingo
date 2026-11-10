@@ -43,7 +43,7 @@ export function CaptureOverlay({
     <>
       <div
         className={`absolute inset-0 z-40 pointer-events-none transition-[background-color] duration-500 ease-out ${
-          view.flash ? 'animate-[kvl-shutter_260ms_ease-out]' : showPill ? 'bg-zinc-950/35' : ''
+          view.flash ? 'kvl-shutter' : showPill ? 'bg-zinc-950/35' : ''
         }`}
       />
       {showPill && (

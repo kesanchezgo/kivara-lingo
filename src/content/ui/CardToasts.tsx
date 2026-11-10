@@ -39,7 +39,7 @@ export function showSavedToast(card: ToastCard, onUndo: (card: ToastCard) => voi
           <div className="text-[13px] font-semibold text-zinc-900 dark:text-white leading-[18px]">{t('app.cardSaved')}</div>
           <div className="text-[12px] text-zinc-500 dark:text-zinc-400 leading-4 truncate">
             <span className="font-medium text-indigo-600 dark:text-indigo-300">{card.text}</span>
-            <span className="text-zinc-400 dark:text-zinc-500"> → </span>
+            <span className="text-zinc-400 dark:text-zinc-400"> → </span>
             {card.deck}
           </div>
         </div>

@@ -201,12 +201,12 @@ export function DictStep() {
                         <span className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">{pack.title}</span>
                         <Badge tone={tierMeta.tagTone}>{tierMeta.tag}</Badge>
                         <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">{pack.size}</span>
-                        <span className="text-[12px] text-zinc-400 dark:text-zinc-500">·</span>
+                        <span className="text-[12px] text-zinc-400 dark:text-zinc-400">·</span>
                         <span className="text-[12px] text-zinc-500 dark:text-zinc-400">{pack.benefit}</span>
                       </div>
                       <p className="text-[12px] text-zinc-600 dark:text-zinc-400 leading-snug mt-1">{pack.description}</p>
                       {isDisabled && pack.disabledReason && (
-                        <p className="text-[12px] text-zinc-500 dark:text-zinc-500 mt-1.5 leading-snug flex items-start gap-1.5">
+                        <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mt-1.5 leading-snug flex items-start gap-1.5">
                           <AlertTriangle size={12} className="text-amber-500 mt-0.5 shrink-0" />
                           {pack.disabledReason}
                         </p>

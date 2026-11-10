@@ -11,7 +11,7 @@ import {
 } from '../../../ui/icons';
 import {
   Button, Callout, ListGroup, QuickRow, Row, SubLabel, Toggle,
-} from './settings-primitives';
+} from '../../../ui/primitives/settings-primitives';
 import { inputCls } from '../../../ui/primitives/controls';
 
 /**
@@ -244,7 +244,7 @@ export function VipSection() {
             t('vip.phrasalAcademicNote'), t('vip.bundledLineAcl'), t('vip.fernaldLine'),
           ].join(' · ')}
         >
-          <span className="inline-flex items-center gap-1.5 text-[12px] text-zinc-400 dark:text-zinc-500">
+          <span className="inline-flex items-center gap-1.5 text-[12px] text-zinc-400 dark:text-zinc-400">
             <Database size={14} /> {t('vip.offlineBadge')}
           </span>
         </QuickRow>
@@ -274,7 +274,7 @@ export function VipSection() {
               disabled={checking}
               title={t('vipx.testSources')}
               aria-label={t('vipx.testSources')}
-              className="w-7 h-7 -mr-1.5 inline-flex items-center justify-center rounded-lg text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] disabled:opacity-40 kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+              className="w-7 h-7 -mr-1.5 inline-flex items-center justify-center rounded-lg text-zinc-400 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] disabled:opacity-40 kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
             >
               <RefreshCw size={14} className={checking ? 'animate-spin' : ''} />
             </button>
@@ -302,7 +302,7 @@ export function VipSection() {
         <QuickRow label={t('vip.enableTitle')} info={t('vip.providerListNote')}>
           <span className="flex items-center gap-3">
             {vip.enabled && (
-              <span className="text-[12px] tabular-nums text-zinc-400 dark:text-zinc-500">
+              <span className="text-[12px] tabular-nums text-zinc-400 dark:text-zinc-400">
                 {enabledCount(VIP_ALL)}/{VIP_ALL.length}
               </span>
             )}
@@ -388,7 +388,7 @@ export function VipSection() {
                   aria-label={t('vip.timeoutTitle')}
                   className={`${inputCls} !w-[76px] text-right tabular-nums`}
                 />
-                <span className="text-[12px] text-zinc-400 dark:text-zinc-500 w-8">ms</span>
+                <span className="text-[12px] text-zinc-400 dark:text-zinc-400 w-8">ms</span>
               </span>
             </QuickRow>
             <QuickRow label={t('set.cache')} info={t('vip.cacheTtlHint')}>
@@ -404,7 +404,7 @@ export function VipSection() {
                   aria-label={t('set.cache')}
                   className={`${inputCls} !w-[76px] text-right tabular-nums`}
                 />
-                <span className="text-[12px] text-zinc-400 dark:text-zinc-500 w-8">{t('vip.days')}</span>
+                <span className="text-[12px] text-zinc-400 dark:text-zinc-400 w-8">{t('vip.days')}</span>
               </span>
             </QuickRow>
           </ListGroup>
@@ -478,7 +478,7 @@ function CacheManager() {
             disabled={busy || total === 0}
             title={t('vip.clearCacheBtn')}
             aria-label={t('vip.clearCacheBtn')}
-            className="w-6 h-6 -my-1 inline-flex items-center justify-center rounded-md text-zinc-400 dark:text-zinc-500 hover:text-rose-500 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] disabled:opacity-40 disabled:pointer-events-none kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+            className="w-6 h-6 -my-1 inline-flex items-center justify-center rounded-md text-zinc-400 dark:text-zinc-400 hover:text-rose-500 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] disabled:opacity-40 disabled:pointer-events-none kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
           >
             <Trash2 size={14} />
           </button>

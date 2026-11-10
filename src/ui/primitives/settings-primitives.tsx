@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ChevronDown, ChevronRight, Paypal, RotateCcw } from '../icons';
 import { t, fmtNumber } from '../../shared/i18n';
 import { InfoHint } from '../../app/components/InfoHint';
 
 /**
  * Shared panel primitives (Subtitles, Vocabulary, Cards, Settings).
- * Ported from the prototype to `src/ui/primitives/`; the repo's own consumers
- * reach them through the `app/components/tabs/settings-primitives` shim until
- * F9 removes it.
+ * Ported from the prototype to `src/ui/primitives/`; F9 removed the
+ * `app/components/tabs/settings-primitives` shim, so every consumer imports
+ * this module directly.
  */
 
 function sectionId(title: string, id?: string): string {
@@ -83,7 +83,7 @@ export function IconTile({ children, className = '' }: { children: React.ReactNo
 }
 
 export function Chevron({ open }: { open: boolean }) {
-  return <ChevronDown size={14} aria-hidden="true" className={`text-zinc-400 dark:text-zinc-500 transition-transform duration-[220ms] ease-[var(--kvl-ease)] ${open ? 'rotate-180' : ''}`} />;
+  return <ChevronDown size={14} aria-hidden="true" className={`text-zinc-400 dark:text-zinc-400 transition-transform duration-[220ms] ease-[var(--kvl-ease)] ${open ? 'rotate-180' : ''}`} />;
 }
 
 export function Collapse({ open, children, id, labelledBy }: { open: boolean; children: React.ReactNode; id?: string; labelledBy?: string }) {
@@ -142,12 +142,23 @@ export function Group({
       </section>
     );
   }
+  // The header is a real <button> for the title only. The old role="button"
+  // div wrapped the InfoHint (itself focusable) and the caller's `right`
+  // control, which nests interactive elements — an axe "nested-interactive"
+  // violation and a screen-reader trap. Mouse users still get the row hover;
+  // the hint and the right-side control keep their own hit areas.
   return (
     <div className={ui.card}>
-      <div role="button" tabIndex={0} aria-expanded={open} onClick={onToggle}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle?.(); } }}
-        className={`${ui.head} w-full text-left cursor-pointer outline-none focus-visible:bg-zinc-900/[0.03] dark:focus-visible:bg-white/[0.04] ${ui.rowHover}`}>
-        <span className={ui.title}>{icon && <IconTile>{icon}</IconTile>}<span className="truncate">{title}</span>{hint && <InfoHint text={hint} />}</span>
+      <div className={`${ui.head} w-full text-left ${ui.rowHover}`}>
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={onToggle}
+          className={`flex-1 min-w-0 flex items-center gap-3 text-left rounded-md outline-none focus-visible:bg-zinc-900/[0.03] dark:focus-visible:bg-white/[0.04] ${FOCUS}`}
+        >
+          <span className={ui.title}>{icon && <IconTile>{icon}</IconTile>}<span className="truncate">{title}</span></span>
+        </button>
+        {hint && <span className="shrink-0 inline-flex"><InfoHint text={hint} /></span>}
         <span className="flex items-center gap-2 shrink-0 text-[12px] text-zinc-500 dark:text-zinc-400">{right}<Chevron open={open} /></span>
       </div>
       <Collapse open={open}><div className={`border-t ${HAIR_B}`}>{body}</div></Collapse>
@@ -194,7 +205,7 @@ export function Accordion({
         </span>
         <span className="flex items-center gap-2 ml-auto shrink-0 min-w-0">
           {summary && !open && (
-            <span className={`text-[12px] truncate max-w-[132px] ${summaryColor ?? 'text-zinc-500 dark:text-zinc-500'}`}>{summary}</span>
+            <span className={`text-[12px] truncate max-w-[132px] ${summaryColor ?? 'text-zinc-500 dark:text-zinc-400'}`}>{summary}</span>
           )}
           <Chevron open={open} />
         </span>
@@ -230,7 +241,7 @@ export function NestedAccordion({
         className={`w-full flex items-center justify-between gap-2 min-h-[44px] text-left rounded-md group/na ${FOCUS}`}
       >
         <span className={`${tx.label} group-hover/na:text-zinc-950 dark:group-hover/na:text-white transition-colors`}>{title}</span>
-        <ChevronRight size={14} className={`text-zinc-400 dark:text-zinc-500 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
+        <ChevronRight size={14} className={`text-zinc-400 dark:text-zinc-400 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
       </button>
       <Collapse open={open}>
         <div className="pb-4 space-y-4">{children}</div>
@@ -256,7 +267,7 @@ export function ValueRow({ label, value, children, onReset, hint, description }:
               onClick={onReset}
               title={t('subs.resetValueTitle')}
               aria-label={t('subs.resetValueTitle')}
-              className="opacity-0 group-hover/row:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity w-6 h-6 inline-flex items-center justify-center rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.06]"
+              className="opacity-0 group-hover/row:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity w-6 h-6 inline-flex items-center justify-center rounded-md text-zinc-400 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.06]"
             >
               <RotateCcw size={12} />
             </button>
@@ -317,7 +328,7 @@ export function QuickRow({
         {info && <InfoHint text={info} className="shrink-0" />}
       </div>
       <div className="flex items-center gap-3 shrink-0 min-w-0">
-        {hint && <span className="text-[12px] text-zinc-400 dark:text-zinc-500 truncate max-w-[110px]">{hint}</span>}
+        {hint && <span className="text-[12px] text-zinc-400 dark:text-zinc-400 truncate max-w-[110px]">{hint}</span>}
         {children}
       </div>
     </div>
@@ -474,7 +485,7 @@ export function SegPill({ index, count }: { index: number; count: number }) {
  * Multiple selection (vocabulary test): the same `filterChip` as an
  * `aria-pressed` button with ✓, not as a radio.
  */
-export const filterChip = (on: boolean) => `kvl-press inline-flex items-center gap-1.5 h-7 pl-2.5 pr-2 rounded-full text-[12px] font-medium ring-1 ring-inset transition-colors ${FOCUS} ${
+const filterChip = (on: boolean) => `kvl-press inline-flex items-center gap-1.5 h-7 pl-2.5 pr-2 rounded-full text-[12px] font-medium ring-1 ring-inset transition-colors ${FOCUS} ${
   on
     ? 'bg-indigo-500/[0.08] dark:bg-indigo-400/[0.12] text-indigo-700 dark:text-indigo-200 ring-indigo-500/25 dark:ring-indigo-400/30'
     : 'text-zinc-600 dark:text-zinc-300 ring-zinc-900/[0.1] dark:ring-white/[0.1] hover:bg-zinc-900/[0.04] dark:hover:bg-white/[0.05]'
@@ -535,27 +546,6 @@ export function Toggle({
   );
 }
 
-/* ─── CompactSlider ──────────────────────────────────────────────────────
- * Compact label + value row over a native range input. Kept from the repo so
- * the sections that still consume it keep importing the same name.
- */
-export function CompactSlider({
-  label, defaultValue, max, unit,
-}: {
-  label: string; defaultValue: number; max: number; unit: string;
-}) {
-  const [v, setV] = useState(defaultValue);
-  return (
-    <Row label={label} value={`${v}${unit}`}>
-      <input
-        type="range" min={0} max={max} step={50} value={v}
-        onChange={(e) => setV(Number(e.target.value))}
-        className="sl-range w-full"
-      />
-    </Row>
-  );
-}
-
 /* ─── IconButton ─────────────────────────────────────────────────────────
  * Single-icon button (headers, row actions): 28px, 14–16px icon.
  */
@@ -565,7 +555,7 @@ export function IconButton({ className = '', active, size = 'md', children, ...r
       type="button"
       {...rest}
       className={`${size === 'sm' ? 'w-6 h-6 rounded-md' : 'w-7 h-7 rounded-lg'} shrink-0 inline-flex items-center justify-center kvl-press ${FOCUS} disabled:opacity-40 disabled:cursor-not-allowed ${
-        active ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/[0.08] dark:bg-indigo-400/[0.12]' : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07]'
+        active ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/[0.08] dark:bg-indigo-400/[0.12]' : 'text-zinc-400 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07]'
       } ${className}`}
     >
       {children}
@@ -587,7 +577,7 @@ export function DonateBtn({ href, icon, label }: { href: string; icon: React.Rea
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`w-7 h-7 inline-flex items-center justify-center rounded-lg text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] transition-colors ${FOCUS}`}
+      className={`w-7 h-7 inline-flex items-center justify-center rounded-lg text-zinc-400 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] transition-colors ${FOCUS}`}
       title={t('common.donateVia', { label })}
       aria-label={t('common.donateVia', { label })}
     >
@@ -656,7 +646,7 @@ export function Button({
 type CalloutTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'vip';
 
 const CALLOUT_ICON: Record<CalloutTone, string> = {
-  neutral: 'text-zinc-400 dark:text-zinc-500',
+  neutral: 'text-zinc-400 dark:text-zinc-400',
   info:    'text-indigo-500 dark:text-indigo-400',
   success: 'text-emerald-500 dark:text-emerald-400',
   warning: 'text-amber-500 dark:text-amber-400',

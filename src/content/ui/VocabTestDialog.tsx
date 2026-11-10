@@ -164,7 +164,7 @@ export function VocabTestDialog({
                 <h2 id="kivara-vocab-title" className={tx.title}>{t('vc.title')}</h2>
                 <p id="kivara-vocab-subtitle" data-vocab-steptext className={`${tx.small} mt-0.5 truncate`}>
                   {stepText}
-                  <span className="text-zinc-400 dark:text-zinc-500">
+                  <span className="text-zinc-400 dark:text-zinc-400">
                     {' · '}{t('vt.subtitle', { lang: langName, n: fmtNumber(VC_ITEMS_PER_ATTEMPT) })}
                   </span>
                 </p>
