@@ -42,6 +42,26 @@ function assetUrl(file: string): string {
 
 let pending: Promise<void> | null = null;
 
+/**
+ * Whether a 'Kivara Inter' face is already registered in this document.
+ *
+ * Why a search over `document.fonts` instead of `fonts.check()`: the module
+ * re-runs on every content-script injection, but `document.fonts` survives
+ * across them in the same document — a module flag would be reset by the
+ * second injection and register the faces twice, while `check()` answers
+ * about AVAILABILITY, not about who registered the face (a host page could
+ * ship its own 'Kivara Inter' and check() would then skip OUR faces, losing
+ * the unicode-range split). Walking the set asks the only question that
+ * matters: is a face with this family already in the document?
+ */
+export function isKivaraInterRegistered(): boolean {
+  if (typeof document === 'undefined' || !document.fonts) return false;
+  for (const face of document.fonts) {
+    if (face.family.replace(/^['"]|['"]$/g, '') === 'Kivara Inter') return true;
+  }
+  return false;
+}
+
 /** Idempotent: the first call registers the faces, later ones await the same
  * promise. Never rejects — a page without WebFont support keeps the system
  * stack from `--kvl-font-sans`. */
@@ -49,7 +69,7 @@ export function ensureKivaraInter(): Promise<void> {
   if (pending) return pending;
   pending = (async () => {
     if (typeof document === 'undefined' || !document.fonts) return;
-    if (document.fonts.check("12px 'Kivara Inter'")) return;
+    if (isKivaraInterRegistered()) return;
     const faces: FontFace[] = [];
     for (const { file, unicodeRange } of FACES) {
       const face = new FontFace('Kivara Inter', `url(${assetUrl(file)})`, {
