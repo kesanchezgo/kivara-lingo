@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { RotateCcw, AlertTriangle, Keyboard as KeyboardIcon } from 'lucide-react';
+import { RotateCcw, AlertTriangle, Keyboard as KeyboardIcon } from '../../ui/icons';
+import { FOCUS, kbdCls } from '../../ui/primitives/settings-primitives';
 import { useShortcuts } from '../hooks/useShortcuts';
-import { SHORTCUT_DEFS, comboFromEvent, comboHasRequiredModifier, normalizeCombo, parseCombo } from '../../shared/shortcuts';
+import {
+  SHORTCUT_DEFS, comboFromEvent, comboHasRequiredModifier, normalizeCombo, parseCombo,
+} from '../../shared/shortcuts';
 import { t } from '../../shared/i18n';
 
 interface ShortcutEditorProps {
@@ -10,15 +13,16 @@ interface ShortcutEditorProps {
 }
 
 /**
- * Editor de atajos compartido por Onboarding y SettingsTab.
+ * Shortcut editor shared by Onboarding and SettingsTab.
  *
- *  - Clic en el combo → captura la siguiente combinación pulsada.
- *  - Esc cancela. Backspace/Delete deja el atajo sin asignar.
- *  - Detecta conflictos contra otros atajos y avisa antes de sobreescribir.
+ * - Click the combo → captures the next pressed combination.
+ * - Esc cancels. Backspace/Delete leaves it unassigned. Blur or an outside
+ *   click cancels.
+ * - Rejects combos without Ctrl/Alt/Meta and the ones Chrome already owns.
+ * - Detects conflicts against the other shortcuts and warns before overwriting.
  *
- * El estado vive en `useShortcuts` (Zustand → chrome.storage.sync), por lo
- * que los cambios se sincronizan en todos los surfaces de la extensión sin
- * recargar.
+ * State lives in `useShortcuts` (Zustand → chrome.storage.sync), so changes
+ * sync across every extension surface without a reload.
  */
 export function ShortcutEditor({ compact = false }: ShortcutEditorProps) {
   const { map, setShortcut, resetOne, resetAll, findConflict, findManifestConflict } = useShortcuts();
@@ -28,37 +32,34 @@ export function ShortcutEditor({ compact = false }: ShortcutEditorProps) {
   return (
     <div className={compact ? '' : 'space-y-1'}>
       {!compact && (
-        <div className="flex items-center justify-between px-1 pb-1">
-          <span className="text-[10px] text-zinc-500 dark:text-zinc-500">
-            {t('sc.clickToRecord')}<kbd className="font-sans text-[9px] px-1 rounded bg-zinc-100 dark:bg-zinc-800">Esc</kbd> cancela
+        <div className="flex items-center justify-between gap-2 px-0.5 pb-1.5">
+          <span className="text-[12px] text-zinc-500 dark:text-zinc-400">
+            {t('sc.clickToRecord')} <kbd className={kbdCls}>Esc</kbd> {t('sc.escCancels')}
           </span>
           <button
             type="button"
             onClick={() => { resetAll(); setWarning(null); }}
-            className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 inline-flex items-center gap-1 transition-colors"
-            title={t('sc.resetAllLabel')}
+            className={`shrink-0 inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[12px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.06] kvl-press ${FOCUS}`}
+            title={t('key.resetAllTitle')}
           >
-            <RotateCcw size={10} /> {t('sc.resetLabel')}
+            <RotateCcw size={14} /> {t('sc.resetLabel')}
           </button>
         </div>
       )}
 
-      <div className={compact
-        ? 'divide-y divide-zinc-100 dark:divide-zinc-800'
-        : 'rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800 overflow-hidden'
-      }>
+      <div className="rounded-xl bg-white dark:bg-white/[0.03] ring-1 ring-zinc-900/[0.06] dark:ring-white/[0.06] divide-y divide-zinc-900/[0.06] dark:divide-white/[0.06] overflow-hidden">
         {SHORTCUT_DEFS.map((def) => {
           const current = map[def.id] ?? def.defaultCombo;
           const isDefault = current === def.defaultCombo;
           const capturing = capturingId === def.id;
           const showWarning = warning?.id === def.id;
           return (
-            <div key={def.id} className={`flex items-center gap-2 px-3 ${compact ? 'py-1.5' : 'py-2'}`}>
+            <div key={def.id} className={`flex items-center gap-2 px-3.5 ${compact ? 'min-h-[40px] py-1.5' : 'min-h-[44px] py-2'}`}>
               <div className="flex-1 min-w-0">
-                <p className="text-[12px] text-zinc-700 dark:text-zinc-300 leading-tight truncate">{def.label}</p>
+                <p className="text-[13px] font-medium text-zinc-800 dark:text-zinc-100 leading-[18px] truncate" title={def.label}>{def.label}</p>
                 {showWarning && (
-                  <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 flex items-center gap-1 leading-tight">
-                    <AlertTriangle size={9} /> {warning!.msg}
+                  <p className="text-[12px] text-amber-600 dark:text-amber-400 mt-0.5 flex items-start gap-1 leading-[17px]">
+                    <AlertTriangle size={12} className="text-amber-500 shrink-0 mt-0.5" /> <span>{warning!.msg}</span>
                   </p>
                 )}
               </div>
@@ -68,23 +69,17 @@ export function ShortcutEditor({ compact = false }: ShortcutEditorProps) {
                 onStart={() => { setCapturingId(def.id); setWarning(null); }}
                 onRejectModifierLess={() => {
                   // Stay in capture mode so the user can press again with a
-                  // modifier; the message says what is missing instead of
-                  // silently ignoring the keypress.
+                  // modifier; the message says what is missing.
                   setWarning({ id: def.id, msg: t('sc.needsModifier') });
                 }}
                 onCapture={async (combo) => {
-                  // The manifest owns this chord (chrome.commands) — UNLESS it
-                  // is the chord THIS action already ships with. Re-picking
-                  // your own default used to be refused with "already used",
-                  // which reads as broken: Alt+C on "Toggle subtitles" said
-                  // Chrome had it, while Chrome had it *for this very action*.
-                  const ownDefault =
-                    normalizeCombo(combo) === normalizeCombo(def.defaultCombo);
-                  // Chrome owns this chord — and what it owns is the LIVE
-                  // answer from chrome.commands.getAll(), not the manifest's
-                  // suggestion, so a user who rebound everything in
-                  // chrome://extensions/shortcuts still gets a consistent
-                  // editor and page.
+                  // The manifest owns this chord — UNLESS it is the chord THIS
+                  // action already ships with. Re-picking your own default used
+                  // to be refused with "already used", which reads as broken.
+                  const ownDefault = normalizeCombo(combo) === normalizeCombo(def.defaultCombo);
+                  // Chrome owns this chord — the LIVE answer from
+                  // chrome.commands.getAll(), so rebinding in
+                  // chrome://extensions/shortcuts stays consistent.
                   const manifestOwned = ownDefault ? null : await findManifestConflict(combo);
                   if (manifestOwned) {
                     setWarning({ id: def.id, msg: t('sc.usedByChrome', { combo: manifestOwned }) });
@@ -109,10 +104,11 @@ export function ShortcutEditor({ compact = false }: ShortcutEditorProps) {
                 <button
                   type="button"
                   onClick={() => { resetOne(def.id); setWarning(null); }}
-                  className="text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors shrink-0"
+                  className={`w-7 h-7 inline-flex items-center justify-center rounded-lg text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] kvl-press shrink-0 ${FOCUS}`}
+                  aria-label={t('sc.restoreTo', { combo: def.defaultCombo })}
                   title={t('sc.restoreTo', { combo: def.defaultCombo })}
                 >
-                  <RotateCcw size={11} />
+                  <RotateCcw size={14} />
                 </button>
               )}
             </div>
@@ -130,7 +126,7 @@ interface KeyCaptureButtonProps {
   onCapture: (combo: string) => void;
   onCancel: () => void;
   onClear: () => void;
-  /** A pressed key with no real modifier: shown instead of binding it. */
+  /** A pressed key with no real modifier: warned about instead of assigned. */
   onRejectModifierLess: () => void;
 }
 
@@ -138,31 +134,31 @@ function KeyCaptureButton({
   combo, capturing, onStart, onCapture, onCancel, onClear, onRejectModifierLess,
 }: KeyCaptureButtonProps) {
   const btnRef = useRef<HTMLButtonElement>(null);
+  // Callbacks in a ref: the parent recreates them every render, and as
+  // dependencies they re-subscribed the listeners (and refocused) mid-capture.
+  const cb = useRef({ onCancel, onCapture, onClear, onRejectModifierLess });
+  cb.current = { onCancel, onCapture, onClear, onRejectModifierLess };
 
   useEffect(() => {
     if (!capturing) return;
+    const onCancel = () => cb.current.onCancel();
+    const onCapture = (c: string) => cb.current.onCapture(c);
+    const onClear = () => cb.current.onClear();
+    const onRejectModifierLess = () => cb.current.onRejectModifierLess();
     btnRef.current?.focus();
     const onKeyDown = (e: KeyboardEvent) => {
       e.preventDefault();
       e.stopPropagation();
       if (e.key === 'Escape') { onCancel(); return; }
       if (e.key === 'Backspace' || e.key === 'Delete') { onClear(); return; }
-      // A combo without Ctrl / Alt / Meta is not a shortcut, it is a keypress:
-      // binding `K` or `Space` ran save-word / repeat-cue while the user was
-      // typing a capital letter on YouTube, because the in-page handler fires
-      // before the page sees the character.
-      if (!comboHasRequiredModifier(e)) {
-        onRejectModifierLess();
-        return;
-      }
+      if (e.key === 'Control' || e.key === 'Alt' || e.key === 'Shift' || e.key === 'Meta') return;
+      if (!comboHasRequiredModifier(e)) { onRejectModifierLess(); return; }
       const next = comboFromEvent(e);
       if (next) onCapture(next);
     };
-    // Capture mode is a modal state: a blur (click elsewhere, another
-    // extension's popup) or a mousepress outside the button silently leaves
-    // it armed, and the user's NEXT keystroke anywhere — a page search box,
-    // a YouTube shortcut — lands as the new binding. Same for a plain click.
-    const onMaybeEnd = (e: Event) => {
+    // Capture is a modal state: a blur or an outside click cancels it, so the
+    // next keystroke elsewhere does not land as the new binding.
+    const outsideClick = (e: MouseEvent) => {
       const target = e.target as Node | null;
       if (!btnRef.current) return;
       if (target && btnRef.current.contains(target)) return;
@@ -170,14 +166,14 @@ function KeyCaptureButton({
     };
     window.addEventListener('keydown', onKeyDown, true);
     window.addEventListener('blur', onCancel);
-    const outsideClick = (e: MouseEvent) => onMaybeEnd(e);
-    setTimeout(() => window.addEventListener('mousedown', outsideClick, true), 0);
+    const timer = window.setTimeout(() => window.addEventListener('mousedown', outsideClick, true), 0);
     return () => {
+      window.clearTimeout(timer);
       window.removeEventListener('keydown', onKeyDown, true);
       window.removeEventListener('blur', onCancel);
       window.removeEventListener('mousedown', outsideClick, true);
     };
-  }, [capturing, onCancel, onCapture, onClear, onRejectModifierLess]);
+  }, [capturing]);
 
   const keys = combo ? parseCombo(combo) : [];
 
@@ -186,24 +182,23 @@ function KeyCaptureButton({
       ref={btnRef}
       type="button"
       onClick={(e) => { e.stopPropagation(); if (!capturing) onStart(); }}
-      className={`shrink-0 min-w-[88px] px-2 py-1 rounded-md border text-[10px] font-medium transition-all flex items-center justify-center gap-0.5 ${
+      className={`shrink-0 min-w-[88px] max-w-[160px] h-7 px-1.5 rounded-lg text-[12px] font-medium kvl-press flex items-center justify-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${
         capturing
-          ? 'border-indigo-400 dark:border-indigo-500/60 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200 dark:ring-indigo-500/30 animate-pulse'
-          : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50/60 dark:bg-zinc-800/40 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/10'
+          ? 'bg-indigo-500/[0.08] dark:bg-indigo-400/[0.12] text-indigo-600 dark:text-indigo-300 ring-2 ring-indigo-500/40 animate-pulse'
+          : 'hover:bg-zinc-900/[0.04] dark:hover:bg-white/[0.05]'
       }`}
     >
       {capturing ? (
-        <span className="inline-flex items-center gap-1 text-[10px]">
-          <KeyboardIcon size={10} /> {t('sc.pressCombo')}</span>
+        <span className="inline-flex items-center gap-1.5 text-[12px]">
+          <KeyboardIcon size={14} /> {t('sc.pressCombo')}
+        </span>
       ) : keys.length === 0 ? (
-        <span className="text-zinc-400 dark:text-zinc-500 italic">{t('sc.unassigned')}</span>
+        <span className="text-[12px] text-zinc-400 dark:text-zinc-500">{t('sc.unassigned')}</span>
       ) : (
         keys.map((k, i) => (
           <React.Fragment key={`${k}-${i}`}>
-            {i > 0 && <span className="text-zinc-400 dark:text-zinc-600 text-[9px]">+</span>}
-            <kbd className="font-sans text-[10px] text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded px-1 py-px shadow-sm">
-              {k}
-            </kbd>
+            {i > 0 && <span className="text-zinc-400 dark:text-zinc-600 text-[11px]">+</span>}
+            <kbd className={kbdCls}>{k}</kbd>
           </React.Fragment>
         ))
       )}

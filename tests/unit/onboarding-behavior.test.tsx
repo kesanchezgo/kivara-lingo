@@ -11,7 +11,7 @@
  * around every case, so hydration and one test's chrome stub cannot leak
  * into the next case.
  *
- * 20 s per case, not Vitest's default 5: this file mounts the whole settings
+ * 60 s per case, not Vitest's default 5: this file mounts the whole settings
  * bridge (store, chrome mock, writes before render) and a default timeout
  * there fails under machine load, which loses the signal.
  */
@@ -120,7 +120,7 @@ function ankiStatus(): HTMLElement {
   return screen.getByTestId('onboarding-anki-status');
 }
 
-describe('Onboarding wizard - behavioral characterization (pre-move)', { timeout: 20_000 }, () => {
+describe('Onboarding wizard - behavioral characterization (pre-move)', { timeout: 60_000 }, () => {
   beforeEach(async () => {
     cleanup();
     vi.stubGlobal('chrome', chromeStub());

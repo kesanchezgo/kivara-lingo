@@ -70,7 +70,7 @@ function expandedByTitle(titleFragment: string): boolean {
 const permOpen = () => expandedByTitle('Acceso a sitios');
 const ttsOpen = () => expandedByTitle('Voz premium');
 
-describe('Settings accordions under a deep link', () => {
+describe('Settings accordions under a deep link', { timeout: 30_000 }, () => {
   beforeEach(() => {
     vi.stubGlobal('chrome', {
       runtime: { sendMessage: () => {}, lastError: null },

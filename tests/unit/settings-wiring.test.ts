@@ -8,7 +8,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const root = readFileSync(path.join(process.cwd(), 'src/app/components/tabs/SettingsTab.tsx'), 'utf8');
-const primitives = readFileSync(path.join(process.cwd(), 'src/app/components/tabs/settings-primitives.tsx'), 'utf8');
+const shim = readFileSync(path.join(process.cwd(), 'src/app/components/tabs/settings-primitives.tsx'), 'utf8');
+const primitives = readFileSync(path.join(process.cwd(), 'src/ui/primitives/settings-primitives.tsx'), 'utf8');
 const ai = readFileSync(path.join(process.cwd(), 'src/app/components/tabs/AiByokSection.tsx'), 'utf8');
 
 describe('SettingsTab module boundaries', () => {
@@ -20,6 +21,8 @@ describe('SettingsTab module boundaries', () => {
   });
 
   it('exports the moved controls and helpers', () => {
+    // The old path is a shim until F9; the definitions live under src/ui.
+    expect(shim).toMatch(/export \* from ['"][^'"]*ui\/primitives\/settings-primitives['"]/);
     expect(primitives).toMatch(/export function Accordion\b/);
     expect(primitives).toMatch(/export function Toggle\b/);
     expect(primitives).toMatch(/export function SegmentedControl\b/);
