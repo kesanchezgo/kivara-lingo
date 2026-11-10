@@ -1,0 +1,881 @@
+{
+  "_meta": {
+    "dataset": "Vocabulary test bank",
+    "source": "Sampled from src/assets/frequency/en-rank.json (OpenSubtitles FrequencyWords, HermitDave)",
+    "license": "CC BY-SA 4.0 (derived from the frequency list; ShareAlike travels with this file)",
+    "builtAt": "2026-11-10T06:04:36.654Z",
+    "seed": 6221301,
+    "bands": [
+      "band1: rank 1-1250",
+      "band2: rank 1251-2500",
+      "band3: rank 2501-5000",
+      "band4: rank 5001-12000"
+    ],
+    "count": 160,
+    "pseudowordCount": 60
+  },
+  "words": [
+    {
+      "word": "time",
+      "rank": 80,
+      "level": "A1"
+    },
+    {
+      "word": "never",
+      "rank": 116,
+      "level": "A1"
+    },
+    {
+      "word": "stay",
+      "rank": 219,
+      "level": "A1"
+    },
+    {
+      "word": "dead",
+      "rank": 256,
+      "level": "A1"
+    },
+    {
+      "word": "mind",
+      "rank": 258,
+      "level": "A1"
+    },
+    {
+      "word": "mom",
+      "rank": 262,
+      "level": "A1"
+    },
+    {
+      "word": "job",
+      "rank": 269,
+      "level": "A1"
+    },
+    {
+      "word": "real",
+      "rank": 272,
+      "level": "A1"
+    },
+    {
+      "word": "turn",
+      "rank": 352,
+      "level": "A1"
+    },
+    {
+      "word": "stuff",
+      "rank": 383,
+      "level": "A1"
+    },
+    {
+      "word": "death",
+      "rank": 386,
+      "level": "A1"
+    },
+    {
+      "word": "drink",
+      "rank": 398,
+      "level": "A1"
+    },
+    {
+      "word": "whatever",
+      "rank": 402,
+      "level": "A1"
+    },
+    {
+      "word": "check",
+      "rank": 410,
+      "level": "A1"
+    },
+    {
+      "word": "blood",
+      "rank": 477,
+      "level": "A1"
+    },
+    {
+      "word": "parents",
+      "rank": 582,
+      "level": "A1"
+    },
+    {
+      "word": "street",
+      "rank": 630,
+      "level": "A1"
+    },
+    {
+      "word": "less",
+      "rank": 662,
+      "level": "A1"
+    },
+    {
+      "word": "absolutely",
+      "rank": 693,
+      "level": "A1"
+    },
+    {
+      "word": "yesterday",
+      "rank": 698,
+      "level": "A1"
+    },
+    {
+      "word": "president",
+      "rank": 710,
+      "level": "A1"
+    },
+    {
+      "word": "pass",
+      "rank": 741,
+      "level": "A1"
+    },
+    {
+      "word": "instead",
+      "rank": 779,
+      "level": "A1"
+    },
+    {
+      "word": "hotel",
+      "rank": 792,
+      "level": "A2"
+    },
+    {
+      "word": "message",
+      "rank": 813,
+      "level": "A2"
+    },
+    {
+      "word": "table",
+      "rank": 816,
+      "level": "A2"
+    },
+    {
+      "word": "swear",
+      "rank": 829,
+      "level": "A2"
+    },
+    {
+      "word": "letter",
+      "rank": 843,
+      "level": "A2"
+    },
+    {
+      "word": "fool",
+      "rank": 844,
+      "level": "A2"
+    },
+    {
+      "word": "eight",
+      "rank": 895,
+      "level": "A2"
+    },
+    {
+      "word": "offer",
+      "rank": 909,
+      "level": "A2"
+    },
+    {
+      "word": "bank",
+      "rank": 917,
+      "level": "A2"
+    },
+    {
+      "word": "continue",
+      "rank": 1039,
+      "level": "A2"
+    },
+    {
+      "word": "cash",
+      "rank": 1059,
+      "level": "A2"
+    },
+    {
+      "word": "north",
+      "rank": 1070,
+      "level": "A2"
+    },
+    {
+      "word": "tree",
+      "rank": 1072,
+      "level": "A2"
+    },
+    {
+      "word": "race",
+      "rank": 1170,
+      "level": "A2"
+    },
+    {
+      "word": "feeling",
+      "rank": 1200,
+      "level": "A2"
+    },
+    {
+      "word": "steal",
+      "rank": 1235,
+      "level": "A2"
+    },
+    {
+      "word": "gas",
+      "rank": 1243,
+      "level": "A2"
+    },
+    {
+      "word": "pressure",
+      "rank": 1283,
+      "level": "A2"
+    },
+    {
+      "word": "animals",
+      "rank": 1319,
+      "level": "A2"
+    },
+    {
+      "word": "extra",
+      "rank": 1329,
+      "level": "A2"
+    },
+    {
+      "word": "clearly",
+      "rank": 1409,
+      "level": "A2"
+    },
+    {
+      "word": "advice",
+      "rank": 1450,
+      "level": "A2"
+    },
+    {
+      "word": "career",
+      "rank": 1482,
+      "level": "A2"
+    },
+    {
+      "word": "breath",
+      "rank": 1497,
+      "level": "A2"
+    },
+    {
+      "word": "investigation",
+      "rank": 1534,
+      "level": "A2"
+    },
+    {
+      "word": "trick",
+      "rank": 1544,
+      "level": "A2"
+    },
+    {
+      "word": "original",
+      "rank": 1579,
+      "level": "A2"
+    },
+    {
+      "word": "universe",
+      "rank": 1630,
+      "level": "A2"
+    },
+    {
+      "word": "bullet",
+      "rank": 1692,
+      "level": "A2"
+    },
+    {
+      "word": "sword",
+      "rank": 1707,
+      "level": "A2"
+    },
+    {
+      "word": "ancient",
+      "rank": 1734,
+      "level": "A2"
+    },
+    {
+      "word": "shake",
+      "rank": 1790,
+      "level": "B1"
+    },
+    {
+      "word": "likely",
+      "rank": 1899,
+      "level": "B1"
+    },
+    {
+      "word": "professional",
+      "rank": 1923,
+      "level": "B1"
+    },
+    {
+      "word": "thief",
+      "rank": 1946,
+      "level": "B1"
+    },
+    {
+      "word": "rights",
+      "rank": 1949,
+      "level": "B1"
+    },
+    {
+      "word": "including",
+      "rank": 1950,
+      "level": "B1"
+    },
+    {
+      "word": "results",
+      "rank": 1971,
+      "level": "B1"
+    },
+    {
+      "word": "priest",
+      "rank": 1976,
+      "level": "B1"
+    },
+    {
+      "word": "tear",
+      "rank": 1983,
+      "level": "B1"
+    },
+    {
+      "word": "avoid",
+      "rank": 1984,
+      "level": "B1"
+    },
+    {
+      "word": "eventually",
+      "rank": 2034,
+      "level": "B1"
+    },
+    {
+      "word": "shot",
+      "rank": 2111,
+      "level": "B1"
+    },
+    {
+      "word": "poison",
+      "rank": 2118,
+      "level": "B1"
+    },
+    {
+      "word": "indian",
+      "rank": 2133,
+      "level": "B1"
+    },
+    {
+      "word": "march",
+      "rank": 2164,
+      "level": "B1"
+    },
+    {
+      "word": "spell",
+      "rank": 2176,
+      "level": "B1"
+    },
+    {
+      "word": "treasure",
+      "rank": 2241,
+      "level": "B1"
+    },
+    {
+      "word": "result",
+      "rank": 2246,
+      "level": "B1"
+    },
+    {
+      "word": "warn",
+      "rank": 2336,
+      "level": "B1"
+    },
+    {
+      "word": "stranger",
+      "rank": 2343,
+      "level": "B1"
+    },
+    {
+      "word": "exchange",
+      "rank": 2372,
+      "level": "B1"
+    },
+    {
+      "word": "effort",
+      "rank": 2446,
+      "level": "B1"
+    },
+    {
+      "word": "youth",
+      "rank": 2447,
+      "level": "B1"
+    },
+    {
+      "word": "county",
+      "rank": 2462,
+      "level": "B1"
+    },
+    {
+      "word": "equipment",
+      "rank": 2468,
+      "level": "B1"
+    },
+    {
+      "word": "zone",
+      "rank": 2490,
+      "level": "B1"
+    },
+    {
+      "word": "sentence",
+      "rank": 2501,
+      "level": "B1"
+    },
+    {
+      "word": "shadow",
+      "rank": 2516,
+      "level": "B1"
+    },
+    {
+      "word": "border",
+      "rank": 2629,
+      "level": "B1"
+    },
+    {
+      "word": "rope",
+      "rank": 2630,
+      "level": "B1"
+    },
+    {
+      "word": "culture",
+      "rank": 2695,
+      "level": "B1"
+    },
+    {
+      "word": "task",
+      "rank": 2698,
+      "level": "B1"
+    },
+    {
+      "word": "solid",
+      "rank": 2699,
+      "level": "B1"
+    },
+    {
+      "word": "custody",
+      "rank": 2705,
+      "level": "B1"
+    },
+    {
+      "word": "unique",
+      "rank": 2775,
+      "level": "B1"
+    },
+    {
+      "word": "collection",
+      "rank": 2903,
+      "level": "B1"
+    },
+    {
+      "word": "arrange",
+      "rank": 3003,
+      "level": "B1"
+    },
+    {
+      "word": "steel",
+      "rank": 3055,
+      "level": "B1"
+    },
+    {
+      "word": "virus",
+      "rank": 3086,
+      "level": "B2"
+    },
+    {
+      "word": "sacred",
+      "rank": 3095,
+      "level": "B2"
+    },
+    {
+      "word": "motion",
+      "rank": 3116,
+      "level": "B2"
+    },
+    {
+      "word": "awkward",
+      "rank": 3242,
+      "level": "B2"
+    },
+    {
+      "word": "shelter",
+      "rank": 3382,
+      "level": "B2"
+    },
+    {
+      "word": "foster",
+      "rank": 3408,
+      "level": "B2"
+    },
+    {
+      "word": "charm",
+      "rank": 3518,
+      "level": "B2"
+    },
+    {
+      "word": "angle",
+      "rank": 3581,
+      "level": "B2"
+    },
+    {
+      "word": "tragedy",
+      "rank": 3590,
+      "level": "B2"
+    },
+    {
+      "word": "remote",
+      "rank": 3702,
+      "level": "B2"
+    },
+    {
+      "word": "award",
+      "rank": 3744,
+      "level": "B2"
+    },
+    {
+      "word": "bend",
+      "rank": 3844,
+      "level": "B2"
+    },
+    {
+      "word": "shore",
+      "rank": 3874,
+      "level": "B2"
+    },
+    {
+      "word": "native",
+      "rank": 3973,
+      "level": "B2"
+    },
+    {
+      "word": "lazy",
+      "rank": 4004,
+      "level": "B2"
+    },
+    {
+      "word": "brick",
+      "rank": 4035,
+      "level": "B2"
+    },
+    {
+      "word": "dive",
+      "rank": 4152,
+      "level": "B2"
+    },
+    {
+      "word": "chemical",
+      "rank": 4209,
+      "level": "B2"
+    },
+    {
+      "word": "horror",
+      "rank": 4236,
+      "level": "B2"
+    },
+    {
+      "word": "wagon",
+      "rank": 4331,
+      "level": "B2"
+    },
+    {
+      "word": "polite",
+      "rank": 4358,
+      "level": "B2"
+    },
+    {
+      "word": "swallow",
+      "rank": 4360,
+      "level": "B2"
+    },
+    {
+      "word": "investment",
+      "rank": 4372,
+      "level": "B2"
+    },
+    {
+      "word": "halt",
+      "rank": 4414,
+      "level": "B2"
+    },
+    {
+      "word": "humble",
+      "rank": 4585,
+      "level": "C1"
+    },
+    {
+      "word": "determine",
+      "rank": 4642,
+      "level": "C1"
+    },
+    {
+      "word": "display",
+      "rank": 4781,
+      "level": "C1"
+    },
+    {
+      "word": "penalty",
+      "rank": 4795,
+      "level": "C1"
+    },
+    {
+      "word": "genuine",
+      "rank": 5008,
+      "level": "C1"
+    },
+    {
+      "word": "stiff",
+      "rank": 5157,
+      "level": "C1"
+    },
+    {
+      "word": "sector",
+      "rank": 5250,
+      "level": "C1"
+    },
+    {
+      "word": "enterprise",
+      "rank": 5351,
+      "level": "C1"
+    },
+    {
+      "word": "convention",
+      "rank": 5619,
+      "level": "C1"
+    },
+    {
+      "word": "hint",
+      "rank": 5708,
+      "level": "C1"
+    },
+    {
+      "word": "occur",
+      "rank": 5897,
+      "level": "C1"
+    },
+    {
+      "word": "courtesy",
+      "rank": 5979,
+      "level": "C1"
+    },
+    {
+      "word": "laboratory",
+      "rank": 6053,
+      "level": "C1"
+    },
+    {
+      "word": "despair",
+      "rank": 6069,
+      "level": "C1"
+    },
+    {
+      "word": "bloom",
+      "rank": 6106,
+      "level": "C1"
+    },
+    {
+      "word": "cease",
+      "rank": 6113,
+      "level": "C1"
+    },
+    {
+      "word": "rival",
+      "rank": 6507,
+      "level": "C1"
+    },
+    {
+      "word": "fierce",
+      "rank": 6570,
+      "level": "C1"
+    },
+    {
+      "word": "preserve",
+      "rank": 6599,
+      "level": "C1"
+    },
+    {
+      "word": "adopt",
+      "rank": 6834,
+      "level": "C2"
+    },
+    {
+      "word": "stain",
+      "rank": 6893,
+      "level": "C2"
+    },
+    {
+      "word": "glow",
+      "rank": 7170,
+      "level": "C2"
+    },
+    {
+      "word": "reign",
+      "rank": 7300,
+      "level": "C2"
+    },
+    {
+      "word": "shovel",
+      "rank": 7326,
+      "level": "C2"
+    },
+    {
+      "word": "nude",
+      "rank": 7360,
+      "level": "C2"
+    },
+    {
+      "word": "reflect",
+      "rank": 7372,
+      "level": "C2"
+    },
+    {
+      "word": "confirmation",
+      "rank": 7383,
+      "level": "C2"
+    },
+    {
+      "word": "unite",
+      "rank": 7520,
+      "level": "C2"
+    },
+    {
+      "word": "quantum",
+      "rank": 7877,
+      "level": "C2"
+    },
+    {
+      "word": "perception",
+      "rank": 9595,
+      "level": "C2"
+    },
+    {
+      "word": "nod",
+      "rank": 9602,
+      "level": "C2"
+    },
+    {
+      "word": "liable",
+      "rank": 9630,
+      "level": "C2"
+    },
+    {
+      "word": "particle",
+      "rank": 9862,
+      "level": "C2"
+    },
+    {
+      "word": "meaningful",
+      "rank": 9875,
+      "level": "C2"
+    },
+    {
+      "word": "external",
+      "rank": 9931,
+      "level": "C2"
+    },
+    {
+      "word": "occupy",
+      "rank": 10483,
+      "level": "C2"
+    },
+    {
+      "word": "condemn",
+      "rank": 10583,
+      "level": "C2"
+    },
+    {
+      "word": "intervene",
+      "rank": 11013,
+      "level": "C2"
+    },
+    {
+      "word": "tempt",
+      "rank": 11243,
+      "level": "C2"
+    },
+    {
+      "word": "goodwill",
+      "rank": 11289,
+      "level": "C2"
+    },
+    {
+      "word": "anomaly",
+      "rank": 11381,
+      "level": "C2"
+    },
+    {
+      "word": "fiber",
+      "rank": 11686,
+      "level": "C2"
+    },
+    {
+      "word": "relentless",
+      "rank": 11968,
+      "level": "C2"
+    },
+    {
+      "word": "slogan",
+      "rank": 11996,
+      "level": "C2"
+    }
+  ],
+  "pseudowords": [
+    "flidar",
+    "sengock",
+    "snarplam",
+    "bromkir",
+    "brefliy",
+    "plezock",
+    "smerveth",
+    "plentock",
+    "grisprosh",
+    "rindrom",
+    "femplon",
+    "thirmint",
+    "skempet",
+    "momtrom",
+    "proglost",
+    "bantrish",
+    "zefick",
+    "prenkock",
+    "listoth",
+    "prilbrend",
+    "fazith",
+    "grisgot",
+    "glamthosh",
+    "flimsnith",
+    "skamgent",
+    "konlock",
+    "zasdent",
+    "slosrost",
+    "scanvar",
+    "trannend",
+    "gramlont",
+    "grenflim",
+    "plaskint",
+    "flaplang",
+    "zinthiy",
+    "misthash",
+    "kitrang",
+    "hemkang",
+    "flalges",
+    "theskof",
+    "skamgring",
+    "trargel",
+    "cossmot",
+    "hicront",
+    "zidrast",
+    "skerstoy",
+    "priglosh",
+    "smoltith",
+    "hemstil",
+    "selgrop",
+    "daglont",
+    "glihos",
+    "spobir",
+    "nirdas",
+    "scinbrep",
+    "nolsmont",
+    "trimpef",
+    "drefang",
+    "framthock",
+    "golclad"
+  ]
+}
