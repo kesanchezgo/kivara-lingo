@@ -65,7 +65,7 @@ const SLOT = 'kivara-secret:v1:ai.apiKey';
  * The AI key input only exists once a provider preset is selected (a fresh
  * install ships `provider: 'disabled'`), so the first preset is picked — and
  * the AI provider key is the only secret input rendered with the visibility
- * toggle, which identifies its sibling input unambiguously.
+ * toggle, which identifies the input unambiguously.
  *
  * Note the tab bar labels are hardcoded English ("Subtitles" / "Cards" /
  * "Settings") — they are not routed through `t()` — while everything below
@@ -81,7 +81,13 @@ async function openSettingsAiKey(page: Page): Promise<ReturnType<Page['locator']
   await page.locator('#kivara-panel-tab-settings').click();
   await page.getByRole('button', { name: /IA premium/ }).click();
   await page.locator('ul li button').first().click();
-  return page.locator('xpath=//button[@title="Mostrar lo escrito"]/preceding-sibling::input');
+  // The SecretKeyInput view wraps the input in a relative container and puts
+  // the eye/clear actions in an absolute row BESIDE it, so the input is no
+  // longer a sibling of the toggle. Anchor on the toggle and walk up to the
+  // wrapper's input: same element, same intent.
+  return page.locator(
+    'xpath=//button[@title="Mostrar lo escrito"]/parent::div/parent::div/input',
+  );
 }
 
 const SAVED_PLACEHOLDER = /guardada/;
@@ -116,10 +122,17 @@ test('1 · keys survive an unusable chrome.storage.sync', async ({ context, exte
 
   // ── Sync goes down. The user changes a setting (a slider) right now.
   await page.evaluate(BREAK_SYNC);
-  await page.locator('input[type="range"]').first().press('ArrowRight');
+  // The panel keeps every tab mounted (F2) and its sections collapse with
+  // `inert`, so the page-wide first range is a hidden one. Open the Translation
+  // section and change ITS slider: one setting, now.
+  await page.locator('#kivara-section-translate-button').click();
+  await page.locator('#kivara-panel-body-settings input[type="range"]').first().press('ArrowRight');
 
   // …and the UI says so instead of pretending the setting saved.
-  await expect(page.getByRole('status').filter({ hasText: 'chrome.storage.sync' })).toBeVisible();
+  // The compact banner in Settings uses the SHORT copy (the long one names
+  // chrome.storage.sync and lives in the popup), so assert on the meaning:
+  // the UI says the setting stayed on this device.
+  await expect(page.getByRole('status').filter({ hasText: /solo en este dispositivo/ })).toBeVisible();
   // ── Reload: sync still holds the last good blob, the key comes back from
   // its local slot. The input must read as "saved", not "empty".
   await page.reload();
@@ -303,7 +316,8 @@ test('3 · Quitar on one tab, a change on the other: the key stays cleared', asy
 
   // Tab B changes a setting while still holding the removed key in memory:
   // its save must not resurrect it.
-  await b.locator('input[type="range"]').first().press('ArrowRight');
+  await b.locator('#kivara-section-translate-button').click();
+  await b.locator('#kivara-panel-body-settings input[type="range"]').first().press('ArrowRight');
   await b.waitForTimeout(600);
   expect(
     await b.evaluate(async (slot) => {

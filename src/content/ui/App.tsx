@@ -5,7 +5,9 @@ import { Toaster, toast } from 'sonner';
 import { sendMessage } from 'webext-bridge/content-script';
 import { SidePanel } from './SidePanel';
 import { SubtitleOverlay } from './SubtitleOverlay';
+import { CaptureOverlay, type CaptureAudio, type CaptureView } from './CaptureOverlay';
 import { applyCleanupCss } from './cleanup-css';
+import { playSound } from '../../ui/sounds';
 import { useKivaraStore } from '../../shared/store';
 import { captureFrame, captureBestFrame } from '../capture/frame';
 import { comboFromEvent, normalizeCombo, readManifestCombos } from '../../shared/shortcuts';
@@ -127,6 +129,15 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   } = useKivaraStore();
 
   const [activeCue, setActiveCue] = useState<ActiveCue | null>(null);
+  // Expressions split by hand (Alt+wheel or the card) — the overlay renders
+  // them, App owns the state so it survives a card unmount.
+  const [expandedMWEs, setExpandedMWEs] = useState<Set<string>>(new Set());
+  // Real playback state, for Listen-first (blur while the line sounds).
+  const [playing, setPlaying] = useState(false);
+  // The capture layer's view, driven by the real save path below.
+  const [captureView, setCaptureView] = useState<CaptureView | null>(null);
+  const captureBusyRef = useRef(false);
+  const captureClearTimer = useRef<number | null>(null);
   // Words already saved to the user's Anki deck — pre-fetched once per
   // video mount via the ANKI_SAVED_WORDS handler so subtitles show the
   // green "saved" highlight from the first frame (previously the prop
@@ -349,7 +360,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   //
   // The prefetch is gated on `!getTrackByLanguage(targetLang)` so it
   // doesn't fire when we already have the translated track in memory.
-  const showDualSubtitlePref = useKivaraStore((s) => s.translate.showDualSubtitle);
+  const showDualSubtitlePref = useKivaraStore((s) => s.study.translation !== 'hidden');
   useEffect(() => {
     if (!showDualSubtitlePref) return;
     if (!activeCue || activeCue.start == null) return;
@@ -480,6 +491,11 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       hoverRevRef.current += 1;
       const rev = hoverRevRef.current;
       if (hovered) {
+        // "Pause while looking up" is a study preference and has no meaning in
+        // Reading mode (there is no card). Any other reason the video was
+        // paused stays the platform's / the user's.
+        const state = useKivaraStore.getState();
+        if (!state.study.pauseOnLookup || state.mode === 'reading') return;
         if (!videoElement.paused) {
           kivaraPausedRef.current = true;
           try {
@@ -538,6 +554,21 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     videoElement.addEventListener('play', onUserPlay);
     return () => {
       videoElement.removeEventListener('play', onUserPlay);
+    };
+  }, [videoElement]);
+
+  // Real playback state for Listen-first: the subtitle blurs while the line
+  // sounds and reveals on pause or hover.
+  useEffect(() => {
+    if (!videoElement) return;
+    const onPlay = () => setPlaying(true);
+    const onPause = () => setPlaying(false);
+    setPlaying(!videoElement.paused);
+    videoElement.addEventListener('play', onPlay);
+    videoElement.addEventListener('pause', onPause);
+    return () => {
+      videoElement.removeEventListener('play', onPlay);
+      videoElement.removeEventListener('pause', onPause);
     };
   }, [videoElement]);
 
@@ -980,82 +1011,121 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       if (!enabled) return { ok: false, error: 'disabled' };
       const tokenValue = token?.trim() || sentence.trim();
       if (!tokenValue) return { ok: false, error: 'no token' };
+      // One card at a time: the capture overlay and the audio completion must
+      // not run twice for a double-pressed shortcut.
+      if (captureBusyRef.current) return { ok: false, error: 'busy' };
+      captureBusyRef.current = true;
 
-    const saveToastId = toast.loading(t('app.savingCard'), {
-      description: t('app.preparingSave'),
-    });
-
-    let frameDataUrl: string | null = null;
-    if (videoElement) {
-      // Best-frame capture: samples the cue window on a paused video to dodge
-      // fades / transitions / spinners. Returns null when every candidate is a
-      // dud, letting the orchestrator fall back to a web image.
-      frameDataUrl = await captureBestFrame(videoElement, {
-        start: activeCue?.start,
-        end: activeCue?.end,
-      });
-    }
-
-    const audioAnchor = await ensureSubtitleAudioReady();
-
-    const request: CreateCardRequest = {
-      token: tokenValue,
-      sentence,
-      frame: frameDataUrl ?? undefined,
-      cueStart: activeCue?.start,
-      cueEnd: activeCue?.end,
-      videoTimeAtSave: audioAnchor.videoTimeAtSave,
-      videoPausedAtSave: audioAnchor.videoPausedAtSave,
-      language: cueLanguageRef.current,
-      platform: adapter?.platform,
-    };
-
-    try {
-      const response = (await sendMessage('CREATE_CARD', request, 'background')) as CreateCardResponse;
-      if (response?.ok) {
-        // Remember the noteId + frame field so `recapture_frame` (Alt+V)
-        // can update this specific note.
-        if (response.noteId != null) {
-          lastSavedNoteRef.current = {
-            noteId: response.noteId,
-            fieldName: findFrameFieldName(ankiMapping.fieldSources) ?? null,
-          };
-        }
-        const warningSuffix = response.warnings?.length
-          ? ` · ${response.warnings.join(' · ')}`
-          : '';
-        toast.success(t('app.cardSaved'), {
-          id: saveToastId,
-          description: `${tokenValue} → ${ankiMapping.deckName}${warningSuffix}`,
-          duration: 3200,
-        });
-        // THIS WAS THE BUG: right after showing the success toast the
-        // function fell off the end and landed in the shared
-        // `return { ok: false, error: 'unhandled' }` — so every CREATED
-        // card appeared to the caller as a failure. In SubtitleOverlay's
-        // `handleSaveToken` that meant the token NEVER got the green
-        // "saved" highlight, because it only paints when result.ok is true.
-        return { ok: true, noteId: response.noteId, warnings: response.warnings };
-      } else {
-        toast.error(response?.error ?? t('app.ankiSaveError'), { id: saveToastId });
-        return response ?? { ok: false, error: 'unknown' };
+      const studyNow = useKivaraStore.getState().study;
+      const endDetect = useKivaraStore.getState().capture.endDetect;
+      if (captureClearTimer.current) {
+        window.clearTimeout(captureClearTimer.current);
+        captureClearTimer.current = null;
       }
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : t('app.unknownReason');
-      toast.error(`${t('app.ankiSaveError')}: ${reason}`, { id: saveToastId });
-      return { ok: false, error: reason };
-    }
-    // Unreachable: both branches of the earlier if return inside try.
-    // Kept as a type-narrowing stopgap so a future fallthrough cannot
-    // silently return undefined.
-    return { ok: false, error: 'unhandled' };
-  },
-  // deps: everything handleSaveCard touches at closure time.
-  // SubtitleOverlay's useMemo also lists handleSaveCard — its identity
-  // must change when ankiMapping or cue change, which keeps the overlay
-  // consistent when deck/adapter/config change.
-  [enabled, activeCue, videoElement, adapter, ensureSubtitleAudioReady, ankiMapping],
-);
+      setCaptureView({ flash: false, audio: null, frame: 'pending', mode: endDetect });
+
+      const saveToastId = toast.loading(t('app.savingCard'), {
+        description: t('app.preparingSave'),
+      });
+
+      try {
+        let frameDataUrl: string | null = null;
+        if (videoElement) {
+          // Best-frame capture: samples the cue window on a paused video to
+          // dodge fades / transitions / spinners. Null when every candidate is
+          // a dud, letting the orchestrator fall back to a web image.
+          frameDataUrl = await captureBestFrame(videoElement, {
+            start: activeCue?.start,
+            end: activeCue?.end,
+          });
+        }
+        setCaptureView((v) => (v ? { ...v, flash: true, frame: frameDataUrl ? 'ok' : 'failed' } : v));
+        if (studyNow.sounds) playSound('shutter');
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, 260);
+        });
+        setCaptureView((v) => (v ? { ...v, flash: false } : v));
+
+        // Which audio the save will use, computed from the same condition
+        // `ensureSubtitleAudioReady` uses: a paused video short of the cue end
+        // replays the line; a playing one records it live.
+        const remainingMs = videoElement && activeCue?.end != null
+          ? activeCue.end - videoElement.currentTime * 1000
+          : 0;
+        const audio: CaptureAudio = !videoElement
+          ? 'off'
+          : videoElement.paused
+            ? (remainingMs > 120 ? 'replay' : 'off')
+            : 'live';
+        setCaptureView((v) => (v ? { ...v, audio } : v));
+
+        const audioAnchor = await ensureSubtitleAudioReady();
+
+        const request: CreateCardRequest = {
+          token: tokenValue,
+          sentence,
+          frame: frameDataUrl ?? undefined,
+          cueStart: activeCue?.start,
+          cueEnd: activeCue?.end,
+          videoTimeAtSave: audioAnchor.videoTimeAtSave,
+          videoPausedAtSave: audioAnchor.videoPausedAtSave,
+          language: cueLanguageRef.current,
+          platform: adapter?.platform,
+        };
+
+        try {
+          const response = (await sendMessage('CREATE_CARD', request, 'background')) as CreateCardResponse;
+          if (response?.ok) {
+            // Remember the noteId + frame field so `recapture_frame` (Alt+V)
+            // can update this specific note.
+            if (response.noteId != null) {
+              lastSavedNoteRef.current = {
+                noteId: response.noteId,
+                fieldName: findFrameFieldName(ankiMapping.fieldSources) ?? null,
+              };
+            }
+            const warningSuffix = response.warnings?.length
+              ? ` · ${response.warnings.join(' · ')}`
+              : '';
+            toast.success(t('app.cardSaved'), {
+              id: saveToastId,
+              description: `${tokenValue} → ${ankiMapping.deckName}${warningSuffix}`,
+              duration: 3200,
+            });
+            if (studyNow.sounds) playSound('saved');
+            // The success path must RETURN its own envelope: falling through
+            // used to report every created card as a failure, so the green
+            // "saved" highlight never painted.
+            return { ok: true, noteId: response.noteId, warnings: response.warnings };
+          }
+          toast.error(response?.error ?? t('app.ankiSaveError'), { id: saveToastId });
+          if (studyNow.sounds) playSound('error');
+          return response ?? { ok: false, error: 'unknown' };
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : t('app.unknownReason');
+          toast.error(`${t('app.ankiSaveError')}: ${reason}`, { id: saveToastId });
+          if (studyNow.sounds) playSound('error');
+          return { ok: false, error: reason };
+        }
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : t('app.unknownReason');
+        toast.error(`${t('app.ankiSaveError')}: ${reason}`, { id: saveToastId });
+        if (studyNow.sounds) playSound('error');
+        return { ok: false, error: reason };
+      } finally {
+        captureBusyRef.current = false;
+        captureClearTimer.current = window.setTimeout(() => {
+          setCaptureView(null);
+          captureClearTimer.current = null;
+        }, 700);
+      }
+    },
+    // deps: everything handleSaveCard touches at closure time.
+    // SubtitleOverlay's useMemo also lists handleSaveCard — its identity
+    // must change when ankiMapping or cue change, which keeps the overlay
+    // consistent when deck/adapter/config change.
+    [enabled, activeCue, videoElement, adapter, ensureSubtitleAudioReady, ankiMapping],
+  );
 
   const overlayPortal = useMemo(() => {
     if (!videoOverlayRoot || !enabled || !subtitlesVisible) return null;
@@ -1074,7 +1144,12 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
           onSaveCard={handleSaveCard}
           onTokenHoverChange={handleTokenHoverChange}
           initialSavedWords={initialSavedWords}
+          playing={playing}
+          expandedMWEs={expandedMWEs}
+          setExpandedMWEs={setExpandedMWEs}
+          capturing={captureView !== null}
         />
+        <CaptureOverlay view={captureView} cardTheme={subtitleStyles.cardTheme ?? 'dark'} />
       </div>,
       videoOverlayRoot,
     );
@@ -1106,6 +1181,9 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     subtitleStyles,
     videoOverlayRoot,
     handleTokenHoverChange,
+    playing,
+    expandedMWEs,
+    captureView,
   ]);
 
   return (

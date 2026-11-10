@@ -597,6 +597,15 @@
   border-radius: 0 0 0.1em 0.1em;
 }
 .kvl-tok[data-expr][data-ws="new"]::after { border-style: dotted; }
+/* F3 type-only pass: the expression bracket is drawn even before per-word
+   status exists (F5 adds `data-ws`). Neutral ink, same shape. */
+.kvl-tok[data-expr]:not([data-ws])::after {
+  height: 0.24em;
+  background: none;
+  border: max(2px, 0.075em) solid var(--kvl-ink-neutral, var(--kvl-ws-neutral));
+  border-top: 0;
+  border-radius: 0 0 0.1em 0.1em;
+}
 /* «Palabras nuevas: Sin marca»: la palabra queda limpia; la expresión
    conserva su corchete, en neutro, porque el tipo sigue importando.
    Sólo cambia el dibujo: el estado (y la línea de «aprendiendo») no se toca. */

@@ -2,16 +2,13 @@
 @source '../**/*.{js,ts,jsx,tsx}';
 
 /**
- * Class-based dark mode (Tailwind v4).
+ * Class-based dark mode (Tailwind v4), with the prototype's `.light` escape:
+ * a card may ask for the light palette inside a dark page (cardTheme), and a
+ * subtree marked `.light` opts out of the inherited `.dark`.
  *
- * `&:where(.dark, .dark *)` matches:
- *   - the element itself when it has `.dark`
- *   - any descendant of an element with `.dark`
- *
- * `:where()` has zero specificity so non-dark utilities can still be overridden
- * cleanly. This directive MUST live in the same CSS file as `@import 'tailwindcss'`
- * — Tailwind only honors `@custom-variant` declarations co-located with its main
- * entrypoint. Defining it in theme.css resulted in `dark:*` utilities silently
- * falling back to `@media (prefers-color-scheme: dark)`.
+ * This directive MUST live in the same CSS file as `@import 'tailwindcss'`
+ * — Tailwind only honors `@custom-variant` declarations co-located with its
+ * main entrypoint. Defining it in theme.css resulted in `dark:*` utilities
+ * silently falling back to `@media (prefers-color-scheme: dark)`.
  */
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.dark *):not(:where(.light, .light *)));
