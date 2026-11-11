@@ -1,19 +1,21 @@
-import React, { useState } from 'react';
+import React, { useSyncExternalStore, useState } from 'react';
 import { t } from '../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
-import { KeyRound, ShieldCheck } from 'lucide-react';
-import { useGrantedOrigins, refreshHostPermissions, hasOrigin } from '../../shared/host-permissions-store';
-import { requestHosts, revokeHosts, ensureProviderHosts, permissionsApiAvailable } from '../../shared/host-permissions';
+import { KeyRound, ShieldCheck, Loader2 } from '../../ui/icons';
+import { subscribeHostPermissions, getGrantedOrigins, refreshHostPermissions, hasOrigin } from '../../shared/host-permissions-store';
+import { requestHosts, revokeHosts, permissionsApiAvailable } from '../../shared/host-permissions';
 import { providerHosts } from '../../shared/provider-hosts';
+import { Button, ListGroup, QuickRow, Toggle } from '../../ui/primitives/settings-primitives';
+import { InfoHint } from './InfoHint';
 
 /**
- * The UI half of `optional_host_permissions` — 78 origins, one per group,
- * all of them grantable only from a user gesture.
+ * The UI half of `optional_host_permissions` — one switch per group, all of
+ * them grantable only from a user gesture.
  *
- * Manual-review justification was ~96 hosts on the surface; the count is
- * fixed now, but the reason still holds: no dictionary or API origin sits
- * in the mandatory manifest, so granting one means this button, or the
- * provider's own onChange. The service worker cannot prompt at all.
+ * The prototype supplies the view (summary line, one row per group, a switch);
+ * the repo supplies the logic: real `chrome.permissions` via
+ * `requestHosts`/`revokeHosts`, the content-script fallback that opens Options
+ * instead of pretending a request happened, and the granted-origins store.
  */
 
 interface PermissionGroup {
@@ -23,8 +25,8 @@ interface PermissionGroup {
   providers: string[];
 }
 
-/** Translation, AI, TTS, media and packs each get their own switch: a user who
- * only wants DeepL never grants the other dictionary origins. */
+/** Translation, AI, TTS, media and packs each get their own switch: a user
+ * who only wants DeepL never grants the other dictionary origins. */
 const GROUPS: PermissionGroup[] = [
   {
     id: 'dict',
@@ -51,7 +53,7 @@ const GROUPS: PermissionGroup[] = [
     id: 'ai',
     label: t('perm.groupAi'),
     hint: t('perm.groupAiHint'),
-    providers: ['ai:openai', 'ai:anthropic', 'ai:google-ai'],
+    providers: ['ai:openai', 'ai:anthropic', 'ai:google-ai', 'ai:openai-compatible'],
   },
   {
     id: 'tts',
@@ -82,24 +84,26 @@ function originsFor(providers: readonly string[]): string[] {
   return [...out];
 }
 
+/** React binding for the plain-JS store in shared/host-permissions-store.ts —
+ * kept in the consumer so the SW graph (which reaches that module through
+ * shared/host-permissions.ts) never imports React. */
+function useGrantedOrigins(): string[] {
+  return useSyncExternalStore(subscribeHostPermissions, getGrantedOrigins, () => []);
+}
+
 export function HostPermissionsRow() {
   const granted = useGrantedOrigins();
-  const [pending, setPending] = useState(false);
+  const [pending, setPending] = useState<string | null>(null);
   // `chrome.permissions` does not exist inside a CONTENT SCRIPT: this panel is
   // the same React tree that runs there, and without this check the grant
-  // button would report success for a request that was never made — `request`
-  // is skipped when `chrome.permissions?.request` is absent and `missingHosts`
-  // answers "nothing missing" in the same situation, so the row would flip to
-  // "23/23 concedidos" with zero origins granted. The options page is a real
-  // extension page and can prompt; pointing there is the honest move.
+  // button would report success for a request that was never made. The options
+  // page is a real extension page and can prompt; pointing there is honest.
   const canPrompt = permissionsApiAvailable();
 
   const openOptions = () => {
     // `chrome.runtime.openOptionsPage` only exists in an EXTENSION page. This
-    // panel also runs in a content script, where a "grant permissions" button
-    // would answer "whatever" forever — so the click goes to the service
-    // worker, which CAN open the options page, the same door the card's
-    // "Open settings" link uses.
+    // panel also runs in a content script, so the click goes to the service
+    // worker, the same door the card's "Open settings" link uses.
     void sendMessage(
       'OPEN_SETTINGS' as const,
       { section: 'permissions' },
@@ -109,80 +113,88 @@ export function HostPermissionsRow() {
     });
   };
 
-  const run = async (providers: string[], revokeIt: boolean) => {
+  const run = async (providers: string[], revokeIt: boolean, id: string) => {
     if (!canPrompt) {
       openOptions();
       return;
     }
-    setPending(true);
+    setPending(id);
     try {
       if (revokeIt) await revokeHosts(originsFor(providers));
       else await requestHosts(originsFor(providers));
       await refreshHostPermissions();
     } finally {
-      setPending(false);
+      setPending(null);
     }
   };
 
+  const completeOf = (providers: readonly string[]): boolean => {
+    const own = originsFor(providers);
+    return own.every((o) => granted.includes(o) || hasOrigin(o));
+  };
+  const grantedGroups = GROUPS.filter((g) => completeOf(g.providers)).length;
+  const missing = GROUPS.filter((g) => !completeOf(g.providers));
+
   return (
     <div className="space-y-2">
-      {GROUPS.map((group) => {
-        const own = originsFor(group.providers);
-        const have = own.filter((o) => granted.includes(o) || hasOrigin(o)).length;
-        const complete = have === own.length;
-        return (
-          <div
-            key={group.id}
-            className="flex items-start justify-between gap-2 rounded-md border border-zinc-200 dark:border-zinc-800 px-2.5 py-2"
+      <div className="flex items-center gap-1.5 px-0.5">
+        <span className="text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
+          {t('vipx.permSummary', { on: grantedGroups, total: GROUPS.length })}
+        </span>
+        <InfoHint text={t('perm.intro')} maxWidth={260} />
+        <span className="ml-auto" />
+        {missing.length > 0 && (
+          <Button
+            size="sm"
+            variant="soft"
+            disabled={pending !== null}
+            onClick={() => void run(missing.flatMap((g) => g.providers), false, '__all')}
+            icon={pending === '__all' ? <Loader2 size={11} className="animate-spin" /> : undefined}
           >
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                {complete
-                  ? <ShieldCheck size={11} className="text-emerald-500 shrink-0" />
-                  : <KeyRound size={11} className="text-zinc-400 shrink-0" />}
-                <span className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">
-                  {group.label}
+            {t('vipx.grantAll')}
+          </Button>
+        )}
+      </div>
+
+      <ListGroup>
+        {GROUPS.map((group) => {
+          const complete = completeOf(group.providers);
+          const own = originsFor(group.providers);
+          const have = own.filter((o) => granted.includes(o) || hasOrigin(o)).length;
+          const busy = pending === group.id || pending === '__all';
+          return (
+            <QuickRow
+              key={group.id}
+              label={group.label}
+              hint={`${have}/${own.length} ${t('perm.hosts')}`}
+              info={
+                <span className="flex items-start gap-1.5">
+                  {complete
+                    ? <ShieldCheck size={12} className="shrink-0 mt-0.5 text-emerald-500" />
+                    : <KeyRound size={12} className="shrink-0 mt-0.5 text-zinc-400" />}
+                  <span>{group.hint}</span>
                 </span>
-              </div>
-              <p className="text-[10px] leading-snug text-zinc-500 dark:text-zinc-400 mt-0.5">
-                {group.hint}
-              </p>
-              <p className="text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500 mt-0.5">
-                {have}/{own.length} {t('perm.hosts')}
-              </p>
-            </div>
-            <div className="flex flex-col gap-1 shrink-0">
-              {!canPrompt && (
-                <button
-                  type="button"
-                  onClick={openOptions}
-                  className="text-[10px] font-semibold px-2 py-1 rounded border border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
-                >
-                  {t('perm.openOptions')}
-                </button>
-              )}
-              <button
-                type="button"
-                disabled={pending || complete || !canPrompt}
-                onClick={() => void run(group.providers, false)}
-                className="text-[10px] font-semibold px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {complete ? t('perm.granted') : t('perm.grant')}
-              </button>
-              {have > 0 && (
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => void run(group.providers, true)}
-                  className="text-[10px] font-semibold px-2 py-1 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                >
-                  {t('perm.revoke')}
-                </button>
-              )}
-            </div>
-          </div>
-        );
-      })}
+              }
+            >
+              <span className="flex items-center gap-2">
+                {busy && <Loader2 size={11} className="animate-spin text-zinc-400" />}
+                {!canPrompt ? (
+                  <Button size="sm" variant="secondary" onClick={openOptions}>
+                    {t('perm.openOptions')}
+                  </Button>
+                ) : (
+                  <Toggle
+                    on={complete}
+                    disabled={pending !== null}
+                    onChange={(v) => void run(group.providers, !v, group.id)}
+                    ariaLabel={group.label}
+                  />
+                )}
+              </span>
+            </QuickRow>
+          );
+        })}
+      </ListGroup>
     </div>
   );
 }

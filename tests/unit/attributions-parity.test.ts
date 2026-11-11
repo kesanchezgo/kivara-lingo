@@ -22,6 +22,10 @@ const DATA_DIRS = [
   'src/assets/collocations',
   'src/assets/mwes',
   'src/assets/thesaurus',
+  // F5 datasets (frequency list, false friends, vocab bank). They declare
+  // `_meta.source`/`_meta.license` too, so the same drift alarm applies.
+  'src/assets/frequency',
+  'src/assets/study',
 ];
 
 function readMaybe(path: string): string {

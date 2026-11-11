@@ -1,6 +1,6 @@
 import React from 'react';
 import { t } from '../../shared/i18n';
-import { Sparkles, CheckCircle2, Ban, Mic, Zap, Brain, KeyRound, AlertTriangle, Cpu } from 'lucide-react';
+import { Sparkles, CheckCircle2, Ban, KeyRound, AlertTriangle, Cpu, Zap, Brain } from '../../ui/icons';
 import type { AiProvider } from '../../shared/types';
 import { MODELS_BY_PROVIDER } from '../../shared/ai-models';
 import { getAiPreset } from '../../shared/ai-presets';
@@ -20,12 +20,11 @@ export interface AIStepProps {
   setAiEnrichOnSave: (v: boolean) => void;
   aiEnrichOnHover: boolean;
   setAiEnrichOnHover: (v: boolean) => void;
-  isDarkMode: boolean;
 }
 
 export function AIStep({
   aiProvider, setAiProvider, aiApiKey, setAiApiKey, aiModel, setAiModel,
-  aiEnrichOnSave, setAiEnrichOnSave, aiEnrichOnHover, setAiEnrichOnHover, isDarkMode,
+  aiEnrichOnSave, setAiEnrichOnSave, aiEnrichOnHover, setAiEnrichOnHover,
 }: AIStepProps) {
   /** The preset's suggested model for a provider — the same table the SETTINGS
    *  tab uses, so a withdrawn id is retired in one place and never offered
@@ -65,6 +64,7 @@ export function AIStep({
 
   return (
     <StepSection
+      icon={<Sparkles size={20} />}
       title={t('onb.aiEnrichmentOptional')}
       subtitle={t('onb.aiStepDesc')}
     >
@@ -160,7 +160,6 @@ export function AIStep({
               description={t('onb.enrichOnSaveDesc')}
               on={aiEnrichOnSave}
               onChange={setAiEnrichOnSave}
-              isDarkMode={isDarkMode}
             />
           </div>
           <div className="p-4">
@@ -169,7 +168,6 @@ export function AIStep({
               description={t('onb.synonymsOnHoverDesc')}
               on={aiEnrichOnHover}
               onChange={setAiEnrichOnHover}
-              isDarkMode={isDarkMode}
             />
           </div>
         </div>

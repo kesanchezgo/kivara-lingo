@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
-import { AnkiMapping, FieldSource } from '../../types';
+import type { AnkiMapping, FieldSource } from '../../../shared/types';
 import type {
   AnkiListsResponse,
   AnkiFieldsResponse,
@@ -10,26 +10,21 @@ import type {
 } from '../../../shared/types';
 import {
   RefreshCw, RotateCcw, Volume2, Camera, Wand2, Layers,
-  ChevronDown, Loader2, AlertCircle, Server, Database, FileText, Plug,
-} from 'lucide-react';
+  ChevronDown, Loader2, AlertCircle, Cpu, Database, FileText, Plug,
+} from '../../../ui/icons';
 import { detectFieldSource } from '../../../shared/anki-field-detect';
 import { SecretKeyInput } from '../SecretKeyInput';
 import { InfoHint } from '../InfoHint';
+import { useKivaraStore } from '../../../shared/use-kivara-store';
+import { CardFace, type CardPreviewData } from './CardPreview';
+import { RecentCards } from './RecentCards';
 
 interface CardsTabProps {
   mapping: AnkiMapping;
   /** Accepts a value OR an updater, so effects can re-merge against the
    * latest mapping instead of a possibly stale closure copy. */
   setMapping: (mapping: AnkiMapping | ((prev: AnkiMapping) => AnkiMapping)) => void;
-  mockData: {
-    targetSentence: string;
-    nativeSentence: string;
-    word: string;
-    translation: string;
-    phonetic?: string;
-    bilingual?: string;
-    monolingual?: string;
-  };
+  mockData: CardPreviewData;
 }
 
 const FALLBACK_DECKS = [t('cards.wordField'), 'Default'];
@@ -45,6 +40,8 @@ const detectSource = detectFieldSource;
 const SOURCE_META: Record<FieldSource, { label: string; color: string; description: string }> = {
   selection:        { label: 'Palabra',        color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',     description: t('cards.srcDescSelectedWord') },
   cue:              { label: 'Frase',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: t('cards.srcDescActiveCue') },
+  cloze:            { label: t('cards.srcCloze'), color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',              description: t('cards.srcDescCloze') },
+  source:           { label: t('cards.srcSource'), color: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300',           description: t('cards.srcDescSource') },
   phonetic:         { label: t('cards.phonetic'),       color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',     description: t('cards.srcDescDictIpa') },
   translation:      { label: t('cards.translation'),     color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: t('cards.nativeTranslation') },
   bilingual:        { label: t('cards.srcLabelBilingual'),       color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: t('cards.bilingualGloss') },
@@ -84,8 +81,8 @@ const SOURCE_GROUPS: { label: string; options: FieldSource[] }[] = [
   {
     label: 'Nativas',
     options: [
-      'selection', 'cue', 'phonetic', 'translation', 'bilingual', 'monolingual',
-      'examples', 'frame', 'sentence-audio', 'word-audio',
+      'selection', 'cue', 'cloze', 'source', 'phonetic', 'translation', 'bilingual',
+      'monolingual', 'examples', 'frame', 'sentence-audio', 'word-audio',
     ],
   },
   {
@@ -132,6 +129,16 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
   const [decks, setDecks] = useState<string[]>([]);
   const [models, setModels] = useState<string[]>([]);
   const [fieldsByModel, setFieldsByModel] = useState<Record<string, string[]>>({});
+
+  // One deck per language (docs/REDESIGN-V2.md H9): `decks[lang]` is the
+  // source of truth from v3 on; `deckName` is the read fallback for profiles
+  // that predate it, and is still kept in sync because the create-card
+  // pipeline reads it until F4.
+  const sourceLang = useKivaraStore((s) => s.translate.sourceLang) || 'en';
+  const aiOn = useKivaraStore((s) => s.ai.provider !== 'disabled' && s.ai.apiKey.trim() !== '');
+  const activeDeck = mapping.decks?.[sourceLang] ?? mapping.deckName;
+  const setDeck = (deck: string) =>
+    setMapping({ ...mapping, deckName: deck, decks: { ...(mapping.decks ?? {}), [sourceLang]: deck } });
 
   const ankiFields = useMemo(
     () => fieldsByModel[mapping.modelName] ?? FALLBACK_FIELDS[mapping.modelName] ?? [],
@@ -235,7 +242,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
       if (!changed && Object.keys(prev.fieldSources).length === ankiFields.length) return prev;
       return { ...prev, fieldSources: next };
     });
-  }, [mapping.modelName, conn, ankiFields, setMapping]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mapping.modelName, conn, ankiFields, setMapping]);
 
   const setSource = (field: string, src: FieldSource) => {
     setMapping({ ...mapping, fieldSources: { ...mapping.fieldSources, [field]: src } });
@@ -302,7 +309,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
             </div>
           )}
 
-          <Row label={<span className="flex items-center gap-1"><Server size={10} className="text-zinc-400" />Endpoint</span>}>
+          <Row label={<span className="flex items-center gap-1"><Cpu size={10} className="text-zinc-400" />Endpoint</span>}>
             <div className="flex gap-1.5">
               <input
                 value={mapping.ankiUrl}
@@ -337,10 +344,11 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
 
           <Row label={<span className="flex items-center gap-1"><Database size={10} className="text-zinc-400" />{t("cards.deck")}</span>}>
             <select
-              value={mapping.deckName}
-              onChange={(e) => setMapping({ ...mapping, deckName: e.target.value })}
+              value={activeDeck}
+              onChange={(e) => setDeck(e.target.value)}
               disabled={conn !== 'connected'}
               className="sl-select"
+              aria-label={`${t('cards.deck')} · ${t(`lang.${sourceLang}`)}`}
             >
               {conn === 'connected'
                 ? (decks.length ? decks : FALLBACK_DECKS).map((d) => <option key={d}>{d}</option>)
@@ -371,7 +379,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
               {t('cards.fieldEachStart')}<em>note type</em> {t('cards.fieldFillWith')}<strong>{t('cards.fieldSource')}</strong> {t('cards.fieldAutoDetect')}<span className="font-mono">word</span> → {t('cards.fieldSourceWord')}, <span className="font-mono">sentence audio</span> {t('cards.fieldNoMatch')}<em>Manual</em> {t('cards.fieldAssignSelf')}</>
           }
           headerRight={
-            <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-500">
+            <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-400">
               {mappedCount}/{ankiFields.length}
             </span>
           }
@@ -386,7 +394,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
           )}
 
           {conn === 'connected' && ankiFields.length > 0 && allAuto && (
-            <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 dark:text-zinc-500 px-1">
+            <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 dark:text-zinc-400 px-1">
               <Wand2 size={10} className="text-indigo-400" />
               <span>{t('cards.autoMapActive')}</span>
             </div>
@@ -466,13 +474,13 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
                 >
                   <div className="overflow-hidden">
                     <div className="border-t border-zinc-200/60 dark:border-zinc-800/60 p-1.5 bg-white dark:bg-zinc-900 space-y-1">
-                      <div className="text-[10px] text-zinc-500 dark:text-zinc-500 px-1 leading-snug">
+                      <div className="text-[10px] text-zinc-500 dark:text-zinc-400 px-1 leading-snug">
                         {meta.description}
                       </div>
                       <div className="space-y-1.5">
                         {SOURCE_GROUPS.map((group) => (
                           <div key={group.label} className="space-y-1">
-                            <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 px-1">
+                            <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-400 px-1">
                               {group.label}
                             </div>
                             <div className="flex flex-wrap gap-1">
@@ -500,6 +508,8 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
             );
           })}
         </Section>
+
+        <RecentCards />
       </div>
 
       {/* Preview Anki — docked */}
@@ -538,7 +548,13 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
           key={previewSide}
           className="rounded-xl shadow-md overflow-hidden kvl-pop-in bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 p-3"
         >
-          {previewSide === 'front' ? <FrontTemplate mockData={mockData} /> : <BackTemplate mockData={mockData} />}
+          <CardFace
+            side={previewSide}
+            mapping={mapping}
+            fields={ankiFields.length ? ankiFields : (FALLBACK_FIELDS[mapping.modelName] ?? [])}
+            card={mockData}
+            aiOn={aiOn}
+          />
         </div>
 
         <div className="flex items-center justify-between gap-2 mt-2 px-0.5">
@@ -546,7 +562,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
             <QualityBadge icon={<Volume2 size={9} />} label={t('cards.audioBadge')} detail={t('cards.vadCenter')} />
             <QualityBadge icon={<Camera size={9} />} label={t('cards.frameBadge')} detail={t('cards.vadCenter')} />
           </div>
-          <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-mono">
+          <span className="text-[9px] text-zinc-400 dark:text-zinc-400 font-mono">
             {mappedCount}/{ankiFields.length} · 14KB
           </span>
         </div>
@@ -569,6 +585,10 @@ function Section({
   headerRight?: React.ReactNode;
   hint?: React.ReactNode;
 }) {
+  // The header is NOT a <button>: it holds an InfoHint (itself a focusable
+  // role="button") and nesting interactive controls is both an axe violation
+  // and a screen-reader trap. The row keeps click-to-toggle for the mouse; the
+  // chevron is the real button keyboard users Tab to.
   const header = (
     <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-zinc-50/60 dark:bg-zinc-900/60 border-b border-zinc-100 dark:border-zinc-800/60">
       <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
@@ -578,7 +598,15 @@ function Section({
       <span className="flex items-center gap-1.5">
         {headerRight}
         {collapsible && (
-          <ChevronDown size={12} className={`text-zinc-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+          <button
+            type="button"
+            aria-expanded={open}
+            onClick={(e) => { e.stopPropagation(); onToggle?.(); }}
+            className="inline-flex items-center justify-center rounded outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+          >
+            <span className="sr-only">{typeof title === 'string' ? title : t('panel.tabCards')}</span>
+            <ChevronDown size={12} aria-hidden="true" className={`text-zinc-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+          </button>
         )}
       </span>
     </div>
@@ -586,7 +614,7 @@ function Section({
   return (
     <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
       {collapsible
-        ? <button onClick={onToggle} className="w-full text-left hover:bg-zinc-100/40 dark:hover:bg-zinc-800/40 transition-colors">{header}</button>
+        ? <div onClick={onToggle} className="w-full text-left cursor-pointer hover:bg-zinc-100/40 dark:hover:bg-zinc-800/40 transition-colors">{header}</div>
         : header}
       {(!collapsible || open) && (
         <div className="p-2.5 space-y-2">{children}</div>
@@ -639,106 +667,6 @@ function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
     <div className="rounded-md border border-dashed border-zinc-300 dark:border-zinc-700 p-3 text-center text-[11px] text-zinc-500 dark:text-zinc-400 flex flex-col items-center gap-1">
       <span className="text-zinc-400">{icon}</span>
       {text}
-    </div>
-  );
-}
-
-function FrontTemplate({ mockData }: { mockData: CardsTabProps['mockData'] }) {
-  return (
-    <div className="font-sans">
-      {/* Top bar — POS badge + audio button. The mock dropped the legacy
-          two-column layout in favor of a centered hero word with the
-          context sentence pinned underneath. */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[9px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded">
-          noun
-        </span>
-        <button
-          className="rounded-full flex items-center justify-center transition-colors bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/25"
-          style={{ width: 26, height: 26 }}
-          title={t('cards.playAudio')}
-        >
-          <Volume2 size={11} />
-        </button>
-      </div>
-      <div className="text-center py-1 mb-3">
-        <div className="text-[28px] font-bold text-zinc-900 dark:text-white leading-tight tracking-tight">{mockData.word}</div>
-        <div className="text-[11px] font-mono text-indigo-700 dark:text-indigo-300/70 mt-1 inline-block bg-zinc-100 dark:bg-zinc-800/60 px-2 py-0.5 rounded">
-          {mockData.phonetic ?? '/ipa/'}
-        </div>
-      </div>
-      <div className="border-t border-zinc-200 dark:border-zinc-800/60 pt-2.5">
-        <div className="text-[10px] text-zinc-500 italic text-center leading-snug">{mockData.targetSentence}</div>
-      </div>
-    </div>
-  );
-}
-
-function BackTemplate({ mockData }: { mockData: CardsTabProps['mockData'] }) {
-  return (
-    <div className="font-sans space-y-2">
-      {/* Word header row */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <div className="text-base font-bold text-zinc-900 dark:text-white leading-tight truncate">{mockData.word}</div>
-          <div className="text-[10px] font-mono text-zinc-500">{mockData.phonetic ?? '/ipa/'}</div>
-        </div>
-        <button
-          className="rounded-full flex items-center justify-center shrink-0 transition-colors bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/25"
-          style={{ width: 24, height: 24 }}
-          title={t('cards.playAudio')}
-        >
-          <Volume2 size={10} />
-        </button>
-      </div>
-
-      {/* Translation */}
-      <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg px-2 py-1.5">
-        <span className="text-[9px] font-medium text-zinc-500 italic shrink-0">noun</span>
-        <span className="w-px h-3 bg-zinc-300 dark:bg-zinc-700 shrink-0" />
-        <span className="text-[11px] text-zinc-800 dark:text-zinc-200 leading-tight">{mockData.translation}</span>
-      </div>
-
-      {/* Scene image with overlaid sentence */}
-      <div className="relative rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700" style={{ height: 72 }}>
-        <img
-          src="https://images.unsplash.com/photo-1574923930958-9b653a0e5148?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400&q=80"
-          alt={t('cards.sceneImage')}
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        <div className="absolute bottom-1 inset-x-2 flex justify-center">
-          <span
-            className="text-[9px] font-semibold text-yellow-300 leading-tight text-center"
-            style={{ textShadow: '0 1px 3px rgba(0,0,0,1)' }}
-          >
-            {mockData.targetSentence}
-          </span>
-        </div>
-        <span className="absolute top-1 right-1 text-[8px] font-mono uppercase tracking-wider bg-black/50 text-emerald-400 px-1 py-0.5 rounded">
-          clean
-        </span>
-      </div>
-
-      {/* Monolingual definition */}
-      <div className="text-[10px] text-zinc-600 dark:text-zinc-400 italic px-1 leading-snug">
-        {mockData.monolingual ?? t('cards.defaultMonolingual')}
-      </div>
-
-      {/* Sentence pair (target + native) with a per-row audio button */}
-      <div className="flex items-start gap-2 bg-zinc-100 dark:bg-zinc-800/30 rounded-lg px-2 py-1.5">
-        <div className="flex-1 min-w-0 space-y-0.5">
-          <div className="text-[10px] text-zinc-800 dark:text-zinc-200 leading-snug">{mockData.targetSentence}</div>
-          <div className="text-[10px] text-zinc-500 italic leading-snug">{mockData.nativeSentence}</div>
-        </div>
-        <button
-          className="rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-colors bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/25"
-          style={{ width: 22, height: 22 }}
-          title={t('cards.playSentence')}
-        >
-          <Volume2 size={9} />
-        </button>
-      </div>
     </div>
   );
 }

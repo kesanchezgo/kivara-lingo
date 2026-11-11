@@ -32,7 +32,7 @@ function seed(version: number | undefined, model: string) {
 
 async function hydrateStore() {
   vi.resetModules();
-  const mod = await import('../../src/shared/store');
+  const mod = await import('../../src/shared/use-kivara-store');
   await mod.useKivaraStore.persist.rehydrate();
   return mod;
 }
@@ -127,7 +127,7 @@ describe('persist migrate: retired AI models, through the real pipeline', () => 
       expect(snapshots.has(KEY)).toBe(true);
       const written = JSON.parse(snapshots.get(KEY)!) as { state?: { ai?: { model?: string } }; version?: number };
       expect(written.state?.ai?.model).toBe('gemini-2.5-flash');
-      expect(written.version).toBe(2);
+      expect(written.version).toBe(3);
     });
   });
 });

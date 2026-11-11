@@ -9,7 +9,12 @@
  *  - ai_cache: AI enrichment responses keyed by provider+source+native+sha1(token+sentence)
  */
 import Dexie, { type Table } from 'dexie';
-import type { AiEnrichment, AiProvider, CreateCardRequest } from './types';
+import type {
+  AiEnrichment,
+  AiProvider,
+  CreateCardRequest,
+  SentenceExplanation,
+} from './types';
 
 export interface SavedNoteRow {
   id?: number;
@@ -85,6 +90,29 @@ export interface AiCacheRow {
  * pack on/off flips `enabled` without deleting its terms, so users can A/B
  * test packs cheaply.
  */
+/**
+ * One cached "Explain sentence" answer (F7, docs/REDESIGN-V2.md §4.3, §10).
+ *
+ * Keyed by `sha1(provider|model|lang|uiLang|nativeLang|prev|line|next)` and
+ * expired against `ai.cacheTtlDays`. Only the service worker reads or writes
+ * this table (H5): the content script asks over `AI_EXPLAIN_SENTENCE`.
+ */
+export interface ExplainCacheRow {
+  /** {@link explainCacheKey} output. */
+  key: string;
+  provider: AiProvider;
+  model: string;
+  lang: string;
+  uiLang: string;
+  nativeLang: string;
+  prev?: string;
+  line: string;
+  next?: string;
+  data: SentenceExplanation;
+  expiresAt: number;
+  createdAt: number;
+}
+
 export interface DictPackRow {
   /** Stable string id — sha1(title + revision) so re-imports overwrite. */
   id: string;
@@ -174,6 +202,8 @@ class KivaraDB extends Dexie {
    * stale rows are overwritten on the next look-up).
    */
   vip_cache!: Table<{ key: string; payload: unknown; storedAt: number }, string>;
+  /** "Explain sentence" answers, written only by the service worker. */
+  explain_cache!: Table<ExplainCacheRow, string>;
 
   constructor() {
     super('kivara-lingo');
@@ -256,6 +286,20 @@ class KivaraDB extends Dexie {
             if (typeof row.deckName !== 'string') row.deckName = '';
           }),
       );
+    // v7: "Explain sentence" cache (F7). New table only — old rows are
+    // untouched, and expiry is checked on read, so no cleanup pass is needed.
+    this.version(7).stores({
+      saved_notes: '++id, &[token+language+sentence+deckName], ankiNoteId, createdAt',
+      pending_notes: '++id, nextAttemptAt, createdAt',
+      translation_cache: '&key, [provider+sourceLang+targetLang], expiresAt',
+      media_cache: '&hash, kind, createdAt',
+      ai_cache: '&key, [provider+sourceLang+nativeLang], expiresAt',
+      dict_packs: '&id, enabled, sourceLang, targetLang, createdAt',
+      dict_terms: '++id, [packId+expression], expression, packId',
+      pack_stats: '&packId, lastUsedAt, createdAt',
+      vip_cache: '&key, storedAt',
+      explain_cache: '&key, expiresAt',
+    });
   }
 }
 

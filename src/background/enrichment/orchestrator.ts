@@ -24,6 +24,8 @@ import type {
   DictionaryEntry,
   VipEnrichment,
   VipSettings,
+  EnrichSourceHealth,
+  EnrichSourceHealthMap,
 } from '../../shared/types';
 import type {
   EnrichmentContext,
@@ -326,6 +328,43 @@ export function activeSourceSignature(vip: VipSettings): string {
   return enabled.join(',');
 }
 /**
+ * Last observation per source, kept in the service worker's memory
+ * (docs/REDESIGN-V2.md §3 H8). A worker restart clears it — the VIP tab
+ * renders an absent entry as "not tested yet", which is the truthful answer
+ * after the worker was recycled.
+ *
+ * `slow` is not an error: the source answered, but it burned through most of
+ * the per-source budget, so the user sees "slow" instead of a misleading "ok".
+ */
+const sourceHealth = new Map<string, EnrichSourceHealth>();
+const SLOW_FRACTION = 0.8;
+const MAX_ERROR_CHARS = 200;
+
+function recordSourceHealth(
+  id: string,
+  state: EnrichSourceHealth['state'],
+  latencyMs?: number,
+  error?: string,
+): void {
+  sourceHealth.set(id, {
+    state,
+    latencyMs,
+    lastError: error ? error.slice(0, MAX_ERROR_CHARS) : undefined,
+    at: Date.now(),
+  });
+}
+
+/** Snapshot for `ENRICH_SOURCE_HEALTH`; safe to serialize as-is. */
+export function getEnrichmentSourceHealth(): EnrichSourceHealthMap {
+  return Object.fromEntries(sourceHealth);
+}
+
+/** Forget every observation (tests, and a cache wipe from the VIP tab). */
+export function clearEnrichmentSourceHealth(): void {
+  sourceHealth.clear();
+}
+
+/**
  * Run the enrichment chain for `token`. Always returns a result,
  * even when every source failed — fields just stay empty.
  */
@@ -398,22 +437,38 @@ export async function runEnrichment(
   active = gate.reachable;
   const permissionBlocked = gate.needsAccess;
 
-  // Fan out.
+  // Fan out. Each source is timed here, not inside its own module, so the
+  // health map reports the same number the user waited — and a source that
+  // throws still leaves an observation behind.
+  const slowMs = Math.max(250, Math.round(ctx.timeoutMs * SLOW_FRACTION));
   const settled = await Promise.allSettled(
     active.map(async (s) => {
-      const partial = await s.enrich(token, ctx);
-      // Cambridge and Oxford expose their pronunciation files together
-      // with the dictionary payload. Honour the dedicated UI toggles by
-      // removing only that field, while retaining their definitions and
-      // examples.
-      if (
-        (s.id === 'cambridge' && !opts.vip.cambridgeAudio) ||
-        (s.id === 'oxfordLearners' && !opts.vip.oxfordAudio)
-      ) {
-        const { audio: _audio, ...withoutAudio } = partial;
-        return { source: s, partial: withoutAudio };
+      const startedAt = Date.now();
+      try {
+        const partial = await s.enrich(token, ctx);
+        const latencyMs = Date.now() - startedAt;
+        recordSourceHealth(s.id, latencyMs >= slowMs ? 'slow' : 'ok', latencyMs);
+        // Cambridge and Oxford expose their pronunciation files together
+        // with the dictionary payload. Honour the dedicated UI toggles by
+        // removing only that field, while retaining their definitions and
+        // examples.
+        if (
+          (s.id === 'cambridge' && !opts.vip.cambridgeAudio) ||
+          (s.id === 'oxfordLearners' && !opts.vip.oxfordAudio)
+        ) {
+          const { audio: _audio, ...withoutAudio } = partial;
+          return { source: s, partial: withoutAudio };
+        }
+        return { source: s, partial };
+      } catch (err) {
+        recordSourceHealth(
+          s.id,
+          'error',
+          Date.now() - startedAt,
+          err instanceof Error ? err.message : String(err),
+        );
+        throw err;
       }
-      return { source: s, partial };
     }),
   );
 

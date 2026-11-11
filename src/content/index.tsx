@@ -1,10 +1,11 @@
 import { createRoot, type Root } from 'react-dom/client';
 import { ShadowHost } from './shadow-host';
+import { PortalContainerProvider } from '../ui/portal';
 import { detectPlatform } from './platform-adapters';
 import { App } from './ui/App';
 import type { SubtitleSource } from './platform-adapters/types';
 import type { Mount as OverlayMount } from './fullscreen-overlay-core';
-import { useKivaraStore } from '../shared/store';
+import { useKivaraStore } from '../shared/use-kivara-store';
 import { clearBus, reprocessLastDashManifest } from './platform-adapters/intercepted-bus';
 import { dbg, dbgOnce } from '../shared/debug-log';
 import { bumpMountGen, enqueueMount, readMountGen } from './mount-queue';
@@ -257,7 +258,22 @@ async function mountFor(video: HTMLVideoElement, container: HTMLElement, adapter
   // To keep it simple, we render `App` once and pass the overlay root.
   videoReactRoot.unmount();
 
-  reactRoot.render(<App adapter={adapter} videoElement={video} videoOverlayRoot={videoHost.reactRoot} />);
+  // Portals (InfoHint tooltip, toasts, dialogs) must mount INSIDE the closed
+  // shadow roots — document.body is outside the boundary (page CSS / Dark
+  // Reader repaint it, native fullscreen hides it). Each shadow root gets the
+  // dedicated container ShadowHost.mount created for it: the panel tree reads
+  // the main host's one from the provider below, and App re-provides the
+  // video host's one around the subtrees it portals into videoOverlayRoot.
+  reactRoot.render(
+    <PortalContainerProvider container={host.portalContainer}>
+      <App
+        adapter={adapter}
+        videoElement={video}
+        videoOverlayRoot={videoHost.reactRoot}
+        videoPortalContainer={videoHost.portalContainer}
+      />
+    </PortalContainerProvider>,
+  );
 
   adapter?.hideNativeSubtitles?.();
 

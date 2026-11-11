@@ -98,10 +98,9 @@ describe('SecretKeyInput', () => {
         onChange: (v: string) => seen.push(v),
       }),
     );
-    const clearBtn = Array.from(container.querySelectorAll('button')).find((b) =>
-      b.textContent?.includes('Quitar'),
-    );
-    expect(clearBtn).toBeDefined();
+    // The view is icon-only now: the accessible name carries the action.
+    const clearBtn = container.querySelector<HTMLButtonElement>('button[aria-label="Quitar"]');
+    expect(clearBtn).not.toBeNull();
     fireEvent.click(clearBtn!);
     expect(seen).toEqual(['']);
     // Re-render with the cleared value: no hint, no stored text.
@@ -197,10 +196,8 @@ describe('SecretKeyInput', () => {
         await Promise.resolve();
       });
       expect(inputOf(container).placeholder).toContain('guardada');
-      const clearBtn = Array.from(container.querySelectorAll('button')).find((b) =>
-        b.textContent?.includes('Quitar'),
-      );
-      expect(clearBtn).toBeDefined();
+      const clearBtn = container.querySelector<HTMLButtonElement>('button[aria-label="Quitar"]');
+      expect(clearBtn).not.toBeNull();
       fireEvent.click(clearBtn!);
       expect(seen).toEqual(['']);
 
@@ -212,10 +209,8 @@ describe('SecretKeyInput', () => {
         await Promise.resolve();
       });
       expect(
-        Array.from(container.querySelectorAll('button')).some((b) =>
-          b.textContent?.includes('Quitar'),
-        ),
-      ).toBe(true);
+        container.querySelector('button[aria-label="Quitar"]'),
+      ).not.toBeNull();
       cleanup();
     } finally {
       g.chrome.storage.local = original;

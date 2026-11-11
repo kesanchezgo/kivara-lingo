@@ -2,8 +2,12 @@
  * Tiny external store so any UI can render "this provider needs access"
  * without re-reading `chrome.permissions` on every mount. The content scripts
  * and the panel subscribe; the SW does not (it never renders).
+ *
+ * No React import here on purpose: the SW graph reaches this module (via
+ * shared/host-permissions.ts), and a module-scope `useSyncExternalStore`
+ * import used to drag all of React into the worker bundle. The hook lives in
+ * the consumer (app/components/HostPermissionsRow.tsx).
  */
-import { useSyncExternalStore } from 'react';
 
 let granted: string[] = [];
 let loaded = false;
@@ -68,6 +72,4 @@ function isGranted(origin: string, granted: string[]): boolean {
     return false;
   }
 }
-export function useGrantedOrigins(): string[] {
-  return useSyncExternalStore(subscribeHostPermissions, getGrantedOrigins, () => []);
-}
+

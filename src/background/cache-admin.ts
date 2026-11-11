@@ -8,6 +8,7 @@
  *  - vip_cache         → multi-source enrichment results (popover + cards)
  *  - translation_cache → remote translator responses (MyMemory / DeepL / …)
  *  - ai_cache          → AI enrichment responses (OpenAI / Anthropic / Gemini)
+ *  - explain_cache     → "Explain sentence" answers (F7, written by the SW)
  *  - media_cache       → audio/frame dedup hashes (tiny, kept for Anki dedup)
  *
  * NOTE: `dict_terms` (installed Yomitan packs) and `saved_notes`
@@ -18,11 +19,11 @@
 
 import { getDB } from '../shared/db';
 import { clearMemEnrichmentCache } from './enrichment/orchestrator';
-import { t } from '../shared/i18n';
+import { t } from '../shared/i18n/sw';
 
 export interface CacheBucketStats {
   /** Stable id used by the clear API. */
-  id: 'enrichment' | 'translation' | 'ai' | 'media';
+  id: 'enrichment' | 'translation' | 'ai' | 'explain' | 'media';
   /** Human label for the panel. */
   label: string;
   /** Number of rows. */
@@ -60,16 +61,18 @@ async function tableStats(table: any, approxRowBytes?: (row: unknown) => number)
 export async function getCacheStats(): Promise<CacheStatsResult> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = getDB() as any;
-  const [enrichment, translation, ai, media] = await Promise.all([
+  const [enrichment, translation, ai, explain, media] = await Promise.all([
     tableStats(db.vip_cache),
     tableStats(db.translation_cache),
     tableStats(db.ai_cache),
+    tableStats(db.explain_cache),
     tableStats(db.media_cache),
   ]);
   const buckets: CacheBucketStats[] = [
     { id: 'enrichment', label: 'Enriquecimiento (palabras/hover)', ...enrichment },
     { id: 'translation', label: t('cache.bucketTranslations'), ...translation },
     { id: 'ai', label: t('cache.bucketAi'), ...ai },
+    { id: 'explain', label: t('cache.bucketExplain'), ...explain },
     { id: 'media', label: t('cache.bucketMedia'), ...media },
   ];
   return {
@@ -93,12 +96,13 @@ export async function clearCaches(
     enrichment: db.vip_cache,
     translation: db.translation_cache,
     ai: db.ai_cache,
+    explain: db.explain_cache,
     media: db.media_cache,
   };
   let removed = 0;
   const targets =
     which === 'all'
-      ? [table.enrichment, table.translation, table.ai, table.media]
+      ? [table.enrichment, table.translation, table.ai, table.explain, table.media]
       : [table[which]];
   for (const t of targets) {
     try {

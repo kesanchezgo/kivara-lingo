@@ -1,137 +1,140 @@
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { sendMessage } from 'webext-bridge/content-script';
+import { t, fmtNumber } from '../../../shared/i18n';
+import { richText } from '../../../shared/i18n/rich';
+import { normalizeTtlDays } from '../../../shared/cache-ttl';
+import { useKivaraStore } from '../../../shared/use-kivara-store';
+import { SecretKeyInput } from '../SecretKeyInput';
+import type { EnrichSourceHealthMap, VipSettings } from '../../../shared/types';
+import {
+  AlertTriangle, Database, KeyRound, Loader2, RefreshCw, Trash2,
+} from '../../../ui/icons';
+import {
+  Button, Callout, ListGroup, QuickRow, Row, SubLabel, Toggle,
+} from '../../../ui/primitives/settings-primitives';
+import { inputCls } from '../../../ui/primitives/controls';
+
 /**
- * VIP enrichment settings section for the side-panel.
+ * VIP enrichment settings.
  *
- * Exposes:
- *   - Master "VIP" toggle. When off, the chain only runs the free-tier
- *     standard sources (Free Dictionary API + Datamuse) — no scraping.
- *   - Per-source granular toggles, grouped into:
- *     · Diccionarios (definitions, IPA, examples, collocations)
- *     · Bilingüe (translations + sentence pairs)
- *     · Audio (word-level pronunciation)
- *     · Imágenes (hero image for the card)
- *     · Video (YouGlish links to real videos)
- *
- * Visual contract: matches the existing SettingsTab cards (rounded-md
- * container, 11px label, indigo accent). No marketing copy — just the
- * source name and a one-line description so the user can decide what
- * to keep on.
+ * The view is the prototype's (health dots, group counters, per-source rows);
+ * the data is the repo's: `VipSettings` is FLAT here — one boolean per source,
+ * not a `sources` map — so the rows read and write the flat keys instead.
+ * Health comes from the service worker (`ENRICH_SOURCE_HEALTH`, memory only),
+ * and the cache panel still calls GET_CACHE_STATS / CLEAR_CACHE.
  */
 
-import { t } from '../../../shared/i18n';
-import React, { useEffect, useRef, useState } from 'react';
-import { normalizeTtlDays } from '../../../shared/cache-ttl';
-import { useKivaraStore } from '../../../shared/store';
-import { SecretKeyInput } from '../SecretKeyInput';
-import { InfoHint } from '../InfoHint';
-import type { VipSettings } from '../../../shared/types';
-type VipKey = keyof VipSettings;
-
 interface SourceMeta {
-  key: VipKey;
+  key: keyof VipSettings;
+  /** Proper name (Cambridge, Wiktionary...) shown as-is. */
   label: string;
-  hint: string;
+  /** Translatable generic name ("Bundled dictionary"): wins over `label`. */
+  labelKey?: string;
+  hintKey: string;
 }
 
-/* ── Standard tier: public/free sources, run regardless of VIP master switch ── */
+const sourceName = (s: SourceMeta) => (s.labelKey ? t(s.labelKey) : s.label);
 
 const STD_DICT_SOURCES: SourceMeta[] = [
-  { key: 'bundled', label: 'Bundled (offline)', hint: t('vip.wordnetDesc') },
-  { key: 'wordnet', label: 'WordNet (OEWN 2025, offline)', hint: t('vip.wordnetLocalDesc') },
-  { key: 'yomitanPacks', label: 'Yomitan packs', hint: t('vip.ktyPacksDesc') },
-  { key: 'wiktionary', label: 'Wiktionary REST', hint: t('vip.wiktionaryRestDesc') },
-  { key: 'wiktionaryHtml', label: 'Wiktionary HTML', hint: t('vip.wiktionaryHtmlDesc') },
-  { key: 'wiktionaryApi', label: 'WiktionaryAPI', hint: t('vip.freeDictApiDesc') },
-  { key: 'wiktApi', label: 'WiktApi / Kaikki', hint: t('vip.wiktApiDesc') },
-
-  { key: 'mobyThesaurus', label: 'Moby Thesaurus', hint: t('vip.mobyDesc') },
-  { key: 'thesaurusCom', label: 'Thesaurus.com', hint: t('vip.thesaurusAntonymsDesc') },
-  { key: 'wordHippo', label: 'WordHippo', hint: t('vip.wordhippoDesc') },
-  { key: 'theIdioms', label: 'TheIdioms', hint: t('vip.theIdiomsDesc') },
-  { key: 'freeDictionary', label: 'Free Dictionary API', hint: t('vip.freeDictionaryDesc') },
-  { key: 'datamuse', label: 'Datamuse', hint: t('vip.datamuseDesc') },
+  { key: 'bundled', label: 'Bundled', labelKey: 'vip.srcBundled', hintKey: 'vip.wordnetDesc' },
+  { key: 'wordnet', label: 'WordNet (OEWN 2025)', hintKey: 'vip.wordnetLocalDesc' },
+  { key: 'yomitanPacks', label: 'Yomitan', labelKey: 'vip.srcYomitan', hintKey: 'vip.ktyPacksDesc' },
+  { key: 'wiktionary', label: 'Wiktionary REST', hintKey: 'vip.wiktionaryRestDesc' },
+  { key: 'wiktionaryHtml', label: 'Wiktionary HTML', hintKey: 'vip.wiktionaryHtmlDesc' },
+  { key: 'wiktionaryApi', label: 'WiktionaryAPI', hintKey: 'vip.freeDictApiDesc' },
+  { key: 'wiktApi', label: 'WiktApi / Kaikki', hintKey: 'vip.wiktApiDesc' },
+  { key: 'mobyThesaurus', label: 'Moby Thesaurus', hintKey: 'vip.mobyDesc' },
+  { key: 'thesaurusCom', label: 'Thesaurus.com', hintKey: 'vip.thesaurusAntonymsDesc' },
+  { key: 'wordHippo', label: 'WordHippo', hintKey: 'vip.wordhippoDesc' },
+  { key: 'theIdioms', label: 'TheIdioms', hintKey: 'vip.theIdiomsDesc' },
+  { key: 'freeDictionary', label: 'Free Dictionary API', hintKey: 'vip.freeDictionaryDesc' },
+  { key: 'datamuse', label: 'Datamuse', hintKey: 'vip.datamuseDesc' },
 ];
-
 const STD_BILINGUAL_SOURCES: SourceMeta[] = [
-  { key: 'tatoeba', label: 'Tatoeba', hint: t('vip.tatoebaDesc') },
+  { key: 'tatoeba', label: 'Tatoeba', hintKey: 'vip.tatoebaDesc' },
 ];
-
 const STD_AUDIO_SOURCES: SourceMeta[] = [
-  { key: 'linguaLibre', label: 'Lingua Libre', hint: t('vip.linguaLibreDesc') },
-  { key: 'googleTtsFallback', label: 'Google TTS fallback', hint: t('vip.ttsSynthDesc') },
+  { key: 'linguaLibre', label: 'Lingua Libre', hintKey: 'vip.linguaLibreDesc' },
+  { key: 'googleTtsFallback', label: 'Google TTS fallback', hintKey: 'vip.ttsSynthDesc' },
 ];
-
 const STD_IMAGE_SOURCES: SourceMeta[] = [
-  { key: 'bingImages', label: 'Bing Images', hint: t('vip.bingImagesDesc') },
-  { key: 'openverse', label: 'Openverse', hint: t('vip.openverseDesc') },
-  { key: 'wikimediaCommons', label: 'Wikimedia Commons', hint: t('vip.commonsDesc') },
-  { key: 'duckduckgoImages', label: 'DuckDuckGo Images', hint: t('vip.ddgImagesDesc') },
+  { key: 'bingImages', label: 'Bing Images', hintKey: 'vip.bingImagesDesc' },
+  { key: 'openverse', label: 'Openverse', hintKey: 'vip.openverseDesc' },
+  { key: 'wikimediaCommons', label: 'Wikimedia Commons', hintKey: 'vip.commonsDesc' },
+  { key: 'duckduckgoImages', label: 'DuckDuckGo Images', hintKey: 'vip.ddgImagesDesc' },
 ];
-
 const STD_ETY_VIDEO: SourceMeta[] = [
-  { key: 'etymonline', label: 'Etymonline', hint: t('vip.etymonlineDesc') },
-  { key: 'youglish', label: 'YouGlish', hint: t('vip.youglishDesc') },
+  { key: 'etymonline', label: 'Etymonline', hintKey: 'vip.etymonlineDesc' },
+  { key: 'youglish', label: 'YouGlish', hintKey: 'vip.youglishDesc' },
 ];
-
-/* ── VIP tier: scrapes of commercial dictionaries + BYOK image APIs ── */
 
 const VIP_DICT_SOURCES: SourceMeta[] = [
-  { key: 'britannicaDictionary', label: 'Britannica Dictionary', hint: t('vip.britannicaDictDesc') },
-  { key: 'cambridge', label: 'Cambridge', hint: t('vip.cambridgeDictDesc') },
-  { key: 'oxfordLearners', label: 'Oxford Learner\u2019s', hint: 'Definiciones learner-grade y ejemplos curados.' },
-  { key: 'longman', label: 'Longman LDOCE', hint: 'Definiciones simples, thesaurus, colocaciones editoriales y bandas S1–S3/W1–W3.' },
-  { key: 'collins', label: 'Dictionary.com', hint: t('vip.collinsDesc') },
-  { key: 'merriamWebster', label: 'Merriam-Webster', hint: t('vip.merriamDesc') },
-  { key: 'merriamWebsterThesaurus', label: 'M-W Thesaurus', hint: t('vip.editorialThesaurusDesc') },
-  { key: 'ozdic', label: 'Oxford Collocations', hint: t('vip.ozdicDesc') },
+  { key: 'britannicaDictionary', label: 'Britannica Dictionary', hintKey: 'vip.britannicaDictDesc' },
+  { key: 'cambridge', label: 'Cambridge', hintKey: 'vip.cambridgeDictDesc' },
+  { key: 'oxfordLearners', label: 'Oxford Learner’s', hintKey: 'vip.oxfordLearnersDesc' },
+  { key: 'longman', label: 'Longman LDOCE', hintKey: 'vip.longmanDesc' },
+  { key: 'collins', label: 'Dictionary.com', hintKey: 'vip.collinsDesc' },
+  { key: 'merriamWebster', label: 'Merriam-Webster', hintKey: 'vip.merriamDesc' },
+  { key: 'merriamWebsterThesaurus', label: 'M-W Thesaurus', hintKey: 'vip.editorialThesaurusDesc' },
+  { key: 'ozdic', label: 'Oxford Collocations', hintKey: 'vip.ozdicDesc' },
 ];
-
 const VIP_BILINGUAL_SOURCES: SourceMeta[] = [
-  { key: 'pons', label: 'PONS', hint: t('vip.ponsDesc') },
-  { key: 'babla', label: 'bab.la', hint: t('vip.dictionaryEnEsDesc') },
-  { key: 'dictCc', label: 'dict.cc', hint: t('vip.dictCcDesc') },
-  { key: 'reverso', label: 'Reverso Context', hint: t('vip.bilingualCorpusDesc') },
-  { key: 'linguee', label: 'Linguee', hint: t('vip.lingueeDesc') },
-  { key: 'promtContext', label: 'PROMT.One Contexts', hint: t('vip.promtDesc') },
-  { key: 'wordReference', label: 'WordReference', hint: 'Equivalencias EN-ES naturales.' },
-  { key: 'spanishDict', label: 'SpanishDict', hint: t('vip.conjugationDesc') },
+  { key: 'pons', label: 'PONS', hintKey: 'vip.ponsDesc' },
+  { key: 'babla', label: 'bab.la', hintKey: 'vip.dictionaryEnEsDesc' },
+  { key: 'dictCc', label: 'dict.cc', hintKey: 'vip.dictCcDesc' },
+  { key: 'reverso', label: 'Reverso Context', hintKey: 'vip.bilingualCorpusDesc' },
+  { key: 'linguee', label: 'Linguee', hintKey: 'vip.lingueeDesc' },
+  { key: 'promtContext', label: 'PROMT.One Contexts', hintKey: 'vip.promtDesc' },
+  { key: 'wordReference', label: 'WordReference', hintKey: 'vip.wordReferenceDesc' },
+  { key: 'spanishDict', label: 'SpanishDict', hintKey: 'vip.conjugationDesc' },
 ];
-
 const VIP_AUDIO_SOURCES: SourceMeta[] = [
-  { key: 'cambridgeAudio', label: 'Cambridge audio', hint: t('vip.cambridgeAudioDesc') },
-  { key: 'oxfordAudio', label: 'Oxford audio', hint: t('vip.oxfordAudioDesc') },
-  { key: 'forvo', label: 'Forvo', hint: t('vip.forvoDesc') },
+  { key: 'cambridgeAudio', label: 'Cambridge audio', hintKey: 'vip.cambridgeAudioDesc' },
+  { key: 'oxfordAudio', label: 'Oxford audio', hintKey: 'vip.oxfordAudioDesc' },
+  { key: 'forvo', label: 'Forvo', hintKey: 'vip.forvoDesc' },
+];
+const VIP_IMAGE_SOURCES: SourceMeta[] = [
+  { key: 'unsplash', label: 'Unsplash (BYOK)', hintKey: 'vip.unsplashByokDesc' },
+  { key: 'pixabay', label: 'Pixabay', hintKey: 'vip.unsplashDesc' },
 ];
 
-const VIP_IMAGE_SOURCES: SourceMeta[] = [
-  { key: 'unsplash', label: 'Unsplash (BYOK)', hint: t('vip.unsplashByokDesc') },
-  { key: 'pixabay', label: 'Pixabay', hint: t('vip.unsplashDesc') },
+const STD_ALL = [
+  ...STD_DICT_SOURCES, ...STD_BILINGUAL_SOURCES, ...STD_AUDIO_SOURCES,
+  ...STD_IMAGE_SOURCES, ...STD_ETY_VIDEO,
 ];
+const VIP_ALL = [...VIP_DICT_SOURCES, ...VIP_BILINGUAL_SOURCES, ...VIP_AUDIO_SOURCES, ...VIP_IMAGE_SOURCES];
+
+const DOT: Record<string, string> = {
+  ok: 'bg-emerald-500',
+  slow: 'bg-amber-500',
+  error: 'bg-rose-500',
+  untested: 'bg-zinc-300 dark:bg-zinc-600',
+};
+
+function timeAgo(at?: number): string {
+  if (!at) return t('vipx.never');
+  const min = Math.round((Date.now() - at) / 60000);
+  return min < 1 ? t('vipx.justNow') : t('vipx.minAgo', { n: min });
+}
 
 export function VipSection() {
   const vip = useKivaraStore((s) => s.vip);
   const setVip = useKivaraStore((s) => s.setVip);
 
-  const setKey = <K extends VipKey>(k: K, v: VipSettings[K]) => {
-    setVip((prev) => ({ ...prev, [k]: v }));
-  };
+  const setSource = (key: keyof VipSettings, value: boolean) =>
+    setVip((prev) => ({ ...prev, [key]: value }));
 
-  // The TTL box holds a local STRING while it is being typed, so typing
-  // `30` digit by digit never writes 3, then 0-as-30-between — and clearing
-  // the field does not park an intermediate value. The store only ever sees
-  // the committed, clamped number.
+  // The TTL box holds a local STRING while it is typed, so typing `30` digit
+  // by digit never writes 3, then 30 — and clearing it parks no intermediate
+  // value. The store only sees the committed, clamped number.
   const [ttlText, setTtlText] = useState(String(vip.cacheTtlDays));
   const lastCommittedTtl = useRef(vip.cacheTtlDays);
   const commitTtl = () => {
     const next = normalizeTtlDays(Number(ttlText));
     lastCommittedTtl.current = next;
     setTtlText(String(next));
-    // Enter also is followed by blur — the second commit is a no-op write
-    // (and a redundant re-sync); skip it when the value already matches.
-    if (next !== vip.cacheTtlDays) setKey('cacheTtlDays', next);
+    if (next !== vip.cacheTtlDays) setVip((prev) => ({ ...prev, cacheTtlDays: next }));
   };
-  // Re-sync the box when the store changes it from elsewhere (another tab's
-  // write, the hydration pass): only when the committed value truly moved,
-  // so the in-progress typing never gets yanked.
   useEffect(() => {
     if (vip.cacheTtlDays !== lastCommittedTtl.current) {
       lastCommittedTtl.current = vip.cacheTtlDays;
@@ -139,132 +142,257 @@ export function VipSection() {
     }
   }, [vip.cacheTtlDays]);
 
-  return (
-    <div className="p-2.5 space-y-3">
-      {/* Bundled overlays — read-only info panel. These ship inside the
-          extension; the user doesn't choose them, but they should know
-          they're active so the popover's data feels less magical. */}
-      <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2.5 py-2 space-y-1.5">
-        <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
-          <span>{t('vip.localDataTitle')}</span>
-          <InfoHint text={t('vip.bundledDesc')} />
-        </div>
-        <ul className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-snug space-y-0.5 ml-1">
-          <li>• Dict. curado (4 151 entradas) + extensiones</li>
-          <li>• Oxford 3000/5000 CEFR (4 950 niveles A2/B2)</li>
-          <li>• {t("vip.phrasalAcademicNote")}</li>
-          <li>• Academic Collocation List (2 469 chunks)</li>
-          <li>{t('vip.fernaldLine')}</li>
-        </ul>
-      </div>
+  // Timeout uses the same draft + commit pattern: `Number(v) || 4000` snapped
+  // back to 4000 as soon as the field was cleared and never clamped.
+  const [timeoutText, setTimeoutText] = useState(String(vip.perSourceTimeoutMs));
+  useEffect(() => { setTimeoutText(String(vip.perSourceTimeoutMs)); }, [vip.perSourceTimeoutMs]);
+  const commitTimeout = () => {
+    const n = Math.round(Number(timeoutText) / 100) * 100;
+    const next = Number.isFinite(n) && timeoutText.trim() !== ''
+      ? Math.min(20000, Math.max(500, n))
+      : vip.perSourceTimeoutMs;
+    setTimeoutText(String(next));
+    if (next !== vip.perSourceTimeoutMs) setVip((prev) => ({ ...prev, perSourceTimeoutMs: next }));
+  };
 
-      {/* Standard tier — runs regardless of master switch, free APIs. */}
-      <div className="rounded-md bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200/40 dark:border-emerald-900/40 px-2.5 py-2">
-        <div className="text-[11.5px] font-semibold text-emerald-800 dark:text-emerald-300 mb-1">
-          {t('vip.standardTitle')}</div>
-        <div className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 leading-snug">
-          {t('vip.standardDesc')}</div>
-      </div>
+  // ── Source health ──────────────────────────────────────────────────────
+  const [health, setHealth] = useState<EnrichSourceHealthMap>({});
+  const [checking, setChecking] = useState(false);
+  const [lastChecked, setLastChecked] = useState<number | null>(null);
+  const refreshHealth = useCallback(async () => {
+    setChecking(true);
+    try {
+      const res = (await sendMessage('ENRICH_SOURCE_HEALTH', {}, 'background')) as unknown;
+      if (res && typeof res === 'object' && !('ok' in res && (res as { ok?: boolean }).ok === false)) {
+        setHealth(res as EnrichSourceHealthMap);
+      }
+      setLastChecked(Date.now());
+    } catch {
+      // Worker asleep or bridge unavailable: leave the previous snapshot.
+    } finally {
+      setChecking(false);
+    }
+  }, []);
+  useEffect(() => { void refreshHealth(); }, [refreshHealth]);
 
-      <SubGroup title={t('vip.stdDictTitle')} hint={t('vip.apisJson')} sources={STD_DICT_SOURCES} vip={vip} setKey={setKey} />
-      <SubGroup title={t('vip.stdBilingualTitle')} hint={t('vip.tatoebaHint')} sources={STD_BILINGUAL_SOURCES} vip={vip} setKey={setKey} />
-      <SubGroup title={t('vip.stdAudioTitle')} hint={t('vip.pronunciation')} sources={STD_AUDIO_SOURCES} vip={vip} setKey={setKey} />
-      <SubGroup title={t('vip.standardImagesLabel')} hint={t('vip.standardImagesHint')} sources={STD_IMAGE_SOURCES} vip={vip} setKey={setKey} />
-      <SubGroup title={t('vip.standardEtymVideoLabel')} hint={t('vip.etymVideoHint')} sources={STD_ETY_VIDEO} vip={vip} setKey={setKey} />
+  const healthOf = (key: keyof VipSettings) => health[key as string] ?? null;
+  const enabledCount = (list: SourceMeta[]) =>
+    list.filter((x) => vip[x.key] === true).length;
 
-      {/* VIP master switch */}
-      <div className="rounded-md bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200/40 dark:border-amber-900/40 px-2.5 py-2">
-        <label className="flex items-center justify-between gap-2 cursor-pointer">
-          <span className="flex flex-col">
-            <span className="text-[11.5px] font-semibold text-amber-900 dark:text-amber-300">
-              {t('vip.enableTitle')}</span>
-            <span className="text-[10px] text-amber-800/70 dark:text-amber-400/70 leading-snug mt-0.5">
-              {t('vip.providerListNote')}</span>
+  const tested = [...STD_ALL, ...(vip.enabled ? VIP_ALL : [])]
+    .map((x) => healthOf(x.key))
+    .filter((h): h is NonNullable<typeof h> => h != null);
+  const errN = tested.filter((h) => h.state === 'error').length;
+  const slowN = tested.filter((h) => h.state === 'slow').length;
+
+  const group = (titleKey: string, hintKey: string, sources: SourceMeta[]) => (
+    <div className="space-y-2">
+      <SubLabel
+        hint={t(hintKey)}
+        right={
+          <span className="flex items-center gap-2 tabular-nums">
+            <span>{enabledCount(sources)}/{sources.length}</span>
           </span>
-          <input
-            type="checkbox"
-            checked={vip.enabled}
-            onChange={(e) => setKey('enabled', e.target.checked)}
-            className="sl-checkbox shrink-0"
-          />
-        </label>
+        }
+      >
+        {t(titleKey)}
+      </SubLabel>
+      <ListGroup>
+        {sources.map((s) => {
+          const h = healthOf(s.key);
+          const state = checking ? 'untested' : h?.state ?? 'untested';
+          const statusKey = state === 'slow' ? 'vipx.status_degraded' : `vipx.status_${state}`;
+          const tip = `${t(statusKey)}${h ? ` · ${timeAgo(h.at)}` : ''}${h?.latencyMs ? ` · ${h.latencyMs} ms` : ''}`;
+          return (
+            <div key={s.key} className="kvl-row px-3 py-3">
+              <div className="flex items-center gap-2.5">
+                <span
+                  title={tip}
+                  aria-label={tip}
+                  className={`shrink-0 w-1.5 h-1.5 rounded-full ${DOT[state]} ${checking ? 'animate-pulse' : ''}`}
+                />
+                <span className="flex-1 min-w-0 truncate text-[13px] font-medium text-zinc-800 dark:text-zinc-100">
+                  {sourceName(s)}
+                </span>
+                <Toggle
+                  on={vip[s.key] === true}
+                  onChange={(v) => setSource(s.key, v)}
+                  ariaLabel={sourceName(s)}
+                />
+              </div>
+              {h && (h.state === 'error' || h.state === 'slow') && (
+                <div className={`mt-1 pl-4 flex items-center gap-1.5 text-[12px] leading-4 ${h.state === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                  <span className="flex-1 min-w-0 truncate" title={h.lastError ?? tip}>
+                    {h.state === 'error' ? (h.lastError ?? t('vipx.status_error')) : t('vipx.slow', { s: fmtNumber(Math.round((h.latencyMs ?? 0) / 100) / 10) })}
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </ListGroup>
+    </div>
+  );
+
+  return (
+    <div className="px-4 pt-3 pb-4 space-y-5">
+      <ListGroup>
+        <QuickRow
+          label={t('vip.localDataTitle')}
+          info={[
+            t('vip.bundledDesc'), t('vip.bundledLineCurated'), t('vip.bundledLineOxford'),
+            t('vip.phrasalAcademicNote'), t('vip.bundledLineAcl'), t('vip.fernaldLine'),
+          ].join(' · ')}
+        >
+          <span className="inline-flex items-center gap-1.5 text-[12px] text-zinc-400 dark:text-zinc-400">
+            <Database size={14} /> {t('vip.offlineBadge')}
+          </span>
+        </QuickRow>
+        <QuickRow label={t('vipx.healthTitle')} info={t('vipx.lastChecked', { when: timeAgo(lastChecked ?? undefined) })}>
+          <span className="flex items-center gap-2">
+            {!checking && (
+              <span className="flex items-center gap-2 text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  {tested.length - errN - slowN}
+                </span>
+                {slowN > 0 && (
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />{slowN}
+                  </span>
+                )}
+                {errN > 0 && (
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />{errN}
+                  </span>
+                )}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => void refreshHealth()}
+              disabled={checking}
+              title={t('vipx.testSources')}
+              aria-label={t('vipx.testSources')}
+              className="w-7 h-7 -mr-1.5 inline-flex items-center justify-center rounded-lg text-zinc-400 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] disabled:opacity-40 kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+            >
+              <RefreshCw size={14} className={checking ? 'animate-spin' : ''} />
+            </button>
+          </span>
+        </QuickRow>
+      </ListGroup>
+
+      {/* Standard tier — always on (subject to its own toggles) */}
+      <div className="space-y-4">
+        <SubLabel
+          hint={t('vip.standardDesc')}
+          right={<span className="tabular-nums">{enabledCount(STD_ALL)}/{STD_ALL.length}</span>}
+        >
+          {t('vip.standardTitle')}
+        </SubLabel>
+        {group('vip.stdDictTitle', 'vip.apisJson', STD_DICT_SOURCES)}
+        {group('vip.stdBilingualTitle', 'vip.tatoebaHint', STD_BILINGUAL_SOURCES)}
+        {group('vip.stdAudioTitle', 'vip.pronunciation', STD_AUDIO_SOURCES)}
+        {group('vip.standardImagesLabel', 'vip.standardImagesHint', STD_IMAGE_SOURCES)}
+        {group('vip.standardEtymVideoLabel', 'vip.etymVideoHint', STD_ETY_VIDEO)}
       </div>
+
+      {/* VIP tier — opt-in */}
+      <ListGroup>
+        <QuickRow label={t('vip.enableTitle')} info={t('vip.providerListNote')}>
+          <span className="flex items-center gap-3">
+            {vip.enabled && (
+              <span className="text-[12px] tabular-nums text-zinc-400 dark:text-zinc-400">
+                {enabledCount(VIP_ALL)}/{VIP_ALL.length}
+              </span>
+            )}
+            <Toggle
+              on={vip.enabled}
+              onChange={(v) => setVip((prev) => ({ ...prev, enabled: v }))}
+              ariaLabel={t('vip.enableTitle')}
+            />
+          </span>
+        </QuickRow>
+      </ListGroup>
 
       {!vip.enabled && (
-        <div className="text-[10.5px] text-zinc-500 italic px-1 leading-snug">
-          {t('vip.disabledNote')}</div>
+        <p className="text-[12px] text-zinc-500 dark:text-zinc-400 leading-[17px] px-1 -mt-3">
+          {t('vip.disabledNote', { n: STD_ALL.length })}
+        </p>
       )}
 
       {vip.enabled && (
-        <>
-          <SubGroup title={t('vip.vipDictTitle')} hint={t('vip.commercialDictHint')} sources={VIP_DICT_SOURCES} vip={vip} setKey={setKey} />
-          <SubGroup title={t('vip.vipBilingualTitle')} hint={t('vip.vipBilingualHint')} sources={VIP_BILINGUAL_SOURCES} vip={vip} setKey={setKey} />
-          <SubGroup title={t('vip.vipAudioTitle')} hint={t('vip.vipAudioHint')} sources={VIP_AUDIO_SOURCES} vip={vip} setKey={setKey} />
-          <SubGroup title={t('vip.vipImagesLabel')} hint={t('vip.vipImagesHint')} sources={VIP_IMAGE_SOURCES} vip={vip} setKey={setKey} />
+        <div className="space-y-4">
+          {group('vip.vipDictTitle', 'vip.commercialDictHint', VIP_DICT_SOURCES)}
+          {group('vip.vipBilingualTitle', 'vip.vipBilingualHint', VIP_BILINGUAL_SOURCES)}
+          {group('vip.vipAudioTitle', 'vip.vipAudioHint', VIP_AUDIO_SOURCES)}
+          {group('vip.vipImagesLabel', 'vip.vipImagesHint', VIP_IMAGE_SOURCES)}
 
-          {/* Optional API keys for Unsplash + Pixabay — both are free
-              with no credit card required, but require a one-time
-              developer signup. Without keys, Unsplash is inactive
-              (Anubis JS-challenge gate) and Pixabay falls back to
-              HTML scraping. */}
-          <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2.5 py-2 space-y-2">
-            <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
-              <span>{t('vip.optionalKeysTitle')}</span>
-              <InfoHint text={t('vip.imagesFreeTierNote')} />
+          <SubLabel hint={t('vip.imagesFreeTierNote')}>{t('vip.optionalKeysTitle')}</SubLabel>
+          <div className="space-y-3 -mt-2">
+            <div id="kivara-vip-unsplash-key">
+              <Row
+                label={
+                  <span className="flex items-center gap-2">
+                    {t('vip.unsplashKey')}
+                    <a href="https://unsplash.com/developers" target="_blank" rel="noopener noreferrer" className="text-[12px] font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                      {t('vip.getLink')}
+                    </a>
+                  </span>
+                }
+              >
+                <SecretKeyInput
+                  stored={vip.unsplashAccessKey}
+                  onChange={(v) => setVip((prev) => ({ ...prev, unsplashAccessKey: v }))}
+                  placeholder={t('vip.optional')}
+                  section="vip"
+                  field="unsplashAccessKey"
+                />
+              </Row>
             </div>
-            <label className="flex flex-col gap-1 text-[11px] text-zinc-700 dark:text-zinc-300">
-              <span className="flex items-center justify-between gap-1">
-                <span>{t('vip.unsplashKey')}</span>
-                <a href="https://unsplash.com/developers" target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-500 hover:underline">obtener</a>
-              </span>
-              <SecretKeyInput
-                stored={vip.unsplashAccessKey}
-                onChange={(v) => setKey('unsplashAccessKey', v)}
-                placeholder={t('vip.optional')}
-                section="vip"
-                field="unsplashAccessKey"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-[11px] text-zinc-700 dark:text-zinc-300">
-              <span className="flex items-center justify-between gap-1">
-                <span>{t('vip.pixabayKey')}</span>
-                <a href="https://pixabay.com/api/docs/" target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-500 hover:underline">obtener</a>
-              </span>
-              <SecretKeyInput
-                stored={vip.pixabayApiKey}
-                onChange={(v) => setKey('pixabayApiKey', v)}
-                placeholder={t('vip.pixabayPlaceholder')}
-                section="vip"
-                field="pixabayApiKey"
-              />
-            </label>
+            <div id="kivara-vip-pixabay-key">
+              <Row
+                label={
+                  <span className="flex items-center gap-2">
+                    {t('vip.pixabayKey')}
+                    <a href="https://pixabay.com/api/docs/" target="_blank" rel="noopener noreferrer" className="text-[12px] font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                      {t('vip.getLink')}
+                    </a>
+                  </span>
+                }
+              >
+                <SecretKeyInput
+                  stored={vip.pixabayApiKey}
+                  onChange={(v) => setVip((prev) => ({ ...prev, pixabayApiKey: v }))}
+                  placeholder={t('vip.pixabayPlaceholder')}
+                  section="vip"
+                  field="pixabayApiKey"
+                />
+              </Row>
+            </div>
           </div>
 
-          {/* Fine tuning */}
-          <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2.5 py-2 space-y-2">
-            <label className="flex items-center justify-between gap-2 text-[11px] text-zinc-700 dark:text-zinc-300">
-              <span className="flex items-center gap-1">
-                {t('vip.timeoutTitle')}<InfoHint text={t('vip.timeoutHint')} />
-              </span>
-              <span className="flex items-center gap-1.5">
+          <SubLabel>{t('vip.networkTitle')}</SubLabel>
+          <ListGroup>
+            <QuickRow label={t('vip.timeoutTitle')} info={t('vip.timeoutHint')}>
+              <span className="flex items-center gap-2">
                 <input
                   type="number"
                   min={500}
                   max={20000}
                   step={500}
-                  value={vip.perSourceTimeoutMs}
-                  onChange={(e) => setKey('perSourceTimeoutMs', Number(e.target.value) || 4000)}
-                  className="sl-input text-right tabular-nums"
-                  style={{ width: 70 }}
+                  value={timeoutText}
+                  onChange={(e) => setTimeoutText(e.target.value)}
+                  onBlur={commitTimeout}
+                  onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                  aria-label={t('vip.timeoutTitle')}
+                  className={`${inputCls} !w-[76px] text-right tabular-nums`}
                 />
-                <span className="text-[10px] text-zinc-500">ms</span>
+                <span className="text-[12px] text-zinc-400 dark:text-zinc-400 w-8">ms</span>
               </span>
-            </label>
-            <label className="flex items-center justify-between gap-2 text-[11px] text-zinc-700 dark:text-zinc-300">
-              <span className="flex items-center gap-1">
-                {t('set.cache')}<InfoHint text={t('vip.cacheTtlHint')} />
-              </span>
-              <span className="flex items-center gap-1.5">
+            </QuickRow>
+            <QuickRow label={t('set.cache')} info={t('vip.cacheTtlHint')}>
+              <span className="flex items-center gap-2">
                 <input
                   type="number"
                   min={1}
@@ -272,81 +400,26 @@ export function VipSection() {
                   value={ttlText}
                   onChange={(e) => setTtlText(e.target.value)}
                   onBlur={commitTtl}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      // Enter also is followed by blur — the second commit is a no-op write
-                      // (and a redundant re-sync); skip it when the value already matches.
-                      commitTtl();
-                      e.currentTarget.blur();
-                    }
-                  }}
-                  className="sl-input text-right tabular-nums"
-                  style={{ width: 50 }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                  aria-label={t('set.cache')}
+                  className={`${inputCls} !w-[76px] text-right tabular-nums`}
                 />
-                <span className="text-[10px] text-zinc-500">{t('vip.days')}</span>
+                <span className="text-[12px] text-zinc-400 dark:text-zinc-400 w-8">{t('vip.days')}</span>
               </span>
-            </label>
-          </div>
-        </>
+            </QuickRow>
+          </ListGroup>
+        </div>
       )}
 
-      {/* Cache management — always visible (Standard mode also caches). */}
       <CacheManager />
     </div>
   );
 }
 
-function SubGroup({
-  title,
-  hint,
-  sources,
-  vip,
-  setKey,
-}: {
-  title: string;
-  hint: string;
-  sources: SourceMeta[];
-  vip: VipSettings;
-  setKey: <K extends VipKey>(k: K, v: VipSettings[K]) => void;
-}) {
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-1 px-1">
-        <span className="text-[9px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-          {title}
-        </span>
-        <InfoHint text={hint} />
-      </div>
-      <div className="space-y-1">
-        {sources.map((s) => (
-          <label
-            key={s.key}
-            className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-zinc-100/70 dark:hover:bg-zinc-800/50 transition-colors"
-          >
-            <input
-              type="checkbox"
-              checked={vip[s.key] === true}
-              onChange={(e) => setKey(s.key, e.target.checked as VipSettings[typeof s.key])}
-              className="sl-checkbox shrink-0"
-            />
-            <div className="flex-1 min-w-0">
-              <div className="text-[11.5px] font-medium text-zinc-800 dark:text-zinc-200 leading-tight">
-                {s.label}
-              </div>
-              <div className="text-[10px] text-zinc-500 dark:text-zinc-500 leading-tight mt-0.5">
-                {s.hint}
-              </div>
-            </div>
-          </label>
-        ))}
-      </div>
-    </div>
-  );
-}
-
+/* ── Cache administration (real: GET_CACHE_STATS / CLEAR_CACHE) ───────── */
 
 interface CacheBucket {
-  id: 'enrichment' | 'translation' | 'ai' | 'media';
+  id: 'enrichment' | 'translation' | 'ai' | 'explain' | 'media';
   label: string;
   count: number;
   bytes: number;
@@ -354,39 +427,32 @@ interface CacheBucket {
 
 function formatBytes(bytes: number): string {
   if (bytes <= 0) return '0 KB';
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes < 1024 * 1024) return `${fmtNumber(Math.round(bytes / 1024))} KB`;
+  return `${fmtNumber(Math.round((bytes / 1024 / 1024) * 10) / 10)} MB`;
 }
 
-/**
- * Cache management panel. Shows per-bucket row counts + approximate size
- * and lets the user wipe everything (with a confirm) or a single bucket.
- * Talks to the service worker via GET_CACHE_STATS / CLEAR_CACHE.
- */
 function CacheManager() {
-  const [buckets, setBuckets] = React.useState<CacheBucket[] | null>(null);
-  const [busy, setBusy] = React.useState(false);
-  const [confirming, setConfirming] = React.useState(false);
+  const [buckets, setBuckets] = useState<CacheBucket[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
-  const refresh = React.useCallback(() => {
+  const refresh = useCallback(() => {
     try {
-      chrome.runtime.sendMessage({ type: 'GET_CACHE_STATS' }, (res) => {
+      chrome.runtime.sendMessage({ type: 'GET_CACHE_STATS' }, (res: { ok?: boolean; stats?: { buckets?: CacheBucket[] } }) => {
         if (chrome.runtime.lastError) return;
         if (res?.ok && res.stats?.buckets) setBuckets(res.stats.buckets);
       });
     } catch {
-      // chrome.runtime not available (e.g. storybook) — leave null.
+      // chrome.runtime is unavailable outside the extension (tests/storybook).
     }
   }, []);
 
-  React.useEffect(() => {
-    refresh();
-  }, [refresh]);
+  useEffect(() => { refresh(); }, [refresh]);
 
   const clearAll = () => {
     setBusy(true);
     try {
-      chrome.runtime.sendMessage({ type: 'CLEAR_CACHE', which: 'all' }, (res) => {
+      chrome.runtime.sendMessage({ type: 'CLEAR_CACHE', which: 'all' }, (res: { ok?: boolean }) => {
         setBusy(false);
         setConfirming(false);
         if (chrome.runtime.lastError) return;
@@ -402,64 +468,58 @@ function CacheManager() {
   const totalBytes = buckets?.reduce((a, b) => a + b.bytes, 0) ?? 0;
 
   return (
-    <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2.5 py-2 space-y-2">
-      <div className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
-        <span>{t('vip.cacheStored')}</span>
-        <InfoHint text={t('vip.cacheDesc')} />
-      </div>
-
+    <div className="space-y-2">
+      <SubLabel
+        hint={t('vip.cacheDesc')}
+        right={!confirming && (
+          <button
+            type="button"
+            onClick={() => setConfirming(true)}
+            disabled={busy || total === 0}
+            title={t('vip.clearCacheBtn')}
+            aria-label={t('vip.clearCacheBtn')}
+            className="w-6 h-6 -my-1 inline-flex items-center justify-center rounded-md text-zinc-400 dark:text-zinc-400 hover:text-rose-500 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] disabled:opacity-40 disabled:pointer-events-none kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      >
+        {t('vip.cacheStored')}
+      </SubLabel>
       {buckets === null ? (
-        <div className="text-[10.5px] text-zinc-500 italic">{t("common.loading")}</div>
+        <p className="text-[12px] text-zinc-500 dark:text-zinc-400 px-1">{t('common.loading')}</p>
       ) : total === 0 ? (
-        <div className="text-[10.5px] text-zinc-500 italic">{t('vip.cacheEmpty')}</div>
+        <p className="text-[12px] text-zinc-500 dark:text-zinc-400 px-1">{t('vip.cacheEmpty')}</p>
       ) : (
-        <ul className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-snug space-y-0.5">
+        <ListGroup>
           {buckets.map((b) => (
-            <li key={b.id} className="flex items-center justify-between gap-2">
-              <span className="truncate">{b.label}</span>
-              <span className="tabular-nums text-zinc-500 shrink-0">
+            <div key={b.id} className="flex items-center justify-between gap-2 px-3 min-h-[40px] text-[13px]">
+              <span className="truncate text-zinc-700 dark:text-zinc-300">{b.label}</span>
+              <span className="text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400 shrink-0">
                 {b.count} · {formatBytes(b.bytes)}
               </span>
-            </li>
+            </div>
           ))}
-          <li className="flex items-center justify-between gap-2 pt-0.5 mt-0.5 border-t border-zinc-200/60 dark:border-zinc-800/70 font-medium text-zinc-700 dark:text-zinc-300">
-            <span>{t('vip.total')}</span>
-            <span className="tabular-nums">{total} · {formatBytes(totalBytes)}</span>
-          </li>
-        </ul>
-      )}
-
-      {!confirming ? (
-        <button
-          type="button"
-          disabled={busy || total === 0}
-          onClick={() => setConfirming(true)}
-          className="w-full text-[11px] rounded-md border border-red-300/60 dark:border-red-900/50 text-red-600 dark:text-red-400 px-2 py-1.5 hover:bg-red-50/60 dark:hover:bg-red-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          {t('vip.clearCacheBtn')}</button>
-      ) : (
-        <div className="space-y-1.5">
-          <div className="text-[10.5px] text-amber-700 dark:text-amber-400 leading-snug">
-            {t('vip.clearCacheWarn')}<strong className="font-medium"> {t('common.no')}</strong> {t('vip.clearCacheSafePost')}</div>
-          <div className="flex gap-1.5">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={clearAll}
-              className="flex-1 text-[11px] rounded-md bg-red-600 text-white px-2 py-1.5 hover:bg-red-700 disabled:opacity-50 transition-colors"
-            >
-              {busy ? 'Limpiando…' : t('vip.clearAllYes')}
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => setConfirming(false)}
-              className="flex-1 text-[11px] rounded-md border border-zinc-300/60 dark:border-zinc-700/60 text-zinc-600 dark:text-zinc-300 px-2 py-1.5 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/40 transition-colors"
-            >
-              Cancelar
-            </button>
+          <div className="flex items-center justify-between gap-2 px-3 min-h-[40px] text-[13px]">
+            <span className="font-medium text-zinc-800 dark:text-zinc-100">{t('vip.total')}</span>
+            <span className="text-[12px] tabular-nums font-medium text-zinc-700 dark:text-zinc-200">
+              {total} · {formatBytes(totalBytes)}
+            </span>
           </div>
-        </div>
+        </ListGroup>
+      )}
+      {confirming && (
+        <Callout tone="warning" icon={<AlertTriangle size={14} />}>
+          {richText(t('vip.clearCacheBody'), { no: <strong className="font-semibold">{t('vip.clearCacheNot')}</strong> })}
+          <div className="flex gap-2 mt-3">
+            <Button size="sm" variant="dangerSolid" className="flex-1" disabled={busy} onClick={clearAll}>
+              {busy ? t('vip.clearing') : t('vip.clearAllYes')}
+            </Button>
+            <Button size="sm" variant="secondary" className="flex-1" disabled={busy} onClick={() => setConfirming(false)}>
+              {t('common.cancel')}
+            </Button>
+          </div>
+        </Callout>
       )}
     </div>
   );

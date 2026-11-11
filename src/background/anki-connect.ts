@@ -1,4 +1,4 @@
-import { t } from '../shared/i18n';
+import { t } from '../shared/i18n/sw';
 import { isLoopbackAnkiUrl } from '../shared/anki-host';
 /// <reference types="chrome" />
 
@@ -255,6 +255,33 @@ export interface AnkiPingOk { ok: true; version: number; }
 export interface AnkiPingErr { ok: false; error: string; code?: AnkiErrorCode; }
 export type AnkiPingResult = AnkiPingOk | AnkiPingErr;
 
+/** Subset of AnkiConnect's `cardsInfo` response the extension reads. */
+export interface AnkiCardInfo {
+  cardId: number;
+  noteId: number;
+  deckName: string;
+  modelName: string;
+  fields: Record<string, { value: string; order: number }>;
+  /** Current interval in days. */
+  interval: number;
+  factor: number;
+  reps: number;
+  lapses: number;
+  queue: number;
+  due: number;
+}
+
+/**
+ * Subset of a `notesInfo` record the extension reads: the note id, its fields
+ * (the headword lives here) and the ids of its cards. `cards` is the join key
+ * that maps a note to the maturity/seen predicates' card-id answers.
+ */
+export interface AnkiNoteInfo {
+  noteId: number;
+  fields: Record<string, { value: string }>;
+  cards?: number[];
+}
+
 export const ankiConnect = {
   async ping(url?: string, apiKey?: string): Promise<AnkiPingResult> {
     try {
@@ -345,11 +372,51 @@ export const ankiConnect = {
   },
 
   /**
-   * Get the content of specific fields from notes by ID. Used alongside
-   * findNotes to extract the actual saved word values.
+   * Get the content of specific notes by ID. Used alongside `findNotes` to
+   * extract the saved word values and, for the F5 snapshot, the note's card
+   * ids. `notesInfo` takes note ids only: no `render` is ever requested, so no
+   * card template is rendered by Anki.
    */
-  async notesInfo(notes: number[], url?: string, apiKey?: string): Promise<Array<{ noteId: number; fields: Record<string, { value: string }> }>> {
-    return invoke<Array<{ noteId: number; fields: Record<string, { value: string }> }>>('notesInfo', { notes }, { url, apiKey });
+  async notesInfo(notes: number[], url?: string, apiKey?: string): Promise<AnkiNoteInfo[]> {
+    return invoke<AnkiNoteInfo[]>('notesInfo', { notes }, { url, apiKey });
+  },
+
+  /**
+   * Delete notes by id (Undo). Idempotent on Anki's side: a note that no
+   * longer exists is not an error there, so the caller can treat the undo as
+   * complete. A write — never replayed on the loopback fallback.
+   */
+  async deleteNotes(notes: number[], url?: string, apiKey?: string): Promise<null> {
+    return invoke<null>('deleteNotes', { notes }, { url, apiKey, allowFallbackRetry: false });
+  },
+
+  /** Add tags to existing notes without touching their fields. */
+  /** AnkiConnect takes `tags` as ONE space-separated string; an array is
+   * rejected by the add-on (and silently ignored by some builds). */
+  async addTags(tags: string[], notes: number[], url?: string, apiKey?: string): Promise<null> {
+    return invoke<null>(
+      'addTags',
+      { tags: tags.join(' '), notes },
+      { url, apiKey, allowFallbackRetry: false },
+    );
+  },
+
+  /**
+   * Open Anki's own browser on a search. Returns the matching note ids on
+   * recent AnkiConnect versions; the UI only needs the side effect.
+   */
+  async guiBrowse(query: string, url?: string, apiKey?: string): Promise<number[]> {
+    return invoke<number[]>('guiBrowse', { query }, { url, apiKey, allowFallbackRetry: false });
+  },
+
+  /** Find card ids matching a query (read-only). */
+  async findCards(query: string, url?: string, apiKey?: string): Promise<number[]> {
+    return invoke<number[]>('findCards', { query }, { url, apiKey });
+  },
+
+  /** Card scheduling data (interval/reps/lapses) plus the note fields. */
+  async cardsInfo(cards: number[], url?: string, apiKey?: string): Promise<AnkiCardInfo[]> {
+    return invoke<AnkiCardInfo[]>('cardsInfo', { cards }, { url, apiKey });
   },
 };
 

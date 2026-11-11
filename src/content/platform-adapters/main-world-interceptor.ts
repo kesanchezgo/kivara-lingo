@@ -369,5 +369,190 @@ declare global {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).XMLHttpRequest = PatchedXHR;
 
+  /* ── Playback control (F6 · docs/REDESIGN-V2.md §4.5) ────────────────────
+   *
+   * The ISOLATED adapter cannot move Netflix's playhead without breaking the
+   * stream (error M7375), so it asks this MAIN-world script to call the
+   * player API instead. The command arrives over the same postMessage
+   * channel as the subtitle tracks and carries the bus nonce; the answer goes
+   * back with the same nonce so a page script cannot acknowledge someone
+   * else's seek.
+   *
+   * `videoPlayer.seek()` takes MILLISECONDS on every Netflix build we have
+   * seen. Routes are tried in order, first match wins:
+   *   1. The documented player API — `getAllPlayerSessionIds()` +
+   *      `getVideoPlayerBySessionId(id).seek(ms)`, preferring the session
+   *      that reports the active video.
+   *   2. `getPlayerByIndex(0)` — the pre-session fallback, unchanged.
+   *   3. `getAllPlayerStates()[0]` — second pre-session fallback, unchanged.
+   *   4. `seek` straight on the `videoPlayer` facade — last resort.
+   * Everything is read defensively: a DOM revision that moves the API answers
+   * an error instead of throwing into the page's console.
+   */
+  const PLAYBACK_CMD = 'kivara-lingo:playback';
+  const PLAYBACK_RESULT = 'kivara-lingo:playback-result';
+
+  interface NetflixVideoPlayer {
+    seek?: (ms: number) => void;
+    /** Documented on current builds; used to pick the active session. */
+    isPlaying?: () => boolean;
+  }
+  interface NetflixVideoPlayerApi {
+    getPlayerByIndex?: (index: number) => NetflixVideoPlayer | undefined;
+    getAllPlayerStates?: () => NetflixVideoPlayer[];
+    getAllPlayerSessionIds?: () => string[];
+    getVideoPlayerBySessionId?: (id: string) => NetflixVideoPlayer | undefined;
+    getPlayingSessionId?: () => string | undefined;
+    seek?: (ms: number) => void;
+  }
+  interface NetflixPlayerApp {
+    getAPI?: () => {
+      videoPlayer?: NetflixVideoPlayerApi;
+    };
+  }
+  type NetflixWindow = Window & {
+    netflix?: { appContext?: { state?: { playerApp?: NetflixPlayerApp } } };
+  };
+
+  function videoPlayerApi(): NetflixVideoPlayerApi | null {
+    try {
+      return (
+        (window as NetflixWindow).netflix?.appContext?.state?.playerApp?.getAPI?.()?.videoPlayer ??
+        null
+      );
+    } catch {
+      // API moved or not ready yet — the caller gets a legible refusal.
+      return null;
+    }
+  }
+
+  /**
+   * Route 1 — the documented Netflix player API. Enumerates
+   * `getAllPlayerSessionIds()` and resolves the player that owns the active
+   * video. Netflix keeps several sessions alive across episode / profile
+   * switches, so the id is picked in preference order: the one the API itself
+   * reports as playing (`getPlayingSessionId`), then one whose player reports
+   * `isPlaying()`, then the first id with a usable player. Returns `null`
+   * when the route yields nothing — the caller falls back to the older
+   * routes, unchanged.
+   */
+  function netflixSessionPlayer(): NetflixVideoPlayer | null {
+    const videoPlayer = videoPlayerApi();
+    if (!videoPlayer) return null;
+    const getSessionIds = videoPlayer.getAllPlayerSessionIds;
+    const getPlayerBySessionId = videoPlayer.getVideoPlayerBySessionId;
+    if (typeof getSessionIds !== 'function' || typeof getPlayerBySessionId !== 'function') {
+      return null;
+    }
+    let sessionIds: string[];
+    try {
+      sessionIds = getSessionIds.call(videoPlayer) ?? [];
+    } catch {
+      return null;
+    }
+    if (!Array.isArray(sessionIds) || sessionIds.length === 0) return null;
+    const resolvePlayer = (id: string): NetflixVideoPlayer | null => {
+      try {
+        const player = getPlayerBySessionId.call(videoPlayer, id);
+        return player && typeof player.seek === 'function' ? player : null;
+      } catch {
+        return null;
+      }
+    };
+    let reportedPlayingId: string | undefined;
+    try {
+      if (typeof videoPlayer.getPlayingSessionId === 'function') {
+        reportedPlayingId = videoPlayer.getPlayingSessionId();
+      }
+    } catch {
+      reportedPlayingId = undefined;
+    }
+    if (typeof reportedPlayingId === 'string') {
+      const player = resolvePlayer(reportedPlayingId);
+      if (player) return player;
+    }
+    for (const id of sessionIds) {
+      const player = resolvePlayer(id);
+      try {
+        if (player && typeof player.isPlaying === 'function' && player.isPlaying()) return player;
+      } catch {
+        // A player that throws on `isPlaying` is skipped, not fatal.
+      }
+    }
+    for (const id of sessionIds) {
+      const player = resolvePlayer(id);
+      if (player) return player;
+    }
+    return null;
+  }
+
+  /** Routes 2-4 — the pre-session fallbacks, in the order they always ran. */
+  function netflixPlayer(): NetflixVideoPlayer | null {
+    try {
+      const videoPlayer = videoPlayerApi();
+      if (!videoPlayer) return null;
+      const byIndex = videoPlayer.getPlayerByIndex?.(0);
+      if (byIndex) return byIndex;
+      const states = videoPlayer.getAllPlayerStates?.();
+      if (states && states.length > 0) return states[0];
+      // Some builds expose `seek` straight on the videoPlayer facade.
+      if (typeof videoPlayer.seek === 'function') {
+        return { seek: (ms: number) => videoPlayer.seek?.(ms) };
+      }
+    } catch {
+      // API moved or not ready yet — the caller gets a legible refusal.
+    }
+    return null;
+  }
+
+  window.addEventListener('message', (event) => {
+    if (event.source !== window) return;
+    const data = event.data as
+      | { source?: unknown; id?: unknown; cmd?: unknown; timeMs?: unknown; nonce?: unknown }
+      | null;
+    if (!data || typeof data !== 'object' || data.source !== PLAYBACK_CMD) return;
+    if (data.nonce !== currentNonce()) return;
+    if (typeof data.id !== 'string') return;
+    const reply = (ok: boolean, error?: string) => {
+      try {
+        window.postMessage(
+          { source: PLAYBACK_RESULT, id: data.id, ok, error, nonce: currentNonce() },
+          '*',
+        );
+      } catch {
+        /* page is going away */
+      }
+    };
+    if (data.cmd !== 'seek' || typeof data.timeMs !== 'number') {
+      reply(false, 'unsupported command');
+      return;
+    }
+    const timeMs = Math.max(0, data.timeMs);
+    // Route 1 first: the documented session-id API. Any throw in that path —
+    // resolution or the seek itself — falls through to the backup routes,
+    // which run exactly as they did before this route existed.
+    try {
+      const sessionPlayer = netflixSessionPlayer();
+      if (sessionPlayer?.seek) {
+        sessionPlayer.seek(timeMs);
+        reply(true);
+        return;
+      }
+    } catch {
+      // The documented API half-works — let the fallbacks decide.
+    }
+    const player = netflixPlayer();
+    if (!player?.seek) {
+      reply(false, 'player API unavailable');
+      return;
+    }
+    try {
+      player.seek(timeMs);
+      reply(true);
+    } catch (err) {
+      reply(false, err instanceof Error ? err.message : String(err));
+    }
+  });
+
   console.log(TAG, 'fetch / XHR interception installed');
 })();

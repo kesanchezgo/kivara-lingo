@@ -127,7 +127,7 @@ async function writeCache(
     const db = getDB();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (db as any).vip_cache?.put({ key, payload, storedAt: Date.now() });
-    void pruneVipCache(effectiveTtlDays);
+    void pruneCaches(effectiveTtlDays);
   } catch {
     // ignore — cache misses are recoverable.
   }
@@ -150,10 +150,14 @@ export const DEFAULT_VIP_CACHE_TTL_DAYS = DEFAULT_CACHE_TTL_DAYS;
 import { DEFAULT_CACHE_TTL_DAYS, normalizeTtlDays } from '../../shared/cache-ttl';
 export { DEFAULT_CACHE_TTL_DAYS, normalizeTtlDays };
 
-let lastVipPruneAt = 0;
+let lastPruneAt = 0;
 
 /**
- * Keep `vip_cache` bounded.
+ * The housekeeping pass shared by every expiring cache — fired after a cache
+ * write, at most once per PRUNE_INTERVAL_MS no matter which write triggered
+ * it. Today it sweeps two tables:
+ *
+ * `vip_cache` — keep it bounded.
  *
  * The table is a word→enrichment cache keyed by lookup key, so it grows for as
  * long as the user browses: every `TOKEN|langs|flags` combination gets a row
@@ -173,11 +177,23 @@ let lastVipPruneAt = 0;
  * The scan is the necessary price for rows the index cannot reach; it runs at
  * most every PRUNE_INTERVAL_MS and over a table that rarely exceeds a few
  * hundred rows.
+ *
+ * `explain_cache` — rows carry their own `expiresAt` stamp (written via
+ * `explainCacheExpiresAt`), so the sweep is one indexed delete of everything
+ * at or past `now`: no TTL math, no ceiling.
+ *
+ * Each sweep is guarded on its own, so a failure in one never blocks the
+ * other, and neither fails the write that triggered the pass.
  */
-async function pruneVipCache(ttlDays: number = DEFAULT_VIP_CACHE_TTL_DAYS): Promise<void> {
+async function pruneCaches(ttlDays: number = DEFAULT_VIP_CACHE_TTL_DAYS): Promise<void> {
   const now = Date.now();
-  if (now - lastVipPruneAt < PRUNE_INTERVAL_MS) return;
-  lastVipPruneAt = now;
+  if (now - lastPruneAt < PRUNE_INTERVAL_MS) return;
+  lastPruneAt = now;
+  // Fired voided, and BEFORE the vip sweep so the vip sweep's missing-table
+  // early return cannot skip it. NOT awaited: the sweep catches its own
+  // failures, and an await here would push the vip sweep's first delete one
+  // microtask later — the cache-prune-ttl tests observe that ordering.
+  void pruneExpiredExplainRows(now);
   try {
     const db = getDB();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -219,6 +235,44 @@ async function pruneVipCache(ttlDays: number = DEFAULT_VIP_CACHE_TTL_DAYS): Prom
   } catch {
     // A cache that will not prune is still a cache; never fail the hover on it.
   }
+}
+
+/**
+ * The `explain_cache` half of the pass: one indexed delete of every row whose
+ * `expiresAt` has passed. The reader already treats those rows as a miss
+ * (`explainCacheFresh` is strictly "in the future"), so deleting them only
+ * reclaims the space they idle on.
+ */
+async function pruneExpiredExplainRows(now: number): Promise<void> {
+  try {
+    const db = getDB();
+    // No disable comment here: the `no-explicit-any` rule is off (see
+    // eslint.config.js) and a fresh directive costs a warning slot.
+    const table = ((db as any).explain_cache ?? null) as
+      | {
+          where(index: string): {
+            belowOrEqual(threshold: number): { delete(): Promise<number> };
+          };
+        }
+      | null;
+    if (!table) return;
+    await table.where('expiresAt').belowOrEqual(now).delete();
+  } catch {
+    // Same rule as the vip sweep: a cache that will not prune is still a cache.
+  }
+}
+
+/**
+ * Prune trigger for cache writes that live outside this module — the explain
+ * cache (`ai-explain.ts`). It fires the SAME single pass under the SAME
+ * cadence guard, so the explain table prunes on its own writes exactly the
+ * way vip_cache prunes on its own. Never rejects: the write already
+ * succeeded and housekeeping must not turn it into an error.
+ */
+export function pruneExpiredCaches(): Promise<void> {
+  return pruneCaches().catch(() => {
+    // Best effort — a failed sweep is retried on the next write.
+  });
 }
 
 /**

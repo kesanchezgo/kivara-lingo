@@ -1,17 +1,24 @@
-/* DictStep — the Yomitan dictionary importer step. Moved verbatim from the wizard root. */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { t } from '../../shared/i18n';
-import { Download, CheckCircle2, AlertTriangle, Loader2, ShieldCheck, Cpu, BookText, Sparkles, Brain } from 'lucide-react';
+/**
+ * Dictionary step — Yomitan packs importer (F8; prototype view, repo flow).
+ *
+ * The catalogue, the installed-pack detection and the install loop (a message
+ * to the service worker, so a multi-hundred-MB decompressed payload cannot
+ * OOM-kill the page) are the repo's. The layout and the status copy follow the
+ * prototype. Nothing here blocks the wizard: the step is recommended, not
+ * required.
+ */
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Check, CheckCircle2, AlertTriangle, Loader2, ShieldCheck, BookText, Sparkles, Brain, Download } from '../../ui/icons';
+import { t, fmtNumber } from '../../shared/i18n';
+import { richText } from '../../shared/i18n/rich';
 import { listYomitanPacks } from '../../content/nlp/yomitan';
 import {
   CURATED_DICT_PACKS,
   defaultSelection,
   pickPacksToInstall,
-  type OnboardingDictPack,
 } from '../dict-onboarding';
+import { Badge, Button } from '../../ui/primitives/settings-primitives';
 import { StepSection } from './StepSection';
-
-/* ─── DictStep — real Yomitan importer wired to the curated catalogue ────── */
 
 type InstallStatus = 'idle' | 'queued' | 'downloading' | 'installed' | 'error';
 
@@ -119,7 +126,7 @@ export function DictStep() {
           ...prev,
           [pack.url]: {
             status: 'error',
-            error: err instanceof Error ? err.message : 'unknown error',
+            error: err instanceof Error ? err.message : t('common.unexpectedError'),
           },
         }));
       }
@@ -139,153 +146,151 @@ export function DictStep() {
 
   return (
     <StepSection
+      icon={<BookText size={20} />}
       title={t('onb.dictsOffline')}
       subtitle={t('onb.recommendedPacks')}
     >
-      <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/25 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-500/10 dark:to-zinc-900 p-4 flex gap-3">
-        <div className="w-10 h-10 rounded-xl bg-indigo-500/15 ring-1 ring-indigo-500/25 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
-          <ShieldCheck size={18} />
-        </div>
-        <div className="text-[12px] text-indigo-900 dark:text-indigo-100 leading-relaxed space-y-1 min-w-0">
-          <p className="text-[12.5px]">
-            <strong className="font-semibold">{t('onb.localCoverage')}</strong> {t('onb.coverageVs')}</p>
-          <p className="text-[11.5px] text-indigo-700/80 dark:text-indigo-200/70">
-            {t('onb.storedLocalNote', { path: `${t('nav.settings')} → ${t('set.sectionOfflineDicts')}` })}</p>
-        </div>
-      </div>
-
-      <ul className="space-y-2.5">
-        {CURATED_DICT_PACKS.map((pack) => {
-          const isInstalled = installedTitles.has(pack.title);
-          const status = statuses[pack.url];
-          const hasFailed = status?.status === 'error';
-          const isDisabled = pack.disabledInOnboarding;
-          const checked = !isDisabled && !hasFailed && (selection.has(pack.url) || isInstalled);
-          const checkboxDisabled = isInstalled || running || isDisabled || hasFailed;
-
-          // Tier visuals
-          const tier = pack.tier;
-          const tierMeta = tier === 'core'
-            ? { ribbon: 'bg-amber-400', icon: <BookText size={18} />, iconBg: 'bg-amber-500/10 ring-amber-500/25 text-amber-600 dark:text-amber-300', tag: 'Core', tagBg: 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300' }
-            : tier === 'recommended'
-              ? { ribbon: 'bg-indigo-400', icon: <Sparkles size={18} />, iconBg: 'bg-indigo-500/10 ring-indigo-500/25 text-indigo-600 dark:text-indigo-300', tag: 'Recomendado', tagBg: 'bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300' }
-              : { ribbon: 'bg-zinc-300 dark:bg-zinc-600', icon: <Brain size={18} />, iconBg: 'bg-zinc-500/10 ring-zinc-500/25 text-zinc-500 dark:text-zinc-400', tag: 'Premium', tagBg: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400' };
-
-          // Card state ring
-          const ringClass = isInstalled
-            ? 'border-transparent ring-2 ring-emerald-400/60 bg-emerald-50/40 dark:bg-emerald-500/5'
-            : hasFailed
-              ? 'border-transparent ring-2 ring-rose-400/60 bg-rose-50/30 dark:bg-rose-500/5'
-              : checked && !isDisabled
-                ? 'border-transparent ring-2 ring-indigo-400/60 bg-indigo-50/30 dark:bg-indigo-500/5'
-                : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900';
-
-          return (
-            <li
-              key={pack.url}
-              className={`relative rounded-xl border ${ringClass} overflow-hidden transition-all ${isDisabled ? 'opacity-60' : ''}`}
-            >
-              {/* Tier ribbon */}
-              <div className={`absolute left-0 top-0 bottom-0 w-1 ${tierMeta.ribbon}`} aria-hidden />
-              <label
-                htmlFor={`dict-onb-${pack.url}`}
-                className={`block pl-4 pr-4 py-3 ${checkboxDisabled ? 'cursor-default' : 'cursor-pointer'} select-none`}
-              >
-                <div className="flex items-start gap-3">
-                  {/* Icon */}
-                  <div className={`w-10 h-10 rounded-xl ring-1 flex items-center justify-center shrink-0 ${tierMeta.iconBg}`}>
-                    {tierMeta.icon}
-                  </div>
-                  {/* Body */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2 flex-wrap">
-                      <span className="text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100">{pack.title}</span>
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${tierMeta.tagBg}`}>
-                        {tierMeta.tag}
-                      </span>
-                      <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">{pack.size}</span>
-                      <span className="text-[10px] text-zinc-400 dark:text-zinc-500">·</span>
-                      <span className="text-[10px] text-zinc-500 dark:text-zinc-400 italic">{pack.benefit}</span>
-                    </div>
-                    <p className="text-[11.5px] text-zinc-600 dark:text-zinc-400 leading-snug mt-1">{pack.description}</p>
-                    {isDisabled && pack.disabledReason && (
-                      <p className="text-[10.5px] text-zinc-500 dark:text-zinc-500 mt-1.5 leading-snug flex items-start gap-1.5">
-                        <AlertTriangle size={11} className="text-amber-500 mt-0.5 shrink-0" />
-                        {pack.disabledReason}
-                      </p>
-                    )}
-                    <DictStepRowStatus isInstalled={isInstalled} installedTermCount={installedTermCounts[pack.title]} status={status} />
-                  </div>
-                  {/* Checkbox / state */}
-                  <div className="shrink-0 flex items-center justify-center w-6 h-6 mt-0.5">
-                    {isInstalled ? (
-                      <CheckCircle2 size={18} className="text-emerald-500" />
-                    ) : (
-                      <input
-                        type="checkbox"
-                        id={`dict-onb-${pack.url}`}
-                        checked={checked}
-                        disabled={checkboxDisabled}
-                        onChange={() => toggle(pack.url)}
-                        className="w-4 h-4 accent-indigo-600 cursor-pointer disabled:cursor-not-allowed"
-                      />
-                    )}
-                  </div>
-                </div>
-              </label>
-            </li>
-          );
-        })}
-      </ul>
-
-      {/* Install summary bar */}
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 flex items-center gap-3 flex-wrap">
-        <div className="w-9 h-9 rounded-lg bg-indigo-500/10 ring-1 ring-indigo-500/20 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
-          <Download size={15} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[12.5px] font-semibold text-zinc-800 dark:text-zinc-100 leading-tight">
-            {running
-              ? 'Instalando packs seleccionados…'
-              : toInstall.length === 0
-                ? allDone ? t('onb.allPacksInstalled') : t('onb.selectPack')
-                : `${toInstall.length} ${toInstall.length === 1 ? 'pack listo' : 'packs listos'} para instalar`}
-          </p>
-          <p className="text-[10.5px] text-zinc-500 dark:text-zinc-400 leading-tight mt-0.5">
-            {running ? t('onb.sequentialNote') : t('onb.skipPacks')}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => void installAll()}
-          disabled={running || toInstall.length === 0}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm hover:shadow-md hover:shadow-indigo-500/20 transition-all shrink-0"
-        >
-          {running ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-          <span className="text-[12px] font-semibold">
-            {running
-              ? 'Instalando…'
-              : toInstall.length === 0
-                ? allDone ? 'Todo listo' : 'Nada seleccionado'
-                : `Instalar ${toInstall.length}`}
+      {/* Coverage: one highlighted line, no box */}
+      <p className="text-center text-[13px] leading-[19px] text-zinc-600 dark:text-zinc-300 px-4">
+        <ShieldCheck size={15} className="inline-block align-[-3px] mr-1.5 text-indigo-500 dark:text-indigo-400" />
+        <span>
+          <strong className="font-semibold text-zinc-900 dark:text-white">{t('onb.localCoverage')}</strong> {t('onb.coverageVs')}
+          <span className="block mt-1 text-[12px] text-zinc-500 dark:text-zinc-400">
+            {t('onb.storedLocalNote', { path: `${t('nav.settings')} › ${t('set.sectionOfflineDicts')}` })}
           </span>
-        </button>
+        </span>
+      </p>
+
+      {/* Main piece: catalogue + install in one card */}
+      <div className="rounded-2xl bg-white dark:bg-white/[0.03] ring-1 ring-zinc-900/[0.06] dark:ring-white/[0.06] shadow-[0_12px_32px_-18px_rgba(16,24,40,.25)] dark:shadow-none overflow-hidden">
+        <ul className="divide-y divide-zinc-900/[0.06] dark:divide-white/[0.06]">
+          {CURATED_DICT_PACKS.map((pack) => {
+            const isInstalled = installedTitles.has(pack.title);
+            const status = statuses[pack.url];
+            const hasFailed = status?.status === 'error';
+            const isDisabled = pack.disabledInOnboarding;
+            const checked = !isDisabled && !hasFailed && (selection.has(pack.url) || isInstalled);
+            const checkboxDisabled = isInstalled || running || isDisabled || hasFailed;
+
+            const tier = pack.tier;
+            const tierMeta = tier === 'core'
+              ? { ribbon: 'bg-amber-400', icon: <BookText size={18} />, iconBg: 'bg-indigo-500/[0.08] dark:bg-indigo-400/[0.12] text-indigo-600 dark:text-indigo-300', tag: t('dict.tierCore'), tagTone: 'amber' as const }
+              : tier === 'recommended'
+                ? { ribbon: 'bg-indigo-400', icon: <Sparkles size={18} />, iconBg: 'bg-indigo-500/[0.08] dark:bg-indigo-400/[0.12] text-indigo-600 dark:text-indigo-300', tag: t('dict.tierRecommended'), tagTone: 'indigo' as const }
+                : { ribbon: 'bg-zinc-300 dark:bg-zinc-600', icon: <Brain size={18} />, iconBg: 'bg-zinc-900/[0.04] dark:bg-white/[0.06] text-zinc-500 dark:text-zinc-400', tag: t('dict.tierPremium'), tagTone: 'neutral' as const };
+
+            const rowBg = hasFailed
+              ? 'bg-rose-50/40 dark:bg-rose-500/[0.05]'
+              : checked && !isDisabled && !isInstalled
+                ? 'bg-indigo-50/40 dark:bg-indigo-500/[0.05]'
+                : 'hover:bg-zinc-50/70 dark:hover:bg-white/[0.02]';
+
+            return (
+              <li key={pack.url} className={`relative transition-colors ${rowBg} ${isDisabled ? 'opacity-60' : ''}`}>
+                <span aria-hidden className={`absolute left-0 top-0 bottom-0 w-1 ${tierMeta.ribbon}`} />
+                <label
+                  htmlFor={`dict-onb-${pack.url}`}
+                  className={`block pl-4 pr-4 py-4 ${checkboxDisabled ? 'cursor-default' : 'cursor-pointer'} select-none`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${tierMeta.iconBg}`}>
+                      {tierMeta.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">{pack.title}</span>
+                        <Badge tone={tierMeta.tagTone}>{tierMeta.tag}</Badge>
+                        <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">{pack.size}</span>
+                        <span className="text-[12px] text-zinc-400 dark:text-zinc-400">·</span>
+                        <span className="text-[12px] text-zinc-500 dark:text-zinc-400">{pack.benefit}</span>
+                      </div>
+                      <p className="text-[12px] text-zinc-600 dark:text-zinc-400 leading-snug mt-1">{pack.description}</p>
+                      {isDisabled && pack.disabledReason && (
+                        <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mt-1.5 leading-snug flex items-start gap-1.5">
+                          <AlertTriangle size={12} className="text-amber-500 mt-0.5 shrink-0" />
+                          {pack.disabledReason}
+                        </p>
+                      )}
+                      <DictStepRowStatus isInstalled={isInstalled} installedTermCount={installedTermCounts[pack.title]} status={status} />
+                    </div>
+                    <div className="shrink-0 flex items-center justify-center w-6 h-6 mt-0.5">
+                      {isInstalled ? (
+                        <CheckCircle2 size={18} className="text-emerald-500" />
+                      ) : (
+                        <input
+                          type="checkbox"
+                          id={`dict-onb-${pack.url}`}
+                          checked={checked}
+                          disabled={checkboxDisabled}
+                          onChange={() => toggle(pack.url)}
+                          className="peer sr-only"
+                        />
+                      )}
+                      {!isInstalled && (
+                        <span
+                          aria-hidden
+                          className={`w-[18px] h-[18px] rounded-md border flex items-center justify-center transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500/40 ${
+                            checked
+                              ? 'bg-indigo-600 border-indigo-600 text-white'
+                              : 'bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700'
+                          } ${checkboxDisabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                        >
+                          {checked && <Check size={12} weight="bold" />}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* Card footer: summary + install */}
+        <div className="border-t border-zinc-900/[0.06] dark:border-white/[0.06] bg-zinc-50/70 dark:bg-white/[0.02] px-4 py-3 flex items-center gap-3 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-100 leading-tight">
+              {running
+                ? t('onb.installingSelected')
+                : toInstall.length === 0
+                  ? allDone ? t('onb.allPacksInstalled') : t('onb.selectPack')
+                  : toInstall.length === 1 ? t('onb.packsReadyOne') : t('onb.packsReadyFmt', { n: toInstall.length })}
+            </p>
+            <p className="text-[12px] text-zinc-500 dark:text-zinc-400 leading-tight mt-0.5">
+              {running ? t('onb.sequentialNote') : t('onb.skipPacks')}
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            onClick={() => void installAll()}
+            disabled={running || toInstall.length === 0}
+            icon={running ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+          >
+            {running
+              ? t('onb.installing')
+              : toInstall.length === 0
+                ? allDone ? t('onb.allDoneShort') : t('onb.nothingSelected')
+                : t('onb.installFmt', { n: toInstall.length })}
+          </Button>
+        </div>
       </div>
 
       {topError && (
-        <div className="rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/25 px-4 py-3 text-[12px] text-rose-700 dark:text-rose-400 flex items-start gap-2">
-          <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+        <p className="text-center text-[12px] text-rose-600 dark:text-rose-400 leading-relaxed px-4 inline-flex items-center gap-1.5">
+          <AlertTriangle size={13} className="shrink-0" />
           <span>{topError}</span>
-        </div>
+        </p>
       )}
 
-      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed px-0.5">
-        {t('onb.compatiblePre')}{' '}
-        <span className="font-medium text-zinc-600 dark:text-zinc-300">{`${t('nav.settings')} → ${t('set.sectionOfflineDicts')}`}</span>.
+      <p className="text-center text-[12px] leading-[18px] text-zinc-500 dark:text-zinc-400 px-6 pt-1">
+        {richText(t('onb.compatible'), {
+          path: <span className="font-medium text-zinc-700 dark:text-zinc-300">{t('nav.settings')} › {t('set.sectionOfflineDicts')}</span>,
+        })}
       </p>
     </StepSection>
   );
 }
+
 export interface DictStepRowStatusProps {
   isInstalled: boolean;
   installedTermCount?: number;
@@ -295,39 +300,40 @@ export interface DictStepRowStatusProps {
 export function DictStepRowStatus({ isInstalled, installedTermCount, status }: DictStepRowStatusProps) {
   if (status?.status === 'installed') {
     return (
-      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 inline-flex items-center gap-1">
+      <p className="text-[12px] text-emerald-600 dark:text-emerald-400 mt-1 inline-flex items-center gap-1">
         <CheckCircle2 size={12} />
-        Instalado · {(status.termsImported ?? 0).toLocaleString()} {t('onb.termsCount')}</p>
+        {t('dict.installed')} · {fmtNumber(status.termsImported ?? 0)} {t('onb.termsCount')}
+      </p>
     );
   }
   if (status?.status === 'downloading') {
     return (
-      <p className="text-[11px] text-indigo-600 dark:text-indigo-400 mt-1 inline-flex items-center gap-1">
+      <p className="text-[12px] text-indigo-600 dark:text-indigo-400 mt-1 inline-flex items-center gap-1">
         <Loader2 size={12} className="animate-spin" />
-        Descargando e instalando…
+        {t('onb.downloadingInstalling')}
       </p>
     );
   }
   if (status?.status === 'queued') {
     return (
-      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 inline-flex items-center gap-1">
+      <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mt-1 inline-flex items-center gap-1">
         <Loader2 size={12} className="opacity-50" />
-        En cola
+        {t('onb.queued')}
       </p>
     );
   }
   if (status?.status === 'error') {
     return (
-      <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 inline-flex items-center gap-1">
+      <p className="text-[12px] text-rose-600 dark:text-rose-400 mt-1 inline-flex items-center gap-1">
         <AlertTriangle size={12} />
         {status.error || t('common.unexpectedError')}
       </p>
     );
   }
   if (isInstalled) {
-    const count = installedTermCount ? t('dict.packTermsCount', { count: installedTermCount.toLocaleString() }) : '';
+    const count = installedTermCount ? ` · ${fmtNumber(installedTermCount)} ${t('onb.termsCount')}` : '';
     return (
-      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 inline-flex items-center gap-1">
+      <p className="text-[12px] text-emerald-600 dark:text-emerald-400 mt-1 inline-flex items-center gap-1">
         <CheckCircle2 size={12} />
         {t('onb.installedDone')}{count}
       </p>

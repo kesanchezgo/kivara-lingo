@@ -10,22 +10,22 @@
  * the source: the inline index arithmetic and the inline lock, if they
  * come back, fail here by name.
  */
-import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
-import path from "node:path";
+import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
-const SRC_PATH = path.join(process.cwd(), "src/onboarding/Onboarding.tsx");
-const src = readFileSync(SRC_PATH, "utf8");
+const SRC_PATH = path.join(process.cwd(), 'src/onboarding/Onboarding.tsx');
+const src = readFileSync(SRC_PATH, 'utf8');
 
-describe("the wizard consumes the shared stepper", () => {
-  it("has no inline index arithmetic for step moves", () => {
+describe('the wizard consumes the shared stepper', () => {
+  it('has no inline index arithmetic for step moves', () => {
     // The 901c40e shape: `idx + 1` / `idx - 1` driving setStep directly.
     expect(src).not.toMatch(/\bidx\s*\+\s*1\b/);
     expect(src).not.toMatch(/\bidx\s*-\s*1\b/);
     expect(src).not.toMatch(/idx\s*>=\s*0\s*&&\s*idx\s*\+\s*1\s*</);
   });
 
-  it("has no inline canAdvance gate", () => {
+  it('has no inline canAdvance gate', () => {
     // The lock must come from steps.ts, once, next to its tests.
     expect(src).not.toMatch(/const canAdvance = \(\(\) =>/);
     expect(src).not.toMatch(/const canAdvance\s*=\s*\(/);
@@ -37,7 +37,26 @@ describe("the wizard consumes the shared stepper", () => {
     expect(src).toMatch(/obCanAdvance\(step,/);
   });
 
-  it("keeps the completed-store write at the root, not in the pure module", () => {
+  it('feeds the gate the per-language deck and the level evidence (F8)', () => {
+    // F8 moved the mapping lock to mapping.decks[lang] and added the Level
+    // lock: the root must pass both, or the gate would read stale state.
+    expect(src).toMatch(/decks:\s*ankiMapping\.decks/);
+    expect(src).toMatch(/lang:\s*sourceLang/);
+    expect(src).toMatch(/selfLevel:\s*study\.profile\.selfLevel/);
+    expect(src).toMatch(/tested:\s*Boolean\(study\.profile\.vocabTest\)/);
+  });
+
+  it('renders the Level step between Language and Anki', () => {
+    expect(src).toMatch(/\{step === 'level' && <LevelStep/);
+    const langAt = src.indexOf("{step === 'lang' && (");
+    const levelAt = src.indexOf("{step === 'level' && <LevelStep");
+    const ankiAt = src.indexOf("{step === 'anki' && (");
+    expect(langAt).toBeGreaterThan(-1);
+    expect(levelAt).toBeGreaterThan(langAt);
+    expect(ankiAt).toBeGreaterThan(levelAt);
+  });
+
+  it('keeps the completed-store write at the root, not in the pure module', () => {
     // The one side effect that belongs to the component: reaching done
     // writes `onboarding.completed`. It must stay here, not migrate.
     expect(src).toMatch(/setOnboarding\(\{\s*completed: true/);

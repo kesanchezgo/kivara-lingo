@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useKivaraStore } from '../../shared/store';
+import { useKivaraStore } from '../../shared/use-kivara-store';
 import { SHORTCUT_DEFS, DEFAULT_SHORTCUT_MAP, normalizeCombo, readLiveManifestCommands, type ShortcutMap } from '../../shared/shortcuts';
 
 /**

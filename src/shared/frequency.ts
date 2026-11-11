@@ -1,4 +1,4 @@
-import { t } from './i18n';
+import { t } from './i18n/core';
 /**
  * Single learner-facing frequency band shared by the popover and the Anki
  * card writer. The three evidence scales are not comparable (Longman spoken

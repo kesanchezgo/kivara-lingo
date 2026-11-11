@@ -17,7 +17,7 @@
  * both consume the same source of truth.
  */
 import type { AiProvider } from './types';
-import { t } from './i18n';
+import { t } from './i18n/core';
 
 export type ConfigurableAiProvider = Exclude<AiProvider, 'disabled'>;
 
@@ -86,6 +86,19 @@ export const AI_PRESETS: AiPreset[] = [
     hasFreeTier: false,
     recommended: false,
   },
+  {
+    // F7 (H13/D7): the curated endpoint list. The tile fills `baseUrl` and
+    // `apiFormat` from `OPENAI_COMPATIBLE_PRESETS`; the key is optional on
+    // loopback servers.
+    provider: 'openai-compatible',
+    label: t('aipreset.compatibleLabel'),
+    tagline: t('aipreset.compatibleTagline'),
+    defaultModel: '',
+    getKeyUrl: '',
+    pricingNote: t('aipreset.compatiblePricing'),
+    hasFreeTier: true,
+    recommended: false,
+  },
 ];
 
 /**
@@ -119,6 +132,9 @@ export function pickModelForProvider(
   if (provider === 'openai' && /^(gpt|o1|o3|chatgpt)/i.test(trimmed)) return trimmed;
   if (provider === 'anthropic' && /^claude/i.test(trimmed)) return trimmed;
   if (provider === 'google-ai' && /^(gemini|models\/gemini)/i.test(trimmed)) return trimmed;
+  // Every curated endpoint names its own models: whatever the user typed is
+  // what they mean, and there is no default to fall back to.
+  if (provider === 'openai-compatible') return trimmed;
   return providerDefaultModel(provider);
 }
 

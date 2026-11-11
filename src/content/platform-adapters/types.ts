@@ -1,3 +1,7 @@
+import type { MediaInfo, MediaPlatform } from '../../shared/types';
+
+export type { MediaInfo };
+
 export interface SubtitleCue {
   id: string;
   start: number;
@@ -17,8 +21,31 @@ export interface SubtitleCue {
 
 export type CueListener = (cues: SubtitleCue[]) => void;
 
+/**
+ * The single vetted path for seeking, playback and rate changes
+ * (docs/REDESIGN-V2.md §4.5, §3 H2).
+ *
+ * Every jump in the UI — transcript click, previous/next line, loop, slow
+ * repeat, the post-capture rewind — goes through this object, never through
+ * `video.currentTime`. On Netflix the seek crosses into the MAIN world and
+ * calls the player API: writing `currentTime` there interrupts playback
+ * (error M7375). The shape mirrors the PlaybackController port in
+ * `src/ui/ports/types.ts`; both are structural, so the adapter instance can be
+ * handed to the port unchanged.
+ */
+export interface PlaybackController {
+  /** Jump to `timeMs`. Rejects when the platform cannot seek (Netflix without its player API). */
+  seek(timeMs: number): Promise<void>;
+  play(): Promise<void>;
+  pause(): void;
+  getRate(): number;
+  setRate(rate: number): void;
+  isPaused(): boolean;
+  currentTimeMs(): number;
+}
+
 export interface SubtitleSource {
-  platform: 'netflix' | 'youtube' | 'disney' | 'hbo' | 'prime' | 'generic';
+  platform: MediaPlatform;
 
   onCueChange(listener: CueListener): void;
   getCurrentTime(): number;
@@ -27,6 +54,13 @@ export interface SubtitleSource {
 
   hideNativeSubtitles(): void;
   showNativeSubtitles(): void;
+
+  /**
+   * Best-effort episode metadata for the card tags and the Anki `source`
+   * field (docs/REDESIGN-V2.md §4.5). Every adapter implements it; a page
+   * that cannot tell us more falls back to `document.title`.
+   */
+  getMediaInfo?(): MediaInfo;
 
   /**
    * Release everything the adapter owns: polling intervals, bus
@@ -74,4 +108,21 @@ export interface SubtitleSource {
 
   /** List of alternate languages currently known to the adapter. */
   getAvailableAltLanguages?(): string[];
+
+  /**
+   * The FULL subtitle track of the current episode, or an empty array while it
+   * is still loading (docs/REDESIGN-V2.md §4.5). The transcript rail, the
+   * episode words view and the explain card all read from here.
+   */
+  getTrackCues?(): SubtitleCue[];
+
+  /** Subscribe to track updates (the track can arrive in pieces, and a DASH
+   *  download can finish after mount). Returns the unsubscribe function. */
+  onTrackCues?(cb: (cues: SubtitleCue[]) => void): () => void;
+
+  /**
+   * The platform playback controller. Obligatory for F6 adapters; optional in
+   * the type only so an adapter written before F6 keeps compiling.
+   */
+  playback?: PlaybackController;
 }

@@ -11,6 +11,7 @@
  *    subtitle rendering containers
  */
 import { createInterceptedAdapter } from './intercepted-adapter';
+import { getDomMediaInfo } from './media-info';
 import type { SubtitleSource } from './types';
 
 const HIDE_NATIVE_CSS = `
@@ -27,6 +28,9 @@ export function createNetflixAdapter(): SubtitleSource {
     // pick English; the user can override in the panel.
     language: 'en',
     hideNativeCss: HIDE_NATIVE_CSS,
+    // Never `video.currentTime` on Netflix (error M7375): seeks go through the
+    // player API in the MAIN world (F6 · docs/REDESIGN-V2.md §4.5).
+    playback: 'netflix',
     getVideo: () => {
       // Prefer the in-watch container video; fall back to the first <video>.
       const watch = document.querySelector('.watch-video');
@@ -35,5 +39,17 @@ export function createNetflixAdapter(): SubtitleSource {
         document.querySelector<HTMLVideoElement>('video')
       );
     },
+    getMediaInfo: () => getDomMediaInfo('netflix', {
+      titleSelectors: [
+        '[data-uia="video-title"] h4',
+        '.video-title h4',
+        '.ellipsize-text h4',
+        '[data-uia="video-title"]',
+      ],
+      seriesSelectors: ['.video-title h4', '.ellipsize-text h4'],
+      episodeSelectors: ['[data-uia="video-title"] span', '.video-title span'],
+      titlePrefixes: ['Watch '],
+      titleSuffixes: [' | Netflix', ' - Netflix'],
+    }),
   });
 }

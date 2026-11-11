@@ -33,6 +33,39 @@ export interface SubtitleStyles {
    * busy scenes don't bleed through onto the popover. Default true.
    */
   hoverBlur: boolean;
+  /**
+   * Palette of the word card / popover surface. `auto` follows the page
+   * theme. Added in store v3 (docs/REDESIGN-V2.md §4.4); absent means dark,
+   * which is what every pre-v3 build rendered.
+   */
+  cardTheme?: 'dark' | 'light' | 'auto';
+}
+
+/** How the second subtitle line (the native translation) is rendered. */
+export type TranslationMode = 'visible' | 'blur' | 'hidden';
+
+/**
+ * Study preferences (store v3). Small enough to ride in the synced settings
+ * blob; the per-language word status that grows without bound lives in
+ * chrome.storage.local instead (docs/REDESIGN-V2.md §4.3).
+ */
+export interface StudySettings {
+  /**
+   * Replaces `translate.showDualSubtitle`: three states instead of a boolean,
+   * because the mock's middle state (blurred until hover) has no boolean
+   * equivalent.
+   */
+  translation: TranslationMode;
+  /** Play the line once before revealing the text. */
+  listenFirst: boolean;
+  /** Pause at the end of every cue. */
+  autoPauseCue: boolean;
+  /** Pause while the word card is open. */
+  pauseOnLookup: boolean;
+  /** UI confirmation sounds. */
+  sounds: boolean;
+  /** How a never-seen word is underlined: dotted mark or nothing. */
+  newMarks: 'dotted' | 'none';
 }
 
 /** Native cue alignment as preserved by the parser/adapter. */
@@ -99,6 +132,8 @@ export type FieldSource =
   | 'mnemonic'
   | 'image'
   | 'video-link'
+  | 'cloze'
+  | 'source'
   | 'manual';
 
 export interface AudioClipResponse {
@@ -156,6 +191,18 @@ export interface AnkiMapping {
   modelName: string;
   /** key = exact Anki field name, value = source */
   fieldSources: Record<string, FieldSource>;
+  /**
+   * One deck per study language (BCP-47 → deck name). `deckName` stays as the
+   * read fallback for snapshots written before store v3; new cards resolve
+   * their deck from here by the cue language.
+   */
+  decks?: Record<string, string>;
+  /**
+   * Version of the auto-detection rules that produced `fieldSources`. When it
+   * trails the rules shipped by the build, the mapping can be re-detected
+   * without guessing whether the user chose the sources by hand.
+   */
+  fieldRulesVersion?: number;
 }
 
 export type Mode = 'learning' | 'reading';
@@ -287,7 +334,14 @@ export interface TranslateSettings {
   autoSelectSourceAudio: boolean;
 }
 
-export type AiProvider = 'openai' | 'anthropic' | 'google-ai' | 'disabled';
+export type AiProvider = 'openai' | 'anthropic' | 'google-ai' | 'openai-compatible' | 'disabled';
+
+/**
+ * Wire format of an `openai-compatible` endpoint. `openai-chat` is the
+ * de-facto standard (`/chat/completions`); `anthropic-messages` covers the
+ * providers that expose Claude's message shape under a custom base URL.
+ */
+export type AiApiFormat = 'openai-chat' | 'anthropic-messages';
 
 /**
  * Premium TTS providers that emit a downloadable audio blob (so we can
@@ -357,6 +411,13 @@ export interface AiSettings {
    * surprise charges.
    */
   enableDalleFallback: boolean;
+  /**
+   * Base URL of an `openai-compatible` endpoint (F7 wires the calls; the
+   * fields are persisted from F2 so a saved profile survives the upgrade).
+   */
+  baseUrl?: string;
+  /** Wire format used against `baseUrl`. */
+  apiFormat?: AiApiFormat;
 }
 
 /**
@@ -596,6 +657,44 @@ export interface AiEnrichRequest {
 export type AiEnrichResponse =
   | { ok: true; data: AiEnrichment }
   | { ok: false; error: string; provider: AiProvider };
+
+/**
+ * Structured answer for "Explain sentence" (docs/REDESIGN-V2.md §10).
+ *
+ * Produced by `AI_EXPLAIN_SENTENCE` in the service worker and rendered by
+ * `SentenceExplain.tsx`. `sound` empty means the section is not shown.
+ */
+export interface SentenceExplanation {
+  /** What the line means in this scene. ≤ 220 characters. */
+  meaning: string;
+  /** The one or two structures a learner would trip on. ≤ 400 characters. */
+  grammar: string;
+  /** Multi-word expressions actually present in the line. ≤ 4. */
+  expressions: { text: string; gloss: string }[];
+  /** Connected-speech notes. ≤ 4; `[]` when there is nothing notable. */
+  sound: { phrase: string; sounds: string; note?: string }[];
+}
+
+/** Request payload of `AI_EXPLAIN_SENTENCE`. */
+export interface AiExplainRequest {
+  /** Previous subtitle line, for disambiguation only. */
+  prev?: string;
+  /** The line to explain. */
+  line: string;
+  /** Next subtitle line, for disambiguation only. */
+  next?: string;
+  /** Subtitle language (BCP-47 / ISO 639-1). */
+  lang: string;
+  /** Language of the app UI: all prose is written in it. */
+  uiLang: string;
+  /** User's native language: expression glosses are written in it. */
+  nativeLang: string;
+}
+
+/** Response payload of `AI_EXPLAIN_SENTENCE`. */
+export type AiExplainResponse =
+  | { ok: true; data: SentenceExplanation; cached?: boolean }
+  | { ok: false; error: string; cached?: boolean };
 
 /** Streaming-style resolution for the WordPopover */
 export interface ResolveWordRequest {
@@ -912,9 +1011,47 @@ export interface CaptureContext {
   vip?: VipEnrichment;
 }
 
+/** Platform id every adapter reports and every card tag understands. */
+export type MediaPlatform = 'netflix' | 'youtube' | 'disney' | 'hbo' | 'prime' | 'generic';
+
+/**
+ * Best-effort episode metadata for a playing piece of media
+ * (docs/REDESIGN-V2.md §4.5). The card tags, the transcript header and the
+ * Anki `source` field all read from here.
+ */
+export interface MediaInfo {
+  platform: MediaPlatform;
+  title: string;
+  series?: string;
+  season?: number;
+  episode?: number;
+  url: string;
+}
+
+/** Card flavours F4 can create (docs/REDESIGN-V2.md §7 F4). */
+export type CreateCardKind = 'word' | 'expression' | 'cloze';
+
 export interface CreateCardRequest {
   token: string;
   sentence: string;
+  /**
+   * Registry id the service worker assigned before sending. Optional so
+   * legacy callers keep working; when present the SW mirrors the card into
+   * `kvl:cards.recent` across every state transition.
+   */
+  cardId?: string;
+  /** Card flavour. Defaults to `expression` when the token is multi-word. */
+  kind?: CreateCardKind;
+  /** BCP-47 language of the cue. `language` stays as the legacy spelling. */
+  lang?: string;
+  /** Target deck. Empty falls back to `ankiMapping.decks[lang] ?? deckName`. */
+  deck?: string;
+  /** Episode metadata captured from the platform adapter (F4). */
+  media?: MediaInfo;
+  /** Pre-built cloze text; when absent the orchestrator wraps the token. */
+  cloze?: string;
+  /** Neighbouring subtitle lines, kept for the card's context fields. */
+  contextLines?: { prev?: string; next?: string };
   /** The native-language translation of the full sentence (from dual subtitle
    *  or MT provider). Filled by the content script when available. */
   sentenceTranslation?: string;
@@ -933,6 +1070,7 @@ export interface CreateCardRequest {
   videoTimeAtSave?: number;
   /** Whether the media element was paused when the user triggered save. */
   videoPausedAtSave?: boolean;
+  /** Legacy BCP-47 spelling; read only when `lang` is absent. */
   language?: string;
   platform?: string;
 }
@@ -943,7 +1081,78 @@ export interface CreateCardResponse {
   error?: string;
   warnings?: string[];
   fields?: Record<string, string>;
+  /**
+   * The card could not reach Anki but is sitting in the retry queue
+   * (transport-level failure). Absent/false for permanent failures.
+   */
+  queued?: boolean;
 }
+
+/* ── F4 Anki / card-registry messages (docs/REDESIGN-V2.md §4.6) ────────── */
+
+/** Undo: delete one note by id. */
+export interface AnkiDeleteNoteRequest { noteId: number; }
+export interface AnkiDeleteNoteResponse {
+  ok: boolean;
+  error?: string;
+  /** True when the note was already gone — the undo goal is still met. */
+  gone?: boolean;
+}
+
+/** Add this scene: attach another sentence/context to an existing note. */
+export interface AnkiAddContextRequest {
+  /** Resolved note id, or omitted when the caller only knows the headword. */
+  noteId?: number;
+  /** Headword used to resolve `noteId` through `findCards` when absent. */
+  token?: string;
+  sentence: string;
+  frame?: string;
+  audio?: string;
+  tags: string[];
+  /** Deck used to narrow the headword lookup. */
+  deck?: string;
+  /** Field that holds the headword, used to narrow the lookup. */
+  fieldName?: string;
+}
+export interface AnkiAddContextResponse {
+  ok: boolean;
+  noteId?: number;
+  error?: string;
+  /** Set when one of the two writes landed and the other did not: 'fields'
+   * means the scene was NOT written, 'tags' means it was and only the tags
+   * failed. */
+  partial?: 'fields' | 'tags';
+}
+
+/** See in Anki: open the browser on a note id or a raw query. */
+export interface AnkiBrowseRequest { noteId?: number; query?: string; }
+export interface AnkiBrowseResponse { ok: boolean; noteIds?: number[]; error?: string; }
+
+/**
+ * Maturity/seen sentinel per headword, read from the deck as a SNAPSHOT.
+ *
+ * The values are sentinels, not the card's real interval: the snapshot only
+ * needs Anki's maturity boundary, so a word with any mature card answers 21
+ * and every other word of the deck answers 0 — a note created moments ago,
+ * whose cards are still new, is in the deck and answers 0.
+ *
+ * The answer is a discriminated union on purpose: an error must be
+ * distinguishable from an empty deck.
+ *   `ok: true`  — the deck was read completely; `words` REPLACES the caller's
+ *                 cached map and may be empty (empty deck).
+ *   `ok: false` — the Anki query failed; the caller KEEPS its cached map and
+ *                 marks it stale.
+ */
+export interface AnkiWordIntervalsRequest { lang: string; deck: string; fieldName: string; }
+export interface AnkiWordIntervalsOk { ok: true; words: Record<string, number>; }
+export interface AnkiWordIntervalsErr { ok: false; error: string; }
+export type AnkiWordIntervalsResponse = AnkiWordIntervalsOk | AnkiWordIntervalsErr;
+
+export interface CardRetryRequest { id: string; }
+export interface CardRetryResponse { ok: boolean; noteId?: number; error?: string; }
+export interface CardRetryAllResponse { ok: boolean; retried: number; succeeded: number; }
+export interface CardDismissRequest { id: string; }
+export interface CardDismissResponse { ok: boolean; }
 
 /**
  * Re-capture / update the frame of an existing Anki note.
@@ -984,3 +1193,24 @@ export interface AnkiListsResponse {
 export interface AnkiFieldsResponse {
   fields: string[];
 }
+
+/**
+ * Per-source health of the enrichment chain, kept in the service worker's
+ * memory (docs/REDESIGN-V2.md §3 H8). The VIP tab renders it as a dot plus a
+ * one-line reason so a source that silently stopped returning data is
+ * visible without opening DevTools.
+ */
+export type EnrichSourceHealthState = 'ok' | 'slow' | 'error';
+
+export interface EnrichSourceHealth {
+  state: EnrichSourceHealthState;
+  /** Last successful (or failed) round trip, in milliseconds. */
+  latencyMs?: number;
+  /** Last failure message, truncated by the orchestrator. */
+  lastError?: string;
+  /** Epoch ms of the observation. */
+  at: number;
+}
+
+/** Keyed by source id (`cambridge`, `wordnet`, ...). */
+export type EnrichSourceHealthMap = Record<string, EnrichSourceHealth>;

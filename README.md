@@ -1,10 +1,26 @@
 # Kivara Lingo
 
-> Aprende idiomas mientras ves tu serie favorita. Subtítulos personalizables, popover enriquecido con el orquestador de enriquecimiento (vease SOURCE_TIERS para el recuento exacto)rios offline, tarjetas Anki en un clic con frame y audio exacto de la frase.
+> Aprende idiomas mientras ves tu serie favorita. Subtítulos personalizables, transcripción navegable, controles de estudio, estado de palabras y nivel, popover enriquecido con el orquestador de enriquecimiento y tarjetas Anki en un clic con frame y audio exacto de la frase.
 
 **Kivara Lingo** es una extensión Chrome real (Manifest V3) que se monta sobre reproductores de streaming (Netflix, HBO Max, Disney+, YouTube, Prime Video) y convierte sus subtítulos en una herramienta de aprendizaje de vocabulario integrada con Anki. Al pasar el ratón sobre una palabra o expresión multi-palabra obtienes fonética, traducción, sinónimos, antónimos, colocaciones, etimología e imágenes; con un clic generas una tarjeta Anki con el audio exacto de la frase y el fotograma del momento (las imágenes web quedan como fallback).
 
-> **Nota:** la extensión real vive en `src/` y se construye con `pnpm build`. La carpeta `mock/` está ignorada por git y solo existe como referencia local de diseño.
+> **Nota:** la extensión real vive en `src/` y se construye con `pnpm build`. La carpeta `.mock/` está ignorada por git y solo existe como referencia local de diseño; el motor es el del repo.
+
+---
+
+## Novedades de la v2 (0.3.0)
+
+La v2 sustituye la capa de vista y añade motores nuevos sin reescribir la captura, el enriquecimiento ni Anki. Lo que hay hoy en `src/`:
+
+- **Overlay rediseñado** sobre el tokenizador real: modos de traducción (visible, difuminada, oculta), Escucha primero, pausa al consultar, modo Lectura, navegación por teclado (←/→, Home/End, Shift para seleccionar) y marcas de estado de palabra en el subrayado.
+- **Tarjeta de palabra** montada sobre `useResolveWord`: estados de esqueleto/fases y selector de estado (nueva, aprendiendo, conocida) con su nivel.
+- **Transcripción lateral**: pestañas Frases · Palabras, búsqueda, seguimiento del cue activo (solo lo apaga un gesto del usuario), filtro i+1 y salto por línea sin tocar `video.currentTime` en Netflix.
+- **Controles de estudio**: barra propia de Kivara con anterior, repetir lento (pulsación larga = más lento), siguiente, auto-pausa, bucle y velocidad; 9 atajos de página nuevos además de los 5 del manifest.
+- **Estado de palabras y nivel**: estimador de vocabulario sobre la lista de frecuencias, prueba de vocabulario con pseudopalabras, `LevelLadder` y pestaña Vocabulario. Se guarda por idioma en `chrome.storage.local`.
+- **Tarjetas v2**: tipos de tarjeta, etiquetas `kivara::lang::<idioma>`, `kivara::<serie>::<episodio>` y `kivara::<tipo>` (más `kivara-lingo` por compatibilidad), mazo por idioma, Recientes, Deshacer, Añadir esta escena y Ver en Anki. El registro y la cola tienen un único escritor: el service worker.
+- **Explicar frase (IA)**: `AI_EXPLAIN_SENTENCE` con `callAiJson`, caché en Dexie y proveedor `openai-compatible` con endpoints curados (OpenRouter, Groq, DeepSeek, Mistral, Together, xAI y localhost para Ollama/LM Studio). Solo aparece con la IA configurada.
+- **Onboarding v2** de 8 pasos, con el paso Nivel entre Idioma y Anki y el mapeo con el mazo del idioma elegido.
+- **Panel, Options y Popup** con el sistema de diseño nuevo sin Radix (Select y Slider nativos, diálogo con trampa de foco propia) y store v3.
 
 ---
 
@@ -19,7 +35,7 @@
 - **Modo Lectura**: oculta toda la UI de aprendizaje y deja solo subtítulos estilizados.
 - **Atajos de teclado**: `Ctrl+Shift+S` guardar, `Alt+C` toggle subtítulos, `Alt+R` repetir frase, `Alt+V` re-capturar frame, `Alt+K` toggle panel. Combos de página personalizables en Settings (los comandos Chrome se re-asignan en `chrome://extensions/shortcuts`).
 - **Tema claro y oscuro**, panel acoplado o flotante.
-- **UI bilingüe ES/EN**: `src/shared/i18n.ts` con claves ES/EN pareadas; el idioma se detecta vía `chrome.i18n.getUILanguage()` con fallback a español.
+- **UI bilingüe ES/EN**: diccionarios en `src/shared/i18n/` (un archivo por área) con claves ES/EN pareadas; el idioma se detecta vía `chrome.i18n.getUILanguage()` con fallback a español.
 
 ---
 
@@ -29,11 +45,12 @@
 # Instalar dependencias
 pnpm install
 
-# Build de producción → dist/
-pnpm build
-
-# Tests (753/753 passing)
-pnpm vitest run
+# Puerta completa
+pnpm test         # vitest (unidad e integración)
+pnpm typecheck    # tsc, proyectos app y node
+pnpm lint         # eslint con tope de 24 avisos
+pnpm build        # build de producción → dist/
+pnpm test:e2e     # build + Playwright sobre Chromium real (incluye axe)
 
 # Build del diccionario bundled (si modificas data/)
 pnpm dict:build
@@ -223,10 +240,14 @@ La ruta de audio sí está completa y es el valor que ya se usa hoy: captura de 
 ## Tests
 
 ```bash
-pnpm vitest run   # 753/753 tests passing
+pnpm test          # unitarios e integración (vitest)
+pnpm typecheck     # TypeScript estricto, dos proyectos
+pnpm lint          # 0 errores; el tope de avisos es 24 y solo puede bajar
+pnpm build         # dist/ listo para cargar
+pnpm test:e2e      # Playwright sobre Chromium real
 ```
 
-Los tests cubren: tokenizador, MWE, lematización, parsers de fuentes de enriquecimiento, ranking por acepción, cadena de traducción, VAD, encoder WAV, utilidades compartidas y contrato de provenance por campo.
+Los tests cubren: tokenizador, MWE, lematización, parsers de fuentes de enriquecimiento, ranking por acepción, cadena de traducción, VAD, encoder WAV, utilidades compartidas y contrato de provenance por campo. Desde F0-F9 se añaden: migración del store v3 y tamaño del blob, `chromeLocalStore`, registro de tarjetas, `PlaybackController`, `AI_EXPLAIN_SENTENCE`, estimador de nivel determinista, claves i18n muertas y una auditoría axe (panel y overlay) en la e2e.
 
 ---
 
@@ -238,8 +259,17 @@ Los tests cubren: tokenizador, MWE, lematización, parsers de fuentes de enrique
 
 ## Licencia
 
-MIT para el **código** (ver [LICENSE](LICENSE)). Los datos lingüísticos de
-terceros que se distribuyen en el paquete (WordNet en CC BY 4.0, el índice MWE
-de Wiktionary en CC BY-SA 4.0, Oxford, idioms, colocaciones académicas, tesauro)
-tienen cada uno su licencia: [ATTRIBUTIONS.md](ATTRIBUTIONS.md). Al construir
-desde el repo, esas licencias van contigo en el paquete.
+MIT para el **código** (ver [LICENSE](LICENSE)). Los datos de terceros que se
+distribuyen en el paquete tienen cada uno su licencia:
+
+- **Datos lingüísticos**: WordNet (CC BY 4.0), índice MWE de Wiktionary
+  (CC BY-SA 4.0), Oxford, idioms, colocaciones académicas y tesauro.
+- **Lista de frecuencias** (`src/assets/frequency/`): derivada de
+  FrequencyWords / OpenSubtitles, **CC BY-SA 4.0**; se distribuye offline y
+  hereda el ShareAlike.
+- **Falsos amigos ES↔EN y banco de la prueba**: listas curadas para esta
+  extensión.
+- **Inter** (OFL-1.1) y **Phosphor Icons** (MIT): ver
+  [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
+
+Al construir desde el repo, esas licencias van contigo en el paquete.

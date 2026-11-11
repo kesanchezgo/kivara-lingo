@@ -1,3 +1,15 @@
+/**
+ * Onboarding root — the 8-step wizard (F8; docs/REDESIGN-V2.md §5.4, §7 F8).
+ *
+ * The view is the prototype's (slim stepper, centred step, footer actions);
+ * the machine is the repo's. `steps.ts` owns the order and the lock rules, the
+ * root only drives them, and the one side effect that belongs here is the
+ * `completed` write when the last regular step emits `done`.
+ *
+ * The Anki state machine keeps the repo's guards: each ping and each field
+ * list carries an id so a late reply from a superseded request cannot
+ * overwrite a newer one, and only the latest request owns the busy flag.
+ */
 import React, { useEffect, useRef, useState } from 'react';
 import { t } from '../shared/i18n';
 import {
@@ -11,6 +23,7 @@ import {
 
 import { WelcomeStep } from './steps/WelcomeStep';
 import { AnkiStep } from './steps/AnkiStep';
+import { LevelStep } from './steps/LevelStep';
 import { MappingStep } from './steps/MappingStep';
 import { AIStep } from './steps/AIStep';
 import { DemoStep } from './steps/DemoStep';
@@ -19,18 +32,14 @@ import { LangStep } from './steps/LangStep';
 import { DictStep } from './steps/DictStep';
 
 import { sendMessage } from 'webext-bridge/options';
-import { CheckCircle2, ChevronRight, ChevronLeft, Moon, Sun } from 'lucide-react';
-import { useKivaraStore } from '../shared/store';
+import { CheckCircle2, ChevronRight, ChevronLeft, Moon, Sun } from '../ui/icons';
+import { BrandGlyph } from '../ui/BrandGlyph';
+import { Badge, Button } from '../ui/primitives/settings-primitives';
+import { useKivaraStore } from '../shared/use-kivara-store';
 import { autoMapFields } from '../shared/anki-field-detect';
+import { deckFor } from '../shared/study/decks';
+import { useWordStudy } from '../content/ui/study';
 import type { AnkiPingResponse, AnkiListsResponse, AnkiFieldsResponse } from '../shared/types';
-
-/* ─── Stepper config ──────────────────────────────────────────────────────── */
-
-
-/* ─── Source-badge palette (re-used from CardsTab) ────────────────────────── */
-
-
-/* ─── Top-level component ─────────────────────────────────────────────────── */
 
 export function Onboarding() {
   const {
@@ -56,6 +65,12 @@ export function Onboarding() {
   const [deckCreateMode, setDeckCreateMode] = useState(false);
   const [modelCreateMode, setModelCreateMode] = useState(false);
 
+  const sourceLang = translate.sourceLang || 'en';
+  const targetLang = translate.targetLanguage || 'es';
+  // The Level step's evidence, read through the F5 engine: the gate must
+  // follow what was actually written, not a local copy.
+  const study = useWordStudy(sourceLang);
+
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
@@ -65,10 +80,10 @@ export function Onboarding() {
 
   async function runPing() {
     // Tag the run so a stale response cannot overwrite a newer one. The user
-    // edits the URL while a previous ping is still in flight (Anki cold
-    // takes seconds), and two ticks ago that older `.ok` would land on top
-    // of the newer attempt's state — the wizard moved on to a connection
-    // that no longer matched what was typed.
+    // edits the URL while a previous ping is still in flight (Anki cold takes
+    // seconds), and two ticks ago that older `.ok` would land on top of the
+    // newer attempt's state — the wizard moved on to a connection that no
+    // longer matched what was typed.
     const id = pingIdRef.current + 1;
     pingIdRef.current = id;
     setPing({ status: 'pinging' });
@@ -159,13 +174,15 @@ export function Onboarding() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
-  // If the persisted deck/model name doesn't appear in the lists, switch
-  // into "create" mode so the user's value stays editable.
+  // If the persisted deck/model name doesn't appear in the lists, switch into
+  // "create" mode so the user's value stays editable. The deck is the one of
+  // the language being learned (`mapping.decks[lang]`), not a global one.
+  const deck = deckFor(ankiMapping, sourceLang);
   useEffect(() => {
-    if (decks && ankiMapping.deckName && !decks.includes(ankiMapping.deckName)) {
+    if (decks && deck && !decks.includes(deck)) {
       setDeckCreateMode(true);
     }
-  }, [decks, ankiMapping.deckName]);
+  }, [decks, deck]);
   useEffect(() => {
     if (models && ankiMapping.modelName && !models.includes(ankiMapping.modelName)) {
       setModelCreateMode(true);
@@ -196,7 +213,6 @@ export function Onboarding() {
     setStep(n);
   }
 
-
   function openDemo() {
     try {
       chrome.tabs.create({ url: DEMO_URL });
@@ -219,54 +235,55 @@ export function Onboarding() {
   // The lock rules live in steps.ts; the buttons ask that, not a copy.
   const canAdvance = obCanAdvance(step, {
     ping,
-    ankiMapping: { deckName: ankiMapping.deckName, modelName: ankiMapping.modelName },
+    ankiMapping: {
+      deckName: ankiMapping.deckName,
+      modelName: ankiMapping.modelName,
+      decks: ankiMapping.decks,
+    },
+    lang: sourceLang,
+    level: {
+      selfLevel: study.profile.selfLevel,
+      tested: Boolean(study.profile.vocabTest),
+    },
   });
 
   const stepIndex = OB_STEPS.findIndex((s) => s.id === step);
 
   return (
-    <div className={`fixed inset-0 z-[100] flex flex-col font-sans ${isDarkMode ? 'dark bg-zinc-950 text-zinc-100' : 'bg-zinc-50 text-zinc-900'}`}
-      style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}>
-
+    <div
+      className={`kvl-ui fixed inset-0 z-[100] flex flex-col ${isDarkMode ? 'dark bg-zinc-950 text-zinc-100' : 'bg-zinc-50 text-zinc-900'}`}
+      style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}
+    >
       {/* Header — icon-only badge, no separate logo text */}
-      <header className="shrink-0 border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md px-6 h-14 flex items-center justify-between">
+      <header className="shrink-0 border-b border-zinc-900/[0.06] dark:border-white/[0.06] bg-white dark:bg-zinc-950 px-6 h-14 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
-            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="6" width="18" height="13" rx="2.5" />
-              <line x1="7" y1="12" x2="13" y2="12" />
-              <line x1="7" y1="15.5" x2="11" y2="15.5" />
-              <circle cx="17.5" cy="14" r="1.2" fill="white" stroke="none" />
-            </svg>
+            <BrandGlyph size={16} className="text-white" />
           </div>
           <div>
-            <div className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">
+            <div className="text-[15px] font-semibold tracking-[-0.01em] text-zinc-900 dark:text-white leading-5">
               Kivara <span className="text-indigo-500 dark:text-indigo-400">Lingo</span>
             </div>
-            <div className="text-[10px] text-zinc-500 leading-tight">{t('onb.configInit')}</div>
+            <div className="text-[12px] text-zinc-500 leading-tight">{t('onb.configInit')}</div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-label={isDarkMode ? 'Tema claro' : 'Tema oscuro'}
+          <Button
+            variant="ghost"
             onClick={() => setIsDarkMode(!isDarkMode)}
-            className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-            title={isDarkMode ? 'Tema claro' : 'Tema oscuro'}
-          >
-            {isDarkMode ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
-          <button
-            onClick={skipAll}
-            className="inline-flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          >
-            Saltar <ChevronRight size={11} />
-          </button>
+            aria-label={t('popup.theme', { mode: isDarkMode ? t('popup.theme.light') : t('popup.theme.dark') })}
+            title={t('popup.theme', { mode: isDarkMode ? t('popup.theme.light') : t('popup.theme.dark') })}
+            icon={isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+            className="!w-8 !px-0"
+          />
+          <Button variant="ghost" onClick={skipAll} className="duration-150">
+            {t('onb.skip')} <ChevronRight size={14} />
+          </Button>
         </div>
       </header>
 
       {/* Stepper */}
-      <div className="shrink-0 bg-white/70 dark:bg-zinc-900/70 backdrop-blur border-b border-zinc-200 dark:border-zinc-800">
+      <div className="shrink-0 bg-white dark:bg-zinc-950 border-b border-zinc-900/[0.06] dark:border-white/[0.06]">
         <div className="max-w-2xl mx-auto px-6 py-3.5 flex items-center">
           {OB_STEPS.map((s, i) => {
             const done = step === 'done' || i < stepIndex;
@@ -279,35 +296,33 @@ export function Onboarding() {
                     data-step-state={done ? 'done' : active ? 'active' : 'pending'}
                     data-step-index={i}
                     aria-current={active ? 'step' : undefined}
-                    className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    done
-                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/40'
-                      : active
-                        ? 'bg-white dark:bg-zinc-950 ring-2 ring-indigo-500 text-indigo-600 dark:text-indigo-400'
-                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-600'
-                  }`}
+                    className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors duration-300 ${
+                      done
+                        ? 'bg-indigo-600 dark:bg-indigo-500 text-white'
+                        : active
+                          ? 'bg-white dark:bg-zinc-950 ring-2 ring-indigo-500 text-indigo-600 dark:text-indigo-400'
+                          : 'bg-zinc-900/[0.05] dark:bg-white/[0.06] text-zinc-500'
+                    }`}
                   >
-                    {done ? <CheckCircle2 size={12} /> : <span style={{ fontSize: 10, fontWeight: 700 }}>{i + 1}</span>}
+                    {done
+                      ? <CheckCircle2 size={12} />
+                      : <span className="text-[11px] font-semibold tabular-nums">{i + 1}</span>}
                   </div>
-                  <div className="hidden sm:flex flex-col items-start">
-                    <span className={`text-[11px] font-medium transition-colors leading-tight ${
+                  <div className={`${active ? 'flex' : 'hidden lg:flex'} items-center gap-1.5 whitespace-nowrap`}>
+                    <span className={`text-[12px] font-medium transition-colors leading-tight ${
                       active
                         ? 'text-zinc-900 dark:text-zinc-100'
                         : done
                           ? 'text-indigo-500 dark:text-indigo-400'
-                          : 'text-zinc-400 dark:text-zinc-600'
-                    }`}>{s.label}</span>
-                    {s.optional && (
-                      <span className="text-[9px] text-zinc-400 dark:text-zinc-600 leading-tight">{t('onb.optionalTag')}</span>
-                    )}
-                    {s.recommended && (
-                      <span className="text-[9px] text-amber-500 dark:text-amber-400 leading-tight">{t('onb.recommendedTag')}</span>
-                    )}
+                          : 'text-zinc-500'
+                    }`}>{t(s.label)}</span>
+                    {s.recommended && <Badge tone="amber">{t('onb.recommendedTag')}</Badge>}
+                    {s.optional && <Badge>{t('onb.optionalTag')}</Badge>}
                   </div>
                 </div>
                 {i < OB_STEPS.length - 1 && (
-                  <div className={`flex-1 h-px mx-3 transition-all duration-500 rounded-full ${
-                    done ? 'bg-indigo-400 dark:bg-indigo-600' : 'bg-zinc-200 dark:bg-zinc-800'
+                  <div className={`flex-1 h-px mx-3 transition-colors duration-500 rounded-full ${
+                    done ? 'bg-indigo-400 dark:bg-indigo-600' : 'bg-zinc-900/[0.08] dark:bg-white/[0.08]'
                   }`} />
                 )}
               </React.Fragment>
@@ -317,21 +332,19 @@ export function Onboarding() {
       </div>
 
       {/* Main content (animated step transition) */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div
-          key={step}
-          className={direction === 1 ? 'sl-animate-step-fwd' : 'sl-animate-step-back'}
-        >
+      <main className="flex-1 overflow-y-auto overflow-x-hidden kvl-scroll bg-zinc-50/80 dark:bg-transparent">
+        <div key={step} className={direction === 1 ? 'sl-animate-step-fwd' : 'sl-animate-step-back'}>
           <div className="max-w-2xl mx-auto px-6 py-6">
-            {step === 'welcome' && <WelcomeStep />}
+            {step === 'welcome' && <WelcomeStep steps={OB_STEPS.length} />}
             {step === 'lang' && (
               <LangStep
-                sourceLang={translate.sourceLang || 'en'}
+                sourceLang={sourceLang}
                 setSourceLang={(v) => setTranslate({ ...translate, sourceLang: v })}
-                targetLang={translate.targetLanguage || 'es'}
+                targetLang={targetLang}
                 setTargetLang={(v) => setTranslate({ ...translate, targetLanguage: v })}
               />
             )}
+            {step === 'level' && <LevelStep sourceLang={sourceLang} />}
             {step === 'anki' && (
               <AnkiStep
                 mapping={ankiMapping}
@@ -342,6 +355,7 @@ export function Onboarding() {
             )}
             {step === 'mapping' && (
               <MappingStep
+                lang={sourceLang}
                 mapping={ankiMapping}
                 setMapping={setAnkiMapping}
                 decks={decks}
@@ -369,7 +383,6 @@ export function Onboarding() {
                 setAiEnrichOnSave={(v) => setAi({ ...ai, enrichOnSave: v })}
                 aiEnrichOnHover={ai.enrichOnHover}
                 setAiEnrichOnHover={(v) => setAi({ ...ai, enrichOnHover: v })}
-                isDarkMode={isDarkMode}
               />
             )}
             {step === 'demo' && <DemoStep />}
@@ -377,6 +390,10 @@ export function Onboarding() {
               <DoneStep
                 completedAt={onboarding.completedAt}
                 onComplete={openDemo}
+                sourceLang={sourceLang}
+                targetLang={targetLang}
+                mapping={ankiMapping}
+                aiProvider={ai.provider}
               />
             )}
           </div>
@@ -384,49 +401,50 @@ export function Onboarding() {
       </main>
 
       {/* Navigation footer */}
-      <footer className="shrink-0 border-t border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md px-6 h-16 flex items-center justify-between">
-        <button
-          type="button"
+      <footer className="shrink-0 border-t border-zinc-900/[0.06] dark:border-white/[0.06] bg-white dark:bg-zinc-950 px-6 h-14 flex items-center justify-between">
+        <Button
+          variant="secondary"
           aria-label={t('common.back')}
           data-testid="onboarding-back"
           onClick={prev}
           disabled={step === 'welcome' || step === 'done'}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-30 transition-all"
+          icon={<ChevronLeft size={14} />}
         >
-          <ChevronLeft size={14} />
-          <span style={{ fontSize: 13 }}>{t('common.back')}</span>
-        </button>
+          {t('common.back')}
+        </Button>
 
         {step !== 'done' && (
           <div className="flex items-center gap-3">
             {step === 'anki' && ping.status !== 'ok' && (
-              <span className="text-[11px] text-zinc-400 dark:text-zinc-500 hidden sm:block">
-                {t('onb.confirmAnki')}</span>
-            )}
-            {step === 'mapping' && !canAdvance && (
-              <span className="text-[11px] text-zinc-400 dark:text-zinc-500 hidden sm:block">
-                {t('onb.pickDeckModel')}</span>
-            )}
-            {(step === 'dict' || step === 'ai') && (
-              <span className="text-[11px] text-zinc-400 dark:text-zinc-500 hidden sm:block">
-                {step === 'dict'
-                  ? t('onb.recommendedLater')
-                  : t('onb.optionalStep')}
+              <span className="text-[12px] text-zinc-400 dark:text-zinc-400 hidden sm:block">
+                {t('onb.confirmAnki')}
               </span>
             )}
-            <button
-              type="button"
+            {step === 'mapping' && !canAdvance && (
+              <span className="text-[12px] text-zinc-400 dark:text-zinc-400 hidden sm:block">
+                {t('onb.pickDeckModel')}
+              </span>
+            )}
+            {step === 'level' && !canAdvance && (
+              <span className="text-[12px] text-zinc-400 dark:text-zinc-400 hidden sm:block">
+                {t('onb.pickLevel')}
+              </span>
+            )}
+            {(step === 'dict' || step === 'ai') && (
+              <span className="text-[12px] text-zinc-400 dark:text-zinc-400 hidden sm:block">
+                {step === 'dict' ? t('onb.recommendedLater') : t('onb.optionalStep')}
+              </span>
+            )}
+            <Button
+              variant="primary"
               aria-label={step === 'demo' ? t('onb.startAction') : t('onb.nextAction')}
               data-testid="onboarding-next"
               onClick={next}
               disabled={!canAdvance}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md hover:shadow-indigo-500/20 transition-all"
             >
-              <span style={{ fontSize: 13, fontWeight: 600 }}>
-                {step === 'demo' ? t('onb.startAction') : t('onb.nextAction')}
-              </span>
+              {step === 'demo' ? t('onb.startAction') : t('onb.nextAction')}
               <ChevronRight size={14} />
-            </button>
+            </Button>
           </div>
         )}
       </footer>

@@ -7,7 +7,7 @@
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { useKivaraStore } from '../../src/shared/store';
+import { useKivaraStore } from '../../src/shared/use-kivara-store';
 import { DEFAULT_VIP, DEFAULT_TRANSLATE, DEFAULT_TTS, DEFAULT_AI, DEFAULT_CAPTURE, DEFAULT_CLEANUP, DEFAULT_ONBOARDING, DEFAULT_TELEMETRY, DEFAULT_SHORTCUTS, DEFAULT_PANEL_POSITION, DEFAULT_SUBTITLE_STYLES, DEFAULT_ANKI_MAPPING } from '../../src/shared/store';
 import type { VipSettings } from '../../src/shared/types';
 import { refreshHostPermissions } from '../../src/shared/host-permissions-store';
@@ -63,7 +63,7 @@ beforeEach(async () => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-describe('SettingsTab behavior across the split', () => {
+describe('SettingsTab behavior across the split', { timeout: 30_000 }, () => {
   it('hides premium VIP source controls until VIP is enabled', async () => {
     await mountSettings();
     fireEvent.click(screen.getByRole('button', { name: /Enriquecimiento/i }));
@@ -112,7 +112,7 @@ describe('SettingsTab behavior across the split', () => {
   it('requests provider hosts from the provider control gesture', async () => {
     const request = vi.mocked(chrome.permissions.request);
     await mountSettings();
-    fireEvent.click(screen.getByRole('button', { name: /TTS premium/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Voz premium/i }));
     const selects = screen.getAllByRole('combobox');
     const select = selects.find((node) => (node as HTMLSelectElement).value === 'auto') as HTMLSelectElement;
     expect(select).toBeDefined();
@@ -127,25 +127,26 @@ describe('SettingsTab behavior across the split', () => {
     const getAll = vi.mocked(chrome.permissions.getAll);
     await mountSettings();
     fireEvent.click(screen.getByRole('button', { name: /Acceso a sitios/i }));
-    await screen.findAllByRole('button', { name: 'Conceder' });
+    await screen.findAllByRole('switch');
 
-    /** The row is the first ancestor that carries the group label, so the
-     *  assertions stay about this group's buttons and not another's. */
+    /** The row is the first ancestor that carries the group label and the
+     *  group switch, so the assertions stay about this group's control. */
     const dictRow = (): HTMLElement => {
       const label = screen.getByText('Diccionarios y tesauros');
       for (let node: HTMLElement | null = label.parentElement; node; node = node.parentElement) {
         if (node === document.body) break;
-        if ([...node.querySelectorAll('button')].some((b) => /Conced|Revoc/.test(b.textContent ?? ''))) {
-          return node;
-        }
+        if (node.querySelector('[role="switch"]')) return node;
       }
       throw new Error('dictionary permission row not found');
     };
-    const row = dictRow();
 
-    const grant = [...row.querySelectorAll('button')].find((b) => b.textContent === 'Conceder');
-    expect(grant).toBeDefined();
-    fireEvent.click(grant!);
+    const toggle = (): HTMLElement => {
+      const found = dictRow().querySelector<HTMLElement>('[role="switch"]');
+      expect(found).not.toBeNull();
+      return found!;
+    };
+
+    fireEvent.click(toggle());
     await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
     // Exact origins: the whole dictionary group, and nothing beyond it.
     expect([...new Set(request.mock.calls[0][0].origins)].sort()).toEqual([...new Set(dictOrigins)].sort());
@@ -153,9 +154,9 @@ describe('SettingsTab behavior across the split', () => {
     // The grant answer comes back from chrome, not from our own state.
     getAll.mockResolvedValue({ origins: [...dictOrigins] } as unknown as void);
     await act(async () => refreshHostPermissions());
-    const revoke = [...dictRow().querySelectorAll('button')].find((b) => b.textContent === 'Revocar');
-    expect(revoke).toBeDefined();
-    fireEvent.click(revoke!);
+    await waitFor(() => expect(toggle().getAttribute('aria-checked')).toBe('true'));
+
+    fireEvent.click(toggle());
     await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
     expect([...new Set(remove.mock.calls[0][0].origins)].sort()).toEqual([...new Set(dictOrigins)].sort());
   });

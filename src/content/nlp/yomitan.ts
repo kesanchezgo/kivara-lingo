@@ -31,7 +31,9 @@ import type { DictPackRow, DictTermRow } from '../../shared/db';
 import type { DictionaryEntry } from '../../shared/types';
 import { lemmaCandidates } from './lemma';
 import { deletePackStats, recordPackInstall } from '../../shared/telemetry';
-import { t } from '../../shared/i18n';
+// Worker-subset dictionary: the UI barrel would drag the full 1308-key dict
+// and React (via useSyncExternalStore) into the service worker bundle.
+import { t } from '../../shared/i18n/sw';
 
 /** Yomitan term_bank entry tuple. */
 export type YomitanTermTuple = [

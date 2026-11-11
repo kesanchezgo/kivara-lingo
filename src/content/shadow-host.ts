@@ -44,6 +44,7 @@
 import globalsCss from '../styles/globals.css?inline';
 import themeCss from '../styles/theme.css?inline';
 import tailwindCss from '../styles/tailwind.css?inline';
+import { ensureKivaraInter } from '../ui/fonts';
 // Sonner ships its layout/animation CSS as a separate file. Sonner injects
 // it into `document.head` at runtime, but our React tree lives inside the
 // Shadow DOM where that head-level rule is invisible — without this import
@@ -56,6 +57,8 @@ const HOST_ID = 'kivara-lingo-host';
 const VIDEO_HOST_ID = 'kivara-lingo-video-host';
 const REACT_ROOT_ID = 'kivara-lingo-react-root';
 const VIDEO_REACT_ROOT_ID = 'kivara-lingo-video-react-root';
+const PORTAL_ROOT_ID = 'kivara-lingo-portal-root';
+const VIDEO_PORTAL_ROOT_ID = 'kivara-lingo-video-portal-root';
 
 /**
  * Runs once per page. Drops a Dark Reader lock meta and removes any legacy
@@ -230,6 +233,11 @@ export class ShadowHost {
     const shadowRoot = hostElement.attachShadow({ mode: 'closed' });
     shadowRoots.set(hostElement, shadowRoot);
 
+    // Inter has to be added to `document.fonts` from the content world: a
+    // @font-face declared in this stylesheet would not resolve inside the
+    // closed root. Fire and forget — the system stack is the fallback.
+    void ensureKivaraInter();
+
     // ── Layer 1: baseline stylesheet ─────────────────────────────────────
     // Pinned typography + Tailwind v4 token overrides + every --tw-* seed.
     // Lives BEFORE the main stylesheet so user-authored utilities can still
@@ -265,7 +273,34 @@ export class ShadowHost {
     }
     shadowRoot.appendChild(reactRoot);
 
-    return { hostElement, shadowRoot, reactRoot };
+    // ── Layer 3: portal container ─────────────────────────────────────────
+    // The node React portals (InfoHint tooltip, toasts, dialogs) mount into,
+    // handed to `PortalContainerProvider` by the mount call site. It MUST
+    // live inside the shadow root: a portal to `document.body` leaves the
+    // closed boundary entirely — the page's CSS and Dark Reader repaint it,
+    // and native fullscreen renders only the fullscreen element's subtree, so
+    // body-level content disappears. As a child of the shadow root it
+    // re-parents WITH the host when fullscreen-overlay-core moves it into
+    // (and back out of) the fullscreen element — a shadow tree travels with
+    // its host element, so portalled UI stays visible in fullscreen.
+    // Appended AFTER the react root: siblings paint in DOM order, so
+    // portalled content stacks above the in-place tree at equal z-index.
+    const portalContainer = document.createElement('div');
+    portalContainer.id = options.isOverlay ? VIDEO_PORTAL_ROOT_ID : PORTAL_ROOT_ID;
+    if (!options.isOverlay) {
+      // Portalled dialogs and popovers must receive clicks (the host itself
+      // stays pointer-events: none); the InfoHint tooltip opts out itself.
+      portalContainer.style.pointerEvents = 'auto';
+    } else {
+      // Mirror the overlay react root: the portalled wrapper decides what
+      // receives pointer events, exactly as it does inside the react root.
+      portalContainer.style.position = 'absolute';
+      portalContainer.style.inset = '0';
+      portalContainer.style.pointerEvents = 'none';
+    }
+    shadowRoot.appendChild(portalContainer);
+
+    return { hostElement, shadowRoot, reactRoot, portalContainer };
   }
 }
 
@@ -301,7 +336,7 @@ const BASELINE_CSS = `
      * pin font-family inline (popovers, subtitles, tooltips that portal
      * out of the React tree) should reference --kvl-font-sans so any
      * future tweak only happens here. */
-    --kvl-font-sans: ui-sans-serif, system-ui, -apple-system,
+    --kvl-font-sans: 'Kivara Inter', ui-sans-serif, system-ui, -apple-system,
       BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
       "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
       "Segoe UI Symbol";

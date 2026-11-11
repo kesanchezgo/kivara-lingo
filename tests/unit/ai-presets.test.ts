@@ -11,11 +11,13 @@ import {
 } from '../../src/shared/ai-presets';
 
 describe('AI_PRESETS', () => {
-  it('exposes the three configurable providers in priority order', () => {
+  it('exposes the configurable providers in priority order', () => {
+    // F7 adds the curated `openai-compatible` endpoint tile last.
     expect(AI_PRESETS.map((p) => p.provider)).toEqual([
       'google-ai',
       'anthropic',
       'openai',
+      'openai-compatible',
     ]);
   });
 
@@ -38,8 +40,12 @@ describe('AI_PRESETS', () => {
     for (const preset of AI_PRESETS) {
       expect(seen.has(preset.provider)).toBe(false);
       seen.add(preset.provider);
-      expect(preset.getKeyUrl).toMatch(/^https:\/\//);
-      expect(preset.defaultModel.length).toBeGreaterThan(0);
+      // The compat tile has no single key page: its curated endpoints carry
+      // their own, and local servers are keyless.
+      if (preset.getKeyUrl) expect(preset.getKeyUrl).toMatch(/^https:\/\//);
+      if (preset.provider !== 'openai-compatible') {
+        expect(preset.defaultModel.length).toBeGreaterThan(0);
+      }
     }
   });
 });
@@ -49,6 +55,7 @@ describe('getAiPreset', () => {
     expect(getAiPreset('openai')?.label).toBe('OpenAI');
     expect(getAiPreset('anthropic')?.label).toBe('Anthropic Claude');
     expect(getAiPreset('google-ai')?.label).toBe('Google Gemini');
+    expect(getAiPreset('openai-compatible')?.defaultModel).toBe('');
   });
 
   it('returns undefined for the disabled provider', () => {

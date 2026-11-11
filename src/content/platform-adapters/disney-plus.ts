@@ -6,6 +6,7 @@
  * GETs; this file just owns the video anchor and the native-track hide.
  */
 import { createInterceptedAdapter } from './intercepted-adapter';
+import { getDomMediaInfo } from './media-info';
 import type { SubtitleSource } from './types';
 
 const HIDE_NATIVE_CSS = `
@@ -29,5 +30,15 @@ export function createDisneyPlusAdapter(): SubtitleSource {
         document.querySelector<HTMLVideoElement>('video')
       );
     },
+    getMediaInfo: () => getDomMediaInfo('disney', {
+      titleSelectors: [
+        '[data-testid="title-field"]',
+        '.title-field',
+        '.btm-media-player .title',
+      ],
+      seriesSelectors: ['[data-testid="series-title"]', '.series-title'],
+      episodeSelectors: ['[data-testid="subtitle-field"]', '.subtitle-field'],
+      titleSuffixes: [' | Disney+', ' - Disney+'],
+    }),
   });
 }

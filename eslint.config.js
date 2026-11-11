@@ -58,6 +58,88 @@ export default [
     },
   },
   {
+    // D6/H7: F9 retired lucide-react. The icon set is the Phosphor layer in
+    // src/ui/icons.tsx, and the ban is repo-wide (not just the ported tree) so
+    // a stray import has nowhere to hide. Declared BEFORE the content/app/ui
+    // guard: flat config replaces `no-restricted-imports` options when two
+    // matching blocks set the rule, so that block repeats this pattern.
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/ui/icons.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['lucide-react'],
+              message: 'D6: import icons from src/ui/icons.tsx (Phosphor), not lucide-react.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  /**
+   * v2 architecture guards (docs/REDESIGN-V2.md §3 H1, H2, H5, H7).
+   *
+   * These are ERRORs on purpose: each one is a defect the redesign would
+   * otherwise reintroduce silently, and each has a phase that removes the
+   * exception list below.
+   */
+  {
+    files: ['src/content/**/*.{ts,tsx}', 'src/app/components/**/*.{ts,tsx}', 'src/ui/**/*.{ts,tsx}'],
+    ignores: [
+      // H5 exceptions: dictionary-pack plumbing that reaches chrome.storage/
+      // IndexedDB directly. yomitan.ts already runs in the worker or an
+      // extension page; the other three are moved behind the SW in F5-F9.
+      'src/content/nlp/yomitan.ts',
+      'src/content/nlp/stardict.ts',
+      'src/content/nlp/csv-importer.ts',
+      'src/content/nlp/dict-format-detect.ts',
+      'src/app/components/tabs/DictPacksSection.tsx',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/shared/db', '**/shared/db/*', './db', '../db'],
+              message:
+                'H5: in a content script, IndexedDB is the SITE database, not ours. Reach the data through a message to the service worker.',
+            },
+            {
+              group: ['@radix-ui/*'],
+              message:
+                'H1: Radix focus scopes and dismissable layers read document.activeElement/document listeners, which break inside our CLOSED shadow root. Use the primitives in src/ui/primitives.',
+            },
+            {
+              group: ['lucide-react'],
+              message: 'D6: import icons from src/ui/icons.tsx (Phosphor), not lucide-react.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // H2: seeking must go through the platform PlaybackController. F6 removed
+    // the last two exceptions (capture/frame.ts and ui/App.tsx), so the rule
+    // now applies to every content module outside platform-adapters/**.
+    files: ['src/content/**/*.{ts,tsx}'],
+    ignores: ['src/content/platform-adapters/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "AssignmentExpression[left.property.name='currentTime']",
+          message:
+            "H2: writing video.currentTime directly interrupts playback on Netflix (M7375). Go through the platform's PlaybackController.",
+        },
+      ],
+    },
+  },
+  {
     ignores: ['dist', 'node_modules', '.pnpm-store', 'tests/e2e/**'],
   },
 ];

@@ -1,13 +1,40 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+/**
+ * Interactive subtitle layer (fused from docs/REDESIGN-V2.md §5.1).
+ *
+ * VIEW follows the prototype: word marks on the text, a sentence toolbar, a
+ * free-selection toolbar, the Alt+wheel expression split, the one-tab-stop
+ * keyboard walk, Listen-first blur and the three translation modes.
+ *
+ * LOGIC follows the repo: the tokenizer and its taxonomy (mwe / known /
+ * proper-noun-known / unknown / ignored / mastered / punct), the platform's
+ * alt cue before automatic MT, the saved-words highlight (only painted after
+ * the save promise resolves ok) and the hover signal App uses to pause the
+ * video (kivaraPausedRef: only resume what Kivara paused).
+ */
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
-import { Volume1, Copy, Check, Quote, AudioLines, Camera, Link2, GraduationCap, BookOpenCheck } from 'lucide-react';
-import type { SubtitleStyles, Mode, TranslateResponse, CreateCardResponse } from '../../shared/types';
+import {
+  Volume1, Copy, Check, Quote, MousePointerClick, Link2, Ear, GraduationCap, BookOpenCheck,
+} from '../../ui/icons';
+import type {
+  SubtitleStyles,
+  Mode,
+  TranslateResponse,
+  CreateCardResponse,
+  CreateCardKind,
+  CueAlign,
+} from '../../shared/types';
 import { tokenizeSentence } from '../nlp/tokenize';
 import { lookupDictionary } from '../nlp/dictionary';
 import { eventPathIsEditable } from '../utils/keyboard';
-import { useKivaraStore } from '../../shared/store';
+import { useKivaraStore } from '../../shared/use-kivara-store';
+import { aiConfigured } from '../../shared/ai-configured';
 import { WordPopover } from './WordPopover';
+import { CARD_UNDONE_EVENT, cardKindOf } from './save-actions';
+import { markOf, markAttrs, markContainerAttrs } from './wordMarks';
+import { WordStatusSelector } from './WordStatusSelector';
+import type { StudyBinding } from './study';
 
 export interface SubtitleOverlayProps {
   subtitleStyles: SubtitleStyles;
@@ -17,7 +44,7 @@ export interface SubtitleOverlayProps {
     start?: number;
     end?: number;
     language?: string;
-    align?: 'start' | 'center' | 'end' | 'left' | 'right';
+    align?: CueAlign;
   } | null;
   /**
    * Native-language alt cue running in parallel to the source caption — e.g.
@@ -30,29 +57,49 @@ export interface SubtitleOverlayProps {
     start?: number;
     end?: number;
     language?: string;
-    align?: 'start' | 'center' | 'end' | 'left' | 'right';
+    align?: CueAlign;
   } | null;
   mode: Mode;
   saveRequestKey?: number | null;
-  /** Save the given token + sentence as an Anki note. Returns the
-   * CreateCardResponse envelope so the caller can await a real outcome
-   * rather than assuming success (the old signature returned void, so a
-   * failed addNote was rendered as a green "saved" word — see the note
-   * in handleSaveToken). */
+  /** Save the given token + sentence as an Anki note. Resolves with the real
+   * envelope so the saved highlight only lands on a confirmed note. */
   onSaveCard: (token: string | undefined, sentence: string) => Promise<CreateCardResponse>;
+  /** "See in Anki" for a saved token (F4). */
+  onSeeInAnki?: (token: string) => void;
+  /** "Add this scene" to the note a saved token already has (F4). `kind` is
+   * the real card flavour (word / expression), never a default. */
+  onAddContext?: (token: string, sentence: string, kind: CreateCardKind) => void;
+  /** True while a lookup/card is open; App decides whether to pause. */
   onTokenHoverChange?: (hovered: boolean) => void;
-  /** Words already in the user's Anki deck — pre-fetched at mount so they
-   *  show the green "saved" highlight from the first frame. Optional
-   *  because the ServiceWorker fetch is asynchronous (the overlay mounts
-   *  before the words arrive — see `useEffect` mid-file). */
+  /** Words already in Anki, pre-fetched at mount. */
   initialSavedWords?: Set<string>;
+  /** The video is playing — drives Listen-first blur. */
+  playing?: boolean;
+  /** Expressions split by hand (Alt+wheel or the card). Owned by App. */
+  expandedMWEs?: Set<string>;
+  setExpandedMWEs?: React.Dispatch<React.SetStateAction<Set<string>>>;
+  /** A capture is running: the overlay takes no clicks. */
+  capturing?: boolean;
+  /** Explain this line (AI). The button only renders when both exist. */
+  onExplain?: () => void;
+  /**
+   * Study profile of the subtitle language (F5): resolves each token's status,
+   * feeds the word card's status selector and knows which words already have
+   * an Anki card. Absent, the overlay draws only the expression bracket (F3).
+   */
+  study?: StudyBinding;
 }
 
-/**
- * Renders the Kivara subtitle layer over a real platform video. The layer is
- * positioned absolutely inside the platform's video container (passed via the
- * Shadow DOM portal in App.tsx).
- */
+const hexToRgb = (hex: string) => {
+  const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return r ? `${parseInt(r[1], 16)}, ${parseInt(r[2], 16)}, ${parseInt(r[3], 16)}` : '0,0,0';
+};
+
+const kbd =
+  'inline-flex items-center h-5 px-1.5 rounded-md font-sans text-[11px] font-medium leading-none text-zinc-300 bg-white/[0.06] ring-1 ring-white/[0.08]';
+
+const HINT_KEY = 'kvl:hoverHintSeen';
+
 export function SubtitleOverlay({
   subtitleStyles,
   cue,
@@ -60,139 +107,155 @@ export function SubtitleOverlay({
   mode,
   saveRequestKey,
   onSaveCard,
+  onSeeInAnki,
+  onAddContext,
   onTokenHoverChange,
   initialSavedWords,
+  playing = false,
+  expandedMWEs: controlledExpanded,
+  setExpandedMWEs: controlledSetExpanded,
+  capturing = false,
+  onExplain,
+  study,
 }: SubtitleOverlayProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [captureState, setCaptureState] = useState<'idle' | 'screenshot' | 'audio'>('idle');
-  // Identifier of the currently hovered token. Encoded as `${lineIdx}:${tokIdx}`
-  // so two occurrences of the same word in a single cue ("how's this, how's
-  // that") light up independently — previously the overlay tracked the
-  // token's dictionary key, which collides when the same word appears twice.
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [expandedMWEs, setExpandedMWEs] = useState<Set<string>>(new Set());
+  // Word hover: a repeated word in the line opens ONE card, keyed by index.
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  // The line is ONE Tab stop (roving tabindex); this is the word that holds it.
+  const [rovingIdx, setRovingIdx] = useState(-1);
+  // The word whose card the FOCUS opened (not the pointer): only that one
+  // closes on blur.
+  const focusOpenRef = useRef<number | null>(null);
   const [altExpandedKey, setAltExpandedKey] = useState<string | null>(null);
+  const [selection, setSelection] = useState<{ a: number; b: number } | null>(null);
   const [savedTokens, setSavedTokens] = useState<Set<string>>(
     () => initialSavedWords ?? new Set(),
   );
-  // Multi-word selection — shift+click extends, plain drag creates a new
-  // span. Indices are composite `${lineIdx}:${tokenIdx}` strings so the
-  // selection works across multi-line cues without collisions.
-  const [selection, setSelection] = useState<{ start: string; end: string } | null>(null);
-  const dragAnchorRef = useRef<string | null>(null);
+
+  const [localExpanded, setLocalExpanded] = useState<Set<string>>(new Set());
+  const expandedMWEs = controlledExpanded ?? localExpanded;
+  const setExpandedMWEs = controlledSetExpanded ?? setLocalExpanded;
 
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // The three "restore me in a moment" timers. These exist to flip a state
-  // flag back 200-2 000 ms after an effect; when the component unmounts first
-  // (SPA navigation, panel closed) each one fires `setState` on a tree React
-  // has already torn down — a warning per cue, and on a streaming tab that
-  // remounts constantly it is a steady stream of them.
-/**
- * Timers the component must cancel if it unmounts first.
- *
- * A fixed array would grow without bound: every save pushes one, every copy
- * pushes one, and a long session with Anki open pushes hundreds. The two
- * nested capture timers are self-limiting, so a small ring with a hard cap
- * is enough — and the unmount cleanup drains it.
- */
-const RESTORE_TIMER_CAPACITY = 32;
-
-const restoreTimersRef = useRef<number[]>([]);
-function trackRestoreTimer(id: number): void {
-  const ring = restoreTimersRef.current;
-  ring.push(id);
-  // Drop the oldest beyond capacity. Those timers are already elapsed by
-  // then (0.2–2 s), so dropping one is a no-op for correctness.
-  if (ring.length > RESTORE_TIMER_CAPACITY) ring.splice(0, ring.length - RESTORE_TIMER_CAPACITY);
-}
   const wordHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Tracks the *dictionary key* of the currently hovered token so the Alt /
-  // Ctrl+Shift+S handlers can act on the actual word/MWE. Kept in sync with
-  // hoveredId, but never used to drive React render — the index is the only
-  // identity for highlighting.
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Mirrors for listeners that must not re-register per render.
   const hoveredKeyRef = useRef<string | null>(null);
+  const hoveredIdxRef = useRef<number | null>(null);
+  const selectionRef = useRef(selection);
+  useLayoutEffect(() => {
+    hoveredKeyRef.current = hoveredKey;
+    hoveredIdxRef.current = hoveredIdx;
+    selectionRef.current = selection;
+  });
 
-  // Notify parent (App) so it can pause/resume the underlying <video>. We
-  // pause whenever ANY part of the subtitle box is hovered — not just when a
-  // dictionary token gets focus — so t('overlay.hoverHint') pauses the
-  // video even on platforms (e.g. YouTube) where most tokens are tagged
-  // `unknown` and don't fire `handleTokenEnter`.
-  useEffect(() => {
-    onTokenHoverChange?.(isHovered || hoveredId !== null);
-  }, [isHovered, hoveredId, onTokenHoverChange]);
+  // Study preferences (store v3). F2 already migrated `showDualSubtitle`.
+  const translation = useKivaraStore((s) => s.study.translation);
+  const listenFirst = useKivaraStore((s) => s.study.listenFirst);
+  const newMarks = useKivaraStore((s) => s.study.newMarks);
+  const setStudy = useKivaraStore((s) => s.setStudy);
+  const setMode = useKivaraStore((s) => s.setMode);
+  const includeAi = useKivaraStore(
+    (s) => s.ai.provider !== 'disabled' && !!s.ai.apiKey && s.ai.enrichOnHover,
+  );
+  // Explain is a separate capability from hover enrichment: it is available
+  // whenever the AI is configured (F7), even with enrichOnHover off.
+  const explainReady = useKivaraStore((s) => aiConfigured(s.ai));
+  const nativeLanguage = useKivaraStore((s) => s.translate.targetLanguage || 'es');
 
-  // Sub-10ms after the overlay mounts, `initialSavedWords` arrives from
-  // the ServiceWorker (ANKI_SAVED_WORDS). SubtitleOverlay only read it
-  // in the useState initializer — which ran BEFORE the words were
-  // fetched, so the "already saved" green highlight never appeared.
-  // This effect is the missing piece (audit finding #13): the prop is
-  // re-propagated when App's fetch resolves, and here we merge it into
-  // the local `savedTokens` set.
-  useEffect(() => {
-    if (!initialSavedWords || initialSavedWords.size === 0) return;
-    setSavedTokens((prev) => {
-      const next = new Set(prev);
-      for (const w of initialSavedWords!) next.add(w);
-      return next;
-    });
-  }, [initialSavedWords]);
+  const targetSentence = cue?.text ?? '';
+  const cueLanguage = cue?.language ?? 'en';
+  const reading = mode === 'reading';
+  const cardTheme = subtitleStyles.cardTheme ?? 'dark';
 
+  // First-run hint: once per browser, never a permanent banner.
+  const [hintSeen, setHintSeen] = useState(() => {
+    try {
+      return localStorage.getItem(HINT_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const markHintSeen = () => {
+    setHintSeen(true);
+    try {
+      localStorage.setItem(HINT_KEY, 'true');
+    } catch {
+      /* private mode: the hint just repeats next mount */
+    }
+  };
   useEffect(() => {
-    // Only these three. The hover/hoverleave refs already cancel themselves
-    // in their own handlers (both call clearTimeout before re-arming).
-    return () => {
-      for (const id of restoreTimersRef.current) clearTimeout(id);
-      restoreTimersRef.current.length = 0;
-      if (wordHoverTimeout.current) clearTimeout(wordHoverTimeout.current);
+    if (hintSeen) return;
+    const id = setTimeout(markHintSeen, 7000);
+    return () => clearTimeout(id);
+  }, [hintSeen]);
+
+  const clearLookup = () => {
+    if (wordHoverTimeout.current) clearTimeout(wordHoverTimeout.current);
+    setHoveredKey(null);
+    setHoveredIdx(null);
+    setSelection(null);
+  };
+
+  // A new cue unmounts the hovered token without a mouseleave — drop the card.
+  useEffect(() => {
+    clearLookup();
+    setAltExpandedKey(null);
+    setRovingIdx(-1);
+    focusOpenRef.current = null;
+  }, [cue?.id, cue?.text]);
+
+  // Reading mode has no cards or selection: nothing invisible stays open.
+  useEffect(() => {
+    if (reading) clearLookup();
+  }, [reading]);
+
+  // Escape closes the card and the free selection (hover never focuses it).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || (!hoveredKeyRef.current && !selectionRef.current)) return;
+      const idx = hoveredIdxRef.current;
+      // Return focus to the word the card was opened from, then close.
+      if (idx !== null) {
+        subsRef.current?.querySelector<HTMLElement>(`[data-tok-idx="${idx}"]`)?.focus();
+      }
+      clearLookup();
     };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // Alt held over an expression splits it temporarily. Only Alt is claimed,
+  // and only when a phrase is under the pointer: everywhere else Alt stays
+  // the browser's / the page's.
   useEffect(() => {
-    // We only handle the Alt key when it would do something useful — i.e.,
-    // the user is currently hovering a phrase-MWE token and wants to expand
-    // it. In every other case we let Alt pass through so the platform
-    // (Alt+Tab, browser menu activation, Alt+arrow seek shortcuts, etc.)
-    // keeps working. Previously we blanket-prevented every Alt keypress.
+    let owned = false;
     const down = (e: KeyboardEvent) => {
-      // Typing inside the panel (a shadow root, so `e.target` is the host)
-      // must never expand an MWE on Alt.
       if (eventPathIsEditable(e)) return;
       if (e.key !== 'Alt') return;
-      const hk = hoveredKeyRef.current;
-      if (!hk) return;
-      // Check if the hovered token is a phrase/MWE — either directly from
-      // the dictionary or because it's in the expandedMWEs set (meaning it
-      // was previously expanded and the user is hovering one of its parts).
-      const entry = lookupDictionary(hk);
-      const isPhrase = entry?.type === 'phrase';
+      const key = hoveredKeyRef.current;
+      if (!key) return;
+      const isPhrase = lookupDictionary(key, cueLanguage)?.type === 'phrase';
       const isPartOfExpanded = !isPhrase && Array.from(expandedMWEs).some(
-        (phrase) => phrase.split(' ').includes(hk.toLowerCase()),
+        (phrase) => phrase.split(' ').includes(key.toLowerCase()),
       );
       if (!isPhrase && !isPartOfExpanded) return;
+      owned = true;
       e.preventDefault();
-      if (isPhrase) {
-        setAltExpandedKey(hk);
-      }
+      if (isPhrase) setAltExpandedKey(key);
     };
     const up = (e: KeyboardEvent) => {
-      if (e.key !== 'Alt') return;
-      // Called OUTSIDE the updater on purpose. A `setState(prev => { … })`
-      // callback must be pure: React may invoke it twice (StrictMode, a
-      // re-render replay), which runs the `preventDefault` it contains
-      // against an event that has already been default-prevented.
-      if (altExpandedKey !== null) {
-        e.preventDefault();
-        // Re-set the hover to the MWE key so the next Alt press finds it
-        hoveredKeyRef.current = altExpandedKey;
-      }
+      if (e.key !== 'Alt' && e.altKey) return;
+      if (e.key === 'Alt' && owned) e.preventDefault();
+      owned = false;
       setAltExpandedKey(null);
     };
     const blur = () => setAltExpandedKey(null);
     const visibility = () => {
       if (document.hidden) setAltExpandedKey(null);
     };
-
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
     window.addEventListener('blur', blur);
@@ -203,9 +266,58 @@ function trackRestoreTimer(id: number): void {
       window.removeEventListener('blur', blur);
       document.removeEventListener('visibilitychange', visibility);
     };
-    // `altExpandedKey` is read from the closure (see the note in `up`), so
-    // the handler has to be re-registered when it changes.
-  }, [expandedMWEs, altExpandedKey]);
+  }, [expandedMWEs, cueLanguage]);
+
+  // Alt+wheel must stop the page scroll (YouTube's layout). React's onWheel is
+  // passive, so the cancel is done by a native listener; the actual split/join
+  // is the React handler below.
+  const subsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = subsRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (e.altKey && (e.target as HTMLElement | null)?.closest('[data-wheelable]')) e.preventDefault();
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  useEffect(() => () => {
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    if (wordHoverTimeout.current) clearTimeout(wordHoverTimeout.current);
+    if (copyTimer.current) clearTimeout(copyTimer.current);
+  }, []);
+
+  // Sub-10ms after mount, `initialSavedWords` arrives from the SW; merge it
+  // (the useState initializer ran before the fetch resolved).
+  useEffect(() => {
+    if (!initialSavedWords || initialSavedWords.size === 0) return;
+    setSavedTokens((prev) => {
+      const next = new Set(prev);
+      for (const w of initialSavedWords) next.add(w);
+      return next;
+    });
+  }, [initialSavedWords]);
+
+  // The saved toast's Undo deletes the note through the service worker, which
+  // already drops the registry row and the F5 interval cache. The green mark
+  // painted here is view state, so it has to follow: without this, a card the
+  // user just undid keeps reading as saved until the next mount.
+  useEffect(() => {
+    const onCardUndone = (event: Event) => {
+      const token = (event as CustomEvent<{ token?: string }>).detail?.token;
+      if (!token) return;
+      const key = token.toLowerCase();
+      setSavedTokens((prev) => {
+        if (!prev.has(key)) return prev;
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    };
+    window.addEventListener(CARD_UNDONE_EVENT, onCardUndone);
+    return () => window.removeEventListener(CARD_UNDONE_EVENT, onCardUndone);
+  }, []);
 
   const effectiveExpanded = useMemo(() => {
     if (!altExpandedKey) return expandedMWEs;
@@ -214,55 +326,81 @@ function trackRestoreTimer(id: number): void {
     return next;
   }, [expandedMWEs, altExpandedKey]);
 
-  const targetSentence = cue?.text ?? '';
-  const cueLanguage = cue?.language ?? 'en';
-  const includeAi = useKivaraStore(
-    (s) => s.ai.provider !== 'disabled' && !!s.ai.apiKey && s.ai.enrichOnHover,
-  );
-  const showDualSubtitle = useKivaraStore((s) => s.translate.showDualSubtitle);
-  const nativeLanguage = useKivaraStore((s) => s.translate.targetLanguage || 'es');
-  const setMode = useKivaraStore((s) => s.setMode);
+  const sourceText = useMemo(() => {
+    const src = targetSentence;
+    if (subtitleStyles.keepNativeLineBreaks) return src.replace(/\r\n?/g, '\n');
+    return src.replace(/\r?\n+/g, ' ').replace(/\s{2,}/g, ' ');
+  }, [targetSentence, subtitleStyles.keepNativeLineBreaks]);
 
-  // Dual caption priority chain:
-  //   1. Native-language alt cue from the platform's own subtitle track
-  //      (`altCue` prop, supplied by App.tsx polling the adapter). This is
-  //      the highest quality source — zero latency, free, human-quality
-  //      translation, already timed to the source cue.
-  //   2. Remote MT (DeepL / Google / MyMemory / Lingva / offline chain) of
-  //      the whole source sentence, cached in IndexedDB so re-displaying
-  //      the same cue is instant after the first call.
-  //   3. Nothing — source language already equals target, or both options
-  //      returned empty.
+  const tokens = useMemo(
+    () => tokenizeSentence(sourceText, effectiveExpanded, cueLanguage),
+    [sourceText, effectiveExpanded, cueLanguage],
+  );
+  const selectionText = useMemo(() => {
+    if (!selection) return '';
+    const lo = Math.min(selection.a, selection.b);
+    const hi = Math.max(selection.a, selection.b);
+    return tokens
+      .slice(lo, hi + 1)
+      .map((tk) => tk.text)
+      .join('')
+      .replace(/[ \t]+/g, ' ')
+      .trim();
+  }, [selection, tokens]);
+
+  // A split/join invalidates index-based ranges.
+  useEffect(() => {
+    setSelection(null);
+  }, [tokens]);
+
+  // ── Keyboard: ←/→ and Home/End walk the words, the focused word opens its
+  // card, Tab enters it, Escape returns, Shift+←/→ extends the selection.
+  // Proper nouns (`ignored`) are text, never stops.
+  const wordIdxs = useMemo(
+    () => tokens.flatMap((tk, i) => (tk.kind === 'punct' || tk.kind === 'ignored' ? [] : [i])),
+    [tokens],
+  );
+  const tabStop = wordIdxs.includes(rovingIdx) ? rovingIdx : (wordIdxs[0] ?? -1);
+  const focusWord = (i: number) => {
+    subsRef.current?.querySelector<HTMLElement>(`[data-tok-idx="${i}"]`)?.focus();
+  };
+  const handleTokenKey = (e: React.KeyboardEvent, i: number, key: string) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return; // extension / browser shortcuts
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.stopPropagation(); // Space would pause the video on YouTube/Netflix
+      handleTokenEnter(key, i);
+      return;
+    }
+    const pos = wordIdxs.indexOf(i);
+    const target = e.key === 'ArrowRight' ? wordIdxs[pos + 1]
+      : e.key === 'ArrowLeft' ? wordIdxs[pos - 1]
+      : e.key === 'Home' ? wordIdxs[0]
+      : e.key === 'End' ? wordIdxs[wordIdxs.length - 1]
+      : null;
+    if (target === null) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (target === undefined) return; // already at the edge
+    if (e.shiftKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+      setSelection((prev) => (prev ? { a: prev.a, b: target } : { a: i, b: target }));
+    }
+    focusWord(target);
+  };
+
+  // ── Dual caption: platform alt cue first, then automatic MT (repo order).
   const nativeAltText = altCue?.text?.trim() || null;
   const [translatedSentence, setTranslatedSentence] = useState<string | null>(null);
+  const translationVisible = translation !== 'hidden';
   useEffect(() => {
-    // Mock parity: the dual line is also visible on hover even when the
-    // user has the persistent toggle OFF, so we keep the translation
-    // pre-fetched regardless of `showDualSubtitle`. The toggle still
-    // controls visibility of the line — see the dual-caption JSX below.
     const src = targetSentence.trim();
-    if (!src) {
-      setTranslatedSentence(null);
-      return;
-    }
-    // Skip if source language equals target language (no-op).
-    if ((cueLanguage || 'en').slice(0, 2) === nativeLanguage.slice(0, 2)) {
-      setTranslatedSentence(null);
-      return;
-    }
-    // The platform already shipped a native translation — use it directly
-    // and skip the round-trip to the MT provider.
-    if (nativeAltText) {
+    const sameLanguage = (cueLanguage || 'en').slice(0, 2) === nativeLanguage.slice(0, 2);
+    if (!translationVisible || !src || sameLanguage || nativeAltText) {
       setTranslatedSentence(null);
       return;
     }
     let cancelled = false;
     setTranslatedSentence(null);
-    // No debounce — the cue id already changes only when the platform
-    // emits a new caption, so the previous cleanup cancels any in-flight
-    // request. Removing the 120 ms wait makes the dual line catch up to
-    // the source line as fast as the MT provider responds (instant when
-    // it's a cache hit).
     sendMessage(
       'TRANSLATE',
       { text: src, sourceLang: cueLanguage || 'en', targetLang: nativeLanguage },
@@ -276,151 +414,33 @@ function trackRestoreTimer(id: number): void {
         }
       })
       .catch(() => {
-        /* network errors are non-fatal — just hide the second line */
+        /* network errors are non-fatal — the second line just stays empty */
       });
     return () => {
       cancelled = true;
     };
-  }, [targetSentence, cueLanguage, nativeLanguage, nativeAltText, cue?.id]);
+  }, [targetSentence, cueLanguage, nativeLanguage, nativeAltText, translationVisible, cue?.id]);
 
-  // Final string shown on the bilingual line.
   const dualCaptionText = nativeAltText ?? translatedSentence;
-  // Tag the bilingual line so the user can tell at a glance whether it came
-  // from the platform or from MT — useful when debugging quality issues.
-  const dualCaptionSource: 'native' | 'mt' | null = nativeAltText
-    ? 'native'
-    : translatedSentence
-      ? 'mt'
-      : null;
 
-  // Split the cue into rendered lines. When the user opts into "mantener
-  // saltos de línea nativos" we honour every `\n` in the cue text; otherwise
-  // we collapse them so the overlay's own word-wrap stays in charge.
-  const lines = useMemo(() => {
-    const src = targetSentence;
-    if (subtitleStyles.keepNativeLineBreaks) {
-      const parts = src.split(/\r?\n/);
-      // Drop trailing empty line if the cue ends with `\n`.
-      while (parts.length > 1 && parts[parts.length - 1].trim() === '') {
-        parts.pop();
-      }
-      return parts.length > 0 ? parts : [src];
-    }
-    return [src.replace(/\r?\n+/g, ' ').replace(/\s{2,}/g, ' ')];
-  }, [targetSentence, subtitleStyles.keepNativeLineBreaks]);
-
-  const lineTokens = useMemo(
-    () => lines.map((line) => tokenizeSentence(line, effectiveExpanded, cueLanguage)),
-    [lines, effectiveExpanded, cueLanguage],
-  );
-
-  /**
-   * Resolved text of the current multi-word selection. Joins the raw `text`
-   * fields of every token in the range (including punct/whitespace) and
-   * trims leading/trailing whitespace + punctuation runs.
-   */
-  const selectionText = useMemo<string | null>(() => {
-    if (!selection) return null;
-    const [sl, st] = selection.start.split(':').map(Number);
-    const [el, et] = selection.end.split(':').map(Number);
-    const parts: string[] = [];
-    for (let li = sl; li <= el; li += 1) {
-      const tokens = lineTokens[li] ?? [];
-      const startIdx = li === sl ? st : 0;
-      const endIdx = li === el ? et : tokens.length - 1;
-      for (let ti = startIdx; ti <= endIdx; ti += 1) {
-        if (tokens[ti]) parts.push(tokens[ti].text);
-      }
-      if (li < el) parts.push(' ');
-    }
-    const joined = parts.join('').trim();
-    if (!joined) return null;
-    return joined.replace(/^[\s\p{P}]+|[\s\p{P}]+$/gu, '');
-  }, [selection, lineTokens]);
-
-  // Reset cue-scoped UI state whenever the cue changes.
-  useEffect(() => {
-    setHoveredId(null);
-    hoveredKeyRef.current = null;
-    setAltExpandedKey(null);
-    setSelection(null);
-    dragAnchorRef.current = null;
-  }, [cue?.id]);
-
-  // Tier 1.1: track mouseup globally so dragging off the subtitle still
-  // terminates the selection drag without leaving a stale anchor.
-  useEffect(() => {
-    const up = () => {
-      dragAnchorRef.current = null;
-    };
-    window.addEventListener('mouseup', up);
-    return () => window.removeEventListener('mouseup', up);
-  }, []);
-
-  const handleTokenEnter = (id: string, key: string) => {
+  // ── Hover / selection plumbing.
+  const handleTokenEnter = (key: string, idx: number) => {
     if (wordHoverTimeout.current) clearTimeout(wordHoverTimeout.current);
-    setHoveredId(id);
-    hoveredKeyRef.current = key;
+    wordHoverTimeout.current = null;
+    setHoveredKey(key);
+    setHoveredIdx(idx);
   };
   const handleTokenLeave = () => {
-    // 80 ms is enough to absorb cursor microjitter — the popover's
-    // invisible bridge already keeps the mouse "inside" while crossing
-    // the 12 px gap from token to popover plate, so we don't need a
-    // longer timeout. Mirrors the mock.
+    if (wordHoverTimeout.current) clearTimeout(wordHoverTimeout.current);
     wordHoverTimeout.current = setTimeout(() => {
-      setHoveredId(null);
-      hoveredKeyRef.current = null;
+      wordHoverTimeout.current = null;
+      setHoveredKey(null);
     }, 80);
   };
 
-  /**
-   * Multi-word selection: shift+click extends, plain mousedown anchors.
-   * IDs are composite `${lineIdx}:${tokenIdx}` strings so the comparison
-   * works across multi-line cues. We compare lexicographically with a
-   * helper because the strings encode (li, ti) and we need numeric order.
-   */
-  const compareIds = (a: string, b: string): number => {
-    const [al, at] = a.split(':').map(Number);
-    const [bl, bt] = b.split(':').map(Number);
-    if (al !== bl) return al - bl;
-    return at - bt;
-  };
-
-  const orderRange = (a: string, b: string): { start: string; end: string } => {
-    return compareIds(a, b) <= 0 ? { start: a, end: b } : { start: b, end: a };
-  };
-
-  const isInRange = (id: string, range: { start: string; end: string }): boolean => {
-    return compareIds(id, range.start) >= 0 && compareIds(id, range.end) <= 0;
-  };
-
-  const handleTokenMouseDown = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (e.shiftKey && selection) {
-      const range =
-        compareIds(id, selection.start) < 0
-          ? { start: id, end: selection.end }
-          : compareIds(id, selection.end) > 0
-            ? { start: selection.start, end: id }
-            : selection;
-      setSelection(range);
-      dragAnchorRef.current = id === range.start ? range.end : range.start;
-      return;
-    }
-    dragAnchorRef.current = id;
-    setSelection(null);
-  };
-
-  const handleTokenDragEnter = (id: string) => {
-    const anchor = dragAnchorRef.current;
-    if (anchor == null || anchor === id) return;
-    setSelection(orderRange(anchor, id));
-  };
-
-  const handleSubtitleMouseDownClearSelection = (e: React.MouseEvent) => {
-    if (e.shiftKey) return;
-    setSelection(null);
-  };
+  useEffect(() => {
+    onTokenHoverChange?.(hoveredKey !== null);
+  }, [hoveredKey, onTokenHoverChange]);
 
   const toggleExpandMWE = (key: string) => {
     setExpandedMWEs((prev) => {
@@ -429,68 +449,51 @@ function trackRestoreTimer(id: number): void {
       else next.add(key);
       return next;
     });
-    setHoveredId(null);
-    hoveredKeyRef.current = null;
+    setHoveredKey(null);
   };
 
   const findParentMWE = (wordKey: string): string | null => {
-    for (const phrase of expandedMWEs) {
+    for (const phrase of effectiveExpanded) {
       if (phrase.split(' ').includes(wordKey.toLowerCase())) return phrase;
     }
     return null;
   };
 
-  const handleSaveToken = useCallback(
-    (token: string) => {
-      setCaptureState('screenshot');
-      const first = window.setTimeout(() => {
-        setCaptureState('audio');
-        const second = window.setTimeout(() => setCaptureState('idle'), 900);
-        trackRestoreTimer(second);
-      }, 220);
-      trackRestoreTimer(first);
-      // Await the save before marking the word green. The overlay used
-      // to mutate `savedTokens` unconditionally, which marked the word
-      // "saved" even when Anki was down and every addNote had failed —
-      // the user checked the deck, the word was missing, and the UI had
-      // already said otherwise. Now the green only lands when App has
-      // confirmed the note was created.
-      void onSaveCard(token, targetSentence).then((result) => {
-        if (result?.ok) {
-          setSavedTokens((prev) => new Set(prev).add(token.toLowerCase()));
-        }
-        // On failure: leave the word un-marked. The failure toast in
-        // handleSaveCard explains the why.
-      });
-    },
-    [onSaveCard, targetSentence],
-  );
+  const handleSaveToken = (token: string) => {
+    if (capturing) return; // one card at a time
+    // The frame must contain the video + its subtitle only: close the card
+    // and the selection before the shutter fires.
+    clearLookup();
+    setIsHovered(false);
+    void onSaveCard(token, targetSentence).then((result) => {
+      if (result?.ok) setSavedTokens((prev) => new Set(prev).add(token.toLowerCase()));
+    });
+  };
 
-  // Respond to Ctrl+Shift+S / external save requests. We only fire when the
-  // `saveRequestKey` value actually CHANGES (not when other deps like
-  // `handleSaveToken` or `targetSentence` get recreated on re-render).
+  // Ctrl+Shift+S / the page shortcut: save what is pointed at (selection,
+  // then the open card, then the line), never guess.
   const lastSaveKeyRef = useRef<number | null>(null);
   useEffect(() => {
     if (saveRequestKey == null) return;
     if (saveRequestKey === lastSaveKeyRef.current) return;
     lastSaveKeyRef.current = saveRequestKey;
-    if (selectionText) {
+    if (capturing) return;
+    if (selection && selectionText) {
       handleSaveToken(selectionText);
-      setSelection(null);
       return;
     }
     const key = hoveredKeyRef.current;
     if (key) {
       const dictionary = lookupDictionary(key, cueLanguage);
-      const tokenText = dictionary?.token ?? key;
-      handleSaveToken(tokenText);
-    } else if (targetSentence) {
-      handleSaveToken(targetSentence);
+      handleSaveToken(dictionary?.token ?? key);
+      return;
     }
+    if (targetSentence.trim()) handleSaveToken(targetSentence);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveRequestKey]);
 
   const handleMouseEnter = () => {
+    if (!hintSeen) markHintSeen();
     if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
     setIsHovered(true);
   };
@@ -498,540 +501,475 @@ function trackRestoreTimer(id: number): void {
     hoverTimeout.current = setTimeout(() => setIsHovered(false), 200);
   };
 
+  // ── Sentence actions.
+  const handleSpeak = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      if (!('speechSynthesis' in window)) return;
+      const utter = new SpeechSynthesisUtterance(sourceText);
+      utter.lang = cueLanguage || 'en-US';
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+    } catch {
+      /* no speech synthesis: nothing to do */
+    }
+  };
+
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(targetSentence).catch(() => {});
-    }
-    setCopied(true);
-    const id = window.setTimeout(() => setCopied(false), 2000);
-    trackRestoreTimer(id);
+    void copyText(sourceText).then((ok) => {
+      if (!ok) {
+        // Copy failure is non-fatal, but silent failure reads as a dead button.
+        setCopied(false);
+        return;
+      }
+      setCopied(true);
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+      copyTimer.current = setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   if (!cue || !targetSentence.trim()) return null;
 
-  const bgOpacity = subtitleStyles.backgroundOpacity / 100;
-  const bgColor = subtitleStyles.backgroundColor;
-
-  const hexToRgb = (hex: string) => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result
-      ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
-      : '0,0,0';
-  };
-  const backgroundColorWithOpacity = `rgba(${hexToRgb(bgColor)}, ${bgOpacity})`;
-  // En hover (modo aprendizaje) usamos la opacidad configurada por el
-  // usuario (Subtitles tab → "Opacidad en hover"), nunca menor que la
-  // opacidad base — así el plate puede volverse MÁS legible al hover, nunca
-  // menos. Mismo cálculo que el mock.
+  const rgb = hexToRgb(subtitleStyles.backgroundColor);
+  const bgOpacity = (subtitleStyles.backgroundOpacity ?? 60) / 100;
+  // Hover can only make the plate MORE legible, never less.
   const hoverBgOpacity = Math.max(bgOpacity, (subtitleStyles.hoverOpacity ?? 80) / 100);
-  const backgroundColorOnHover = `rgba(${hexToRgb(bgColor)}, ${hoverBgOpacity})`;
-
+  const textShadow = (() => {
+    const s = subtitleStyles.textShadow ?? 0;
+    if (s <= 0) return 'none';
+    const a = (s / 100).toFixed(2);
+    const blur = Math.max(2, Math.round(s / 18));
+    return `2px 2px ${blur}px rgba(0,0,0,${a}), -1px -1px 0 rgba(0,0,0,${a}), 1px -1px 0 rgba(0,0,0,${a}), -1px 1px 0 rgba(0,0,0,${a}), 1px 1px 0 rgba(0,0,0,${a})`;
+  })();
   const verticalPercent =
     subtitleStyles.verticalOffset ??
     (subtitleStyles.position === 'top' ? 15 : subtitleStyles.position === 'middle' ? 50 : 85);
-
-  const isReading = mode === 'reading';
-
-  const rejoinAllMWEs = () => {
-    setExpandedMWEs(new Set());
-    setHoveredId(null);
-    hoveredKeyRef.current = null;
-  };
-
-  // Honor the cue's `align` setting only when the user opted in. Otherwise
-  // (and when the adapter couldn't extract an align hint) we keep the
-  // overlay's default centered layout, which is what most viewers expect on
-  // any platform.
-  const textAlignment: 'left' | 'center' | 'right' = (() => {
+  const textAlign: 'left' | 'center' | 'right' = (() => {
     if (!subtitleStyles.keepNativeAlignment) return 'center';
-    const a = cue?.align;
+    const a = cue.align;
     if (a === 'start' || a === 'left') return 'left';
     if (a === 'end' || a === 'right') return 'right';
     return 'center';
   })();
-  const flexJustify: 'flex-start' | 'center' | 'flex-end' =
-    textAlignment === 'left' ? 'flex-start' : textAlignment === 'right' ? 'flex-end' : 'center';
+
+  const learning = !reading && isHovered;
+  // Listen-first: while the line plays the text blurs; pausing or hovering reveals it.
+  const listenHide = listenFirst && playing && !isHovered && !capturing;
+  // Animate into blur; reveal instantly (a half-applied filter would trap the
+  // word card in its stacking context while it opens).
+  const blurText = (on: boolean): React.CSSProperties =>
+    on ? { filter: 'blur(0.3em)', transition: 'filter 200ms ease', userSelect: 'none' } : {};
+  const showHint = !hintSeen && !reading && !capturing && !isHovered;
+  // The sentence toolbar is only usable while the plate is hovered with no
+  // card open; when it is faded out its buttons must leave the tab order.
+  const toolbarOpen = isHovered && hoveredKey === null && !reading && !selectionText;
+  const fontSize = subtitleStyles.fontSize ?? 24;
 
   return (
-    <>
-      {/* Extension badge + mode toggle (top-right of video) */}
+    <div
+      // With a card open the layer rises above the player controls (z-20/30).
+      className={`absolute inset-x-0 ${hoveredKey ? 'z-[35]' : 'z-10'} flex flex-col items-center px-8 transition-all duration-300`}
+      style={{ top: `${verticalPercent}%`, transform: 'translateY(-50%)' }}
+    >
+      {/* Extension badge + study toggles (top-right of the video) */}
       <div className="absolute top-4 right-4 z-30 flex items-center gap-1.5 pointer-events-auto">
-        {expandedMWEs.size > 0 && !isReading && (
+        {expandedMWEs.size > 0 && !reading && (
           <button
-            tabIndex={-1}
-            onMouseDown={(e) => e.preventDefault()}
+            type="button"
             onClick={rejoinAllMWEs}
-            className="bg-amber-500/15 backdrop-blur-md text-amber-200 text-[11px] font-medium px-2 py-1 rounded-full shadow-lg flex items-center gap-1 hover:bg-amber-500/25 transition-colors border border-amber-400/30"
+            className="h-8 bg-zinc-900/80 backdrop-blur-md text-zinc-200 hover:text-white text-[12px] font-medium px-2.5 rounded-lg ring-1 ring-white/[0.08] shadow-lg flex items-center gap-1.5 hover:bg-zinc-800/90 kvl-press"
             title={t('overlay.rejoinAllTitle')}
           >
-            <Link2 size={11} /> {t('ovl.joinMwe')}
+            <Link2 size={14} /> {t('ovl.joinMwe')}
           </button>
         )}
         <button
-          tabIndex={-1}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setMode(isReading ? 'learning' : 'reading')}
-          className="group/badge w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md ring-1 ring-white/10 hover:ring-white/20 flex items-center justify-center transition-all"
-          title={!isReading ? t('subs.modeLearning') : t('subs.modeReading')}
+          type="button"
+          onClick={() => setStudy((s) => ({ ...s, listenFirst: !s.listenFirst }))}
+          aria-pressed={listenFirst}
+          className={`w-8 h-8 rounded-lg backdrop-blur-md ring-1 flex items-center justify-center kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60 ${
+            listenFirst
+              ? 'bg-indigo-500 ring-indigo-300/30 text-white shadow-[0_4px_14px_-4px_rgba(99,102,241,.6)]'
+              : 'bg-zinc-900/80 hover:bg-zinc-800/90 ring-white/[0.08] text-zinc-400 hover:text-zinc-200'
+          }`}
+          title={t('listen.title')}
+          aria-label={t('listen.title')}
         >
-          {!isReading ? (
+          <Ear size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode(reading ? 'learning' : 'reading')}
+          className="group/badge w-8 h-8 rounded-lg bg-zinc-900/80 hover:bg-zinc-800/90 backdrop-blur-md ring-1 ring-white/[0.08] flex items-center justify-center kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60"
+          title={!reading ? t('subs.modeLearning') : t('subs.modeReading')}
+          aria-label={!reading ? t('subs.modeLearning') : t('subs.modeReading')}
+        >
+          {!reading ? (
             <span className="relative flex items-center justify-center">
-              <span className="absolute w-1.5 h-1.5 rounded-full bg-emerald-400/40 animate-ping" style={{ animationDuration: '2.4s' }} />
-              <GraduationCap size={13} className="text-indigo-300/90 group-hover/badge:text-indigo-200" strokeWidth={2} />
+              <span className="absolute w-1.5 h-1.5 rounded-full bg-emerald-400/40 animate-ping [animation-duration:2.4s]" />
+              <GraduationCap size={16} className="text-indigo-300/90 group-hover/badge:text-indigo-200" strokeWidth={2} />
             </span>
           ) : (
-            <BookOpenCheck size={13} className="text-zinc-400 group-hover/badge:text-zinc-200" strokeWidth={2} />
+            <BookOpenCheck size={16} className="text-zinc-400 group-hover/badge:text-zinc-200" strokeWidth={2} />
           )}
         </button>
       </div>
 
-      {/* Onboarding hint — invitation banner shown when no popover/capture is
-          active. Mock parity. Floats at the top of the video so the user
-          knows the subtitle is interactive (otherwise on a static cue it
-          looks like plain text). */}
-      {!isReading && !isHovered && captureState === 'idle' && (
-        <div
-          className="absolute top-8 left-1/2 -translate-x-1/2 bg-zinc-900/70 backdrop-blur-md border border-white/10 text-white/85 text-xs px-3 py-1.5 rounded-full pointer-events-none shadow-lg animate-in fade-in slide-in-from-top-2 duration-500 z-30"
-          style={{ fontFamily: 'var(--kvl-font-sans)' }}
-        >
-          {t('ovl.hoverToInteract')}</div>
-      )}
-
-      {/* Capture overlay — covers the full video area */}
-      {!isReading && captureState !== 'idle' && (
-        <div
-          className="absolute inset-0 z-40 pointer-events-none transition-all duration-500 ease-out"
-          style={{
-            background:
-              captureState === 'screenshot'
-                ? 'radial-gradient(circle at center, rgba(99,102,241,0.25), rgba(0,0,0,0.35))'
-                : 'rgba(9, 9, 11, 0.55)',
-            backdropFilter: captureState === 'audio' ? 'blur(4px)' : 'blur(0px)',
-          }}
-        />
-      )}
-
-      {captureState === 'audio' && (
-        <div className="absolute inset-0 z-50 flex items-end justify-center pb-8 pointer-events-none">
-          <div className="bg-zinc-900/90 backdrop-blur-xl border border-zinc-700/60 rounded-xl px-4 py-3 flex items-center gap-3 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="w-9 h-9 rounded-lg bg-indigo-500/15 ring-1 ring-indigo-400/30 flex items-center justify-center shrink-0">
-              <AudioLines size={18} className="text-indigo-300" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-1.5">
-                <span className="text-white text-xs font-semibold">{t('overlay.captureAudio')}</span>
-                <span className="text-[9px] uppercase tracking-wider font-bold text-indigo-300 bg-indigo-500/20 px-1.5 py-0.5 rounded">{t('ovl.vad')}</span>
-              </div>
-              <div className="flex gap-[3px] items-end h-3">
-                {[0.5, 1, 0.7, 0.4, 0.85, 0.6, 0.9, 0.5].map((h, i) => (
-                  <span
-                    key={i}
-                    className="w-[2px] bg-indigo-400 rounded-full animate-pulse"
-                    style={{
-                      height: `${h * 12}px`,
-                      animationDuration: `${0.9 + (i % 3) * 0.15}s`,
-                      animationDelay: `${i * 60}ms`,
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-[10px] text-zinc-400 ml-1 pl-3 border-l border-zinc-700/60">
-              <Camera size={11} className="text-emerald-400" />
-              <span>{t('overlay.frameDone')}</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Subtitles Overlay */}
       <div
-        className="absolute inset-x-0 z-10 flex flex-col items-center px-8 transition-all duration-300"
-        style={{
-          top: `${verticalPercent}%`,
-          transform: 'translateY(-50%)',
-          pointerEvents: 'none',
-        }}
-      >
-      <div
-        className="relative flex flex-col items-center pointer-events-auto select-text"
+        ref={subsRef}
+        className={`relative flex flex-col items-center ${capturing ? 'pointer-events-none' : 'pointer-events-auto'}`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        // Block the default focus side-effect of a click on the subtitle
-        // plate. Without this, clicking on a token (or anywhere inside the
-        // plate) makes that element document.activeElement and HBO Max /
-        // Netflix / Disney+ stop seeing keyboard shortcuts. We only need
-        // mousedown — we DON'T preventDefault on mouseup or click, so
-        // selecting text and the per-token onClick handlers keep working.
-        onMouseDown={(e) => {
-          // Allow text selection: only block focus stealing when the
-          // target is a button, span with role, or interactive token.
-          const target = e.target as HTMLElement;
-          if (target.closest('input, textarea, [contenteditable="true"]')) return;
-          e.preventDefault();
-          // Clear active multi-word selection on plate background click
-          // (but preserve it on shift+click which extends).
-          handleSubtitleMouseDownClearSelection(e);
-        }}
         data-kivara-hover-zone="true"
       >
+        {showHint && (
+          <div className="absolute -top-14 z-20 flex items-center gap-2.5 bg-zinc-900/90 backdrop-blur-md ring-1 ring-white/[0.08] rounded-xl pl-1.5 pr-3 h-10 shadow-[0_12px_32px_-8px_rgba(0,0,0,.5)] pointer-events-none whitespace-nowrap opacity-0 animate-[kvl-rise_400ms_ease-out_900ms_forwards]">
+            <span className="w-7 h-7 rounded-lg bg-indigo-400/[0.14] text-indigo-300 flex items-center justify-center">
+              <MousePointerClick size={14} />
+            </span>
+            <span className="text-[13px] font-medium text-white">{t('ovl.hintTitle')}</span>
+            <span className="text-[12px] text-zinc-400">{t('ovl.hintBody')}</span>
+          </div>
+        )}
+
+        {/* Invisible bridge: crossing the gap never fires mouseleave */}
         <div className="absolute -top-14 w-full h-14 bg-transparent z-0" />
 
-        {/* Selection toolbar — takes priority over the phrase toolbar
-            whenever a multi-word selection is active. */}
-        {!isReading && selectionText && (
-          <div className="absolute -top-12 z-20 flex items-center gap-1 bg-indigo-900/95 backdrop-blur-sm border border-indigo-400/60 p-1 rounded-lg shadow-xl transition-all duration-200">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-indigo-200 px-2">
-              {t('ovl.selectionLabel')}</span>
+        {/* Free-selection toolbar — replaces the sentence toolbar while a
+            Shift+click range is active. */}
+        {!reading && selectionText && (
+          <div className="absolute -top-12 z-20 flex items-center gap-1 bg-zinc-900/95 backdrop-blur-sm ring-1 ring-indigo-400/40 p-1 rounded-xl shadow-xl transition-all duration-200">
+            <span className="text-[12px] font-medium text-zinc-400 px-2">{t('ovl.selectionLabel')}</span>
             <div className="w-px h-3.5 bg-indigo-400/40" />
-            <span
-              className="text-[11px] text-indigo-100 px-2 max-w-[280px] truncate"
-              title={selectionText}
-            >
-              "{selectionText}"
-            </span>
+            <span className="text-[12px] text-zinc-200 px-2 max-w-[280px] truncate" title={selectionText}>"{selectionText}"</span>
             <div className="w-px h-3.5 bg-indigo-400/40" />
             <button
-              tabIndex={-1}
-              onMouseDown={(e) => e.preventDefault()}
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 handleSaveToken(selectionText);
-                setSelection(null);
               }}
-              className="flex items-center gap-1 bg-indigo-500 hover:bg-indigo-400 text-white text-[11px] font-medium px-2 py-1 rounded transition-colors"
+              className="flex items-center gap-1 bg-indigo-500 hover:bg-indigo-400 text-white text-[12px] font-medium px-2.5 h-7 rounded-lg kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80"
               title={t('overlay.saveSelection')}
             >
-              <Quote size={11} /> {t('ovl.saveSelection')}</button>
+              <Quote size={11} /> {t('ovl.saveSelection')}
+            </button>
             <button
-              tabIndex={-1}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelection(null);
-              }}
-              className="p-1 text-indigo-200 hover:text-white hover:bg-indigo-700/60 rounded transition-colors"
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setSelection(null); }}
+              className="w-7 h-7 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/[0.08] rounded-md kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80"
               title={t('overlay.clearSelection')}
+              aria-label={t('overlay.clearSelection')}
             >
               ✕
             </button>
           </div>
         )}
 
-        {!isReading && !selectionText && (
-          <div
-            className={`absolute -top-12 z-10 flex items-center gap-1 bg-zinc-900/95 backdrop-blur-sm border border-zinc-700/60 p-1 rounded-lg shadow-xl transition-all duration-300 transform ${
-              isHovered && hoveredId === null ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0 pointer-events-none'
-            }`}
+        {/* Sentence toolbar — utilities only (saving a word lives in its card) */}
+        <div
+          className={`absolute -top-12 z-10 flex items-center gap-1 bg-zinc-900/95 backdrop-blur-sm ring-1 ring-white/[0.08] p-1 rounded-xl shadow-xl transition-all duration-300 transform ${
+            toolbarOpen ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0 pointer-events-none'
+          }`}
+        >
+          <span className="text-[12px] font-medium text-zinc-400 px-2">{t('ovl.phrase')}</span>
+          <div className="w-px h-3.5 bg-zinc-700/80" />
+          <button
+            type="button"
+            tabIndex={toolbarOpen ? 0 : -1}
+            onClick={handleSpeak}
+            className="w-7 h-7 flex items-center justify-center text-zinc-300 hover:text-white hover:bg-white/[0.08] rounded-md kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80"
+            title={t('overlay.playSentenceTitle')}
+            aria-label={t('overlay.playSentenceTitle')}
           >
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500 px-2">{t('ovl.phrase')}</span>
-            <div className="w-px h-3.5 bg-zinc-700/80" />
+            <Volume1 size={14} />
+          </button>
+          <button
+            type="button"
+            tabIndex={toolbarOpen ? 0 : -1}
+            onClick={handleCopy}
+            className="w-7 h-7 flex items-center justify-center text-zinc-300 hover:text-white hover:bg-white/[0.08] rounded-md kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80"
+            title={t('overlay.copySentenceTitle')}
+            aria-label={t('overlay.copySentenceTitle')}
+          >
+            {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+          </button>
+          {explainReady && onExplain && (
             <button
-              tabIndex={-1}
-              onMouseDown={(e) => e.preventDefault()}
-              // Bridges to App.tsx's in-page repeat handler (same as the
-              // Alt+R hotkey performs): the button used to preventDefault
-              // and swallow the click with nothing else attached, which
-              // was the review's "botons muertos" finding.
-              onClick={() => window.dispatchEvent(new CustomEvent('kivara-repeat-cue'))}
-              className="p-1.5 text-zinc-300 hover:text-white hover:bg-zinc-700/50 rounded-md transition-colors"
-              title={t('overlay.playSentenceTitle')}
+              type="button"
+              tabIndex={toolbarOpen ? 0 : -1}
+              onClick={(e) => { e.stopPropagation(); onExplain(); }}
+              className="w-7 h-7 flex items-center justify-center text-indigo-300 hover:text-white hover:bg-white/[0.08] rounded-md kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80"
+              title={t('explain.action')}
+              aria-label={t('explain.action')}
             >
-              <Volume1 size={14} />
+              <BookOpenCheck size={14} />
             </button>
-            <button
-              tabIndex={-1}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={handleCopy}
-              className="p-1.5 text-zinc-300 hover:text-white hover:bg-zinc-700/50 rounded-md transition-colors"
-              title={t('overlay.copySentenceTitle')}
-            >
-              {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-            </button>
-            <div className="w-px h-3.5 bg-zinc-700/80" />
-            <button
-              tabIndex={-1}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSaveToken(targetSentence);
-              }}
-              className="flex items-center gap-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-medium px-2 py-1 rounded transition-colors"
-              title={t('overlay.saveSentenceTitle')}
-            >
-              <Quote size={11} /> {t('ovl.savePhrase')}
-            </button>
-            <div className="w-px h-3.5 bg-zinc-700/80" />
-            <span className="text-[9px] text-zinc-500 px-2 hidden sm:flex items-center gap-1">
-              <kbd className="font-sans font-semibold text-[9px] text-zinc-400 bg-zinc-800 border border-zinc-700 rounded px-1 py-px">
-                Alt+Scroll
-              </kbd>
-              <span>{t('ovl.splitExpr')}</span>
-              <span className="text-zinc-600">·</span>
-              <kbd className="font-sans font-semibold text-[9px] text-zinc-400 bg-zinc-800 border border-zinc-700 rounded px-1 py-px">
-                Shift+Click
-              </kbd>
-              <span>{t('ovl.freeSelect')}</span>
-            </span>
-          </div>
-        )}
+          )}
+          <div className="w-px h-3.5 bg-zinc-700/80" />
+          <span className="text-[11px] text-zinc-500 px-2 hidden sm:flex items-center gap-1">
+            <kbd className={kbd}>{t('ovl.kbdAltScroll')}</kbd>
+            <span>{t('ovl.splitExpr')}</span>
+            <span className="text-zinc-600">·</span>
+            <kbd className={kbd}>{t('ovl.kbdShiftClick')}</kbd>
+            <span>{t('ovl.freeSelect')}</span>
+          </span>
+        </div>
 
+        {/* Subtitle text */}
         <div
           className="rounded-md px-4 py-2 transition-all duration-300 cursor-pointer"
+          {...markContainerAttrs(newMarks)}
           style={{
-            textAlign: textAlignment,
-            fontSize: `${subtitleStyles.fontSize}px`,
+            fontSize: `${fontSize}px`,
             color: subtitleStyles.color,
-            backgroundColor: !isReading && isHovered ? backgroundColorOnHover : backgroundColorWithOpacity,
+            backgroundColor: `rgba(${rgb}, ${learning ? hoverBgOpacity : bgOpacity})`,
             fontWeight: subtitleStyles.fontWeight,
-            // Pin the font family so the subtitle text always renders in
-            // our stack — never the host page's font (YouTube/Netflix etc.
-            // each use their own brand font that would otherwise leak in).
+            textAlign,
+            whiteSpace: subtitleStyles.keepNativeLineBreaks ? 'pre-line' : undefined,
             fontFamily: 'var(--kvl-font-sans)',
-            textShadow: (() => {
-              const s = subtitleStyles.textShadow;
-              if (s <= 0) return 'none';
-              const a = (s / 100).toFixed(2);
-              const blur = Math.max(2, Math.round(s / 18));
-              return `2px 2px ${blur}px rgba(0,0,0,${a}), -1px -1px 0 rgba(0,0,0,${a}), 1px -1px 0 rgba(0,0,0,${a}), -1px 1px 0 rgba(0,0,0,${a}), 1px 1px 0 rgba(0,0,0,${a})`;
-            })(),
-            transform: !isReading && isHovered ? 'scale(1.05)' : 'scale(1)',
-            boxShadow:
-              !isReading && isHovered
-                ? '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
-                : 'none',
-            // "Difuminar fondo en hover" toggle (SubtitlesTab) — applies
-            // a 2px backdrop-blur behind the plate during hover so busy
-            // scenes don't bleed through the popover. Mock parity.
-            backdropFilter:
-              !isReading && isHovered && subtitleStyles.hoverBlur ? 'blur(2px)' : undefined,
-            WebkitBackdropFilter:
-              !isReading && isHovered && subtitleStyles.hoverBlur ? 'blur(2px)' : undefined,
+            textShadow,
+            transform: learning ? 'scale(1.05)' : 'scale(1)',
+            boxShadow: learning
+              ? '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
+              : 'none',
+            backdropFilter: learning && subtitleStyles.hoverBlur ? 'blur(2px)' : undefined,
+            WebkitBackdropFilter: learning && subtitleStyles.hoverBlur ? 'blur(2px)' : undefined,
           }}
         >
-          {isReading ? (
-            // Reading mode: no popovers, but still respect the
-            // "keepNativeLineBreaks" toggle so the visible layout matches
-            // interactive mode.
-            <div className="flex flex-col" style={{ alignItems: flexJustify }}>
-              {lines.map((line, li) => (
-                <span key={li}>{line}</span>
-              ))}
-            </div>
+          {reading ? (
+            <span style={blurText(listenHide)}>{sourceText}</span>
           ) : (
-            <div className="flex flex-col" style={{ alignItems: flexJustify }}>
-              {lineTokens.map((tokens, li) => (
-                <div key={li} className="block">
-                  {tokens.map((tok, i) => {
-                    const id = `${li}:${i}`;
-                    const isInSel = selection != null && isInRange(id, selection);
-                    if (tok.kind === 'punct') {
-                      return (
-                        <span
-                          key={`${li}:${i}:${tok.key}`}
-                          className={isInSel ? 'bg-indigo-500/30' : undefined}
-                        >
-                          {tok.text}
-                        </span>
-                      );
-                    }
-                    // `ignored` tokens render exactly like punct text — no
-                    // affordance, no popover, no hover state. This is how the
-                    // tokenizer hides auto-classified proper nouns. They can
-                    // still participate in a span selection so the user can
-                    // capture "Mr Anderson" as one card if they want.
-                    if (tok.kind === 'ignored') {
-                      return (
-                        <span
-                          key={`${li}:${i}:${tok.key}`}
-                          onMouseDown={(e) => handleTokenMouseDown(id, e)}
-                          onMouseEnter={() => handleTokenDragEnter(id)}
-                          className={`opacity-90 cursor-text ${isInSel ? 'bg-indigo-500/30' : ''}`}
-                        >
-                          {tok.text}
-                        </span>
-                      );
-                    }
-                    // `id` is the per-occurrence hover identity. Composite of
-                    // line index + token index so two instances of the same
-                    // word in a single cue ("how's this, how's that") keep
-                    // independent hover/popover state — previously the
-                    // overlay keyed off `tok.key` (the lowercased text) and
-                    // both occurrences lit up together.
-                    const isTokHovered = hoveredId === id;
-                    const isSaved = savedTokens.has(tok.key.toLowerCase());
-                    // After the Phase 2 audit we make `unknown` interactive too —
-                    // hovering triggers the remote translation chain inside
-                    // WordPopover. The visual affordance is much subtler than
-                    // known/mwe so it doesn't compete for attention.
-                    const isInteractive =
-                      tok.kind === 'mwe' ||
-                      tok.kind === 'known' ||
-                      tok.kind === 'proper-noun-known' ||
-                      tok.kind === 'unknown' ||
-                      tok.kind === 'mastered';
-
-                    let colorClass: string;
-                    if (isTokHovered) {
-                      colorClass =
-                        'text-white bg-indigo-600 shadow-[0_2px_8px_rgba(99,102,241,0.45)]';
-                    } else if (isSaved) {
-                      colorClass =
-                        'text-emerald-300 border-b-2 border-emerald-400/70 hover:bg-emerald-400/10';
-                    } else if (tok.kind === 'mwe' && tok.mweKind === 'phrasal') {
-                      // Phrasal verbs use a solid azul underline (distinct from
-                      // idiomatic MWEs) to signal they're grammatical units.
-                      colorClass =
-                        'text-sky-300 border-b-2 border-sky-400 hover:bg-sky-400/15';
-                    } else if (tok.kind === 'mwe') {
-                      colorClass =
-                        'text-amber-300 border-b-2 border-amber-400 border-dotted hover:bg-amber-400/15';
-                    } else if (tok.kind === 'known') {
-                      colorClass =
-                        'border-b border-zinc-300/40 border-dashed hover:text-white hover:bg-white/10';
-                    } else if (tok.kind === 'proper-noun-known') {
-                      colorClass =
-                        'text-violet-300/90 border-b border-violet-400/40 border-dotted hover:text-white hover:bg-violet-400/10';
-                    } else if (tok.kind === 'mastered') {
-                      colorClass = 'opacity-50 hover:opacity-100 hover:bg-white/5';
-                    } else {
-                      // unknown — interactive but with the most subtle affordance.
-                      colorClass =
-                        'opacity-80 hover:opacity-100 hover:bg-white/10 hover:underline hover:decoration-dotted hover:decoration-zinc-400/70 hover:underline-offset-2';
-                    }
-
-                    const parentForSplit = tok.kind !== 'mwe' ? findParentMWE(tok.key) : null;
-                    const wheelable = tok.kind === 'mwe' || !!parentForSplit;
-                    const handleWheel = (e: React.WheelEvent) => {
-                      if (!wheelable) return;
-                      if (!(e.ctrlKey || e.altKey || e.metaKey)) return;
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (e.deltaY > 0 && tok.kind === 'mwe') {
-                        setExpandedMWEs((prev) => {
-                          const n = new Set(prev);
-                          n.add(tok.key);
-                          return n;
-                        });
-                      } else if (e.deltaY < 0 && parentForSplit) {
-                        setExpandedMWEs((prev) => {
-                          const n = new Set(prev);
-                          n.delete(parentForSplit);
-                          return n;
-                        });
-                        setHoveredId(null);
-                        hoveredKeyRef.current = null;
-                      }
-                    };
-
-                    const isInSelection = selection != null && isInRange(id, selection);
-                    const cursorClass = wheelable
-                      ? 'cursor-ew-resize'
-                      : isInteractive
-                        ? 'cursor-help'
-                        : '';
-                    const selectionClass = isInSelection
-                      ? 'bg-indigo-500/35 ring-1 ring-indigo-300/60'
-                      : '';
-
-                    return (
-                      <span key={`${li}:${i}:${tok.key}`} className="relative inline-block">
-                        <span
-                          onMouseEnter={() => {
-                            if (isInteractive) handleTokenEnter(id, tok.key);
-                            handleTokenDragEnter(id);
-                          }}
-                          onMouseLeave={handleTokenLeave}
-                          onMouseDown={(e) => handleTokenMouseDown(id, e)}
-                          onWheel={handleWheel}
-                          title={
-                            wheelable
-                              ? t('overlay.altScrollHint')
-                              : undefined
+            <span style={blurText(listenHide)}>
+              {tokens.map((tok, i) => {
+                // Pure punctuation: plain text, no mark, no card.
+                if (tok.kind === 'punct') return <React.Fragment key={`${tok.key}${i}`}>{tok.text}</React.Fragment>;
+                const inSelection = !!selection
+                  && i >= Math.min(selection.a, selection.b)
+                  && i <= Math.max(selection.a, selection.b);
+                // Proper nouns the dictionary does not know are text, not
+                // vocabulary: no card, no keyboard stop, never saved as a word.
+                if (tok.kind === 'ignored') {
+                  return (
+                    <span
+                      key={`${tok.key}${i}`}
+                      data-proper
+                      className={`rounded px-0.5 ${inSelection ? 'bg-indigo-500/35' : ''}`}
+                    >
+                      {tok.text}
+                    </span>
+                  );
+                }
+                const isTokHovered = hoveredKey === tok.key && hoveredIdx === i;
+                // The Anki cache of the profile (F5) adds to the pre-fetched
+                // saved words: either way, an Anki word is not saved twice.
+                const studyKey = tok.lemma ?? tok.key;
+                const isSaved = savedTokens.has(tok.key.toLowerCase()) || !!study?.inAnki(studyKey);
+                const mark = markOf(tok, study?.statusOf);
+                // The status mark draws the underline; here only hover,
+                // selection and the saved/learned accents.
+                const stateCls = inSelection
+                  ? 'bg-indigo-500/35 ring-1 ring-indigo-300/60'
+                  : isTokHovered
+                  ? '!text-white bg-indigo-600 shadow-[0_2px_8px_rgba(99,102,241,0.45)]'
+                  : 'hover:bg-white/10';
+                const savedCls = isSaved ? 'border-b-2 border-emerald-400/70' : '';
+                const knownCls = tok.kind === 'mastered'
+                  ? 'opacity-50 hover:opacity-100'
+                  // The repo keeps a known proper noun interactive with a
+                  // quieter affordance than regular vocabulary (the prototype
+                  // had no such state; the taxonomy does).
+                  : tok.kind === 'proper-noun-known'
+                    ? 'underline decoration-violet-300/40 decoration-dotted underline-offset-2'
+                    : '';
+                const parentForSplit = tok.kind !== 'mwe' ? findParentMWE(tok.key) : null;
+                const wheelable = tok.kind === 'mwe' || !!parentForSplit;
+                const handleWheel = (e: React.WheelEvent) => {
+                  if (!wheelable || !e.altKey) return;
+                  e.stopPropagation(); // the page scroll is cancelled natively (subsRef)
+                  if (e.deltaY > 0 && (tok.kind === 'mwe' || parentForSplit === altExpandedKey)) {
+                    const key = tok.kind === 'mwe' ? tok.key : parentForSplit!;
+                    setExpandedMWEs((prev) => {
+                      const next = new Set(prev);
+                      next.add(key);
+                      return next;
+                    });
+                  } else if (e.deltaY < 0 && parentForSplit) {
+                    setExpandedMWEs((prev) => {
+                      const next = new Set(prev);
+                      next.delete(parentForSplit);
+                      return next;
+                    });
+                    setAltExpandedKey(null);
+                    setHoveredKey(null);
+                  }
+                };
+                return (
+                  <span
+                    key={`${tok.key}${i}`}
+                    className="relative inline-block"
+                    // Escape inside the card: focus goes back to the word.
+                    onKeyDownCapture={(e) => {
+                      if (e.key === 'Escape' && !(e.target as HTMLElement).hasAttribute('data-tok-idx')) focusWord(i);
+                    }}
+                    onBlur={(e) => {
+                      if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+                      if (focusOpenRef.current !== i) return;
+                      focusOpenRef.current = null;
+                      if (hoveredIdx === i) handleTokenLeave();
+                    }}
+                  >
+                    <span
+                      onMouseEnter={() => handleTokenEnter(tok.key, i)}
+                      onMouseLeave={handleTokenLeave}
+                      onFocus={() => {
+                        setRovingIdx(i);
+                        focusOpenRef.current = i;
+                        handleTokenEnter(tok.key, i);
+                      }}
+                      onKeyDown={(e) => handleTokenKey(e, i, tok.key)}
+                      data-tok-idx={i}
+                      tabIndex={!capturing && i === tabStop ? 0 : -1}
+                      role="button"
+                      aria-haspopup="dialog"
+                      aria-expanded={isTokHovered && !selection}
+                      onWheel={handleWheel}
+                      data-wheelable={wheelable || undefined}
+                      data-active={isTokHovered || inSelection || undefined}
+                      {...markAttrs(mark)}
+                      onMouseDown={(e) => {
+                        if (e.shiftKey) e.preventDefault(); // no native text highlight
+                      }}
+                      onClick={(e) => {
+                        if (e.shiftKey) {
+                          e.preventDefault();
+                          setSelection((prev) => (prev ? { a: prev.a, b: i } : { a: i, b: i }));
+                          setHoveredKey(null);
+                        } else {
+                          setSelection(null);
+                        }
+                      }}
+                      title={wheelable ? t('overlay.altScrollHint') : undefined}
+                      className={`kvl-tok rounded px-0.5 transition-all duration-150 cursor-help outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80 ${stateCls} ${savedCls} ${knownCls}`}
+                    >
+                      {tok.text}
+                      {isSaved && !isTokHovered && (
+                        <Check size={9} className="inline-block ml-0.5 -mt-1 text-emerald-300" strokeWidth={3} />
+                      )}
+                    </span>
+                    {isTokHovered && !selection && (
+                      <WordPopover
+                        cardTheme={cardTheme}
+                        visible
+                        onMouseEnter={() => handleTokenEnter(tok.key, i)}
+                        onMouseLeave={handleTokenLeave}
+                        token={tok.text}
+                        lookupToken={tok.key}
+                        sentence={targetSentence}
+                        sourceLang={cueLanguage}
+                        includeAi={includeAi}
+                        kind={tok.kind}
+                        mweKind={tok.mweKind}
+                        lemma={tok.lemma}
+                        isExpanded={expandedMWEs.has(tok.key)}
+                        isSaved={isSaved}
+                        parentMWE={parentMWEForToken(tok.kind, tok.key)}
+                        onClose={() => {
+                          focusWord(i);
+                          clearLookup();
+                        }}
+                        onToggleExpand={() => toggleExpandMWE(tok.key)}
+                        onRejoinParent={(parent) => {
+                          setExpandedMWEs((prev) => {
+                            const next = new Set(prev);
+                            next.delete(parent);
+                            return next;
+                          });
+                          setHoveredKey(null);
+                        }}
+                        onSave={(e, value) => {
+                          e.stopPropagation();
+                          handleSaveToken(value);
+                        }}
+                        onSeeInAnki={onSeeInAnki
+                          ? (e) => { e.stopPropagation(); onSeeInAnki(tok.key); }
+                          : undefined}
+                        onAddContext={onAddContext
+                          ? (e) => {
+                            e.stopPropagation();
+                            onAddContext(tok.key, targetSentence, cardKindOf(tok.text));
                           }
-                          className={`relative rounded px-0.5 transition-all duration-150 ${cursorClass} ${colorClass} ${selectionClass}`}
-                        >
-                          {tok.text}
-                          {isSaved && !isTokHovered && (
-                            <Check size={9} className="inline-block ml-0.5 -mt-1 text-emerald-400" strokeWidth={3} />
-                          )}
-                        </span>
-                        {isTokHovered && isInteractive && (
-                          <WordPopover
-                            visible={true}
-                            onMouseEnter={() => handleTokenEnter(id, tok.key)}
-                            onMouseLeave={handleTokenLeave}
+                          : undefined}
+                        statusSlot={study && tok.kind !== 'proper-noun-known' ? (
+                          <WordStatusSelector
                             token={tok.text}
-                            lookupToken={tok.key}
-                            sentence={targetSentence}
-                            sourceLang={cueLanguage}
-                            includeAi={includeAi}
-                            kind={tok.kind}
-                            mweKind={tok.mweKind}
-                            lemma={tok.lemma}
-                            isExpanded={expandedMWEs.has(tok.key)}
+                            status={mark.status ?? 'new'}
+                            detail={study.detailOf(studyKey)}
                             isSaved={isSaved}
-                            parentMWE={tok.kind !== 'mwe' ? findParentMWE(tok.key) : null}
-                            onClose={() => {
-                              // Escape: the keyboard way out. Dragging the
-                              // hovered id to null makes the card unmount.
-                              setHoveredId(null);
-                              (document.activeElement as HTMLElement | null)?.blur?.();
-                            }}
-                            onToggleExpand={() => toggleExpandMWE(tok.key)}
-                            onRejoinParent={(parent) => {
-                              setExpandedMWEs((prev) => {
-                                const n = new Set(prev);
-                                n.delete(parent);
-                                return n;
-                              });
-                              setHoveredId(null);
-                              hoveredKeyRef.current = null;
-                            }}
-                            onSave={(e, token) => {
-                              e.stopPropagation();
-                              handleSaveToken(token);
-                            }}
+                            onChange={(status) => study.setStatus(studyKey, status)}
+                            onClear={() => study.setStatus(studyKey, null)}
                           />
-                        )}
-                      </span>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
+                        ) : undefined}
+                      />
+                    )}
+                  </span>
+                );
+              })}
+            </span>
           )}
 
-          {/* Dual caption — native-language full sentence under the
-              source. 1:1 with the mock VideoPlayer:
-                - Wrapper always renders while `showDualSubtitle ||
-                  (!isReading && isHovered)` so it doesn't flash in
-                  AFTER the MT round-trip resolves (which would re-run
-                  the height transition mid-cue and look out of sync).
-                - Inner expand/collapse driven by `showDualSubtitle || isHovered`.
-                - The `<span>` itself only appears once `dualCaptionText`
-                  resolves, so the user never sees an empty grey line.
-                - `mt-2` constant, `transition-all duration-300`. */}
-          {(showDualSubtitle || (!isReading && isHovered)) && (
+          {/* Translation: visible, blurred until hover, or hidden — the same
+              study setting as the transcript. Listen-first also waits for the pause. */}
+          {translationVisible && dualCaptionText && (
             <div
-              data-kivara-hover-zone="true"
-              className={`mt-2 text-[0.65em] transition-all duration-300 overflow-hidden ${
-                showDualSubtitle || isHovered ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'
-              }`}
+              className="mt-2 text-[0.65em] transition-all duration-300 overflow-hidden max-h-20 opacity-100"
               style={{
                 whiteSpace: subtitleStyles.keepNativeLineBreaks ? 'pre-line' : undefined,
-                textAlign: subtitleStyles.keepNativeAlignment ? 'left' : 'center',
+                textAlign,
+                ...blurText(listenHide || (translation === 'blur' && !isHovered)),
               }}
             >
-              {dualCaptionText && (
-                <span className="text-zinc-300">{dualCaptionText}</span>
-              )}
+              <span className="text-zinc-300">{dualCaptionText}</span>
             </div>
           )}
         </div>
       </div>
     </div>
-    </>
   );
+
+  function parentMWEForToken(kind: string, key: string): string | null {
+    return kind !== 'mwe' ? findParentMWE(key) : null;
+  }
+
+  function rejoinAllMWEs() {
+    setExpandedMWEs(new Set());
+    setHoveredKey(null);
+  }
+}
+
+/** Clipboard with a legacy fallback; false when nothing could copy. */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    /* permission denied or no focus: try the fallback */
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch {
+    return false;
+  }
 }

@@ -11,6 +11,29 @@
  *  3. Two open tabs: "Quitar" in one, a setting change in the other → the
  *     key stays cleared.
  *
+ * ── F6 manual matrix (docs/REDESIGN-V2.md §8) ────────────────────────────
+ * The platform checks below cannot run in CI (signed-in accounts + DRM
+ * streams). Run them by hand on YouTube, Netflix, Max, Disney+ and Prime
+ * Video, windowed AND fullscreen, light AND dark:
+ *
+ *   [ ] Hover a word → card → save (frame + audio) still works.
+ *   [ ] Click a transcript line → jump with no M7375 / playback hiccup.
+ *       (Netflix: the seek goes through the MAIN player API; if the page
+ *       answers "player API unavailable", playback keeps running.)
+ *   [ ] Auto-pause (Alt+Q) stops at the cue end; resuming only undoes a pause
+ *       Kivara made (kivaraPausedRef), never the platform's own pause.
+ *   [ ] Loop (Alt+L) repeats the cue.
+ *   [ ] Speed 0.75 / 1 / 1.25 (Alt+, / Alt+.) applies and survives a seek.
+ *   [ ] Hold ⟲ (or Alt+Shift+R) plays the line once at 0.75× and pauses.
+ *   [ ] Previous / next (Alt+A / Alt+Z) move by line, not by page.
+ *   [ ] Columns: the rail shrinks the player and never covers the picture;
+ *       in fullscreen the rail is still reachable.
+ *   [ ] The study bar appears on pointer activity over the player and fades
+ *       like the site's own controls; the native bar is untouched (D2).
+ *   [ ] New page shortcuts do not collide with the site's or Chrome's:
+ *       Alt+Z (alt. Alt+X) instead of Alt+D, which Chrome owns on Windows.
+ *   [ ] With the extension disabled, no shortcut seeks or saves.
+ *
  * Locale note: fixtures.ts launches Chromium with `--lang=es`, so the UI
  * strings are pinned to the Spanish dictionary instead of inheriting the
  * machine's language. A regression in that pin shows up as a failing locator
@@ -65,7 +88,7 @@ const SLOT = 'kivara-secret:v1:ai.apiKey';
  * The AI key input only exists once a provider preset is selected (a fresh
  * install ships `provider: 'disabled'`), so the first preset is picked — and
  * the AI provider key is the only secret input rendered with the visibility
- * toggle, which identifies its sibling input unambiguously.
+ * toggle, which identifies the input unambiguously.
  *
  * Note the tab bar labels are hardcoded English ("Subtitles" / "Cards" /
  * "Settings") — they are not routed through `t()` — while everything below
@@ -81,7 +104,13 @@ async function openSettingsAiKey(page: Page): Promise<ReturnType<Page['locator']
   await page.locator('#kivara-panel-tab-settings').click();
   await page.getByRole('button', { name: /IA premium/ }).click();
   await page.locator('ul li button').first().click();
-  return page.locator('xpath=//button[@title="Mostrar lo escrito"]/preceding-sibling::input');
+  // The SecretKeyInput view wraps the input in a relative container and puts
+  // the eye/clear actions in an absolute row BESIDE it, so the input is no
+  // longer a sibling of the toggle. Anchor on the toggle and walk up to the
+  // wrapper's input: same element, same intent.
+  return page.locator(
+    'xpath=//button[@title="Mostrar lo escrito"]/parent::div/parent::div/input',
+  );
 }
 
 const SAVED_PLACEHOLDER = /guardada/;
@@ -116,10 +145,17 @@ test('1 · keys survive an unusable chrome.storage.sync', async ({ context, exte
 
   // ── Sync goes down. The user changes a setting (a slider) right now.
   await page.evaluate(BREAK_SYNC);
-  await page.locator('input[type="range"]').first().press('ArrowRight');
+  // The panel keeps every tab mounted (F2) and its sections collapse with
+  // `inert`, so the page-wide first range is a hidden one. Open the Translation
+  // section and change ITS slider: one setting, now.
+  await page.locator('#kivara-section-translate-button').click();
+  await page.locator('#kivara-panel-body-settings input[type="range"]').first().press('ArrowRight');
 
   // …and the UI says so instead of pretending the setting saved.
-  await expect(page.getByRole('status').filter({ hasText: 'chrome.storage.sync' })).toBeVisible();
+  // The compact banner in Settings uses the SHORT copy (the long one names
+  // chrome.storage.sync and lives in the popup), so assert on the meaning:
+  // the UI says the setting stayed on this device.
+  await expect(page.getByRole('status').filter({ hasText: /solo en este dispositivo/ })).toBeVisible();
   // ── Reload: sync still holds the last good blob, the key comes back from
   // its local slot. The input must read as "saved", not "empty".
   await page.reload();
@@ -303,7 +339,8 @@ test('3 · Quitar on one tab, a change on the other: the key stays cleared', asy
 
   // Tab B changes a setting while still holding the removed key in memory:
   // its save must not resurrect it.
-  await b.locator('input[type="range"]').first().press('ArrowRight');
+  await b.locator('#kivara-section-translate-button').click();
+  await b.locator('#kivara-panel-body-settings input[type="range"]').first().press('ArrowRight');
   await b.waitForTimeout(600);
   expect(
     await b.evaluate(async (slot) => {

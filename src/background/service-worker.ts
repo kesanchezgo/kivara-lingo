@@ -4,8 +4,22 @@ import { onMessage } from 'webext-bridge/background';
 import type {
   AiEnrichRequest,
   AiEnrichResponse,
+  AiExplainRequest,
+  AiExplainResponse,
+  AnkiAddContextRequest,
+  AnkiAddContextResponse,
+  AnkiBrowseRequest,
+  AnkiBrowseResponse,
+  AnkiDeleteNoteResponse,
   AnkiMapping,
+  AnkiWordIntervalsRequest,
+  AnkiWordIntervalsResponse,
   CaptureSettings,
+  CardDismissRequest,
+  CardDismissResponse,
+  CardRetryAllResponse,
+  CardRetryRequest,
+  CardRetryResponse,
   CreateCardRequest,
   CreateCardResponse,
   UpdateNoteFrameRequest,
@@ -26,8 +40,19 @@ import type {
   TtsResponse,
   DictionaryEntry,
 } from '../shared/types';
+import { explainSentence } from './ai-explain';
 import { ankiConnect } from './anki-connect';
 import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator';
+import { addContextToNote, browseNote, wordIntervals } from './card-actions';
+import { dismissCard, retryAllCards, retryCard, undoDeleteNote } from './card-lifecycle';
+import { cardRegistry } from './card-registry';
+import {
+  buildCardTags,
+  cardSourceFromMedia,
+  newCardId,
+  newRecentCard,
+  type RecentCard,
+} from '../shared/cards';
 import { DEFAULT_ANKI_MAPPING, DEFAULT_CAPTURE, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
 import { resolveSecret } from '../shared/secret-store';
 import { escapeAnkiSearchTerm } from '../shared/anki-search';
@@ -44,14 +69,14 @@ import { speak } from './tts';
 import { enrichWithAi } from './ai-enrich';
 import { resolveWordStreaming } from './resolve-word';
 import { installResolveWordPort } from './enrichment/stream';
-import { clearEnrichmentCache, clearMemEnrichmentCache } from './enrichment/orchestrator';
+import { clearEnrichmentCache, clearMemEnrichmentCache, getEnrichmentSourceHealth } from './enrichment/orchestrator';
 
 /** Deep-link section for OPEN_SETTINGS (see the handler below). */
 import { dbg, dbgOnce } from '../shared/debug-log';
 
 import { getCacheStats, clearCaches } from './cache-admin';
 import { listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';
-import { t } from '../shared/i18n';
+import { t } from '../shared/i18n/sw';
 import { fetchGuarded, validateDictPackInstallRequest } from '../shared/net-guard';
 const OPEN_SETTINGS_SECTION_KEY = 'kivara:open-settings-section';
 
@@ -297,8 +322,42 @@ function asJson<T>(value: T): any {
 }
 
 onMessage('CREATE_CARD', async ({ data }) => {
-  const request = data as unknown as CreateCardRequest;
+  const raw = data as unknown as CreateCardRequest;
   const [mapping, capture] = await Promise.all([loadMapping(), loadCaptureSettings()]);
+
+  // Per-language deck (H9): the request may name one, otherwise the language's
+  // mapped deck decides, and only then the legacy single `deckName`.
+  const lang = (raw.lang ?? raw.language ?? 'en').trim() || 'en';
+  const deck = (raw.deck ?? '').trim() || mapping.decks?.[lang] || mapping.deckName;
+  const kind = raw.kind ?? (/\s/.test(raw.token.trim()) ? 'expression' : 'word');
+  const request: CreateCardRequest = {
+    ...raw,
+    cardId: raw.cardId ?? newCardId(),
+    lang,
+    language: lang,
+    kind,
+    deck,
+  };
+  const effectiveMapping: AnkiMapping = { ...mapping, deckName: deck };
+
+  // Register the card BEFORE sending: the UI paints `sending` immediately and
+  // every terminal state is a patch on this record.
+  const card: RecentCard = newRecentCard({
+    id: request.cardId!,
+    word: request.token,
+    sentence: request.sentence,
+    kind,
+    deck,
+    lang,
+    tags: buildCardTags(kind, request.media, lang),
+    source: cardSourceFromMedia(request.media),
+    media: {
+      frame: !!request.frame,
+      audio: !!(request.audio || (request.cueStart != null && request.cueEnd != null)),
+      word: true,
+    },
+  });
+  await cardRegistry.put(card);
 
   // Keep the Origin-rewrite rules in sync with the user's actual Anki URL
   // (custom port / remote host) so a non-default setup isn't rejected by
@@ -306,16 +365,92 @@ onMessage('CREATE_CARD', async ({ data }) => {
   // wakes must not race the rule install — a void'd refresh meant the first
   // addNote could still hit CORS.
   await refreshAnkiOriginRules(mapping.ankiUrl);
-  const response: CreateCardResponse = await createCardFromRequest(request, mapping, capture);
+  const response: CreateCardResponse = await createCardFromRequest(request, effectiveMapping, capture);
   if (response.ok) {
     // A new word just landed — drop the saved-words cache for this deck so
     // the green highlight picks it up without waiting for the 60 s TTL.
-    invalidateSavedWordsCache(mapping.deckName);
+    invalidateSavedWordsCache(deck);
     dbg('[Kivara Lingo] note created:', response.noteId);
   } else {
     console.warn('[Kivara Lingo] note failed:', response.error);
   }
   return asJson(response);
+});
+
+/**
+ * ANKI_DELETE_NOTE: Undo. Removes the registry row whether Anki still has the
+ * note or not — a note deleted by hand is the same user goal — and drops the
+ * word from the F5 interval cache so it flips back to «new/estimate» at once.
+ */
+onMessage('ANKI_DELETE_NOTE', async ({ data }) => {
+  const request = data as { noteId?: number };
+  if (request?.noteId == null) return asJson({ ok: false, error: 'noteId missing' } satisfies AnkiDeleteNoteResponse);
+  const mapping = await loadMapping();
+  await refreshAnkiOriginRules(mapping.ankiUrl);
+  const result = await undoDeleteNote(request.noteId, mapping);
+  return asJson(result);
+});
+
+/** ANKI_ADD_CONTEXT: "Add this scene" on a note that already exists. */
+onMessage('ANKI_ADD_CONTEXT', async ({ data }) => {
+  const request = data as unknown as AnkiAddContextRequest;
+  const mapping = await loadMapping();
+  const known = request.noteId != null ? await cardRegistry.findByNoteId(request.noteId) : undefined;
+  const deck = (request.deck ?? '').trim()
+    || known?.deck
+    || (known ? mapping.decks?.[known.lang] : undefined)
+    || mapping.deckName;
+  const effective: AnkiMapping = { ...mapping, deckName: deck };
+  await refreshAnkiOriginRules(mapping.ankiUrl);
+  const result = await addContextToNote({ ...request, deck }, effective);
+  return asJson(result satisfies AnkiAddContextResponse);
+});
+
+/** ANKI_BROWSE: "See in Anki" from the word card and the recent list. */
+onMessage('ANKI_BROWSE', async ({ data }) => {
+  const request = data as unknown as AnkiBrowseRequest;
+  const mapping = await loadMapping();
+  await refreshAnkiOriginRules(mapping.ankiUrl);
+  const result = await browseNote(request ?? {}, mapping);
+  return asJson(result satisfies AnkiBrowseResponse);
+});
+
+/**
+ * ANKI_WORD_INTERVALS: word → maturity/seen sentinel SNAPSHOT read from the
+ * deck (`findNotes` → batched `notesInfo` → `findCards` property/is predicates).
+ * F5 owns the cache: `ok: true` replaces it, `ok: false` keeps it and marks it
+ * stale.
+ */
+onMessage('ANKI_WORD_INTERVALS', async ({ data }) => {
+  const request = data as unknown as AnkiWordIntervalsRequest;
+  const mapping = await loadMapping();
+  const deck = (request?.deck ?? '').trim() || mapping.decks?.[request?.lang] || mapping.deckName;
+  await refreshAnkiOriginRules(mapping.ankiUrl);
+  const result = await wordIntervals(deck, request?.fieldName ?? 'Front', { ...mapping, deckName: deck });
+  return asJson(result satisfies AnkiWordIntervalsResponse);
+});
+
+onMessage('CARD_RETRY', async ({ data }) => {
+  const request = data as unknown as CardRetryRequest;
+  if (!request?.id) return asJson({ ok: false, error: 'id missing' } satisfies CardRetryResponse);
+  const [mapping, capture] = await Promise.all([loadMapping(), loadCaptureSettings()]);
+  await refreshAnkiOriginRules(mapping.ankiUrl);
+  const result = await retryCard(request.id, mapping, capture);
+  return asJson(result);
+});
+
+onMessage('CARD_RETRY_ALL', async () => {
+  const [mapping, capture] = await Promise.all([loadMapping(), loadCaptureSettings()]);
+  await refreshAnkiOriginRules(mapping.ankiUrl);
+  const result = await retryAllCards(mapping, capture);
+  return asJson(result satisfies CardRetryAllResponse);
+});
+
+onMessage('CARD_DISMISS', async ({ data }) => {
+  const request = data as unknown as CardDismissRequest;
+  if (!request?.id) return asJson({ ok: false } satisfies CardDismissResponse);
+  const result = await dismissCard(request.id);
+  return asJson(result);
 });
 
 /**
@@ -657,6 +792,24 @@ onMessage('AI_ENRICH', async ({ data }) => {
   const response: AiEnrichResponse = await enrichWithAi(request);
   return asJson(response);
 });
+
+/**
+ * "Explain sentence" (F7). Cached in Dexie v7 `explain_cache` for
+ * `ai.cacheTtlDays`; unreadable answers come back as an error and are not
+ * stored, so the next press retries.
+ */
+onMessage('AI_EXPLAIN_SENTENCE', async ({ data }) => {
+  const request = data as unknown as AiExplainRequest;
+  const response: AiExplainResponse = await explainSentence(request);
+  return asJson(response);
+});
+
+/**
+ * Per-source latency + last error from the enrichment fan-out (F2). Memory
+ * only: a worker restart empties the map and the UI reads that as "not
+ * tested yet".
+ */
+onMessage('ENRICH_SOURCE_HEALTH', async () => asJson(getEnrichmentSourceHealth()));
 
 /**
  * Three-wave token resolution for the popover. Performs the local dictionary

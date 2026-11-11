@@ -1,0 +1,1567 @@
+{
+  "_meta": {
+    "dataset": "False friends ES-EN",
+    "source": "Curated for Kivara Lingo from the classic Spanish-English learner lexicography (false friends / falsos amigos lists)",
+    "license": "MIT - project's own work",
+    "builtAt": "2026-11-10T00:00:00Z",
+    "count": 311,
+    "shape": "items[].en = English lemma, items[].es = the Spanish lemma it is confused with, items[].note = one line contrasting both meanings"
+  },
+  "items": [
+    {
+      "en": "accommodate",
+      "es": "acomodar",
+      "note": "English accommodate = alojar, adaptarse; Spanish acomodar = to arrange, to seat."
+    },
+    {
+      "en": "actual",
+      "es": "actual",
+      "note": "English actual = real, genuine; Spanish actual = current, present-day."
+    },
+    {
+      "en": "actually",
+      "es": "actualmente",
+      "note": "English actually = in fact, really; Spanish actualmente = currently."
+    },
+    {
+      "en": "advertise",
+      "es": "advertir",
+      "note": "English advertise = anunciar, publicitar; Spanish advertir = to warn, to notice."
+    },
+    {
+      "en": "affection",
+      "es": "afección",
+      "note": "English affection = cariño; Spanish afección = ailment, medical condition."
+    },
+    {
+      "en": "aggravate",
+      "es": "agraviar",
+      "note": "English aggravate = empeorar, irritar; Spanish agraviar = to offend, to insult."
+    },
+    {
+      "en": "agenda",
+      "es": "agenda",
+      "note": "English agenda = order of business, hidden motive; Spanish agenda = diary, planner."
+    },
+    {
+      "en": "agony",
+      "es": "agonía",
+      "note": "English agony = extreme pain; Spanish agonía = dying throes, death struggle."
+    },
+    {
+      "en": "alcove",
+      "es": "alcoba",
+      "note": "English alcove = recess or niche in a wall; Spanish alcoba = bedroom."
+    },
+    {
+      "en": "allegro",
+      "es": "alegría",
+      "note": "English allegro = lively musical tempo; Spanish alegría = joy."
+    },
+    {
+      "en": "alligator",
+      "es": "lagarto",
+      "note": "English alligator = caimán; Spanish lagarto = lizard."
+    },
+    {
+      "en": "altitude",
+      "es": "actitud",
+      "note": "English altitude = altitud, height; Spanish actitud = attitude."
+    },
+    {
+      "en": "alumnus",
+      "es": "alumno",
+      "note": "English alumnus = former student, graduate; Spanish alumno = pupil, current student."
+    },
+    {
+      "en": "american",
+      "es": "americano",
+      "note": "English American = from the United States; Spanish americano = from the Americas."
+    },
+    {
+      "en": "ample",
+      "es": "amplio",
+      "note": "English ample = plentiful, more than enough; Spanish amplio = wide, roomy."
+    },
+    {
+      "en": "ancient",
+      "es": "anciano",
+      "note": "English ancient = very old (thing); Spanish anciano = elderly (person)."
+    },
+    {
+      "en": "anxiety",
+      "es": "ansia",
+      "note": "English anxiety = ansiedad, worry; Spanish ansia = longing, craving."
+    },
+    {
+      "en": "apology",
+      "es": "apología",
+      "note": "English apology = disculpa; Spanish apología = defence, eulogy."
+    },
+    {
+      "en": "apparent",
+      "es": "aparente",
+      "note": "English apparent = evident, obvious; Spanish aparente = seeming, apparent (not real)."
+    },
+    {
+      "en": "apparition",
+      "es": "aparición",
+      "note": "English apparition = ghost, spectre; Spanish aparición = appearance, emergence."
+    },
+    {
+      "en": "apprehend",
+      "es": "aprehender",
+      "note": "English apprehend = detener, comprender; Spanish aprehender = to seize, to grasp."
+    },
+    {
+      "en": "aperture",
+      "es": "apertura",
+      "note": "English aperture = abertura, orificio, apertura de objetivo; Spanish apertura = opening, launch."
+    },
+    {
+      "en": "arena",
+      "es": "arena",
+      "note": "English arena = stadium, bullring, scene of conflict; Spanish arena = sand."
+    },
+    {
+      "en": "arm",
+      "es": "arma",
+      "note": "English arm = brazo; Spanish arma = weapon."
+    },
+    {
+      "en": "armory",
+      "es": "armario",
+      "note": "English armory = armería, arsenal; Spanish armario = cupboard, wardrobe."
+    },
+    {
+      "en": "argument",
+      "es": "argumento",
+      "note": "English argument = discusión, quarrel; Spanish argumento = plot, line of reasoning."
+    },
+    {
+      "en": "assassination",
+      "es": "asesinato",
+      "note": "English assassination = political killing; Spanish asesinato = murder of any kind."
+    },
+    {
+      "en": "assent",
+      "es": "asiento",
+      "note": "English assent = asentimiento, agreement; Spanish asiento = seat."
+    },
+    {
+      "en": "assessor",
+      "es": "asesor",
+      "note": "English assessor = valuer, tax assessor; Spanish asesor = adviser."
+    },
+    {
+      "en": "assist",
+      "es": "asistir",
+      "note": "English assist = ayudar; Spanish asistir = to attend (an event)."
+    },
+    {
+      "en": "asylum",
+      "es": "asilo",
+      "note": "English asylum = political refuge, mental hospital; Spanish asilo = care home, asylum."
+    },
+    {
+      "en": "attend",
+      "es": "atender",
+      "note": "English attend = asistir a un evento; Spanish atender = to serve, to pay attention."
+    },
+    {
+      "en": "attic",
+      "es": "ático",
+      "note": "English attic = desván; Spanish ático = penthouse, top-floor flat."
+    },
+    {
+      "en": "attitude",
+      "es": "altitud",
+      "note": "English attitude = actitud; Spanish altitud = altitude, height."
+    },
+    {
+      "en": "audience",
+      "es": "audiencia",
+      "note": "English audience = público; Spanish audiencia = court hearing, formal meeting."
+    },
+    {
+      "en": "avocado",
+      "es": "abogado",
+      "note": "English avocado = aguacate; Spanish abogado = lawyer."
+    },
+    {
+      "en": "bachelor",
+      "es": "bachiller",
+      "note": "English bachelor = soltero, licenciatura; Spanish bachiller = secondary-school graduate."
+    },
+    {
+      "en": "bald",
+      "es": "balde",
+      "note": "English bald = calvo; Spanish balde = bucket."
+    },
+    {
+      "en": "bank",
+      "es": "banco",
+      "note": "English bank = banco (money), orilla; Spanish banco = bank, bench."
+    },
+    {
+      "en": "beef",
+      "es": "bife",
+      "note": "English beef = carne de vacuno; Spanish bife = steak (Argentina, Uruguay)."
+    },
+    {
+      "en": "bequest",
+      "es": "beca",
+      "note": "English bequest = herencia, legado; Spanish beca = scholarship, grant."
+    },
+    {
+      "en": "billet",
+      "es": "billete",
+      "note": "English billet = military lodging; Spanish billete = ticket, banknote."
+    },
+    {
+      "en": "billion",
+      "es": "billón",
+      "note": "English billion = mil millones (10^9); Spanish billón = 10^12."
+    },
+    {
+      "en": "bizarre",
+      "es": "bizarro",
+      "note": "English bizarre = extraño, estrambótico; Spanish bizarro = brave, generous (literary)."
+    },
+    {
+      "en": "blank",
+      "es": "blanco",
+      "note": "English blank = en blanco, vacío; Spanish blanco = white, target."
+    },
+    {
+      "en": "blind",
+      "es": "blando",
+      "note": "English blind = ciego; Spanish blando = soft."
+    },
+    {
+      "en": "bodega",
+      "es": "bodega",
+      "note": "English bodega = corner shop (US); Spanish bodega = wine cellar, winery."
+    },
+    {
+      "en": "body",
+      "es": "boda",
+      "note": "English body = cuerpo; Spanish boda = wedding."
+    },
+    {
+      "en": "bomb",
+      "es": "bomba",
+      "note": "English bomb = bomba explosiva; Spanish bomba = pump as well as bomb."
+    },
+    {
+      "en": "bomber",
+      "es": "bombero",
+      "note": "English bomber = bombardero, terrorista; Spanish bombero = firefighter."
+    },
+    {
+      "en": "brace",
+      "es": "brazo",
+      "note": "English brace = abrazadera, aparato de ortodoncia; Spanish brazo = arm."
+    },
+    {
+      "en": "brave",
+      "es": "bravo",
+      "note": "English brave = valiente; Spanish bravo = fierce, angry, superb."
+    },
+    {
+      "en": "cabin",
+      "es": "cabina",
+      "note": "English cabin = cabaña, cabina de avión; Spanish cabina = cockpit, booth."
+    },
+    {
+      "en": "cafeteria",
+      "es": "cafetería",
+      "note": "English cafeteria = comedor, autoservicio; Spanish cafetería = café, coffee shop."
+    },
+    {
+      "en": "calculus",
+      "es": "cálculo",
+      "note": "English calculus = cálculo (matemáticas); Spanish cálculo = calculation, gallstone."
+    },
+    {
+      "en": "camp",
+      "es": "campo",
+      "note": "English camp = campamento; Spanish campo = field, countryside."
+    },
+    {
+      "en": "cane",
+      "es": "caña",
+      "note": "English cane = caña, bastón; Spanish caña = reed, stem, glass of beer."
+    },
+    {
+      "en": "canon",
+      "es": "cañón",
+      "note": "English canon = canon, cánon de una catedral; Spanish cañón = cannon, canyon."
+    },
+    {
+      "en": "caprice",
+      "es": "capricho",
+      "note": "English caprice = capricho, whimsy; Spanish capricho = whim, craving."
+    },
+    {
+      "en": "carbon",
+      "es": "carbón",
+      "note": "English carbon = carbono; Spanish carbón = coal, charcoal."
+    },
+    {
+      "en": "career",
+      "es": "carrera",
+      "note": "English career = trayectoria profesional; Spanish carrera = race, degree course."
+    },
+    {
+      "en": "car",
+      "es": "caro",
+      "note": "English car = coche; Spanish caro = expensive."
+    },
+    {
+      "en": "carpet",
+      "es": "carpeta",
+      "note": "English carpet = alfombra; Spanish carpeta = folder."
+    },
+    {
+      "en": "cart",
+      "es": "carta",
+      "note": "English cart = carrito; Spanish carta = letter, menu."
+    },
+    {
+      "en": "cartel",
+      "es": "cartel",
+      "note": "English cartel = cártel, trust económico; Spanish cartel = poster, notice."
+    },
+    {
+      "en": "carton",
+      "es": "cartón",
+      "note": "English carton = envase de cartón; Spanish cartón = cardboard."
+    },
+    {
+      "en": "casual",
+      "es": "casual",
+      "note": "English casual = informal, by chance; Spanish casual = accidental, occasional."
+    },
+    {
+      "en": "casualty",
+      "es": "casualidad",
+      "note": "English casualty = víctima, baja; Spanish casualidad = coincidence, chance."
+    },
+    {
+      "en": "cataract",
+      "es": "catarata",
+      "note": "English cataract = catarata (ojo), salto de agua; Spanish catarata = waterfall, cataract."
+    },
+    {
+      "en": "cave",
+      "es": "cava",
+      "note": "English cave = cueva; Spanish cava = cellar, sparkling wine."
+    },
+    {
+      "en": "ceiling",
+      "es": "cielo",
+      "note": "English ceiling = techo; Spanish cielo = sky, heaven."
+    },
+    {
+      "en": "cell",
+      "es": "celda",
+      "note": "English cell = célula, celda; Spanish celda = prison cell, monk's cell."
+    },
+    {
+      "en": "check",
+      "es": "cheque",
+      "note": "English check = comprobar, cuenta, cheque (US); Spanish cheque = cheque."
+    },
+    {
+      "en": "chef",
+      "es": "jefe",
+      "note": "English chef = cocinero, jefe de cocina; Spanish jefe = boss."
+    },
+    {
+      "en": "chic",
+      "es": "chico",
+      "note": "English chic = elegante, con estilo; Spanish chico = boy."
+    },
+    {
+      "en": "clerk",
+      "es": "clérigo",
+      "note": "English clerk = oficinista, dependiente; Spanish clérigo = clergyman."
+    },
+    {
+      "en": "coal",
+      "es": "cola",
+      "note": "English coal = carbón; Spanish cola = tail, queue, glue."
+    },
+    {
+      "en": "collar",
+      "es": "collar",
+      "note": "English collar = cuello de camisa, collar de perro; Spanish collar = necklace."
+    },
+    {
+      "en": "college",
+      "es": "colegio",
+      "note": "English college = universidad, facultad; Spanish colegio = school."
+    },
+    {
+      "en": "comet",
+      "es": "cometa",
+      "note": "English comet = cometa (astro); Spanish cometa = kite."
+    },
+    {
+      "en": "comic",
+      "es": "cómico",
+      "note": "English comic = tebeo, humorista; Spanish cómico = comedian, funny."
+    },
+    {
+      "en": "compass",
+      "es": "compás",
+      "note": "English compass = brújula; Spanish compás = rhythm, compass (drawing)."
+    },
+    {
+      "en": "compromise",
+      "es": "compromiso",
+      "note": "English compromise = acuerdo, concesión mutua; Spanish compromiso = commitment, obligation."
+    },
+    {
+      "en": "conductor",
+      "es": "conductor",
+      "note": "English conductor = director de orquesta, revisor; Spanish conductor = driver."
+    },
+    {
+      "en": "confident",
+      "es": "confiado",
+      "note": "English confident = seguro de sí mismo; Spanish confiado = trusting, overconfident."
+    },
+    {
+      "en": "conscience",
+      "es": "conciencia",
+      "note": "English conscience = conciencia moral; Spanish conciencia = awareness, conscience."
+    },
+    {
+      "en": "constipated",
+      "es": "constipado",
+      "note": "English constipated = estreñido; Spanish constipado = having a cold."
+    },
+    {
+      "en": "content",
+      "es": "contento",
+      "note": "English content = contenido, satisfecho; Spanish contento = happy, pleased."
+    },
+    {
+      "en": "contest",
+      "es": "contestar",
+      "note": "English contest = concurso, competir; Spanish contestar = to answer."
+    },
+    {
+      "en": "convenient",
+      "es": "conveniente",
+      "note": "English convenient = cómodo, práctico; Spanish conveniente = advisable, suitable."
+    },
+    {
+      "en": "corpse",
+      "es": "cuerpo",
+      "note": "English corpse = cadáver; Spanish cuerpo = body (living)."
+    },
+    {
+      "en": "corridor",
+      "es": "corredor",
+      "note": "English corridor = pasillo; Spanish corredor = runner."
+    },
+    {
+      "en": "costume",
+      "es": "costumbre",
+      "note": "English costume = disfraz, traje típico; Spanish costumbre = custom, habit."
+    },
+    {
+      "en": "council",
+      "es": "consejo",
+      "note": "English council = concejo, ayuntamiento; Spanish consejo = advice, board."
+    },
+    {
+      "en": "count",
+      "es": "cuenta",
+      "note": "English count = contar; Spanish cuenta = bill, account."
+    },
+    {
+      "en": "courage",
+      "es": "coraje",
+      "note": "English courage = valor; Spanish coraje = anger, courage (Latin America)."
+    },
+    {
+      "en": "course",
+      "es": "curso",
+      "note": "English course = curso, asignatura; Spanish curso = school year."
+    },
+    {
+      "en": "court",
+      "es": "corte",
+      "note": "English court = tribunal, pista; Spanish corte = cut, royal court."
+    },
+    {
+      "en": "crime",
+      "es": "crimen",
+      "note": "English crime = delito; Spanish crimen = murder, violent crime."
+    },
+    {
+      "en": "crude",
+      "es": "crudo",
+      "note": "English crude = crudo (petróleo), grosero; Spanish crudo = raw, hungover."
+    },
+    {
+      "en": "cup",
+      "es": "copa",
+      "note": "English cup = taza; Spanish copa = wine glass, trophy."
+    },
+    {
+      "en": "cure",
+      "es": "cura",
+      "note": "English cure = cura, tratamiento; Spanish cura = priest, cure."
+    },
+    {
+      "en": "data",
+      "es": "dato",
+      "note": "English data = datos; Spanish dato = a single fact."
+    },
+    {
+      "en": "date",
+      "es": "dátil",
+      "note": "English date = fecha, cita, dátil; Spanish dátil = date (fruit)."
+    },
+    {
+      "en": "deceive",
+      "es": "decepcionar",
+      "note": "English deceive = engañar; Spanish decepcionar = to disappoint."
+    },
+    {
+      "en": "deception",
+      "es": "decepción",
+      "note": "English deception = engaño; Spanish decepción = disappointment."
+    },
+    {
+      "en": "demand",
+      "es": "demandar",
+      "note": "English demand = exigir, demanda; Spanish demandar = to sue."
+    },
+    {
+      "en": "department",
+      "es": "departamento",
+      "note": "English department = departamento (sección); Spanish departamento = apartment (Latin America)."
+    },
+    {
+      "en": "dice",
+      "es": "dice",
+      "note": "English dice = dados; Spanish dice = he or she says."
+    },
+    {
+      "en": "dinner",
+      "es": "dinero",
+      "note": "English dinner = cena; Spanish dinero = money."
+    },
+    {
+      "en": "direction",
+      "es": "dirección",
+      "note": "English direction = dirección, sentido; Spanish dirección = address, management."
+    },
+    {
+      "en": "discuss",
+      "es": "discutir",
+      "note": "English discuss = hablar de, debatir; Spanish discutir = to argue, to quarrel."
+    },
+    {
+      "en": "discussion",
+      "es": "discusión",
+      "note": "English discussion = conversación, debate; Spanish discusión = argument, quarrel."
+    },
+    {
+      "en": "disgust",
+      "es": "disgusto",
+      "note": "English disgust = asco, repugnancia; Spanish disgusto = annoyance, upset."
+    },
+    {
+      "en": "dispatch",
+      "es": "despacho",
+      "note": "English dispatch = envío, despachar; Spanish despacho = office."
+    },
+    {
+      "en": "douche",
+      "es": "ducha",
+      "note": "English douche = ducha vaginal; Spanish ducha = shower."
+    },
+    {
+      "en": "duel",
+      "es": "duelo",
+      "note": "English duel = duelo (combate); Spanish duelo = duel, grief, mourning."
+    },
+    {
+      "en": "east",
+      "es": "este",
+      "note": "English east = este (punto cardinal); Spanish este = this."
+    },
+    {
+      "en": "economical",
+      "es": "económico",
+      "note": "English economical = barato, ahorrador; Spanish económico = economic, cheap."
+    },
+    {
+      "en": "education",
+      "es": "educación",
+      "note": "English education = enseñanza, formación; Spanish educación = good manners, upbringing."
+    },
+    {
+      "en": "egregious",
+      "es": "egregio",
+      "note": "English egregious = atroz, flagrante; Spanish egregio = distinguished, eminent."
+    },
+    {
+      "en": "embarrass",
+      "es": "embarazar",
+      "note": "English embarrass = avergonzar; Spanish embarazar = to impregnate, to hamper."
+    },
+    {
+      "en": "embarrassed",
+      "es": "embarazada",
+      "note": "English embarrassed = avergonzado; Spanish embarazada = pregnant."
+    },
+    {
+      "en": "embargo",
+      "es": "embargo",
+      "note": "English embargo = embargo comercial; Spanish embargo = seizure, and sin embargo = however."
+    },
+    {
+      "en": "employ",
+      "es": "empleo",
+      "note": "English employ = emplear, dar trabajo; Spanish empleo = job."
+    },
+    {
+      "en": "equipment",
+      "es": "equipo",
+      "note": "English equipment = equipo (material); Spanish equipo = team."
+    },
+    {
+      "en": "essay",
+      "es": "ensayo",
+      "note": "English essay = ensayo (texto); Spanish ensayo = rehearsal, trial."
+    },
+    {
+      "en": "estate",
+      "es": "estado",
+      "note": "English estate = finca, patrimonio; Spanish estado = state, condition."
+    },
+    {
+      "en": "etiquette",
+      "es": "etiqueta",
+      "note": "English etiquette = etiqueta, protocolo; Spanish etiqueta = label, etiquette."
+    },
+    {
+      "en": "eulogy",
+      "es": "elogio",
+      "note": "English eulogy = elogio fúnebre, panegírico; Spanish elogio = praise."
+    },
+    {
+      "en": "eventually",
+      "es": "eventualmente",
+      "note": "English eventually = finalmente, con el tiempo; Spanish eventualmente = possibly."
+    },
+    {
+      "en": "excite",
+      "es": "excitar",
+      "note": "English excite = entusiasmar; Spanish excitar = to arouse sexually."
+    },
+    {
+      "en": "execution",
+      "es": "ejecución",
+      "note": "English execution = ejecución, asesinato; Spanish ejecución = execution, performance."
+    },
+    {
+      "en": "exit",
+      "es": "éxito",
+      "note": "English exit = salida; Spanish éxito = success."
+    },
+    {
+      "en": "expect",
+      "es": "esperar",
+      "note": "English expect = esperar (creer que pasará); Spanish esperar = to wait, to hope."
+    },
+    {
+      "en": "exquisite",
+      "es": "exquisito",
+      "note": "English exquisite = refinado, primoroso; Spanish exquisito = delicious."
+    },
+    {
+      "en": "fabric",
+      "es": "fábrica",
+      "note": "English fabric = tela, tejido; Spanish fábrica = factory."
+    },
+    {
+      "en": "faculty",
+      "es": "facultad",
+      "note": "English faculty = profesorado, facultad mental; Spanish facultad = university school, ability."
+    },
+    {
+      "en": "familiar",
+      "es": "familiar",
+      "note": "English familiar = conocido, familiar; Spanish familiar = relative, family (adj)."
+    },
+    {
+      "en": "fastidious",
+      "es": "fastidioso",
+      "note": "English fastidious = quisquilloso, meticuloso; Spanish fastidioso = annoying."
+    },
+    {
+      "en": "file",
+      "es": "fila",
+      "note": "English file = archivo, expediente; Spanish fila = row, queue."
+    },
+    {
+      "en": "fine",
+      "es": "fino",
+      "note": "English fine = bien, multa, fino; Spanish fino = thin, refined."
+    },
+    {
+      "en": "firm",
+      "es": "firma",
+      "note": "English firm = empresa, firme; Spanish firma = signature."
+    },
+    {
+      "en": "flamingo",
+      "es": "flamenco",
+      "note": "English flamingo = flamenco (ave); Spanish flamenco = flamenco music, Flemish."
+    },
+    {
+      "en": "flask",
+      "es": "frasco",
+      "note": "English flask = petaca, frasco de laboratorio; Spanish frasco = jar, small bottle."
+    },
+    {
+      "en": "floor",
+      "es": "flor",
+      "note": "English floor = suelo, planta; Spanish flor = flower."
+    },
+    {
+      "en": "formal",
+      "es": "formal",
+      "note": "English formal = oficial, ceremonioso; Spanish formal = reliable, serious."
+    },
+    {
+      "en": "fracas",
+      "es": "fracaso",
+      "note": "English fracas = riña, alboroto; Spanish fracaso = failure."
+    },
+    {
+      "en": "gang",
+      "es": "ganga",
+      "note": "English gang = pandilla; Spanish ganga = bargain, good deal."
+    },
+    {
+      "en": "genie",
+      "es": "genio",
+      "note": "English genie = genio de la lámpara; Spanish genio = temperament, genius."
+    },
+    {
+      "en": "gentle",
+      "es": "gentil",
+      "note": "English gentle = suave, amable; Spanish gentil = kind, charming."
+    },
+    {
+      "en": "globe",
+      "es": "globo",
+      "note": "English globe = globo terráqueo, esfera; Spanish globo = balloon."
+    },
+    {
+      "en": "gracious",
+      "es": "gracioso",
+      "note": "English gracious = amable, cortés; Spanish gracioso = funny."
+    },
+    {
+      "en": "grab",
+      "es": "grabar",
+      "note": "English grab = agarrar; Spanish grabar = to record."
+    },
+    {
+      "en": "grass",
+      "es": "grasa",
+      "note": "English grass = hierba, césped; Spanish grasa = fat, grease."
+    },
+    {
+      "en": "gripe",
+      "es": "gripe",
+      "note": "English gripe = queja, quejarse; Spanish gripe = flu."
+    },
+    {
+      "en": "gross",
+      "es": "grueso",
+      "note": "English gross = asqueroso, bruto; Spanish grueso = thick."
+    },
+    {
+      "en": "guard",
+      "es": "guardar",
+      "note": "English guard = guardia, vigilar; Spanish guardar = to keep, to save."
+    },
+    {
+      "en": "gust",
+      "es": "gusto",
+      "note": "English gust = ráfaga de viento; Spanish gusto = taste, pleasure."
+    },
+    {
+      "en": "habitation",
+      "es": "habitación",
+      "note": "English habitation = vivienda (formal); Spanish habitación = room."
+    },
+    {
+      "en": "hay",
+      "es": "hay",
+      "note": "English hay = heno; Spanish hay = there is, there are."
+    },
+    {
+      "en": "herb",
+      "es": "hierba",
+      "note": "English herb = hierba aromática; Spanish hierba = grass, herb."
+    },
+    {
+      "en": "host",
+      "es": "huésped",
+      "note": "English host = anfitrión; Spanish huésped = guest."
+    },
+    {
+      "en": "idiom",
+      "es": "idioma",
+      "note": "English idiom = modismo, expresión fija; Spanish idioma = language."
+    },
+    {
+      "en": "ignore",
+      "es": "ignorar",
+      "note": "English ignore = no hacer caso; Spanish ignorar = not to know."
+    },
+    {
+      "en": "infamous",
+      "es": "infame",
+      "note": "English infamous = de mala fama; Spanish infame = despicable."
+    },
+    {
+      "en": "infant",
+      "es": "infante",
+      "note": "English infant = bebé, lactante; Spanish infante = prince, child."
+    },
+    {
+      "en": "intend",
+      "es": "intentar",
+      "note": "English intend = tener la intención; Spanish intentar = to try."
+    },
+    {
+      "en": "intent",
+      "es": "intento",
+      "note": "English intent = intención; Spanish intento = attempt."
+    },
+    {
+      "en": "introduce",
+      "es": "introducir",
+      "note": "English introduce = presentar a alguien; Spanish introducir = to insert."
+    },
+    {
+      "en": "invest",
+      "es": "investir",
+      "note": "English invest = invertir dinero; Spanish investir = to grant an office."
+    },
+    {
+      "en": "involve",
+      "es": "envolver",
+      "note": "English involve = implicar, conllevar; Spanish envolver = to wrap."
+    },
+    {
+      "en": "jam",
+      "es": "jamón",
+      "note": "English jam = mermelada, atasco; Spanish jamón = ham."
+    },
+    {
+      "en": "jar",
+      "es": "jarra",
+      "note": "English jar = tarro, frasco; Spanish jarra = jug, pitcher."
+    },
+    {
+      "en": "journal",
+      "es": "jornada",
+      "note": "English journal = revista académica, diario; Spanish jornada = working day."
+    },
+    {
+      "en": "journey",
+      "es": "jornada",
+      "note": "English journey = viaje; Spanish jornada = working day."
+    },
+    {
+      "en": "jovial",
+      "es": "joven",
+      "note": "English jovial = alegre, campechano; Spanish joven = young."
+    },
+    {
+      "en": "joy",
+      "es": "joya",
+      "note": "English joy = alegría; Spanish joya = jewel."
+    },
+    {
+      "en": "jubilation",
+      "es": "jubilación",
+      "note": "English jubilation = júbilo, alegría; Spanish jubilación = retirement."
+    },
+    {
+      "en": "just",
+      "es": "justo",
+      "note": "English just = solamente, justo; Spanish justo = fair, exact."
+    },
+    {
+      "en": "lagoon",
+      "es": "laguna",
+      "note": "English lagoon = laguna de agua; Spanish laguna = lagoon, gap, loophole."
+    },
+    {
+      "en": "large",
+      "es": "largo",
+      "note": "English large = grande; Spanish largo = long."
+    },
+    {
+      "en": "lecture",
+      "es": "lectura",
+      "note": "English lecture = conferencia, clase; Spanish lectura = reading."
+    },
+    {
+      "en": "lent",
+      "es": "lento",
+      "note": "English lent = Cuaresma, pasado de lend; Spanish lento = slow."
+    },
+    {
+      "en": "letter",
+      "es": "letra",
+      "note": "English letter = carta, letra; Spanish letra = handwriting, lyrics."
+    },
+    {
+      "en": "liar",
+      "es": "liar",
+      "note": "English liar = mentiroso; Spanish liar = to roll, to entangle."
+    },
+    {
+      "en": "librarian",
+      "es": "librero",
+      "note": "English librarian = bibliotecario; Spanish librero = bookseller."
+    },
+    {
+      "en": "library",
+      "es": "librería",
+      "note": "English library = biblioteca; Spanish librería = bookshop."
+    },
+    {
+      "en": "list",
+      "es": "listo",
+      "note": "English list = lista; Spanish listo = clever, ready."
+    },
+    {
+      "en": "litter",
+      "es": "litera",
+      "note": "English litter = basura, camada; Spanish litera = bunk bed."
+    },
+    {
+      "en": "livid",
+      "es": "lívido",
+      "note": "English livid = furioso, amoratado; Spanish lívido = pale, ashen."
+    },
+    {
+      "en": "locale",
+      "es": "local",
+      "note": "English locale = lugar, entorno; Spanish local = premises, local (adj)."
+    },
+    {
+      "en": "lock",
+      "es": "loco",
+      "note": "English lock = cerradura; Spanish loco = crazy."
+    },
+    {
+      "en": "lot",
+      "es": "lote",
+      "note": "English lot = mucho, parcela; Spanish lote = batch, plot of land."
+    },
+    {
+      "en": "maestro",
+      "es": "maestro",
+      "note": "English maestro = gran director de orquesta; Spanish maestro = teacher."
+    },
+    {
+      "en": "major",
+      "es": "mayor",
+      "note": "English major = principal, especialidad; Spanish mayor = older, larger."
+    },
+    {
+      "en": "mallet",
+      "es": "maleta",
+      "note": "English mallet = mazo, maza; Spanish maleta = suitcase."
+    },
+    {
+      "en": "manage",
+      "es": "manejar",
+      "note": "English manage = dirigir, gestionar; Spanish manejar = to drive, to handle."
+    },
+    {
+      "en": "mango",
+      "es": "manga",
+      "note": "English mango = mango (fruta); Spanish manga = sleeve, hose."
+    },
+    {
+      "en": "march",
+      "es": "marcha",
+      "note": "English march = marcha militar, marzo; Spanish marcha = gear, progress."
+    },
+    {
+      "en": "mare",
+      "es": "mar",
+      "note": "English mare = yegua; Spanish mar = sea."
+    },
+    {
+      "en": "mark",
+      "es": "marco",
+      "note": "English mark = marca, nota; Spanish marco = frame, setting."
+    },
+    {
+      "en": "maroon",
+      "es": "marrón",
+      "note": "English maroon = granate, abandonar; Spanish marrón = brown."
+    },
+    {
+      "en": "married",
+      "es": "marido",
+      "note": "English married = casado; Spanish marido = husband."
+    },
+    {
+      "en": "mass",
+      "es": "masa",
+      "note": "English mass = masa, misa; Spanish masa = dough, mass."
+    },
+    {
+      "en": "mayor",
+      "es": "mayor",
+      "note": "English mayor = alcalde; Spanish mayor = older, larger."
+    },
+    {
+      "en": "media",
+      "es": "media",
+      "note": "English media = medios de comunicación; Spanish media = stocking, half."
+    },
+    {
+      "en": "median",
+      "es": "mediano",
+      "note": "English median = mediana (estadística); Spanish mediano = medium-sized."
+    },
+    {
+      "en": "mesa",
+      "es": "mesa",
+      "note": "English mesa = meseta, altiplano; Spanish mesa = table."
+    },
+    {
+      "en": "misery",
+      "es": "miseria",
+      "note": "English misery = sufrimiento; Spanish miseria = extreme poverty."
+    },
+    {
+      "en": "mode",
+      "es": "moda",
+      "note": "English mode = modo, modalidad; Spanish moda = fashion."
+    },
+    {
+      "en": "molest",
+      "es": "molestar",
+      "note": "English molest = abusar sexualmente de alguien; Spanish molestar = to bother."
+    },
+    {
+      "en": "morale",
+      "es": "moral",
+      "note": "English morale = ánimo, espíritu de grupo; Spanish moral = morality."
+    },
+    {
+      "en": "nave",
+      "es": "nave",
+      "note": "English nave = nave de una iglesia; Spanish nave = ship, warehouse."
+    },
+    {
+      "en": "negotiation",
+      "es": "negocio",
+      "note": "English negotiation = negociación; Spanish negocio = business."
+    },
+    {
+      "en": "notice",
+      "es": "noticia",
+      "note": "English notice = aviso, notar; Spanish noticia = news item."
+    },
+    {
+      "en": "notorious",
+      "es": "notorio",
+      "note": "English notorious = de mala fama; Spanish notorio = well-known, obvious."
+    },
+    {
+      "en": "novel",
+      "es": "novela",
+      "note": "English novel = novela (libro); Spanish novela = soap opera."
+    },
+    {
+      "en": "obsequious",
+      "es": "obsequioso",
+      "note": "English obsequious = servil, adulador; Spanish obsequioso = obliging, generous."
+    },
+    {
+      "en": "officious",
+      "es": "oficioso",
+      "note": "English officious = entrometido; Spanish oficioso = unofficial."
+    },
+    {
+      "en": "ordinary",
+      "es": "ordinario",
+      "note": "English ordinary = normal, corriente; Spanish ordinario = vulgar, common."
+    },
+    {
+      "en": "pain",
+      "es": "pan",
+      "note": "English pain = dolor; Spanish pan = bread."
+    },
+    {
+      "en": "parade",
+      "es": "parada",
+      "note": "English parade = desfile; Spanish parada = stop, bus stop."
+    },
+    {
+      "en": "parent",
+      "es": "pariente",
+      "note": "English parent = padre o madre; Spanish pariente = relative."
+    },
+    {
+      "en": "pastel",
+      "es": "pastel",
+      "note": "English pastel = tono pastel, tiza de color; Spanish pastel = cake."
+    },
+    {
+      "en": "pension",
+      "es": "pensión",
+      "note": "English pension = jubilación, pensión; Spanish pensión = boarding house."
+    },
+    {
+      "en": "periodical",
+      "es": "periódico",
+      "note": "English periodical = publicación periódica; Spanish periódico = newspaper."
+    },
+    {
+      "en": "petrol",
+      "es": "petróleo",
+      "note": "English petrol = gasolina; Spanish petróleo = crude oil."
+    },
+    {
+      "en": "picture",
+      "es": "pintura",
+      "note": "English picture = imagen, foto; Spanish pintura = painting."
+    },
+    {
+      "en": "pie",
+      "es": "pie",
+      "note": "English pie = tarta, empanada; Spanish pie = foot."
+    },
+    {
+      "en": "plain",
+      "es": "plano",
+      "note": "English plain = llano, sencillo; Spanish plano = flat, plan."
+    },
+    {
+      "en": "plate",
+      "es": "plato",
+      "note": "English plate = plato (vajilla), placa; Spanish plato = dish, course."
+    },
+    {
+      "en": "policy",
+      "es": "policía",
+      "note": "English policy = política, norma; Spanish policía = police."
+    },
+    {
+      "en": "precious",
+      "es": "precioso",
+      "note": "English precious = valioso; Spanish precioso = beautiful."
+    },
+    {
+      "en": "precise",
+      "es": "preciso",
+      "note": "English precise = exacto; Spanish preciso = necessary, exact."
+    },
+    {
+      "en": "prescription",
+      "es": "prescripción",
+      "note": "English prescription = receta médica; Spanish prescripción = legal prescription, expiry."
+    },
+    {
+      "en": "preserve",
+      "es": "preservativo",
+      "note": "English preserve = conservar; Spanish preservativo = condom."
+    },
+    {
+      "en": "pretend",
+      "es": "pretender",
+      "note": "English pretend = fingir; Spanish pretender = to intend, to court."
+    },
+    {
+      "en": "principal",
+      "es": "principal",
+      "note": "English principal = director de escuela, capital; Spanish principal = main."
+    },
+    {
+      "en": "professor",
+      "es": "profesor",
+      "note": "English professor = catedrático; Spanish profesor = teacher."
+    },
+    {
+      "en": "proper",
+      "es": "propio",
+      "note": "English proper = adecuado, correcto; Spanish propio = own."
+    },
+    {
+      "en": "prospect",
+      "es": "prospecto",
+      "note": "English prospect = posibilidad, cliente potencial; Spanish prospecto = leaflet."
+    },
+    {
+      "en": "prove",
+      "es": "probar",
+      "note": "English prove = demostrar; Spanish probar = to try, to taste."
+    },
+    {
+      "en": "pupil",
+      "es": "pupila",
+      "note": "English pupil = alumno, pupila; Spanish pupila = pupil (of the eye)."
+    },
+    {
+      "en": "quarter",
+      "es": "cuarto",
+      "note": "English quarter = cuarto (1/4), trimestre; Spanish cuarto = room, fourth."
+    },
+    {
+      "en": "quiet",
+      "es": "quieto",
+      "note": "English quiet = silencioso, tranquilo; Spanish quieto = still, motionless."
+    },
+    {
+      "en": "quit",
+      "es": "quitar",
+      "note": "English quit = dejar, renunciar; Spanish quitar = to remove."
+    },
+    {
+      "en": "quote",
+      "es": "cuota",
+      "note": "English quote = citar, presupuesto; Spanish cuota = quota, membership fee."
+    },
+    {
+      "en": "race",
+      "es": "raza",
+      "note": "English race = carrera; Spanish raza = breed, ethnicity."
+    },
+    {
+      "en": "rare",
+      "es": "raro",
+      "note": "English rare = poco común, poco hecho; Spanish raro = strange."
+    },
+    {
+      "en": "rat",
+      "es": "rato",
+      "note": "English rat = rata; Spanish rato = a while."
+    },
+    {
+      "en": "ray",
+      "es": "rey",
+      "note": "English ray = rayo; Spanish rey = king."
+    },
+    {
+      "en": "real",
+      "es": "real",
+      "note": "English real = verdadero; Spanish real = royal, actual."
+    },
+    {
+      "en": "realise",
+      "es": "realizar",
+      "note": "English realise = darse cuenta; Spanish realizar = to carry out."
+    },
+    {
+      "en": "recipe",
+      "es": "receta",
+      "note": "English recipe = receta de cocina; Spanish receta = prescription."
+    },
+    {
+      "en": "record",
+      "es": "recordar",
+      "note": "English record = registrar, récord; Spanish recordar = to remember."
+    },
+    {
+      "en": "red",
+      "es": "red",
+      "note": "English red = rojo; Spanish red = net, network."
+    },
+    {
+      "en": "relief",
+      "es": "relieve",
+      "note": "English relief = alivio; Spanish relieve = relief (art), prominence."
+    },
+    {
+      "en": "rent",
+      "es": "renta",
+      "note": "English rent = alquiler; Spanish renta = income, annuity."
+    },
+    {
+      "en": "report",
+      "es": "reportaje",
+      "note": "English report = informe; Spanish reportaje = news feature."
+    },
+    {
+      "en": "rest",
+      "es": "resto",
+      "note": "English rest = descanso, resto; Spanish resto = remainder."
+    },
+    {
+      "en": "retire",
+      "es": "retirar",
+      "note": "English retire = jubilarse; Spanish retirar = to withdraw, to remove."
+    },
+    {
+      "en": "reunion",
+      "es": "reunión",
+      "note": "English reunion = reencuentro; Spanish reunión = meeting."
+    },
+    {
+      "en": "roast",
+      "es": "rostro",
+      "note": "English roast = asar, asado; Spanish rostro = face."
+    },
+    {
+      "en": "rope",
+      "es": "ropa",
+      "note": "English rope = cuerda; Spanish ropa = clothes."
+    },
+    {
+      "en": "rude",
+      "es": "rudo",
+      "note": "English rude = maleducado; Spanish rudo = rough, coarse."
+    },
+    {
+      "en": "salad",
+      "es": "salado",
+      "note": "English salad = ensalada; Spanish salado = salty."
+    },
+    {
+      "en": "saloon",
+      "es": "salón",
+      "note": "English saloon = taberna del Oeste, sedán; Spanish salón = living room, hall."
+    },
+    {
+      "en": "sane",
+      "es": "sano",
+      "note": "English sane = cuerdo, mentalmente sano; Spanish sano = healthy."
+    },
+    {
+      "en": "sanguine",
+      "es": "sanguíneo",
+      "note": "English sanguine = optimista; Spanish sanguíneo = bloody, related to blood."
+    },
+    {
+      "en": "savanna",
+      "es": "sabana",
+      "note": "English savanna = sabana (llanura); Spanish sabana = bedsheet."
+    },
+    {
+      "en": "scheme",
+      "es": "esquema",
+      "note": "English scheme = plan, intriga; Spanish esquema = outline, diagram."
+    },
+    {
+      "en": "scholar",
+      "es": "escolar",
+      "note": "English scholar = erudito, becario; Spanish escolar = schoolchild."
+    },
+    {
+      "en": "season",
+      "es": "sazón",
+      "note": "English season = estación, temporada; Spanish sazón = seasoning, ripeness."
+    },
+    {
+      "en": "senior",
+      "es": "señor",
+      "note": "English senior = de mayor rango, mayor; Spanish señor = sir, mister."
+    },
+    {
+      "en": "sensible",
+      "es": "sensible",
+      "note": "English sensible = sensato; Spanish sensible = sensitive."
+    },
+    {
+      "en": "sentence",
+      "es": "sentencia",
+      "note": "English sentence = frase, condena; Spanish sentencia = verdict."
+    },
+    {
+      "en": "sin",
+      "es": "sin",
+      "note": "English sin = pecado; Spanish sin = without."
+    },
+    {
+      "en": "soap",
+      "es": "sopa",
+      "note": "English soap = jabón; Spanish sopa = soup."
+    },
+    {
+      "en": "soil",
+      "es": "suelo",
+      "note": "English soil = tierra, suelo; Spanish suelo = floor, ground."
+    },
+    {
+      "en": "sole",
+      "es": "solo",
+      "note": "English sole = único, suela; Spanish solo = alone, only."
+    },
+    {
+      "en": "spine",
+      "es": "espina",
+      "note": "English spine = columna vertebral, lomo de libro; Spanish espina = thorn, fish bone."
+    },
+    {
+      "en": "spouse",
+      "es": "esposa",
+      "note": "English spouse = cónyuge; Spanish esposa = wife."
+    },
+    {
+      "en": "stupendous",
+      "es": "estupendo",
+      "note": "English stupendous = asombroso, enorme; Spanish estupendo = great, wonderful."
+    },
+    {
+      "en": "subject",
+      "es": "sujeto",
+      "note": "English subject = asignatura, tema; Spanish sujeto = person, grammatical subject."
+    },
+    {
+      "en": "succeed",
+      "es": "suceder",
+      "note": "English succeed = tener éxito; Spanish suceder = to happen."
+    },
+    {
+      "en": "success",
+      "es": "suceso",
+      "note": "English success = éxito; Spanish suceso = event, incident."
+    },
+    {
+      "en": "support",
+      "es": "soportar",
+      "note": "English support = apoyo, apoyar; Spanish soportar = to bear, to endure."
+    },
+    {
+      "en": "suave",
+      "es": "suave",
+      "note": "English suave = afable, refinado; Spanish suave = soft, gentle."
+    },
+    {
+      "en": "sympathy",
+      "es": "simpatía",
+      "note": "English sympathy = compasión; Spanish simpatía = friendliness, charm."
+    },
+    {
+      "en": "table",
+      "es": "tabla",
+      "note": "English table = mesa, tabla; Spanish tabla = board, plank."
+    },
+    {
+      "en": "tall",
+      "es": "talle",
+      "note": "English tall = alto; Spanish talle = size, figure."
+    },
+    {
+      "en": "tan",
+      "es": "tan",
+      "note": "English tan = bronceado; Spanish tan = so, as."
+    },
+    {
+      "en": "tap",
+      "es": "tapa",
+      "note": "English tap = grifo, golpecito; Spanish tapa = lid, snack."
+    },
+    {
+      "en": "tart",
+      "es": "tarta",
+      "note": "English tart = tarta, prostituta (slang); Spanish tarta = cake."
+    },
+    {
+      "en": "ten",
+      "es": "ten",
+      "note": "English ten = diez; Spanish ten = have (imperative)."
+    },
+    {
+      "en": "tender",
+      "es": "tender",
+      "note": "English tender = tierno; Spanish tender = to tend, to hang out washing."
+    },
+    {
+      "en": "terrific",
+      "es": "terrífico",
+      "note": "English terrific = fantástico; Spanish terrífico = terrifying."
+    },
+    {
+      "en": "top",
+      "es": "topo",
+      "note": "English top = parte superior; Spanish topo = mole, burrowing animal."
+    },
+    {
+      "en": "tramp",
+      "es": "trampa",
+      "note": "English tramp = vagabundo; Spanish trampa = trap, cheat."
+    },
+    {
+      "en": "trip",
+      "es": "tripa",
+      "note": "English trip = viaje; Spanish tripa = belly, gut."
+    },
+    {
+      "en": "turn",
+      "es": "turno",
+      "note": "English turn = turno, giro; Spanish turno = shift."
+    },
+    {
+      "en": "ultimate",
+      "es": "último",
+      "note": "English ultimate = definitivo, supremo; Spanish último = last."
+    },
+    {
+      "en": "unique",
+      "es": "único",
+      "note": "English unique = excepcionalmente singular; Spanish único = only, sole."
+    },
+    {
+      "en": "van",
+      "es": "van",
+      "note": "English van = furgoneta; Spanish van = they go."
+    },
+    {
+      "en": "various",
+      "es": "varios",
+      "note": "English various = diversos; Spanish varios = several."
+    },
+    {
+      "en": "vase",
+      "es": "vaso",
+      "note": "English vase = jarrón; Spanish vaso = drinking glass."
+    },
+    {
+      "en": "vegetable",
+      "es": "vegetal",
+      "note": "English vegetable = verdura, hortaliza; Spanish vegetal = plant, vegetable (adj)."
+    },
+    {
+      "en": "vice",
+      "es": "vicio",
+      "note": "English vice = vicio, tornillo de banco; Spanish vicio = bad habit."
+    },
+    {
+      "en": "vigilante",
+      "es": "vigilante",
+      "note": "English vigilante = justiciero; Spanish vigilante = guard, watchman."
+    },
+    {
+      "en": "vulgar",
+      "es": "vulgar",
+      "note": "English vulgar = grosero, soez; Spanish vulgar = common, ordinary."
+    }
+  ]
+}

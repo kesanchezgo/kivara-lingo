@@ -6,11 +6,22 @@ import type {
   CaptureSettings,
   CreateCardRequest,
   CreateCardResponse,
+  CreateCardKind,
   FieldSource,
 } from '../shared/types';
 import { DEFAULT_CAPTURE } from '../shared/store';
 import { ankiConnect, dataUrlToBase64, AnkiConnectError } from './anki-connect';
 import { buildExactNoteQuery } from '../shared/anki-search';
+import {
+  buildCardTags,
+  cardSourceFromMedia,
+  markFailed,
+  markQueued,
+  markSaved,
+  newRecentCard,
+} from '../shared/cards';
+import { cardRegistry } from './card-registry';
+import { originLabel } from '../shared/study/cardTags';
 import { translateText, translateToken } from './translate';
 import { extractAudioClip, getAudioCaptureStatus } from './audio-capture-manager';
 import { getDB, type PendingNoteRow } from '../shared/db';
@@ -22,7 +33,7 @@ import { formatFrequencyBand, pickFrequencyWinner } from '../shared/frequency';
 import { getVipSettings, loadTranslateTargetLang } from './vip-settings';
 import { computeCueWindow, shouldFallbackToTts, waitForCueTailMs } from './cue-window';
 import { fetchMediaWithLimits, mediaExtFor } from '../shared/net-guard';
-import { t } from '../shared/i18n';
+import { t } from '../shared/i18n/sw';
 
 /** Outbound media downloads come from scraped pages, so they are bounded:
  * a hung CDN must not hold the card open, and a giant body must not be
@@ -162,6 +173,38 @@ function escAttr(value: string): string {
   return escapeHtml(value).replace(/`/g, '&#96;');
 }
 
+/** BCP-47 language of a request; `lang` is the v2 spelling, `language` legacy. */
+function requestLang(request: CreateCardRequest): string {
+  return (request.lang ?? request.language ?? 'en').trim() || 'en';
+}
+
+/** A multi-word token is an expression; an explicit `kind` always wins. */
+function requestKind(request: CreateCardRequest): CreateCardKind {
+  if (request.kind) return request.kind;
+  return /\s/.test(request.token.trim()) ? 'expression' : 'word';
+}
+
+/**
+ * Cloze field. Uses the caller's text when present, otherwise wraps the first
+ * occurrence of the token inside the escaped sentence — markup is ours, all
+ * text is escaped first.
+ */
+function clozeHtml(request: CreateCardRequest): string {
+  if (request.cloze?.trim()) return escapeHtml(request.cloze);
+  const sentence = request.sentence ?? '';
+  const token = request.token ?? '';
+  if (!token) return escapeHtml(sentence);
+  const idx = sentence.toLowerCase().indexOf(token.toLowerCase());
+  if (idx < 0) return escapeHtml(sentence);
+  return [
+    escapeHtml(sentence.slice(0, idx)),
+    '<b>',
+    escapeHtml(sentence.slice(idx, idx + token.length)),
+    '</b>',
+    escapeHtml(sentence.slice(idx + token.length)),
+  ].join('');
+}
+
 function isLexicalGloss(value?: string | null): boolean {
   const text = usable(value);
   if (!text) return false;
@@ -211,6 +254,12 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
       return escField(ctx.request.token);
     case 'cue':
       return escField(ctx.request.sentence);
+    case 'cloze':
+      return clozeHtml(ctx.request);
+    case 'source': {
+      const origin = originLabel(cardSourceFromMedia(ctx.request.media));
+      return escField(origin);
+    }
     case 'phonetic':
       return escField(ctx.phonetic);
     case 'translation':
@@ -405,11 +454,13 @@ function normalizeFieldForCompare(raw: string): string {
 async function findExistingCard(
   request: CreateCardRequest,
   mapping: AnkiMapping,
+  deck: string,
 ): Promise<CreateCardResponse | null> {
+  const language = requestLang(request);
   try {
     const existing = await getDB().saved_notes
       .where('[token+language+sentence+deckName]')
-      .equals([request.token, request.language ?? 'en', request.sentence, mapping.deckName])
+      .equals([request.token, language, request.sentence, deck])
       .first();
     if (existing) return { ok: true, noteId: existing.ankiNoteId, warnings: [] };
   } catch {
@@ -420,7 +471,7 @@ async function findExistingCard(
       ([, s]) => s === 'selection',
     )?.[0] ?? 'Front';
     const query = buildExactNoteQuery({
-      deckName: mapping.deckName,
+      deckName: deck,
       modelName: mapping.modelName,
       fieldName: wordField,
       value: request.token,
@@ -457,9 +508,9 @@ async function findExistingCard(
     try {
       await getDB().saved_notes.put({
         token: request.token,
-        language: request.language ?? 'en',
+        language,
         sentence: request.sentence,
-        deckName: mapping.deckName,
+        deckName: deck,
         ankiNoteId: matchedId,
         createdAt: Date.now(),
       });
@@ -492,12 +543,50 @@ export async function createCardFromRequest(
   // impossible. (retryRowId is accepted for forward-compat logging; the
   // row update happens in retryPendingNotes.)
   void options.retryRowId;
+  const lang = requestLang(request);
+  const kind = requestKind(request);
+  const source = cardSourceFromMedia(request.media);
+  const tags = buildCardTags(kind, request.media, lang);
+  const deck = (request.deck ?? '').trim() || mapping.deckName;
+
+  /** Mirror a terminal state into the SW registry (no-op without a cardId). */
+  const registryOutcome = async (response: CreateCardResponse): Promise<void> => {
+    if (!request.cardId) return;
+    if (response.ok && response.noteId != null) {
+      await cardRegistry.patch(request.cardId, markSaved(
+        (await cardRegistry.get(request.cardId)) ?? newRecentCard({
+          id: request.cardId, word: request.token, sentence: request.sentence,
+          kind, deck, lang, tags, source,
+        }),
+        response.noteId,
+      ));
+      return;
+    }
+    const current = await cardRegistry.get(request.cardId);
+    if (!current) return;
+    if (response.queued) {
+      await cardRegistry.patch(request.cardId, markQueued(current, response.error ?? 'unknown'));
+    } else {
+      await cardRegistry.patch(request.cardId, markFailed(current, response.error ?? 'unknown'));
+    }
+  };
+
+  // A manual retry (or the alarm) starts by putting the card back in
+  // `sending`; the first attempt was already inserted by the SW handler.
+  if (request.cardId) {
+    await cardRegistry.patch(request.cardId, { status: 'sending', nextRetryAt: undefined, error: undefined });
+  }
+
   // Validate required mapping fields before attempting any work.
-  if (!mapping.deckName) {
-    return { ok: false, error: t('capture.noDeck') };
+  if (!deck) {
+    const out: CreateCardResponse = { ok: false, error: t('capture.noDeck') };
+    await registryOutcome(out);
+    return out;
   }
   if (!mapping.modelName) {
-    return { ok: false, error: t('capture.noModel') };
+    const out: CreateCardResponse = { ok: false, error: t('capture.noModel') };
+    await registryOutcome(out);
+    return out;
   }
 
   const warnings: string[] = [];
@@ -509,11 +598,14 @@ export async function createCardFromRequest(
   // card yet, and a stale row must never veto a fresh add after the user
   // deleted the note in Anki.
   if (options.fromRetry) {
-    const existing = await findExistingCard(request, mapping);
-    if (existing) return existing;
+    const existing = await findExistingCard(request, mapping, deck);
+    if (existing) {
+      await registryOutcome(existing);
+      return existing;
+    }
   }
 
-  const dictionaryHit = await translateToken(request.token, request.language ?? 'en');
+  const dictionaryHit = await translateToken(request.token, lang);
 
   // Optional AI enrichment — gated by the user's premium settings.
   let aiData: AiEnrichment | null = null;
@@ -524,7 +616,7 @@ export async function createCardFromRequest(
       const result = await enrichWithAi({
         token: request.token,
         sentence: request.sentence,
-        sourceLang: request.language ?? 'en',
+        sourceLang: lang,
         nativeLang,
         platform: request.platform,
       });
@@ -576,7 +668,7 @@ export async function createCardFromRequest(
     try {
       const translatedSentence = await translateText({
         text: request.sentence,
-        sourceLang: request.language ?? 'en',
+        sourceLang: lang,
         targetLang,
       });
       if (translatedSentence.ok && translatedSentence.translatedText) {
@@ -597,7 +689,7 @@ export async function createCardFromRequest(
   try {
     const vipSettings = await getVipSettings();
     const enriched = await runEnrichment(request.token, {
-      sourceLang: request.language ?? 'en',
+      sourceLang: lang,
       targetLang,
       sentence: request.sentence,
       vip: vipSettings,
@@ -745,7 +837,7 @@ export async function createCardFromRequest(
   // never blocks the save longer than the augmenter's own timeout.
   if (!ctx.phonetic) {
     try {
-      const augmented = await getMissingPhonetic(request.token, request.language ?? 'en');
+      const augmented = await getMissingPhonetic(request.token, lang);
       if (augmented) ctx.phonetic = augmented;
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'phonetic-augment';
@@ -884,7 +976,7 @@ export async function createCardFromRequest(
     // sentence — Anki will still play it on review.
     if (!sentenceAudioAttached) {
       try {
-        const tts = await generateTtsAudio(request.sentence, request.language ?? 'en');
+        const tts = await generateTtsAudio(request.sentence, lang);
         if (tts.ok) {
           const filename = safeFilename(`${request.token}_sentence`, extForMime(tts.mime));
           const data = dataUrlToBase64(tts.dataUrl);
@@ -930,7 +1022,7 @@ export async function createCardFromRequest(
     } else {
       warnings.push(t('capture.retryTts'));
       try {
-        const tts = await generateTtsAudio(request.sentence, request.language ?? 'en');
+        const tts = await generateTtsAudio(request.sentence, lang);
         if (tts.ok) {
           const filename = safeFilename(`${request.token}_sentence`, extForMime(tts.mime));
           const data = dataUrlToBase64(tts.dataUrl);
@@ -976,7 +1068,7 @@ export async function createCardFromRequest(
       // Fall back to TTS synthesis when the enrichment chain didn't
       // ship a usable URL or the download failed.
       try {
-        const tts = await generateTtsAudio(headword, request.language ?? 'en');
+        const tts = await generateTtsAudio(headword, lang);
         if (tts.ok) {
           const filename = safeFilename(headword, extForMime(tts.mime));
           const data = dataUrlToBase64(tts.dataUrl);
@@ -998,7 +1090,7 @@ export async function createCardFromRequest(
     const ttsText = fields[legacyTtsField] || request.sentence;
     if (ttsText) {
       try {
-        const tts = await generateTtsAudio(ttsText, request.language ?? 'en');
+        const tts = await generateTtsAudio(ttsText, lang);
         if (tts.ok) {
           const filename = safeFilename(request.token, extForMime(tts.mime));
           const data = dataUrlToBase64(tts.dataUrl);
@@ -1012,13 +1104,14 @@ export async function createCardFromRequest(
     }
   }
 
+  const retryRequest: CreateCardRequest = { ...request, lang, language: lang, kind, deck };
   try {
     const noteId = await ankiConnect.addNote(
       {
-        deckName: mapping.deckName,
+        deckName: deck,
         modelName: mapping.modelName,
         fields,
-        tags: ['kivara-lingo', request.platform ?? 'web'].filter(Boolean) as string[],
+        tags,
         // Single-upload rule: media already lives on the Anki side via
         // storeMediaFile + [sound:]/<img> field references above. Passing
         // picture[]/audio[] here would re-upload every blob.
@@ -1031,9 +1124,9 @@ export async function createCardFromRequest(
     try {
       await getDB().saved_notes.put({
         token: request.token,
-        language: request.language ?? 'en',
+        language: lang,
         sentence: request.sentence,
-        deckName: mapping.deckName,
+        deckName: deck,
         ankiNoteId: noteId,
         createdAt: Date.now(),
       });
@@ -1042,7 +1135,9 @@ export async function createCardFromRequest(
     }
     // If this success resolves a pending retry row, drop the row's stored
     // audio with it (the delete below handles the row itself).
-    return { ok: true, noteId, warnings };
+    const out: CreateCardResponse = { ok: true, noteId, warnings };
+    await registryOutcome(out);
+    return out;
   } catch (err) {
     const message = err instanceof Error ? err.message : 'addNote failed';
     // Queue for retry by the alarm — but NOT when this call already IS a
@@ -1076,7 +1171,7 @@ export async function createCardFromRequest(
         !request.audio && firstAttemptClip ? firstAttemptClip : null;
       try {
         await getDB().pending_notes.add({
-          request,
+          request: retryRequest,
           retries: 0,
           lastError: message,
           createdAt: Date.now(),
@@ -1087,7 +1182,9 @@ export async function createCardFromRequest(
         // ignore
       }
     }
-    return { ok: false, error: message, warnings };
+    const out: CreateCardResponse = { ok: false, error: message, warnings, queued: retryable };
+    await registryOutcome(out);
+    return out;
   }
 }
 
@@ -1150,6 +1247,12 @@ async function drainPendingNotes(
     if (row.retries >= MAX_RETRIES) {
       try {
         await db.pending_notes.delete(row.id);
+        if (row.request?.cardId) {
+          const card = await cardRegistry.get(row.request.cardId);
+          if (card) {
+            await cardRegistry.patch(row.request.cardId, markFailed(card, row.lastError ?? 'max retries'));
+          }
+        }
         console.warn('[Kivara Lingo] dropping pending note after max retries', {
           token: row.request?.token,
           lastError: row.lastError,

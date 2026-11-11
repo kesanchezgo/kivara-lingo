@@ -835,21 +835,43 @@ db.version(1).stores({
 
 ## 13. UI: del prototipo a la realidad
 
-| Componente del prototipo | Destino en la extensión |
-|---|---|
-| `App.tsx` (navbar mock) | **Eliminar.** El navegador real es la pestaña. |
-| `VideoPlayer.tsx` | El video viene de la plataforma. Reusar **solo** la lógica de subtítulo overlay (líneas que renderizan tokens, popover, scroll handler). Pasar a `content/ui/SubtitleOverlay.tsx`. |
-| `WordPopover` (interno de VideoPlayer) | Extraer a `content/ui/WordPopover.tsx`. |
-| `ExtensionPanel.tsx` | `content/ui/SidePanel.tsx` (mismo layout, mismas tabs). |
-| `SubtitlesTab.tsx` | Idem. Estilos guardados van al store, propagados al overlay. |
-| `CardsTab.tsx` | Idem. La conexión AnkiConnect ahora es real (no mock). |
-| `SettingsTab.tsx` | Idem. Captura settings ahora controlan el orquestador real. |
-| `KivaraLingoLogo.tsx` | Reusar tal cual en SidePanel y popup. |
-| `Toaster` (sonner) | Reusar dentro del shadow. |
+Resultado real de la matriz §5 de `docs/REDESIGN-V2.md`. El prototipo (`.mock/`, ignorado por git) aportó la vista; el repo aportó la lógica y los tests.
 
-**Estilos:** copiar `src/styles/theme.css` tal cual. Las clases `sl-input`, `sl-select`, `sl-range` son críticas y deben funcionar dentro del Shadow DOM (Tailwind v4 con `@layer base` se preserva).
+| Pieza del prototipo | Destino en `src/` | Acción |
+|---|---|---|
+| `App.tsx` (demo) | `content/ui/App.tsx` | FUSIONADO: orquestación real (cue, puerta de comandos, guardado, pausa) + columnas, barra y toasts. |
+| `VideoPlayer.tsx` | — | DESCARTADO: la navegación vive en `content/ui/useStudyPlayback.ts` sobre `PlaybackController`. |
+| `player/PlayerControls.tsx` | `content/ui/StudyBar.tsx` | PORTADO parcial: el grupo de Kivara. |
+| `player/SubtitleOverlay.tsx` | `content/ui/SubtitleOverlay.tsx` | FUSIONADO sobre el tokenizador real; modos de traducción y Escucha primero. |
+| `player/WordPopover.tsx` | `content/ui/WordPopover.tsx` | FUSIONADO sobre `useResolveWord`; el selector de estado llega en F5. |
+| `player/wordMarks.tsx` / `CaptureOverlay` / `EpisodeWords` / `SentenceExplain` | mismos nombres en `content/ui/` | PORTADOS sobre `LexiconPort`, captura real, pista completa y `AiPort`. |
+| `TranscriptRail.tsx` | `content/ui/TranscriptRail.tsx` | PORTADO sobre `EpisodePort`; el seguimiento solo lo apaga un gesto. |
+| `ExtensionPanel.tsx` | `content/ui/SidePanel.tsx` (+ `options/Options.tsx`) | FUSIONADO: cuatro pestañas, arrastre, clamp y deep links. |
+| `tabs/*` | `app/components/tabs/*` | FUSIONADOS con la lógica real; `VocabTab` es nuevo de F5. |
+| `settings-primitives` / `ui/controls` | `ui/primitives/settings-primitives.tsx`, `ui/primitives/controls.tsx` | REESCRITOS sin Radix (Select/Slider nativos). F9 retiró el shim `app/components/tabs/settings-primitives.tsx`. |
+| `icons.tsx` | `ui/icons.tsx` | PORTADO a Phosphor; F9 retiró `lucide-react`. |
+| `i18n/*` | `shared/i18n/*` | FUSIONADO y dividido por área (más `sw.ts` para el service worker). |
+| `lib/lexicalModel`, `sentence`, `subtitleText`, `textSearch`, `cardTags`, `decks`, `studyModes` | `shared/study/*` | PORTADOS con tests deterministas. |
+| `lib/wordStatus`, `langProfile`, `vocabCheck` | `shared/study/wordStatus.ts`, `levelProfile.ts`, `vocabCheck.ts` | PORTADOS sobre `chromeLocalStore` y `LexiconPort`. |
+| `lib/cardQueue.ts` | `shared/cards.ts` + `ui/ports/anki.ts` | REESCRITO como cliente fino del registro del SW. |
+| `data/*.ts`, `mocks/*`, `demo.ts`, `figma/ImageWithFallback` | — | DESCARTADOS: sólo alimentaban la demo. |
+| `styles/theme.css` | `src/styles/theme.css` | FUSIONADO conservando `.sl-*`, `.kvl-pop-in` y `--kvl-font-sans` (todos con consumidor; F9 verificó con grep). |
 
-**Modo Lectura:** activar el flag `mode === 'reading'` ya implementado. Oculta popovers y deja solo el subtítulo estilizado.
+### 13.1 Store v3
+
+`shared/store.ts` sube a `STORE_VERSION = 3`. La migración v2→v3 añade el slice `study` (`translation`, `listenFirst`, `autoPauseCue`, `pauseOnLookup`, `sounds`, `newMarks`) y `ankiMapping.decks` (el `deckName` existente se migra al idioma activo). Es idempotente, no pisa atajos personalizados y el peor caso del blob queda por debajo de 6 KB. Los datos que crecen (estado de palabras, perfil de nivel, caché de intervalos) **no** viven aquí: van a `chrome.storage.local` por idioma mediante `shared/chrome-local-store.ts`.
+
+### 13.2 Puertos
+
+La vista no habla con `chrome.*`: recibe `LexiconPort`, `EpisodePort`, `AnkiPort`, `AiPort` y `PacksPort` por `PortsProvider` (`ui/ports/`). Las implementaciones reales son wrappers de mensajes al service worker o del adaptador de plataforma; las falsas viven en `tests/helpers/ports.ts`. Options monta los mismos puertos reales (`options/ports.ts`), así el mismo árbol de panel sirve en la página y en la extensión.
+
+### 13.3 Dueño único del registro de tarjetas
+
+La cola y el registro de tarjetas tienen un solo escritor: el service worker (`background/card-registry.ts`, publicado en `chrome.storage.local` como `kvl:cards.recent`). La UI solo lee y se suscribe con `onChanged`, y envía órdenes (`CARD_RETRY`, `CARD_RETRY_ALL`, `CARD_DISMISS`, `ANKI_DELETE_NOTE`, `ANKI_ADD_CONTEXT`, `ANKI_BROWSE`). No hay una segunda cola en el cliente.
+
+**Estilos:** el tema vive en `src/styles/theme.css` y se inyecta dentro del shadow root; `.sl-input`, `.sl-select` y `.sl-range` siguen siendo la base de los controles nativos.
+
+**Modo Lectura:** `mode === 'reading'` oculta popovers y deja solo el subtítulo estilizado.
 
 ---
 
@@ -1049,4 +1071,4 @@ La AI anterior dejó cuatro entregas diferidas. Estado actualizado:
 
 ---
 
-**Última actualización:** 2026-10-12 · **Versión del prototipo de referencia:** 0.2.0
+**Última actualización:** 2026-11-10 · **Versión:** 0.3.0

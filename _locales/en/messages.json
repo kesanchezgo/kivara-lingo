@@ -4,7 +4,7 @@
     "description": "Extension name shown in chrome://extensions and the toolbar tooltip."
   },
   "extensionDescription": {
-    "message": "Learn a language while you watch: translated subtitles, pronunciation, tab audio capture and Anki cards straight from the video.",
+    "message": "Learn a language while you watch: translated subtitles, a navigable transcript, study controls, word status and level, Anki cards with audio and frame, and sentence explanations from your own AI provider.",
     "description": "One-line description shown on the extensions page and the Web Store listing."
   },
   "commandSaveWord": {

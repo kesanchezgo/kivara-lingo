@@ -1,23 +1,29 @@
 /**
- * The stepper's contract, split out of the Onboarding monolith (86 KB,
- * seven steps, one root component pulling chrome, the bridge, the store
- * and eleven small components in the same file).
+ * The stepper's contract, split out of the Onboarding monolith.
  *
- * Order, the lock rules, and where `done` begins. The root component
- * keeps its own state machine; this is the pure data it drives it with,
- * so the rules are testable without rendering the wizard (its per-step
- * chrome.bridge + i18n environment cannot be mounted faithfully in
- * vitest — that is what the e2e covers).
+ * Order, the lock rules, and where `done` begins. The root component keeps its
+ * own state machine; this is the pure data it drives it with, so the rules are
+ * testable without rendering the wizard (its per-step chrome.bridge + i18n
+ * environment cannot be mounted faithfully in vitest — that is what the e2e
+ * covers).
  *
- * `done` is not a travel step: it is the terminal state the last regular
- * step emits, and nextStepId(idle) is never a thing — this file just
- * answers the two questions the root asked inline: what is next, what is
- * prev, and does this step let you move on.
+ * `done` is not a travel step: it is the terminal state the last regular step
+ * emits, and nextStepId(idle) is never a thing — this file just answers the
+ * two questions the root asked inline: what is next, what is prev, and does
+ * this step let you move on.
+ *
+ * F8 (docs/REDESIGN-V2.md §7) adds the Level step between Language and Anki.
+ * Its gate is deliberately narrow: a self-assessment OR a saved vocabulary
+ * check is enough, and the check itself never blocks saving (F5's rule — the
+ * result arrives already corrected). Skipping the whole wizard still works;
+ * the profile is simply left provisional.
  */
+import type { StudyLevel } from '../shared/study/lexicalModel';
 
 export type StepId =
   | 'welcome'
   | 'lang'
+  | 'level'
   | 'anki'
   | 'mapping'
   | 'dict'
@@ -27,6 +33,7 @@ export type StepId =
 
 export interface StepMeta {
   id: Exclude<StepId, 'done'>;
+  /** i18n key, resolved at render so the label follows the locale. */
   label: string;
   optional?: boolean;
   recommended?: boolean;
@@ -34,13 +41,14 @@ export interface StepMeta {
 
 /** The travel steps, in the order the wizard walks them. */
 export const STEPS: StepMeta[] = [
-  { id: 'welcome', label: 'Bienvenida' },
-  { id: 'lang', label: 'Idioma' },
-  { id: 'anki', label: 'Anki' },
-  { id: 'mapping', label: 'Mapeo' },
-  { id: 'dict', label: 'Diccionarios', recommended: true },
-  { id: 'ai', label: 'IA', optional: true },
-  { id: 'demo', label: 'Demo' },
+  { id: 'welcome', label: 'onb.step.welcome' },
+  { id: 'lang', label: 'onb.step.lang' },
+  { id: 'level', label: 'onb.step.level' },
+  { id: 'anki', label: 'onb.step.anki' },
+  { id: 'mapping', label: 'onb.step.mapping' },
+  { id: 'dict', label: 'onb.step.dict', recommended: true },
+  { id: 'ai', label: 'onb.step.ai', optional: true },
+  { id: 'demo', label: 'onb.step.demo' },
 ];
 
 export const DEMO_URL = 'https://www.youtube.com/watch?v=arj7oStGLkU';
@@ -52,10 +60,24 @@ export const LAST_STEP_ID = STEPS[STEPS.length - 1]!.id;
 export interface AdvanceContext {
   /** The ping step's live-state: only `ok` releases the gate. */
   ping?: { status: 'idle' | 'pinging' | 'ok' | 'error' };
-  /** The mapping step's two required names. */
-  ankiMapping?: { deckName?: string; modelName?: string };
-  /** The demo step's flag: the user has seen/started the demo. */
-  demoStarted?: boolean;
+  /** The mapping step's required names, deck per language. */
+  ankiMapping?: {
+    deckName?: string;
+    modelName?: string;
+    /** `mapping.decks[lang]`: the deck this language saves to (F2/F4). */
+    decks?: Record<string, string>;
+  };
+  /** The Level step's evidence: what the person said, or a saved check. */
+  level?: {
+    selfLevel?: StudyLevel | null;
+    /** A vocabulary check has been saved (the answers are the evidence). */
+    tested?: boolean;
+  };
+  /**
+   * Language being learned. The mapping gate reads ITS deck; without it the
+   * legacy single `deckName` is read, which is what pre-v3 snapshots hold.
+   */
+  lang?: string;
 }
 
 const indexOf = (id: StepId): number => STEPS.findIndex((s) => s.id === id);
@@ -85,16 +107,23 @@ export function prevStepId(id: StepId): StepId {
 }
 
 /**
- * Whether "Siguiente" is unlocked on this step. The two NON-trivial
- * gates live here because they are the two irreversible-looking ones:
- * connecting to Anki, and committing a deck+model to store on the
- * user's behalf. Everything else is open — the point of the wizard is
- * to move.
+ * Whether "Siguiente" is unlocked on this step. The three NON-trivial gates
+ * live here because they are the irreversible-looking ones: a level commitment
+ * that seeds every estimate, connecting to Anki, and committing a deck+model
+ * to the store on the user's behalf. Everything else is open — the point of
+ * the wizard is to move.
+ *
+ * The Level gate accepts EITHER form of evidence: the CEFR sentence the person
+ * recognises themselves in, or the result of the 2-minute check. It is a gate
+ * on the wizard, never on saving: skipping the whole flow leaves the profile
+ * provisional instead of failing anything (`onb.pickLevel` explains it).
  */
 export function canAdvance(step: StepId, ctx: AdvanceContext = {}): boolean {
+  if (step === 'level') return Boolean(ctx.level?.selfLevel) || ctx.level?.tested === true;
   if (step === 'anki') return ctx.ping?.status === 'ok';
   if (step === 'mapping') {
-    return Boolean(ctx.ankiMapping?.deckName) && Boolean(ctx.ankiMapping?.modelName);
+    const deck = ctx.lang ? ctx.ankiMapping?.decks?.[ctx.lang] : ctx.ankiMapping?.deckName;
+    return Boolean(deck) && Boolean(ctx.ankiMapping?.modelName);
   }
   return true;
 }

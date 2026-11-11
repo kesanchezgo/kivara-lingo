@@ -1,6 +1,9 @@
+/* Language step — the pair the rest of the wizard configures (F8, prototype view). */
 import React, { useState } from 'react';
 import { t } from '../../shared/i18n';
-import { Languages, GraduationCap, ArrowLeftRight, AlertTriangle } from 'lucide-react';
+import { richText } from '../../shared/i18n/rich';
+import { Languages, GraduationCap, ArrowLeftRight, AlertTriangle } from '../../ui/icons';
+import { Callout } from '../../ui/primitives/settings-primitives';
 import { StepSection } from './StepSection';
 import { SlotCard } from './SlotCard';
 import { getLang, ONBOARDING_LANGS } from './LangMeta';
@@ -24,7 +27,8 @@ export function LangStep({
 
   const pickLang = (code: string) => {
     if (activeSlot === 'source') {
-      // If user picks the same code as the other slot, auto-swap to avoid duplicate
+      // Picking the same code as the other slot auto-swaps, so a duplicate
+      // never lands: the pair stays two different languages.
       if (code === targetLang) setTargetLang(sourceLang);
       setSourceLang(code);
       setActiveSlot('target');
@@ -37,11 +41,12 @@ export function LangStep({
 
   return (
     <StepSection
+      icon={<Languages size={20} />}
       title={t('onb.whatLanguage')}
       subtitle={t('onb.langPairSubtitle')}
     >
-      {/* Pair display: Aprendo ↔ Nativo */}
-      <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
+      {/* The pair, as the main piece — same weight as the welcome preview */}
+      <div className="relative grid grid-cols-2 rounded-2xl bg-white dark:bg-white/[0.03] ring-1 ring-zinc-900/[0.06] dark:ring-white/[0.06] shadow-[0_12px_32px_-18px_rgba(16,24,40,.25)] dark:shadow-none overflow-hidden">
         <SlotCard
           icon={<GraduationCap size={13} />}
           label={t('onb.learning')}
@@ -50,14 +55,6 @@ export function LangStep({
           accent="indigo"
           onClick={() => setActiveSlot('source')}
         />
-        <button
-          type="button"
-          onClick={swap}
-          title={t('onb.swapLangs')}
-          className="self-center w-9 h-9 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:shadow-md hover:shadow-indigo-500/10 transition-all flex items-center justify-center active:scale-95"
-        >
-          <ArrowLeftRight size={14} />
-        </button>
         <SlotCard
           icon={<Languages size={13} />}
           label={t('onb.nativeLang')}
@@ -66,71 +63,75 @@ export function LangStep({
           accent="emerald"
           onClick={() => setActiveSlot('target')}
         />
+        <div aria-hidden className="absolute inset-y-4 left-1/2 w-px bg-zinc-900/[0.06] dark:bg-white/[0.08]" />
+        <button
+          type="button"
+          onClick={swap}
+          title={t('onb.swapLangs')}
+          className="kvl-press absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white dark:bg-zinc-900 ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.1] shadow-[0_2px_8px_-2px_rgba(16,24,40,.15)] text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-300 flex items-center justify-center"
+        >
+          <ArrowLeftRight size={14} />
+        </button>
       </div>
 
-      {/* Helper line: which slot is being edited */}
-      <div className="flex items-center justify-center gap-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
-        <span>{t('onb.selectLangPre')}</span>
-        <span className={`font-semibold ${activeSlot === 'source' ? 'text-indigo-600 dark:text-indigo-300' : 'text-emerald-600 dark:text-emerald-300'}`}>
-          {activeSlot === 'source' ? 'aprendes' : 'ya hablas'}
-        </span>
-      </div>
+      {/* Which slot is being edited */}
+      <p className="text-center text-[12px] text-zinc-500 dark:text-zinc-400 pt-2">
+        {richText(t('onb.selectLang'), {
+          verb: (
+            <span className={`font-medium ${activeSlot === 'source' ? 'text-indigo-600 dark:text-indigo-300' : 'text-emerald-600 dark:text-emerald-300'}`}>
+              {activeSlot === 'source' ? t('onb.learnVerb') : t('onb.speakVerb')}
+            </span>
+          ),
+        })}
+      </p>
 
-      {/* Language grid */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* Languages: one surface with dividers, like the benefits list */}
+      <div className="grid grid-cols-3 gap-px rounded-xl overflow-hidden bg-zinc-900/[0.06] dark:bg-white/[0.06] ring-1 ring-zinc-900/[0.06] dark:ring-white/[0.06] shadow-[0_1px_2px_rgba(16,24,40,.04)] dark:shadow-none">
         {ONBOARDING_LANGS.map((l) => {
           const isLearning = l.code === sourceLang;
           const isNative = l.code === targetLang;
           const isActiveSelection =
             (activeSlot === 'source' && isLearning) || (activeSlot === 'target' && isNative);
-          const accentRing = activeSlot === 'source'
-            ? 'ring-indigo-500/70 dark:ring-indigo-400/70 bg-indigo-50 dark:bg-indigo-500/10'
-            : 'ring-emerald-500/70 dark:ring-emerald-400/70 bg-emerald-50 dark:bg-emerald-500/10';
+          const activeBg = activeSlot === 'source'
+            ? 'bg-indigo-50 dark:bg-indigo-500/[0.12]'
+            : 'bg-emerald-50 dark:bg-emerald-500/[0.10]';
           return (
             <button
               key={l.code}
               type="button"
               onClick={() => pickLang(l.code)}
+              aria-pressed={isActiveSelection}
               className={[
-                'group relative flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl border transition-all duration-150 active:scale-[0.98]',
-                isActiveSelection
-                  ? `border-transparent ring-2 ${accentRing} shadow-sm`
-                  : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm',
+                'relative flex items-center gap-2.5 h-14 px-3.5 text-left transition-colors kvl-press',
+                isActiveSelection ? activeBg : 'bg-white dark:bg-zinc-950',
+                'hover:bg-zinc-50 dark:hover:bg-white/[0.04]',
               ].join(' ')}
             >
-              {/* Role badges in the corner — quietly show both assignments */}
-              <div className="absolute top-1.5 right-1.5 flex gap-0.5">
-                {isLearning && (
-                  <span title={t('onb.learning')} className="w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-sm">
-                    <GraduationCap size={9} strokeWidth={2.5} />
-                  </span>
-                )}
-                {isNative && (
-                  <span title={t('onb.nativeLang')} className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-sm">
-                    <Languages size={9} strokeWidth={2.5} />
-                  </span>
-                )}
-              </div>
-              <span className="text-2xl leading-none select-none" aria-hidden>{l.flag}</span>
-              <span className="text-[12px] font-semibold text-zinc-800 dark:text-zinc-100 leading-tight">{l.name}</span>
-              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-tight">{l.native}</span>
+              <span className="text-[20px] leading-none select-none" aria-hidden>{l.flag}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] font-medium leading-tight truncate text-zinc-900 dark:text-zinc-100">{l.name}</span>
+                <span className="block text-[12px] text-zinc-500 dark:text-zinc-400 leading-tight truncate">{l.native}</span>
+              </span>
+              {(isLearning || isNative) && (
+                <span className="flex gap-1 shrink-0">
+                  {isLearning && <span title={t('onb.learning')} className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
+                  {isNative && <span title={t('onb.nativeLang')} className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
       {sameLanguage && (
-        <div className="rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/25 p-3 flex items-start gap-2">
-          <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-          <p className="text-[12px] text-amber-800 dark:text-amber-300 leading-relaxed">
-            {t('onb.sameLangWarn')}</p>
-        </div>
+        <Callout tone="warning" role="alert" icon={<AlertTriangle size={14} />}>
+          {t('onb.sameLangWarn')}
+        </Callout>
       )}
 
-      <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-3">
-        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
-          {t('onb.pairControls')}</p>
-      </div>
+      <p className="text-center text-[12px] leading-[18px] text-zinc-500 dark:text-zinc-400 px-6 pt-1">
+        {t('onb.pairControls')}
+      </p>
     </StepSection>
   );
 }

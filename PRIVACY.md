@@ -12,6 +12,10 @@ datos salen del navegador del usuario, adónde van y qué NO se hace con ellos.
 | LibreTranslate (URL y key del usuario) | `chrome.storage.sync` (los campos de ajuste, con la key VACÍA — encrypted secrets live in local) | La URL se configura en Ajustes y se usa tal cual, sin validación de host público (es lo que permite una instancia propia en la LAN). |
 | Caché de diccionarios, traducciones, enriquecimiento, media | `chrome.storage.local` / IndexedDB | Datos locales derivados de consultas públicas. `vip_cache` se poda. |
 | Notas ya creadas (ledger de idempotencia) | IndexedDB local | Evita tarjetas duplicadas. |
+| Estado de palabras por idioma (nueva / aprendiendo / conocida) | `chrome.storage.local`, clave `kvl:wordStatus:<idioma>` | Por dispositivo en la v2.0 (decisión D8). Crece con el uso: por eso no va a `sync`, que tiene 8 KB por ítem y 120 escrituras/minuto. Anki ya sincroniza lo que se guarda como tarjeta. |
+| Perfil de nivel por idioma (autoevaluación y prueba) | `chrome.storage.local`, clave `kvl:levelProfile:<idioma>` | Derivado del estado de palabras; nunca sale del navegador. |
+| Lista de frecuencias | Empaquetada en `src/assets/frequency/` | Se distribuye offline con la extensión; no se pide a ningún servidor y no registra qué palabras miras. |
+| Explicaciones de frase (IA) | IndexedDB local (`explain_cache`) | Se guardan para no repetir la llamada; TTL de `ai.cacheTtlDays`. Se borran con la caché desde Ajustes. |
 | Contadores de telemetría (opt-in, DESACTIVADA por defecto) | Local; nunca se envían a servidores ajenos | Ver abajo. |
 
 ## Qué sale del navegador
@@ -24,7 +28,11 @@ Solo cuando el usuario dispara una función concreta:
 2. **Enriquecimiento** — la PALABRA a consultar a cada fuente habilitada
    (Cambridge, Merriam-Webster, WordReference, Tatoeba, Forvo, Wikimedia…).
 3. **IA (opt-in)** — palabra + frase al proveedor elegido (OpenAI /
-   Anthropic / Gemini). Apagado por defecto.
+   Anthropic / Gemini). Apagado por defecto. **Explicar frase** (F7) usa la
+   misma vía: envía la línea del subtítulo y sus vecinas (`prev`, `line`,
+   `next`) al proveedor de IA **del usuario**, nunca a nosotros. Va en modo
+   JSON, con temperatura 0,3 y timeout de 30 s; la respuesta se cachea en
+   local. Ver «Explicar frase» más abajo.
 4. **Anki** — las tarjetas a `http://127.0.0.1`, `http://localhost` o
    `http://[::1]` (AnkiConnect), solo en el puerto configurado. La URL se
    comprueba en el punto de uso (después de normalizarla, así una entrada sin
@@ -47,6 +55,32 @@ Solo cuando el usuario dispara una función concreta:
      `translate.google.com/translate_tts` un MP3 de esa palabra. En la
      pronunciación es la única petición a Google, y lleva solo la palabra,
      nunca la frase (la traducción usa otros proveedores).
+
+## Explicar frase (IA) y endpoints compatibles
+
+«Explicar frase» solo aparece cuando el usuario tiene la IA configurada. Al pulsarlo:
+
+- Se envían **tres líneas de subtítulo** —la anterior, la actual y la siguiente—,
+  el idioma del vídeo y los idiomas de la interfaz y nativo. Nada más: ni el
+  vídeo, ni el audio, ni la URL, ni el email de la cuenta.
+- El destino es el proveedor que el usuario eligió en Ajustes. Si es un
+  endpoint **compatible con OpenAI**, la lista es cerrada y cada origen se
+  concede en ejecución (no hay comodín HTTPS):
+
+  | Endpoint | Origen |
+  |---|---|
+  | OpenRouter | `https://openrouter.ai/*` |
+  | Groq | `https://api.groq.com/*` |
+  | DeepSeek | `https://api.deepseek.com/*` |
+  | Mistral | `https://api.mistral.ai/*` |
+  | Together | `https://api.together.xyz/*` |
+  | xAI | `https://api.x.ai/*` |
+  | Ollama / LM Studio (local) | `http://localhost/*`, `http://127.0.0.1/*` |
+
+- Kivara no hace de intermediario: la petición sale del navegador del usuario
+  con su propia clave y va directa al proveedor. No hay servidores propios.
+- La respuesta se guarda en caché local para no repetir la llamada; el botón
+  de limpiar caché de Ajustes la borra junto con el resto.
 
 ## Qué NO hace
 

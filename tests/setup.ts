@@ -38,7 +38,7 @@ const chromeMock = {
     onInstalled: { addListener: vi.fn() },
     getURL: (path: string) => `chrome-extension://test/${path}`,
   },
-  // UI locale for src/shared/i18n — tests assert Spanish strings, so pin
+  // UI locale for src/shared/i18n/locale — tests assert Spanish strings, so pin
   // it instead of letting detectLocale() fall through to navigator.language
   // (happy-dom reports en-US, which would silently switch every t() to EN).
   i18n: {

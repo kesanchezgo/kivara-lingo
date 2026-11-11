@@ -1,18 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { t } from '../../shared/i18n';
+import { t, currentLocale } from '../../shared/i18n';
 import { createPortal } from 'react-dom';
 import { Toaster, toast } from 'sonner';
 import { sendMessage } from 'webext-bridge/content-script';
 import { SidePanel } from './SidePanel';
 import { SubtitleOverlay } from './SubtitleOverlay';
+import { CaptureOverlay, type CaptureAudio, type CaptureView } from './CaptureOverlay';
 import { applyCleanupCss } from './cleanup-css';
-import { useKivaraStore } from '../../shared/store';
+import { playSound } from '../../ui/sounds';
+import { useKivaraStore } from '../../shared/use-kivara-store';
 import { captureFrame, captureBestFrame } from '../capture/frame';
 import { comboFromEvent, normalizeCombo, readManifestCombos } from '../../shared/shortcuts';
 import { dbgOnce } from '../../shared/debug-log';
 import { getShadowRoot, overKivaraZone } from '../shadow-host';
+import { PortalContainerProvider } from '../../ui/portal';
 import { eventPathIsEditable } from '../utils/keyboard';
 import type {
+  AnkiBrowseResponse,
+  AudioClipResponse,
+  CreateCardKind,
   CreateCardRequest,
   CreateCardResponse,
   FieldSource,
@@ -20,6 +26,19 @@ import type {
 import type { SubtitleSource } from '../platform-adapters/types';
 import { getActiveTrackCues, getTrackByLanguage, onTrack } from '../platform-adapters/intercepted-bus';
 import { buildPreviewData } from '../../shared/preview-data';
+import { buildCardTags, newCardId } from '../../shared/cards';
+import { buildExactNoteQuery } from '../../shared/anki-search';
+import { recordCardSaved, useWordStudy, type StudyBinding } from './study';
+import { addSceneToNote, cardKindOf, showCardSaved, showCardSaveError, type SceneMedia } from './save-actions';
+import { useEpisode } from './useEpisode';
+import { cueIndexAt, useStudyPlayback } from './useStudyPlayback';
+import { TranscriptRail } from './TranscriptRail';
+import { StudyBar } from './StudyBar';
+import { applyColumnsCss, RAIL_WIDTH_PX } from './columns-css';
+import { railOpenStore, railViewStore } from './ui-state';
+import { useChromeLocal } from '../../ui/hooks/useChromeLocal';
+import { aiConfigured } from '../../shared/ai-configured';
+import { createAiPort } from './ai-port';
 
 /**
  * Find the Anki field name (key in fieldSources) currently mapped to the
@@ -46,6 +65,15 @@ interface AppProps {
   adapter: SubtitleSource | null;
   videoElement: HTMLVideoElement | null;
   videoOverlayRoot?: HTMLElement | null;
+  /**
+   * The portal container of the VIDEO shadow root (shadow-host.ts). The
+   * overlay subtree is portaled out of the panel's provider scope, so it
+   * re-provides this: a portal opened INSIDE the overlay (InfoHint hint,
+   * dialog) must land in the video host's root — which rides with the host
+   * when fullscreen-overlay-core re-parents it — not in the panel's
+   * container.
+   */
+  videoPortalContainer?: HTMLElement | null;
 }
 
 interface SubtitleAudioAnchor {
@@ -107,7 +135,7 @@ function buildManifestCommandSet(): Set<string> {
   return new Set(readManifestCombos());
 }
 
-export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
+export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContainer }: AppProps) {
   const {
     enabled,
     subtitlesVisible,
@@ -118,15 +146,27 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     subtitleStyles,
     ankiMapping,
     cleanup,
+    study,
+    ai,
     setPanelOpen,
     setIsPopupMode,
     setIsDarkMode,
     setSubtitleStyles,
     setAnkiMapping,
     setSubtitlesVisible,
+    setStudy,
   } = useKivaraStore();
 
   const [activeCue, setActiveCue] = useState<ActiveCue | null>(null);
+  // Expressions split by hand (Alt+wheel or the card) — the overlay renders
+  // them, App owns the state so it survives a card unmount.
+  const [expandedMWEs, setExpandedMWEs] = useState<Set<string>>(new Set());
+  // Real playback state, for Listen-first (blur while the line sounds).
+  const [playing, setPlaying] = useState(false);
+  // The capture layer's view, driven by the real save path below.
+  const [captureView, setCaptureView] = useState<CaptureView | null>(null);
+  const captureBusyRef = useRef(false);
+  const captureClearTimer = useRef<number | null>(null);
   // Words already saved to the user's Anki deck — pre-fetched once per
   // video mount via the ANKI_SAVED_WORDS handler so subtitles show the
   // green "saved" highlight from the first frame (previously the prop
@@ -148,9 +188,10 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
         } catch {
           // ignore — fall through with whatever state we have
         }
-        const { ankiMapping } = useKivaraStore.getState();
-        if (!ankiMapping.deckName) return;
-        const cached = savedWordsCacheRef.current.get(ankiMapping.deckName);
+        const { ankiMapping, translate } = useKivaraStore.getState();
+        const activeDeck = ankiMapping.decks?.[translate.sourceLang] ?? ankiMapping.deckName;
+        if (!activeDeck) return;
+        const cached = savedWordsCacheRef.current.get(activeDeck);
         if (cached) {
           if (!cancelled) setInitialSavedWords(cached);
           return;
@@ -160,12 +201,12 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
         )?.[0] ?? 'Front';
         const response = (await sendMessage(
           'ANKI_SAVED_WORDS',
-          { deckName: ankiMapping.deckName, fieldName },
+          { deckName: activeDeck, fieldName },
           'background',
         )) as { words?: string[] } | undefined;
         if (!cancelled && Array.isArray(response?.words)) {
           const next = new Set(response.words.map((w) => String(w).toLowerCase()));
-          savedWordsCacheRef.current.set(ankiMapping.deckName, next);
+          savedWordsCacheRef.current.set(activeDeck, next);
           setInitialSavedWords(next);
         }
       } catch {
@@ -188,6 +229,9 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   const [altCue, setAltCue] = useState<ActiveCue | null>(null);
   const [saveTick, setSaveTick] = useState<number | null>(null);
   const cueLanguageRef = useRef('en');
+  // Same value as a state: the study profile follows the subtitle language, so
+  // it must re-render when the track changes (the ref does not).
+  const [cueLanguage, setCueLanguage] = useState('en');
   // Tracks whether we (not the user, not the platform) requested the current
   // pause. We only resume if we ourselves paused — otherwise we'd fight with
   // the platform's own buffer / focus-loss / ad-break pauses.
@@ -201,6 +245,86 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   // which on platforms like HBO Max can lose track when the popover paints
   // outside the parent's bounding box.
   const cursorOverKivaraRef = useRef(false);
+
+  // Word status + level of the profile of the SUBTITLE language (F5): watching
+// English captions uses the English profile even while another language is
+// configured in Settings. `profileLangOf` folds `en-US` into `en`.
+  const wordStudy = useWordStudy(cueLanguage);
+  // One stable binding for SubtitleOverlay: the individual resolvers are
+  // already memoised, so the overlay's memo does not recompute on every render.
+  const studyBinding = useMemo<StudyBinding>(() => ({
+    statusOf: wordStudy.statusOf,
+    detailOf: wordStudy.detailOf,
+    setStatus: wordStudy.setStatus,
+    inAnki: wordStudy.inAnki,
+    userStatusOf: wordStudy.userStatusOf,
+  }), [wordStudy.statusOf, wordStudy.detailOf, wordStudy.setStatus, wordStudy.inAnki, wordStudy.userStatusOf]);
+
+  // ── F6: the episode boundary, the study playback and the rail ────────────
+  // The full track comes from the adapter v2 (already seeked to the current
+  // platform's semantics); every jump below goes through `episode.controller`.
+  const episode = useEpisode(adapter);
+  const studyPlayback = useStudyPlayback({
+    controller: episode.controller,
+    cues: episode.cues,
+    video: videoElement,
+    pausedByKivara: kivaraPausedRef,
+    suspended: captureView !== null,
+  });
+  const railOpen = useChromeLocal(railOpenStore);
+  const railView = useChromeLocal(railViewStore);
+  // Latest study playback for the long-lived watchdog and key listeners.
+  const studyPlaybackRef = useRef(studyPlayback);
+  studyPlaybackRef.current = studyPlayback;
+  // AI is wired to the F7 port: the explain action only appears when the user
+  // configured a provider + key.
+  const aiOn = aiConfigured(ai);
+  const aiPort = useMemo(() => createAiPort(), []);
+  // The overlay's ✦ opens the same explanation the rail renders. A tick (not
+  // an index) lets the rail keep owning the open/close state, exactly as a
+  // click on its own row does.
+  const [explainTick, setExplainTick] = useState(0);
+  const requestExplain = useCallback(() => {
+    railViewStore.set('lines');
+    railOpenStore.set(true);
+    setExplainTick((tick) => tick + 1);
+  }, []);
+  // Cue under the playhead, for the rail. App re-renders when the adapter
+  // publishes a new cue, so this is a cheap read, not a poll.
+  const activeCueIndex = cueIndexAt(
+    episode.cues,
+    adapter?.getCurrentTime?.() ?? (videoElement ? videoElement.currentTime * 1000 : 0),
+  );
+
+  // Reserve the column on the right (H11/D1). Removed when the rail closes so
+  // the player returns to its own layout.
+  const railVisible = enabled && railOpen && !(panelOpen && !isPopupMode);
+  /**
+   * Jump and play through the adapter's controller. A platform that refuses
+   * the seek (Netflix without its player API yet) leaves playback running
+   * instead of breaking the stream — nothing is written to the element.
+   */
+  const seekAndPlay = useCallback(
+    (timeMs: number) => {
+      const controller = episode.controller;
+      if (!controller) return;
+      void controller
+        .seek(timeMs)
+        .then(() => controller.play())
+        .catch(() => {});
+    },
+    [episode.controller],
+  );
+  useEffect(() => {
+    applyColumnsCss({
+      enabled: railVisible,
+      platform: adapter?.platform,
+      widthPx: RAIL_WIDTH_PX,
+    });
+    return () => {
+      applyColumnsCss({ enabled: false, platform: adapter?.platform });
+    };
+  }, [railVisible, adapter?.platform]);
 
   // Apply the "Limpieza visual" CSS whenever the toggles change. The CSS is
   // platform-aware (the matching selectors live in cleanup-css.ts) so the
@@ -271,6 +395,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       }
       const first = cues[0];
       cueLanguageRef.current = first.language || 'en';
+      setCueLanguage(cueLanguageRef.current);
       setActiveCue({
         id: first.id,
         text: first.text,
@@ -310,6 +435,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     const initialCue = adapter.getActiveCue?.();
     if (initialCue) {
       cueLanguageRef.current = initialCue.language || 'en';
+      setCueLanguage(cueLanguageRef.current);
       setActiveCue({
         id: initialCue.id,
         text: initialCue.text,
@@ -349,7 +475,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
   //
   // The prefetch is gated on `!getTrackByLanguage(targetLang)` so it
   // doesn't fire when we already have the translated track in memory.
-  const showDualSubtitlePref = useKivaraStore((s) => s.translate.showDualSubtitle);
+  const showDualSubtitlePref = useKivaraStore((s) => s.study.translation !== 'hidden');
   useEffect(() => {
     if (!showDualSubtitlePref) return;
     if (!activeCue || activeCue.start == null) return;
@@ -480,6 +606,11 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       hoverRevRef.current += 1;
       const rev = hoverRevRef.current;
       if (hovered) {
+        // "Pause while looking up" is a study preference and has no meaning in
+        // Reading mode (there is no card). Any other reason the video was
+        // paused stays the platform's / the user's.
+        const state = useKivaraStore.getState();
+        if (!state.study.pauseOnLookup || state.mode === 'reading') return;
         if (!videoElement.paused) {
           kivaraPausedRef.current = true;
           try {
@@ -541,6 +672,21 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     };
   }, [videoElement]);
 
+  // Real playback state for Listen-first: the subtitle blurs while the line
+  // sounds and reveals on pause or hover.
+  useEffect(() => {
+    if (!videoElement) return;
+    const onPlay = () => setPlaying(true);
+    const onPause = () => setPlaying(false);
+    setPlaying(!videoElement.paused);
+    videoElement.addEventListener('play', onPlay);
+    videoElement.addEventListener('pause', onPause);
+    return () => {
+      videoElement.removeEventListener('play', onPlay);
+      videoElement.removeEventListener('pause', onPause);
+    };
+  }, [videoElement]);
+
   // Global mousemove watchdog. The React onMouseLeave chain works in 99% of
   // cases but on HBO Max (and any platform where the popover paints above a
   // controls layer that intercepts events) it can drop the leave event
@@ -576,6 +722,9 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
 
     const tickResume = () => {
       if (!kivaraPausedRef.current) return;
+      // An auto-pause at the end of the cue is a study decision, not a stuck
+      // hover: the watchdog must not undo it (F6).
+      if (studyPlaybackRef.current.autoPausedRef.current) return;
       if (!videoElement) return;
       if (!videoElement.paused) {
         kivaraPausedRef.current = false;
@@ -728,8 +877,6 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       // chrome.commands → RUN_COMMAND; handling it here too would double-fire.
       if (manifestCombosRef.current?.has(normalizeCombo(combo))) return;
       const map = useKivaraStore.getState().shortcuts;
-      const video = videoElementRef.current;
-      const cue = activeCueRef.current;
       // The map is USER-CUSTOMIZED: a raw 'Ctrl+Shift+S' typed string compares
       // fine, but a user-rebound 'command+s' (mac default) or 'ctrl+ shift+k'
       // stored in the persisted state does NOT match the canonical 'Meta+S'
@@ -741,6 +888,18 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       const normSave = map.save ? normalizeCombo(map.save) : null;
       const normToggle = map.toggle ? normalizeCombo(map.toggle) : null;
       const normReplay = map.replay ? normalizeCombo(map.replay) : null;
+      // F6 page shortcuts. Everything below talks to the PlaybackController
+      // through `studyPlayback`; no direct `currentTime` write is left in App.
+      const normPrev = map.prev ? normalizeCombo(map.prev) : null;
+      const normNext = map.next ? normalizeCombo(map.next) : null;
+      const normReplaySlow = map.replaySlow ? normalizeCombo(map.replaySlow) : null;
+      const normAutoPause = map.autoPause ? normalizeCombo(map.autoPause) : null;
+      const normLoop = map.loop ? normalizeCombo(map.loop) : null;
+      const normSlower = map.slower ? normalizeCombo(map.slower) : null;
+      const normFaster = map.faster ? normalizeCombo(map.faster) : null;
+      const normListenFirst = map.listenFirst ? normalizeCombo(map.listenFirst) : null;
+      const normRail = map.rail ? normalizeCombo(map.rail) : null;
+      const studyControl = studyPlaybackRef.current;
       if (normRecap && combo === normRecap) {
         e.preventDefault();
         e.stopPropagation();
@@ -761,10 +920,49 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       } else if (normReplay && combo === normReplay) {
         e.preventDefault();
         e.stopPropagation();
-        if (video && cue?.start != null) {
-          video.currentTime = cue.start / 1000;
-          void video.play().catch(() => {});
-        }
+        studyControl.replay();
+      } else if (normPrev && combo === normPrev) {
+        e.preventDefault();
+        e.stopPropagation();
+        studyControl.prev();
+      } else if (normNext && combo === normNext) {
+        e.preventDefault();
+        e.stopPropagation();
+        studyControl.next();
+      } else if (normReplaySlow && combo === normReplaySlow) {
+        e.preventDefault();
+        e.stopPropagation();
+        studyControl.replaySlow();
+      } else if (normAutoPause && combo === normAutoPause) {
+        e.preventDefault();
+        e.stopPropagation();
+        const state = useKivaraStore.getState();
+        const next = !state.study.autoPauseCue;
+        state.setStudy((prev) => ({ ...prev, autoPauseCue: next }));
+        toast.message(next ? t('rail.autoPause') : t('player.loopOff'), { duration: 1100 });
+      } else if (normLoop && combo === normLoop) {
+        e.preventDefault();
+        e.stopPropagation();
+        const next = !studyControl.loop;
+        studyControl.setLoop(next);
+        toast.message(next ? t('player.loopOn') : t('player.loopOff'), { duration: 1100 });
+      } else if (normSlower && combo === normSlower) {
+        e.preventDefault();
+        e.stopPropagation();
+        studyControl.stepSpeed(-1);
+      } else if (normFaster && combo === normFaster) {
+        e.preventDefault();
+        e.stopPropagation();
+        studyControl.stepSpeed(1);
+      } else if (normListenFirst && combo === normListenFirst) {
+        e.preventDefault();
+        e.stopPropagation();
+        const state = useKivaraStore.getState();
+        state.setStudy((prev) => ({ ...prev, listenFirst: !prev.listenFirst }));
+      } else if (normRail && combo === normRail) {
+        e.preventDefault();
+        e.stopPropagation();
+        railOpenStore.set(!railOpenStore.get());
       } else {
         // This branch is only reached when nothing matched, so it cannot
         // double-report. One ping per genuinely-unmapped keypress — the same
@@ -867,10 +1065,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
           // an alias for any external script that may still send it.
           case 'repeat_cue':
           case 'repeat_phrase':
-            if (videoElement && activeCue?.start != null) {
-              videoElement.currentTime = activeCue.start / 1000;
-              void videoElement.play().catch(() => {});
-            }
+            if (activeCue?.start != null) seekAndPlay(activeCue.start);
             break;
           case 'recapture_frame':
             doRecaptureFrame();
@@ -907,10 +1102,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       // should not seek the video either. See the review's #6-2 note on
       // the in-page and switch cases.
       if (!useKivaraStore.getState().enabled) return;
-      if (videoElement && activeCue?.start != null) {
-        videoElement.currentTime = activeCue.start / 1000;
-        void videoElement.play().catch(() => {});
-      }
+      if (activeCue?.start != null) seekAndPlay(activeCue.start);
     };
     window.addEventListener('kivara-repeat-cue', onRepeatCueEvent);
     return () => {
@@ -918,7 +1110,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       window.removeEventListener('kivara-recapture-frame', onRecaptureEvent);
       window.removeEventListener('kivara-repeat-cue', onRepeatCueEvent);
     };
-  }, [activeCue, setPanelOpen, videoElement]);
+  }, [activeCue, setPanelOpen, videoElement, seekAndPlay]);
 
   const ensureSubtitleAudioReady = useCallback(async (): Promise<SubtitleAudioAnchor> => {
     if (!videoElement || !activeCue?.end) {
@@ -937,8 +1129,19 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       };
     }
 
-    const originalTime = videoElement.currentTime;
+    const originalMs = videoElement.currentTime * 1000;
     const originalKivaraPaused = kivaraPausedRef.current;
+    // The rewind after the audio pass goes through the PlaybackController:
+    // on Netflix a `currentTime` write interrupts playback (M7375).
+    const restore = async () => {
+      const controller = episode.controller;
+      if (!controller) return;
+      try {
+        await controller.seek(originalMs);
+      } catch (err) {
+        console.warn('[Kivara Lingo] could not restore video time after audio capture', err);
+      }
+    };
     const targetSeconds = activeCue.end / 1000 + 0.25;
     const timeoutMs = Math.min(Math.max(remainingMs + 750, 1_000), 10_000);
 
@@ -948,11 +1151,7 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       await waitForVideoTime(videoElement, targetSeconds, timeoutMs);
       const audioAnchor = videoElement.currentTime * 1000;
       videoElement.pause();
-      try {
-        videoElement.currentTime = originalTime;
-      } catch (err) {
-        console.warn('[Kivara Lingo] could not restore video time after audio capture', err);
-      }
+      await restore();
       kivaraPausedRef.current = originalKivaraPaused;
       return {
         videoTimeAtSave: audioAnchor,
@@ -961,121 +1160,308 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     } catch (err) {
       try {
         if (!videoElement.paused) videoElement.pause();
-        videoElement.currentTime = originalTime;
       } catch {
-        // ignore restore failures
+        // ignore pause failures
       }
+      await restore();
       kivaraPausedRef.current = originalKivaraPaused;
       const reason = err instanceof Error ? err.message : 'no se pudo reproducir temporalmente';
       console.warn('[Kivara Lingo] subtitle audio completion failed; using TTS fallback', reason);
       return {
-        videoTimeAtSave: originalTime * 1000,
+        videoTimeAtSave: originalMs,
         videoPausedAtSave: true,
       };
     }
-  }, [activeCue?.end, adapter, videoElement]);
+  }, [activeCue?.end, adapter, videoElement, episode.controller]);
+
+  /**
+   * Scene media for "Add this scene": the same frame sampler and the same
+   * audio-completion rule the save path uses, but nothing here blocks the
+   * note update. A failed frame or an inactive tab-capture session simply
+   * leaves that half missing and `addSceneToNote` reports it as a soft note.
+   */
+  const captureSceneMedia = useCallback(async (): Promise<SceneMedia> => {
+    const scene: SceneMedia = {};
+    if (videoElement) {
+      try {
+        const frame = await captureBestFrame(
+          videoElement,
+          { start: activeCue?.start, end: activeCue?.end },
+          {
+            // Netflix never gets a seek (M7375): sample the current frame.
+            seek:
+              adapter?.platform === 'netflix' || !episode.controller
+                ? undefined
+                : (timeMs) => episode.controller!.seek(timeMs),
+          },
+        );
+        if (frame) scene.frame = frame;
+      } catch {
+        // Best-effort: the note is updated without a frame.
+      }
+    }
+    try {
+      // Play the line to its end (or record it live) exactly as a save does,
+      // then slice the clip the tab-capture buffer now holds.
+      const anchor = await ensureSubtitleAudioReady();
+      const startMs = activeCue?.start;
+      const endMs = anchor.videoTimeAtSave;
+      if (startMs != null && endMs != null && endMs > startMs) {
+        const clip = (await sendMessage(
+          'EXTRACT_AUDIO_CLIP',
+          { startMs, endMs },
+          'background',
+        )) as AudioClipResponse;
+        if (clip?.ok && clip.dataUrl) scene.audio = clip.dataUrl;
+      }
+    } catch {
+      // Best-effort: the sentence and tags still go through.
+    }
+    return scene;
+  }, [videoElement, activeCue?.start, activeCue?.end, adapter, episode.controller, ensureSubtitleAudioReady]);
 
   const handleSaveCard = useCallback(
     async (token: string | undefined, sentence: string): Promise<CreateCardResponse> => {
       if (!enabled) return { ok: false, error: 'disabled' };
       const tokenValue = token?.trim() || sentence.trim();
       if (!tokenValue) return { ok: false, error: 'no token' };
+      // One card at a time: the capture overlay and the audio completion must
+      // not run twice for a double-pressed shortcut.
+      if (captureBusyRef.current) return { ok: false, error: 'busy' };
+      captureBusyRef.current = true;
 
-    const saveToastId = toast.loading(t('app.savingCard'), {
-      description: t('app.preparingSave'),
-    });
-
-    let frameDataUrl: string | null = null;
-    if (videoElement) {
-      // Best-frame capture: samples the cue window on a paused video to dodge
-      // fades / transitions / spinners. Returns null when every candidate is a
-      // dud, letting the orchestrator fall back to a web image.
-      frameDataUrl = await captureBestFrame(videoElement, {
-        start: activeCue?.start,
-        end: activeCue?.end,
-      });
-    }
-
-    const audioAnchor = await ensureSubtitleAudioReady();
-
-    const request: CreateCardRequest = {
-      token: tokenValue,
-      sentence,
-      frame: frameDataUrl ?? undefined,
-      cueStart: activeCue?.start,
-      cueEnd: activeCue?.end,
-      videoTimeAtSave: audioAnchor.videoTimeAtSave,
-      videoPausedAtSave: audioAnchor.videoPausedAtSave,
-      language: cueLanguageRef.current,
-      platform: adapter?.platform,
-    };
-
-    try {
-      const response = (await sendMessage('CREATE_CARD', request, 'background')) as CreateCardResponse;
-      if (response?.ok) {
-        // Remember the noteId + frame field so `recapture_frame` (Alt+V)
-        // can update this specific note.
-        if (response.noteId != null) {
-          lastSavedNoteRef.current = {
-            noteId: response.noteId,
-            fieldName: findFrameFieldName(ankiMapping.fieldSources) ?? null,
-          };
-        }
-        const warningSuffix = response.warnings?.length
-          ? ` · ${response.warnings.join(' · ')}`
-          : '';
-        toast.success(t('app.cardSaved'), {
-          id: saveToastId,
-          description: `${tokenValue} → ${ankiMapping.deckName}${warningSuffix}`,
-          duration: 3200,
-        });
-        // THIS WAS THE BUG: right after showing the success toast the
-        // function fell off the end and landed in the shared
-        // `return { ok: false, error: 'unhandled' }` — so every CREATED
-        // card appeared to the caller as a failure. In SubtitleOverlay's
-        // `handleSaveToken` that meant the token NEVER got the green
-        // "saved" highlight, because it only paints when result.ok is true.
-        return { ok: true, noteId: response.noteId, warnings: response.warnings };
-      } else {
-        toast.error(response?.error ?? t('app.ankiSaveError'), { id: saveToastId });
-        return response ?? { ok: false, error: 'unknown' };
+      const studyNow = useKivaraStore.getState().study;
+      const endDetect = useKivaraStore.getState().capture.endDetect;
+      if (captureClearTimer.current) {
+        window.clearTimeout(captureClearTimer.current);
+        captureClearTimer.current = null;
       }
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : t('app.unknownReason');
-      toast.error(`${t('app.ankiSaveError')}: ${reason}`, { id: saveToastId });
-      return { ok: false, error: reason };
+      setCaptureView({ flash: false, audio: null, frame: 'pending', mode: endDetect });
+
+      const saveToastId = toast.loading(t('app.savingCard'), {
+        description: t('app.preparingSave'),
+      });
+
+      try {
+        let frameDataUrl: string | null = null;
+        if (videoElement) {
+          // Best-frame capture: samples the cue window on a paused video to
+          // dodge fades / transitions / spinners. Null when every candidate is
+          // a dud, letting the orchestrator fall back to a web image.
+          frameDataUrl = await captureBestFrame(
+            videoElement,
+            { start: activeCue?.start, end: activeCue?.end },
+            {
+              // Netflix never gets a seek (M7375): sample the current frame.
+              seek:
+                adapter?.platform === 'netflix' || !episode.controller
+                  ? undefined
+                  : (timeMs) => episode.controller!.seek(timeMs),
+            },
+          );
+        }
+        setCaptureView((v) => (v ? { ...v, flash: true, frame: frameDataUrl ? 'ok' : 'failed' } : v));
+        if (studyNow.sounds) playSound('shutter');
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, 260);
+        });
+        setCaptureView((v) => (v ? { ...v, flash: false } : v));
+
+        // Which audio the save will use, computed from the same condition
+        // `ensureSubtitleAudioReady` uses: a paused video short of the cue end
+        // replays the line; a playing one records it live.
+        const remainingMs = videoElement && activeCue?.end != null
+          ? activeCue.end - videoElement.currentTime * 1000
+          : 0;
+        const audio: CaptureAudio = !videoElement
+          ? 'off'
+          : videoElement.paused
+            ? (remainingMs > 120 ? 'replay' : 'off')
+            : 'live';
+        setCaptureView((v) => (v ? { ...v, audio } : v));
+
+        const audioAnchor = await ensureSubtitleAudioReady();
+
+        const lang = cueLanguageRef.current;
+        const activeDeck = ankiMapping.decks?.[lang] ?? ankiMapping.deckName;
+        const media = adapter?.getMediaInfo?.();
+        const kind = cardKindOf(tokenValue);
+        const request: CreateCardRequest = {
+          token: tokenValue,
+          sentence,
+          cardId: newCardId(),
+          kind,
+          lang,
+          deck: activeDeck,
+          media,
+          frame: frameDataUrl ?? undefined,
+          cueStart: activeCue?.start,
+          cueEnd: activeCue?.end,
+          videoTimeAtSave: audioAnchor.videoTimeAtSave,
+          videoPausedAtSave: audioAnchor.videoPausedAtSave,
+          language: lang,
+          platform: adapter?.platform,
+        };
+
+        try {
+          const response = (await sendMessage('CREATE_CARD', request, 'background')) as CreateCardResponse;
+          if (response?.ok) {
+            // Remember the noteId + frame field so `recapture_frame` (Alt+V)
+            // can update this specific note.
+            if (response.noteId != null) {
+              lastSavedNoteRef.current = {
+                noteId: response.noteId,
+                fieldName: findFrameFieldName(ankiMapping.fieldSources) ?? null,
+              };
+            }
+            // The saved notice carries the Undo action (delete the note just
+            // created) and the save's warnings as amber notes — the card is
+            // saved either way, so the toast explains instead of blocking.
+            toast.dismiss(saveToastId);
+            showCardSaved(
+              { noteId: response.noteId, text: tokenValue, deck: activeDeck ?? '' },
+              response.warnings ?? [],
+            );
+            if (studyNow.sounds) playSound('saved');
+            // F5: the word now has a card. A «known» hand mark gives way to
+            // it (the word becomes learning), the interval is cached at 0 and
+            // a background refresh reads the real one from Anki.
+            recordCardSaved(lang, tokenValue);
+            // The success path must RETURN its own envelope: falling through
+            // used to report every created card as a failure, so the green
+            // "saved" highlight never painted.
+            return { ok: true, noteId: response.noteId, warnings: response.warnings };
+          }
+          showCardSaveError(response?.error, response?.queued === true, saveToastId);
+          if (studyNow.sounds) playSound('error');
+          return response ?? { ok: false, error: 'unknown' };
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : t('app.unknownReason');
+          showCardSaveError(reason, false, saveToastId);
+          if (studyNow.sounds) playSound('error');
+          return { ok: false, error: reason };
+        }
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : t('app.unknownReason');
+        showCardSaveError(reason, false, saveToastId);
+        if (studyNow.sounds) playSound('error');
+        return { ok: false, error: reason };
+      } finally {
+        captureBusyRef.current = false;
+        captureClearTimer.current = window.setTimeout(() => {
+          setCaptureView(null);
+          captureClearTimer.current = null;
+        }, 700);
+      }
+    },
+    // deps: everything handleSaveCard touches at closure time.
+    // SubtitleOverlay's useMemo also lists handleSaveCard — its identity
+    // must change when ankiMapping or cue change, which keeps the overlay
+    // consistent when deck/adapter/config change.
+    [enabled, activeCue, videoElement, adapter, ensureSubtitleAudioReady, ankiMapping, episode.controller],
+  );
+
+  /**
+   * "See in Anki" from the word card: open the user's browser on the note
+   * that holds this headword. Built with the same exact-query helper the
+   * save path uses, so quotes/asterisks in a token cannot widen the search.
+   */
+  const handleSeeInAnki = useCallback(async (token: string) => {
+    const lang = cueLanguageRef.current;
+    const deck = ankiMapping.decks?.[lang] ?? ankiMapping.deckName;
+    const fieldName = Object.entries(ankiMapping.fieldSources ?? {}).find(
+      ([, source]) => source === 'selection',
+    )?.[0] ?? 'Front';
+    const query = buildExactNoteQuery({
+      deckName: deck,
+      modelName: ankiMapping.modelName,
+      fieldName,
+      value: token,
+    });
+    if (!query) {
+      toast.error(t('wp.openInAnkiFailed'));
+      return;
     }
-    // Unreachable: both branches of the earlier if return inside try.
-    // Kept as a type-narrowing stopgap so a future fallthrough cannot
-    // silently return undefined.
-    return { ok: false, error: 'unhandled' };
-  },
-  // deps: everything handleSaveCard touches at closure time.
-  // SubtitleOverlay's useMemo also lists handleSaveCard — its identity
-  // must change when ankiMapping or cue change, which keeps the overlay
-  // consistent when deck/adapter/config change.
-  [enabled, activeCue, videoElement, adapter, ensureSubtitleAudioReady, ankiMapping],
-);
+    const res = (await sendMessage('ANKI_BROWSE', { query }, 'background')) as AnkiBrowseResponse;
+    if (res?.ok) toast(t('wp.openedInAnki'), { description: token, duration: 2200 });
+    else toast.error(t('wp.openInAnkiFailed'), { description: res?.error });
+  }, [ankiMapping]);
+
+  /**
+   * "Add this scene": attach the current line, its frame and its audio to the
+   * note the word already has, instead of creating a duplicate card. `kind`
+   * and `token` are the real card flavour and headword, so the tags and the
+   * note lookup match the card the user is looking at.
+   */
+  const handleAddContext = useCallback(async (
+    token: string,
+    sentence: string,
+    kind: CreateCardKind,
+  ) => {
+    if (!enabled) return;
+    // One capture at a time, same lock the save path holds.
+    if (captureBusyRef.current) return;
+    captureBusyRef.current = true;
+    try {
+      const lang = cueLanguageRef.current;
+      const deck = ankiMapping.decks?.[lang] ?? ankiMapping.deckName;
+      const media = adapter?.getMediaInfo?.();
+      const fieldName = Object.entries(ankiMapping.fieldSources ?? {}).find(
+        ([, source]) => source === 'selection',
+      )?.[0] ?? 'Front';
+      await addSceneToNote(
+        {
+          token,
+          sentence,
+          kind,
+          deck,
+          fieldName,
+          tags: buildCardTags(kind, media, lang),
+        },
+        captureSceneMedia,
+      );
+    } finally {
+      captureBusyRef.current = false;
+    }
+  }, [enabled, adapter, ankiMapping, captureSceneMedia]);
 
   const overlayPortal = useMemo(() => {
     if (!videoOverlayRoot || !enabled || !subtitlesVisible) return null;
     return createPortal(
-      <div
-        data-popover-boundary
-        className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'dark' : ''}`}
-        style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}
-      >
-        <SubtitleOverlay
-          subtitleStyles={subtitleStyles}
-          cue={activeCue}
-          altCue={altCue}
-          mode={mode}
-          saveRequestKey={saveTick}
-          onSaveCard={handleSaveCard}
-          onTokenHoverChange={handleTokenHoverChange}
-          initialSavedWords={initialSavedWords}
-        />
-      </div>,
+      // Re-provide the VIDEO host's portal container for this subtree: it
+      // lives in a different shadow root than the panel tree, and a portal
+      // opened inside it (InfoHint hint, dialog) must follow the video host —
+      // which fullscreen-overlay-core keeps inside the player, and the player
+      // is what the site fullscreenes.
+      <PortalContainerProvider container={videoPortalContainer ?? null}>
+        <div
+          data-popover-boundary
+          className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'dark' : ''}`}
+          style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}
+        >
+          <SubtitleOverlay
+            subtitleStyles={subtitleStyles}
+            cue={activeCue}
+            altCue={altCue}
+            mode={mode}
+            saveRequestKey={saveTick}
+            onSaveCard={handleSaveCard}
+            onSeeInAnki={handleSeeInAnki}
+            onAddContext={handleAddContext}
+            onTokenHoverChange={handleTokenHoverChange}
+            initialSavedWords={initialSavedWords}
+            playing={playing}
+            expandedMWEs={expandedMWEs}
+            setExpandedMWEs={setExpandedMWEs}
+            capturing={captureView !== null}
+            study={studyBinding}
+            // The rail is the only place an explanation renders, so hide the action
+// while the rail cannot be visible (panel docked in place of it).
+            onExplain={aiOn && (!panelOpen || isPopupMode) ? requestExplain : undefined}
+          />
+          <CaptureOverlay view={captureView} cardTheme={subtitleStyles.cardTheme ?? 'dark'} />
+        </div>
+      </PortalContainerProvider>,
       videoOverlayRoot,
     );
   }, [
@@ -1095,8 +1481,11 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     initialSavedWords,
     ankiMapping,
     handleSaveCard,
+    handleSeeInAnki,
+    handleAddContext,
     videoElement,
     adapter,
+    videoPortalContainer,
     ensureSubtitleAudioReady,
     enabled,
     subtitlesVisible,
@@ -1106,6 +1495,14 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
     subtitleStyles,
     videoOverlayRoot,
     handleTokenHoverChange,
+    playing,
+    expandedMWEs,
+    captureView,
+    studyBinding,
+    aiOn,
+    requestExplain,
+    panelOpen,
+    isPopupMode,
   ]);
 
   return (
@@ -1118,6 +1515,96 @@ export function App({ adapter, videoElement, videoOverlayRoot }: AppProps) {
       </div>
 
       {overlayPortal}
+
+      {/* F6: the study bar lives in the player's overlay root, above the
+          platform's own controls (D2). Its visibility follows pointer activity
+          over the player, like the site's bar. */}
+      {enabled && videoOverlayRoot &&
+        createPortal(
+          // Same re-provision as the overlay portal above: portals opened from
+          // the StudyBar must land in the VIDEO host's root, which stays inside
+          // the fullscreened player.
+          <PortalContainerProvider container={videoPortalContainer ?? null}>
+            <div className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'dark' : ''}`}>
+              <StudyBar
+                enabled={enabled}
+                playing={playing}
+                onTogglePlay={studyPlayback.togglePlay}
+                onPrev={studyPlayback.prev}
+                onReplay={studyPlayback.replay}
+                onReplaySlow={studyPlayback.replaySlow}
+                onNext={studyPlayback.next}
+                autoPause={study.autoPauseCue}
+                onToggleAutoPause={() => {
+                  const next = !useKivaraStore.getState().study.autoPauseCue;
+                  setStudy((prev) => ({ ...prev, autoPauseCue: next }));
+                }}
+                loop={studyPlayback.loop}
+                onToggleLoop={() => railOpenStore.set(!railOpen)}
+                speed={studyPlayback.speed}
+                onSpeed={studyPlayback.setSpeed}
+                railOpen={railOpen}
+                onToggleRail={() => railOpenStore.set(!railOpen)}
+                panelOpen={panelOpen}
+                onTogglePanel={() => setPanelOpen(!panelOpen)}
+              />
+            </div>
+          </PortalContainerProvider>,
+          videoOverlayRoot,
+        )}
+
+      {/* F6: the transcript column (D1). It reserves its width on the player
+          root through columns-css.ts, so it never covers the picture. */}
+      {railVisible && (
+        <div
+          className="pointer-events-auto"
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: RAIL_WIDTH_PX,
+          }}
+        >
+          <TranscriptRail
+            cues={episode.cues}
+            activeIndex={activeCueIndex}
+            lang={cueLanguage}
+            study={studyBinding}
+            newMarks={study.newMarks}
+            savedWords={initialSavedWords}
+            media={episode.media}
+            view={railView}
+            onViewChange={(view) => railViewStore.set(view)}
+            onSeek={(index) => studyPlayback.seekCue(index)}
+            onReplay={studyPlayback.replay}
+            onReplaySlow={studyPlayback.replaySlow}
+            capturing={captureView !== null}
+            autoPause={study.autoPauseCue}
+            onToggleAutoPause={() => {
+              const next = !useKivaraStore.getState().study.autoPauseCue;
+              setStudy((prev) => ({ ...prev, autoPauseCue: next }));
+            }}
+            loop={studyPlayback.loop}
+            onToggleLoop={() => studyPlayback.setLoop(!studyPlayback.loop)}
+            speed={studyPlayback.speed}
+            onSpeed={studyPlayback.setSpeed}
+            playing={playing}
+            pauseOnExplain={study.pauseOnLookup}
+            onStudyPause={studyPlayback.pauseForStudy}
+            onStudyResume={studyPlayback.resumeIfKivaraPaused}
+            ai={aiOn ? aiPort : null}
+            explainRequest={explainTick}
+            uiLang={currentLocale()}
+            nativeLang={useKivaraStore.getState().translate.targetLanguage}
+            panelOpen={panelOpen}
+            onTogglePanel={() => setPanelOpen(!panelOpen)}
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+            onClose={() => railOpenStore.set(false)}
+          />
+        </div>
+      )}
 
       {enabled && panelOpen && (
         <div

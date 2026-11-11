@@ -7,11 +7,14 @@
  */
 import {
   getKnownLanguages,
+  getLastTrack,
   getTrackByLanguage,
   onTrack,
   type InterceptedTrack,
 } from './intercepted-bus';
-import type { CueListener, SubtitleCue, SubtitleSource } from './types';
+import type { CueListener, MediaInfo, PlaybackController, SubtitleCue, SubtitleSource } from './types';
+import { createMediaPlaybackController, createNetflixPlaybackController } from './playback';
+import { cuesFromRawTrack } from './tracks';
 
 export interface InterceptedAdapterOptions {
   platform: SubtitleSource['platform'];
@@ -23,6 +26,14 @@ export interface InterceptedAdapterOptions {
   onMount?(): void;
   /** Override to find the active video element */
   getVideo?(): HTMLVideoElement | null;
+  /** Best-effort episode metadata for the card tags (F4). */
+  getMediaInfo?(): MediaInfo;
+  /**
+   * F6: which PlaybackController to install. `netflix` routes seeks through
+   * the MAIN-world player API (never `currentTime`); everything else uses the
+   * HTML5 element (docs/REDESIGN-V2.md §4.5).
+   */
+  playback?: 'media' | 'netflix';
 }
 
 /**
@@ -126,6 +137,8 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
   let hideStyle: HTMLStyleElement | null = null;
   let lastVideo: HTMLVideoElement | null = null;
   let pollHandle: number | null = null;
+  /** F6: subscribers of the full track. */
+  const trackCueListeners: Array<(cues: SubtitleCue[]) => void> = [];
 
   function getVideo(): HTMLVideoElement | null {
     if (opts.getVideo) return opts.getVideo();
@@ -183,6 +196,25 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
   // Primary language for the adapter (just the two-letter subtag).
   const primaryLang = opts.language.split(/[-_]/)[0].toLowerCase();
 
+  /** F6: the whole cue list of the active (or last known) track. */
+  function fullTrack(): SubtitleCue[] {
+    const source = track ?? getTrackByLanguage(primaryLang) ?? getLastTrack();
+    if (!source || source.cues.length === 0) return [];
+    return cuesFromRawTrack(source.cues, source.language ?? opts.language, opts.platform);
+  }
+
+  function notifyTrackListeners() {
+    const cues = fullTrack();
+    if (cues.length === 0) return;
+    trackCueListeners.forEach((listener) => {
+      try {
+        listener(cues);
+      } catch (err) {
+        console.warn('[Kivara Lingo] track listener threw', err);
+      }
+    });
+  }
+
   // Subscribe to intercepted tracks (replays last one if already seen).
   // Only adopt a track as the *primary* (source) caption when its detected
   // language matches `opts.language` — or when the language is unknown
@@ -202,6 +234,8 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
     track = next;
     tick();
     startPolling();
+    // F6: a fresh (or translated) track is a new full cue list for the rail.
+    notifyTrackListeners();
   });
 
   // Start polling regardless — the next track may arrive at any time
@@ -273,12 +307,35 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
     getAvailableAltLanguages() {
       return getKnownLanguages();
     },
+    getTrackCues() {
+      return fullTrack();
+    },
+    onTrackCues(cb) {
+      trackCueListeners.push(cb);
+      const initial = fullTrack();
+      if (initial.length > 0) {
+        try {
+          cb(initial);
+        } catch {
+          /* keep the subscription */
+        }
+      }
+      return () => {
+        const index = trackCueListeners.indexOf(cb);
+        if (index !== -1) trackCueListeners.splice(index, 1);
+      };
+    },
+    playback: opts.playback === 'netflix'
+      ? createNetflixPlaybackController(() => getVideo() ?? lastVideo)
+      : createMediaPlaybackController(() => getVideo() ?? lastVideo),
+    ...(opts.getMediaInfo ? { getMediaInfo: opts.getMediaInfo } : {}),
     destroy() {
       // Everything this context started, undone. Anything left running would
       // survive a SPA navigation — see SubtitleSource.destroy.
       stopPolling();
       offTrack();
       listeners.length = 0;
+      trackCueListeners.length = 0;
       if (hideStyle) {
         hideStyle.remove();
         hideStyle = null;

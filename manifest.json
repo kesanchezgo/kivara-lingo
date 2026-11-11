@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "default_locale": "en",
   "name": "__MSG_extensionName__",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "__MSG_extensionDescription__",
   "homepage_url": "https://github.com/kesanchezgo/kivara-lingo",
   "content_security_policy": {
@@ -78,7 +78,9 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "src/assets/dictionaries/*"
+        "src/assets/dictionaries/*",
+        "src/assets/fonts/*",
+        "src/assets/frequency/*"
       ],
       "matches": [
         "*://*.youtube.com/*",
@@ -147,6 +149,8 @@
     "128": "src/assets/icons/icon-128.png"
   },
   "optional_host_permissions": [
+    "http://127.0.0.1/*",
+    "http://localhost/*",
     "https://*.bing.net/*",
     "https://*.dictionary.cambridge.org/*",
     "https://*.forvo.com/*",
@@ -163,15 +167,20 @@
     "https://api.anthropic.com/*",
     "https://api.datamuse.com/*",
     "https://api.deepl.com/*",
+    "https://api.deepseek.com/*",
     "https://api.dictionaryapi.dev/*",
     "https://api.elevenlabs.io/*",
+    "https://api.groq.com/*",
+    "https://api.mistral.ai/*",
     "https://api.mymemory.translated.net/*",
     "https://api.openai.com/*",
     "https://api.openverse.engineering/*",
     "https://api.openverse.org/*",
     "https://api.tatoeba.org/*",
+    "https://api.together.xyz/*",
     "https://api.unsplash.com/*",
     "https://api.wiktapi.dev/*",
+    "https://api.x.ai/*",
     "https://audio.dictionary.com/*",
     "https://cdn.pixabay.com/*",
     "https://codeload.github.com/*",
@@ -197,6 +206,7 @@
     "https://lingva.pussthecat.org/*",
     "https://media.merriam-webster.com/*",
     "https://moby-thesaurus.org/*",
+    "https://openrouter.ai/*",
     "https://ozdic.com/*",
     "https://pixabay.com/*",
     "https://raw.githubusercontent.com/*",
