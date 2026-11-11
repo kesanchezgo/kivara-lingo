@@ -27,8 +27,15 @@ export interface ToastCard {
  * "Card saved" with Undo (5 s, like the mail client's "Undo send").
  * `notes`: what is missing (frame, sentence audio or word audio); the card is
  * saved anyway, so the notice explains instead of blocking.
+ *
+ * `onUndo` is optional: a card whose note id is unknown has nothing to delete,
+ * so the Undo action does not render at all.
  */
-export function showSavedToast(card: ToastCard, onUndo: (card: ToastCard) => void, notes: string[] = []) {
+export function showSavedToast(
+  card: ToastCard,
+  onUndo?: (card: ToastCard) => void,
+  notes: string[] = [],
+) {
   toast.custom((id) => (
     <div className="kvl-ui w-[340px] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.08] rounded-xl shadow-[0_12px_32px_-8px_rgba(0,0,0,.35)] pl-3 pr-1.5 py-2.5">
       <div className="flex items-center gap-3">
@@ -43,12 +50,14 @@ export function showSavedToast(card: ToastCard, onUndo: (card: ToastCard) => voi
             {card.deck}
           </div>
         </div>
-        <button
-          onClick={() => { toast.dismiss(id); onUndo(card); }}
-          className="h-7 px-2.5 inline-flex items-center gap-1.5 rounded-lg text-[12px] font-medium text-zinc-700 dark:text-zinc-200 bg-zinc-900/[0.05] dark:bg-white/[0.07] hover:bg-zinc-900/[0.08] dark:hover:bg-white/[0.1] transition-colors shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
-        >
-          <Undo2 size={13} /> {t('recent.undo')}
-        </button>
+        {onUndo && (
+          <button
+            onClick={() => { toast.dismiss(id); onUndo(card); }}
+            className="h-7 px-2.5 inline-flex items-center gap-1.5 rounded-lg text-[12px] font-medium text-zinc-700 dark:text-zinc-200 bg-zinc-900/[0.05] dark:bg-white/[0.07] hover:bg-zinc-900/[0.08] dark:hover:bg-white/[0.1] transition-colors shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+          >
+            <Undo2 size={13} /> {t('recent.undo')}
+          </button>
+        )}
         <button
           onClick={() => toast.dismiss(id)}
           aria-label={t('common.close')}

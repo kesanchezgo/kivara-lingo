@@ -16,8 +16,9 @@ import { getShadowRoot, overKivaraZone } from '../shadow-host';
 import { PortalContainerProvider } from '../../ui/portal';
 import { eventPathIsEditable } from '../utils/keyboard';
 import type {
-  AnkiAddContextResponse,
   AnkiBrowseResponse,
+  AudioClipResponse,
+  CreateCardKind,
   CreateCardRequest,
   CreateCardResponse,
   FieldSource,
@@ -28,6 +29,7 @@ import { buildPreviewData } from '../../shared/preview-data';
 import { buildCardTags, newCardId } from '../../shared/cards';
 import { buildExactNoteQuery } from '../../shared/anki-search';
 import { recordCardSaved, useWordStudy, type StudyBinding } from './study';
+import { addSceneToNote, cardKindOf, showCardSaved, showCardSaveError, type SceneMedia } from './save-actions';
 import { useEpisode } from './useEpisode';
 import { cueIndexAt, useStudyPlayback } from './useStudyPlayback';
 import { TranscriptRail } from './TranscriptRail';
@@ -1172,6 +1174,52 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     }
   }, [activeCue?.end, adapter, videoElement, episode.controller]);
 
+  /**
+   * Scene media for "Add this scene": the same frame sampler and the same
+   * audio-completion rule the save path uses, but nothing here blocks the
+   * note update. A failed frame or an inactive tab-capture session simply
+   * leaves that half missing and `addSceneToNote` reports it as a soft note.
+   */
+  const captureSceneMedia = useCallback(async (): Promise<SceneMedia> => {
+    const scene: SceneMedia = {};
+    if (videoElement) {
+      try {
+        const frame = await captureBestFrame(
+          videoElement,
+          { start: activeCue?.start, end: activeCue?.end },
+          {
+            // Netflix never gets a seek (M7375): sample the current frame.
+            seek:
+              adapter?.platform === 'netflix' || !episode.controller
+                ? undefined
+                : (timeMs) => episode.controller!.seek(timeMs),
+          },
+        );
+        if (frame) scene.frame = frame;
+      } catch {
+        // Best-effort: the note is updated without a frame.
+      }
+    }
+    try {
+      // Play the line to its end (or record it live) exactly as a save does,
+      // then slice the clip the tab-capture buffer now holds.
+      const anchor = await ensureSubtitleAudioReady();
+      const startMs = activeCue?.start;
+      const endMs = anchor.videoTimeAtSave;
+      if (startMs != null && endMs != null && endMs > startMs) {
+        const clip = (await sendMessage(
+          'EXTRACT_AUDIO_CLIP',
+          { startMs, endMs },
+          'background',
+        )) as AudioClipResponse;
+        if (clip?.ok && clip.dataUrl) scene.audio = clip.dataUrl;
+      }
+    } catch {
+      // Best-effort: the sentence and tags still go through.
+    }
+    return scene;
+  }, [videoElement, activeCue?.start, activeCue?.end, adapter, episode.controller, ensureSubtitleAudioReady]);
+
   const handleSaveCard = useCallback(
     async (token: string | undefined, sentence: string): Promise<CreateCardResponse> => {
       if (!enabled) return { ok: false, error: 'disabled' };
@@ -1237,7 +1285,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         const lang = cueLanguageRef.current;
         const activeDeck = ankiMapping.decks?.[lang] ?? ankiMapping.deckName;
         const media = adapter?.getMediaInfo?.();
-        const kind = tokenValue.trim().split(/\s+/).length > 1 ? 'expression' : 'word';
+        const kind = cardKindOf(tokenValue);
         const request: CreateCardRequest = {
           token: tokenValue,
           sentence,
@@ -1266,14 +1314,14 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                 fieldName: findFrameFieldName(ankiMapping.fieldSources) ?? null,
               };
             }
-            const warningSuffix = response.warnings?.length
-              ? ` · ${response.warnings.join(' · ')}`
-              : '';
-            toast.success(t('app.cardSaved'), {
-              id: saveToastId,
-              description: `${tokenValue} → ${activeDeck}${warningSuffix}`,
-              duration: 3200,
-            });
+            // The saved notice carries the Undo action (delete the note just
+            // created) and the save's warnings as amber notes — the card is
+            // saved either way, so the toast explains instead of blocking.
+            toast.dismiss(saveToastId);
+            showCardSaved(
+              { noteId: response.noteId, text: tokenValue, deck: activeDeck ?? '' },
+              response.warnings ?? [],
+            );
             if (studyNow.sounds) playSound('saved');
             // F5: the word now has a card. A «known» hand mark gives way to
             // it (the word becomes learning), the interval is cached at 0 and
@@ -1284,18 +1332,18 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             // "saved" highlight never painted.
             return { ok: true, noteId: response.noteId, warnings: response.warnings };
           }
-          toast.error(response?.error ?? t('app.ankiSaveError'), { id: saveToastId });
+          showCardSaveError(response?.error, response?.queued === true, saveToastId);
           if (studyNow.sounds) playSound('error');
           return response ?? { ok: false, error: 'unknown' };
         } catch (err) {
           const reason = err instanceof Error ? err.message : t('app.unknownReason');
-          toast.error(`${t('app.ankiSaveError')}: ${reason}`, { id: saveToastId });
+          showCardSaveError(reason, false, saveToastId);
           if (studyNow.sounds) playSound('error');
           return { ok: false, error: reason };
         }
       } catch (err) {
         const reason = err instanceof Error ? err.message : t('app.unknownReason');
-        toast.error(`${t('app.ankiSaveError')}: ${reason}`, { id: saveToastId });
+        showCardSaveError(reason, false, saveToastId);
         if (studyNow.sounds) playSound('error');
         return { ok: false, error: reason };
       } finally {
@@ -1340,29 +1388,42 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   }, [ankiMapping]);
 
   /**
-   * "Add this scene": attach the current line (and its tags) to the note the
-   * word already has, instead of creating a duplicate card.
+   * "Add this scene": attach the current line, its frame and its audio to the
+   * note the word already has, instead of creating a duplicate card. `kind`
+   * and `token` are the real card flavour and headword, so the tags and the
+   * note lookup match the card the user is looking at.
    */
-  const handleAddContext = useCallback(async (token: string, sentence: string) => {
-    const lang = cueLanguageRef.current;
-    const deck = ankiMapping.decks?.[lang] ?? ankiMapping.deckName;
-    const media = adapter?.getMediaInfo?.();
-    const fieldName = Object.entries(ankiMapping.fieldSources ?? {}).find(
-      ([, source]) => source === 'selection',
-    )?.[0] ?? 'Front';
-    const res = (await sendMessage('ANKI_ADD_CONTEXT', {
-      token,
-      sentence,
-      deck,
-      fieldName,
-      tags: buildCardTags('word', media, lang),
-    }, 'background')) as AnkiAddContextResponse;
-    if (res?.ok) {
-      toast.success(t('queue.contextAdded'), { description: token, duration: 2200 });
-    } else {
-      toast.error(t('wp.openInAnkiFailed'), { description: res?.error });
+  const handleAddContext = useCallback(async (
+    token: string,
+    sentence: string,
+    kind: CreateCardKind,
+  ) => {
+    if (!enabled) return;
+    // One capture at a time, same lock the save path holds.
+    if (captureBusyRef.current) return;
+    captureBusyRef.current = true;
+    try {
+      const lang = cueLanguageRef.current;
+      const deck = ankiMapping.decks?.[lang] ?? ankiMapping.deckName;
+      const media = adapter?.getMediaInfo?.();
+      const fieldName = Object.entries(ankiMapping.fieldSources ?? {}).find(
+        ([, source]) => source === 'selection',
+      )?.[0] ?? 'Front';
+      await addSceneToNote(
+        {
+          token,
+          sentence,
+          kind,
+          deck,
+          fieldName,
+          tags: buildCardTags(kind, media, lang),
+        },
+        captureSceneMedia,
+      );
+    } finally {
+      captureBusyRef.current = false;
     }
-  }, [adapter, ankiMapping]);
+  }, [enabled, adapter, ankiMapping, captureSceneMedia]);
 
   const overlayPortal = useMemo(() => {
     if (!videoOverlayRoot || !enabled || !subtitlesVisible) return null;

@@ -22,6 +22,7 @@ import type {
   Mode,
   TranslateResponse,
   CreateCardResponse,
+  CreateCardKind,
   CueAlign,
 } from '../../shared/types';
 import { tokenizeSentence } from '../nlp/tokenize';
@@ -30,6 +31,7 @@ import { eventPathIsEditable } from '../utils/keyboard';
 import { useKivaraStore } from '../../shared/use-kivara-store';
 import { aiConfigured } from '../../shared/ai-configured';
 import { WordPopover } from './WordPopover';
+import { CARD_UNDONE_EVENT, cardKindOf } from './save-actions';
 import { markOf, markAttrs, markContainerAttrs } from './wordMarks';
 import { WordStatusSelector } from './WordStatusSelector';
 import type { StudyBinding } from './study';
@@ -64,8 +66,9 @@ export interface SubtitleOverlayProps {
   onSaveCard: (token: string | undefined, sentence: string) => Promise<CreateCardResponse>;
   /** "See in Anki" for a saved token (F4). */
   onSeeInAnki?: (token: string) => void;
-  /** "Add this scene" to the note a saved token already has (F4). */
-  onAddContext?: (token: string, sentence: string) => void;
+  /** "Add this scene" to the note a saved token already has (F4). `kind` is
+   * the real card flavour (word / expression), never a default. */
+  onAddContext?: (token: string, sentence: string, kind: CreateCardKind) => void;
   /** True while a lookup/card is open; App decides whether to pause. */
   onTokenHoverChange?: (hovered: boolean) => void;
   /** Words already in Anki, pre-fetched at mount. */
@@ -295,6 +298,26 @@ export function SubtitleOverlay({
       return next;
     });
   }, [initialSavedWords]);
+
+  // The saved toast's Undo deletes the note through the service worker, which
+  // already drops the registry row and the F5 interval cache. The green mark
+  // painted here is view state, so it has to follow: without this, a card the
+  // user just undid keeps reading as saved until the next mount.
+  useEffect(() => {
+    const onCardUndone = (event: Event) => {
+      const token = (event as CustomEvent<{ token?: string }>).detail?.token;
+      if (!token) return;
+      const key = token.toLowerCase();
+      setSavedTokens((prev) => {
+        if (!prev.has(key)) return prev;
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    };
+    window.addEventListener(CARD_UNDONE_EVENT, onCardUndone);
+    return () => window.removeEventListener(CARD_UNDONE_EVENT, onCardUndone);
+  }, []);
 
   const effectiveExpanded = useMemo(() => {
     if (!altExpandedKey) return expandedMWEs;
@@ -873,7 +896,10 @@ export function SubtitleOverlay({
                           ? (e) => { e.stopPropagation(); onSeeInAnki(tok.key); }
                           : undefined}
                         onAddContext={onAddContext
-                          ? (e) => { e.stopPropagation(); onAddContext(tok.key, targetSentence); }
+                          ? (e) => {
+                            e.stopPropagation();
+                            onAddContext(tok.key, targetSentence, cardKindOf(tok.text));
+                          }
                           : undefined}
                         statusSlot={study && tok.kind !== 'proper-noun-known' ? (
                           <WordStatusSelector
