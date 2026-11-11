@@ -144,7 +144,10 @@ export function HostPermissionsRow({ showGrantAll = true }: { showGrantAll?: boo
         <span className="text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
           {t('vipx.permSummary', { on: grantedGroups, total: HOST_GROUPS.length })}
         </span>
-        <InfoHint text={t('perm.intro')} maxWidth={260} />
+        {/* The prototype folds the two parity notes into this hint: the
+            groups drive SOURCES, not video sites — those go through the
+            manifest's fixed content-script matches. */}
+        <InfoHint text={`${t('perm.intro')} ${t('vipx.permDiffVip')} ${t('vipx.permDiffSites')}`} maxWidth={260} />
         <span className="ml-auto" />
         {showGrantAll && missing.length > 0 && (
           <Button

@@ -147,7 +147,7 @@ export function StudyBar(props: StudyBarProps) {
       <button
         type="button"
         {...replay}
-        title={`${withCombo(t('shortcut.replay'), combo('replay'))}\n${t('player.holdSlower')}`}
+        title={`${withCombo(t('shortcut.replay'), combo('replay'))}\n${withCombo(t('player.holdSlower'), combo('replaySlow'))}`}
         aria-label={t('shortcut.replay')}
         className={NAV}
       >

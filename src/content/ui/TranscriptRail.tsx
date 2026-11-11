@@ -673,6 +673,7 @@ export function TranscriptRail(props: TranscriptRailProps) {
                 saveWord={oneNewWord.get(index)}
                 onSaveWord={onSaveWord}
                 replayCombo={combo('replay')}
+                replaySlowCombo={combo('replaySlow')}
               />
             ))}
             {!follow && !searchHits && (
@@ -770,6 +771,8 @@ interface CueRowProps {
   onSaveWord?(word: string, sentence: string): void;
   /** The user's replay combo, resolved once by the parent (rows stay memoised). */
   replayCombo: string | undefined;
+  /** Same, for the slow replay the hold triggers. */
+  replaySlowCombo: string | undefined;
 }
 
 /**
@@ -791,7 +794,7 @@ const CueRow = memo(function CueRow({
   statusOf, prevText, nextText, lang, uiLang, nativeLang, ai, registerRow,
   onSelect, onToggleExplain, onCloseExplain, onRevealExplain, onReplay, onReplaySlow,
   nativeText, nativeHits, nativeHidden, nativeBlurred, saveWord, onSaveWord,
-  replayCombo,
+  replayCombo, replaySlowCombo,
 }: CueRowProps) {
   const jump = t('rail.jumpTitle', { time: fmtTime(cue.start) });
   return (
@@ -883,7 +886,7 @@ const CueRow = memo(function CueRow({
               <Plus size={11} weight="bold" />
             </MiniButton>
           )}
-          {active && <ReplayButton onReplay={onReplay} onReplaySlow={onReplaySlow} combo={replayCombo} />}
+          {active && <ReplayButton onReplay={onReplay} onReplaySlow={onReplaySlow} combo={replayCombo} comboSlow={replaySlowCombo} />}
           {ai && (
             <MiniButton
               title={explaining ? t('explain.close') : t('explain.action')}
@@ -1049,7 +1052,7 @@ function MiniButton({
 }
 
 /** ⟲ of the active line: tap repeats the line; hold repeats it slower. */
-function ReplayButton({ onReplay, onReplaySlow, combo }: { onReplay: () => void; onReplaySlow: () => void; combo?: string }) {
+function ReplayButton({ onReplay, onReplaySlow, combo, comboSlow }: { onReplay: () => void; onReplaySlow: () => void; combo?: string; comboSlow?: string }) {
   const press = useLongPress(
     (event) => {
       event.stopPropagation();
@@ -1060,8 +1063,8 @@ function ReplayButton({ onReplay, onReplaySlow, combo }: { onReplay: () => void;
   return (
     <button
       type="button"
-      title={`${withCombo(t('shortcut.replay'), combo)}\n${t('player.holdSlower')}`}
-      aria-label={t('shortcut.replay')}
+      title={`${withCombo(t('shortcut.replay'), combo)}\n${withCombo(t('player.holdSlower'), comboSlow)}`}
+      aria-label={withCombo(t('shortcut.replay'), combo)}
       {...press}
       className="w-6 h-6 rounded-full flex items-center justify-center kvl-press text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-900/[0.06] dark:hover:bg-white/10"
     >

@@ -240,8 +240,15 @@ describe('TranscriptRail', () => {
   it('carries the shortcut combos in the tooltips', () => {
     const { container } = render(<TranscriptRail {...props()} />);
     expect(container.querySelector('[title*="Alt+R"]')).toBeTruthy();
+    expect(container.querySelector('[title*="Alt+Shift+R"]')).toBeTruthy(); // hold = slow replay
     expect(container.querySelector('[title*="Alt+Q"]')).toBeTruthy();
     expect(container.querySelector('[title*="Alt+L"]')).toBeTruthy();
+  });
+
+  it('names the user combo in the «Repetir frase» accessible name', () => {
+    render(<TranscriptRail {...props()} />);
+    const replay = screen.getByLabelText(/Repetir frase \(Alt\+R\)/);
+    expect(replay.getAttribute('title')).toContain('Alt+Shift+R');
   });
 
   it('hands focus to the panel when it is docked, and toggles it otherwise', () => {
