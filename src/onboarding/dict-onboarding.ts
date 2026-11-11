@@ -58,7 +58,7 @@ export const CURATED_DICT_PACKS: OnboardingDictPack[] = [
     size: '≈1.5 MB',
     defaultSelected: true,
     tier: 'core',
-    benefit: t('dictob.essential'),
+    benefit: t('onb.essential'),
   },
   {
     url: `${PACKS_BASE_URL}/kty-en-ipa.zip`,
@@ -67,7 +67,7 @@ export const CURATED_DICT_PACKS: OnboardingDictPack[] = [
     size: '≈5 MB',
     defaultSelected: true,
     tier: 'recommended',
-    benefit: t('dictob.pronBenefit'),
+    benefit: t('dictob.enIpaBenefit'),
   },
   {
     url: `${PACKS_BASE_URL}/kty-en-en.zip`,
@@ -76,9 +76,9 @@ export const CURATED_DICT_PACKS: OnboardingDictPack[] = [
     size: '≈127 MB',
     defaultSelected: false,
     tier: 'premium',
-    benefit: t('dictob.advancedImmersion'),
+    benefit: t('dictob.enEnBenefit'),
     disabledInOnboarding: true,
-    disabledReason: t('dictob.tooLarge', { path: `${t('nav.settings')} → ${t('set.sectionOfflineDicts')}` }),
+    disabledReason: t('dictob.enEnDisabled'),
   },
 ];
 

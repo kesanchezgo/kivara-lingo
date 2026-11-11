@@ -322,6 +322,94 @@ describe('DictPacksSection import route (#32)', { timeout: 30_000 }, () => {
   });
 });
 
+describe('DictPacksSection view parity', { timeout: 30_000 }, () => {
+  it('labels the catalogue tiers through the dictionary strings', async () => {
+    installChrome(makeWorker());
+    await mountPanel();
+
+    expect(screen.getAllByText('Esencial').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Recomendado').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Avanzado').length).toBeGreaterThan(0);
+  });
+
+  it('renders the four coverage buckets and the local share', async () => {
+    const worker = installChrome(makeWorker());
+    worker.stats.set('bundle', { packId: 'bundle', hits: 3, lastUsedAt: 1, createdAt: 1 });
+    worker.stats.set('real-pack', { packId: 'real-pack', hits: 5, lastUsedAt: 1, createdAt: 1 });
+    worker.stats.set('remote', { packId: 'remote', hits: 1, lastUsedAt: 1, createdAt: 1 });
+    worker.stats.set('miss', { packId: 'miss', hits: 1, lastUsedAt: 1, createdAt: 1 });
+    await mountPanel();
+    await openCoverage();
+
+    expect(screen.getAllByText('Incluido').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Instalados').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Remoto').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Miss').length).toBeGreaterThan(0);
+    // bundle 3 + pack 5 of 10 total → 80% resolved without the network. Wait
+    // for the worker's rows before reading the derived share.
+    await waitFor(() => expect(screen.getAllByText('10 lookups').length).toBeGreaterThan(0));
+    expect(screen.getAllByText('80% local').length).toBeGreaterThan(0);
+  });
+
+  it('reports the counters cleared notice after a reset', async () => {
+    const worker = installChrome(makeWorker());
+    worker.stats.set('bundle', { packId: 'bundle', hits: 3, lastUsedAt: 1, createdAt: 1 });
+    await mountPanel();
+    await openCoverage();
+    await waitFor(() => expect(screen.getAllByText(/3 lookups/i).length).toBeGreaterThan(0));
+
+    fireEvent.click(screen.getByRole('button', { name: /^Reiniciar$/i }));
+
+    await waitFor(() => expect(screen.getByText('Contadores borrados.')).not.toBeNull());
+    expect(worker.stats.size).toBe(0);
+  });
+
+  it('enables and disables a pack through the worker', async () => {
+    const worker = installChrome(makeWorker());
+    worker.packs.set('p1', {
+      id: 'p1', title: 'Pack Uno', revision: '1', format: 3,
+      sourceLang: 'en', targetLang: 'es', termCount: 2, enabled: true, createdAt: 1,
+    });
+    worker.packs.set('p2', {
+      id: 'p2', title: 'Pack Dos', revision: '2', format: 3,
+      sourceLang: 'en', targetLang: 'es', termCount: 4, enabled: false, createdAt: 1,
+    });
+    await mountPanel();
+
+    await waitFor(() => expect(screen.getByText('Pack Uno')).not.toBeNull());
+    // The disabled pack carries the translated badge and offers "Habilitar".
+    expect(screen.getByText('desactivado')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Habilitar' })).not.toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Deshabilitar' }));
+
+    await waitFor(() =>
+      expect(worker.messages.find((m) => m.type === 'SET_PACK_ENABLED')).toMatchObject({
+        id: 'p1',
+        enabled: false,
+      }),
+    );
+  });
+
+  it('reports a CSV file that cannot be read', async () => {
+    installChrome(makeWorker());
+    await mountPanel();
+
+    const input = document.querySelector<HTMLInputElement>(
+      'input[type="file"][accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain"]',
+    );
+    if (!input) throw new Error('CSV file picker not found');
+    const bad = new File([''], 'list.csv', { type: 'text/csv' });
+    Object.defineProperty(bad, 'text', { value: () => Promise.reject(new Error('boom')) });
+    Object.defineProperty(input, 'files', { configurable: true, value: [bad] });
+    fireEvent.change(input);
+
+    await waitFor(() =>
+      expect(screen.getByText('No se pudo leer el archivo: boom')).not.toBeNull(),
+    );
+  });
+});
+
 describe('DictPacksSection coverage route (#32)', { timeout: 30_000 }, () => {
   it('reads the coverage rows from the worker, not the page database', async () => {
     const worker = installChrome(makeWorker());
@@ -331,7 +419,7 @@ describe('DictPacksSection coverage route (#32)', { timeout: 30_000 }, () => {
     await openCoverage();
 
     // The GET went out and its rows drove the widget ("3 lookups").
-    await waitFor(() => expect(screen.getAllByText(/3 consultas/i).length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText(/3 lookups/i).length).toBeGreaterThan(0));
     expect(statsMessages(worker).map((m) => m.type)).toContain('GET_PACK_STATS');
   });
 
@@ -340,7 +428,7 @@ describe('DictPacksSection coverage route (#32)', { timeout: 30_000 }, () => {
     worker.stats.set('bundle', { packId: 'bundle', hits: 3, lastUsedAt: 1, createdAt: 1 });
     await mountPanel();
     await openCoverage();
-    await waitFor(() => expect(screen.getAllByText(/3 consultas/i).length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText(/3 lookups/i).length).toBeGreaterThan(0));
 
     fireEvent.click(screen.getByRole('button', { name: /^Reiniciar$/i }));
 
@@ -405,7 +493,7 @@ describe('DictPacksSection coverage route (#32)', { timeout: 30_000 }, () => {
     vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL });
     await mountPanel();
     await openCoverage();
-    await waitFor(() => expect(screen.getAllByText(/2 consultas/i).length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText(/2 lookups/i).length).toBeGreaterThan(0));
 
     fireEvent.click(screen.getByRole('button', { name: /^Exportar$/i }));
 

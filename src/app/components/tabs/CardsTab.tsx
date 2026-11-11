@@ -1,23 +1,33 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { t } from '../../../shared/i18n';
+import { richText } from '../../../shared/i18n/rich';
 import { sendMessage } from 'webext-bridge/content-script';
-import type { AnkiMapping, FieldSource } from '../../../shared/types';
 import type {
+  AnkiMapping,
+  FieldSource,
   AnkiListsResponse,
   AnkiFieldsResponse,
   AnkiPingResponse,
   AnkiPingErrorCode,
 } from '../../../shared/types';
 import {
-  RefreshCw, RotateCcw, Volume2, Camera, Wand2, Layers,
-  ChevronDown, Loader2, AlertCircle, Cpu, Database, FileText, Plug,
+  RefreshCw, RotateCcw, Volume2, Camera, Mic, Wand2, Layers,
+  ChevronDown, Loader2, AlertCircle, Plug,
 } from '../../../ui/icons';
 import { detectFieldSource } from '../../../shared/anki-field-detect';
 import { SecretKeyInput } from '../SecretKeyInput';
 import { InfoHint } from '../InfoHint';
 import { useKivaraStore } from '../../../shared/use-kivara-store';
+import { aiConfigured } from '../../../shared/ai-configured';
+import { deckFor, withDeck } from '../../../shared/study/decks';
+import { getGrantedOrigins, subscribeHostPermissions } from '../../../shared/host-permissions-store';
 import { CardFace, type CardPreviewData } from './CardPreview';
 import { RecentCards } from './RecentCards';
+import {
+  Button, Callout, Collapse, Group, ui, SegmentedControl, IconButton, IconTile, Badge, FOCUS,
+} from '../../../ui/primitives/settings-primitives';
+import { Select, inputCls } from '../../../ui/primitives/controls';
+import { resolveWordAudio, type WordAudioStatus } from './word-audio-status';
 
 interface CardsTabProps {
   mapping: AnkiMapping;
@@ -25,6 +35,11 @@ interface CardsTabProps {
    * latest mapping instead of a possibly stale closure copy. */
   setMapping: (mapping: AnkiMapping | ((prev: AnkiMapping) => AnkiMapping)) => void;
   mockData: CardPreviewData;
+  /** Language of the playing subtitles, so its deck row gets the
+   * "This episode" badge. Falls back to the active language. */
+  episodeLang?: string;
+  /** Opens the Vocabulary tab — target of the "see your level" link. */
+  onOpenVocab?: () => void;
 }
 
 const FALLBACK_DECKS = [t('cards.wordField'), 'Default'];
@@ -37,47 +52,66 @@ const FALLBACK_FIELDS: Record<string, string[]> = {
 // Use the shared detector — no duplicate regex here.
 const detectSource = detectFieldSource;
 
-const SOURCE_META: Record<FieldSource, { label: string; color: string; description: string }> = {
-  selection:        { label: 'cards.wordSelection',        color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',     description: 'cards.srcDescSelectedWord' },
-  cue:              { label: 'cards.srcLabelCue',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: 'cards.srcDescActiveCue' },
-  context:          { label: 'cards.srcLabelContext',       color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: 'cards.srcDescContext' },
-  cloze:            { label: 'cards.srcLabelCloze', color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',              description: 'cards.srcDescCloze' },
-  source:           { label: 'cards.srcLabelSource', color: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300',           description: 'cards.srcDescSource' },
-  phonetic:         { label: 'cards.phonetic',       color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',     description: 'cards.srcDescDictIpa' },
-  translation:      { label: 'cards.translation',     color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: 'cards.nativeTranslation' },
-  bilingual:        { label: 'cards.srcLabelBilingual',       color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: 'cards.bilingualGloss' },
-  monolingual:      { label: 'cards.srcLabelMonolingual',     color: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300',     description: 'cards.definition' },
-  examples:         { label: 'cards.examples',       color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300',     description: 'cards.srcDescDictExamples' },
-  frame:            { label: 'cards.srcLabelPicture',        color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300',             description: 'cards.srcDescCueScreenshot' },
-  'sentence-audio': { label: 'cards.srcLabelSentenceAudio', color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',             description: 'cards.tabAudio' },
-  'word-audio':     { label: 'cards.srcLabelWordAudio',     color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300',             description: 'cards.srcDescWordTts' },
-  'ai-definition':  { label: 'cards.aiDefinitionLabel',    color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'cards.aiDefinitionHint' },
-  'ai-synonyms':    { label: 'cards.aiSynonymsLabel',     color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'cards.aiSynonymsHint' },
-  'ai-collocations':{ label: 'cards.aiCollocationsLabel',  color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'cards.srcDescAiCollocations' },
-  'ai-nuance':      { label: 'cards.aiNuanceLabel',        color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'cards.nuancedTranslation' },
-  'ai-register':    { label: 'cards.aiRegisterLabel',     color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'cards.srcDescAiRegister' },
-  // Multi-source enrichment chain (Standard + VIP).
-  synonyms:         { label: 'cards.synonyms',           color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: 'cards.synonymsHint' },
-  antonyms:         { label: 'cards.antonyms',           color: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',             description: 'cards.antonymsHint' },
-  collocations:     { label: 'cards.srcLabelCombos',       color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',     description: 'cards.srcDescCollocations' },
-  frequency:        { label: 'cards.srcLabelFrequency',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: 'cards.srcDescFreqBands' },
-  etymology:        { label: 'cards.etymology',          color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: 'cards.etymologyHint' },
-  mnemonic:         { label: 'cards.mnemonic',        color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',     description: 'cards.mnemonicHint' },
-  image:             { label: 'cards.srcLabelImage',             color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300',             description: 'cards.srcDescImage' },
-  'video-link':     { label: 'cards.srcLabelVideoLink',          color: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',                 description: 'cards.srcDescYouglish' },
-  // Deprecated / backward-compatible labels.
-  dictionary:       { label: 'cards.srcLabelDictionary',    color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: 'cards.srcDescLegacyCatchall' },
-  translate:        { label: 'cards.srcLabelTranslate',       color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: 'cards.srcDescLegacyChain' },
-  tabCapture:       { label: 'cards.srcLabelTabCapture',     color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',             description: 'cards.legacyTabAudio' },
-  tts:              { label: 'cards.srcLabelTts',            color: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300',                description: 'cards.srcDescTts' },
-  manual:           { label: 'cards.srcLabelManual',         color: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',                description: 'cards.writeItYourself' },
+/** Copy shown next to a ping failure. The code is the production enum; the
+ * labels resolve through `t()` so nothing user-visible is a literal. */
+const PING_ERROR_LABEL: Record<AnkiPingErrorCode, string> = {
+  NETWORK:  t('cards.ankiDown'),
+  CORS:     t('cards.ankiCors'),
+  TIMEOUT:  t('cards.ankiTimeout'),
+  HTTP:     t('cards.ankiHttp'),
+  ANKI:     t('cards.ankiInternal'),
+  API_KEY:  t('cards.ankiApiKeyWrong'),
+  LOOPBACK_REFUSED: t('cards.ankiLoopbackRefused'),
 };
 
-/**
- * Source picker grouped per the design mock — Nativas / IA / Otros — so a
- * note model with 30+ fields stays scannable. Order matches the mock and
- * SOURCE_META entries above.
- */
+/** Extra hint under the error: "open Anki" when it does not answer, the
+ * "free add-on" advice when the add-on is the problem. */
+const PING_ERROR_HINT: Partial<Record<AnkiPingErrorCode, string>> = {
+  NETWORK: 'cards.ankiNeedOpenHint',
+  TIMEOUT: 'cards.ankiNeedOpenHint',
+  ANKI:    'cards.ankiNeedOpenHint',
+  CORS:    'cards.ankiAddonFreeHint',
+  HTTP:    'cards.ankiAddonFreeHint',
+};
+
+/** Label and description per source, as i18n keys resolved at render. The
+ * colour family comes from `familyDot()`. */
+const SOURCE_META: Record<FieldSource, { label: string; description: string }> = {
+  selection:        { label: 'cards.wordSelection',        description: 'cards.srcDescSelectedWord' },
+  cue:              { label: 'cards.srcLabelCue',          description: 'cards.srcDescActiveCue' },
+  context:          { label: 'cards.srcLabelContext',      description: 'cards.srcDescContext' },
+  cloze:            { label: 'cards.srcLabelCloze',        description: 'cards.srcDescCloze' },
+  source:           { label: 'cards.srcLabelSource',       description: 'cards.srcDescSource' },
+  phonetic:         { label: 'cards.phonetic',             description: 'cards.srcDescDictIpa' },
+  translation:      { label: 'cards.translation',          description: 'cards.nativeTranslation' },
+  bilingual:        { label: 'cards.srcLabelBilingual',    description: 'cards.bilingualGloss' },
+  monolingual:      { label: 'cards.srcLabelMonolingual',  description: 'cards.definition' },
+  examples:         { label: 'cards.examples',             description: 'cards.srcDescDictExamples' },
+  frame:            { label: 'cards.srcLabelPicture',      description: 'cards.srcDescCueScreenshot' },
+  'sentence-audio': { label: 'cards.srcLabelSentenceAudio', description: 'cards.tabAudio' },
+  'word-audio':     { label: 'cards.srcLabelWordAudio',    description: 'cards.srcDescWordTts' },
+  'ai-definition':  { label: 'cards.aiDefinitionLabel',    description: 'cards.aiDefinitionHint' },
+  'ai-synonyms':    { label: 'cards.aiSynonymsLabel',      description: 'cards.aiSynonymsHint' },
+  'ai-collocations':{ label: 'cards.aiCollocationsLabel',  description: 'cards.srcDescAiCollocations' },
+  'ai-nuance':      { label: 'cards.aiNuanceLabel',        description: 'cards.nuancedTranslation' },
+  'ai-register':    { label: 'cards.aiRegisterLabel',      description: 'cards.srcDescAiRegister' },
+  synonyms:         { label: 'cards.synonyms',             description: 'cards.synonymsHint' },
+  antonyms:         { label: 'cards.antonyms',             description: 'cards.antonymsHint' },
+  collocations:     { label: 'cards.srcLabelCombos',       description: 'cards.srcDescCollocations' },
+  frequency:        { label: 'cards.srcLabelFrequency',    description: 'cards.srcDescFreqBands' },
+  etymology:        { label: 'cards.etymology',            description: 'cards.etymologyHint' },
+  mnemonic:         { label: 'cards.mnemonic',             description: 'cards.mnemonicHint' },
+  image:            { label: 'cards.srcLabelImage',        description: 'cards.srcDescImage' },
+  'video-link':     { label: 'cards.srcLabelVideoLink',    description: 'cards.srcDescYouglish' },
+  dictionary:       { label: 'cards.srcLabelDictionary',   description: 'cards.srcDescLegacyCatchall' },
+  translate:        { label: 'cards.srcLabelTranslate',    description: 'cards.srcDescLegacyChain' },
+  tabCapture:       { label: 'cards.srcLabelTabCapture',   description: 'cards.legacyTabAudio' },
+  tts:              { label: 'cards.srcLabelTts',          description: 'cards.srcDescTts' },
+  manual:           { label: 'cards.srcLabelManual',       description: 'cards.writeItYourself' },
+};
+
+/** Source picker grouped per the mock — Natives / Multi-source / AI / Other —
+ * so a note model with 30+ fields stays scannable. */
 const SOURCE_GROUPS: { label: string; options: FieldSource[] }[] = [
   {
     label: 'cards.groupNative',
@@ -102,44 +136,53 @@ const SOURCE_GROUPS: { label: string; options: FieldSource[] }[] = [
 
 type ConnectionState = 'idle' | 'connecting' | 'connected' | 'error';
 
-/**
- * Translate the production-side `AnkiPingErrorCode` into the human-friendly
- * copy the mock surfaces inline. Keeps a single source of truth for error
- * codes (the production enum) without forcing the UI to hand-roll every
- * string.
- */
-const PING_ERROR_LABEL: Record<AnkiPingErrorCode, string> = {
-  NETWORK:  t('cards.ankiDown'),
-  CORS:     t('cards.ankiCors'),
-  TIMEOUT:  t('cards.ankiTimeout'),
-  HTTP:     t('cards.ankiHttp'),
-  ANKI:     t('cards.ankiInternal'),
-  API_KEY:  t('cards.ankiApiKeyWrong'),
-  LOOPBACK_REFUSED: t('cards.ankiLoopbackRefused'),
-};
+/** Colour dot of a source family (same four families as SOURCE_GROUPS). */
+function familyDot(src: FieldSource): string {
+  if (src === 'manual' || !SOURCE_GROUPS.some((g) => g.options.includes(src))) return 'bg-zinc-300 dark:bg-zinc-600';
+  if (SOURCE_GROUPS[1].options.includes(src)) return 'bg-emerald-500';
+  if (SOURCE_GROUPS[2].options.includes(src)) return 'bg-fuchsia-500';
+  return 'bg-indigo-500';
+}
 
-export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
+const NO_ORIGINS: string[] = [];
+
+export function CardsTab({ mapping, setMapping, mockData, episodeLang, onOpenVocab }: CardsTabProps) {
   const [conn, setConn] = useState<ConnectionState>('idle');
   const [pingCode, setPingCode] = useState<AnkiPingErrorCode | null>(null);
   const [pingError, setPingError] = useState<string | null>(null);
   const [fieldFilter, setFieldFilter] = useState('');
   const [onlyUnmapped, setOnlyUnmapped] = useState(false);
   const [previewSide, setPreviewSide] = useState<'front' | 'back'>('front');
+  // The docked preview is ~400px tall: collapsed by default to leave room for
+  // the mapping and Recent cards (what gets consulted daily).
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [setupOpen, setSetupOpen] = useState(false);
   const [decks, setDecks] = useState<string[]>([]);
   const [models, setModels] = useState<string[]>([]);
   const [fieldsByModel, setFieldsByModel] = useState<Record<string, string[]>>({});
 
-  // One deck per language (docs/REDESIGN-V2.md H9): `decks[lang]` is the
-  // source of truth from v3 on; `deckName` is the read fallback for profiles
-  // that predate it, and is still kept in sync because the create-card
-  // pipeline reads it until F4.
-  const sourceLang = useKivaraStore((s) => s.translate.sourceLang) || 'en';
-  const aiOn = useKivaraStore((s) => s.ai.provider !== 'disabled' && s.ai.apiKey.trim() !== '');
-  const activeDeck = mapping.decks?.[sourceLang] ?? mapping.deckName;
-  const setDeck = (deck: string) =>
-    setMapping({ ...mapping, deckName: deck, decks: { ...(mapping.decks ?? {}), [sourceLang]: deck } });
+  // One deck per language. The active learning language's deck is shown, plus
+  // the deck of the language actually on screen when it differs: cards go to
+  // the deck of their subtitles' language, so that is the one to expose.
+  const activeLang = useKivaraStore((s) => s.translate.sourceLang) || 'en';
+  const episode = episodeLang ?? activeLang;
+  const deckLangs = activeLang === episode ? [activeLang] : [activeLang, episode];
+
+  // Preview quality indicators read the live settings.
+  const ai = useKivaraStore((s) => s.ai);
+  const vip = useKivaraStore((s) => s.vip);
+  const tts = useKivaraStore((s) => s.tts);
+  const endDetect = useKivaraStore((s) => s.capture.endDetect);
+  const aiOn = aiConfigured(ai);
+  const granted = useSyncExternalStore(subscribeHostPermissions, getGrantedOrigins, () => NO_ORIGINS);
+  const pron = useMemo<WordAudioStatus>(
+    () => resolveWordAudio(mockData.word, { vip, tts, ai }),
+    // The granted list guards the subscription: `hasOrigin()` reads the same
+    // store, so a grant/revoke must re-run the resolver.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mockData.word, vip, tts, ai, granted],
+  );
 
   const ankiFields = useMemo(
     () => fieldsByModel[mapping.modelName] ?? FALLBACK_FIELDS[mapping.modelName] ?? [],
@@ -147,10 +190,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
   );
 
   // Sequence guard + unmount guard for the whole probe: `refreshAnki` runs on
-  // mount AND every 5 s while disconnected, so two passes are always in
-  // flight (mount, the URL just landed; retry, a moment later). The slower
-  // reply used to overwrite the state of the faster one, and a reply landing
-  // after the tab went away set state on an unmounted component.
+  // mount AND every 5 s while disconnected, so two passes can be in flight.
   const probesRef = useRef(0);
   const mountedRef = useRef(true);
   const markSeq = () => ++probesRef.current;
@@ -201,7 +241,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
     } catch (err) {
       if (!isCurrent(seq)) return;
       setConn('error');
-      setPingError(err instanceof Error ? err.message : 'unknown error');
+      setPingError(err instanceof Error ? err.message : null);
     }
   }
 
@@ -217,8 +257,8 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-retry every 5s while we're disconnected so the UI recovers as soon
-  // as the user opens Anki — no need to switch tabs to hit "Probar".
+  // Auto-retry every 5s while disconnected so the UI recovers as soon as the
+  // user opens Anki — no need to switch tabs to hit "Probar".
   useEffect(() => {
     if (conn !== 'error') return;
     const interval = window.setInterval(() => {
@@ -230,9 +270,8 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
 
   useEffect(() => {
     if (conn !== 'connected' || ankiFields.length === 0) return;
-    // Functional update: the old form spread `mapping` captured by the effect
-    // closure, so a source the user changed between the reconnect and this run
-    // was silently reverted by the stale snapshot.
+    // Functional update: a source the user changed between the reconnect and
+    // this run must not be reverted by a stale closure snapshot.
     setMapping((prev) => {
       const next: Record<string, FieldSource> = {};
       let changed = false;
@@ -256,7 +295,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
   };
 
   const allAuto = ankiFields.length > 0 && ankiFields.every((f) => mapping.fieldSources[f] === detectSource(f));
-  const mappedCount = ankiFields.filter((f) => mapping.fieldSources[f] && mapping.fieldSources[f] !== 'manual').length;
+  const mappedCount = ankiFields.filter((f) => (mapping.fieldSources[f] ?? detectSource(f)) !== 'manual').length;
 
   const visibleFields = useMemo(() => {
     const q = fieldFilter.trim().toLowerCase();
@@ -273,67 +312,70 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
   const connError = conn === 'error'
     ? (pingCode ? PING_ERROR_LABEL[pingCode] : pingError ?? t('cards.ankiUnknown'))
     : null;
+  const pingHintKey = pingCode ? (PING_ERROR_HINT[pingCode] ?? 'cards.ankiNeedOpenHint') : 'cards.ankiNeedOpenHint';
+
+  const deckList = decks.length ? decks : FALLBACK_DECKS;
+  const deckOptionsFor = (d: string) => (d && !deckList.includes(d) ? [d, ...deckList] : deckList);
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-      {/* `pb-6` keeps the last mapping row readable above the docked
-          preview (which has its own `border-t`). */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 pb-6 space-y-3">
+    <div className="flex flex-col h-full min-h-0 text-zinc-900 dark:text-zinc-100">
+      <div className={`flex-1 min-h-0 overflow-y-auto kvl-scroll ${ui.body}`}>
 
-        {/* Conexión */}
+        {/* Recientes + retry queue */}
+        <RecentCards />
+
+        {/* Connection */}
         <Section
-          icon={<Plug size={10} />}
+          icon={<Plug size={13} />}
           title={t('cards.connection')}
-          hint={
-            <>
-              {t('cards.ankiSendVia')}<strong>AnkiConnect</strong>{t('cards.ankiAddonFree')}<span className="font-mono">http://127.0.0.1:8765</span>{t('cards.ankiNeedOpen')}<span className="font-mono">2055492159</span>{t('cards.ankiApiKeyPre')}<em>API key</em> {t('cards.ankiApiKeyPost')}</>
-          }
+          hint={<>{richText(t('cards.connHint'), {
+            addon: <strong>AnkiConnect</strong>,
+            url: <span className="font-mono">http://127.0.0.1:8765</span>,
+            code: <span className="font-mono">2055492159</span>,
+          })}</>}
           collapsible
           open={setupOpen}
           onToggle={() => setSetupOpen(!setupOpen)}
           headerRight={<ConnPill state={conn} />}
         >
           {conn !== 'connected' && (
-            <div className={`rounded-md border px-2 py-1.5 text-[10.5px] leading-snug flex items-start gap-1.5 ${
-              conn === 'error'
-                ? 'border-rose-200/70 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300'
-                : conn === 'connecting'
-                  ? 'border-amber-200/70 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300'
-                  : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/30 text-zinc-600 dark:text-zinc-400'
-            }`}>
-              <AlertCircle size={11} className="shrink-0 mt-px" />
-              <span className="flex-1 min-w-0">
-                {conn === 'error' && <>{connError}</>}
-                {conn === 'connecting' && <>{t('cards.testChecking')}</>}
-                {conn === 'idle' && <>{t('cards.testIdlePre')} <strong>{t('cards.testIdleAction')}</strong> {t('cards.testConnectPost')}</>}
-              </span>
-            </div>
+            <Callout
+              tone={conn === 'error' ? 'danger' : conn === 'connecting' ? 'warning' : 'neutral'}
+              icon={conn === 'connecting' ? <Loader2 size={14} className="animate-spin" /> : <AlertCircle size={14} />}
+              role={conn === 'error' ? 'alert' : 'status'}
+            >
+              {conn === 'error' && (
+                <span className="inline-flex items-center gap-1">
+                  {connError}
+                  <InfoHint text={t(pingHintKey)} />
+                </span>
+              )}
+              {conn === 'connecting' && <>{t('cards.testChecking')}</>}
+              {conn === 'idle' && <>{richText(t('cards.testIdle'), { action: <strong>{t('cards.testIdleAction')}</strong> })}</>}
+            </Callout>
           )}
 
-          <Row label={<span className="flex items-center gap-1"><Cpu size={10} className="text-zinc-400" />{t('cards.endpoint')}</span>}>
-            <div className="flex gap-1.5">
+          <Row label={t('cards.endpoint')}>
+            <div className="flex gap-2">
               <input
                 value={mapping.ankiUrl}
                 onChange={(e) => setMapping({ ...mapping, ankiUrl: e.target.value })}
-                className="sl-input sl-mono flex-1 min-w-0"
+                className={`${inputCls} font-mono !text-[12px] flex-1 min-w-0`}
                 placeholder="http://127.0.0.1:8765"
+                aria-label={t('cards.endpoint')}
               />
-              <button
+              <Button
+                variant={conn === 'connected' ? 'secondary' : 'primary'}
                 onClick={() => void refreshAnki()}
                 disabled={conn === 'connecting'}
-                className={`text-[10px] font-semibold px-2 py-1 rounded inline-flex items-center gap-1 transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
-                  conn === 'connected'
-                    ? 'border border-emerald-300 dark:border-emerald-500/40 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/20'
-                    : 'bg-indigo-600 text-white hover:bg-indigo-500'
-                }`}
+                icon={conn === 'connecting' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
               >
-                {conn === 'connecting' ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
                 {conn === 'connected' ? t('cards.reconnect') : t('cards.test')}
-              </button>
+              </Button>
             </div>
           </Row>
 
-          <Row label={<span className="flex items-center gap-1"><Plug size={10} className="text-zinc-400" />{t('cards.apiKey')}</span>}>
+          <Row label={t('cards.apiKey')}>
             <SecretKeyInput
               stored={mapping.apiKey ?? ''}
               onChange={(v) => setMapping({ ...mapping, apiKey: v })}
@@ -343,156 +385,187 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
             />
           </Row>
 
-          <Row label={<span className="flex items-center gap-1"><Database size={10} className="text-zinc-400" />{t("cards.deck")}</span>}>
-            <select
-              value={activeDeck}
-              onChange={(e) => setDeck(e.target.value)}
-              disabled={conn !== 'connected'}
-              className="sl-select"
-              aria-label={`${t('cards.deck')} · ${t(`lang.${sourceLang}`)}`}
+          {/* One deck per language: target of new cards, not your vocabulary.
+              Profile and level belong to the language, not the deck. */}
+          {deckLangs.map((l, i) => {
+            const d = deckFor(mapping, l);
+            const label = t('cards.deckFor', { lang: t(`lang.${l}`) });
+            return (
+              <Row
+                key={l}
+                label={
+                  <span className="inline-flex items-center gap-1.5">
+                    {label}
+                    {i === 0 && <InfoHint text={t('cards.deckLangInfo')} />}
+                    {l === episode && l !== activeLang && <Badge tone="indigo">{t('cards.deckThisEpisode')}</Badge>}
+                  </span>
+                }
+              >
+                <Select
+                  value={d}
+                  onChange={(e) => setMapping(withDeck(mapping, l, e.target.value))}
+                  disabled={conn !== 'connected'}
+                  className="w-full"
+                  aria-label={label}
+                >
+                  {/* Offline: show the saved deck (disabled) instead of a blank
+                      trigger. A deck that does not exist yet (another
+                      language's default) is listed as new and is created with
+                      the first card. */}
+                  {conn === 'connected'
+                    ? deckOptionsFor(d).map((o) => <option key={o} value={o}>{deckList.includes(o) ? o : t('cards.deckNew', { deck: o })}</option>)
+                    : <option value={d}>{d || t('cards.offline')}</option>}
+                </Select>
+              </Row>
+            );
+          })}
+          <p className="text-[12px] leading-4 text-zinc-500 dark:text-zinc-400" data-deck-hint>
+            {deckLangs.length > 1 ? t('cards.deckEpisodeHint', { deck: deckFor(mapping, episode) }) : t('cards.deckLangHint')}{' '}
+            <button
+              type="button"
+              data-open-vocab
+              onClick={() => onOpenVocab?.()}
+              className={`inline text-[12px] leading-4 font-medium text-indigo-600 dark:text-indigo-400 hover:underline underline-offset-2 rounded-sm ${FOCUS}`}
             >
-              {conn === 'connected'
-                ? (decks.length ? decks : FALLBACK_DECKS).map((d) => <option key={d}>{d}</option>)
-                : <option>{t('cards.offline')}</option>}
-            </select>
-          </Row>
+              {t('cards.toVocab')} ›
+            </button>
+          </p>
 
-          <Row label={<span className="flex items-center gap-1"><FileText size={10} className="text-zinc-400" />{t('cards.noteType')}</span>}>
-            <select
+          <Row label={t('cards.noteType')}>
+            <Select
               value={mapping.modelName}
               onChange={(e) => setMapping({ ...mapping, modelName: e.target.value, fieldSources: {} })}
               disabled={conn !== 'connected'}
-              className="sl-select"
+              className="w-full"
             >
               {conn === 'connected'
                 ? (models.length ? models : FALLBACK_MODELS).map((n) => <option key={n}>{n}</option>)
-                : <option>{t('cards.offline')}</option>}
-            </select>
+                : <option value={mapping.modelName}>{mapping.modelName || t('cards.offline')}</option>}
+            </Select>
           </Row>
         </Section>
 
-        {/* Mapeo de campos */}
+        {/* Field mapping */}
         <Section
-          icon={<Layers size={10} />}
-          title={<>{t('cards.mappingTitle')} · <span className="font-mono normal-case">{mapping.modelName}</span></>}
-          hint={
-            <>
-              {t('cards.fieldEachStart')}<em>note type</em> {t('cards.fieldFillWith')}<strong>{t('cards.fieldSource')}</strong> {t('cards.fieldAutoDetect')}<span className="font-mono">word</span> → {t('cards.fieldSourceWord')}, <span className="font-mono">sentence audio</span> {t('cards.fieldNoMatch')}<em>Manual</em> {t('cards.fieldAssignSelf')}</>
-          }
-          headerRight={
-            <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-400">
+          icon={<Layers size={13} />}
+          title={<>{t('cards.mappingTitle')} · <span className="font-normal text-zinc-400 dark:text-zinc-500">{mapping.modelName}</span></>}
+          hint={t('cards.mapHint')}
+          // The count only with the fields in view (connected): before
+          // connecting there is nothing to count.
+          headerRight={conn === 'connected' && ankiFields.length > 0 ? (
+            <span className="text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
               {mappedCount}/{ankiFields.length}
             </span>
-          }
+          ) : undefined}
         >
           {conn === 'connected' && ankiFields.length > 0 && !allAuto && (
-            <button
-              onClick={applyAutoPreset}
-              className="w-full flex items-center gap-1.5 text-[11px] font-medium text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/15 border border-indigo-200 dark:border-indigo-500/25 rounded-md px-2 py-1.5 transition-colors"
-            >
-              <Wand2 size={11} /> {t('cards.restoreAutoMap')}
-            </button>
+            <div>
+              <Button size="sm" variant="soft" onClick={applyAutoPreset} icon={<Wand2 size={14} />}>
+                {t('cards.restoreAutoMap')}
+              </Button>
+            </div>
           )}
 
           {conn === 'connected' && ankiFields.length > 0 && allAuto && (
-            <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 dark:text-zinc-400 px-1">
-              <Wand2 size={10} className="text-indigo-400" />
+            <div className="flex items-center gap-2 text-[12px] text-zinc-500 dark:text-zinc-400">
+              <Wand2 size={14} className="text-indigo-500 dark:text-indigo-400" />
               <span>{t('cards.autoMapActive')}</span>
             </div>
           )}
 
           {conn !== 'connected' && (
-            <EmptyState icon={<AlertCircle size={13} />} text={t('cards.connectToSee')} />
+            <EmptyState icon={<AlertCircle size={16} />} text={t('cards.connectToSee')} />
           )}
 
           {conn === 'connected' && ankiFields.length === 0 && (
-            <EmptyState icon={<AlertCircle size={13} />} text={t('cards.noFields')} />
+            <EmptyState icon={<AlertCircle size={16} />} text={t('cards.noFields')} />
           )}
 
           {conn === 'connected' && ankiFields.length > 3 && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={fieldFilter}
                 onChange={(e) => setFieldFilter(e.target.value)}
                 placeholder={t('cards.searchFieldPh')}
-                className="sl-input flex-1 min-w-0 text-[11px]"
+                aria-label={t('cards.searchFieldPh')}
+                className={`${inputCls} flex-1 min-w-0`}
                 spellCheck={false}
                 autoComplete="off"
               />
-              <button
-                type="button"
+              <Button
+                variant={onlyUnmapped ? 'soft' : 'secondary'}
                 onClick={() => setOnlyUnmapped((v) => !v)}
-                className={`shrink-0 text-[10px] font-semibold px-2 py-1 rounded border transition-colors ${
-                  onlyUnmapped
-                    ? 'border-indigo-300 dark:border-indigo-500/40 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'
-                    : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                }`}
+                aria-pressed={onlyUnmapped}
                 title={t('cards.showUnmappedTitle')}
               >
                 {t('cards.onlyUnmapped')}
-              </button>
+              </Button>
             </div>
           )}
 
           {conn === 'connected' && ankiFields.length > 0 && visibleFields.length === 0 && (
-            <EmptyState icon={<AlertCircle size={13} />} text={t('cards.noFieldMatch')} />
+            <EmptyState icon={<AlertCircle size={16} />} text={t('cards.noFieldMatch')} />
           )}
 
-          {conn === 'connected' && visibleFields.map((field, i) => {
+          {conn === 'connected' && ankiFields.length > 0 && (
+            <div className="!py-0 h-px bg-zinc-900/[0.06] dark:bg-white/[0.06] overflow-hidden" aria-hidden>
+              <div className="h-full bg-indigo-500 transition-[width] duration-300" style={{ width: `${(mappedCount / ankiFields.length) * 100}%` }} />
+            </div>
+          )}
+
+          {conn === 'connected' && visibleFields.length > 0 && (
+          <div className="!py-0 !pr-0 divide-y divide-zinc-900/[0.06] dark:divide-white/[0.06]">
+          {visibleFields.map((field, i) => {
             const src = mapping.fieldSources[field] ?? detectSource(field);
             const meta = SOURCE_META[src] ?? SOURCE_META['manual'];
             const isOpen = editingField === field;
             const auto = src === detectSource(field);
             return (
-              <div
-                key={field}
-                className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 overflow-hidden sl-animate-fade-up"
-                style={{ animationDelay: `${i * 40}ms` }}
-              >
+              <div key={field} className="sl-animate-fade-up" style={{ animationDelay: `${i * 30}ms` }}>
                 <button
+                  type="button"
+                  aria-expanded={isOpen}
                   onClick={() => setEditingField(isOpen ? null : field)}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/60 transition-colors"
+                  className="group/f w-full flex items-center gap-2.5 pr-4 min-h-[44px] py-2 outline-none focus-visible:bg-zinc-900/[0.03] dark:focus-visible:bg-white/[0.04]"
                 >
                   <span className="flex-1 min-w-0 flex items-center gap-1.5 text-left">
-                    <span className="text-[11px] font-mono font-medium text-zinc-800 dark:text-zinc-200 leading-tight truncate">
+                    <span className="text-[13px] font-medium text-zinc-800 dark:text-zinc-100 leading-[18px] truncate group-hover/f:text-zinc-950 dark:group-hover/f:text-white">
                       {field}
                     </span>
-                    {auto && <Wand2 size={8} className="text-indigo-400/70 shrink-0" />}
+                    {auto && <Wand2 size={12} className="text-zinc-400 dark:text-zinc-500 shrink-0" aria-label={t('cards.autoMapActive')} />}
                   </span>
-                  <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${meta.color}`}>
-                    {t(meta.label)}
+                  <span className={`shrink-0 max-w-[50%] flex items-center gap-1.5 text-[12px] ${src === 'manual' ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-500 dark:text-zinc-400'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${familyDot(src)}`} />
+                    <span className="truncate">{t(meta.label)}</span>
                   </span>
-                  <ChevronDown size={10} className={`text-zinc-400 transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={14} className={`text-zinc-400 dark:text-zinc-500 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
 
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateRows: isOpen ? '1fr' : '0fr',
-                    transition: 'grid-template-rows 200ms ease',
-                  }}
-                >
-                  <div className="overflow-hidden">
-                    <div className="border-t border-zinc-200/60 dark:border-zinc-800/60 p-1.5 bg-white dark:bg-zinc-900 space-y-1">
-                      <div className="text-[10px] text-zinc-500 dark:text-zinc-400 px-1 leading-snug">
+                {/* Collapse (shared primitive): when folded it stays `inert`,
+                    so Tab does not enter the hidden picker. */}
+                <Collapse open={isOpen}>
+                    <div className="pr-4 pb-4 space-y-3">
+                      <div className="text-[12px] text-zinc-500 dark:text-zinc-400 leading-[17px]">
                         {t(meta.description)}
                       </div>
-                      <div className="space-y-1.5">
+                      <div className="space-y-3">
                         {SOURCE_GROUPS.map((group) => (
-                          <div key={group.label} className="space-y-1">
-                            <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-400 px-1">
+                          <div key={group.label} className="space-y-1.5">
+                            <div className="text-[12px] font-medium text-zinc-400 dark:text-zinc-500">
                               {t(group.label)}
                             </div>
-                            <div className="flex flex-wrap gap-1">
+                            <div className="flex flex-wrap gap-1.5">
                               {group.options.map((s) => (
                                 <button
                                   key={s}
+                                  type="button"
+                                  aria-pressed={src === s}
                                   onClick={() => setSource(field, s)}
-                                  className={`text-[10px] px-1.5 py-0.5 rounded border font-medium transition-colors ${
+                                  className={`text-[12px] h-7 px-2.5 rounded-lg font-medium kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${
                                     src === s
-                                      ? `${SOURCE_META[s].color} border-current`
-                                      : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-700'
+                                      ? 'bg-indigo-500 text-white shadow-[0_1px_2px_rgba(79,70,229,.25)]'
+                                      : 'bg-white dark:bg-white/[0.05] ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.07] text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/[0.08]'
                                   }`}
                                 >
                                   {t(SOURCE_META[s].label)}
@@ -503,131 +576,122 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
                         ))}
                       </div>
                     </div>
-                  </div>
-                </div>
+                </Collapse>
               </div>
             );
           })}
+          </div>
+          )}
         </Section>
-
-        <RecentCards />
       </div>
 
-      {/* Preview Anki — docked */}
-      <div className="bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 p-3 shrink-0">
-        <div className="flex items-center justify-between mb-2">
-          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-            <Layers size={10} className="text-indigo-500" /> Preview
-          </span>
-          <div className="flex items-center gap-1.5">
-            <div className="flex bg-zinc-200/80 dark:bg-zinc-800/80 rounded-md p-0.5">
-              {(['front', 'back'] as const).map((side) => (
-                <button
-                  key={side}
-                  onClick={() => setPreviewSide(side)}
-                  className={`text-[9px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded transition-all ${
-                    previewSide === side
-                      ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                      : 'text-zinc-500 dark:text-zinc-400'
-                  }`}
-                >
-                  {side === 'front' ? t('cards.front') : t('cards.back')}
-                </button>
-              ))}
-            </div>
-            <button
+      {/* Anki preview — docked */}
+      {/* With the preview open the rest of the tab stays visible: max height
+          and its own scroll. */}
+      <div className="border-t border-zinc-900/[0.06] dark:border-white/[0.06] px-4 py-3 shrink-0 max-h-[70%] overflow-y-auto kvl-scroll">
+        <div className={`flex items-center justify-between min-h-[32px] ${previewOpen ? 'mb-3' : ''}`}>
+          <button
+            type="button"
+            onClick={() => setPreviewOpen((v) => !v)}
+            aria-expanded={previewOpen}
+            className={`${ui.title} rounded-md hover:opacity-80 transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40`}
+          >
+            <IconTile><Layers size={16} /></IconTile> {t('cards.preview')}
+            <ChevronDown size={14} className={`!size-3.5 text-zinc-400 transition-transform ${previewOpen ? '' : 'rotate-180'}`} />
+          </button>
+          {previewOpen && <div className="flex items-center gap-1">
+            <SegmentedControl
+              ariaLabel={t('cards.preview')}
+              size="sm"
+              className="w-[156px]"
+              options={[{ v: 'front', l: t('cards.front') }, { v: 'back', l: t('cards.back') }]}
+              value={previewSide}
+              onChange={(v) => setPreviewSide(v)}
+            />
+            <IconButton
+              aria-label={t('cards.flip')}
               onClick={() => setPreviewSide(previewSide === 'front' ? 'back' : 'front')}
-              className="p-1 rounded-md text-zinc-400 hover:text-indigo-400 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all duration-300 hover:rotate-180"
+              className="transition-all duration-300 hover:rotate-180"
               title={t('cards.flip')}
             >
-              <RotateCcw size={11} />
-            </button>
-          </div>
+              <RotateCcw size={14} />
+            </IconButton>
+          </div>}
         </div>
 
+        {previewOpen && <>
+        {/* Flip card — both faces share one grid cell so height follows the
+            taller one. `minmax(0,1fr)` + `min-w-0` keep a long text from
+            widening the column and pushing the reverse out of view. */}
         <div
-          key={previewSide}
-          className="rounded-xl shadow-md overflow-hidden kvl-pop-in bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 p-3"
+          role="button"
+          tabIndex={0}
+          aria-label={t('cards.flip')}
+          onClick={() => setPreviewSide(previewSide === 'front' ? 'back' : 'front')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPreviewSide(previewSide === 'front' ? 'back' : 'front'); } }}
+          className="cursor-pointer rounded-2xl [perspective:1200px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
         >
-          <CardFace
-            side={previewSide}
-            mapping={mapping}
-            fields={ankiFields.length ? ankiFields : (FALLBACK_FIELDS[mapping.modelName] ?? [])}
-            card={mockData}
-            aiOn={aiOn}
-          />
+          <div
+            className="grid grid-cols-[minmax(0,1fr)] transition-transform duration-500 ease-[cubic-bezier(.2,.8,.2,1)]"
+            style={{ transformStyle: 'preserve-3d', transform: previewSide === 'back' ? 'rotateY(180deg)' : 'none' }}
+          >
+            {(['front', 'back'] as const).map((side) => (
+              <div
+                key={side}
+                aria-hidden={previewSide !== side}
+                className="[grid-area:1/1] min-w-0 rounded-2xl bg-white dark:bg-[#12151d] ring-1 ring-zinc-900/[0.06] dark:ring-white/[0.07] shadow-[0_1px_2px_rgba(0,0,0,.04),0_12px_32px_-16px_rgba(0,0,0,.22)] dark:shadow-[0_1px_0_rgba(255,255,255,.04)_inset,0_16px_40px_-20px_rgba(0,0,0,.8)] p-5 flex flex-col justify-center"
+                style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: side === 'back' ? 'rotateY(180deg)' : undefined }}
+              >
+                <CardFace side={side} mapping={mapping} fields={ankiFields} card={mockData} aiOn={aiOn} />
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="flex items-center justify-between gap-2 mt-2 px-0.5">
-          <div className="flex items-center gap-1">
-            <QualityBadge icon={<Volume2 size={9} />} label={t('cards.audioBadge')} detail={t('cards.vadCenter')} />
-            <QualityBadge icon={<Camera size={9} />} label={t('cards.frameBadge')} detail={t('cards.vadCenter')} />
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-3 px-0.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 min-w-0">
+            <QualityBadge icon={<Volume2 size={12} />} label={t('cards.sentenceBadge')} detail={endDetect === 'vad' ? t('set.vadLabel') : t('set.cueExact')} title={t('cards.sentenceBadgeTitle')} />
+            <QualityBadge icon={<Camera size={12} />} label={t('cards.frameBadge')} detail={t('cards.vadCenter')} />
+            <QualityBadge
+              icon={<Mic size={12} />}
+              label={t('cards.wordBadge')}
+              detail={pron.kind === 'human' ? pron.source ?? '' : pron.kind === 'tts' ? t('cards.pronTts') : t('cards.pronNone')}
+              title={pron.heldBack ? t('cards.pronHeld') : t('cards.wordBadgeTitle')}
+              muted={pron.kind !== 'human'}
+            />
           </div>
-          <span className="text-[9px] text-zinc-400 dark:text-zinc-400 font-mono">
-            {mappedCount}/{ankiFields.length} · 14KB
-          </span>
+          {conn === 'connected' && ankiFields.length > 0 && (
+            <span className="ml-auto text-[12px] text-zinc-400 dark:text-zinc-500 tabular-nums whitespace-nowrap">
+              {mappedCount}/{ankiFields.length}
+            </span>
+          )}
         </div>
+        </>}
       </div>
     </div>
   );
 }
 
-/* ---------- shared (matches SubtitlesTab/SettingsTab) ---------- */
+/* ---------- shared components ---------- */
 
 function Section({
-  icon, title, children, collapsible, open, onToggle, headerRight, hint,
+  icon, title, children, collapsible, open, onToggle, hint, headerRight,
 }: {
-  icon: React.ReactNode;
-  title: React.ReactNode;
-  children: React.ReactNode;
-  collapsible?: boolean;
-  open?: boolean;
-  onToggle?: () => void;
-  headerRight?: React.ReactNode;
-  hint?: React.ReactNode;
+  icon: React.ReactNode; title: React.ReactNode; children: React.ReactNode;
+  collapsible?: boolean; open?: boolean; onToggle?: () => void;
+  hint?: React.ReactNode; headerRight?: React.ReactNode;
 }) {
-  // The header is NOT a <button>: it holds an InfoHint (itself a focusable
-  // role="button") and nesting interactive controls is both an axe violation
-  // and a screen-reader trap. The row keeps click-to-toggle for the mouse; the
-  // chevron is the real button keyboard users Tab to.
-  const header = (
-    <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-zinc-50/60 dark:bg-zinc-900/60 border-b border-zinc-100 dark:border-zinc-800/60">
-      <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-        {icon}{title}
-        {hint && <InfoHint text={hint} />}
-      </span>
-      <span className="flex items-center gap-1.5">
-        {headerRight}
-        {collapsible && (
-          <button
-            type="button"
-            aria-expanded={open}
-            onClick={(e) => { e.stopPropagation(); onToggle?.(); }}
-            className="inline-flex items-center justify-center rounded outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
-          >
-            <span className="sr-only">{typeof title === 'string' ? title : t('panel.tabCards')}</span>
-            <ChevronDown size={12} aria-hidden="true" className={`text-zinc-400 transition-transform ${open ? 'rotate-180' : ''}`} />
-          </button>
-        )}
-      </span>
-    </div>
-  );
   return (
-    <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-      {collapsible
-        ? <div onClick={onToggle} className="w-full text-left cursor-pointer hover:bg-zinc-100/40 dark:hover:bg-zinc-800/40 transition-colors">{header}</div>
-        : header}
-      {(!collapsible || open) && (
-        <div className="p-2.5 space-y-2">{children}</div>
-      )}
-    </div>
+    <Group icon={icon} title={title} hint={hint} collapsible={collapsible} open={open ?? true} onToggle={onToggle} right={headerRight}>
+      {children}
+    </Group>
   );
 }
 
 function Row({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="space-y-1">
-      <label className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">{label}</label>
+    <div className="space-y-1.5">
+      <label className="block text-[12px] font-medium text-zinc-500 dark:text-zinc-400">{label}</label>
       {children}
     </div>
   );
@@ -640,42 +704,45 @@ function ConnDot({ state }: { state: ConnectionState }) {
     : state === 'error' ? 'bg-rose-500'
     : 'bg-zinc-400';
   return (
-    <span className="relative inline-flex w-2 h-2">
+    <span className="relative inline-flex w-1.5 h-1.5">
       {state === 'connected' && (
-        <span className="absolute inset-0 rounded-full bg-emerald-400/40 animate-ping" style={{ animationDuration: '2.4s' }} />
+        <span className="absolute inset-0 rounded-full bg-emerald-400/40 animate-ping [animation-duration:2.4s]" />
       )}
-      <span className={`relative inline-flex w-2 h-2 rounded-full ${color}`} />
+      <span className={`relative inline-flex w-1.5 h-1.5 rounded-full ${color}`} />
     </span>
   );
 }
 
 function ConnPill({ state }: { state: ConnectionState }) {
-  const meta =
-    state === 'connected'  ? { label: t('cards.connActive'),     pill: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' } :
-    state === 'connecting' ? { label: t('cards.connConnecting'),  pill: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300' } :
-    state === 'error'      ? { label: t('cards.offline'), pill: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300' } :
-                             { label: t('cards.connInactive'),   pill: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400' };
+  const label =
+    state === 'connected'  ? t('cards.connActive') :
+    state === 'connecting' ? t('cards.connConnecting') :
+    state === 'error'      ? t('cards.offline') :
+                             t('cards.connInactive');
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold normal-case tracking-normal px-1.5 py-0.5 rounded ${meta.pill}`}>
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[12px] text-zinc-500 dark:text-zinc-400">
       <ConnDot state={state} />
-      {meta.label}
+      {label}
     </span>
   );
 }
 
 function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <div className="rounded-md border border-dashed border-zinc-300 dark:border-zinc-700 p-3 text-center text-[11px] text-zinc-500 dark:text-zinc-400 flex flex-col items-center gap-1">
-      <span className="text-zinc-400">{icon}</span>
-      {text}
+    <div className="py-7 px-6 text-center text-[12px] leading-[18px] text-zinc-500 dark:text-zinc-400 flex flex-col items-center gap-2.5">
+      <IconTile className="!w-8 !h-8">{icon}</IconTile>
+      <span className="max-w-[240px]">{text}</span>
     </div>
   );
 }
 
-function QualityBadge({ icon, label, detail }: { icon: React.ReactNode; label: string; detail: string }) {
+/** `muted`: works, but it is not the best possible (synthetic voice instead
+ * of a native recording). */
+function QualityBadge({ icon, label, detail, title, muted }: { icon: React.ReactNode; label: string; detail: string; title?: string; muted?: boolean }) {
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200/70 dark:border-emerald-500/20">
-      {icon}<span className="font-semibold">{label}</span><span className="opacity-70">· {detail}</span>
+    <span title={title} className="inline-flex items-center gap-1.5 whitespace-nowrap text-[12px] text-zinc-500 dark:text-zinc-400 min-w-0">
+      <span className={`${muted ? 'text-zinc-400 dark:text-zinc-500' : 'text-emerald-500 dark:text-emerald-400'} inline-flex`}>{icon}</span>
+      <span className="font-medium text-zinc-700 dark:text-zinc-300">{label}</span><span>{detail}</span>
     </span>
   );
 }
