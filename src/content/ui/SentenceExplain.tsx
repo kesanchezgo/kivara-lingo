@@ -14,7 +14,7 @@ import { Sparkles, X } from '../../ui/icons';
 import { t } from '../../shared/i18n';
 import { Badge, surface, tx } from '../../ui/primitives/settings-primitives';
 import type { AiPort } from '../../ui/ports/ai';
-import type { SentenceExplanation } from '../../ui/ports/types';
+import type { SentenceExplanation } from '../../shared/types';
 import type { SubtitleCue } from '../platform-adapters/types';
 
 const CHIP =
@@ -91,7 +91,8 @@ export interface SentenceExplainProps {
 type ExplainState =
   | { status: 'loading' }
   | { status: 'ready'; data: SentenceExplanation }
-  | { status: 'error' };
+  /** `detail` is the worker's own message: the localized line is the title. */
+  | { status: 'error'; detail: string };
 
 export function SentenceExplain({
   id,
@@ -115,8 +116,13 @@ export function SentenceExplain({
       .then((data) => {
         if (alive) setState({ status: 'ready', data });
       })
-      .catch(() => {
-        if (alive) setState({ status: 'error' });
+      .catch((err: unknown) => {
+        if (alive) {
+          setState({
+            status: 'error',
+            detail: err instanceof Error ? err.message : String(err),
+          });
+        }
       });
     return () => {
       alive = false;
@@ -174,9 +180,16 @@ export function SentenceExplain({
       )}
 
       {state.status === 'error' && (
-        <p role="alert" className="px-3.5 pb-3 text-[12px] leading-[18px] text-zinc-500 dark:text-zinc-400">
-          {t('explain.error')}
-        </p>
+        <div role="alert" className="px-3.5 pb-3">
+          <p className="text-[12px] leading-[18px] text-zinc-500 dark:text-zinc-400">
+            {t('explain.error')}
+          </p>
+          {/* The worker's own reason (missing key, upstream 429, timeout…)
+              is the actionable half; the localized line is only the title. */}
+          <p className="mt-0.5 break-words text-[11px] leading-4 text-zinc-400 dark:text-zinc-500">
+            {state.detail}
+          </p>
+        </div>
       )}
 
       {state.status === 'ready' && (

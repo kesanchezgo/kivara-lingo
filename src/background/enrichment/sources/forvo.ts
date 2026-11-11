@@ -45,7 +45,7 @@ const LANG_MAP: Record<string, string> = {
 function b64Decode(b64: string): string | null {
   try {
     // atob exists in service-worker globalThis.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const decoded = (globalThis as any).atob(b64);
     return decoded || null;
   } catch {

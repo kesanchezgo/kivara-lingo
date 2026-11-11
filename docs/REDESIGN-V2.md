@@ -180,7 +180,7 @@ EpisodePort	data/transcript.ts, lib/playback.ts	cues(), activeIndex(), subscribe
 AnkiPort	mocks/anki.ts	ping, decks, models, fields, createCard, undo, addContext, browse, wordIntervals, retry, retryAll, dismiss
 AiPort	data/sentenceExplain.ts	explainSentence({prev, line, next, lang, uiLang, nativeLang})
 PacksPort	mocks/dictPacks.ts	Los mensajes de packs que ya existen (LIST_DICT_PACKS, INSTALL_DICT_PACK_FROM_URL…)
-Cada puerto vive en src/ui/ports/<nombre>.ts (interfaz + implementación real); las implementaciones falsas, en tests/helpers/ports.ts. La vista recibe los puertos por contexto (PortsProvider), así que el mismo árbol se monta en el content script, en Options y en los tests.
+Al cierre de la deuda (#39) sólo sobrevive `AiPort` (`src/ui/ports/ai.ts`), que es la interfaz que consumen `SentenceExplain` y `TranscriptRail`; su cliente real es `content/ui/ai-port.ts`. Las demás interfaces, sus fábricas-stub, `PortsProvider`/`usePorts` y las implementaciones falsas de `tests/helpers/ports.ts` no tenían ninguna vista que las leyera y se retiraron.
 
 4.3 Dónde vive cada estado
 Estado	Prototipo	v2	Motivo
@@ -334,7 +334,7 @@ lib/wordStatus.ts	shared/study/	PORTAR + MOTOR	chromeLocalStore y LexiconPort.	M
 lib/vocabCheck.ts + VocabCheck.tsx + VocabTestDialog.tsx	shared/study/ + content/ui/	PORTAR / REESCRIBIR	El diálogo, sin Radix; el banco, de los datos de H8.	M
 LevelLadder.tsx	ui/	PORTAR		S
 lib/langProfile.ts	shared/study/	FUSIONAR	Idioma activo = translate.sourceLang.	S
-lib/cardQueue.ts	shared/cards.ts + ui/ports/anki.ts	REESCRIBIR	Cliente del registro del SW (H10).	M
+lib/cardQueue.ts	shared/cards.ts + content/ui/App.tsx	REESCRIBIR	Cliente del registro del SW (H10).	M
 lib/cardTags.ts, lib/decks.ts	shared/	PORTAR	Los usa el SW.	S
 lib/studyModes.ts	shared/study/	FUSIONAR	Slice study del store.	S
 lib/sentence.ts, subtitleText.ts, textSearch.ts, languages.ts	shared/study/	PORTAR	Puros. Revisar el solape de subtitleText con la limpieza de parsers.ts.	S
@@ -350,11 +350,13 @@ mocks/dictPacks.ts	shared/dict-pack-catalog.ts	FUSIONAR		S
 data/segments.ts, data/transcript.ts, data/sentenceExplain.ts, mocks/anki.ts, demo.ts, figma/ImageWithFallback.tsx	—	DESCARTAR	Puertos e implementaciones falsas en tests (los tipos se conservan).	—
 types.ts	shared/types.ts	FUSIONAR	4.4.	S
 styles/theme.css	src/styles/theme.css	FUSIONAR	Los tokens son idénticos salvo 5 nuevos (--kvl-ease, --kvl-spring, --kvl-ws-*) y 11 clases nuevas (.kvl-ui, .kvl-press, .kvl-row…). Se conservan .sl-input, .sl-select, .kvl-pop-in y --kvl-font-sans mientras haya consumidores.	S
+Frecuencia de subtítulos (H8): `src/assets/frequency/en-rank.json` es la única lista de corpus del repo (inglés, 21.731 lemas). Para cualquier otro idioma de estudio `hasFrequencyList()` es false: `frequency.get(lang)` resuelve un conjunto de rangos vacío (nunca lanza) y el estimador de nivel arranca de los niveles CEFR del diccionario (`LABEL_RANK` en `lexicalModel`) más las marcas del usuario. No se inventan rangos ni se traducen desde la lista inglesa; añadir un idioma es añadir su JSON a la carpeta que `web_accessible_resources` ya publica y una entrada en `FILES` (`src/shared/study/frequency.ts`).
+
 5.4 Páginas de la extensión
 Prototipo	Destino	Acción	Notas	Tam.
 Popup.tsx	popup/Popup.tsx	FUSIONAR	Se conserva ping-retry (con sus tests); captura de audio real.	M
 Onboarding.tsx + onboarding/* (8 pasos)	onboarding/**	FUSIONAR	Página propia (sin Shadow DOM). Paso nuevo Level (F8). Las reglas de bloqueo siguen en steps.ts.	L
-—	options/Options.tsx	FUSIONAR	El mismo SidePanel a tamaño completo, con PortsProvider real.	S
+—	options/Options.tsx	FUSIONAR	El mismo SidePanel a tamaño completo.	S
 6. Lo que el repo real tiene y no se puede perder
 Arranque y montaje. Cola de montaje y generación por navegación en SPA (mount-queue.ts); destroy() de los adaptadores; traslado del overlay a pantalla completa (fullscreen-overlay-core.ts), con su devolución del foco.
 Shadow DOM. Root cerrado, all: initial, tokens fijados en px, semillas de --tw-*, exclusión de Dark Reader, CSS de sonner en línea.
@@ -381,7 +383,7 @@ Rama redesign/v2. Fijar pnpm con packageManager en package.json.
 theme.css fusionado. Inter local con FontFace (H3) y ATTRIBUTIONS.
 ui/icons.tsx y el generador recortado (H7).
 i18n dividido y fusionado; tests de i18n reescritos para importar (H6).
-ui/ports/* con sus interfaces, PortsProvider e implementaciones falsas en tests/helpers/ports.ts.
+ui/ports/ai.ts con `AiPort` (el resto de puertos se retiró con #39) y ui/portal.tsx para el contexto de portal.
 ui/portal.tsx: PortalContainerContext, que aportan el shadow host y las páginas.
 shared/chrome-local-store.ts y los módulos puros de 5.3 portados con sus tests: lexicalModel, sentence, subtitleText, textSearch, cardTags, decks y studyModes.
 Reglas de lint: no-restricted-imports (shared/db desde content, @radix-ui/* y, en archivos nuevos, lucide-react) y la asignación a currentTime (H2).

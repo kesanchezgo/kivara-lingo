@@ -89,7 +89,19 @@ export function createFrequencyCache(load: (lang: string) => Promise<unknown>): 
   };
 }
 
-/** Shipped lists, by language being learned. Others fall back to the model's prior. */
+/**
+ * Shipped lists, by language being learned.
+ *
+ * ENGLISH ONLY. `en-rank.json` is the single corpus list in the tree; every
+ * other learning language has no file here, so `get(lang)` resolves to an
+ * empty rank set (never a throw) and `hasFrequencyList(lang)` is false. That
+ * is the documented fallback, not a missing feature: the level estimator then
+ * starts from the CEFR level carried by the bundled dictionary entry
+ * (`LABEL_RANK` in `lexicalModel`) and is corrected by the user's word marks.
+ * Adding a language means adding its list to `src/assets/frequency/`, the
+ * manifest's `web_accessible_resources` already publishes the folder, and one
+ * entry here — do not synthesise ranks from the English list.
+ */
 const FILES: Record<string, string> = {
   en: 'src/assets/frequency/en-rank.json',
 };

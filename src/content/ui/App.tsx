@@ -1320,6 +1320,14 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         const activeDeck = ankiMapping.decks?.[lang] ?? ankiMapping.deckName;
         const media = adapter?.getMediaInfo?.();
         const kind = cardKindOf(tokenValue);
+        // Neighbouring cues for the `context` field source. The active cue is
+        // located by id because the saved sentence may come from a selection
+        // inside the line, not from the cue object itself.
+        const cueIndex = activeCue ? episode.cues.findIndex((c) => c.id === activeCue.id) : -1;
+        const contextLines =
+          cueIndex >= 0
+            ? { prev: episode.cues[cueIndex - 1]?.text, next: episode.cues[cueIndex + 1]?.text }
+            : undefined;
         const request: CreateCardRequest = {
           token: tokenValue,
           sentence,
@@ -1328,6 +1336,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           lang,
           deck: activeDeck,
           media,
+          contextLines,
           frame: frameDataUrl ?? undefined,
           cueStart: activeCue?.start,
           cueEnd: activeCue?.end,
@@ -1392,7 +1401,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     // SubtitleOverlay's useMemo also lists handleSaveCard — its identity
     // must change when ankiMapping or cue change, which keeps the overlay
     // consistent when deck/adapter/config change.
-    [enabled, activeCue, videoElement, adapter, ensureSubtitleAudioReady, ankiMapping, episode.controller],
+    [enabled, activeCue, videoElement, adapter, ensureSubtitleAudioReady, ankiMapping, episode.controller, episode.cues],
   );
 
   /**

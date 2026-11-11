@@ -9,8 +9,11 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 import {
-  createFrequencyCache, hasFrequencyList, parseFrequency,
+  createFrequencyCache, frequency, hasFrequencyList, parseFrequency,
 } from '../../src/shared/study/frequency';
+import {
+  LABEL_RANK, MODEL, difficulty, estimateTheta,
+} from '../../src/shared/study/lexicalModel';
 import enRank from '../../src/assets/frequency/en-rank.json';
 
 describe('parseFrequency', () => {
@@ -84,5 +87,21 @@ describe('shipped languages', () => {
   it('only English has a list; others are an honest null', () => {
     expect(hasFrequencyList('en')).toBe(true);
     expect(hasFrequencyList('fr')).toBe(false);
+  });
+
+  it('a non-EN profile does not throw and estimates from the CEFR level', async () => {
+    // The list is EN-only by design. A Spanish/French/Japanese profile goes
+    // through the same loader and gets an empty rank set, not an exception.
+    expect(hasFrequencyList('es')).toBe(false);
+    const ranks = await frequency.get('es');
+    frequency.reset();
+    expect(ranks?.rankOf('casa')).toBeNull();
+
+    // Without a rank the difficulty is the dictionary's CEFR label alone
+    // (`LABEL_RANK`), which is what gives the estimator its starting point.
+    const d = difficulty({ level: 'B1' });
+    expect(d).toBeCloseTo(Math.log(LABEL_RANK.B1), 10);
+    const theta = estimateTheta(Math.log(LABEL_RANK.B1), MODEL.priorSd, []);
+    expect(Number.isFinite(theta)).toBe(true);
   });
 });

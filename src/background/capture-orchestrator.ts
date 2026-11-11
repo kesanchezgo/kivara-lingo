@@ -244,7 +244,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   for (let i = 0; i < bytes.length; i += CHUNK) {
     binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)));
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   return (globalThis as any).btoa(binary);
 }
 
@@ -254,6 +254,16 @@ function resolveField(field: string, source: FieldSource, ctx: ResolveContext): 
       return escField(ctx.request.token);
     case 'cue':
       return escField(ctx.request.sentence);
+    case 'context': {
+      // Surrounding lines as the content script captured them: previous /
+      // saved / next, joined the same way `examples` joins entries. Blank or
+      // dash-only neighbours are dropped instead of leaving an empty line.
+      const { prev, next } = ctx.request.contextLines ?? {};
+      return [prev, ctx.request.sentence, next]
+        .map((line) => escField(line))
+        .filter(Boolean)
+        .join('<br>');
+    }
     case 'cloze':
       return clozeHtml(ctx.request);
     case 'source': {

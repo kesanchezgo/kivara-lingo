@@ -141,9 +141,9 @@ export async function importYomitanPackStreaming(
     const slot: PendingFile = {
       name: file.name,
       bytes: null,
-      // eslint-disable-next-line @typescript-eslint/no-empty-function
+
       resolve: () => {},
-      // eslint-disable-next-line @typescript-eslint/no-empty-function
+
       reject: () => {},
       done: null as unknown as Promise<void>,
     };

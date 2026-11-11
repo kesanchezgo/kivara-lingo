@@ -38,7 +38,7 @@ export interface CacheStatsResult {
   totalBytes: number;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 async function tableStats(table: any, approxRowBytes?: (row: unknown) => number): Promise<{ count: number; bytes: number }> {
   try {
     if (!table) return { count: 0, bytes: 0 };
@@ -59,7 +59,7 @@ async function tableStats(table: any, approxRowBytes?: (row: unknown) => number)
 }
 
 export async function getCacheStats(): Promise<CacheStatsResult> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const db = getDB() as any;
   const [enrichment, translation, ai, explain, media] = await Promise.all([
     tableStats(db.vip_cache),
@@ -90,7 +90,7 @@ export async function getCacheStats(): Promise<CacheStatsResult> {
 export async function clearCaches(
   which: 'all' | CacheBucketStats['id'],
 ): Promise<number> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const db = getDB() as any;
   const table = {
     enrichment: db.vip_cache,

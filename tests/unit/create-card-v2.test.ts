@@ -90,6 +90,7 @@ const MAPPING = {
   fieldSources: {
     Front: 'selection',
     Sentence: 'cue',
+    Context: 'context',
     Cloze: 'cloze',
     Origin: 'source',
   },
@@ -109,6 +110,43 @@ beforeEach(() => {
 });
 
 describe('CREATE_CARD v2 payload', () => {
+  it('joins the neighbouring cues into a context field', async () => {
+    const m = setupMocks();
+    const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+    await createCardFromRequest({
+      token: 'sane',
+      sentence: 'It keeps her sane.',
+      kind: 'word',
+      lang: 'en',
+      deck: 'English vocabulary',
+      contextLines: { prev: 'She has seen things.', next: 'Nobody argues with that.' },
+    }, MAPPING as never, undefined as never);
+
+    const note = (m.addNote.mock.calls as unknown as Array<[{
+      fields: Record<string, string>;
+    }]>)[0][0];
+    expect(note.fields.Context).toBe(
+      'She has seen things.<br>It keeps her sane.<br>Nobody argues with that.',
+    );
+  });
+
+  it('falls back to the saved line alone when no neighbours were captured', async () => {
+    const m = setupMocks();
+    const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+    await createCardFromRequest({
+      token: 'sane',
+      sentence: 'It keeps her sane.',
+      lang: 'en',
+      deck: 'English vocabulary',
+      contextLines: { prev: '   ' },
+    }, MAPPING as never, undefined as never);
+
+    const note = (m.addNote.mock.calls as unknown as Array<[{
+      fields: Record<string, string>;
+    }]>)[0][0];
+    expect(note.fields.Context).toBe('It keeps her sane.');
+  });
+
   it('uses the per-language deck, hierarchical tags, cloze and source', async () => {
     const m = setupMocks();
     const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');

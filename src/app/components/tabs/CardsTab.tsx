@@ -40,6 +40,7 @@ const detectSource = detectFieldSource;
 const SOURCE_META: Record<FieldSource, { label: string; color: string; description: string }> = {
   selection:        { label: 'Palabra',        color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',     description: t('cards.srcDescSelectedWord') },
   cue:              { label: 'Frase',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: t('cards.srcDescActiveCue') },
+  context:          { label: 'Contexto',       color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: 'Línea anterior, la guardada y la siguiente' },
   cloze:            { label: t('cards.srcCloze'), color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',              description: t('cards.srcDescCloze') },
   source:           { label: t('cards.srcSource'), color: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300',           description: t('cards.srcDescSource') },
   phonetic:         { label: t('cards.phonetic'),       color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',     description: t('cards.srcDescDictIpa') },
@@ -81,7 +82,7 @@ const SOURCE_GROUPS: { label: string; options: FieldSource[] }[] = [
   {
     label: 'Nativas',
     options: [
-      'selection', 'cue', 'cloze', 'source', 'phonetic', 'translation', 'bilingual',
+      'selection', 'cue', 'context', 'cloze', 'source', 'phonetic', 'translation', 'bilingual',
       'monolingual', 'examples', 'frame', 'sentence-audio', 'word-audio',
     ],
   },
