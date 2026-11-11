@@ -312,7 +312,7 @@ declare global {
   }
 
   const OrigXHR = window.XMLHttpRequest;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   function PatchedXHR(this: any) {
     const xhr = new OrigXHR();
     let interceptUrl: string | null = null;
@@ -366,7 +366,7 @@ declare global {
     return xhr;
   }
   PatchedXHR.prototype = OrigXHR.prototype;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   (window as any).XMLHttpRequest = PatchedXHR;
 
   /* ── Playback control (F6 · docs/REDESIGN-V2.md §4.5) ────────────────────

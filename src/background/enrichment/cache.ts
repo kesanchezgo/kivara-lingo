@@ -80,7 +80,7 @@ async function readCache(key: string, ttlDays: number): Promise<EnrichmentResult
   // 2. Persistent layer.
   try {
     const db = getDB();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const row = (await (db as any).vip_cache?.get(key)) as CacheRow | undefined;
     if (!row) return null;
     const ageMs = Date.now() - (row.storedAt ?? 0);
@@ -103,7 +103,7 @@ async function readCache(key: string, ttlDays: number): Promise<EnrichmentResult
 async function clearCachedEntry(key: string): Promise<void> {
   try {
     const db = getDB();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     await (db as any).vip_cache?.delete(key);
   } catch {
     // ignore — a stale row is recoverable
@@ -125,7 +125,7 @@ async function writeCache(
   memSet(key, payload);
   try {
     const db = getDB();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     await (db as any).vip_cache?.put({ key, payload, storedAt: Date.now() });
     void pruneCaches(effectiveTtlDays);
   } catch {
@@ -196,7 +196,7 @@ async function pruneCaches(ttlDays: number = DEFAULT_VIP_CACHE_TTL_DAYS): Promis
   void pruneExpiredExplainRows(now);
   try {
     const db = getDB();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const table = ((db as any).vip_cache ?? null) as
       | {
           where(index: string): { below(threshold: number): { delete(): Promise<number> } };
@@ -287,7 +287,7 @@ export async function clearEnrichmentCache(): Promise<number> {
   clearMemEnrichmentCache();
   try {
     const db = getDB();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const table = (db as any).vip_cache;
     if (!table) return 0;
     // count-then-clear on purpose: reading every payload just to know how many
@@ -308,7 +308,7 @@ export async function clearEnrichmentCache(): Promise<number> {
 export async function getEnrichmentCacheStats(): Promise<{ count: number; bytes: number }> {
   try {
     const db = getDB();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const rows = (await (db as any).vip_cache?.toArray()) as CacheRow[] | undefined;
     if (!rows || !rows.length) return { count: 0, bytes: 0 };
     let bytes = 0;

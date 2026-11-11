@@ -13,7 +13,7 @@
     "test:e2e": "vite build && playwright test",
     "test:e2e:audio": "node scripts/run-e2e-with-flag.mjs",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
-    "lint": "eslint --max-warnings=24 \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\" \"scripts/**/*.{ts,mts,cjs,mjs}\"",
+    "lint": "eslint --max-warnings=3 \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\" \"scripts/**/*.{ts,mts,cjs,mjs}\"",
     "lint:report": "eslint \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\" \"scripts/**/*.{ts,mts,cjs,mjs}\" --format json --output-file lint-report.json",
     "quality:audit": "tsx scripts/evaluate-enrichment-quality.ts",
     "audit:mv3": "node scripts/mv3-enrichment-audit.mjs",

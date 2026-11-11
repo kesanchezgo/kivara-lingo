@@ -244,7 +244,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   for (let i = 0; i < bytes.length; i += CHUNK) {
     binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)));
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   return (globalThis as any).btoa(binary);
 }
 

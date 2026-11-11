@@ -32,6 +32,16 @@ import path from 'node:path';
 
 const DIST = path.join(process.cwd(), 'dist');
 
+/**
+ * Vite's CLI entry, executed by the Node binary running the tests.
+ *
+ * `npx` is not a dependency of this repo, so the suite must build without it.
+ * `node_modules/.bin/vite` is a shell/cmd shim that `execFileSync` cannot run
+ * portably on Windows, and `pnpm exec` would require the pnpm shim too — the
+ * JS entry is the same CLI with no launcher in between.
+ */
+const VITE_BIN = path.join(process.cwd(), 'node_modules', 'vite', 'bin', 'vite.js');
+
 const FORBIDDEN_TEXT = [
   // The bridge door: message types used only by the e2e listener.
   'KIVARA_E2E_START_AUDIO_CAPTURE',
@@ -180,7 +190,7 @@ describe('a production build', () => {
     // cannot see a build that failed to produce), so it stays opt-in.
     if (process.env.KIVARA_SKIP_DIST_BUILD !== '1') {
       if (existsSync(DIST)) rmSync(DIST, { recursive: true, force: true });
-      execFileSync('npx', ['vite', 'build'], {
+      execFileSync(process.execPath, [VITE_BIN, 'build'], {
         cwd: process.cwd(),
         stdio: 'pipe',
         timeout: 180_000,

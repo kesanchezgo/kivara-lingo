@@ -391,9 +391,9 @@ export async function runEnrichment(
 
   // Pass BYOK image-source credentials through the ctx — sources read
   // them off the ctx via type cast (see unsplash.ts / pixabay.ts).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   (ctx as any).unsplashAccessKey = opts.vip.unsplashAccessKey;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   (ctx as any).pixabayApiKey = opts.vip.pixabayApiKey;
 
   // Images are excluded from the popover fan-out (they're the slowest

@@ -340,7 +340,7 @@ async function loadCaptureBufferSec(): Promise<number> {
   return Math.max(5, cap.bufferSize ?? DEFAULT_CAPTURE.bufferSize);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 function asJson<T>(value: T): any {
   return value as unknown as any;
 }
@@ -1465,7 +1465,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           }
           const chunks: Uint8Array[] = [];
           let received = 0;
-          // eslint-disable-next-line no-constant-condition
+
           while (true) {
             const { value, done } = await reader.read();
             if (done) break;

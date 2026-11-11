@@ -235,7 +235,7 @@ export async function fetchJson<T = unknown>(
  * DOM walking degrade gracefully (return empty partial).
  */
 export function parseHtml(html: string): Document | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const D = (globalThis as any).DOMParser;
   if (typeof D !== 'function') return null;
   try {

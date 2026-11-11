@@ -754,7 +754,7 @@ export async function generateAiImage(
   } catch {
     return { ok: false, error: 'OpenAI returned non-JSON' };
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const url = (data as any)?.data?.[0]?.url as string | undefined;
   if (!url) return { ok: false, error: 'OpenAI image response missing URL' };
   return { ok: true, url };
