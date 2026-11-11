@@ -3,18 +3,22 @@ import { sendMessage } from 'webext-bridge/content-script';
 import { t, fmtNumber } from '../../../shared/i18n';
 import { richText } from '../../../shared/i18n/rich';
 import { normalizeTtlDays } from '../../../shared/cache-ttl';
-import { classifyEnrichError, ENRICH_ERROR_KEYS, enrichFixKey, ENRICH_SLOW_FIX_KEY } from '../../../shared/enrich-health';
+import {
+  classifyEnrichError, enrichFixKey, ENRICH_ERROR_KEYS, ENRICH_SLOW_FIX_KEY,
+  vipRowAction, type VipRowAction,
+} from '../../../shared/enrich-health';
+import { requestHosts } from '../../../shared/host-permissions';
 import { useKivaraStore } from '../../../shared/use-kivara-store';
 import { SecretKeyInput } from '../SecretKeyInput';
 import type { EnrichSourceHealthMap, VipSettings } from '../../../shared/types';
 import {
-  AlertTriangle, Database, KeyRound, Loader2, RefreshCw, Trash2,
+  AlertTriangle, Database, KeyRound, Loader2, RefreshCw, ShieldCheck, Trash2,
 } from '../../../ui/icons';
 import {
   Button, Callout, ListGroup, QuickRow, Row, SubLabel, Toggle,
 } from '../../../ui/primitives/settings-primitives';
 import { inputCls } from '../../../ui/primitives/controls';
-import { HOST_GROUPS, type PermissionGroup } from '../HostPermissionsRow';
+import { HOST_GROUPS, originsFor, type PermissionGroup } from '../HostPermissionsRow';
 
 /**
  * VIP enrichment settings.
@@ -139,6 +143,17 @@ function sourceGroupLabel(sourceId: keyof VipSettings): string | undefined {
   return HOST_GROUPS.find((g) => g.providers.includes(provider))?.label;
 }
 
+/** Local sources: no network, nothing to test — the prototype reads them as
+ * always-ok with the `vipx.local` line instead of a "not tested" dot. */
+const LOCAL_SOURCES = new Set<keyof VipSettings>(['bundled', 'wordnet', 'yomitanPacks']);
+
+/** Group that owns a source's optional hosts, for the in-row grant. */
+function sourceGroup(sourceId: keyof VipSettings): PermissionGroup | undefined {
+  const provider = SOURCE_PROVIDER[sourceId];
+  if (!provider) return undefined;
+  return HOST_GROUPS.find((g) => g.providers.includes(provider));
+}
+
 const STD_ALL = [
   ...STD_DICT_SOURCES, ...STD_BILINGUAL_SOURCES, ...STD_AUDIO_SOURCES,
   ...STD_IMAGE_SOURCES, ...STD_ETY_VIDEO,
@@ -216,6 +231,57 @@ export function VipSection() {
   }, []);
   useEffect(() => { void refreshHealth(); }, [refreshHealth]);
 
+  /**
+   * The row's "Retry": a real per-source probe through the worker, then the
+   * fresh observation replaces only this row's entry.
+   */
+  const [retryingKey, setRetryingKey] = useState<string | null>(null);
+  const retrySource = useCallback(async (key: string) => {
+    setRetryingKey(key);
+    try {
+      const res = (await sendMessage('ENRICH_SOURCE_TEST', { source: key }, 'background')) as {
+        ok?: boolean;
+        health?: EnrichSourceHealthMap[string];
+      };
+      if (res?.ok && res.health) {
+        setHealth((prev) => ({ ...prev, [key]: res.health! }));
+        setLastChecked(Date.now());
+      }
+    } catch {
+      // Worker asleep: the row keeps its previous observation.
+    } finally {
+      setRetryingKey(null);
+    }
+  }, []);
+
+  /**
+   * "Add key": the same scroll-into-view + focus the prototype uses. The key
+   * rows carry stable DOM ids for exactly this hand-off.
+   */
+  const focusKeyField = useCallback((key: string) => {
+    const el = document.getElementById(key === 'pixabay' ? 'kivara-vip-pixabay-key' : 'kivara-vip-unsplash-key');
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el?.querySelector('input')?.focus();
+  }, []);
+
+  /**
+   * "Grant access": chrome.permissions.request for the source's WHOLE group,
+   * inside the click (the gesture is what lets Chrome prompt). A complete
+   * grant immediately re-probes the source so the row answers honestly.
+   */
+  const grantSourceGroup = useCallback(async (key: keyof VipSettings) => {
+    const group = sourceGroup(key);
+    if (!group) return;
+    const missing = await requestHosts(originsFor(group.providers));
+    if (missing.length === 0) void retrySource(key);
+  }, [retrySource]);
+
+  const runRowAction = useCallback((key: keyof VipSettings, action: VipRowAction) => {
+    if (action === 'grantAccess') void grantSourceGroup(key);
+    else if (action === 'addKey') focusKeyField(key);
+    else void retrySource(key);
+  }, [focusKeyField, grantSourceGroup, retrySource]);
+
   const healthOf = (key: keyof VipSettings) => health[key as string] ?? null;
   const enabledCount = (list: SourceMeta[]) =>
     list.filter((x) => vip[x.key] === true).length;
@@ -226,13 +292,37 @@ export function VipSection() {
   const errN = tested.filter((h) => h.state === 'error').length;
   const slowN = tested.filter((h) => h.state === 'slow').length;
 
-  const group = (titleKey: string, hintKey: string, sources: SourceMeta[]) => (
+  const group = (titleKey: string, hintKey: string, sources: SourceMeta[]) => {
+    // Counters are PER GROUP: "{n} failing" next to a group title means this
+    // group, not the whole panel (the prototype computes them per group too).
+    const groupTested = sources
+      .map((x) => healthOf(x.key))
+      .filter((h): h is NonNullable<typeof h> => h != null);
+    const groupSlowN = groupTested.filter((h) => h.state === 'slow').length;
+    const groupErrN = groupTested.filter((h) => h.state === 'error').length;
+    return (
     <div className="space-y-2">
       <SubLabel
         hint={t(hintKey)}
         right={
           <span className="flex items-center gap-2 tabular-nums">
             <span>{enabledCount(sources)}/{sources.length}</span>
+            {groupSlowN > 0 && (
+              <span
+                className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400"
+                title={t('vipx.groupDegraded', { n: groupSlowN })}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />{groupSlowN}
+              </span>
+            )}
+            {groupErrN > 0 && (
+              <span
+                className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400"
+                title={t('vipx.groupError', { n: groupErrN })}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />{groupErrN}
+              </span>
+            )}
           </span>
         }
       >
@@ -241,12 +331,15 @@ export function VipSection() {
       <ListGroup>
         {sources.map((s) => {
           const h = healthOf(s.key);
-          const state = checking ? 'untested' : h?.state ?? 'untested';
+          const isLocal = LOCAL_SOURCES.has(s.key);
+          // Local sources answer from disk: no dot ceremony, no "not tested".
+          const state = checking && !isLocal ? 'untested' : h?.state ?? (isLocal ? 'ok' : 'untested');
           const statusKey = STATUS_KEY[state] ?? 'vipx.status_untested';
           const tip = `${t(statusKey)}${h ? ` · ${timeAgo(h.at)}` : ''}${h?.latencyMs ? ` · ${h.latencyMs} ms` : ''}`;
           // Old worker snapshots predate `code`, so re-classify here; the panel
           // and the orchestrator must read the same family from the same text.
           const code = h?.state === 'error' ? (h.code ?? classifyEnrichError(h.lastError)) : null;
+          const action = !checking && !isLocal ? vipRowAction(s.key, code) : null;
           const msgKey = code ? ENRICH_ERROR_KEYS[code] : null;
           const errorMsg = code && msgKey
             ? t(msgKey, code === 'timeout' ? { s: Math.round(vip.perSourceTimeoutMs / 1000) || 4 } : undefined)
@@ -279,6 +372,11 @@ export function VipSection() {
                   ariaLabel={sourceName(s)}
                 />
               </div>
+              {isLocal && (
+                <div className="mt-1 pl-4 text-[12px] leading-4 text-zinc-500 dark:text-zinc-400">
+                  <span className="min-w-0 truncate">{t('vipx.local')}</span>
+                </div>
+              )}
               {h && (h.state === 'error' || h.state === 'slow') && (
                 <div className={`mt-1 pl-4 flex flex-col gap-0.5 text-[12px] leading-4 ${h.state === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}`}>
                   <span className="min-w-0 truncate" title={errorFix ? `${errorMsg ?? h.lastError ?? tip} — ${errorFix}` : (errorMsg ?? h.lastError ?? tip)}>
@@ -291,12 +389,29 @@ export function VipSection() {
                   )}
                 </div>
               )}
+              {action && (
+                <div className="mt-1.5 pl-4">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={retryingKey === s.key}
+                    onClick={() => runRowAction(s.key, action)}
+                    title={t(action === 'addKey' ? 'vipx.addKey' : action === 'grantAccess' ? 'vipx.grantAccess' : 'vipx.retry')}
+                  >
+                    {action === 'addKey' && <KeyRound size={12} />}
+                    {action === 'grantAccess' && <ShieldCheck size={12} />}
+                    {action === 'retry' && <RefreshCw size={12} className={retryingKey === s.key ? 'animate-spin' : ''} />}
+                    {t(action === 'addKey' ? 'vipx.addKey' : action === 'grantAccess' ? 'vipx.grantAccess' : 'vipx.retry')}
+                  </Button>
+                </div>
+              )}
             </div>
           );
         })}
       </ListGroup>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="px-4 pt-3 pb-4 space-y-5">

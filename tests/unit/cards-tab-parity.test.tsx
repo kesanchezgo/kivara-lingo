@@ -10,6 +10,11 @@
  */
 import React, { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Full CardsTab renders with real timers are the heaviest DOM tests in the
+// suite; under parallel runs they were observed crossing the default 5 s
+// ceiling with zero failures in isolation. The ceiling moves, not the logic.
+vi.setConfig({ testTimeout: 20_000 });
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { sendMessage } from 'webext-bridge/content-script';
 import { CardsTab } from '../../src/app/components/tabs/CardsTab';
