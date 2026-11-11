@@ -19,8 +19,11 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Eye,
+  EyeOff,
   Moon,
   Pause,
+  Plus,
   Repeat,
   RotateCcw,
   Search,
@@ -30,6 +33,9 @@ import {
   X,
 } from '../../ui/icons';
 import { t } from '../../shared/i18n';
+import { useKivaraStore } from '../../shared/use-kivara-store';
+import { NEXT_TRANSLATION, type TranslationMode } from '../../shared/study/studyModes';
+import { comboOf, withCombo } from './combo-hints';
 import { tokenizeSentence, type Token } from '../nlp/tokenize';
 import { findRanges, foldForSearch, splitByRanges, type TextRange } from '../../shared/study/textSearch';
 import { markContainerAttrs, markOf, markAttrs, MARK_INK, StatusGlyph } from './wordMarks';
@@ -57,6 +63,13 @@ import type { StudyBinding } from './study';
 export type RailView = 'lines' | 'words';
 export type LineFilter = 'all' | 'oneNew' | 'saved';
 
+/** A line of the platform's own translated track, aligned by time. */
+export interface NativeLineCue {
+  start: number;
+  end: number;
+  text: string;
+}
+
 const VIEWS: { id: RailView; label: string; icon: typeof AlignLeft }[] = [
   { id: 'lines', label: 'rail.viewLines', icon: AlignLeft },
   { id: 'words', label: 'rail.viewWords', icon: BookText },
@@ -75,6 +88,21 @@ export interface TranscriptRailProps {
   newMarks: 'dotted' | 'none';
   /** Status keys that already have a card (the overlay's saved-token set). */
   savedWords: ReadonlySet<string>;
+  /**
+   * The platform's FULL native track, when it exists. The translated line under
+   * each sentence comes from here; with no track nothing is rendered and the
+   * search ignores the second line.
+   */
+  nativeCues?: readonly NativeLineCue[] | null;
+  /** The shared study preference (video and transcript use ONE value). */
+  translation: TranslationMode;
+  onTranslationChange(mode: TranslationMode): void;
+  /** Listen-first: blurs the current and upcoming lines while the video plays. */
+  listenFirst: boolean;
+  /** Save the single new word of a line through the overlay's capture flow. */
+  onSaveWord?(word: string, sentence: string): void;
+  /** Panel is docked: move focus to its first control instead of closing it. */
+  onFocusPanel?(): void;
   media: MediaInfo | null;
   view: RailView;
   onViewChange(view: RailView): void;
@@ -114,7 +142,11 @@ export function TranscriptRail(props: TranscriptRailProps) {
     loop, onToggleLoop, speed, onSpeed, playing, pauseOnExplain, onStudyPause,
     onStudyResume, ai, explainRequest = 0, uiLang, nativeLang, panelOpen, onTogglePanel,
     isDarkMode, onToggleDarkMode, onClose,
+    nativeCues = null, translation, onTranslationChange, listenFirst,
+    onSaveWord, onFocusPanel,
   } = props;
+  const shortcuts = useKivaraStore((state) => state.shortcuts);
+  const combo = (id: string) => comboOf(shortcuts, id);
 
   const [explainLine, setExplainLine] = useState<number | null>(null);
   const [explainPaused, setExplainPaused] = useState(false);
@@ -203,22 +235,38 @@ export function TranscriptRail(props: TranscriptRailProps) {
     return set;
   }, [lineTokens, savedWords]);
 
-  /** Lines with exactly ONE distinct new word (the i+1 mining criterion). */
-  const oneNewLines = useMemo(() => {
+  /**
+   * Lines with exactly ONE distinct new word (the i+1 mining criterion), plus
+   * that word's surface form — the save button sends the same token the line
+   * shows, through the overlay's capture flow.
+   */
+  const { oneNewLines, oneNewWord } = useMemo(() => {
     const set = new Set<number>();
+    const words = new Map<number, string>();
     lineTokens.forEach((tokens, index) => {
       const seen = new Set<string>();
+      let word: string | undefined;
       for (const token of tokens) {
         if (token.kind === 'punct' || token.kind === 'ignored' || token.kind === 'proper-noun-known') continue;
         const mark = markOf(token, study.statusOf);
         if (mark.status !== 'new') continue;
         seen.add((token.lemma ?? token.key).toLowerCase());
+        if (word === undefined) word = token.text;
         if (seen.size > 1) break;
       }
-      if (seen.size === 1) set.add(index);
+      if (seen.size === 1 && word !== undefined) {
+        set.add(index);
+        words.set(index, word);
+      }
     });
-    return set;
+    return { oneNewLines: set, oneNewWord: words };
   }, [lineTokens, study.statusOf]);
+
+  /** The translated line under each sentence, aligned by time. */
+  const nativeLines = useMemo(
+    () => alignNativeLines(cues, nativeCues ?? []),
+    [cues, nativeCues],
+  );
 
   const searchHits = useMemo(
     () =>
@@ -227,12 +275,26 @@ export function TranscriptRail(props: TranscriptRailProps) {
         : null,
     [searching, foldedQuery, lineTokens],
   );
+  // The search covers the translated line too: a word that only appears in
+  // the native track still finds its sentence.
+  const nativeHits = useMemo(
+    () =>
+      searching && translation !== 'hidden'
+        ? nativeLines.map((line) => (line ? findRanges(line, foldedQuery) : []))
+        : null,
+    [searching, foldedQuery, nativeLines, translation],
+  );
   const matchLines = useMemo(
     () =>
       searchHits
-        ? cues.map((_, index) => index).filter((index) => searchHits[index].length > 0)
+        ? cues
+          .map((_, index) => index)
+          .filter(
+            (index) =>
+              searchHits[index].length > 0 || (nativeHits?.[index]?.length ?? 0) > 0,
+          )
         : [],
-    [searchHits, cues],
+    [searchHits, nativeHits, cues],
   );
   const shown = useMemo(() => {
     if (searchHits) return matchLines;
@@ -371,9 +433,26 @@ export function TranscriptRail(props: TranscriptRailProps) {
         </div>
         <div className="ml-auto flex items-center gap-0.5">
           <IconButton
-            title={panelOpen ? t('panel.closeTitle') : t('rail.toPanel')}
+            title={
+              translation === 'visible'
+                ? t('rail.blur')
+                : translation === 'blur'
+                  ? t('rail.unblur')
+                  : t('rail.showNative')
+            }
+            active={translation !== 'visible'}
+            onClick={() => onTranslationChange(NEXT_TRANSLATION[translation])}
+          >
+            {translation === 'hidden' ? <EyeOff size={16} /> : <Eye size={16} />}
+          </IconButton>
+          <IconButton
+            title={
+              panelOpen
+                ? withCombo(t('panel.closeTitle'), combo('panel'))
+                : withCombo(t('rail.toPanel'), combo('panel'))
+            }
             active={panelOpen}
-            onClick={onTogglePanel}
+            onClick={panelOpen && onFocusPanel ? onFocusPanel : onTogglePanel}
           >
             <Subtitles size={16} />
           </IconButton>
@@ -383,7 +462,7 @@ export function TranscriptRail(props: TranscriptRailProps) {
           >
             {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
           </IconButton>
-          <IconButton title={t('rail.close')} onClick={onClose}>
+          <IconButton title={withCombo(t('rail.close'), combo('rail'))} onClick={onClose}>
             <X size={16} />
           </IconButton>
         </div>
@@ -584,6 +663,16 @@ export function TranscriptRail(props: TranscriptRailProps) {
                 onRevealExplain={revealExplain}
                 onReplay={onReplay}
                 onReplaySlow={onReplaySlow}
+                nativeText={nativeLines[index]}
+                nativeHits={nativeHits?.[index]}
+                nativeHidden={translation === 'hidden'}
+                nativeBlurred={
+                  translation === 'blur'
+                  || (listenFirst && playing && index >= activeIndex)
+                }
+                saveWord={oneNewWord.get(index)}
+                onSaveWord={onSaveWord}
+                replayCombo={combo('replay')}
               />
             ))}
             {!follow && !searchHits && (
@@ -604,7 +693,7 @@ export function TranscriptRail(props: TranscriptRailProps) {
           <button
             type="button"
             aria-pressed={autoPause}
-            title={t('rail.autoPauseHint')}
+            title={withCombo(t('rail.autoPauseHint'), combo('autoPause'))}
             onClick={onToggleAutoPause}
             className={`${segItem(autoPause)} h-7 text-[12px] whitespace-nowrap`}
           >
@@ -613,7 +702,7 @@ export function TranscriptRail(props: TranscriptRailProps) {
           <button
             type="button"
             aria-pressed={loop}
-            title={t('rail.loopHint')}
+            title={withCombo(t('rail.loopHint'), combo('loop'))}
             onClick={onToggleLoop}
             className={`${segItem(loop)} h-7 text-[12px] whitespace-nowrap`}
           >
@@ -624,6 +713,7 @@ export function TranscriptRail(props: TranscriptRailProps) {
           className={`relative shrink-0 ${segTrack}`}
           role="radiogroup"
           aria-label={t('rail.speed')}
+          title={withCombo(t('rail.speed'), `${combo('slower') ?? ''} / ${combo('faster') ?? ''}`)}
           onKeyDown={(event) => onRadioKeyDown(event, PLAYBACK_SPEEDS, speed, onSpeed)}
         >
           <SegPill index={Math.max(0, PLAYBACK_SPEEDS.indexOf(speed))} count={PLAYBACK_SPEEDS.length} />
@@ -670,6 +760,16 @@ interface CueRowProps {
   onRevealExplain(index: number): void;
   onReplay(): void;
   onReplaySlow(): void;
+  /** The aligned native line, when the platform ships one. */
+  nativeText: string | null | undefined;
+  nativeHits: TextRange[] | undefined;
+  nativeHidden: boolean;
+  nativeBlurred: boolean;
+  /** The only new word of this line, when there is exactly one. */
+  saveWord: string | undefined;
+  onSaveWord?(word: string, sentence: string): void;
+  /** The user's replay combo, resolved once by the parent (rows stay memoised). */
+  replayCombo: string | undefined;
 }
 
 /**
@@ -690,6 +790,8 @@ const CueRow = memo(function CueRow({
   cue, index, tokens, starts, hits, active, past, saved, explaining, newMarks,
   statusOf, prevText, nextText, lang, uiLang, nativeLang, ai, registerRow,
   onSelect, onToggleExplain, onCloseExplain, onRevealExplain, onReplay, onReplaySlow,
+  nativeText, nativeHits, nativeHidden, nativeBlurred, saveWord, onSaveWord,
+  replayCombo,
 }: CueRowProps) {
   const jump = t('rail.jumpTitle', { time: fmtTime(cue.start) });
   return (
@@ -754,9 +856,34 @@ const CueRow = memo(function CueRow({
         </div>
       </div>
 
-      {(active || ai) && (
+      {nativeText && !nativeHidden && (
+        <p
+          data-kvl-native={index}
+          tabIndex={nativeBlurred ? 0 : undefined}
+          className={`mt-1 pl-[3.25rem] pr-3 text-[12px] leading-snug text-zinc-500 dark:text-zinc-400 whitespace-pre-line rounded outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 transition-[filter] duration-200 ${
+            nativeBlurred
+              ? 'blur-[3px] select-none group-hover/cue:blur-none group-focus-within/cue:blur-none'
+              : ''
+          }`}
+        >
+          {nativeHits ? highlight(nativeText, 0, nativeHits) : nativeText}
+        </p>
+      )}
+
+      {(active || ai || saveWord) && (
         <div className="absolute right-2 -top-2 z-10 flex items-center gap-0.5 rounded-full bg-white dark:bg-zinc-800 ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.08] p-0.5 opacity-0 pointer-events-none group-hover/cue:opacity-100 group-hover/cue:pointer-events-auto group-focus-within/cue:opacity-100 group-focus-within/cue:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto">
-          {active && <ReplayButton onReplay={onReplay} onReplaySlow={onReplaySlow} />}
+          {saveWord && onSaveWord && (
+            <MiniButton
+              title={t('rail.saveWordTitle', { word: saveWord })}
+              onClick={(event) => {
+                event.stopPropagation();
+                onSaveWord(saveWord, cue.text);
+              }}
+            >
+              <Plus size={11} weight="bold" />
+            </MiniButton>
+          )}
+          {active && <ReplayButton onReplay={onReplay} onReplaySlow={onReplaySlow} combo={replayCombo} />}
           {ai && (
             <MiniButton
               title={explaining ? t('explain.close') : t('explain.action')}
@@ -829,6 +956,32 @@ function highlight(text: string, start: number, ranges: TextRange[]) {
   );
 }
 
+/**
+ * Align the platform's native track to the source cues by maximum temporal
+ * overlap. Both lists are sorted the same way, so one cursor walks the native
+ * track for the whole episode instead of a scan per line. A source line with
+ * no overlap gets `null`: nothing is rendered for it.
+ */
+export function alignNativeLines(
+  cues: readonly SubtitleCue[],
+  native: readonly NativeLineCue[],
+): (string | null)[] {
+  let cursor = 0;
+  return cues.map((cue) => {
+    while (cursor < native.length && native[cursor].end <= cue.start) cursor += 1;
+    let best: string | null = null;
+    let bestOverlap = 0;
+    for (let i = cursor; i < native.length && native[i].start < cue.end; i += 1) {
+      const overlap = Math.min(cue.end, native[i].end) - Math.max(cue.start, native[i].start);
+      if (overlap > bestOverlap) {
+        bestOverlap = overlap;
+        best = native[i].text;
+      }
+    }
+    return best;
+  });
+}
+
 function fmtTime(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));
   const hours = Math.floor(total / 3600);
@@ -896,7 +1049,7 @@ function MiniButton({
 }
 
 /** ⟲ of the active line: tap repeats the line; hold repeats it slower. */
-function ReplayButton({ onReplay, onReplaySlow }: { onReplay: () => void; onReplaySlow: () => void }) {
+function ReplayButton({ onReplay, onReplaySlow, combo }: { onReplay: () => void; onReplaySlow: () => void; combo?: string }) {
   const press = useLongPress(
     (event) => {
       event.stopPropagation();
@@ -907,7 +1060,7 @@ function ReplayButton({ onReplay, onReplaySlow }: { onReplay: () => void; onRepl
   return (
     <button
       type="button"
-      title={`${t('shortcut.replay')}\n${t('player.holdSlower')}`}
+      title={`${withCombo(t('shortcut.replay'), combo)}\n${t('player.holdSlower')}`}
       aria-label={t('shortcut.replay')}
       {...press}
       className="w-6 h-6 rounded-full flex items-center justify-center kvl-press text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-900/[0.06] dark:hover:bg-white/10"
