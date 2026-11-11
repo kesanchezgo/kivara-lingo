@@ -30,6 +30,7 @@ import {
   type DictPackImportMessage,
   type DictPackImportReply,
 } from '../../shared/dict-import-protocol';
+import { sendRuntimeMessage } from '../../shared/runtime-message';
 import { t } from '../../shared/i18n';
 
 export interface DictImportSuccess {
@@ -57,33 +58,15 @@ interface ParsedLocalFile {
 }
 
 /**
- * Send one message to the service worker and normalise the three ways it can
- * fail to answer: no runtime at all, a dead channel (`lastError`), or a reply
- * that never carried a payload.
+ * Send one message to the service worker and phrase the two ways it can fail
+ * to answer: no runtime / dead channel, or a reply that never carried a
+ * payload. Chrome's own `lastError` text is a debug string in English, so the
+ * user gets the localized message instead.
  */
-function sendToWorker(message: DictPackImportMessage): Promise<DictPackImportReply> {
-  return new Promise((resolve) => {
-    try {
-      const runtime = typeof chrome === 'undefined' ? undefined : chrome.runtime;
-      if (!runtime?.sendMessage) {
-        resolve({ ok: false, error: t('dict.swNoResponse') });
-        return;
-      }
-      runtime.sendMessage(message, (reply?: DictPackImportReply) => {
-        const err = runtime.lastError;
-        if (err) {
-          // `lastError` means the worker never took the message (torn down,
-          // reloaded, or no receiver). Chrome's message is a debug string in
-          // English; the user gets the localized one instead.
-          resolve({ ok: false, error: t('dict.swNoResponse') });
-          return;
-        }
-        resolve(reply ?? { ok: false, error: t('dict.swNoResponse') });
-      });
-    } catch (err) {
-      resolve({ ok: false, error: (err as Error).message });
-    }
-  });
+async function sendToWorker(message: DictPackImportMessage): Promise<DictPackImportReply> {
+  const outcome = await sendRuntimeMessage<DictPackImportReply>(message);
+  if (outcome.ok) return outcome.reply;
+  return { ok: false, error: t('dict.swNoResponse') };
 }
 
 /**

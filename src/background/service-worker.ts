@@ -89,7 +89,17 @@ import {
   DICT_PACK_IMPORT_BEGIN,
   DICT_PACK_IMPORT_COMMIT,
   DICT_PACK_IMPORT_TERMS,
+  EXPORT_PACK_STATS,
+  GET_PACK_STATS,
+  IMPORT_PACK_STATS,
+  RESET_PACK_STATS,
 } from '../shared/dict-import-protocol';
+import {
+  exportCoverage,
+  importCoverage,
+  readPackStats,
+  resetCoverage,
+} from '../shared/telemetry';
 import { t } from '../shared/i18n/sw';
 import { fetchGuarded, validateDictPackInstallRequest } from '../shared/net-guard';
 const OPEN_SETTINGS_SECTION_KEY = 'kivara:open-settings-section';
@@ -1235,6 +1245,63 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       try {
         await abortDictPackImport(packId);
         sendResponse({ ok: true });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  // Coverage widget (issue #32, same class as the import above): the panel
+  // lives in the content script, so `pack_stats` reads and writes issued from
+  // there hit the SITE's database. These four messages keep the table on the
+  // extension's origin; `shared/telemetry` still owns the implementation.
+  if (message?.type === GET_PACK_STATS) {
+    void (async () => {
+      try {
+        sendResponse({ ok: true, rows: await readPackStats() });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  if (message?.type === RESET_PACK_STATS) {
+    void (async () => {
+      try {
+        await resetCoverage();
+        sendResponse({ ok: true });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  if (message?.type === IMPORT_PACK_STATS) {
+    // The snapshot is user-supplied JSON that crossed a content-script
+    // boundary: importCoverage runs it through parseSnapshot (version, rows
+    // array, every row's types and ranges) and throws on the first problem.
+    const mode = message.mode === 'replace' ? 'replace' : 'merge';
+    const raw: unknown = message.raw;
+    void (async () => {
+      try {
+        if (!raw || typeof raw !== 'object') {
+          sendResponse({ ok: false, error: t('telem.invalidNotObject') });
+          return;
+        }
+        const result = await importCoverage(raw, mode);
+        sendResponse({ ok: true, ...result });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  if (message?.type === EXPORT_PACK_STATS) {
+    const source =
+      typeof message.source === 'string' ? message.source.trim().slice(0, 80) : undefined;
+    void (async () => {
+      try {
+        sendResponse({ ok: true, snapshot: await exportCoverage(source) });
       } catch (err) {
         sendResponse({ ok: false, error: (err as Error).message });
       }

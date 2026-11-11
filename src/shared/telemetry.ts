@@ -15,13 +15,34 @@
  * Nothing leaves the device. The `enabled` switch in `useKivaraStore` short-
  * circuits every record path; readers still work so the user can inspect any
  * stats accumulated before they toggled it off.
+ *
+ * This module owns the IndexedDB access, so it runs only in the service worker
+ * or an extension page. The pure model (totals, rankings, snapshot envelope)
+ * lives in `telemetry-model.ts`; the in-page panel reaches this table over
+ * `GET_PACK_STATS` / `RESET_PACK_STATS` / `IMPORT_PACK_STATS` /
+ * `EXPORT_PACK_STATS` instead of importing it (issue #32).
  */
-import { getDB, type PackStatsRow } from './db';
+import { getDB } from './db';
+import type { PackStatsRow } from './dict-types';
 import { t } from './i18n/core';
+import { MISS_PACK_ID } from './telemetry-model';
+import type { CoverageSnapshot, ImportMode, ImportResult } from './telemetry-model';
 
-export const BUNDLE_PACK_ID = 'bundle';
-export const REMOTE_PACK_ID = 'remote';
-export const MISS_PACK_ID = 'miss';
+export {
+  BUNDLE_PACK_ID,
+  DEFAULT_IDLE_THRESHOLD_MS,
+  MISS_PACK_ID,
+  REMOTE_PACK_ID,
+  aggregateCoverage,
+  idlePacks,
+  topPacksByHits,
+} from './telemetry-model';
+export type {
+  CoverageSnapshot,
+  CoverageTotals,
+  ImportMode,
+  ImportResult,
+} from './telemetry-model';
 
 /**
  * The store is the source of truth for the master switch, but `telemetry.ts`
@@ -123,43 +144,6 @@ export async function readPackStats(): Promise<PackStatsRow[]> {
   }
 }
 
-export interface CoverageTotals {
-  bundleHits: number;
-  packHits: number;
-  remoteHits: number;
-  misses: number;
-  total: number;
-  /**
-   * Hit ratio across local sources (bundle + packs) vs. total resolutions.
-   * 0 when there have been no lookups yet so the UI can render a placeholder.
-   */
-  localCoverage: number;
-}
-
-/** Sum a `PackStatsRow[]` into the per-bucket totals used by the UI widget. */
-export function aggregateCoverage(rows: PackStatsRow[]): CoverageTotals {
-  let bundleHits = 0;
-  let remoteHits = 0;
-  let misses = 0;
-  let packHits = 0;
-  for (const row of rows) {
-    if (row.packId === BUNDLE_PACK_ID) bundleHits = row.hits;
-    else if (row.packId === REMOTE_PACK_ID) remoteHits = row.hits;
-    else if (row.packId === MISS_PACK_ID) misses = row.hits;
-    else packHits += row.hits;
-  }
-  const total = bundleHits + packHits + remoteHits + misses;
-  const local = bundleHits + packHits;
-  return {
-    bundleHits,
-    packHits,
-    remoteHits,
-    misses,
-    total,
-    localCoverage: total > 0 ? local / total : 0,
-  };
-}
-
 /**
  * Drop every stats row. Wired to the "Reiniciar cobertura" button in the
  * dict-packs section so users can start fresh after, say, installing a new
@@ -171,69 +155,6 @@ export async function resetCoverage(): Promise<void> {
   } catch (err) {
     console.warn('[Kivara Lingo] telemetry reset failed', err);
   }
-}
-
-const SYNTHETIC_PACK_IDS = new Set([BUNDLE_PACK_ID, REMOTE_PACK_ID, MISS_PACK_ID]);
-
-export const DEFAULT_IDLE_THRESHOLD_MS = 30 * 86_400_000;
-
-/**
- * Rank user-installed packs by lookup hits, descending. Synthetic buckets
- * (`bundle`, `remote`, `miss`) are excluded — the ranking is meant to surface
- * which real packs the user actually relies on. Ties are broken by
- * `lastUsedAt` (more recently-used pack wins). Packs with zero hits are
- * dropped so the UI doesn't show "unused" entries here — that's what the
- * idle list is for.
- */
-export function topPacksByHits(rows: PackStatsRow[], limit = 10): PackStatsRow[] {
-  return rows
-    .filter((r) => !SYNTHETIC_PACK_IDS.has(r.packId) && r.hits > 0)
-    .slice()
-    .sort((a, b) => {
-      if (b.hits !== a.hits) return b.hits - a.hits;
-      return b.lastUsedAt - a.lastUsedAt;
-    })
-    .slice(0, Math.max(0, limit));
-}
-
-/**
- * Return user-installed packs that the user did try at least once but hasn't
- * touched within `thresholdMs` (default 30d). The "tried at least once" gate
- * (`hits > 0`) avoids flagging packs that were just installed and never used —
- * those are tracked by the install row itself. Synthetic ids are excluded.
- *
- * `now` is parameterised so tests can pin time without monkey-patching
- * `Date.now`.
- */
-export function idlePacks(
-  rows: PackStatsRow[],
-  thresholdMs: number = DEFAULT_IDLE_THRESHOLD_MS,
-  now: number = Date.now(),
-): PackStatsRow[] {
-  if (thresholdMs < 0) return [];
-  const cutoff = now - thresholdMs;
-  return rows
-    .filter(
-      (r) => !SYNTHETIC_PACK_IDS.has(r.packId) && r.hits > 0 && r.lastUsedAt < cutoff,
-    )
-    .slice()
-    .sort((a, b) => a.lastUsedAt - b.lastUsedAt);
-}
-
-/**
- * Snapshot wire format for coverage export/import. Versioned so future
- * additions (e.g. daily history, per-language breakdown) can extend it
- * without breaking older snapshots.
- */
-export interface CoverageSnapshot {
-  /** Format version. Bump when shape changes incompatibly. */
-  version: 1;
-  /** ISO timestamp the snapshot was produced. */
-  exportedAt: string;
-  /** Best-effort label for the source (extension version, user-supplied). */
-  source?: string;
-  /** Raw rows, in their on-disk shape. */
-  rows: PackStatsRow[];
 }
 
 const CURRENT_SNAPSHOT_VERSION = 1 as const;
@@ -250,14 +171,6 @@ export async function exportCoverage(source?: string): Promise<CoverageSnapshot>
     source,
     rows,
   };
-}
-
-export type ImportMode = 'merge' | 'replace';
-
-export interface ImportResult {
-  added: number;
-  merged: number;
-  replaced: number;
 }
 
 /**
@@ -302,7 +215,13 @@ export async function importCoverage(
   };
 }
 
-function parseSnapshot(raw: unknown): CoverageSnapshot {
+/**
+ * Boundary validator for a coverage snapshot arriving from a UI surface.
+ * Exported because it is the whole validation story for `IMPORT_PACK_STATS`:
+ * the payload crosses a message boundary from a content script, so nothing
+ * about its shape is trusted until this returns.
+ */
+export function parseSnapshot(raw: unknown): CoverageSnapshot {
   if (!raw || typeof raw !== 'object') {
     throw new Error(t('telem.invalidNotObject'));
   }
@@ -321,10 +240,14 @@ function parseSnapshot(raw: unknown): CoverageSnapshot {
     const row = r as Record<string, unknown>;
     if (
       typeof row.packId !== 'string' ||
+      row.packId.length === 0 ||
+      row.packId.length > 80 ||
       typeof row.hits !== 'number' ||
       typeof row.lastUsedAt !== 'number' ||
       typeof row.createdAt !== 'number' ||
       !Number.isFinite(row.hits) ||
+      !Number.isFinite(row.lastUsedAt) ||
+      !Number.isFinite(row.createdAt) ||
       row.hits < 0
     ) {
       throw new Error(t('telem.invalidRow'));

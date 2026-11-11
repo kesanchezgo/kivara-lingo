@@ -18,21 +18,30 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { strToU8, zipSync } from 'fflate';
-import type { DictPackRow, DictTermRow } from '../../src/shared/dict-types';
+import type { DictPackRow, DictTermRow, PackStatsRow } from '../../src/shared/dict-types';
+import { parseSnapshot } from '../../src/shared/telemetry';
 
 interface FakeWorker {
   packs: Map<string, DictPackRow>;
   terms: Map<string, DictTermRow[]>;
+  /** The extension-origin `pack_stats` table. */
+  stats: Map<string, PackStatsRow>;
   messages: Record<string, unknown>[];
   /** Set when the fake should answer like a torn-down service worker. */
   unavailable: boolean;
 }
 
 function makeWorker(): FakeWorker {
-  return { packs: new Map(), terms: new Map(), messages: [], unavailable: false };
+  return {
+    packs: new Map(),
+    terms: new Map(),
+    stats: new Map(),
+    messages: [],
+    unavailable: false,
+  };
 }
 
-/** Answer an import message exactly the way the worker does. */
+/** Answer a message exactly the way the worker does. */
 function route(worker: FakeWorker, message: Record<string, unknown>): Record<string, unknown> {
   switch (message.type) {
     case 'LIST_DICT_PACKS':
@@ -56,6 +65,43 @@ function route(worker: FakeWorker, message: Record<string, unknown>): Record<str
     case 'DICT_PACK_IMPORT_ABORT':
       worker.terms.delete(message.packId as string);
       return { ok: true };
+    case 'GET_PACK_STATS':
+      return { ok: true, rows: [...worker.stats.values()] };
+    case 'RESET_PACK_STATS':
+      worker.stats.clear();
+      return { ok: true };
+    case 'IMPORT_PACK_STATS': {
+      // The real worker runs the same validator before touching the table.
+      const snap = parseSnapshot(message.raw);
+      let added = 0;
+      let merged = 0;
+      for (const row of snap.rows) {
+        const existing = worker.stats.get(row.packId);
+        if (existing) {
+          worker.stats.set(row.packId, {
+            packId: row.packId,
+            hits: Math.max(existing.hits, row.hits),
+            lastUsedAt: Math.max(existing.lastUsedAt, row.lastUsedAt),
+            createdAt: Math.min(existing.createdAt, row.createdAt),
+          });
+          merged += 1;
+        } else {
+          worker.stats.set(row.packId, row);
+          added += 1;
+        }
+      }
+      return { ok: true, added, merged, replaced: 0 };
+    }
+    case 'EXPORT_PACK_STATS':
+      return {
+        ok: true,
+        snapshot: {
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          source: message.source,
+          rows: [...worker.stats.values()],
+        },
+      };
     default:
       return { ok: true };
   }
@@ -84,7 +130,13 @@ function installChrome(worker: FakeWorker) {
           }
           return;
         }
-        cb?.(route(worker, message));
+        // A handler that throws (invalid payload) replies with the error, the
+        // same way the worker's try/catch does.
+        try {
+          cb?.(route(worker, message));
+        } catch (err) {
+          cb?.({ ok: false, error: (err as Error).message });
+        }
       }, 0);
     },
     onMessage: { addListener: () => {}, removeListener: () => {} },
@@ -127,11 +179,48 @@ async function pasteAndImport(text: string, title?: string) {
   const textarea = document.querySelector('textarea');
   if (!textarea) throw new Error('CSV textarea not found');
   fireEvent.change(textarea, { target: { value: text } });
-  fireEvent.click(screen.getByRole('button', { name: /^Importar$/i }));
+  // The button stays disabled while the previous import (and its refresh
+  // round-trip) is in flight — wait for it instead of racing the worker.
+  const btn = await waitFor(() => {
+    const node = screen.getByRole('button', { name: /^Importar$/i }) as HTMLButtonElement;
+    if (node.disabled) throw new Error('import button still disabled');
+    return node;
+  });
+  fireEvent.click(btn);
 }
 
 function importMessages(worker: FakeWorker): Record<string, unknown>[] {
   return worker.messages.filter((m) => String(m.type).startsWith('DICT_PACK_IMPORT_'));
+}
+
+/** The hidden coverage-snapshot picker (`accept="application/json,.json"`). */
+function coverageFileInput(): HTMLInputElement {
+  const input = document.querySelector('input[type="file"][accept*="application/json"]');
+  if (!input) throw new Error('coverage file picker not found');
+  return input as HTMLInputElement;
+}
+
+async function pickCoverageFile(payload: unknown) {
+  const input = coverageFileInput();
+  const file = new File([JSON.stringify(payload)], 'coverage.json', {
+    type: 'application/json',
+  });
+  Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+  fireEvent.change(input);
+}
+
+/** Expand the collapsible "Cobertura" sub-section. */
+async function openCoverage() {
+  fireEvent.click(screen.getByRole('button', { name: /Qué encuentra sin conexión/i }));
+  await waitFor(() => expect(screen.getByRole('button', { name: /^Exportar$/i })).not.toBeNull());
+}
+
+function statsMessages(worker: FakeWorker): Record<string, unknown>[] {
+  return worker.messages.filter((m) =>
+    ['GET_PACK_STATS', 'RESET_PACK_STATS', 'IMPORT_PACK_STATS', 'EXPORT_PACK_STATS'].includes(
+      String(m.type),
+    ),
+  );
 }
 
 beforeEach(() => {
@@ -230,5 +319,100 @@ describe('DictPacksSection import route (#32)', { timeout: 30_000 }, () => {
     expect(importMessages(worker).map((m) => m.type)).toEqual(['DICT_PACK_IMPORT_BEGIN']);
     expect(worker.packs.size).toBe(0);
     expect(screen.queryByText(/términos importados/i)).toBeNull();
+  });
+});
+
+describe('DictPacksSection coverage route (#32)', { timeout: 30_000 }, () => {
+  it('reads the coverage rows from the worker, not the page database', async () => {
+    const worker = installChrome(makeWorker());
+    worker.stats.set('bundle', { packId: 'bundle', hits: 3, lastUsedAt: 1, createdAt: 1 });
+    await mountPanel();
+
+    await openCoverage();
+
+    // The GET went out and its rows drove the widget ("3 lookups").
+    await waitFor(() => expect(screen.getAllByText(/3 lookups/i).length).toBeGreaterThan(0));
+    expect(statsMessages(worker).map((m) => m.type)).toContain('GET_PACK_STATS');
+  });
+
+  it('resets the coverage rows through the worker', async () => {
+    const worker = installChrome(makeWorker());
+    worker.stats.set('bundle', { packId: 'bundle', hits: 3, lastUsedAt: 1, createdAt: 1 });
+    await mountPanel();
+    await openCoverage();
+    await waitFor(() => expect(screen.getAllByText(/3 lookups/i).length).toBeGreaterThan(0));
+
+    fireEvent.click(screen.getByRole('button', { name: /^Reiniciar$/i }));
+
+    await waitFor(() => expect(worker.stats.size).toBe(0));
+    expect(statsMessages(worker).map((m) => m.type)).toContain('RESET_PACK_STATS');
+    // The refresh after the reset shows the empty state.
+    await waitFor(() => expect(screen.getAllByText(/sin datos/i).length).toBeGreaterThan(0));
+  });
+
+  it('imports a coverage snapshot through the worker', async () => {
+    const worker = installChrome(makeWorker());
+    await mountPanel();
+    await openCoverage();
+
+    await pickCoverageFile({
+      version: 1,
+      exportedAt: '2026-11-11T00:00:00.000Z',
+      rows: [{ packId: 'pack-real', hits: 5, lastUsedAt: 10, createdAt: 1 }],
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText(/Cobertura importada: 1 filas nuevas, 0 fusionadas/i)).not.toBeNull(),
+    );
+    expect(worker.stats.get('pack-real')?.hits).toBe(5);
+    expect(statsMessages(worker).map((m) => m.type)).toContain('IMPORT_PACK_STATS');
+  });
+
+  it('rejects a malformed snapshot in the worker and shows its reason', async () => {
+    const worker = installChrome(makeWorker());
+    await mountPanel();
+    await openCoverage();
+
+    // Right version, no `rows` — the worker's validator refuses it.
+    await pickCoverageFile({ version: 1 });
+
+    await waitFor(() =>
+      expect(screen.getByText(/No se pudo importar: .*rows/i)).not.toBeNull(),
+    );
+    expect(worker.stats.size).toBe(0);
+  });
+
+  it('reports an unavailable worker on import instead of touching the page database', async () => {
+    const worker = installChrome(makeWorker());
+    worker.unavailable = true;
+    await mountPanel();
+    await openCoverage();
+
+    await pickCoverageFile({ version: 1, exportedAt: '', rows: [] });
+
+    await waitFor(() =>
+      expect(screen.getByText(/No se pudo importar: Service worker no respondió/i)).not.toBeNull(),
+    );
+    expect(worker.stats.size).toBe(0);
+  });
+
+  it('exports the snapshot built by the worker', async () => {
+    const worker = installChrome(makeWorker());
+    worker.stats.set('bundle', { packId: 'bundle', hits: 2, lastUsedAt: 1, createdAt: 1 });
+    // happy-dom has no object-URL registry for downloads.
+    const createObjectURL = vi.fn(() => 'blob:coverage');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL });
+    await mountPanel();
+    await openCoverage();
+    await waitFor(() => expect(screen.getAllByText(/2 lookups/i).length).toBeGreaterThan(0));
+
+    fireEvent.click(screen.getByRole('button', { name: /^Exportar$/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/Cobertura exportada \(1 filas\)/i)).not.toBeNull(),
+    );
+    expect(statsMessages(worker).map((m) => m.type)).toContain('EXPORT_PACK_STATS');
+    expect(createObjectURL).toHaveBeenCalledOnce();
   });
 });

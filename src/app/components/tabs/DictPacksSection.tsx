@@ -56,15 +56,18 @@ import {
   aggregateCoverage,
   BUNDLE_PACK_ID,
   DEFAULT_IDLE_THRESHOLD_MS,
-  exportCoverage,
   idlePacks,
-  importCoverage,
   MISS_PACK_ID,
-  readPackStats,
   REMOTE_PACK_ID,
-  resetCoverage,
   topPacksByHits,
-} from '../../../shared/telemetry';
+} from '../../../shared/telemetry-model';
+import {
+  exportPackStatsViaWorker,
+  importPackStatsViaWorker,
+  readPackStatsViaWorker,
+  resetPackStatsViaWorker,
+  type PackStatsFailure,
+} from '../../../shared/telemetry-client';
 import { useKivaraStore } from '../../../shared/use-kivara-store';
 import {
   RECOMMENDED_PACKS,
@@ -76,6 +79,16 @@ import { InfoHint } from '../InfoHint';
 interface ImportFeedback {
   kind: 'ok' | 'err';
   message: string;
+}
+
+/**
+ * Panel copy for a coverage operation that did not complete. A torn-down
+ * worker has no message worth showing (Chrome's is an English debug string),
+ * so it maps to the shared "worker did not respond" string; a rejection from
+ * the worker carries its own explanation (e.g. the snapshot validator).
+ */
+function failureMessage(failure: PackStatsFailure): string {
+  return failure.code === 'worker-unavailable' ? t('dict.swNoResponse') : failure.error;
 }
 
 const TIER_META: Record<RecommendedPack['tier'], { label: string; pill: string; icon: React.ReactNode }> = {
@@ -157,14 +170,13 @@ export function DictPacksSection() {
       }
       setPacks([]);
     }
-    try {
-      const rows = await readPackStats();
-      setStats(rows);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (!/context invalidated/i.test(msg)) {
-        console.warn('[Kivara Lingo] could not read telemetry', err);
-      }
+    const statsOutcome = await readPackStatsViaWorker();
+    if (statsOutcome.ok) {
+      setStats(statsOutcome.rows);
+    } else if (statsOutcome.code === 'failed') {
+      // `worker-unavailable` is the expected shape right after an extension
+      // reload; the panel just shows no stats until the page is refreshed.
+      console.warn('[Kivara Lingo] could not read telemetry', statsOutcome.error);
     }
   }, []);
 
@@ -175,14 +187,19 @@ export function DictPacksSection() {
   /* ── Coverage import / export ────────────────────────────────────────── */
 
   const onResetCoverage = useCallback(async () => {
-    await resetCoverage();
+    const outcome = await resetPackStatsViaWorker();
+    if (!outcome.ok && outcome.code === 'failed') {
+      console.warn('[Kivara Lingo] could not reset coverage', outcome.error);
+    }
     await refresh();
   }, [refresh]);
 
   const onExportCoverage = useCallback(async () => {
     setFeedback(null);
     try {
-      const snap = await exportCoverage('kivara-lingo');
+      const outcome = await exportPackStatsViaWorker('kivara-lingo');
+      if (!outcome.ok) throw new Error(failureMessage(outcome));
+      const snap = outcome.snapshot;
       const blob = new Blob([JSON.stringify(snap, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -219,11 +236,14 @@ export function DictPacksSection() {
       try {
         const text = await file.text();
         const raw = JSON.parse(text);
-        const result = await importCoverage(raw, 'merge');
+        // The snapshot is validated in the worker (parseSnapshot): version,
+        // rows array, and every row's field types and ranges.
+        const outcome = await importPackStatsViaWorker(raw, 'merge');
+        if (!outcome.ok) throw new Error(failureMessage(outcome));
         await refresh();
         setFeedback({
           kind: 'ok',
-          message: `Cobertura importada: ${result.added} filas nuevas, ${result.merged} fusionadas.`,
+          message: `Cobertura importada: ${outcome.added} filas nuevas, ${outcome.merged} fusionadas.`,
         });
       } catch (err) {
         setFeedback({

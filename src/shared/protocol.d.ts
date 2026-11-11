@@ -33,9 +33,36 @@ import type {
   CardDismissRequest,
   CardDismissResponse,
 } from './types';
+import type {
+  DictPackImportBeginMessage,
+  DictPackImportTermsMessage,
+  DictPackImportCommitMessage,
+  DictPackImportAbortMessage,
+  DictPackImportReply,
+  ImportPackStatsMessage,
+  ExportPackStatsMessage,
+  PackStatsReply,
+} from './dict-import-protocol';
+
+/**
+ * The dictionary-pack channel travels over raw `chrome.runtime.sendMessage`
+ * (the panel is a content script, not a webext-bridge client), but its
+ * request/response pairs live here with every other cross-context contract so
+ * there is one place to read them. `Omit<…, 'type'>` drops the discriminant —
+ * the envelope carries the name.
+ */
+type DictPackImportRequest<T> = Omit<T, 'type'>;
 
 declare module 'webext-bridge' {
   export interface ProtocolMap {
+    DICT_PACK_IMPORT_BEGIN: ProtocolWithReturn<DictPackImportRequest<DictPackImportBeginMessage>, DictPackImportReply>;
+    DICT_PACK_IMPORT_TERMS: ProtocolWithReturn<DictPackImportRequest<DictPackImportTermsMessage>, DictPackImportReply>;
+    DICT_PACK_IMPORT_COMMIT: ProtocolWithReturn<DictPackImportRequest<DictPackImportCommitMessage>, DictPackImportReply>;
+    DICT_PACK_IMPORT_ABORT: ProtocolWithReturn<DictPackImportRequest<DictPackImportAbortMessage>, DictPackImportReply>;
+    GET_PACK_STATS: ProtocolWithReturn<Record<string, never>, PackStatsReply>;
+    RESET_PACK_STATS: ProtocolWithReturn<Record<string, never>, PackStatsReply>;
+    IMPORT_PACK_STATS: ProtocolWithReturn<DictPackImportRequest<ImportPackStatsMessage>, PackStatsReply>;
+    EXPORT_PACK_STATS: ProtocolWithReturn<DictPackImportRequest<ExportPackStatsMessage>, PackStatsReply>;
     CREATE_CARD: ProtocolWithReturn<CreateCardRequest, CreateCardResponse>;
     UPDATE_NOTE_FRAME: ProtocolWithReturn<
       { noteId: number; fieldName: string | null; frame: string },
