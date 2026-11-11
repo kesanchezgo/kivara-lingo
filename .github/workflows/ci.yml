@@ -59,8 +59,11 @@ jobs:
       - name: Install Chromium (browser from CDN, apt deps best-effort)
         run: |
           pnpm exec playwright install chromium
-          pnpm exec playwright install-deps chromium \
-            || echo "::warning::install-deps skipped: apt mirror unreachable; runner image already provides the libraries"
+          # Bounded: a half-alive mirror spends minutes on "Ign:/Get:" before
+          # the job's own timeout kills it (an e2e-audio job died at 15 min
+          # still inside apt). 180 s is plenty when the mirror answers.
+          timeout 180 pnpm exec playwright install-deps chromium \
+            || echo "::warning::install-deps skipped: apt mirror unreachable or slow; runner image already provides the libraries"
       - run: pnpm build
       - run: xvfb-run --auto-servernum -- pnpm exec playwright test
 
@@ -84,8 +87,11 @@ jobs:
       - name: Install Chromium (browser from CDN, apt deps best-effort)
         run: |
           pnpm exec playwright install chromium
-          pnpm exec playwright install-deps chromium \
-            || echo "::warning::install-deps skipped: apt mirror unreachable; runner image already provides the libraries"
+          # Bounded: a half-alive mirror spends minutes on "Ign:/Get:" before
+          # the job's own timeout kills it (an e2e-audio job died at 15 min
+          # still inside apt). 180 s is plenty when the mirror answers.
+          timeout 180 pnpm exec playwright install-deps chromium \
+            || echo "::warning::install-deps skipped: apt mirror unreachable or slow; runner image already provides the libraries"
       # This wrapper does: build with KIVARA_E2E=1, then run the audio
       # workload against that build (scripts/run-e2e-with-flag.mjs).
       - run: xvfb-run --auto-servernum -- pnpm test:e2e:audio
