@@ -16,7 +16,7 @@ import type {
   AnkiMapping,
 } from '../shared/types';
 import { buildExactNoteQuery, escapeAnkiSearchTerm } from '../shared/anki-search';
-import { ankiConnect, AnkiConnectError, dataUrlToBase64, type AnkiCardFieldsInfo } from './anki-connect';
+import { ankiConnect, AnkiConnectError, dataUrlToBase64, type AnkiNoteInfo } from './anki-connect';
 
 function escapeHtml(text: string): string {
   return text
@@ -196,32 +196,25 @@ export async function browseNote(
 }
 
 /**
- * ANKI_WORD_INTERVALS: word → interval (days) SNAPSHOT for the F5 word-status
- * layer (docs/REDESIGN-V2.md §7 F5).
+ * ANKI_WORD_INTERVALS: word → maturity/seen sentinel SNAPSHOT for the F5
+ * word-status layer (docs/REDESIGN-V2.md §7 F5).
  *
  * Call order on AnkiConnect v6:
- *   1. `findCards('deck:"…"')` — EVERY card id of the deck, in ONE unbounded
- *      call. AnkiConnect pages matches internally server-side, so the answer
- *      covers the whole deck; nothing is cut here on purpose (the old path
- *      sliced to the last 5000 cards and silently dropped the rest).
- *   2. `getIntervals(cards)` — latest recorded interval per card, in request
- *      order. Positive values are DAYS; negative values are SECONDS (learning
- *      steps under one day) and read as 0 days.
- *   3. `cardsInfo(cards, fields: ['noteId', 'fields'])` — only the note id and
- *      the note fields are requested, so the full card record
- *      (question/answer/css/scheduling) never crosses the wire.
+ *   1. `findNotes('deck:"..."')` — EVERY note of the deck, no truncation.
+ *   2. `notesInfo(noteIds)` in fixed batches — the note `fields` (the
+ *      headword) and the note's `cards` ids. `notesInfo` takes note ids only;
+ *      the `render` parameter is never sent, so Anki never renders a card
+ *      template to build this snapshot.
+ *   3. `findCards('deck:"..." prop:ivl>=21')` and
+ *      `findCards('deck:"..." -is:new')` — the mature and the seen card sets.
+ *      The card ids are joined back to notes through the `cards` array from
+ *      step 2; a note with any mature card answers `MATURE_DAYS`, otherwise a
+ *      note with any seen card answers `SEEN_DAYS`. A note whose cards are all
+ *      new stays out of the map.
  *
- * Why step 3 is `cardsInfo` with an explicit field list and not `notesInfo`:
- * on AnkiConnect v6 `notesInfo(notes, query)` has NO field filter — it answers
- * with each note's full payload (tags, note type, card lists), exactly what
- * must not be pulled — and `cardsToNotes` folds cards that share a note,
- * which would break the positional card→word mapping. `cardsInfo` is the one
- * action whose `fields` parameter accepts an explicit selection.
- *
- * Steps 2 and 3 page the SAME id order in fixed batches; every batch must
- * succeed, so the answer either covers every card or fails loudly as
- * `{ ok: false, error }`. A partial map is never returned and never silently
- * truncated.
+ * Every read must succeed, so the answer either covers every note or fails
+ * loudly as `{ ok: false, error }`. A partial map is never returned and never
+ * silently truncated.
  *
  * Error contract (the caller `refreshAnkiIntervals` relies on it):
  *   `{ ok: true, words }`  — the deck was read COMPLETELY; `words` may be
@@ -229,43 +222,41 @@ export async function browseNote(
  *   `{ ok: false, error }` — the query failed; the caller KEEPS its cache and
  *                            marks it stale.
  */
-const INTERVALS_READ_BATCH = 1000;
 
-/** Signed `getIntervals` value (days, or seconds when negative) → days. */
-function intervalDays(raw: unknown): number {
-  if (typeof raw !== 'number' || !Number.isFinite(raw) || raw <= 0) return 0;
-  return raw;
-}
+/**
+ * Sentinel interval for a mature word. The exact interval is no longer
+ * fetched: the only boundary the precedence needs is Anki's own maturity
+ * threshold (`prop:ivl>=21`), so `MATURE_DAYS` values every mature word.
+ */
+export const MATURE_DAYS = 21;
 
-/** The card's headword from the explicitly requested note fields. */
-function headwordOf(fields: AnkiCardFieldsInfo['fields'], fieldName: string): string {
+/**
+ * Sentinel interval for a seen (reviewed at least once, still not mature)
+ * word. Real cards at this stage carry intervals anywhere from 0 to 20 days;
+ * `SEEN_DAYS` is the single value the snapshot reports because `>= MATURE_DAYS`
+ * is the only comparison made downstream.
+ */
+export const SEEN_DAYS = 0;
+
+const NOTES_READ_BATCH = 500;
+
+/**
+ * The note's headword from its fields (`fieldName`, else the first field).
+ */
+function headwordOf(fields: AnkiNoteInfo['fields'] | undefined, fieldName: string): string {
   if (!fields) return '';
   const field = fields[fieldName] ?? Object.values(fields)[0];
   return plainText(field?.value ?? '');
 }
 
-/** Step 2: latest interval (days) per card, batched over the fixed id order. */
-async function readIntervals(cards: number[], mapping: AnkiMapping): Promise<number[]> {
-  const out: number[] = [];
-  for (let start = 0; start < cards.length; start += INTERVALS_READ_BATCH) {
-    const batch = cards.slice(start, start + INTERVALS_READ_BATCH);
-    const part = await ankiConnect.getIntervals(batch, mapping.ankiUrl, mapping.apiKey);
+/** Step 2: note fields and card ids, batched over the fixed id order. */
+async function readNotes(noteIds: number[], mapping: AnkiMapping): Promise<AnkiNoteInfo[]> {
+  const out: AnkiNoteInfo[] = [];
+  for (let start = 0; start < noteIds.length; start += NOTES_READ_BATCH) {
+    const batch = noteIds.slice(start, start + NOTES_READ_BATCH);
+    const part = await ankiConnect.notesInfo(batch, mapping.ankiUrl, mapping.apiKey);
     if (!Array.isArray(part) || part.length !== batch.length) {
-      throw new AnkiConnectError('getIntervals returned fewer intervals than cards.', 'ANKI');
-    }
-    for (const raw of part) out.push(intervalDays(raw));
-  }
-  return out;
-}
-
-/** Step 3: note id + note fields per card, batched over the fixed id order. */
-async function readCardFields(cards: number[], mapping: AnkiMapping): Promise<AnkiCardFieldsInfo[]> {
-  const out: AnkiCardFieldsInfo[] = [];
-  for (let start = 0; start < cards.length; start += INTERVALS_READ_BATCH) {
-    const batch = cards.slice(start, start + INTERVALS_READ_BATCH);
-    const part = await ankiConnect.cardFieldsInfo(batch, ['noteId', 'fields'], mapping.ankiUrl, mapping.apiKey);
-    if (!Array.isArray(part) || part.length !== batch.length) {
-      throw new AnkiConnectError('cardsInfo returned fewer records than cards.', 'ANKI');
+      throw new AnkiConnectError('notesInfo returned fewer records than notes.', 'ANKI');
     }
     out.push(...part);
   }
@@ -281,26 +272,39 @@ export async function wordIntervals(
   // an honest empty snapshot (the cache is replaced with {}) beats an error.
   if (!deck.trim() || !fieldName.trim()) return { ok: true, words: {} };
   try {
-    const cards = await ankiConnect.findCards(
-      `deck:"${escapeAnkiSearchTerm(deck)}"`,
-      mapping.ankiUrl,
-      mapping.apiKey,
-    );
-    if (!Array.isArray(cards)) {
+    const deckQuery = `deck:"${escapeAnkiSearchTerm(deck)}"`;
+    const noteIds = await ankiConnect.findNotes(deckQuery, mapping.ankiUrl, mapping.apiKey);
+    if (!Array.isArray(noteIds)) {
+      throw new AnkiConnectError('findNotes did not return a note list.', 'ANKI');
+    }
+    if (noteIds.length === 0) return { ok: true, words: {} };
+
+    const [notes, matureCards, seenCards] = await Promise.all([
+      readNotes(noteIds, mapping),
+      ankiConnect.findCards(`${deckQuery} prop:ivl>=21`, mapping.ankiUrl, mapping.apiKey),
+      ankiConnect.findCards(`${deckQuery} -is:new`, mapping.ankiUrl, mapping.apiKey),
+    ]);
+    if (!Array.isArray(matureCards) || !Array.isArray(seenCards)) {
       throw new AnkiConnectError('findCards did not return a card list.', 'ANKI');
     }
-    if (cards.length === 0) return { ok: true, words: {} };
 
-    const intervals = await readIntervals(cards, mapping);
-    const infos = await readCardFields(cards, mapping);
-
+    const mature = new Set(matureCards);
+    const seen = new Set(seenCards);
     const words: Record<string, number> = {};
-    for (let i = 0; i < cards.length; i += 1) {
-      const word = headwordOf(infos[i]?.fields, fieldName);
+    for (const note of notes) {
+      const word = headwordOf(note?.fields, fieldName);
       if (!word) continue;
-      // Max: a word with several cards (duplicate notes, generated cards)
-      // counts by its most advanced card.
-      words[word] = Math.max(words[word] ?? 0, intervals[i]);
+      const cards = Array.isArray(note?.cards) ? note.cards : [];
+      // Maturity wins over seen when a note has several cards; a note whose
+      // cards are all new has no sentinel and stays out of the map.
+      const days = cards.some((id) => mature.has(id))
+        ? MATURE_DAYS
+        : cards.some((id) => seen.has(id))
+          ? SEEN_DAYS
+          : undefined;
+      if (days === undefined) continue;
+      const previous = words[word];
+      if (previous === undefined || days > previous) words[word] = days;
     }
     return { ok: true, words };
   } catch (err) {

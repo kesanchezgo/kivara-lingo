@@ -272,14 +272,14 @@ export interface AnkiCardInfo {
 }
 
 /**
- * Shape of a `cardsInfo` answer restricted with the `fields` parameter: only
- * the requested top-level record properties come back, and a card that no
- * longer exists answers as `{}` (every property optional).
+ * Subset of a `notesInfo` record the extension reads: the note id, its fields
+ * (the headword lives here) and the ids of its cards. `cards` is the join key
+ * that maps a note to the maturity/seen predicates' card-id answers.
  */
-export interface AnkiCardFieldsInfo {
-  cardId?: number;
-  noteId?: number;
-  fields?: Record<string, { value: string; order?: number }>;
+export interface AnkiNoteInfo {
+  noteId: number;
+  fields: Record<string, { value: string }>;
+  cards?: number[];
 }
 
 export const ankiConnect = {
@@ -372,11 +372,13 @@ export const ankiConnect = {
   },
 
   /**
-   * Get the content of specific fields from notes by ID. Used alongside
-   * findNotes to extract the actual saved word values.
+   * Get the content of specific notes by ID. Used alongside `findNotes` to
+   * extract the saved word values and, for the F5 snapshot, the note's card
+   * ids. `notesInfo` takes note ids only: no `render` is ever requested, so no
+   * card template is rendered by Anki.
    */
-  async notesInfo(notes: number[], url?: string, apiKey?: string): Promise<Array<{ noteId: number; fields: Record<string, { value: string }> }>> {
-    return invoke<Array<{ noteId: number; fields: Record<string, { value: string }> }>>('notesInfo', { notes }, { url, apiKey });
+  async notesInfo(notes: number[], url?: string, apiKey?: string): Promise<AnkiNoteInfo[]> {
+    return invoke<AnkiNoteInfo[]>('notesInfo', { notes }, { url, apiKey });
   },
 
   /**
@@ -409,32 +411,6 @@ export const ankiConnect = {
   /** Card scheduling data (interval/reps/lapses) plus the note fields. */
   async cardsInfo(cards: number[], url?: string, apiKey?: string): Promise<AnkiCardInfo[]> {
     return invoke<AnkiCardInfo[]>('cardsInfo', { cards }, { url, apiKey });
-  },
-
-  /**
-   * Latest recorded interval per card, in the order the ids were sent.
-   * AnkiConnect's units are signed: positive = days, negative = SECONDS
-   * (learning steps below one day), 0 for a card that never left learning.
-   */
-  async getIntervals(cards: number[], url?: string, apiKey?: string): Promise<number[]> {
-    return invoke<number[]>('getIntervals', { cards }, { url, apiKey });
-  },
-
-  /**
-   * `cardsInfo` with an EXPLICIT field request: only the named top-level
-   * record properties per card travel the wire (e.g. `['noteId', 'fields']`
-   * gives the note id plus the note fields, without question/answer/css or
-   * scheduling data). This is the only AnkiConnect v6 action that accepts a
-   * field-selection list — `notesInfo` cannot filter fields, which is why the
-   * F5 word-interval snapshot reads through here.
-   */
-  async cardFieldsInfo(
-    cards: number[],
-    fields: string[],
-    url?: string,
-    apiKey?: string,
-  ): Promise<AnkiCardFieldsInfo[]> {
-    return invoke<AnkiCardFieldsInfo[]>('cardsInfo', { cards, fields }, { url, apiKey });
   },
 };
 

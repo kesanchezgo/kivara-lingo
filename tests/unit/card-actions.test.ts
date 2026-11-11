@@ -17,9 +17,8 @@ interface Spies {
   addTags: ReturnType<typeof vi.fn>;
   guiBrowse: ReturnType<typeof vi.fn>;
   findCards: ReturnType<typeof vi.fn>;
+  findNotes: ReturnType<typeof vi.fn>;
   cardsInfo: ReturnType<typeof vi.fn>;
-  getIntervals: ReturnType<typeof vi.fn>;
-  cardFieldsInfo: ReturnType<typeof vi.fn>;
   notesInfo: ReturnType<typeof vi.fn>;
   updateNoteFields: ReturnType<typeof vi.fn>;
   storeMediaFile: ReturnType<typeof vi.fn>;
@@ -31,12 +30,11 @@ function setup(overrides: Partial<Spies> = {}): Spies {
     addTags: vi.fn(async () => null),
     guiBrowse: vi.fn(async () => [1]),
     findCards: vi.fn(async () => [55]),
+    findNotes: vi.fn(async () => []),
     cardsInfo: vi.fn(async () => [{ cardId: 55, noteId: 77, interval: 21, fields: {} }]),
-    // Batch defaults: every card in the batch reads as an interval-0 card the
-    // pipeline cannot map to a word (empty record). Tests override these.
-    getIntervals: vi.fn(async (cards: number[]) => cards.map(() => 0)),
-    cardFieldsInfo: vi.fn(async (cards: number[]) => cards.map(() => ({}))),
-    notesInfo: vi.fn(async () => [{ noteId: 77, fields: { Sentence: { value: 'First scene.' } } }]),
+    notesInfo: vi.fn(async () => [
+      { noteId: 77, fields: { Sentence: { value: 'First scene.' } }, cards: [55] },
+    ]),
     updateNoteFields: vi.fn(async () => null),
     storeMediaFile: vi.fn(async (name: string) => name),
     ...overrides,
@@ -49,9 +47,8 @@ function setup(overrides: Partial<Spies> = {}): Spies {
       addTags: spies.addTags,
       guiBrowse: spies.guiBrowse,
       findCards: spies.findCards,
+      findNotes: spies.findNotes,
       cardsInfo: spies.cardsInfo,
-      getIntervals: spies.getIntervals,
-      cardFieldsInfo: spies.cardFieldsInfo,
       notesInfo: spies.notesInfo,
       updateNoteFields: spies.updateNoteFields,
       storeMediaFile: spies.storeMediaFile,
@@ -188,112 +185,137 @@ describe('browseNote (See in Anki)', () => {
 });
 
 /**
- * The interval snapshot pipeline: findCards → getIntervals → field-filtered
- * cardsInfo. Days come from `getIntervals` (negative = seconds → 0), the
- * headword from the explicitly requested note fields, max per word, and any
- * batch failure fails the WHOLE answer loudly — the old path silently cut to
- * the last 5000 cards and swallowed every error.
+ * The sentinel snapshot pipeline: findNotes → batched notesInfo → two
+ * predicate findCards calls (maturity, seen). A note's word maps through its
+ * `cards` array: any mature card → MATURE_DAYS, otherwise any seen card →
+ * SEEN_DAYS, otherwise the note stays out. Any failed batch fails the WHOLE
+ * answer loudly.
  */
 describe('wordIntervals', () => {
-  it('maps the headword field to its interval and keeps the max per word', async () => {
-    const intervalOf = new Map<number, number>([[1, 42], [3, 0], [5, 128]]);
-    const infoOf = new Map<number, { noteId: number; fields: Record<string, { value: string }> }>([
-      [1, { noteId: 2, fields: { word: { value: '<b>Sane</b>' }, Sentence: { value: 'x' } } }],
-      [3, { noteId: 4, fields: { word: { value: 'afford' } } }],
-      [5, { noteId: 6, fields: { word: { value: 'sane' } } }], // duplicate word → max(42, 128)
-    ]);
-    setup({
-      findCards: vi.fn(async () => [1, 3, 5]),
-      getIntervals: vi.fn(async (cards: number[]) => cards.map((c) => intervalOf.get(c) ?? 0)),
-      cardFieldsInfo: vi.fn(async (cards: number[]) => cards.map((c) => infoOf.get(c) ?? {})),
+  it('maps each note to its sentinel through its card ids', async () => {
+    const notes = [
+      { noteId: 1, fields: { word: { value: '<b>Sane</b>' }, Sentence: { value: 'x' } }, cards: [11] },
+      // Several cards, only one mature: the note reads mature.
+      { noteId: 2, fields: { word: { value: 'afford' } }, cards: [21, 22] },
+      { noteId: 3, fields: { word: { value: 'day' } }, cards: [31] },
+      // All cards new: no sentinel, the word stays out of the map.
+      { noteId: 4, fields: { word: { value: 'unseen' } }, cards: [41] },
+      // Duplicate headword, seen only: cannot downgrade the mature answer.
+      { noteId: 5, fields: { word: { value: 'sane' } }, cards: [51] },
+    ];
+    const spies = setup({
+      findNotes: vi.fn(async () => [1, 2, 3, 4, 5]),
+      notesInfo: vi.fn(async () => notes),
+      findCards: vi.fn(async (query: string) =>
+        (query.endsWith('prop:ivl>=21') ? [11, 22] : [11, 21, 31, 51])),
     });
-    const { wordIntervals } = await import('../../src/background/card-actions');
+    const { wordIntervals, MATURE_DAYS, SEEN_DAYS } = await import('../../src/background/card-actions');
     await expect(wordIntervals('English vocabulary', 'word', MAPPING as never))
-      .resolves.toEqual({ ok: true, words: { sane: 128, afford: 0 } });
+      .resolves.toEqual({ ok: true, words: { sane: MATURE_DAYS, afford: MATURE_DAYS, day: SEEN_DAYS } });
+    expect(spies.findCards).toHaveBeenCalledWith(
+      'deck:"English vocabulary" prop:ivl>=21',
+      MAPPING.ankiUrl,
+      undefined,
+    );
+    expect(spies.findCards).toHaveBeenCalledWith(
+      'deck:"English vocabulary" -is:new',
+      MAPPING.ankiUrl,
+      undefined,
+    );
   });
 
-  it('requests the note fields explicitly through the filtered cardsInfo shape', async () => {
+  it('reads notes with no rendered card templates', async () => {
     const spies = setup({
-      findCards: vi.fn(async () => [7]),
-      cardFieldsInfo: vi.fn(async () => [{ noteId: 8, fields: { word: { value: 'day' } } }]),
+      findNotes: vi.fn(async () => [7]),
+      notesInfo: vi.fn(async () => [
+        { noteId: 8, fields: { word: { value: 'day' } }, cards: [9] },
+      ]),
+      findCards: vi.fn(async () => [9]),
     });
     const { wordIntervals } = await import('../../src/background/card-actions');
     await wordIntervals('English vocabulary', 'word', MAPPING as never);
-    expect(spies.cardFieldsInfo.mock.calls[0][0]).toEqual([7]);
-    expect(spies.cardFieldsInfo.mock.calls[0][1]).toEqual(['noteId', 'fields']);
+    // Exactly ids, url, key — no `render` parameter ever rides along.
+    expect(spies.notesInfo).toHaveBeenCalledWith([7], MAPPING.ankiUrl, undefined);
   });
 
-  it('reads negative intervals (seconds, learning step) as 0 days', async () => {
-    setup({
-      findCards: vi.fn(async () => [1, 2]),
-      getIntervals: vi.fn(async () => [-600, 0]),
-      cardFieldsInfo: vi.fn(async () => [
-        { noteId: 10, fields: { word: { value: 'day' } } },
-        { noteId: 11, fields: { word: { value: 'night' } } },
-      ]),
-    });
-    const { wordIntervals } = await import('../../src/background/card-actions');
-    await expect(wordIntervals('English vocabulary', 'word', MAPPING as never))
-      .resolves.toEqual({ ok: true, words: { day: 0, night: 0 } });
-  });
-
-  it('returns ok with an empty map when the deck has no cards', async () => {
-    const spies = setup({ findCards: vi.fn(async () => []) });
+  it('returns ok with an empty map when the deck has no notes', async () => {
+    const spies = setup({ findNotes: vi.fn(async () => []) });
     const { wordIntervals } = await import('../../src/background/card-actions');
     await expect(wordIntervals('English vocabulary', 'word', MAPPING as never))
       .resolves.toEqual({ ok: true, words: {} });
-    expect(spies.getIntervals).not.toHaveBeenCalled();
-    expect(spies.cardFieldsInfo).not.toHaveBeenCalled();
+    expect(spies.notesInfo).not.toHaveBeenCalled();
+    expect(spies.findCards).not.toHaveBeenCalled();
   });
 
   it('returns ok with an empty map without a deck', async () => {
-    setup();
+    const spies = setup();
     const { wordIntervals } = await import('../../src/background/card-actions');
     await expect(wordIntervals('', 'word', MAPPING as never)).resolves.toEqual({ ok: true, words: {} });
+    expect(spies.findNotes).not.toHaveBeenCalled();
   });
 
-  it('covers a deck larger than the old 5000-card cap (batched, no truncation)', async () => {
-    const ids = Array.from({ length: 5001 }, (_, i) => i + 1);
+  it('reads a deck larger than one batch in full, without truncation', async () => {
+    const ids = Array.from({ length: 1201 }, (_, i) => i + 1);
     const spies = setup({
-      findCards: vi.fn(async () => ids),
-      getIntervals: vi.fn(async (cards: number[]) => cards.map((c) => c)),
-      cardFieldsInfo: vi.fn(async (cards: number[]) => cards.map((c) => ({ noteId: c, fields: { word: { value: `w${c}` } } }))),
+      findNotes: vi.fn(async () => ids),
+      notesInfo: vi.fn(async (batch: number[]) =>
+        batch.map((id) => ({ noteId: id, fields: { word: { value: `w${id}` } }, cards: [id] }))),
+      findCards: vi.fn(async (query: string) => (query.endsWith('prop:ivl>=21') ? [] : ids)),
     });
     const { wordIntervals } = await import('../../src/background/card-actions');
     const res = await wordIntervals('English vocabulary', 'word', MAPPING as never);
     if (!res.ok) throw new Error(res.error);
-    // Every card of the deck is in the answer — the old slice(-5000) would
-    // have dropped the first one.
-    expect(Object.keys(res.words)).toHaveLength(5001);
-    expect(res.words.w1).toBe(1);
-    expect(res.words.w5001).toBe(5001);
-    // 5001 cards read in 1000-card batches: 6 calls per read.
-    expect(spies.getIntervals).toHaveBeenCalledTimes(6);
-    expect(spies.cardFieldsInfo).toHaveBeenCalledTimes(6);
+    expect(Object.keys(res.words)).toHaveLength(1201);
+    expect(res.words.w1).toBe(0);
+    expect(res.words.w1201).toBe(0);
+    expect(spies.findNotes).toHaveBeenCalledTimes(1);
+    expect(spies.notesInfo).toHaveBeenCalledTimes(3);
+    expect(spies.notesInfo.mock.calls.map((call) => (call[0] as number[]).length)).toEqual([500, 500, 201]);
   });
 
-  it('fails loudly when a read batch fails (no partial map)', async () => {
-    const ids = Array.from({ length: 2500 }, (_, i) => i + 1);
+  it('fails the whole answer when a notesInfo batch fails (no partial map)', async () => {
+    const ids = Array.from({ length: 1201 }, (_, i) => i + 1);
     setup({
-      findCards: vi.fn(async () => ids),
-      cardFieldsInfo: vi.fn(async (cards: number[]) => {
-        if (cards[0] !== ids[0]) throw new Error('boom'); // second batch
-        return cards.map((c) => ({ noteId: c, fields: { word: { value: `w${c}` } } }));
+      findNotes: vi.fn(async () => ids),
+      notesInfo: vi.fn(async (batch: number[]) => {
+        if (batch[0] === 501) throw new Error('boom'); // second batch
+        return batch.map((id) => ({ noteId: id, fields: { word: { value: `w${id}` } }, cards: [id] }));
       }),
+      findCards: vi.fn(async () => []),
     });
     const { wordIntervals } = await import('../../src/background/card-actions');
     const res = await wordIntervals('English vocabulary', 'word', MAPPING as never);
     expect(res).toEqual({ ok: false, error: 'boom' });
   });
 
-  it('fails loudly when getIntervals answers fewer intervals than cards', async () => {
+  it('fails the whole answer when a predicate findCards fails', async () => {
     setup({
-      findCards: vi.fn(async () => [1, 2, 3]),
-      getIntervals: vi.fn(async () => [0, 0]),
+      findNotes: vi.fn(async () => [1]),
+      notesInfo: vi.fn(async () => [
+        { noteId: 2, fields: { word: { value: 'day' } }, cards: [3] },
+      ]),
+      findCards: vi.fn(async (query: string) => {
+        if (query.endsWith('-is:new')) throw new Error('predicate failed');
+        return [];
+      }),
+    });
+    const { wordIntervals } = await import('../../src/background/card-actions');
+    const res = await wordIntervals('English vocabulary', 'word', MAPPING as never);
+    expect(res).toEqual({ ok: false, error: 'predicate failed' });
+  });
+
+  it('fails loudly when notesInfo answers fewer records than notes', async () => {
+    setup({
+      findNotes: vi.fn(async () => [1, 2, 3]),
+      notesInfo: vi.fn(async () => [
+        { noteId: 1, fields: { word: { value: 'a' } }, cards: [1] },
+        { noteId: 2, fields: { word: { value: 'b' } }, cards: [2] },
+      ]),
+      findCards: vi.fn(async () => []),
     });
     const { wordIntervals } = await import('../../src/background/card-actions');
     const res = await wordIntervals('English vocabulary', 'word', MAPPING as never);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/fewer intervals/);
+    if (!res.ok) expect(res.error).toMatch(/fewer records/);
   });
 });

@@ -1121,7 +1121,12 @@ export interface AnkiBrowseRequest { noteId?: number; query?: string; }
 export interface AnkiBrowseResponse { ok: boolean; noteIds?: number[]; error?: string; }
 
 /**
- * Interval (days) per headword, read from the deck as a SNAPSHOT.
+ * Maturity/seen sentinel per headword, read from the deck as a SNAPSHOT.
+ *
+ * The values are sentinels, not the card's real interval: the snapshot only
+ * needs Anki's maturity boundary, so a word with any mature card answers 21
+ * and any other seen word answers 0. Words whose notes are only new cards are
+ * absent.
  *
  * The answer is a discriminated union on purpose: an error must be
  * distinguishable from an empty deck.

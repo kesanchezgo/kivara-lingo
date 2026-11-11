@@ -416,9 +416,10 @@ onMessage('ANKI_BROWSE', async ({ data }) => {
 });
 
 /**
- * ANKI_WORD_INTERVALS: word → interval (days) SNAPSHOT read from the deck
- * (`findCards` → `getIntervals` → field-filtered `cardsInfo`). F5 owns the
- * cache: `ok: true` replaces it, `ok: false` keeps it and marks it stale.
+ * ANKI_WORD_INTERVALS: word → maturity/seen sentinel SNAPSHOT read from the
+ * deck (`findNotes` → batched `notesInfo` → `findCards` property/is predicates).
+ * F5 owns the cache: `ok: true` replaces it, `ok: false` keeps it and marks it
+ * stale.
  */
 onMessage('ANKI_WORD_INTERVALS', async ({ data }) => {
   const request = data as unknown as AnkiWordIntervalsRequest;

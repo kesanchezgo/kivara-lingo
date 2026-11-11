@@ -54,33 +54,32 @@ describe('ankiConnect F4 actions', () => {
     expect(calls[0]).toMatchObject({ action: 'findCards', params: { query: 'nid:3' } });
   });
 
+  it('findNotes posts the query', async () => {
+    const calls = stubFetch([21]);
+    await ankiConnect.findNotes('deck:"D"');
+    expect(calls[0]).toMatchObject({ action: 'findNotes', params: { query: 'deck:"D"' } });
+  });
+
+  it('notesInfo posts only the note ids and returns fields plus card ids', async () => {
+    const calls = stubFetch([{
+      noteId: 2,
+      fields: { Word: { value: 'sane', order: 0 } },
+      cards: [10, 11],
+    }]);
+    const info = await ankiConnect.notesInfo([2]);
+    // No `render` parameter: note ids are the whole request, so Anki never
+    // renders a card template for this snapshot.
+    expect(calls).toEqual([{ action: 'notesInfo', params: { notes: [2] } }]);
+    expect(info[0].noteId).toBe(2);
+    expect(info[0].fields.Word.value).toBe('sane');
+    expect(info[0].cards).toEqual([10, 11]);
+  });
+
   it('cardsInfo returns scheduling data', async () => {
     const calls = stubFetch([{ cardId: 1, noteId: 2, interval: 21, fields: {} }]);
     const info = await ankiConnect.cardsInfo([1]);
     expect(calls[0]).toMatchObject({ action: 'cardsInfo', params: { cards: [1] } });
     expect(info[0].interval).toBe(21);
-  });
-
-  it('getIntervals posts the card ids and answers per card', async () => {
-    const calls = stubFetch([0, 42, -600]);
-    const intervals = await ankiConnect.getIntervals([7, 8, 9]);
-    expect(calls[0]).toMatchObject({ action: 'getIntervals', params: { cards: [7, 8, 9] } });
-    // Signed AnkiConnect units: 0 = never learned, 42 days, -600 SECONDS.
-    expect(intervals).toEqual([0, 42, -600]);
-  });
-
-  it('cardFieldsInfo posts the explicit field request', async () => {
-    const calls = stubFetch([{ noteId: 2, fields: { Word: { value: 'sane', order: 0 } } }, {}]);
-    const info = await ankiConnect.cardFieldsInfo([1, 2], ['noteId', 'fields']);
-    // Same `cardsInfo` action, but with the `fields` selection attached so
-    // the full card record never crosses the wire.
-    expect(calls[0]).toMatchObject({
-      action: 'cardsInfo',
-      params: { cards: [1, 2], fields: ['noteId', 'fields'] },
-    });
-    expect(info[0].noteId).toBe(2);
-    expect(info[0].fields?.Word.value).toBe('sane');
-    expect(info[1]).toEqual({}); // missing card → empty record
   });
 
   it('refuses a non-loopback URL before fetching', async () => {
