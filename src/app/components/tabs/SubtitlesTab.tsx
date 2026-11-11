@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Type, Palette, AlignVerticalSpaceBetween, RotateCcw, AlignLeft, GraduationCap } from '../../../ui/icons';
 import { t, fmtNumber, useLocale } from '../../../shared/i18n';
-import { DEFAULT_STUDY, DEFAULT_SUBTITLE_STYLES, useKivaraStore } from '../../../shared/store';
+import { DEFAULT_STUDY, DEFAULT_SUBTITLE_STYLES } from '../../../shared/store';
+import { useKivaraStore } from '../../../shared/use-kivara-store';
 import type { SubtitleStyles } from '../../../shared/types';
 import { Slider } from '../../../ui/primitives/controls';
 import {

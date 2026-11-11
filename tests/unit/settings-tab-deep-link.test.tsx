@@ -42,6 +42,17 @@ vi.mock('../../src/shared/store', () => {
   store.getState = () => state;
   return { useKivaraStore: store, DEFAULT_STUDY: { translation: 'visible', listenFirst: false, autoPauseCue: false, pauseOnLookup: true, sounds: true, newMarks: 'dotted' } };
 });
+// SettingsTab binds the hook through shared/use-kivara-store (React binding,
+// kept out of shared/store so the SW bundle stays React-free): route it to the
+// same fake store this file builds above. The store mock returns its fake hook
+// under `useKivaraStore` — a name the REAL store module no longer exports, so
+// the type is widened through unknown.
+vi.mock('../../src/shared/use-kivara-store', async () => {
+  const storeMod = (await import('../../src/shared/store')) as unknown as {
+    useKivaraStore: unknown;
+  };
+  return { useKivaraStore: storeMod.useKivaraStore };
+});
 vi.mock('../../src/app/hooks/useShortcuts', () => ({ useShortcuts: () => ({ map: {} }) }));
 vi.mock('../../src/app/components/tabs/DictPacksSection', () => ({
   DictPacksSection: () => null,

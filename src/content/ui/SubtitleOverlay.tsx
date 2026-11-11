@@ -27,7 +27,7 @@ import type {
 import { tokenizeSentence } from '../nlp/tokenize';
 import { lookupDictionary } from '../nlp/dictionary';
 import { eventPathIsEditable } from '../utils/keyboard';
-import { useKivaraStore } from '../../shared/store';
+import { useKivaraStore } from '../../shared/use-kivara-store';
 import { aiConfigured } from '../../shared/ai-configured';
 import { WordPopover } from './WordPopover';
 import { markOf, markAttrs, markContainerAttrs } from './wordMarks';

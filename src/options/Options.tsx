@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { SidePanel } from '../content/ui/SidePanel';
-import { useKivaraStore } from '../shared/store';
+import { useKivaraStore } from '../shared/use-kivara-store';
 import { buildPreviewData } from '../shared/preview-data';
 import { PortsProvider } from '../ui/ports/PortsProvider';
 import { createOptionsPorts } from './ports';

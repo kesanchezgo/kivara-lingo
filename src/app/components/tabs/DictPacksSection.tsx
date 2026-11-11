@@ -56,7 +56,7 @@ import {
   resetCoverage,
   topPacksByHits,
 } from '../../../shared/telemetry';
-import { useKivaraStore } from '../../../shared/store';
+import { useKivaraStore } from '../../../shared/use-kivara-store';
 import {
   RECOMMENDED_PACKS,
   GROUP_LABELS,

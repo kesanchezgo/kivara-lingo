@@ -4,7 +4,8 @@ import {
 } from '../../ui/icons';
 import { BrandGlyph } from '../../ui/BrandGlyph';
 import { t } from '../../shared/i18n';
-import { useKivaraStore, type PanelPosition } from '../../shared/store';
+import type { PanelPosition } from '../../shared/store';
+import { useKivaraStore } from '../../shared/use-kivara-store';
 import type { AnkiMapping, SubtitleStyles } from '../../shared/types';
 import { consumeOpenSettingsSection } from '../../shared/open-settings-section';
 import { SubtitlesTab } from '../../app/components/tabs/SubtitlesTab';

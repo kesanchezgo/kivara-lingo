@@ -8,7 +8,7 @@
  * the interfaces are frozen in src/ui/ports, so nothing in the views moves.
  */
 import { sendMessage } from 'webext-bridge/options';
-import { useKivaraStore } from '../shared/store';
+import { useKivaraStore } from '../shared/use-kivara-store';
 import type { Ports } from '../ui/ports/PortsProvider';
 import type {
   AnkiAddContextResponse,

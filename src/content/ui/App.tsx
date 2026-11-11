@@ -8,7 +8,7 @@ import { SubtitleOverlay } from './SubtitleOverlay';
 import { CaptureOverlay, type CaptureAudio, type CaptureView } from './CaptureOverlay';
 import { applyCleanupCss } from './cleanup-css';
 import { playSound } from '../../ui/sounds';
-import { useKivaraStore } from '../../shared/store';
+import { useKivaraStore } from '../../shared/use-kivara-store';
 import { captureFrame, captureBestFrame } from '../capture/frame';
 import { comboFromEvent, normalizeCombo, readManifestCombos } from '../../shared/shortcuts';
 import { dbgOnce } from '../../shared/debug-log';

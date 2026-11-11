@@ -237,7 +237,7 @@ describe('store v3 through zustand persist', () => {
       i18n: { getUILanguage: () => 'en' },
     };
     vi.resetModules();
-    const mod = await import('../../src/shared/store');
+    const mod = await import('../../src/shared/use-kivara-store');
     await mod.useKivaraStore.persist.rehydrate();
 
     const state = mod.useKivaraStore.getState();

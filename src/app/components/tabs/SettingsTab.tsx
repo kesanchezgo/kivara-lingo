@@ -11,7 +11,8 @@ import {
   Globe, Zap, KeyRound, Heart, Coffee, Github, Mic2, Search, X,
   Subtitles, GraduationCap, LayoutGrid, ChevronRight,
 } from '../../../ui/icons';
-import { DEFAULT_STUDY, useKivaraStore } from '../../../shared/store';
+import { DEFAULT_STUDY } from '../../../shared/store';
+import { useKivaraStore } from '../../../shared/use-kivara-store';
 import type {
   EndDetect,
   PremiumTtsProvider,

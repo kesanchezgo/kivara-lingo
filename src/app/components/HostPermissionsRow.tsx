@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useSyncExternalStore, useState } from 'react';
 import { t } from '../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
 import { KeyRound, ShieldCheck, Loader2 } from '../../ui/icons';
-import { useGrantedOrigins, refreshHostPermissions, hasOrigin } from '../../shared/host-permissions-store';
+import { subscribeHostPermissions, getGrantedOrigins, refreshHostPermissions, hasOrigin } from '../../shared/host-permissions-store';
 import { requestHosts, revokeHosts, permissionsApiAvailable } from '../../shared/host-permissions';
 import { providerHosts } from '../../shared/provider-hosts';
 import { Button, ListGroup, QuickRow, Toggle } from '../../ui/primitives/settings-primitives';
@@ -82,6 +82,13 @@ function originsFor(providers: readonly string[]): string[] {
   const out = new Set<string>();
   for (const id of providers) for (const host of providerHosts(id)) out.add(host);
   return [...out];
+}
+
+/** React binding for the plain-JS store in shared/host-permissions-store.ts —
+ * kept in the consumer so the SW graph (which reaches that module through
+ * shared/host-permissions.ts) never imports React. */
+function useGrantedOrigins(): string[] {
+  return useSyncExternalStore(subscribeHostPermissions, getGrantedOrigins, () => []);
 }
 
 export function HostPermissionsRow() {

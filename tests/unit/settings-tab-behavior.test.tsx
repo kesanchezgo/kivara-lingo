@@ -7,7 +7,7 @@
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { useKivaraStore } from '../../src/shared/store';
+import { useKivaraStore } from '../../src/shared/use-kivara-store';
 import { DEFAULT_VIP, DEFAULT_TRANSLATE, DEFAULT_TTS, DEFAULT_AI, DEFAULT_CAPTURE, DEFAULT_CLEANUP, DEFAULT_ONBOARDING, DEFAULT_TELEMETRY, DEFAULT_SHORTCUTS, DEFAULT_PANEL_POSITION, DEFAULT_SUBTITLE_STYLES, DEFAULT_ANKI_MAPPING } from '../../src/shared/store';
 import type { VipSettings } from '../../src/shared/types';
 import { refreshHostPermissions } from '../../src/shared/host-permissions-store';

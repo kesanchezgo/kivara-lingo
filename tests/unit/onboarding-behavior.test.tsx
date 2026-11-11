@@ -24,7 +24,6 @@ vi.mock('webext-bridge/options', () => ({
   sendMessage: vi.fn(),
 }));
 import {
-  useKivaraStore,
   DEFAULT_ANKI_MAPPING,
   DEFAULT_AI,
   DEFAULT_CAPTURE,
@@ -38,6 +37,7 @@ import {
   DEFAULT_SHORTCUTS,
   DEFAULT_PANEL_POSITION,
 } from '../../src/shared/store';
+import { useKivaraStore } from '../../src/shared/use-kivara-store';
 import { resetStudyStores } from '../../src/shared/study/wordStatus';
 import { defaultDeckName } from '../../src/shared/study/decks';
 import type { AnkiMapping } from '../../src/shared/types';

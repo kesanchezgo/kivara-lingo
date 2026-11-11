@@ -3,7 +3,7 @@ import { sendMessage } from 'webext-bridge/popup';
 import {
   AlertTriangle, Clock, ExternalLink, Mic, MicOff, Power, RefreshCw, Settings,
 } from '../ui/icons';
-import { useKivaraStore } from '../shared/store';
+import { useKivaraStore } from '../shared/use-kivara-store';
 import { t } from '../shared/i18n';
 import { BrandGlyph } from '../ui/BrandGlyph';
 import { SyncWriteErrorBanner } from '../app/components/SyncWriteErrorBanner';

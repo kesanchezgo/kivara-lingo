@@ -12,7 +12,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sendMessage } from 'webext-bridge/content-script';
-import { useKivaraStore } from '../../src/shared/store';
+import { useKivaraStore } from '../../src/shared/use-kivara-store';
 import { getAnkiCoverage, recordCardSaved, refreshAnkiIntervals } from '../../src/content/ui/study';
 import { replaceAnkiIntervals, resetStudyStores, setWordStatus, studyStores } from '../../src/shared/study/wordStatus';
 import { DEFAULT_ANKI_MAPPING } from '../../src/shared/store';

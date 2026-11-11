@@ -32,7 +32,7 @@ function seed(version: number | undefined, model: string) {
 
 async function hydrateStore() {
   vi.resetModules();
-  const mod = await import('../../src/shared/store');
+  const mod = await import('../../src/shared/use-kivara-store');
   await mod.useKivaraStore.persist.rehydrate();
   return mod;
 }

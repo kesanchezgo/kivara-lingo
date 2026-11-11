@@ -1,6 +1,6 @@
 import type { SubtitleSource, SubtitleCue, CueListener } from './types';
 import { getYouTubeMediaInfo } from './media-info';
-import { useKivaraStore } from '../../shared/store';
+import { useKivaraStore } from '../../shared/use-kivara-store';
 import { getActiveTrackCues, getKnownLanguages, getLastTrack, getTrackByLanguage, onTrack } from './intercepted-bus';
 import { createMediaPlaybackController } from './playback';
 import { cuesFromRawTrack, cuesFromTextTracks } from './tracks';

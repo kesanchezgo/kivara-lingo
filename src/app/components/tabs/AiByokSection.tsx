@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle2, ExternalLink, KeyRound, Loader2, Zap, Info
 import { sendMessage } from 'webext-bridge/content-script';
 import { t, fmtDays } from '../../../shared/i18n';
 import { richText } from '../../../shared/i18n/rich';
-import { useKivaraStore } from '../../../shared/store';
+import { useKivaraStore } from '../../../shared/use-kivara-store';
 import type { AiApiFormat, AiEnrichResponse, AiSettings } from '../../../shared/types';
 import {
   AI_PRESETS,

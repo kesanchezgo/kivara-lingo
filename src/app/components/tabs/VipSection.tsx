@@ -3,7 +3,7 @@ import { sendMessage } from 'webext-bridge/content-script';
 import { t, fmtNumber } from '../../../shared/i18n';
 import { richText } from '../../../shared/i18n/rich';
 import { normalizeTtlDays } from '../../../shared/cache-ttl';
-import { useKivaraStore } from '../../../shared/store';
+import { useKivaraStore } from '../../../shared/use-kivara-store';
 import { SecretKeyInput } from '../SecretKeyInput';
 import type { EnrichSourceHealthMap, VipSettings } from '../../../shared/types';
 import {

@@ -133,7 +133,7 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
 
   it('blanks the secret from sync, stores it in a local slot, and a second context reads it back', async () => {
     // ---- Context A writes a key through the real persist pipeline.
-    const modA = await import('../../src/shared/store');
+    const modA = await import('../../src/shared/use-kivara-store');
     modA.useKivaraStore.setState({
       ai: { ...modA.useKivaraStore.getState().ai, apiKey: 'sk-e2e-roundtrip' },
     });
@@ -155,13 +155,13 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
 
     // ---- Context B: fresh module (its own baseline), same sync + local.
     vi.resetModules();
-    const modB = await import('../../src/shared/store');
+    const modB = await import('../../src/shared/use-kivara-store');
     // getItem runs during hydration — wait for the value to appear.
     await waitFor(() => modB.useKivaraStore.getState().ai.apiKey === 'sk-e2e-roundtrip');
   });
 
   it("a cleared key ('' via Quitar) survives a second context (no resurrection)", async () => {
-    const modA = await import('../../src/shared/store');
+    const modA = await import('../../src/shared/use-kivara-store');
     const { markSecretExplicitClear } = await import('../../src/shared/secret-store');
     modA.useKivaraStore.setState({
       ai: { ...modA.useKivaraStore.getState().ai, apiKey: 'sk-to-clear' },
@@ -177,7 +177,7 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     expect(local.get(SLOT_KEY)).toBe('__cleared__');
 
     vi.resetModules();
-    const modB = await import('../../src/shared/store');
+    const modB = await import('../../src/shared/use-kivara-store');
     // '' is also the default, so waiting for it proves nothing: wait for
     // hydration itself to have run (the store exposes it) and then assert the
     // key was NOT resurrected from the tombstone.
@@ -192,9 +192,10 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     // writing a tombstone per slot and deleting every credential, then
     // spreading the deletion through onChanged(local).
     const modA = await import('../../src/shared/store');
+    const { useKivaraStore } = await import('../../src/shared/use-kivara-store');
     const { decryptSecret } = await import('../../src/shared/secret-store');
-    modA.useKivaraStore.setState({
-      ai: { ...modA.useKivaraStore.getState().ai, apiKey: 'sk-retry-survivor' },
+    useKivaraStore.setState({
+      ai: { ...useKivaraStore.getState().ai, apiKey: 'sk-retry-survivor' },
     });
     // The slot write is async, and a fixed `flush(60)` here was the one place
     // in this file that still trusted a sleep: under a loaded box the poll in
@@ -208,8 +209,8 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
 
     // Quota blows on the next persist write.
     env.failSync = true;
-    modA.useKivaraStore.setState({
-      enabled: !modA.useKivaraStore.getState().enabled,
+    useKivaraStore.setState({
+      enabled: !useKivaraStore.getState().enabled,
     });
     await flush();
     expect(modA.getSyncWriteFailed()).toBe(true);
@@ -231,7 +232,7 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     expect(await decryptSecret(local.get(SLOT_KEY) as string)).toBe('sk-retry-survivor');
 
     vi.resetModules();
-    const modC = await import('../../src/shared/store');
+    const modC = await import('../../src/shared/use-kivara-store');
     // Poll for the hydrated value rather than sleeping a fixed delay — under
     // a loaded machine this used to read the store before hydration finished.
     await waitFor(() => modC.useKivaraStore.getState().ai.apiKey === 'sk-retry-survivor');
@@ -242,7 +243,7 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     // recognised its own tombstone as an own-echo and skipped the rehydrate
     // when B cleared the same field — keeping the dead key in memory and
     // rewriting it verbatim on the next edit.
-    const modA = await import('../../src/shared/store');
+    const modA = await import('../../src/shared/use-kivara-store');
     const secretA = await import('../../src/shared/secret-store');
     modA.useKivaraStore.setState({
       ai: { ...modA.useKivaraStore.getState().ai, apiKey: 'sk-one' },
@@ -251,7 +252,7 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
 
     // ---- Context B hydrates with the key and rewrites + clears it.
     vi.resetModules();
-    const modB = await import('../../src/shared/store');
+    const modB = await import('../../src/shared/use-kivara-store');
     const secretB = await import('../../src/shared/secret-store');
     await flush(320);
     expect(modB.useKivaraStore.getState().ai.apiKey).toBe('sk-one');

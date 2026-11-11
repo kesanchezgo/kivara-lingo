@@ -133,7 +133,7 @@ describe('sealForSync refuses the write instead of leaking a cleartext key', () 
   });
 
   it('never hands a blob containing the key to storage.sync', async () => {
-    const mod = await import('../../src/shared/store');
+    const mod = await import('../../src/shared/use-kivara-store');
     const { SecretEncryptionUnavailableError } = await import('../../src/shared/secret-store');
     expect(SecretEncryptionUnavailableError).toBeTruthy();
 
@@ -163,7 +163,7 @@ describe('sealForSync refuses the write instead of leaking a cleartext key', () 
   });
 
   it('keeps the key in memory so the next successful save still works', async () => {
-    const mod = await import('../../src/shared/store');
+    const mod = await import('../../src/shared/use-kivara-store');
     mod.useKivaraStore.setState({
       ai: { ...mod.useKivaraStore.getState().ai, apiKey: PLAINTEXT },
     });
@@ -173,8 +173,9 @@ describe('sealForSync refuses the write instead of leaking a cleartext key', () 
 
   it('raises the status the UI reads, and dismiss it clears it', async () => {
     const mod = await import('../../src/shared/store');
-    mod.useKivaraStore.setState({
-      ai: { ...mod.useKivaraStore.getState().ai, apiKey: PLAINTEXT },
+    const { useKivaraStore } = await import('../../src/shared/use-kivara-store');
+    useKivaraStore.setState({
+      ai: { ...useKivaraStore.getState().ai, apiKey: PLAINTEXT },
     });
 
     await waitFor(() => mod.getSyncWriteStatus().secretSaveRefused === true);

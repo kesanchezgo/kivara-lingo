@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { sendMessage } from 'webext-bridge/content-script';
-import { useKivaraStore } from '../../shared/store';
+import { useKivaraStore } from '../../shared/use-kivara-store';
 import type { AnkiWordIntervalsResponse } from '../../shared/types';
 import type { ChromeLocalStore } from '../../shared/chrome-local-store';
 import { lookupDictionary } from '../nlp/dictionary';

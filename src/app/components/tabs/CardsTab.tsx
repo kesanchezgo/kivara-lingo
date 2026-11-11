@@ -15,7 +15,7 @@ import {
 import { detectFieldSource } from '../../../shared/anki-field-detect';
 import { SecretKeyInput } from '../SecretKeyInput';
 import { InfoHint } from '../InfoHint';
-import { useKivaraStore } from '../../../shared/store';
+import { useKivaraStore } from '../../../shared/use-kivara-store';
 import { CardFace, type CardPreviewData } from './CardPreview';
 import { RecentCards } from './RecentCards';
 

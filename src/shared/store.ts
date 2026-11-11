@@ -1,4 +1,8 @@
-import { create } from 'zustand';
+// Vanilla store on purpose: `create` from the zustand root export drags
+// `useSyncExternalStore` (and all of React) into every bundle that imports a
+// constant from here — including the service worker, which never renders.
+// The React binding lives in ./use-kivara-store and is UI-only.
+import { createStore } from 'zustand/vanilla';
 import { normalizeTtlDays } from './cache-ttl';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { pushSecretsToLocal, pullSecretsFromLocal, isOwnLocalWrite } from './secret-store';
@@ -972,7 +976,7 @@ function mergePersisted(persistedState: unknown, currentState: KivaraState): Kiv
   };
 }
 
-export const useKivaraStore = create<KivaraState>()(
+export const kivaraStore = createStore<KivaraState>()(
   persist(
     (set) => ({
       enabled: true,
@@ -1103,7 +1107,7 @@ function scheduleRehydrate() {
   if (rehydrateTimer) clearTimeout(rehydrateTimer);
   rehydrateTimer = setTimeout(() => {
     rehydrateTimer = null;
-    void useKivaraStore.persist.rehydrate();
+    void kivaraStore.persist.rehydrate();
   }, 250);
 }
 try {
@@ -1170,8 +1174,8 @@ try {
 // Keep the telemetry module's cached toggle in sync with the store so the
 // service worker / content script can call `recordLookupHit` etc. without
 // reading the store on every lookup.
-setTelemetryEnabled(useKivaraStore.getState().telemetry.enabled);
-useKivaraStore.subscribe((state, prev) => {
+setTelemetryEnabled(kivaraStore.getState().telemetry.enabled);
+kivaraStore.subscribe((state, prev) => {
   if (state.telemetry.enabled !== prev.telemetry.enabled) {
     setTelemetryEnabled(state.telemetry.enabled);
   }

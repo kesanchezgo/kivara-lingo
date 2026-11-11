@@ -35,7 +35,7 @@ import { sendMessage } from 'webext-bridge/options';
 import { CheckCircle2, ChevronRight, ChevronLeft, Moon, Sun } from '../ui/icons';
 import { BrandGlyph } from '../ui/BrandGlyph';
 import { Badge, Button } from '../ui/primitives/settings-primitives';
-import { useKivaraStore } from '../shared/store';
+import { useKivaraStore } from '../shared/use-kivara-store';
 import { autoMapFields } from '../shared/anki-field-detect';
 import { deckFor } from '../shared/study/decks';
 import { useWordStudy } from '../content/ui/study';

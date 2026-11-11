@@ -20,7 +20,7 @@ import {
   useSyncExternalStore,
   type MutableRefObject,
 } from 'react';
-import { useKivaraStore } from '../../shared/store';
+import { useKivaraStore } from '../../shared/use-kivara-store';
 import { createChromeLocalStore } from '../../shared/chrome-local-store';
 import { useChromeLocal } from '../../ui/hooks/useChromeLocal';
 import type { PlaybackController, SubtitleCue } from '../platform-adapters/types';
