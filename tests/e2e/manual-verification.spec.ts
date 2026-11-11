@@ -26,8 +26,12 @@
  *   [ ] Speed 0.75 / 1 / 1.25 (Alt+, / Alt+.) applies and survives a seek.
  *   [ ] Hold ⟲ (or Alt+Shift+R) plays the line once at 0.75× and pauses.
  *   [ ] Previous / next (Alt+A / Alt+Z) move by line, not by page.
- *   [ ] Columns: the rail shrinks the player and never covers the picture;
- *       in fullscreen the rail is still reachable.
+ *   [ ] Columns: the rail shrinks the player and never covers the picture.
+ *       With the panel DOCKED, transcript and panel render side by side and
+ *       the player gives up both widths (#38) — never more than 40 % of the
+ *       viewport; the rail alone needs ≥ 700 px, the two need ≥ 1715 px, and
+ *       below that they overlay the video on purpose. In fullscreen the rail
+ *       and the panel are still reachable and the video is not cropped (#33).
  *   [ ] The study bar appears on pointer activity over the player and fades
  *       like the site's own controls; the native bar is untouched (D2).
  *   [ ] New page shortcuts do not collide with the site's or Chrome's:
