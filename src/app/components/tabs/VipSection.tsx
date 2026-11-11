@@ -3,7 +3,7 @@ import { sendMessage } from 'webext-bridge/content-script';
 import { t, fmtNumber } from '../../../shared/i18n';
 import { richText } from '../../../shared/i18n/rich';
 import { normalizeTtlDays } from '../../../shared/cache-ttl';
-import { classifyEnrichError, ENRICH_ERROR_KEYS } from '../../../shared/enrich-health';
+import { classifyEnrichError, ENRICH_ERROR_KEYS, enrichFixKey, ENRICH_SLOW_FIX_KEY } from '../../../shared/enrich-health';
 import { useKivaraStore } from '../../../shared/use-kivara-store';
 import { SecretKeyInput } from '../SecretKeyInput';
 import type { EnrichSourceHealthMap, VipSettings } from '../../../shared/types';
@@ -14,6 +14,7 @@ import {
   Button, Callout, ListGroup, QuickRow, Row, SubLabel, Toggle,
 } from '../../../ui/primitives/settings-primitives';
 import { inputCls } from '../../../ui/primitives/controls';
+import { HOST_GROUPS, type PermissionGroup } from '../HostPermissionsRow';
 
 /**
  * VIP enrichment settings.
@@ -107,6 +108,36 @@ const VIP_IMAGE_SOURCES: SourceMeta[] = [
   { key: 'unsplash', label: 'Unsplash (BYOK)', hintKey: 'vip.unsplashByokDesc' },
   { key: 'pixabay', label: 'Pixabay', hintKey: 'vip.unsplashDesc' },
 ];
+
+/**
+ * VipSettings key → the provider id whose optional hosts cover it. The
+ * permission fix copy names the GROUP the user has to grant, so the fix line
+ * and the row's "Grant access" action (point 2) need the same mapping.
+ */
+const SOURCE_PROVIDER: Partial<Record<keyof VipSettings, string>> = {
+  wiktionary: 'dict:wiktionary', wiktionaryHtml: 'dict:wiktionary', wiktionaryApi: 'dict:wiktionary',
+  wiktApi: 'dict:wiktionary', mobyThesaurus: 'dict:moby', thesaurusCom: 'dict:thesauruscom',
+  collins: 'dict:dictionarycom', wordHippo: 'dict:wordhippo', theIdioms: 'dict:theidioms',
+  freeDictionary: 'dict:dictionaryapi', datamuse: 'dict:datamuse',
+  tatoeba: 'dict:tatoeba', etymonline: 'dict:etymonline', youglish: 'video:youglish',
+  britannicaDictionary: 'dict:britannica', cambridge: 'dict:cambridge', cambridgeAudio: 'dict:cambridge',
+  oxfordLearners: 'dict:oxford', oxfordAudio: 'dict:oxford', longman: 'dict:oxford',
+  merriamWebster: 'dict:merriam', merriamWebsterThesaurus: 'dict:merriam', ozdic: 'dict:ozdic',
+  pons: 'dict:pons', babla: 'dict:babla', dictCc: 'dict:dictcc', reverso: 'dict:reverso',
+  linguee: 'dict:linguee', promtContext: 'dict:promt', wordReference: 'dict:wordreference',
+  spanishDict: 'dict:spanishdict', forvo: 'audio:forvo', linguaLibre: 'vip:lingualibre',
+  bingImages: 'vip:bing', openverse: 'vip:openverse', wikimediaCommons: 'vip:wikimedia',
+  duckduckgoImages: 'vip:ddg', unsplash: 'vip:unsplash', pixabay: 'vip:pixabay',
+};
+
+/** Local sources never fail on permissions, so they need no provider id. */
+
+/** Label of the host-permission group that owns this source ("Imágenes y audio humano"). */
+function sourceGroupLabel(sourceId: keyof VipSettings): string | undefined {
+  const provider = SOURCE_PROVIDER[sourceId];
+  if (!provider) return undefined;
+  return HOST_GROUPS.find((g) => g.providers.includes(provider))?.label;
+}
 
 const STD_ALL = [
   ...STD_DICT_SOURCES, ...STD_BILINGUAL_SOURCES, ...STD_AUDIO_SOURCES,
@@ -220,7 +251,17 @@ export function VipSection() {
           const errorMsg = code && msgKey
             ? t(msgKey, code === 'timeout' ? { s: Math.round(vip.perSourceTimeoutMs / 1000) || 4 } : undefined)
             : null;
-          const errorFix = code && code !== 'unknown' && msgKey ? t(`${msgKey}Fix`) : null;
+          // The fix line comes from the explicit maps in enrich-health.ts —
+          // the source variant (Unsplash 401, Pixabay 429, Reverso 403) when
+          // the pair has one, the family's generic line otherwise. Never a
+          // composed key: a missing `*Fix` used to render as raw key text.
+          const fixKey = code && code !== 'unknown' ? enrichFixKey(s.key, code) : null;
+          const errorFix = fixKey
+            ? t(fixKey, code === 'permission' ? { group: sourceGroupLabel(s.key) ?? String(s.key) } : undefined)
+            : null;
+          // One combined line: the family fix, or the slow advice when the
+          // source merely answered too slowly.
+          const fixLine = errorFix ?? (h?.state === 'slow' ? t(ENRICH_SLOW_FIX_KEY) : null);
           return (
             <div key={s.key} className="kvl-row px-3 py-3">
               <div className="flex items-center gap-2.5">
@@ -239,10 +280,15 @@ export function VipSection() {
                 />
               </div>
               {h && (h.state === 'error' || h.state === 'slow') && (
-                <div className={`mt-1 pl-4 flex items-center gap-1.5 text-[12px] leading-4 ${h.state === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                  <span className="flex-1 min-w-0 truncate" title={errorFix ? `${errorMsg ?? h.lastError ?? tip} — ${errorFix}` : (errorMsg ?? h.lastError ?? tip)}>
+                <div className={`mt-1 pl-4 flex flex-col gap-0.5 text-[12px] leading-4 ${h.state === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                  <span className="min-w-0 truncate" title={errorFix ? `${errorMsg ?? h.lastError ?? tip} — ${errorFix}` : (errorMsg ?? h.lastError ?? tip)}>
                     {h.state === 'error' ? (errorMsg ?? h.lastError ?? t('vipx.status_error')) : t('vipx.slow', { s: fmtNumber(Math.round((h.latencyMs ?? 0) / 100) / 10) })}
                   </span>
+                  {fixLine && (
+                    <span className="min-w-0 truncate text-zinc-500 dark:text-zinc-400" title={fixLine}>
+                      {fixLine}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
