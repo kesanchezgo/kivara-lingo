@@ -50,8 +50,17 @@ describe('cardTags · sourceTag', () => {
     expect(sourceTag({ platform: 'netflix', title: 'Inception' })).toBe('kivara::inception');
   });
 
-  it('keeps a bare youtube tag when there is no title', () => {
-    expect(sourceTag({ platform: 'youtube' })).toBe('kivara::youtube');
+  it('never builds a series tag from the platform name alone', () => {
+    expect(sourceTag({ platform: 'youtube' })).toBeUndefined();
+    expect(sourceTag({ platform: 'netflix', title: 'Netflix' })).toBeUndefined();
+    expect(sourceTag({ platform: 'netflix', series: 'Netflix', season: 1, episode: 2 })).toBeUndefined();
+  });
+
+  it('keeps the explicit platform tag when the title is generic', () => {
+    expect(cardTags('word', { platform: 'netflix', title: 'Netflix' })).toEqual([
+      'kivara::platform::netflix',
+      'kivara::word',
+    ]);
   });
 });
 

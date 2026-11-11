@@ -391,6 +391,52 @@ declare global {
    */
   const PLAYBACK_CMD = 'kivara-lingo:playback';
   const PLAYBACK_RESULT = 'kivara-lingo:playback-result';
+  const MEDIA_INFO_CMD = 'kivara-lingo:media-info';
+  const MEDIA_INFO_RESULT = 'kivara-lingo:media-info-result';
+
+  interface YoutubeVideoDetails {
+    title?: string;
+    videoId?: string;
+    author?: string;
+  }
+  type YoutubeMainWindow = Window & {
+    ytInitialPlayerResponse?: { videoDetails?: YoutubeVideoDetails };
+    ytplayer?: { config?: { args?: { player_response?: unknown } } };
+  };
+
+  /**
+   * YouTube metadata bridge. `ytInitialPlayerResponse` only exists in this
+   * MAIN world, so the ISOLATED adapter asks for it here. Routes, first match
+   * wins: the initial response, the live `#movie_player` response (survives
+   * SPA navigation), then the legacy `ytplayer.config.args.player_response`
+   * JSON string.
+   */
+  function youtubeVideoDetails(): YoutubeVideoDetails | null {
+    const usable = (value: unknown): YoutubeVideoDetails | null => {
+      const details = (value as { videoDetails?: YoutubeVideoDetails } | null)?.videoDetails;
+      return details && typeof details.title === 'string' && details.title.trim() ? details : null;
+    };
+    const fromInitial = usable((window as YoutubeMainWindow).ytInitialPlayerResponse);
+    if (fromInitial) return fromInitial;
+    try {
+      const movie = document.getElementById('movie_player') as
+        | { getPlayerResponse?: () => unknown }
+        | null;
+      const fromPlayer = usable(movie?.getPlayerResponse?.());
+      if (fromPlayer) return fromPlayer;
+    } catch {
+      // The player route moved — fall through to the legacy config.
+    }
+    const raw = (window as YoutubeMainWindow).ytplayer?.config?.args?.player_response;
+    if (typeof raw === 'string') {
+      try {
+        return usable(JSON.parse(raw));
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
 
   interface NetflixVideoPlayer {
     seek?: (ms: number) => void;
@@ -510,7 +556,28 @@ declare global {
     const data = event.data as
       | { source?: unknown; id?: unknown; cmd?: unknown; timeMs?: unknown; nonce?: unknown }
       | null;
-    if (!data || typeof data !== 'object' || data.source !== PLAYBACK_CMD) return;
+    if (!data || typeof data !== 'object') return;
+
+    // Metadata query — answered straight from the player response this world
+    // owns. No `id`: the ISOLATED side only caches the latest title per video.
+    if (data.source === MEDIA_INFO_CMD) {
+      if (data.nonce !== currentNonce()) return;
+      try {
+        window.postMessage(
+          {
+            source: MEDIA_INFO_RESULT,
+            details: youtubeVideoDetails(),
+            nonce: currentNonce(),
+          },
+          '*',
+        );
+      } catch {
+        /* page is going away */
+      }
+      return;
+    }
+
+    if (data.source !== PLAYBACK_CMD) return;
     if (data.nonce !== currentNonce()) return;
     if (typeof data.id !== 'string') return;
     const reply = (ok: boolean, error?: string) => {
