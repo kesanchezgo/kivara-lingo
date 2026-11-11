@@ -385,6 +385,10 @@ export function Onboarding() {
                 setAiEnrichOnHover={(v) => setAi({ ...ai, enrichOnHover: v })}
                 aiCacheTtlDays={ai.cacheTtlDays}
                 setAiCacheTtlDays={(v) => setAi({ ...ai, cacheTtlDays: v })}
+                aiBaseUrl={ai.baseUrl ?? ''}
+                setAiBaseUrl={(v) => setAi({ ...ai, baseUrl: v })}
+                aiApiFormat={ai.apiFormat ?? 'openai-chat'}
+                setAiApiFormat={(v) => setAi({ ...ai, apiFormat: v })}
               />
             )}
             {step === 'demo' && <DemoStep />}
