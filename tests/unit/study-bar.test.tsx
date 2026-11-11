@@ -54,4 +54,17 @@ describe('StudyBar tooltips', () => {
     expect(titles.some((title) => title.includes('Alt+T'))).toBe(true); // transcript
     expect(titles.some((title) => title.includes('Alt+K'))).toBe(true); // panel
   });
+
+  it('names the slow-replay combo on the hold line of the replay button', () => {
+    const { container } = render(<StudyBar {...props()} />);
+    const titles = Array.from(container.querySelectorAll('[title]')).map(
+      (node) => node.getAttribute('title') ?? '',
+    );
+    const replay = titles.find((title) => title.includes('Alt+R'));
+    expect(replay).toBeTruthy();
+    // Hold repeats slower: that line carries the user's replaySlow binding
+    // (Alt+Shift+R), the same double hint the prototype shows.
+    expect(replay).toContain('Alt+Shift+R');
+    expect(replay).toContain('\n');
+  });
 });
