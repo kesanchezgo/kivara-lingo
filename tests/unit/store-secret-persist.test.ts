@@ -254,8 +254,10 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     vi.resetModules();
     const modB = await import('../../src/shared/use-kivara-store');
     const secretB = await import('../../src/shared/secret-store');
-    await flush(320);
-    expect(modB.useKivaraStore.getState().ai.apiKey).toBe('sk-one');
+    // Wait for the hydration EVENT, not a guessed 320 ms: the persist read is
+    // async and the fixed sleep was the flake under a loaded machine.
+    await waitFor(() => modB.useKivaraStore.persist.hasHydrated?.() === true);
+    await waitFor(() => modB.useKivaraStore.getState().ai.apiKey === 'sk-one');
 
     modB.useKivaraStore.setState({
       ai: { ...modB.useKivaraStore.getState().ai, apiKey: 'sk-two' },
@@ -271,9 +273,10 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     expect(local.get(SLOT_KEY)).toBe('__cleared__');
 
     // B's writes reach A as local onChanged events, exactly as chrome does.
+    // They are fired back to back (A's rehydrate is debounced, so the last
+    // value is the one that lands) and then polled — no fixed sleeps.
     for (const value of ['__cleared__', 'sk-two-tombstone-target', '__cleared__']) {
       env.fireLocal({ [SLOT_KEY]: { newValue: value } });
-      await flush(320);
     }
 
     // A rehydrated on the tombstone: its in-memory copy is gone, so nothing
