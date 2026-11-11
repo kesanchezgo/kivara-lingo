@@ -22,7 +22,7 @@ import { getDB } from '../shared/db';
 import { profileLangOf, removeAnkiWord } from '../shared/study/wordStatus';
 import { cardRegistry } from './card-registry';
 import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator';
-import { deleteNote } from './card-actions';
+import { deleteNote, noteOwnership } from './card-actions';
 
 function mappingForCard(mapping: AnkiMapping, card: RecentCard): AnkiMapping {
   return {
@@ -180,12 +180,30 @@ export async function dismissCard(id: string): Promise<CardDismissResponse> {
  * the only place that knows which language the card was saved for, so it is
  * read BEFORE the removal discards it. A note deleted by hand (`gone`) is
  * the same user goal and takes the same path.
+ *
+ * The note must be ours before anything is deleted (issue #39): a registry
+ * row proves this installation saved it, and the `kivara-lingo` / `kivara::…`
+ * tag proves it for cards saved before the registry existed. An id that is
+ * neither is refused with an error and never reaches `deleteNotes`.
  */
 export async function undoDeleteNote(
   noteId: number,
   mapping: AnkiMapping,
 ): Promise<AnkiDeleteNoteResponse> {
   const known = await cardRegistry.findByNoteId(noteId);
+  if (!known) {
+    const ownership = await noteOwnership(noteId, mapping);
+    if (ownership === 'foreign') {
+      return { ok: false, error: 'note was not created by Kivara Lingo' };
+    }
+    if (ownership === 'unreadable') {
+      return { ok: false, error: 'could not verify the note belongs to Kivara Lingo' };
+    }
+    if (ownership === 'gone') {
+      // Nothing left to delete. No registry row and no word to clear either.
+      return { ok: true, gone: true };
+    }
+  }
   const result = await deleteNote(noteId, mapping);
   if (result.ok) {
     await cardRegistry.removeByNoteId(noteId);

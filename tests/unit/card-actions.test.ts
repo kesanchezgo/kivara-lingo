@@ -104,6 +104,56 @@ describe('deleteNote (Undo)', () => {
   });
 });
 
+/**
+ * Undo ownership guard (issue #39). `ANKI_DELETE_NOTE` must not be a
+ * delete-any primitive: only notes written by this extension may be removed.
+ */
+describe('noteOwnership (Undo guard)', () => {
+  const info = (tags: string[] | undefined, noteId: number | null = 77) => [
+    { noteId, fields: {}, tags },
+  ];
+
+  it('accepts the legacy flat tag', async () => {
+    setup({ notesInfo: vi.fn(async () => info(['other', 'kivara-lingo'])) });
+    const { noteOwnership } = await import('../../src/background/card-actions');
+    await expect(noteOwnership(77, MAPPING as never)).resolves.toBe('owned');
+  });
+
+  it('accepts a hierarchical kivara:: tag', async () => {
+    setup({ notesInfo: vi.fn(async () => info(['kivara::lang::en', 'kivara::word'])) });
+    const { noteOwnership } = await import('../../src/background/card-actions');
+    await expect(noteOwnership(77, MAPPING as never)).resolves.toBe('owned');
+  });
+
+  it('rejects a note with foreign tags', async () => {
+    setup({ notesInfo: vi.fn(async () => info(['spanish', 'verbs'])) });
+    const { noteOwnership } = await import('../../src/background/card-actions');
+    await expect(noteOwnership(77, MAPPING as never)).resolves.toBe('foreign');
+  });
+
+  it('reports a note Anki answers with a null id as gone', async () => {
+    setup({ notesInfo: vi.fn(async () => info([], null)) });
+    const { noteOwnership } = await import('../../src/background/card-actions');
+    await expect(noteOwnership(77, MAPPING as never)).resolves.toBe('gone');
+  });
+
+  it('reports an omitted note as gone', async () => {
+    setup({ notesInfo: vi.fn(async () => []) });
+    const { noteOwnership } = await import('../../src/background/card-actions');
+    await expect(noteOwnership(77, MAPPING as never)).resolves.toBe('gone');
+  });
+
+  it('reports a failed lookup as unreadable instead of guessing', async () => {
+    setup({
+      notesInfo: vi.fn(async () => {
+        throw new FakeAnkiError('Anki is closed', 'NETWORK');
+      }),
+    });
+    const { noteOwnership } = await import('../../src/background/card-actions');
+    await expect(noteOwnership(77, MAPPING as never)).resolves.toBe('unreadable');
+  });
+});
+
 describe('addContextToNote (Add this scene)', () => {
   it('appends the sentence, escapes it and adds the tags', async () => {
     const spies = setup();

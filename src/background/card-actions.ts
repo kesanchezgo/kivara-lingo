@@ -16,6 +16,8 @@ import type {
   AnkiMapping,
 } from '../shared/types';
 import { buildExactNoteQuery, escapeAnkiSearchTerm } from '../shared/anki-search';
+import { LEGACY_CARD_TAG } from '../shared/cards';
+import { TAG_ROOT } from '../shared/study/cardTags';
 import { ankiConnect, AnkiConnectError, dataUrlToBase64, type AnkiNoteInfo } from './anki-connect';
 
 function escapeHtml(text: string): string {
@@ -72,6 +74,38 @@ export async function deleteNote(
     }
     return { ok: false, error: err instanceof Error ? err.message : 'deleteNotes failed' };
   }
+}
+
+/** Result of checking whether a note was written by this extension. */
+export type NoteOwnership = 'owned' | 'foreign' | 'gone' | 'unreadable';
+
+/**
+ * Ownership check for Undo (issue #39): `ANKI_DELETE_NOTE` used to delete any
+ * `noteId` it was handed. A note is ours when it carries one of our tags —
+ * `kivara-lingo` (the pre-registry flat tag every create has always added) or
+ * any `kivara::…` hierarchical tag. The tag path is what keeps Undo working
+ * for cards saved before the card registry existed.
+ *
+ * `gone` means Anki does not know the id: the undo goal is already met, and
+ * nothing must be deleted. `unreadable` means the check itself failed (Anki
+ * closed, notesInfo error) — the caller must refuse rather than assume.
+ */
+export async function noteOwnership(
+  noteId: number,
+  mapping: AnkiMapping,
+): Promise<NoteOwnership> {
+  let info: AnkiNoteInfo | undefined;
+  try {
+    const infos = await ankiConnect.notesInfo([noteId], mapping.ankiUrl, mapping.apiKey);
+    info = infos[0];
+  } catch {
+    return 'unreadable';
+  }
+  if (!info || info.noteId == null) return 'gone';
+  const tags = info.tags ?? [];
+  return tags.some((tag) => tag === LEGACY_CARD_TAG || tag.startsWith(`${TAG_ROOT}::`))
+    ? 'owned'
+    : 'foreign';
 }
 
 /** Resolve the note a headword belongs to when the caller has no id yet. */

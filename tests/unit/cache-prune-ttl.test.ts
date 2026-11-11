@@ -307,6 +307,7 @@ describe('a stale explain row is not served after pruning', () => {
       explainCacheKey(
         EXPLAIN_SETTINGS.provider,
         EXPLAIN_SETTINGS.model,
+        EXPLAIN_SETTINGS.baseUrl ?? '',
         req.lang ?? '',
         req.uiLang,
         req.nativeLang,
