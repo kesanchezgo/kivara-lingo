@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { formatFrequencyBand, pickFrequencyWinner } from '../../src/shared/frequency';
+import { formatFrequencyBand, formatRankBand, pickFrequencyWinner, rankBand } from '../../src/shared/frequency';
+import { t } from '../../src/shared/i18n';
 
 describe('shared frequency band', () => {
   it('labels Longman bands with their learner rank', () => {
@@ -20,6 +21,30 @@ describe('shared frequency band', () => {
   it('falls back to raw scale for unknown sources', () => {
     expect(formatFrequencyBand('books-band', '9')).toBe('books-band: 9');
     expect(formatFrequencyBand('zipf', '5.2')).toBe('zipf: 5.2');
+  });
+
+  it('maps a rank to its band at the window boundaries', () => {
+    expect(rankBand(1)).toBe('veryFrequent');
+    expect(rankBand(1000)).toBe('veryFrequent');
+    expect(rankBand(1001)).toBe('frequent');
+    expect(rankBand(3000)).toBe('frequent');
+    expect(rankBand(3001)).toBe('common');
+    expect(rankBand(8000)).toBe('common');
+    expect(rankBand(8001)).toBe('uncommon');
+  });
+
+  it('formats the rank band through the popover dictionary', () => {
+    // `translate` is the merged UI dictionary; the card passes it so the
+    // Longman/rank labels follow the app locale (es pinned in tests).
+    expect(formatRankBand(1000, t)).toBe('Muy frecuente');
+    expect(formatRankBand(2000, t)).toBe('Frecuente');
+    expect(formatRankBand(8342, t)).toBe('Poco común');
+  });
+
+  it('labels Longman and books bands through the UI translator', () => {
+    expect(formatFrequencyBand('longman-spoken', 'S1', t)).toBe('Top 1000 hablado');
+    expect(formatFrequencyBand('longman-written', 'W3', t)).toBe('Top 3000 escrito');
+    expect(formatFrequencyBand('books-band', 2, t)).toBe('Frecuente');
   });
 
   it('picks one winner: spoken Longman over written over books-band', () => {
