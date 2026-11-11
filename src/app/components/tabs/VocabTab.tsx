@@ -19,7 +19,7 @@ import { useMemo, useState } from 'react';
 import { GraduationCap } from '../../../ui/icons';
 import { t, fmtDate, fmtNumber, useLocale } from '../../../shared/i18n';
 import { lookupDictionary } from '../../../content/nlp/dictionary';
-import { useWordStudy } from '../../../content/ui/study';
+import { useWordStudy, profileLangOf } from '../../../content/ui/study';
 import { VocabTestDialog } from '../../../content/ui/VocabTestDialog';
 import { LevelLadder } from '../../../ui/LevelLadder';
 import { Select } from '../../../ui/primitives/controls';
@@ -27,22 +27,47 @@ import { Badge, Button, Group, NavRow, Row, ui } from '../../../ui/primitives/se
 import { isPending, useRecentCards } from './RecentCards';
 import { MODEL, STUDY_LEVELS, type StudyLevel } from '../../../shared/study/lexicalModel';
 import { COMMITTED_BANK, scoreVocabCheck, withGlosses } from '../../../shared/study/vocabCheck';
+import { buildEpisodeVocabulary, type EpisodeCue } from '../../../content/ui/EpisodeWords';
+import { EpisodeGroup } from './EpisodeGroup';
+import { episodeCoverage } from './episodeCoverage';
 
 /** F5 opens the tab: the word status, the level and the check are real now. */
 export const VOCAB_TAB_ENABLED = true;
 
-export function VocabTab({ onOpenCards }: {
+export interface VocabTabProps {
   /** Jump to the Cards tab (the Anki row); absent on hosts without tabs. */
   onOpenCards?: () => void;
-}) {
+  /** Full subtitle track of the current episode. Absent on hosts with no
+   * player (Options): the «This episode» group is then hidden. */
+  episode?: { cues: readonly EpisodeCue[]; lang: string } | null;
+  /** Open the transcript rail's Words view. */
+  onOpenEpisodeWords?: () => void;
+}
+
+export function VocabTab({ onOpenCards, episode, onOpenEpisodeWords }: VocabTabProps) {
   const locale = useLocale();
   const study = useWordStudy();
   const { lang, l1, estimator: est, profile, range, summary } = study;
-  const langName = locale === 'es'
-    ? t(`lang.${lang}`).toLocaleLowerCase('es')
-    : t(`lang.${lang}`);
+  const langNameOf = (code: string) => (locale === 'es'
+    ? t(`lang.${code}`).toLocaleLowerCase('es')
+    : t(`lang.${code}`));
+  const langName = langNameOf(lang);
   const canTest = lang === 'en';
   const [testOpen, setTestOpen] = useState(false);
+
+  // «This episode». Coverage runs over the study binding of the episode's own
+  // language; when that is not the active profile the group explains where the
+  // words and cards go instead of mixing percentages across profiles. No track
+  // (Options, pre-load) hides the group.
+  const episodeCues = episode?.cues;
+  const hasEpisode = !!episodeCues && episodeCues.length > 0;
+  const episodeLang = hasEpisode ? profileLangOf(episode!.lang) : null;
+  const coverage = useMemo(
+    () => (hasEpisode && episodeLang && episodeLang === lang
+      ? episodeCoverage(buildEpisodeVocabulary(episodeCues!, episodeLang), study.statusOf)
+      : null),
+    [hasEpisode, episodeCues, episodeLang, lang, study.statusOf],
+  );
 
   // The meaning step needs glosses; the bank ships without them, so they come
   // from the bundled dictionary. The SAME object feeds the sample and the
@@ -159,7 +184,21 @@ export function VocabTab({ onOpenCards }: {
           </Group>
         </div>
 
-        {/* 2 · The precedence, in one line. The word card is where it acts; the
+        {/* 2 · This episode: coverage of the track, and the way into the word
+            list. Hidden when the host has no player (Options page). */}
+        {hasEpisode && episodeLang && (
+          <div data-episode-group>
+            <EpisodeGroup
+              episodeLangName={langNameOf(episodeLang)}
+              activeLangName={langNameOf(lang)}
+              sameProfile={episodeLang === lang}
+              coverage={coverage}
+              onOpenWords={onOpenEpisodeWords}
+            />
+          </div>
+        )}
+
+        {/* 3 · The precedence, in one line. The word card is where it acts; the
             tab explains what the numbers are made of. */}
         <Group icon={<GraduationCap size={13} />} title={t('ws.sectionTitle')} hint={t('ws.sectionHint')}>
           <p className={`${ui.desc} px-0.5`} data-precedence-note>{t('ws.precedenceNote')}</p>

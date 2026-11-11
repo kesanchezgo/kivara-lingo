@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Subtitles, LayoutGrid, Settings, X, ExternalLink, Moon, Sun, GripVertical, GraduationCap,
+  AlignLeft,
 } from '../../ui/icons';
 import { BrandGlyph } from '../../ui/BrandGlyph';
 import { t } from '../../shared/i18n';
+import { comboOf, withCombo } from './combo-hints';
 import type { PanelPosition } from '../../shared/store';
 import { useKivaraStore } from '../../shared/use-kivara-store';
 import type { AnkiMapping, SubtitleStyles } from '../../shared/types';
@@ -13,8 +15,10 @@ import { CardsTab } from '../../app/components/tabs/CardsTab';
 import { SettingsTab } from '../../app/components/tabs/SettingsTab';
 import { VocabTab, VOCAB_TAB_ENABLED } from '../../app/components/tabs/VocabTab';
 import { useRecentCards, isPending } from '../../app/components/tabs/RecentCards';
+import { OPEN_CARDS_EVENT } from './save-actions';
 import { SegPill, FOCUS } from '../../ui/primitives/settings-primitives';
 import type { CardPreviewData } from '../../app/components/tabs/CardPreview';
+import type { EpisodeCue } from './EpisodeWords';
 
 /**
  * Side panel. The layout is the prototype's (16px header, segmented tab bar,
@@ -41,6 +45,15 @@ interface SidePanelProps {
   mapping: AnkiMapping;
   setMapping: (mapping: AnkiMapping | ((prev: AnkiMapping) => AnkiMapping)) => void;
   mockData: CardPreviewData;
+  /** Full subtitle track of the current episode; hosts without a player
+   * (Options) omit it and the Vocabulary tab hides its episode group. */
+  episode?: { cues: readonly EpisodeCue[]; lang: string } | null;
+  /** Open the transcript rail's Words view (only the content host can). */
+  onOpenEpisodeWords?: () => void;
+  /** The rail is docked beside the panel: hand focus to it. */
+  onToTranscript?: () => void;
+  /** Language of the playing subtitles; the Cards tab badges its deck row. */
+  episodeLang?: string;
 }
 
 type PanelTab = 'subtitles' | 'vocab' | 'cards' | 'settings';
@@ -120,8 +133,13 @@ export function SidePanel({
   mapping,
   setMapping,
   mockData,
+  episode,
+  onOpenEpisodeWords,
+  onToTranscript,
+  episodeLang,
 }: SidePanelProps) {
   const deepLink = useDeepLinkSection();
+  const shortcuts = useKivaraStore((state) => state.shortcuts);
   const [activeTab, setActiveTab] = useState<PanelTab>('cards');
 
   // A deep link must not land on Cards: that tab never mounts SettingsTab, so
@@ -132,6 +150,14 @@ export function SidePanel({
     if (deepLink.pending) return;
     if (deepLink.section) setActiveTab('settings');
   }, [deepLink.pending, deepLink.section, deepLink.nonce]);
+
+  // The save-error notice's "View queue" lands here (App opens the panel and
+  // fires the event): Cards is the tab that owns the retry queue.
+  useEffect(() => {
+    const onOpenCards = () => setActiveTab('cards');
+    window.addEventListener(OPEN_CARDS_EVENT, onOpenCards);
+    return () => window.removeEventListener(OPEN_CARDS_EVENT, onOpenCards);
+  }, []);
 
   const tabs: Array<{ id: PanelTab; label: string; icon: typeof Subtitles }> = [
     { id: 'subtitles', label: t('panel.tabSubtitles'), icon: Subtitles },
@@ -298,6 +324,17 @@ export function SidePanel({
           </div>
         </div>
         <div className="flex items-center gap-0.5">
+          {onToTranscript && (
+            <button
+              type="button"
+              onClick={onToTranscript}
+              className={HEAD_BTN}
+              title={t('panel.toTranscript')}
+              aria-label={t('panel.toTranscript')}
+            >
+              <AlignLeft size={16} />
+            </button>
+          )}
           {togglePopupMode && (
             <button
               type="button"
@@ -323,7 +360,7 @@ export function SidePanel({
               type="button"
               onClick={close}
               className={HEAD_BTN}
-              title={t('panel.closeTitle')}
+              title={withCombo(t('panel.closeTitle'), comboOf(shortcuts, 'panel'))}
               aria-label={t('panel.closeTitle')}
             >
               <X size={16} />
@@ -398,7 +435,13 @@ export function SidePanel({
             <SubtitlesTab styles={styles} setStyles={setStyles} onOpenVocab={() => selectTab('vocab')} />
           )}
           {tab.id === 'cards' && (
-            <CardsTab mapping={mapping} setMapping={setMapping} mockData={mockData} />
+            <CardsTab
+              mapping={mapping}
+              setMapping={setMapping}
+              mockData={mockData}
+              episodeLang={episodeLang}
+              onOpenVocab={() => selectTab('vocab')}
+            />
           )}
           {tab.id === 'settings' && (
             <SettingsTab
@@ -407,7 +450,13 @@ export function SidePanel({
               onOpenTab={(target) => selectTab(target === 'vocab' ? 'vocab' : target)}
             />
           )}
-          {tab.id === 'vocab' && <VocabTab onOpenCards={() => selectTab('cards')} />}
+          {tab.id === 'vocab' && (
+            <VocabTab
+              onOpenCards={() => selectTab('cards')}
+              episode={episode}
+              onOpenEpisodeWords={onOpenEpisodeWords}
+            />
+          )}
         </div>
       ))}
     </div>

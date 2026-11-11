@@ -47,7 +47,7 @@ export const dict: AreaDict = {
     "dict.localFile": "Archivo local",
     "dict.localPct": "{pct}% local",
     "dict.localPctNone": "— local",
-    "dict.lookups": "{count} consultas",
+    "dict.lookups": "{count} lookups",
     "dict.manualImportHint": "ZIP de Yomitan/StarDict desde URL, archivo local o lista CSV/TSV. Todo se guarda en tu navegador.",
     "dict.noData": "sin datos",
     "dict.noDefinition": "Sin definición encontrada.",

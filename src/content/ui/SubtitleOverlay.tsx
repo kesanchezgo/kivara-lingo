@@ -14,8 +14,10 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
+import { toast } from 'sonner';
 import {
   Volume1, Copy, Check, Quote, MousePointerClick, Link2, Ear, GraduationCap, BookOpenCheck,
+  ListChecks,
 } from '../../ui/icons';
 import type {
   SubtitleStyles,
@@ -83,6 +85,13 @@ export interface SubtitleOverlayProps {
   /** Explain this line (AI). The button only renders when both exist. */
   onExplain?: () => void;
   /**
+   * The save shortcut had nothing unambiguous to save: several new words in
+   * the line, or none. App explains what to do instead of guessing a word —
+   * the prototype's rule, and the reason a mis-fired shortcut never creates a
+   * card for the wrong token.
+   */
+  onNothingToSave?: (reason: 'several' | 'none') => void;
+  /**
    * Study profile of the subtitle language (F5): resolves each token's status,
    * feeds the word card's status selector and knows which words already have
    * an Anki card. Absent, the overlay draws only the expression bracket (F3).
@@ -116,6 +125,7 @@ export function SubtitleOverlay({
   setExpandedMWEs: controlledSetExpanded,
   capturing = false,
   onExplain,
+  onNothingToSave,
   study,
 }: SubtitleOverlayProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -336,6 +346,21 @@ export function SubtitleOverlay({
     () => tokenizeSentence(sourceText, effectiveExpanded, cueLanguage),
     [sourceText, effectiveExpanded, cueLanguage],
   );
+  // The new words of this line, deduped by lemma: the toolbar's "know the
+  // rest" button marks them in one click. Only vocabulary carries a status —
+  // punctuation, proper nouns and speaker notes never do.
+  const newKeys = useMemo(() => {
+    if (!study) return [] as string[];
+    const seen = new Set<string>();
+    for (const tok of tokens) {
+      if (tok.kind === 'punct' || tok.kind === 'ignored') continue;
+      const key = tok.lemma ?? tok.key;
+      if (study.detailOf(key).status !== 'new') continue;
+      seen.add(key);
+    }
+    return [...seen];
+  }, [tokens, study]);
+
   const selectionText = useMemo(() => {
     if (!selection) return '';
     const lo = Math.min(selection.a, selection.b);
@@ -470,6 +495,30 @@ export function SubtitleOverlay({
     });
   };
 
+  /**
+   * "Know the rest": mark every new word of this line as known. The toast
+   * carries Undo with the prototype's rule — only what nobody has touched
+   * after the click is reverted, so a later hand mark survives.
+   */
+  const markRestKnown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!study || newKeys.length === 0) return;
+    const previous = new Map(newKeys.map((key) => [key, study.userStatusOf(key) ?? null]));
+    for (const key of newKeys) study.setStatus(key, 'known');
+    const n = newKeys.length;
+    toast(n === 1 ? t('ovl.knewRestDoneOne') : t('ovl.knewRestDone', { n }), {
+      duration: 5000,
+      action: {
+        label: t('recent.undo'),
+        onClick: () => {
+          for (const [key, status] of previous) {
+            if (study.userStatusOf(key) === 'known') study.setStatus(key, status);
+          }
+        },
+      },
+    });
+  };
+
   // Ctrl+Shift+S / the page shortcut: save what is pointed at (selection,
   // then the open card, then the line), never guess.
   const lastSaveKeyRef = useRef<number | null>(null);
@@ -486,6 +535,20 @@ export function SubtitleOverlay({
     if (key) {
       const dictionary = lookupDictionary(key, cueLanguage);
       handleSaveToken(dictionary?.token ?? key);
+      return;
+    }
+    // With a profile there IS something to judge: save the line only when it
+    // holds exactly ONE new word (an i+1 line, like the transcript's button).
+    // Several or none means the shortcut cannot know what the user meant, so
+    // App explains instead of guessing.
+    if (study) {
+      if (newKeys.length === 1) {
+        const tok = tokens.find((tk) => (tk.lemma ?? tk.key) === newKeys[0]);
+        const dictionary = tok ? lookupDictionary(tok.key, cueLanguage) : undefined;
+        handleSaveToken(dictionary?.token ?? (tok ? tok.key : newKeys[0]));
+        return;
+      }
+      onNothingToSave?.(newKeys.length > 1 ? 'several' : 'none');
       return;
     }
     if (targetSentence.trim()) handleSaveToken(targetSentence);
@@ -519,8 +582,10 @@ export function SubtitleOverlay({
     e.stopPropagation();
     void copyText(sourceText).then((ok) => {
       if (!ok) {
-        // Copy failure is non-fatal, but silent failure reads as a dead button.
+        // Copy failure is non-fatal, but a silent failure reads as a dead
+        // button — the prototype says so out loud.
         setCopied(false);
+        toast.error(t('overlay.copyFailed'), { duration: 2400 });
         return;
       }
       setCopied(true);
@@ -705,6 +770,18 @@ export function SubtitleOverlay({
               aria-label={t('explain.action')}
             >
               <BookOpenCheck size={14} />
+            </button>
+          )}
+          {newKeys.length > 0 && (
+            <button
+              type="button"
+              tabIndex={toolbarOpen ? 0 : -1}
+              onClick={markRestKnown}
+              className="h-7 px-2 flex items-center gap-1 text-zinc-300 hover:text-white hover:bg-white/[0.08] rounded-md text-[12px] font-medium tabular-nums kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80"
+              title={newKeys.length === 1 ? t('ovl.knowRestOne') : t('ovl.knowRest', { n: newKeys.length })}
+              aria-label={newKeys.length === 1 ? t('ovl.knowRestOne') : t('ovl.knowRest', { n: newKeys.length })}
+            >
+              <ListChecks size={14} /> {newKeys.length}
             </button>
           )}
           <div className="w-px h-3.5 bg-zinc-700/80" />
