@@ -54,6 +54,9 @@ export function fieldValue(
   switch (src) {
     case 'selection': return text(card.word);
     case 'cue': return text(card.targetSentence);
+    // The preview has no neighbouring cues, so it shows the same value the
+    // mapper produces when a save carried no `contextLines`: the line alone.
+    case 'context': return text(card.targetSentence);
     case 'cloze': return { kind: 'cloze' };
     case 'source': return text(card.source);
     case 'phonetic': return text(card.phonetic);

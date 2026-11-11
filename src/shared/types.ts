@@ -83,6 +83,7 @@ export type CueAlign = 'start' | 'center' | 'end' | 'left' | 'right';
  *
  *  - `selection`      — the token the user hovered / clicked          → word
  *  - `cue`            — the full subtitle the cue belongs to          → sentence
+ *  - `context`        — previous / this / next line joined by <br>    → context
  *  - `phonetic`       — IPA pronunciation from the dictionary         → phonetic
  *  - `translation`    — short translation (remote translator OR dict) → translation
  *  - `bilingual`      — gram-cat + short bilingual definition         → bilingual
@@ -103,6 +104,7 @@ export type CueAlign = 'start' | 'center' | 'end' | 'left' | 'right';
 export type FieldSource =
   | 'selection'
   | 'cue'
+  | 'context'
   | 'phonetic'
   | 'translation'
   | 'bilingual'
@@ -1050,7 +1052,8 @@ export interface CreateCardRequest {
   media?: MediaInfo;
   /** Pre-built cloze text; when absent the orchestrator wraps the token. */
   cloze?: string;
-  /** Neighbouring subtitle lines, kept for the card's context fields. */
+  /** Neighbouring subtitle lines, joined with the sentence by the `context`
+   *  field source (previous / this / next). */
   contextLines?: { prev?: string; next?: string };
   /** The native-language translation of the full sentence (from dual subtitle
    *  or MT provider). Filled by the content script when available. */
