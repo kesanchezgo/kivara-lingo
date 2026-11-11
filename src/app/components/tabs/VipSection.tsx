@@ -419,7 +419,7 @@ export function VipSection() {
 /* ── Cache administration (real: GET_CACHE_STATS / CLEAR_CACHE) ───────── */
 
 interface CacheBucket {
-  id: 'enrichment' | 'translation' | 'ai' | 'media';
+  id: 'enrichment' | 'translation' | 'ai' | 'explain' | 'media';
   label: string;
   count: number;
   bytes: number;

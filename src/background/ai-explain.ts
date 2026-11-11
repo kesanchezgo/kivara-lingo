@@ -23,6 +23,7 @@ import {
   parseExplanationResponse,
 } from './ai-explain-core';
 import { getAiSettings, getResolvedNativeLang } from './ai-enrich';
+import { pruneExpiredCaches } from './enrichment/cache';
 
 /** in-flight requests keyed by cache key, to coalesce a repeated press. */
 const inflight = new Map<string, Promise<AiExplainResponse>>();
@@ -102,6 +103,9 @@ export async function explainSentence(req: AiExplainRequest): Promise<AiExplainR
         expiresAt: explainCacheExpiresAt(settings.cacheTtlDays, now, DEFAULT_AI.cacheTtlDays),
         createdAt: now,
       });
+      // Same housekeeping the enrichment cache runs after its own writes: the
+      // shared pass sweeps this table's expired rows under the same cadence.
+      void pruneExpiredCaches();
     } catch (err) {
       console.warn('[Kivara Lingo] explain_cache write failed', err);
     }
