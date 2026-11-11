@@ -49,7 +49,19 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # Extensions need a real Chromium from Playwright, plus the system
       # libraries for it; xvfb covers any legacy-headless fallback.
-      - run: pnpm exec playwright install --with-deps chromium
+      # The Ubuntu mirror the runner resolves (azure.archive.ubuntu.com)
+      # intermittently fails DNS, which killed the whole job at this step with
+      # code 100 before any test ran. Retry the install; the browser download
+      # itself is already idempotent.
+      - name: Install Chromium (retry on mirror failures)
+        run: |
+          for attempt in 1 2 3; do
+            pnpm exec playwright install --with-deps chromium && exit 0
+            echo "attempt $attempt failed; retrying in 15s"
+            sleep 15
+          done
+          echo "playwright install failed after 3 attempts"
+          exit 1
       - run: pnpm build
       - run: xvfb-run --auto-servernum -- pnpm exec playwright test
 
@@ -69,7 +81,19 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      # The Ubuntu mirror the runner resolves (azure.archive.ubuntu.com)
+      # intermittently fails DNS, which killed the whole job at this step with
+      # code 100 before any test ran. Retry the install; the browser download
+      # itself is already idempotent.
+      - name: Install Chromium (retry on mirror failures)
+        run: |
+          for attempt in 1 2 3; do
+            pnpm exec playwright install --with-deps chromium && exit 0
+            echo "attempt $attempt failed; retrying in 15s"
+            sleep 15
+          done
+          echo "playwright install failed after 3 attempts"
+          exit 1
       # This wrapper does: build with KIVARA_E2E=1, then run the audio
       # workload against that build (scripts/run-e2e-with-flag.mjs).
       - run: xvfb-run --auto-servernum -- pnpm test:e2e:audio
