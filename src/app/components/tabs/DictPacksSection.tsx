@@ -15,7 +15,7 @@
  *                                  user-entered URL — handy for nightly
  *                                  builds and forks.
  *   3. **Import from .zip file** — original local-file picker. Unchanged.
- *   4. **Personal CSV/TSV list** — paste a list of `word, translation, …`
+ *   4. **Personal CSV/TSV list** — paste a list of `word, translation, ...`
  *                                  rows that surface in the popover under a
  *                                  synthetic "Mi lista" pack.
  *   5. **StarDict (.zip)**       — accepts StarDict bundles (`.ifo / .idx /
@@ -34,19 +34,23 @@
  * writes them under the extension's own origin. Same code path when the panel
  * is mounted in the Options page.
  *
- * The visual structure now mirrors the Figma mock 1:1: the section lives
- * inside the parent SettingsTab accordion, so its own header is implicit;
- * we render compact sub-sections (Catálogo, Instalados, Importar, Cobertura)
- * stacked inside the accordion body. All real wiring (Dexie, service-worker
- * messaging, telemetry, real importers) is preserved unchanged.
+ * The visual structure mirrors the prototype's `DictPacksSection`: the section
+ * lives inside the parent SettingsTab accordion, so its own header is implicit
+ * and it renders compact sub-sections (Catálogo, Instalados, Importar,
+ * Cobertura) stacked inside the accordion body. All real wiring (Dexie via the
+ * worker, messaging, telemetry, real importers) is preserved unchanged; only
+ * the surface is the prototype's, with every user-facing string through `t()`.
  */
-import { t } from '../../../shared/i18n';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Trash2, Upload, Power, PowerOff, Loader2,
-  Download, FileText, Library, Trophy, ChevronDown, CheckCircle2, BarChart3, Link2, Sparkles,
-  Package, Cloud, Ban,
+  Download, FileText, Library, ChevronDown, CheckCircle2, BarChart3, Sparkles,
+  Package, Cloud, Ban, RotateCcw,
 } from '../../../ui/icons';
+import { t, fmtNumber } from '../../../shared/i18n';
+import { InfoHint } from '../InfoHint';
+import { Button, Callout, Toggle, Badge, ListGroup, QuickRow } from '../../../ui/primitives/settings-primitives';
+import { inputCls } from '../../../ui/primitives/controls';
 import type { DictPackRow, PackStatsRow } from '../../../shared/dict-types';
 import {
   importCsvTextViaWorker,
@@ -74,7 +78,6 @@ import {
   GROUP_LABELS,
   type RecommendedPack,
 } from '../../../shared/dict-pack-catalog';
-import { InfoHint } from '../InfoHint';
 
 interface ImportFeedback {
   kind: 'ok' | 'err';
@@ -91,10 +94,10 @@ function failureMessage(failure: PackStatsFailure): string {
   return failure.code === 'worker-unavailable' ? t('dict.swNoResponse') : failure.error;
 }
 
-const TIER_META: Record<RecommendedPack['tier'], { label: string; pill: string; icon: React.ReactNode }> = {
-  core:        { label: 'Esencial',    pill: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',     icon: <Sparkles size={9} /> },
-  recommended: { label: 'Recomendado', pill: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300', icon: null },
-  premium:     { label: 'Avanzado',    pill: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300', icon: null },
+const TIER_META: Record<RecommendedPack['tier'], { label: string; tone: 'amber' | 'indigo' | 'fuchsia'; icon: React.ReactNode }> = {
+  core:        { label: 'dict.tierCore',        tone: 'amber',   icon: <Sparkles size={14} /> },
+  recommended: { label: 'dict.tierRecommended', tone: 'indigo',  icon: null },
+  premium:     { label: 'dict.tierPremium',     tone: 'fuchsia', icon: null },
 };
 
 export function DictPacksSection() {
@@ -105,11 +108,15 @@ export function DictPacksSection() {
   const [feedback, setFeedback] = useState<ImportFeedback | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [csvOpen, setCsvOpen] = useState(false);
-  const [csvTitle, setCsvTitle] = useState('Mi lista');
+  // Empty = default name (applied at import): a translated initial value froze
+  // the old language when the user switched locales.
+  const [csvTitle, setCsvTitle] = useState('');
   const [csvText, setCsvText] = useState('');
   const [importingCsv, setImportingCsv] = useState(false);
   const [stats, setStats] = useState<PackStatsRow[]>([]);
   const [coverageOpen, setCoverageOpen] = useState(false);
+  // Inline delete confirmation (no window.confirm) so the panel keeps its rhythm.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<DictPackRow['id'] | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvFileInputRef = useRef<HTMLInputElement>(null);
@@ -187,11 +194,13 @@ export function DictPacksSection() {
   /* ── Coverage import / export ────────────────────────────────────────── */
 
   const onResetCoverage = useCallback(async () => {
+    setFeedback(null);
     const outcome = await resetPackStatsViaWorker();
     if (!outcome.ok && outcome.code === 'failed') {
       console.warn('[Kivara Lingo] could not reset coverage', outcome.error);
     }
     await refresh();
+    setFeedback({ kind: 'ok', message: t('dict.countersCleared') });
   }, [refresh]);
 
   const onExportCoverage = useCallback(async () => {
@@ -210,15 +219,9 @@ export function DictPacksSection() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      setFeedback({
-        kind: 'ok',
-        message: `Cobertura exportada (${snap.rows.length} filas).`,
-      });
+      setFeedback({ kind: 'ok', message: t('dict.coverageExported', { count: fmtNumber(snap.rows.length) }) });
     } catch (err) {
-      setFeedback({
-        kind: 'err',
-        message: `No se pudo exportar la cobertura: ${(err as Error).message}`,
-      });
+      setFeedback({ kind: 'err', message: t('dict.coverageImportError', { msg: (err as Error).message }) });
     }
   }, []);
 
@@ -243,13 +246,10 @@ export function DictPacksSection() {
         await refresh();
         setFeedback({
           kind: 'ok',
-          message: `Cobertura importada: ${outcome.added} filas nuevas, ${outcome.merged} fusionadas.`,
+          message: t('dict.coverageImported', { added: fmtNumber(outcome.added), merged: fmtNumber(outcome.merged) }),
         });
       } catch (err) {
-        setFeedback({
-          kind: 'err',
-          message: `No se pudo importar: ${(err as Error).message}`,
-        });
+        setFeedback({ kind: 'err', message: t('dict.coverageImportError', { msg: (err as Error).message }) });
       }
     },
     [refresh],
@@ -278,7 +278,7 @@ export function DictPacksSection() {
             kind: 'ok',
             message: t('dict.importOkFmt', {
               title: result.pack.title,
-              count: result.termsImported.toLocaleString(),
+              count: fmtNumber(result.termsImported),
               format: formatLabel[result.format],
               skip: skipNote,
             }),
@@ -291,10 +291,7 @@ export function DictPacksSection() {
         }
         await refresh();
       } catch (err) {
-        setFeedback({
-          kind: 'err',
-          message: t('dict.unexpectedError', { msg: (err as Error).message }),
-        });
+        setFeedback({ kind: 'err', message: t('dict.unexpectedError', { msg: (err as Error).message }) });
       } finally {
         setImporting(false);
       }
@@ -343,7 +340,7 @@ export function DictPacksSection() {
             kind: 'ok',
             message: t('dict.importedOkFmt', {
               title: result.pack.title,
-              count: result.termsImported.toLocaleString(),
+              count: fmtNumber(result.termsImported),
               skip: '',
             }),
           });
@@ -353,10 +350,7 @@ export function DictPacksSection() {
         }
         await refresh();
       } catch (err) {
-        setFeedback({
-          kind: 'err',
-          message: t('dict.unexpectedError', { msg: (err as Error).message }),
-        });
+        setFeedback({ kind: 'err', message: t('dict.unexpectedError', { msg: (err as Error).message }) });
       } finally {
         setImportingUrl(null);
       }
@@ -368,14 +362,15 @@ export function DictPacksSection() {
     setFeedback(null);
     setImportingCsv(true);
     try {
-      const result = await importCsvTextViaWorker(csvText, { title: csvTitle.trim() || 'Mi lista' });
+      const title = csvTitle.trim() || t('dict.defaultListTitle');
+      const result = await importCsvTextViaWorker(csvText, { title });
       if (result.ok) {
         const skipped = result.skipped ?? 0;
         setFeedback({
           kind: 'ok',
           message: t('dict.importedOkFmt', {
             title: result.pack.title,
-            count: result.termsImported.toLocaleString(),
+            count: fmtNumber(result.termsImported),
             skip: skipped > 0 ? t('dict.skippedNote', { count: skipped }) : '',
           }),
         });
@@ -386,10 +381,7 @@ export function DictPacksSection() {
       }
       await refresh();
     } catch (err) {
-      setFeedback({
-        kind: 'err',
-        message: t('dict.unexpectedError', { msg: (err as Error).message }),
-      });
+      setFeedback({ kind: 'err', message: t('dict.unexpectedError', { msg: (err as Error).message }) });
     } finally {
       setImportingCsv(false);
     }
@@ -403,18 +395,13 @@ export function DictPacksSection() {
       try {
         const text = await file.text();
         // Default the title to the filename minus extension if the user
-        // hasn't typed one yet (or left the placeholder).
+        // hasn't typed one yet.
         const baseTitle = file.name.replace(/\.[^.]+$/, '');
-        if (!csvTitle.trim() || csvTitle === 'Mi lista') {
-          setCsvTitle(baseTitle);
-        }
+        if (!csvTitle.trim()) setCsvTitle(baseTitle);
         setCsvText(text);
         setCsvOpen(true);
       } catch (err) {
-        setFeedback({
-          kind: 'err',
-          message: `No se pudo leer el archivo: ${(err as Error).message}`,
-        });
+        setFeedback({ kind: 'err', message: t('dict.readFileError', { msg: (err as Error).message }) });
       }
     },
     [csvTitle],
@@ -444,11 +431,7 @@ export function DictPacksSection() {
 
   const onDelete = useCallback(
     async (pack: DictPackRow) => {
-      if (
-        !window.confirm(t('dict.confirmDeletePack', { title: pack.title, count: pack.termCount.toLocaleString() }))
-      ) {
-        return;
-      }
+      setConfirmDeleteId(null);
       await new Promise<void>((resolve) => {
         try {
           chrome.runtime.sendMessage(
@@ -473,61 +456,55 @@ export function DictPacksSection() {
   const groups: RecommendedPack['group'][] = ['bilingual', 'monolingual', 'phonetic'];
 
   return (
-    <div className="p-2.5 space-y-3">
+    <div className="px-4 pt-3 pb-4 space-y-5">
 
       {/* ── Catálogo recomendado ─────────────────────────────────────────── */}
-      <SubSection icon={<Library size={10} />} title={t('dict.recommendedCatalog')}>
-        <div className="space-y-2">
+      <SubSection icon={<Library size={14} />} title={t('dict.recommendedCatalog')}>
+        <div className="space-y-3">
           {groups.map((group) => {
             const cards = RECOMMENDED_PACKS.filter((p) => p.group === group);
             if (cards.length === 0) return null;
             return (
-              <div key={group} className="space-y-1">
-                <div className="text-[9px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-400 px-1">
+              <div key={group} className="space-y-1.5">
+                <div className="text-[12px] font-medium text-zinc-400 dark:text-zinc-500 px-1">
                   {GROUP_LABELS[group]}
                 </div>
-                <div className="space-y-1">
+                <ListGroup>
                   {cards.map((p) => {
                     const installed = isPackInstalled(p.title, p.url);
-                    const loading = importingUrl === p.url;
+                    const busy = importingUrl === p.url;
                     const tier = TIER_META[p.tier];
                     return (
-                      <div
-                        key={p.url}
-                        className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2 py-1.5 flex items-center gap-2"
-                        title={`${p.description} — ${p.license}`}
-                      >
+                      <div key={p.url} className="kvl-row px-3 py-2.5 flex items-center gap-3">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[11.5px] font-medium text-zinc-800 dark:text-zinc-200 truncate leading-tight">{p.title}</span>
-                            <span className={`shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded inline-flex items-center gap-0.5 ${tier.pill}`}>
-                              {tier.icon}{tier.label}
-                            </span>
+                          <div className="flex items-start gap-1.5 min-w-0">
+                            <span className="text-[13px] font-medium text-zinc-800 dark:text-zinc-100 leading-[18px] line-clamp-2 [overflow-wrap:anywhere]">{p.title}</span>
+                            <span className="mt-px shrink-0"><InfoHint text={`${p.description} — ${p.license}`} /></span>
                           </div>
-                          <div className="text-[9.5px] text-zinc-500 tabular-nums leading-tight font-mono mt-0.5">
-                            {p.langs} · {p.size}
+                          <div className="mt-1 flex items-center gap-1.5 min-w-0">
+                            <Badge tone={tier.tone}>{tier.icon}{t(tier.label)}</Badge>
+                            <span className="text-[12px] text-zinc-500 dark:text-zinc-400 tabular-nums whitespace-nowrap" title={p.langs}>{p.size}</span>
                           </div>
                         </div>
                         {installed ? (
-                          <span className="shrink-0 text-[10px] font-medium px-1.5 py-1 rounded inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/70 dark:border-emerald-500/20">
-                            <CheckCircle2 size={10} />
-                            {t('dict.installed')}
+                          <span className="shrink-0 inline-flex items-center gap-1 text-[12px] font-medium text-emerald-600 dark:text-emerald-400" title={t('dict.installed')}>
+                            <CheckCircle2 size={14} />{t('dict.installed')}
                           </span>
                         ) : (
-                          <button
-                            type="button"
+                          <Button
+                            size="sm"
+                            variant="soft"
                             onClick={() => void onImportUrl(p.url)}
-                            disabled={loading || importing}
-                            className="shrink-0 text-[10px] font-semibold px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1 transition-colors"
+                            disabled={!!importingUrl || importing}
+                            icon={busy ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                           >
-                            {loading ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
-                            {loading ? t('dict.downloading') : t('dict.install')}
-                          </button>
+                            {busy ? t('dict.downloading') : t('dict.install')}
+                          </Button>
                         )}
                       </div>
                     );
                   })}
-                </div>
+                </ListGroup>
               </div>
             );
           })}
@@ -536,131 +513,143 @@ export function DictPacksSection() {
 
       {/* ── Instalados ────────────────────────────────────────────────────── */}
       <SubSection
-        icon={<CheckCircle2 size={10} />}
+        icon={<CheckCircle2 size={14} />}
         title={t('dict.installedSection')}
         trailing={
-          <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-400">
-            {loading ? '…' : packs.length}
+          <span className="text-[12px] tabular-nums text-zinc-400 dark:text-zinc-500">
+            {loading ? '...' : packs.length}
           </span>
         }
       >
         {loading ? (
-          <div className="text-[10.5px] text-zinc-500 italic px-1">{t('dict.loadingPacks')}</div>
+          <div className="space-y-1.5" aria-busy="true" aria-label={t('dict.loadingPacks')}>
+            {[0, 1].map((k) => (
+              <div key={k} className="rounded-xl bg-white dark:bg-white/[0.03] ring-1 ring-zinc-900/[0.06] dark:ring-white/[0.06] px-3 py-3 space-y-2 animate-pulse">
+                <div className="h-2.5 w-2/5 rounded bg-zinc-200 dark:bg-zinc-700/70" />
+                <div className="h-2 w-3/5 rounded bg-zinc-200/70 dark:bg-zinc-800" />
+              </div>
+            ))}
+            <div className="text-[12px] text-zinc-400 dark:text-zinc-500 px-1 inline-flex items-center gap-1.5">
+              <Loader2 size={12} className="animate-spin" />
+              {t('dict.loadingPacks')}
+            </div>
+          </div>
         ) : packs.length === 0 ? (
           <EmptySub text={t('dict.noneInstalled')} />
         ) : (
-          <div className="space-y-1">
+          <ListGroup>
             {packs.map((pack) => {
               const idle = idlePackIds.has(String(pack.id));
+              if (confirmDeleteId === pack.id) {
+                return (
+                  <div key={pack.id} className="px-3 py-3 space-y-2.5">
+                    <div className="flex items-start gap-2 text-[12px] leading-[17px] text-zinc-600 dark:text-zinc-300">
+                      <Trash2 size={14} className="shrink-0 mt-px text-rose-500 dark:text-rose-400" />
+                      <span>{t('dict.confirmDeletePack', { title: pack.title, count: fmtNumber(pack.termCount) })}</span>
+                    </div>
+                    <div className="flex gap-1.5 justify-end">
+                      <Button size="sm" variant="secondary" onClick={() => setConfirmDeleteId(null)}>{t('common.cancel')}</Button>
+                      <Button size="sm" variant="dangerSolid" icon={<Trash2 size={14} />} onClick={() => void onDelete(pack)}>{t('dict.deleteTitle')}</Button>
+                    </div>
+                  </div>
+                );
+              }
               return (
-                <div
-                  key={pack.id}
-                  className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2 py-1.5 flex items-center gap-1.5"
-                >
+                <div key={pack.id} className="kvl-row px-3 py-2.5 flex items-center gap-1">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[11.5px] font-medium text-zinc-800 dark:text-zinc-200 truncate leading-tight">{pack.title}</span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[13px] font-medium text-zinc-800 dark:text-zinc-100 truncate leading-[18px]">{pack.title}</span>
                       {idle && (
-                        <span
-                          title={t('dict.unusedDisable')}
-                          className="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
-                        >
-                          {t('dictpack.unused30d')}</span>
+                        <Badge tone="amber" title={t('dict.unusedDisable')}>{t('dictpack.unused30d')}</Badge>
                       )}
                       {!pack.enabled && (
-                        <span className="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">
-                          off
-                        </span>
+                        <Badge>{t('dict.off')}</Badge>
                       )}
                     </div>
-                    <div className="text-[9.5px] text-zinc-500 tabular-nums font-mono leading-tight mt-0.5">
-                      {pack.sourceLang} → {pack.targetLang} · {pack.termCount.toLocaleString()} {t('dictpack.termsRev')}{pack.revision}
+                    <div className="text-[12px] text-zinc-500 dark:text-zinc-400 tabular-nums leading-4 mt-0.5 truncate" title={`${pack.sourceLang} → ${pack.targetLang} · ${fmtNumber(pack.termCount)} ${t('dictpack.termsRev')} ${pack.revision}`}>
+                      {t('dict.packTermsCount', { count: fmtNumber(pack.termCount) }).replace(/^\s*·\s*/, '')}
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => void onToggle(pack)}
-                    className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-700/60 transition-colors"
-                    title={pack.enabled ? 'Deshabilitar' : 'Habilitar'}
+                    className="w-7 h-7 inline-flex items-center justify-center rounded-lg text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] kvl-press shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+                    title={pack.enabled ? t('dict.disable') : t('dict.enable')}
+                    aria-label={pack.enabled ? t('dict.disable') : t('dict.enable')}
                   >
-                    {pack.enabled ? <Power size={12} /> : <PowerOff size={12} />}
+                    {pack.enabled ? <Power size={16} /> : <PowerOff size={16} />}
                   </button>
                   <button
                     type="button"
-                    onClick={() => void onDelete(pack)}
-                    className="p-1 rounded text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                    onClick={() => setConfirmDeleteId(pack.id)}
+                    className="w-7 h-7 inline-flex items-center justify-center rounded-lg text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] kvl-press shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 hover:!text-rose-500"
                     title={t('dict.deleteTitle')}
+                    aria-label={t('dict.deleteTitle')}
                   >
-                    <Trash2 size={12} />
+                    <Trash2 size={16} />
                   </button>
                 </div>
               );
             })}
-          </div>
+          </ListGroup>
         )}
       </SubSection>
 
       {/* ── Importar manualmente ──────────────────────────────────────────── */}
       <SubSection
-        icon={<Upload size={10} />}
+        icon={<Upload size={14} />}
         title={t('dict.importManual')}
         hint={t('dict.manualImportHint')}
       >
-        <div className="space-y-2">
-          <div className="space-y-1">
-            <label className="flex items-center gap-1 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
-              <Link2 size={10} className="text-zinc-400" />
-              {t('dictpack.fromUrl')}</label>
-            <div className="flex gap-1.5">
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="block text-[12px] font-medium text-zinc-500 dark:text-zinc-400 px-0.5">
+              {t('dictpack.fromUrl')}
+            </label>
+            <div className="flex gap-2">
               <input
                 type="url"
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
-                placeholder="https://…/pack.zip"
-                className="sl-input sl-mono flex-1 min-w-0"
+                placeholder="https://.../pack.zip"
+                className={`${inputCls} font-mono !text-[12px] flex-1 min-w-0`}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && urlInput.trim() && !importingUrl) {
-                    void onImportUrl(urlInput);
-                  }
+                  if (e.key === 'Enter' && urlInput.trim() && !importingUrl) void onImportUrl(urlInput);
                 }}
               />
-              <button
-                type="button"
+              <Button
+                variant="primary"
                 onClick={() => void onImportUrl(urlInput)}
                 disabled={!urlInput.trim() || !!importingUrl}
-                className="text-[10px] font-semibold px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1 transition-colors"
+                icon={importingUrl && importingUrl === urlInput.trim() ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
               >
-                {importingUrl === urlInput.trim() ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
-                Descargar
-              </button>
+                {t('dict.download')}
+              </Button>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">{t('dict.otherSources')}</label>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
+          <div className="space-y-1.5">
+            <label className="block text-[12px] font-medium text-zinc-500 dark:text-zinc-400 px-0.5">{t('dict.otherSources')}</label>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                className="flex-1 min-w-0"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={importing}
-                className="flex-1 text-[11px] font-medium px-2 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/10 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 title={t('dict.importFile')}
+                icon={importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
               >
-                {importing ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
-                Archivo local
-              </button>
-              <button
-                type="button"
+                <span className="truncate">{t('dict.localFile')}</span>
+              </Button>
+              <Button
+                variant={csvOpen ? 'soft' : 'secondary'}
+                className="flex-1 min-w-0"
                 onClick={() => setCsvOpen((v) => !v)}
-                className={`flex-1 text-[11px] font-medium px-2 py-1.5 rounded-md border inline-flex items-center justify-center gap-1.5 transition-colors ${
-                  csvOpen
-                    ? 'border-indigo-300 dark:border-indigo-500/50 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300'
-                    : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/10'
-                }`}
+                aria-expanded={csvOpen}
+                icon={<FileText size={14} />}
               >
-                <FileText size={11} />
-                Pegar CSV/TSV
-              </button>
+                <span className="truncate">{t('dict.pasteCsv')}</span>
+              </Button>
             </div>
           </div>
 
@@ -680,120 +669,92 @@ export function DictPacksSection() {
           />
 
           {csvOpen && (
-            <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 p-2 space-y-1.5">
-              <div className="flex items-center gap-1.5">
+            <div className="rounded-xl bg-white dark:bg-white/[0.03] ring-1 ring-zinc-900/[0.06] dark:ring-white/[0.06] p-3 space-y-2">
+              <div className="flex items-center gap-2">
                 <input
                   type="text"
                   value={csvTitle}
                   onChange={(e) => setCsvTitle(e.target.value)}
                   placeholder={t('dict.listTitle')}
-                  className="sl-input flex-1 min-w-0"
+                  aria-label={t('dict.listTitle')}
+                  className={`${inputCls} flex-1 min-w-0`}
                 />
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
                   onClick={() => csvFileInputRef.current?.click()}
-                  className="text-[10px] px-1.5 py-1 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1"
                   title={t('dict.loadCsv')}
+                  icon={<Upload size={14} />}
                 >
-                  <Upload size={10} />
-                  Archivo
-                </button>
+                  {t('dict.file')}
+                </Button>
               </div>
               <textarea
                 value={csvText}
                 onChange={(e) => setCsvText(e.target.value)}
                 placeholder={'word, translation, phonetic, definition, example\nhello, hola, /heˈloʊ/, A greeting, Hello world!'}
                 rows={4}
-                className="sl-input sl-mono w-full"
+                className={`${inputCls} font-mono !text-[12px] w-full !h-auto py-2 leading-[18px] resize-y`}
                 title={t('dict.csvSeparatorTitle')}
               />
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="primary"
                   onClick={() => void onImportCsv()}
                   disabled={!csvText.trim() || importingCsv}
-                  className="text-[10px] font-semibold px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1 transition-colors"
+                  icon={importingCsv ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
                 >
-                  {importingCsv ? <Loader2 size={10} className="animate-spin" /> : <Upload size={10} />}
                   {t('dict.import')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setCsvOpen(false); setCsvText(''); }}
-                  className="text-[10px] font-medium px-2 py-1 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                >
+                </Button>
+                <Button variant="ghost" onClick={() => { setCsvOpen(false); setCsvText(''); }}>
                   {t('common.cancel')}
-                </button>
+                </Button>
               </div>
             </div>
           )}
 
           {feedback && (
-            <div className={`rounded-md text-[10.5px] leading-snug px-2 py-1 border ${
-              feedback.kind === 'ok'
-                ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200/70 dark:border-emerald-500/20'
-                : 'text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 border-rose-200/70 dark:border-rose-500/20'
-            }`}>
+            <Callout tone={feedback.kind === 'ok' ? 'success' : 'danger'} role={feedback.kind === 'ok' ? 'status' : 'alert'}>
               {feedback.message}
-            </div>
+            </Callout>
           )}
         </div>
       </SubSection>
 
-      {/* ── Cobertura local (colapsable) ──────────────────────────────────── */}
+      {/* ── Cobertura local (colapsado) ───────────────────────────────────── */}
       <SubSection
-        icon={<BarChart3 size={10} />}
+        icon={<BarChart3 size={14} />}
         title={t('dict.localCoverage')}
         collapsible
         open={coverageOpen}
         onToggle={() => setCoverageOpen((v) => !v)}
-        hint={
-          <>
-            {t('dictpack.statsTitle')}<strong>100% local</strong> {t('dictpack.statsLocalDesc')}<em>bundle</em> {t('dictpack.statsBundled')}<em>pack</em> {t('dictpack.statsInstalled')}<em>remoto</em>{t('dictpack.statsMissPre')}<em>miss</em>{t('dictpack.statsUseful')}</>
-        }
+        hint={t('dictpack.statsHint')}
         trailing={
-          <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-400">
-            {totals.total > 0 ? `${totals.total.toLocaleString()} lookups` : t('dict.noData')}
+          <span className="text-[12px] tabular-nums text-zinc-400 dark:text-zinc-500">
+            {totals.total > 0 ? t('dict.lookups', { count: fmtNumber(totals.total) }) : t('dict.noData')}
           </span>
         }
       >
-        <div className="space-y-2">
+        <div className="space-y-3">
           <CoverageStats totals={totals} />
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <label className="text-[10px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1 cursor-pointer mr-auto">
-              <input
-                type="checkbox"
-                checked={telemetry.enabled}
-                onChange={(e) => setTelemetry({ enabled: e.target.checked })}
-                className="accent-indigo-500"
-              />
-              {t('dictpack.localTelemetry')}</label>
-            <button
-              type="button"
-              onClick={() => void onExportCoverage()}
-              disabled={totals.total === 0}
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
-              title={t('dict.exportSnapshotTitle')}
-            >
-              Exportar
-            </button>
-            <button
-              type="button"
-              onClick={onPickCoverageImport}
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-              title={t('dict.importSnapshotTitle')}
-            >
-              Importar
-            </button>
-            <button
-              type="button"
-              onClick={() => void onResetCoverage()}
-              disabled={totals.total === 0}
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
-              title={t('dict.clearCountersTitle')}
-            >
-              {t('dict.reset')}
-            </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="w-full">
+              <ListGroup>
+                <QuickRow label={t('dictpack.localTelemetry')}>
+                  <Toggle on={telemetry.enabled} onChange={(v) => setTelemetry({ enabled: v })} ariaLabel={t('dictpack.localTelemetry')} />
+                </QuickRow>
+              </ListGroup>
+            </div>
+            <div className="w-full grid grid-cols-3 gap-2">
+              <Button size="sm" variant="secondary" className="min-w-0" icon={<Download size={14} />} onClick={() => void onExportCoverage()} disabled={totals.total === 0} title={t('dict.exportSnapshotTitle')}>
+                {t('dict.export')}
+              </Button>
+              <Button size="sm" variant="secondary" className="min-w-0" icon={<Upload size={14} />} onClick={onPickCoverageImport} title={t('dict.importSnapshotTitle')}>
+                {t('dict.importSnapshot')}
+              </Button>
+              <Button size="sm" variant="danger" className="min-w-0" icon={<RotateCcw size={14} />} onClick={() => void onResetCoverage()} disabled={totals.total === 0} title={t('dict.clearCountersTitle')}>
+                {t('dict.reset')}
+              </Button>
+            </div>
           </div>
           <input
             ref={coverageFileInputRef}
@@ -824,22 +785,22 @@ function SubSection({
   onToggle?: () => void;
 }) {
   const header = (
-    <div className="flex items-center gap-1.5 px-0.5">
-      <span className="text-zinc-500 dark:text-zinc-400 inline-flex">{icon}</span>
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{title}</span>
-      {hint && <InfoHint text={hint} />}
+    <div className="kvl-row flex items-center gap-1.5 px-1 min-h-[20px]">
+      <span className="text-zinc-400 dark:text-zinc-500 inline-flex">{icon}</span>
+      <span className="text-[12px] font-medium text-zinc-500 dark:text-zinc-400 truncate">{title}</span>
+      {hint && <InfoHint text={hint} size={12} />}
       <span className="ml-auto flex items-center gap-1.5">
         {trailing}
         {collapsible && (
-          <ChevronDown size={11} className={`text-zinc-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+          <ChevronDown size={14} className={`text-zinc-400 dark:text-zinc-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
         )}
       </span>
     </div>
   );
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       {collapsible ? (
-        <button type="button" onClick={onToggle} className="w-full text-left">
+        <button type="button" onClick={onToggle} aria-expanded={open} className="w-full text-left rounded-md outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40">
           {header}
         </button>
       ) : header}
@@ -858,42 +819,26 @@ interface CoverageTotals {
 }
 
 const COVERAGE_META = [
-  {
-    key: 'bundle' as const,
-    label: 'Bundle',
-    icon: <Package size={9} />,
+  { key: 'bundle', label: 'dict.covBundle', icon: <Package size={14} />,
     bar: 'bg-sky-400 dark:bg-sky-500',
     swatch: 'text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-500/10',
-    desc: 'Diccionario incluido (~4 100 entradas CEFR).',
-  },
-  {
-    key: 'packs' as const,
-    label: 'Packs',
-    icon: <Library size={9} />,
+    desc: 'dict.covBundleDesc' },
+  { key: 'packs', label: 'dict.covPacks', icon: <Library size={14} />,
     bar: 'bg-indigo-400 dark:bg-indigo-500',
     swatch: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10',
-    desc: t('dict.resolvedByPack'),
-  },
-  {
-    key: 'remote' as const,
-    label: 'Remoto',
-    icon: <Cloud size={9} />,
+    desc: 'dict.resolvedByPack' },
+  { key: 'remote', label: 'dict.covRemote', icon: <Cloud size={14} />,
     bar: 'bg-amber-400 dark:bg-amber-500',
     swatch: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10',
-    desc: t('dict.resolvedByRemote'),
-  },
-  {
-    key: 'miss' as const,
-    label: 'Miss',
-    icon: <Ban size={9} />,
+    desc: 'dict.resolvedByRemote' },
+  { key: 'miss', label: 'dict.covMiss', icon: <Ban size={14} />,
     bar: 'bg-rose-400 dark:bg-rose-500',
     swatch: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10',
-    desc: t('dict.noDefinition'),
-  },
-];
+    desc: 'dict.noDefinition' },
+] as const;
 
 function CoverageStats({ totals }: { totals: CoverageTotals }) {
-  const values: Record<'bundle' | 'packs' | 'remote' | 'miss', number> = {
+  const values: Record<string, number> = {
     bundle: totals.bundleHits,
     packs: totals.packHits,
     remote: totals.remoteHits,
@@ -903,48 +848,40 @@ function CoverageStats({ totals }: { totals: CoverageTotals }) {
   const localPct = Math.round(totals.localCoverage * 100);
 
   return (
-    <div className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 p-2 space-y-2">
-      {/* Stacked bar — visual share */}
-      <div className="space-y-1">
-        <div className="flex h-1.5 rounded-full overflow-hidden bg-zinc-200/70 dark:bg-zinc-800">
+    <div className="rounded-xl bg-white dark:bg-white/[0.03] ring-1 ring-zinc-900/[0.06] dark:ring-white/[0.06] p-3 space-y-3">
+      <div className="space-y-1.5">
+        <div className="flex h-1.5 rounded-full overflow-hidden bg-zinc-900/[0.06] dark:bg-white/[0.06]">
           {hasData
             ? COVERAGE_META.map((m) => {
                 const pct = (values[m.key] / totals.total) * 100;
                 if (pct === 0) return null;
-                return <div key={m.key} className={m.bar} style={{ width: `${pct}%` }} title={`${m.label} · ${Math.round(pct)}%`} />;
+                return <div key={m.key} className={m.bar} style={{ width: `${pct}%` }} title={`${t(m.label)} · ${Math.round(pct)}%`} />;
               })
             : <div className="w-full bg-zinc-200/40 dark:bg-zinc-800/40" />}
         </div>
-        <div className="flex items-center justify-between text-[9.5px] text-zinc-500 dark:text-zinc-400">
+        <div className="flex items-center justify-between text-[12px] text-zinc-500 dark:text-zinc-400">
           <span className="inline-flex items-center gap-1">
-            <CheckCircle2 size={9} className="text-emerald-500" />
-            <span className="tabular-nums">{hasData ? `${localPct}% local` : '— local'}</span>
+            <CheckCircle2 size={12} className="text-emerald-500" />
+            <span className="tabular-nums">{hasData ? t('dict.localPct', { pct: localPct }) : t('dict.localPctNone')}</span>
           </span>
-          <span className="font-mono tabular-nums">{hasData ? totals.total.toLocaleString() : '0'} lookups</span>
+          <span className="tabular-nums">{t('dict.lookups', { count: hasData ? fmtNumber(totals.total) : '0' })}</span>
         </div>
       </div>
 
-      {/* Per-source rows */}
-      <ul className="grid grid-cols-2 gap-1">
+      <ul className="grid grid-cols-2 gap-x-4 gap-y-2.5">
         {COVERAGE_META.map((m) => {
           const value = values[m.key];
           const pct = hasData ? Math.round((value / totals.total) * 100) : 0;
           return (
-            <li
-              key={m.key}
-              className="flex items-center gap-1.5 rounded bg-white dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800/60 px-1.5 py-1 cursor-help"
-              title={m.desc}
-            >
-              <span className={`inline-flex items-center justify-center w-4 h-4 rounded ${m.swatch}`}>
-                {m.icon}
-              </span>
+            <li key={m.key} className="flex items-center gap-2 cursor-help min-w-0" title={t(m.desc)}>
+              <span className={`w-2 h-2 rounded-full shrink-0 ${m.bar}`} aria-hidden="true" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-1">
-                  <span className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300 leading-none">{m.label}</span>
-                  <span className="text-[9px] text-zinc-400 dark:text-zinc-400 tabular-nums ml-auto">{hasData ? `${pct}%` : '—'}</span>
+                  <span className="text-[12px] text-zinc-500 dark:text-zinc-400 truncate">{t(m.label)}</span>
+                  <span className="text-[12px] text-zinc-400 dark:text-zinc-500 tabular-nums ml-auto">{hasData ? `${pct}%` : '—'}</span>
                 </div>
-                <div className="text-[10.5px] font-mono tabular-nums text-zinc-800 dark:text-zinc-200 leading-tight">
-                  {value.toLocaleString()}
+                <div className="text-[13px] font-medium tabular-nums text-zinc-800 dark:text-zinc-100 leading-[18px]">
+                  {fmtNumber(value)}
                 </div>
               </div>
             </li>
@@ -953,8 +890,9 @@ function CoverageStats({ totals }: { totals: CoverageTotals }) {
       </ul>
 
       {!hasData && (
-        <div className="text-[9.5px] text-zinc-500 dark:text-zinc-400 italic leading-snug text-center pt-0.5">
-          {t('dictpack.noDataYet')}</div>
+        <div className="text-[12px] text-zinc-500 dark:text-zinc-400 leading-[17px] text-center">
+          {t('dictpack.noDataYet')}
+        </div>
       )}
     </div>
   );
@@ -962,7 +900,7 @@ function CoverageStats({ totals }: { totals: CoverageTotals }) {
 
 function EmptySub({ text }: { text: string }) {
   return (
-    <div className="rounded-md border border-dashed border-zinc-300 dark:border-zinc-700 px-2 py-3 text-center text-[10.5px] text-zinc-500 dark:text-zinc-400 leading-snug">
+    <div className="rounded-xl border border-dashed border-zinc-900/[0.12] dark:border-white/[0.1] px-3 py-4 text-center text-[12px] text-zinc-500 dark:text-zinc-400 leading-[17px]">
       {text}
     </div>
   );
@@ -977,8 +915,7 @@ interface TopPacksSectionProps {
 /**
  * "Top packs" ranking. Synthetic buckets (`bundle`, `remote`, `miss`) are
  * already covered by `CoverageStats` above so they're filtered out via
- * `topPacksByHits`. The section auto-hides when there's nothing real to show
- * yet (fresh install).
+ * `topPacksByHits`.
  */
 function TopPacksSection({ stats, packs, idlePackIds }: TopPacksSectionProps) {
   const ranking = useMemo(() => topPacksByHits(stats, 10), [stats]);
@@ -993,13 +930,12 @@ function TopPacksSection({ stats, packs, idlePackIds }: TopPacksSectionProps) {
   const totalHits = ranking.reduce((acc, r) => acc + r.hits, 0);
 
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-1.5 px-0.5">
-        <Trophy size={10} className="text-amber-500" />
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex-1">{t('dictpack.topPacks')}</span>
-        <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-400">{totalHits.toLocaleString()} hits</span>
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5 px-1">
+        <span className="text-[12px] font-medium text-zinc-500 dark:text-zinc-400 flex-1">{t('dictpack.topPacks')}</span>
+        <span className="text-[12px] tabular-nums text-zinc-400 dark:text-zinc-500">{t('dict.hits', { count: fmtNumber(totalHits) })}</span>
       </div>
-      <ol className="space-y-1">
+      <ol className="rounded-xl bg-white dark:bg-white/[0.03] ring-1 ring-zinc-900/[0.06] dark:ring-white/[0.06] divide-y divide-zinc-900/[0.06] dark:divide-white/[0.06] overflow-hidden">
         {ranking.map((row, idx) => {
           const pack = packById.get(row.packId);
           const title = pack?.title ?? row.packId;
@@ -1007,31 +943,22 @@ function TopPacksSection({ stats, packs, idlePackIds }: TopPacksSectionProps) {
           const share = totalHits > 0 ? Math.round((row.hits / totalHits) * 100) : 0;
           const isIdle = idlePackIds.has(row.packId);
           return (
-            <li
-              key={row.packId}
-              className="rounded-md bg-zinc-50/70 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-zinc-800/70 px-2 py-1 flex items-center gap-2"
-            >
-              <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-400 w-4 shrink-0 text-right tabular-nums">{idx + 1}</span>
+            <li key={row.packId} className="px-3 py-2.5 flex items-center gap-3">
+              <span className="text-[12px] font-medium text-zinc-400 dark:text-zinc-500 w-3 shrink-0 text-right tabular-nums">{idx + 1}</span>
               <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-1.5 flex-wrap">
-                  <span className="text-[11px] font-medium text-zinc-800 dark:text-zinc-200 truncate">{title}</span>
-                  {langs && <span className="text-[9px] text-zinc-500 shrink-0 font-mono">{langs}</span>}
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-[13px] font-medium text-zinc-800 dark:text-zinc-100 truncate">{title}</span>
                   {isIdle && (
-                    <span
-                      title={t('dict.unused30')}
-                      className="text-[9px] px-1 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 shrink-0"
-                    >
-                      30d+
-                    </span>
+                    <Badge tone="amber" title={t('dict.unused30')}>{t('dictpack.unused30d')}</Badge>
                   )}
                 </div>
-                <div className="text-[9px] text-zinc-500 dark:text-zinc-400 tabular-nums">
-                  {row.hits.toLocaleString()} hits · {share}%
-                  {pack ? t('dict.packTermsCount', { count: pack.termCount.toLocaleString() }) : t('dict.packDeleted')}
+                <div className="text-[12px] text-zinc-500 dark:text-zinc-400 tabular-nums truncate mt-0.5">
+                  {langs && <>{langs} · </>}{t('dict.hits', { count: fmtNumber(row.hits) })} · {share}%
+                  {pack ? t('dict.packTermsCount', { count: fmtNumber(pack.termCount) }) : t('dict.packDeleted')}
                 </div>
               </div>
-              <div className="w-16 h-1 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden shrink-0">
-                <div className="h-full bg-amber-400 dark:bg-amber-500" style={{ width: `${share}%` }} />
+              <div className="w-14 h-1 rounded-full bg-zinc-900/[0.06] dark:bg-white/[0.06] overflow-hidden shrink-0">
+                <div className="h-full bg-indigo-500" style={{ width: `${share}%` }} />
               </div>
             </li>
           );
