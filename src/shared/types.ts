@@ -1133,8 +1133,8 @@ export interface AnkiBrowseResponse { ok: boolean; noteIds?: number[]; error?: s
  *
  * The values are sentinels, not the card's real interval: the snapshot only
  * needs Anki's maturity boundary, so a word with any mature card answers 21
- * and any other seen word answers 0. Words whose notes are only new cards are
- * absent.
+ * and every other word of the deck answers 0 — a note created moments ago,
+ * whose cards are still new, is in the deck and answers 0.
  *
  * The answer is a discriminated union on purpose: an error must be
  * distinguishable from an empty deck.

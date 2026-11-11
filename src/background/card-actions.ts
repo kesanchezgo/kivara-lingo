@@ -222,12 +222,12 @@ export async function browseNote(
  *      headword) and the note's `cards` ids. `notesInfo` takes note ids only;
  *      the `render` parameter is never sent, so Anki never renders a card
  *      template to build this snapshot.
- *   3. `findCards('deck:"..." prop:ivl>=21')` and
- *      `findCards('deck:"..." -is:new')` — the mature and the seen card sets.
- *      The card ids are joined back to notes through the `cards` array from
- *      step 2; a note with any mature card answers `MATURE_DAYS`, otherwise a
- *      note with any seen card answers `SEEN_DAYS`. A note whose cards are all
- *      new stays out of the map.
+ *   3. `findCards('deck:"..." prop:ivl>=21')` — the mature card set. The card
+ *      ids are joined back to notes through the `cards` array from step 2:
+ *      EVERY note enters the map, answering `MATURE_DAYS` when any of its
+ *      cards is mature and `SEEN_DAYS` otherwise. A note whose cards are all
+ *      new still answers `SEEN_DAYS` — the word lives in the deck, which is
+ *      what the dedupe and `isInAnki` ask about.
  *
  * Every read must succeed, so the answer either covers every note or fails
  * loudly as `{ ok: false, error }`. A partial map is never returned and never
