@@ -363,6 +363,60 @@ export function getEnrichmentSourceHealth(): EnrichSourceHealthMap {
   return Object.fromEntries(sourceHealth);
 }
 
+/**
+ * Re-check ONE source — the VIP tab's per-row "Retry" (prototype parity).
+ *
+ * Runs the source's real `enrich` against a probe token, so the observation
+ * the panel then shows is the SAME KIND the daily path records: same timing,
+ * same `recordSourceHealth` call, same classification. A permission gap is
+ * reported as an error the classifier reads as the permission family, which
+ * is what makes the row's fix line and its "Grant access" action agree.
+ *
+ * No cache is consulted: the probe exists to measure the source NOW.
+ */
+export async function probeEnrichmentSource(
+  id: string,
+  opts: { sourceLang: string; targetLang: string; vip: VipSettings },
+): Promise<EnrichSourceHealth | undefined> {
+  const source =
+    getStandardSources(opts.vip).find((s) => s.id === id)
+    ?? Object.values(VIP_SOURCES).find((s) => s?.id === id)
+    ?? undefined;
+  if (!source) throw new Error(`unknown enrichment source: ${id}`);
+
+  const ctx: EnrichmentContext = {
+    sourceLang: opts.sourceLang,
+    targetLang: opts.targetLang,
+    timeoutMs: opts.vip.perSourceTimeoutMs ?? 4000,
+  };
+  const gate = await gateSources([source]);
+  if (gate.reachable.length === 0) {
+    recordSourceHealth(
+      source.id,
+      'error',
+      undefined,
+      'missing host permission — the browser refused to let the extension reach this source',
+    );
+    return sourceHealth.get(source.id);
+  }
+
+  const startedAt = Date.now();
+  try {
+    await source.enrich('time', ctx);
+    const latencyMs = Date.now() - startedAt;
+    const slowMs = Math.max(250, Math.round(ctx.timeoutMs * SLOW_FRACTION));
+    recordSourceHealth(source.id, latencyMs >= slowMs ? 'slow' : 'ok', latencyMs);
+  } catch (err) {
+    recordSourceHealth(
+      source.id,
+      'error',
+      Date.now() - startedAt,
+      err instanceof Error ? err.message : String(err),
+    );
+  }
+  return sourceHealth.get(source.id);
+}
+
 /** Forget every observation (tests, and a cache wipe from the VIP tab). */
 export function clearEnrichmentSourceHealth(): void {
   sourceHealth.clear();

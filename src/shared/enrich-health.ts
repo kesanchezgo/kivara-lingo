@@ -94,13 +94,40 @@ export const ENRICH_SOURCE_FIX_KEYS: Record<string, Partial<Record<EnrichErrorCo
 export const ENRICH_SLOW_FIX_KEY = 'vipx.slowFix';
 
 /**
+ * The action a failing row offers, in the prototype's terms: add the key,
+ * grant the host group, or just retry. Pure so the panel stays a renderer.
+ *
+ *  - `permission` → grant the group: that IS the fix.
+ *  - `unauthorized` / `rateLimited` on a keyed source (Unsplash, Pixabay) →
+ *    the key is the fix, both failures read as "your key would change this".
+ *  - anything else with a classified family → retry; the failure may be gone.
+ *  - no family (unknown) → no action; the row has nothing honest to offer.
+ */
+export type VipRowAction = 'addKey' | 'grantAccess' | 'retry';
+
+const KEYED_SOURCES = new Set(['unsplash', 'pixabay']);
+
+export function vipRowAction(
+  sourceId: string | undefined,
+  code: EnrichErrorCode | null | undefined,
+): VipRowAction | null {
+  if (code === 'permission') return 'grantAccess';
+  if (sourceId && KEYED_SOURCES.has(sourceId) && (code === 'unauthorized' || code === 'rateLimited')) {
+    return 'addKey';
+  }
+  if (code) return 'retry';
+  return null;
+}
+
+/**
  * Fix copy for one observation: the source-specific variant when the pair
  * `(source, family)` has one, otherwise the family's generic line.
  */
 export function enrichFixKey(
   sourceId: string | undefined,
-  code: EnrichErrorCode,
+  code: EnrichErrorCode | null | undefined,
 ): string | undefined {
+  if (code == null) return undefined;
   const sourceFix = sourceId ? ENRICH_SOURCE_FIX_KEYS[sourceId]?.[code] : undefined;
   return sourceFix ?? ENRICH_ERROR_FIX_KEYS[code];
 }

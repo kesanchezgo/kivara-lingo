@@ -69,7 +69,8 @@ import { speak } from './tts';
 import { enrichWithAi } from './ai-enrich';
 import { resolveWordStreaming } from './resolve-word';
 import { installResolveWordPort } from './enrichment/stream';
-import { clearEnrichmentCache, clearMemEnrichmentCache, getEnrichmentSourceHealth } from './enrichment/orchestrator';
+import { getVipSettings, loadTranslateTargetLang } from './vip-settings';
+import { clearEnrichmentCache, clearMemEnrichmentCache, getEnrichmentSourceHealth, probeEnrichmentSource } from './enrichment/orchestrator';
 
 /** Deep-link section for OPEN_SETTINGS (see the handler below). */
 import { dbg, dbgOnce } from '../shared/debug-log';
@@ -840,6 +841,33 @@ onMessage('AI_EXPLAIN_SENTENCE', async ({ data }) => {
  * tested yet".
  */
 onMessage('ENRICH_SOURCE_HEALTH', async () => asJson(getEnrichmentSourceHealth()));
+
+/**
+ * Per-source "Retry" (the VIP tab's row action). Probes ONE source through
+ * the real enrich path so the observation the row shows is the kind the
+ * daily fan-out records, then answers the fresh snapshot for that source.
+ */
+onMessage('ENRICH_SOURCE_TEST', async ({ data }) => {
+  const id = String((data as { source?: string })?.source ?? '');
+  try {
+    const vip = await getVipSettings();
+    const targetLang = (await loadTranslateTargetLang()) || 'es';
+    const health = await probeEnrichmentSource(id, {
+      // The enrichment chain is the English→native corpus; the probe uses the
+      // same direction a real card build would.
+      sourceLang: 'en',
+      targetLang,
+      vip,
+    });
+    return asJson({ ok: true, source: id, health });
+  } catch (err) {
+    return asJson({
+      ok: false,
+      source: id,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+});
 
 /**
  * Three-wave token resolution for the popover. Performs the local dictionary

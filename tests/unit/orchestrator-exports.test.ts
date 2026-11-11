@@ -39,6 +39,7 @@ describe('orchestrator exports', () => {
           "getEnrichmentSourceHealth",
           "makeCacheKey",
           "mergeFields",
+          "probeEnrichmentSource",
           "readEnrichmentCache",
           "runEnrichment",
           "writeEnrichmentCache",
