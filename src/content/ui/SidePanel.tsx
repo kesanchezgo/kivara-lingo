@@ -47,6 +47,8 @@ interface SidePanelProps {
   episode?: { cues: readonly EpisodeCue[]; lang: string } | null;
   /** Open the transcript rail's Words view (only the content host can). */
   onOpenEpisodeWords?: () => void;
+  /** Language of the playing subtitles; the Cards tab badges its deck row. */
+  episodeLang?: string;
 }
 
 type PanelTab = 'subtitles' | 'vocab' | 'cards' | 'settings';
@@ -128,6 +130,7 @@ export function SidePanel({
   mockData,
   episode,
   onOpenEpisodeWords,
+  episodeLang,
 }: SidePanelProps) {
   const deepLink = useDeepLinkSection();
   const [activeTab, setActiveTab] = useState<PanelTab>('cards');
@@ -406,7 +409,13 @@ export function SidePanel({
             <SubtitlesTab styles={styles} setStyles={setStyles} onOpenVocab={() => selectTab('vocab')} />
           )}
           {tab.id === 'cards' && (
-            <CardsTab mapping={mapping} setMapping={setMapping} mockData={mockData} />
+            <CardsTab
+              mapping={mapping}
+              setMapping={setMapping}
+              mockData={mockData}
+              episodeLang={episodeLang}
+              onOpenVocab={() => selectTab('vocab')}
+            />
           )}
           {tab.id === 'settings' && (
             <SettingsTab

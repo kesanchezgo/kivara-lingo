@@ -1697,6 +1697,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             // `targetSentence` when present (shared builder — Options.tsx
             // uses the same source with no cue).
             mockData={buildPreviewData(activeCue?.text)}
+            episodeLang={cueLanguage}
           />
         </div>
       )}
