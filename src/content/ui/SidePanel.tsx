@@ -15,6 +15,7 @@ import { CardsTab } from '../../app/components/tabs/CardsTab';
 import { SettingsTab } from '../../app/components/tabs/SettingsTab';
 import { VocabTab, VOCAB_TAB_ENABLED } from '../../app/components/tabs/VocabTab';
 import { useRecentCards, isPending } from '../../app/components/tabs/RecentCards';
+import { OPEN_CARDS_EVENT } from './save-actions';
 import { SegPill, FOCUS } from '../../ui/primitives/settings-primitives';
 import type { CardPreviewData } from '../../app/components/tabs/CardPreview';
 import type { EpisodeCue } from './EpisodeWords';
@@ -149,6 +150,14 @@ export function SidePanel({
     if (deepLink.pending) return;
     if (deepLink.section) setActiveTab('settings');
   }, [deepLink.pending, deepLink.section, deepLink.nonce]);
+
+  // The save-error notice's "View queue" lands here (App opens the panel and
+  // fires the event): Cards is the tab that owns the retry queue.
+  useEffect(() => {
+    const onOpenCards = () => setActiveTab('cards');
+    window.addEventListener(OPEN_CARDS_EVENT, onOpenCards);
+    return () => window.removeEventListener(OPEN_CARDS_EVENT, onOpenCards);
+  }, []);
 
   const tabs: Array<{ id: PanelTab; label: string; icon: typeof Subtitles }> = [
     { id: 'subtitles', label: t('panel.tabSubtitles'), icon: Subtitles },

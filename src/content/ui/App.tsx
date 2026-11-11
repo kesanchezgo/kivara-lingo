@@ -8,6 +8,7 @@ import { SubtitleOverlay } from './SubtitleOverlay';
 import { CaptureOverlay, type CaptureAudio, type CaptureView } from './CaptureOverlay';
 import { applyCleanupCss } from './cleanup-css';
 import { playSound } from '../../ui/sounds';
+import { Pause } from '../../ui/icons';
 import { useKivaraStore } from '../../shared/use-kivara-store';
 import { captureFrame, captureBestFrame } from '../capture/frame';
 import { comboFromEvent, normalizeCombo, readManifestCombos } from '../../shared/shortcuts';
@@ -29,9 +30,12 @@ import { buildPreviewData } from '../../shared/preview-data';
 import { buildCardTags, newCardId } from '../../shared/cards';
 import { buildExactNoteQuery } from '../../shared/anki-search';
 import { recordCardSaved, useWordStudy, type StudyBinding } from './study';
-import { addSceneToNote, cardKindOf, showCardSaved, showCardSaveError, type SceneMedia } from './save-actions';
+import {
+  addSceneToNote, cardKindOf, OPEN_CARDS_EVENT, showCardSaved, showCardSaveError,
+  withAudioHint, type SceneMedia,
+} from './save-actions';
 import { useEpisode } from './useEpisode';
-import { cueIndexAt, useStudyPlayback } from './useStudyPlayback';
+import { cueIndexAt, SLOW_REPLAY_RATE, useStudyPlayback } from './useStudyPlayback';
 import { TranscriptRail, type NativeLineCue } from './TranscriptRail';
 import { focusFirstIn } from './column-focus';
 import { StudyBar } from './StudyBar';
@@ -134,6 +138,47 @@ const RUN_COMMAND_GATE: ReadonlySet<string> = new Set([
  */
 function buildManifestCommandSet(): Set<string> {
   return new Set(readManifestCombos());
+}
+
+/**
+ * Why the video is stopped, on the video itself (prototype parity).
+ *
+ * Two different pauses, two different shapes: an end-of-cue auto-pause is a
+ * BUTTON that continues from the same line (`rail.pausedEnd` names Alt+R as
+ * well), while a pause Kivara took to let you read a word is a passive pill —
+ * it ends by itself when the lookup ends, so it must not look clickable.
+ */
+function StudyPausedPill({
+  atCueEnd,
+  lookupPaused,
+  onResume,
+}: {
+  atCueEnd: boolean;
+  lookupPaused: boolean;
+  onResume: () => void;
+}) {
+  if (atCueEnd) {
+    return (
+      <button
+        type="button"
+        data-chrome
+        onClick={onResume}
+        className="pointer-events-auto absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 bg-zinc-900/75 backdrop-blur-md ring-1 ring-white/10 text-white/85 text-[11px] font-medium px-2.5 h-7 rounded-full shadow-lg hover:bg-zinc-800/80 transition-colors kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" aria-hidden="true" />
+        {t('rail.pausedEnd')}
+      </button>
+    );
+  }
+  if (lookupPaused) {
+    return (
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 bg-zinc-900/75 backdrop-blur-md ring-1 ring-white/10 text-white/85 text-[11px] font-medium px-2.5 h-7 rounded-full shadow-lg pointer-events-none">
+        <Pause size={11} weight="fill" className="text-indigo-300" aria-hidden="true" />
+        {t('ovl.paused')}
+      </div>
+    );
+  }
+  return null;
 }
 
 export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContainer }: AppProps) {
@@ -666,6 +711,10 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // 2) The resume is retried (up to 3 attempts, 120 ms apart) and logs any
   //    final rejection so the bug is visible in DevTools instead of being
   //    swallowed.
+  // Paused because the user is looking a word up. Mirrors what
+  // `kivaraPausedRef` knows (a ref cannot drive a render) so the overlay can
+  // say why the video stopped instead of reading as a dead player.
+  const [lookupPaused, setLookupPaused] = useState(false);
   const handleTokenHoverChange = useCallback(
     (hovered: boolean) => {
       if (!videoElement) return;
@@ -681,9 +730,11 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           kivaraPausedRef.current = true;
           try {
             videoElement.pause();
+            setLookupPaused(true);
           } catch (err) {
             console.warn('[Kivara Lingo] pause() failed', err);
             kivaraPausedRef.current = false;
+            setLookupPaused(false);
           }
         }
         return;
@@ -723,6 +774,12 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     },
     [videoElement],
   );
+
+  // The platform resumed on its own (or the user pressed play): the "paused
+  // while you look up" pill has to go with it.
+  useEffect(() => {
+    if (playing) setLookupPaused(false);
+  }, [playing]);
 
   // If the user (or the platform) starts playing the video themselves while
   // we still consider ourselves the pauser, drop ownership so a later hover
@@ -999,6 +1056,8 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         e.preventDefault();
         e.stopPropagation();
         studyControl.replaySlow();
+        // The slow pass is invisible for a beat: say which rate is playing.
+        toast(t('player.slowReplay', { speed: `${SLOW_REPLAY_RATE}×` }), { duration: 1100 });
       } else if (normAutoPause && combo === normAutoPause) {
         e.preventDefault();
         e.stopPropagation();
@@ -1015,11 +1074,11 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       } else if (normSlower && combo === normSlower) {
         e.preventDefault();
         e.stopPropagation();
-        studyControl.stepSpeed(-1);
+        toast(t('player.speedNow', { speed: `${studyControl.stepSpeed(-1)}×` }), { duration: 1100 });
       } else if (normFaster && combo === normFaster) {
         e.preventDefault();
         e.stopPropagation();
-        studyControl.stepSpeed(1);
+        toast(t('player.speedNow', { speed: `${studyControl.stepSpeed(1)}×` }), { duration: 1100 });
       } else if (normListenFirst && combo === normListenFirst) {
         e.preventDefault();
         e.stopPropagation();
@@ -1286,6 +1345,34 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     return scene;
   }, [videoElement, activeCue?.start, activeCue?.end, adapter, episode.controller, ensureSubtitleAudioReady]);
 
+  /**
+   * The save shortcut found nothing unambiguous. The prototype's rule: explain
+   * instead of guessing — hidden subtitles and Reading mode each have their own
+   * instruction, and the combo is named only when the user has one bound.
+   */
+  const handleNothingToSave = useCallback((reason: 'several' | 'none') => {
+    const state = useKivaraStore.getState();
+    const combo = state.shortcuts.toggle;
+    const message = !state.subtitlesVisible
+      ? t('app.saveHintHidden', { combo: combo ? ` (${combo})` : '' })
+      : state.mode === 'reading'
+        ? t('app.saveHintReading')
+        : reason === 'none'
+          ? t('app.saveHintNone')
+          : t('app.saveHint');
+    toast.message(message, { duration: 3000 });
+  }, []);
+
+  /**
+   * "View queue" on a save that failed: open the panel and land on Cards, the
+   * tab that owns the retry queue. The tab is local state in SidePanel, so the
+   * event is the seam.
+   */
+  const handleViewQueue = useCallback(() => {
+    setPanelOpen(true);
+    window.dispatchEvent(new Event(OPEN_CARDS_EVENT));
+  }, [setPanelOpen]);
+
   const handleSaveCard = useCallback(
     async (token: string | undefined, sentence: string): Promise<CreateCardResponse> => {
       if (!enabled) return { ok: false, error: 'disabled' };
@@ -1395,7 +1482,10 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             toast.dismiss(saveToastId);
             showCardSaved(
               { noteId: response.noteId, text: tokenValue, deck: activeDeck ?? '' },
-              response.warnings ?? [],
+              withAudioHint(response.warnings ?? [], {
+                audioCaptureActive: useKivaraStore.getState().audioCaptureActive,
+                combo: useKivaraStore.getState().shortcuts.save || undefined,
+              }),
             );
             if (studyNow.sounds) playSound('saved');
             // F5: the word now has a card. A «known» hand mark gives way to
@@ -1407,18 +1497,18 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             // "saved" highlight never painted.
             return { ok: true, noteId: response.noteId, warnings: response.warnings };
           }
-          showCardSaveError(response?.error, response?.queued === true, saveToastId);
+          showCardSaveError(response?.error, response?.queued === true, saveToastId, handleViewQueue);
           if (studyNow.sounds) playSound('error');
           return response ?? { ok: false, error: 'unknown' };
         } catch (err) {
           const reason = err instanceof Error ? err.message : t('app.unknownReason');
-          showCardSaveError(reason, false, saveToastId);
+          showCardSaveError(reason, false, saveToastId, handleViewQueue);
           if (studyNow.sounds) playSound('error');
           return { ok: false, error: reason };
         }
       } catch (err) {
         const reason = err instanceof Error ? err.message : t('app.unknownReason');
-        showCardSaveError(reason, false, saveToastId);
+        showCardSaveError(reason, false, saveToastId, handleViewQueue);
         if (studyNow.sounds) playSound('error');
         return { ok: false, error: reason };
       } finally {
@@ -1433,7 +1523,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     // SubtitleOverlay's useMemo also lists handleSaveCard — its identity
     // must change when ankiMapping or cue change, which keeps the overlay
     // consistent when deck/adapter/config change.
-    [enabled, activeCue, videoElement, adapter, ensureSubtitleAudioReady, ankiMapping, episode.controller, episode.cues],
+    [enabled, activeCue, videoElement, adapter, ensureSubtitleAudioReady, ankiMapping, episode.controller, episode.cues, handleViewQueue],
   );
 
   /**
@@ -1524,6 +1614,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             onSeeInAnki={handleSeeInAnki}
             onAddContext={handleAddContext}
             onTokenHoverChange={handleTokenHoverChange}
+            onNothingToSave={handleNothingToSave}
             initialSavedWords={initialSavedWords}
             playing={playing}
             expandedMWEs={expandedMWEs}
@@ -1537,6 +1628,14 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             onExplain={aiOn ? requestExplain : undefined}
           />
           <CaptureOverlay view={captureView} cardTheme={subtitleStyles.cardTheme ?? 'dark'} />
+          {/* A capture is its own state: no pause pill over the shutter. */}
+          {captureView === null && (
+            <StudyPausedPill
+              atCueEnd={studyPlayback.autoPaused}
+              lookupPaused={lookupPaused}
+              onResume={studyPlayback.resume}
+            />
+          )}
         </div>
       </PortalContainerProvider>,
       videoOverlayRoot,
@@ -1578,6 +1677,10 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     studyBinding,
     aiOn,
     requestExplain,
+    handleNothingToSave,
+    lookupPaused,
+    studyPlayback.autoPaused,
+    studyPlayback.resume,
   ]);
 
   return (
