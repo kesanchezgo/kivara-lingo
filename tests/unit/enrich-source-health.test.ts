@@ -10,7 +10,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { VipSettings } from '../../src/shared/types';
 import { DEFAULT_VIP } from '../../src/shared/store';
 
-const DELAYS = { bundled: 5, freeDictionary: 360 };
+// Node timers may fire a fraction of a millisecond early on a loaded
+// runner, so a 5 ms sleep cannot be asserted as `>= 5`. The floor is 30 ms
+// and the assertion compares against 20.
+const DELAYS = { bundled: 30, freeDictionary: 360 };
 
 const enrichBundled = vi.fn(async () => {
   await sleep(DELAYS.bundled);
@@ -89,7 +92,7 @@ describe('ENRICH_SOURCE_HEALTH', () => {
 
     const health = getEnrichmentSourceHealth();
     expect(health.bundled).toMatchObject({ state: 'ok' });
-    expect(health.bundled.latencyMs).toBeGreaterThanOrEqual(DELAYS.bundled);
+    expect(health.bundled.latencyMs).toBeGreaterThanOrEqual(DELAYS.bundled - 10);
     expect(health.freeDictionary?.state).toBe('slow');
     expect(health.freeDictionary?.latencyMs).toBeGreaterThanOrEqual(320);
     expect(health.tatoeba).toMatchObject({ state: 'error', lastError: 'tatoeba is down' });
