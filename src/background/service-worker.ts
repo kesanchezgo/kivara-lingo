@@ -76,6 +76,20 @@ import { dbg, dbgOnce } from '../shared/debug-log';
 
 import { getCacheStats, clearCaches } from './cache-admin';
 import { listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';
+import {
+  abortDictPackImport,
+  appendDictPackTerms,
+  beginDictPackImport,
+  commitDictPackImport,
+  isDictPackId,
+  sanitizePackRow,
+} from './dict-pack-store';
+import {
+  DICT_PACK_IMPORT_ABORT,
+  DICT_PACK_IMPORT_BEGIN,
+  DICT_PACK_IMPORT_COMMIT,
+  DICT_PACK_IMPORT_TERMS,
+} from '../shared/dict-import-protocol';
 import { t } from '../shared/i18n/sw';
 import { fetchGuarded, validateDictPackInstallRequest } from '../shared/net-guard';
 const OPEN_SETTINGS_SECTION_KEY = 'kivara:open-settings-section';
@@ -1152,6 +1166,81 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     })();
     return true;
   }
+  // Local-file import hand-off (issue #32). The settings panel is rendered
+  // inside the content script, where IndexedDB is the streaming SITE's
+  // database — a pack written there was readable by the site and invisible to
+  // this worker. The panel now parses the file and sends the rows; the write
+  // happens here, against the extension's own origin.
+  //
+  // The three steps are stateless on purpose (an MV3 worker can be torn down
+  // between messages): BEGIN clears the previous install, TERMS appends a
+  // batch, COMMIT publishes the pack row. The sender is a content script, so
+  // every field is validated before it reaches the database.
+  if (message?.type === DICT_PACK_IMPORT_BEGIN) {
+    const pack = sanitizePackRow(message.pack);
+    if (!pack) {
+      sendResponse({ ok: false, error: 'Invalid pack metadata' });
+      return true;
+    }
+    void (async () => {
+      try {
+        await beginDictPackImport(pack.id);
+        sendResponse({ ok: true });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  if (message?.type === DICT_PACK_IMPORT_TERMS && typeof message.packId === 'string') {
+    const packId: string = message.packId;
+    if (!isDictPackId(packId)) {
+      sendResponse({ ok: false, error: 'Invalid pack id' });
+      return true;
+    }
+    void (async () => {
+      try {
+        const added = await appendDictPackTerms(packId, message.terms);
+        sendResponse({ ok: true, added });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  if (message?.type === DICT_PACK_IMPORT_COMMIT) {
+    const pack = sanitizePackRow(message.pack);
+    if (!pack) {
+      sendResponse({ ok: false, error: 'Invalid pack metadata' });
+      return true;
+    }
+    void (async () => {
+      try {
+        const termsImported = await commitDictPackImport(pack);
+        sendResponse({ ok: true, termsImported });
+        void broadcastDictPacksChanged();
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  if (message?.type === DICT_PACK_IMPORT_ABORT && typeof message.packId === 'string') {
+    const packId: string = message.packId;
+    if (!isDictPackId(packId)) {
+      sendResponse({ ok: false, error: 'Invalid pack id' });
+      return true;
+    }
+    void (async () => {
+      try {
+        await abortDictPackImport(packId);
+        sendResponse({ ok: true });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
   // Content script asks for the full set of headwords known to the
   // user's enabled packs. Used by the tokenizer so words like `excuse`,
   // `pee`, `pants`, `seventh`, `grade` — which exist in the Wiktionary
@@ -1170,8 +1259,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     })();
     return true;
   }
-  // Side-panel page just imported a local file / CSV / StarDict. Fan
-  // out a DICT_PACKS_CHANGED to every tab so their tokenizers re-pull.
+  // Fan out a DICT_PACKS_CHANGED to every tab so their tokenizers re-pull.
+  // The local-file import no longer needs this (DICT_PACK_IMPORT_COMMIT
+  // broadcasts on its own); it stays as the explicit refresh for any other
+  // caller that changes packs out of band.
   if (message?.type === 'DICT_PACKS_CHANGED_NOTIFY') {
     void broadcastDictPacksChanged();
     sendResponse({ ok: true });

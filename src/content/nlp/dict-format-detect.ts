@@ -23,8 +23,11 @@
  * headers at the start are already enough). Falls back to a full unzip
  * only if the heuristic is inconclusive.
  *
- * Pure module: no IndexedDB, no fetch, no React. Easy to test.
+ * Pure module: no IndexedDB, no fetch, no React. Easy to test. It only
+ * answers "what is this file"; parsing and the worker hand-off live in
+ * `dict-import-client.ts`.
  */
+import { t } from '../../shared/i18n';
 
 export type DictFormat = 'yomitan' | 'stardict' | 'csv' | 'unknown';
 
@@ -153,80 +156,4 @@ function looksLikeText(buffer: ArrayBuffer | Uint8Array): boolean {
     if (bytes[i] === 0) return false;
   }
   return upper > 0;
-}
-
-/* ──────────────────────────────────────────────────────────────────────── */
-/*  High-level "import this file" orchestrator                              */
-/* ──────────────────────────────────────────────────────────────────────── */
-
-import type { DictPackRow } from '../../shared/db';
-import { importYomitanPack } from './yomitan';
-import { importStarDictPack } from './stardict';
-import { importCsvList } from './csv-importer';
-import { t } from '../../shared/i18n';
-
-export interface AutoImportResult {
-  ok: true;
-  format: Exclude<DictFormat, 'unknown'>;
-  pack: DictPackRow;
-  termsImported: number;
-  /** Populated for CSV imports where a header / blank row was skipped. */
-  skipped?: number;
-}
-
-export interface AutoImportError {
-  ok: false;
-  format: DictFormat;
-  error: string;
-}
-
-/**
- * Pick the right importer based on `detectDictFormat` and run it. This is
- * the single entry point the panel UI uses for the "Importar archivo"
- * button — the user no longer has to know whether their file is Yomitan,
- * StarDict, or a CSV list.
- *
- * `filename` is forwarded to the CSV importer so the synthetic pack title
- * defaults to the filename minus extension when the user didn't override it.
- */
-export async function autoImportDictFile(
-  buffer: ArrayBuffer,
-  filename?: string,
-  csvTitleOverride?: string,
-): Promise<AutoImportResult | AutoImportError> {
-  const detection = detectDictFormat(buffer, filename);
-  if (detection.format === 'unknown') {
-    return {
-      ok: false,
-      format: 'unknown',
-      error: detection.reason ?? 'Formato no reconocido.',
-    };
-  }
-  if (detection.format === 'yomitan') {
-    const result = await importYomitanPack(buffer);
-    return result.ok
-      ? { ok: true, format: 'yomitan', pack: result.pack, termsImported: result.termsImported }
-      : { ok: false, format: 'yomitan', error: result.error };
-  }
-  if (detection.format === 'stardict') {
-    const result = await importStarDictPack(buffer);
-    return result.ok
-      ? { ok: true, format: 'stardict', pack: result.pack, termsImported: result.termsImported }
-      : { ok: false, format: 'stardict', error: result.error };
-  }
-  // CSV / TSV plain-text fallback.
-  const text = new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(buffer));
-  const baseTitle =
-    csvTitleOverride?.trim() ||
-    (filename ? filename.replace(/\.[^.]+$/, '') : 'Mi lista');
-  const result = await importCsvList(text, { title: baseTitle });
-  return result.ok
-    ? {
-        ok: true,
-        format: 'csv',
-        pack: result.pack,
-        termsImported: result.termsImported,
-        skipped: result.skipped,
-      }
-    : { ok: false, format: 'csv', error: result.error };
 }

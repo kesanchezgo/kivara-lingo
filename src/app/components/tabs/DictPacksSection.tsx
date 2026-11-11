@@ -27,6 +27,13 @@
  * `dict_terms` rows in Dexie), so once a pack is in IndexedDB every
  * surface — popover, save-card enrichment, options page — sees it.
  *
+ * Local files (3, 4 and 5) never touch IndexedDB from here: this panel runs
+ * inside the content script, where `IndexedDB` is the streaming site's
+ * database. The file is parsed locally and the rows go to the service worker
+ * over `DICT_PACK_IMPORT_*` (see `content/nlp/dict-import-client.ts`), which
+ * writes them under the extension's own origin. Same code path when the panel
+ * is mounted in the Options page.
+ *
  * The visual structure now mirrors the Figma mock 1:1: the section lives
  * inside the parent SettingsTab accordion, so its own header is implicit;
  * we render compact sub-sections (Catálogo, Instalados, Importar, Cobertura)
@@ -40,9 +47,11 @@ import {
   Download, FileText, Library, Trophy, ChevronDown, CheckCircle2, BarChart3, Link2, Sparkles,
   Package, Cloud, Ban,
 } from '../../../ui/icons';
-import type { DictPackRow, PackStatsRow } from '../../../shared/db';
-import { importCsvList } from '../../../content/nlp/csv-importer';
-import { autoImportDictFile } from '../../../content/nlp/dict-format-detect';
+import type { DictPackRow, PackStatsRow } from '../../../shared/dict-types';
+import {
+  importCsvTextViaWorker,
+  importDictFileViaWorker,
+} from '../../../content/nlp/dict-import-client';
 import {
   aggregateCoverage,
   BUNDLE_PACK_ID,
@@ -237,7 +246,7 @@ export function DictPacksSection() {
       setImporting(true);
       try {
         const buffer = await file.arrayBuffer();
-        const result = await autoImportDictFile(buffer, file.name);
+        const result = await importDictFileViaWorker(buffer, file.name);
         if (result.ok) {
           const formatLabel: Record<typeof result.format, string> = {
             yomitan: 'Yomitan',
@@ -254,13 +263,9 @@ export function DictPacksSection() {
               skip: skipNote,
             }),
           });
-          // Tell every tab to re-pull its in-memory headword cache so
-          // the tokenizer sees the new pack right away.
-          try {
-            chrome.runtime.sendMessage({ type: 'DICT_PACKS_CHANGED_NOTIFY' });
-          } catch {
-            // ignore
-          }
+          // No notify here: the worker broadcasts DICT_PACKS_CHANGED itself
+          // once the commit lands, which is what makes every tab re-pull its
+          // in-memory headword cache.
         } else {
           setFeedback({ kind: 'err', message: result.error });
         }
@@ -343,14 +348,15 @@ export function DictPacksSection() {
     setFeedback(null);
     setImportingCsv(true);
     try {
-      const result = await importCsvList(csvText, { title: csvTitle.trim() || 'Mi lista' });
+      const result = await importCsvTextViaWorker(csvText, { title: csvTitle.trim() || 'Mi lista' });
       if (result.ok) {
+        const skipped = result.skipped ?? 0;
         setFeedback({
           kind: 'ok',
           message: t('dict.importedOkFmt', {
             title: result.pack.title,
             count: result.termsImported.toLocaleString(),
-            skip: result.skipped > 0 ? t('dict.skippedNote', { count: result.skipped }) : '',
+            skip: skipped > 0 ? t('dict.skippedNote', { count: skipped }) : '',
           }),
         });
         setCsvText('');

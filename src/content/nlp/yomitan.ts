@@ -25,38 +25,23 @@
  *
  * Reference: https://github.com/yomidevs/yomitan/blob/master/docs/dictionaries.md
  */
-import { unzipSync, strFromU8, Unzip, UnzipInflate } from 'fflate';
+import { strFromU8, Unzip, UnzipInflate } from 'fflate';
 import { getDB } from '../../shared/db';
-import type { DictPackRow, DictTermRow } from '../../shared/db';
+import type { DictPackRow, DictTermRow } from '../../shared/dict-types';
 import type { DictionaryEntry } from '../../shared/types';
 import { lemmaCandidates } from './lemma';
+import {
+  cleanIpa,
+  extractFirstIpa,
+  packIdFor as packId,
+  parseYomitanPack,
+  type YomitanIndex,
+  type YomitanTermTuple,
+} from './yomitan-parse';
 import { deletePackStats, recordPackInstall } from '../../shared/telemetry';
 // Worker-subset dictionary: the UI barrel would drag the full 1308-key dict
 // and React (via useSyncExternalStore) into the service worker bundle.
 import { t } from '../../shared/i18n/sw';
-
-/** Yomitan term_bank entry tuple. */
-export type YomitanTermTuple = [
-  expression: string,
-  reading: string,
-  definitionTags: string | null,
-  deinflectionRules: string,
-  popularity: number,
-  definitions: unknown[],
-  sequence: number,
-  termTags: string | null,
-];
-
-export interface YomitanIndex {
-  title?: string;
-  revision?: string;
-  format?: number;
-  version?: number;
-  author?: string;
-  description?: string;
-  sourceLanguage?: string;
-  targetLanguage?: string;
-}
 
 export interface ImportResult {
   ok: true;
@@ -69,18 +54,12 @@ export interface ImportError {
   error: string;
 }
 
-/** Cheap deterministic id derived from title + revision. */
-function packId(title: string, revision: string): string {
-  const input = `${title}|${revision}`;
-  let hash = 5381;
-  for (let i = 0; i < input.length; i += 1) {
-    hash = ((hash << 5) + hash + input.charCodeAt(i)) | 0;
-  }
-  return `pack-${(hash >>> 0).toString(16)}`;
-}
-
 /**
  * Parse a `.zip` Yomitan pack and write its entries into IndexedDB.
+ *
+ * The parse itself lives in `yomitan-parse.ts` (pure, so the in-page panel can
+ * parse a local file without reaching the database). This module is the
+ * worker/extension-page side: it owns the write.
  *
  * Importing the same (title, revision) twice will overwrite the previous
  * entries (the pack id is deterministic, so we delete-then-insert the term
@@ -89,147 +68,27 @@ function packId(title: string, revision: string): string {
 export async function importYomitanPack(
   zipBytes: ArrayBuffer | Uint8Array,
 ): Promise<ImportResult | ImportError> {
-  let files: Record<string, Uint8Array>;
-  try {
-    const bytes = zipBytes instanceof Uint8Array ? zipBytes : new Uint8Array(zipBytes);
-    files = unzipSync(bytes);
-  } catch (err) {
-    return { ok: false, error: `Could not unzip pack: ${(err as Error).message}` };
-  }
-
-  // index.json may live at the root OR inside a folder (some packs ship as
-  // "pack-name/index.json"). Find whichever path ends with "index.json".
-  const indexEntry = Object.entries(files).find(([name]) => name.endsWith('index.json'));
-  if (!indexEntry) {
-    return { ok: false, error: 'Missing index.json in pack' };
-  }
-  const indexPrefix = indexEntry[0].replace(/index\.json$/, '');
-  let index: YomitanIndex;
-  try {
-    index = JSON.parse(strFromU8(indexEntry[1])) as YomitanIndex;
-  } catch (err) {
-    return { ok: false, error: `Bad index.json: ${(err as Error).message}` };
-  }
-
-  const title = (index.title || '').trim();
-  const revision = (index.revision || '').trim();
-  if (!title) return { ok: false, error: 'index.json missing "title"' };
-  if (!revision) return { ok: false, error: 'index.json missing "revision"' };
-  const format = Number(index.format ?? index.version ?? 1);
-  const sourceLang = index.sourceLanguage || 'en';
-  const targetLang = index.targetLanguage || 'es';
-  const id = packId(title, revision);
-
-  // Parse every term_bank_*.json file under the same prefix.
-  const termBankFiles = Object.entries(files)
-    .filter(([name]) => name.startsWith(indexPrefix) && /term_bank_\d+\.json$/.test(name))
-    .sort();
-
-  // Some packs (e.g. IPA/pronunciation packs) only ship term_meta_bank files
-  // with reading/phonetic data and no term_bank files. We handle both paths.
-  const metaBankFiles = Object.entries(files)
-    .filter(([name]) => name.startsWith(indexPrefix) && /term_meta_bank_\d+\.json$/.test(name))
-    .sort();
-
-  if (termBankFiles.length === 0 && metaBankFiles.length === 0) {
-    return { ok: false, error: t('yomitan.noTermBanks') };
-  }
-
-  const termRows: DictTermRow[] = [];
-
-  // Standard term_bank entries (definitions, translations, etc.)
-  for (const [name, bytes] of termBankFiles) {
-    try {
-      const arr = JSON.parse(strFromU8(bytes)) as YomitanTermTuple[];
-      for (const t of arr) {
-        if (!Array.isArray(t) || t.length < 6) continue;
-        const expression = String(t[0] ?? '')
-          .trim()
-          .toLowerCase();
-        if (!expression) continue;
-        const reading = String(t[1] ?? '').trim();
-        const definitionTags = (t[2] as string | null) ?? undefined;
-        const popularity = Number(t[4] ?? 0) || 0;
-        const definitions = Array.isArray(t[5]) ? t[5] : [];
-        const termTags = (t[7] as string | null) ?? undefined;
-        termRows.push({
-          packId: id,
-          expression,
-          reading: reading || undefined,
-          definitions,
-          popularity,
-          definitionTags: definitionTags || undefined,
-          termTags: termTags || undefined,
-        });
-      }
-    } catch (err) {
-      return { ok: false, error: `No se pudo parsear ${name}: ${(err as Error).message}` };
-    }
-  }
-
-  // IPA / pronunciation meta entries — stored as DictTermRow with empty
-  // definitions so lookupYomitanTerm can overlay the reading onto hits from
-  // other packs that lack phonetic data.
-  for (const [name, bytes] of metaBankFiles) {
-    try {
-      const arr = JSON.parse(strFromU8(bytes)) as unknown[];
-      for (const entry of arr) {
-        if (!Array.isArray(entry) || entry.length < 3) continue;
-        const expression = String(entry[0] ?? '').trim().toLowerCase();
-        const mode = String(entry[1] ?? '');
-        if (!expression || mode !== 'ipa') continue;
-        const meta = entry[2];
-        const ipa = extractFirstIpa(meta);
-        if (!ipa) continue;
-        termRows.push({
-          packId: id,
-          expression,
-          reading: ipa,
-          definitions: [],
-          popularity: 0,
-          termTags: 'ipa',
-        });
-      }
-    } catch (err) {
-      return { ok: false, error: `No se pudo parsear ${name}: ${(err as Error).message}` };
-    }
-  }
-
-  if (termRows.length === 0) {
-    return { ok: false, error: 'Pack contains zero usable terms' };
-  }
-
-  const pack: DictPackRow = {
-    id,
-    title,
-    revision,
-    format,
-    sourceLang,
-    targetLang,
-    termCount: termRows.length,
-    enabled: true,
-    author: index.author,
-    description: index.description,
-    createdAt: Date.now(),
-  };
+  const parsed = parseYomitanPack(zipBytes);
+  if (!parsed.ok) return parsed;
+  const { pack, terms } = parsed.parsed;
 
   const db = getDB();
   // Atomic replace: delete any existing terms for this pack id, then insert
   // the fresh batch in one transaction so we never have a half-imported pack.
   await db.transaction('rw', db.dict_packs, db.dict_terms, async () => {
-    await db.dict_terms.where('packId').equals(id).delete();
+    await db.dict_terms.where('packId').equals(pack.id).delete();
     // Chunk inserts — IndexedDB throws when single-batch bulks are too large
     // (~30 MB), and big Yomitan packs (Jitendex etc.) can ship 500k+ terms.
     const CHUNK = 5000;
-    for (let i = 0; i < termRows.length; i += CHUNK) {
-      await db.dict_terms.bulkAdd(termRows.slice(i, i + CHUNK));
+    for (let i = 0; i < terms.length; i += CHUNK) {
+      await db.dict_terms.bulkAdd(terms.slice(i, i + CHUNK));
     }
     await db.dict_packs.put(pack);
   });
 
-  void recordPackInstall(id, pack.title);
+  void recordPackInstall(pack.id, pack.title);
 
-  return { ok: true, pack, termsImported: termRows.length };
+  return { ok: true, pack, termsImported: terms.length };
 }
 
 /**
@@ -769,59 +628,6 @@ export async function lookupYomitanTerm(
     return { pack, entry };
   }
   return undefined;
-}
-
-/**
- * Extract the first usable IPA string from a term_meta_bank entry's data
- * object. The shape is `{ reading: string, transcriptions: [{ ipa, tags }] }`.
- * We prefer transcriptions tagged with US/General American, then fall back to
- * the first non-empty IPA.
- */
-/**
- * Validate and clean an IPA string. Some packs contain Wiktionary template
- * artifacts like `/Template:IPAchar"},"params":{"1":{"wt":"/wʊd/`. We try
- * to extract the real IPA from inside the garbage first, and only reject
- * if nothing usable can be salvaged.
- *
- * Valid IPA strings start with `/`, `[`, or `\` and contain only IPA
- * characters (Unicode phonetic extensions, combining marks, basic Latin).
- */
-function cleanIpa(raw: string): string | null {
-  // Try to extract a /.../ or [...] pattern from inside the string
-  const slashMatch = raw.match(/\/[^/"{}\n]{1,60}\//);
-  if (slashMatch) return slashMatch[0];
-  const bracketMatch = raw.match(/\[[^\]"{}\n]{1,60}\]/);
-  if (bracketMatch) return bracketMatch[0];
-  // Try backslash notation (some packs use \...\)
-  const backslashMatch = raw.match(/\\[^\\"{}\n]{1,60}\\/);
-  if (backslashMatch) return backslashMatch[0];
-  // If the raw string itself looks clean, use it directly
-  if (raw.length <= 80 && !raw.includes('Template:') && !raw.includes('"') && !raw.includes('{')) {
-    if (/^[/\[\\]/.test(raw)) return raw;
-  }
-  return null;
-}
-
-function extractFirstIpa(meta: unknown): string | null {
-  if (!meta || typeof meta !== 'object') return null;
-  const obj = meta as { transcriptions?: unknown[] };
-  if (!Array.isArray(obj.transcriptions)) return null;
-  let fallback: string | null = null;
-  for (const t of obj.transcriptions) {
-    if (!t || typeof t !== 'object') continue;
-    const entry = t as { ipa?: string; tags?: string[] };
-    const raw = typeof entry.ipa === 'string' ? entry.ipa.trim() : '';
-    if (!raw) continue;
-    const ipa = cleanIpa(raw);
-    if (!ipa) continue;
-    if (!fallback) fallback = ipa;
-    const tags = Array.isArray(entry.tags) ? entry.tags : [];
-    const isGenAm = tags.some(
-      (tag) => /US|General.?American|🇺🇸/i.test(typeof tag === 'string' ? tag : ''),
-    );
-    if (isGenAm) return ipa;
-  }
-  return fallback;
 }
 
 /**

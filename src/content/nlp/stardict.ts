@@ -16,20 +16,9 @@
  * Spec reference: https://github.com/huzheng001/stardict-3/blob/master/dict/doc/StarDictFileFormat
  */
 import { unzipSync, gunzipSync, strFromU8 } from 'fflate';
-import { getDB } from '../../shared/db';
-import type { DictPackRow, DictTermRow } from '../../shared/db';
-import { recordPackInstall } from '../../shared/telemetry';
+import type { DictPackRow, DictTermRow, ParsedDictPack } from '../../shared/dict-types';
 
-export interface StarDictImportResult {
-  ok: true;
-  pack: DictPackRow;
-  termsImported: number;
-}
-
-export interface StarDictImportError {
-  ok: false;
-  error: string;
-}
+export type StarDictParseResult = { ok: true; parsed: ParsedDictPack } | { ok: false; error: string };
 
 interface StarDictIfo {
   bookname: string;
@@ -47,12 +36,14 @@ interface StarDictIfo {
 /**
  * Parse a StarDict pack distributed as a single ZIP archive.
  *
- * Re-imports overwrite the same pack id (derived from bookname + version).
+ * Pure: returns the pack + term rows, writes nothing. Re-imports overwrite the
+ * same pack id (derived from bookname + version) once the service worker
+ * persists the batch.
  */
-export async function importStarDictPack(
+export function parseStarDictPack(
   zipBytes: ArrayBuffer | Uint8Array,
   override?: { sourceLang?: string; targetLang?: string },
-): Promise<StarDictImportResult | StarDictImportError> {
+): StarDictParseResult {
   let files: Record<string, Uint8Array>;
   try {
     const bytes = zipBytes instanceof Uint8Array ? zipBytes : new Uint8Array(zipBytes);
@@ -127,19 +118,7 @@ export async function importStarDictPack(
     createdAt: Date.now(),
   };
 
-  const db = getDB();
-  await db.transaction('rw', db.dict_packs, db.dict_terms, async () => {
-    await db.dict_terms.where('packId').equals(id).delete();
-    const CHUNK = 5000;
-    for (let i = 0; i < termRows.length; i += CHUNK) {
-      await db.dict_terms.bulkAdd(termRows.slice(i, i + CHUNK));
-    }
-    await db.dict_packs.put(pack);
-  });
-
-  void recordPackInstall(id, pack.title);
-
-  return { ok: true, pack, termsImported: termRows.length };
+  return { ok: true, parsed: { pack, terms: termRows } };
 }
 
 function packId(bookname: string, version: string): string {
