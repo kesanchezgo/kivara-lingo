@@ -18,6 +18,7 @@ import type {
   AnkiDeleteNoteResponse,
   CreateCardKind,
 } from '../../shared/types';
+import { originLabel, type CardSource } from '../../shared/study/cardTags';
 import { showSavedToast } from './CardToasts';
 
 /**
@@ -51,6 +52,8 @@ export interface SceneContext {
   /** Field that holds the headword, used to resolve the note. */
   fieldName?: string;
   tags: string[];
+  /** Where the scene comes from, for the "already in your deck" copy. */
+  origin?: CardSource;
 }
 
 /** Frame + sentence audio captured for a scene. Both are optional by design. */
@@ -223,9 +226,20 @@ export async function addSceneToNote(
   }
 
   if (res?.ok) {
+    // The worker answers `already` when nothing new landed: the sentence was
+    // on the note and no media or tags arrived. Saying "added" then would be
+    // a lie the user can verify by opening the card.
+    if (res.already) {
+      toast.message(t('queue.contextAlready'), { description: ctx.token, duration: 1800 });
+      return true;
+    }
     const missing = sceneMediaNotes(media);
+    const where = originLabel(ctx.origin);
     toast.success(t('queue.contextAdded'), {
-      description: missing.length > 0 ? `${ctx.token} · ${missing.join(' · ')}` : ctx.token,
+      description: [
+        where ? t('queue.contextAddedBody', { word: ctx.token, where }) : ctx.token,
+        ...missing,
+      ].join(' · '),
       duration: 3000,
     });
     return true;

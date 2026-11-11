@@ -117,7 +117,7 @@ const PROPER_NOUNS = new Set([
   'Free Dictionary API', 'Datamuse', 'Tatoeba', 'Lingua Libre',
   'Google TTS fallback', 'Bing Images', 'Openverse', 'Wikimedia Commons',
   'DuckDuckGo Images', 'Etymonline', 'YouGlish', 'Britannica Dictionary',
-  'Cambridge', 'Oxford Learner’s', 'Longman LDOCE', 'Dictionary.com',
+  'Cambridge', 'Oxford', 'Oxford Learner’s', 'Longman LDOCE', 'Dictionary.com',
   'Merriam-Webster', 'M-W Thesaurus', 'Oxford Collocations', 'PONS', 'bab.la',
   'dict.cc', 'Reverso Context', 'Linguee', 'PROMT.One Contexts',
   'WordReference', 'SpanishDict', 'Cambridge audio', 'Oxford audio', 'Forvo',

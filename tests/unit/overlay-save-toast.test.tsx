@@ -33,6 +33,7 @@ vi.mock('sonner', () => {
     custom: vi.fn(),
     error: vi.fn(),
     success: vi.fn(),
+    message: vi.fn(),
     dismiss: vi.fn(),
     loading: vi.fn(),
   });
@@ -215,6 +216,17 @@ describe('add this scene', () => {
     expect(payload.token).toBe('give up');
     expect(payload.tags).toContain('kivara::expression');
     expect(payload.tags).not.toContain('kivara::word');
+  });
+
+  it('says the scene was already there when the worker added nothing', async () => {
+    vi.mocked(sendMessage).mockResolvedValue({ ok: true, noteId: 7, already: true } as never);
+    const ok = await addSceneToNote(SCENE, async () => ({}));
+    expect(ok).toBe(true);
+    expect(toast.message).toHaveBeenCalledWith(
+      t('queue.contextAlready'),
+      expect.objectContaining({ description: SCENE.token, duration: 1800 }),
+    );
+    expect(toast.success).not.toHaveBeenCalled();
   });
 
   it('reports a failed update with its reason', async () => {
