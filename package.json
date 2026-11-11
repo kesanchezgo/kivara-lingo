@@ -18,6 +18,8 @@
     "quality:audit": "tsx scripts/evaluate-enrichment-quality.ts",
     "audit:mv3": "node scripts/mv3-enrichment-audit.mjs",
     "dict:build": "tsx scripts/expand-dictionary.ts",
+    "icons:build": "node scripts/build-icons.mjs",
+    "icons:check": "node scripts/build-icons.mjs --check",
     "dict:build:dry": "tsx scripts/expand-dictionary.ts --dry",
     "test:probe": "vitest run --config vitest.probe.config.ts"
   },
