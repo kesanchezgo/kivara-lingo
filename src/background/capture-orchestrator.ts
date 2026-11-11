@@ -549,8 +549,18 @@ export async function createCardFromRequest(
   const tags = buildCardTags(kind, request.media, lang);
   const deck = (request.deck ?? '').trim() || mapping.deckName;
 
-  /** Mirror a terminal state into the SW registry (no-op without a cardId). */
-  const registryOutcome = async (response: CreateCardResponse): Promise<void> => {
+  /** What the note actually carries, filled while the media sections run. */
+  const storedMedia = { frame: false, audio: false };
+
+  /**
+   * Mirror a terminal state into the SW registry (no-op without a cardId).
+   * `stored` is only passed on a real save: the idempotency hit found an
+   * existing note whose media we did not inspect, so its row keeps its flags.
+   */
+  const registryOutcome = async (
+    response: CreateCardResponse,
+    stored?: { frame: boolean; audio: boolean },
+  ): Promise<void> => {
     if (!request.cardId) return;
     if (response.ok && response.noteId != null) {
       await cardRegistry.patch(request.cardId, markSaved(
@@ -559,6 +569,8 @@ export async function createCardFromRequest(
           kind, deck, lang, tags, source,
         }),
         response.noteId,
+        Date.now(),
+        stored,
       ));
       return;
     }
@@ -886,6 +898,7 @@ export async function createCardFromRequest(
       fields[frameField] = fields[frameField]
         ? `${fields[frameField]}<img src="${filename}">`
         : `<img src="${filename}">`;
+      storedMedia.frame = true;
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'frame';
       warnings.push(`No se pudo guardar el frame: ${reason}`);
@@ -1035,6 +1048,7 @@ export async function createCardFromRequest(
       }
     }
   }
+  if (sentenceAudioAttached) storedMedia.audio = true;
 
   // 2) Word audio: prefer the multi-source enrichment URL (Forvo /
   //    Cambridge MP3 / Oxford MP3 / Wikimedia / Google TTS fallback)
@@ -1074,12 +1088,14 @@ export async function createCardFromRequest(
           const data = dataUrlToBase64(tts.dataUrl);
           await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
           fields[wordAudioField] = withSound(fields[wordAudioField], filename);
+          storedMedia.audio = true;
         }
       } catch (err) {
         const reason = err instanceof Error ? err.message : 'word-audio';
         warnings.push(`TTS palabra: ${reason}`);
       }
     }
+    if (attached) storedMedia.audio = true;
   }
 
   // Legacy `tts` source path: only fire when the user mapped a field to the
@@ -1096,6 +1112,7 @@ export async function createCardFromRequest(
           const data = dataUrlToBase64(tts.dataUrl);
           await ankiConnect.storeMediaFile(filename, data, mapping.ankiUrl, mapping.apiKey);
           fields[legacyTtsField] = withSound(fields[legacyTtsField], filename);
+          storedMedia.audio = true;
         }
       } catch (err) {
         const reason = err instanceof Error ? err.message : 'tts';
@@ -1136,7 +1153,7 @@ export async function createCardFromRequest(
     // If this success resolves a pending retry row, drop the row's stored
     // audio with it (the delete below handles the row itself).
     const out: CreateCardResponse = { ok: true, noteId, warnings };
-    await registryOutcome(out);
+    await registryOutcome(out, { ...storedMedia });
     return out;
   } catch (err) {
     const message = err instanceof Error ? err.message : 'addNote failed';

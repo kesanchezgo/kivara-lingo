@@ -12,6 +12,8 @@ import {
   beginRetry,
   buildCardTags,
   cardSourceFromMedia,
+  hasAudio,
+  hasFrame,
   markFailed,
   markQueued,
   markSaved,
@@ -122,6 +124,31 @@ describe('registry state machine', () => {
     const saved = markSaved(beginRetry(queued), 77, 2);
     expect(saved).toMatchObject({ status: 'saved', noteId: 77 });
   });
+
+  it('markSaved replaces the media flags with what the worker actually stored', () => {
+    const card = newRecentCard({ ...BASE, media: { frame: true, audio: true, word: true } });
+    const saved = markSaved(card, 9, 2, { frame: false, audio: true });
+    // A retry saved the note, but the frame it intended is not on the note.
+    expect(saved.media).toEqual({ frame: false, audio: true, word: true });
+    expect(hasFrame(saved)).toBe(false);
+    expect(hasAudio(saved)).toBe(true);
+  });
+
+  it('markSaved keeps the flags when the stored media was not inspected', () => {
+    // Idempotency hit: the note already existed and its media was not read,
+    // so the row must not claim the media is gone.
+    const card = newRecentCard({ ...BASE, media: { frame: true, audio: true } });
+    const saved = markSaved(card, 9, 2);
+    expect(saved.media).toEqual({ frame: true, audio: true });
+    expect(hasFrame(saved)).toBe(true);
+    expect(hasAudio(saved)).toBe(true);
+  });
+
+  it('media helpers never claim media for a card that is not saved yet', () => {
+    const queued = markQueued(newRecentCard({ ...BASE, media: { frame: true, audio: true } }), 'NETWORK', 1);
+    expect(hasFrame(queued)).toBe(false);
+    expect(hasAudio(queued)).toBe(false);
+  });
 });
 
 describe('registry cap and revive', () => {
@@ -202,5 +229,17 @@ describe('card registry storage', () => {
     await registry.put(newRecentCard(BASE));
     await registry.put(markSaved(newRecentCard(BASE), 5, 1));
     expect(await registry.list()).toHaveLength(1);
+  });
+
+  it('persists the media the worker actually stored, not the intent', async () => {
+    const { registry, stored } = memoryRegistry();
+    await registry.put(newRecentCard({ ...BASE, media: { frame: true, audio: true } }));
+    const current = await registry.get('c1');
+    if (!current) throw new Error('seeded card missing');
+    // The retry ran from a rebuilt request: no frame, TTS audio attached.
+    await registry.patch('c1', markSaved(current, 9, 1, { frame: false, audio: true }));
+    expect(stored()[0].media).toEqual({ frame: false, audio: true });
+    expect(hasFrame(stored()[0])).toBe(false);
+    expect(hasAudio(stored()[0])).toBe(true);
   });
 });

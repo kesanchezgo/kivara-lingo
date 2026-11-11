@@ -148,7 +148,18 @@ export function beginRetry(card: RecentCard): RecentCard {
   return { ...card, status: 'sending', nextRetryAt: undefined, error: undefined };
 }
 
-export function markSaved(card: RecentCard, noteId: number, now = Date.now()): RecentCard {
+/**
+ * The note now exists in Anki. `stored` is what the worker ACTUALLY wrote —
+ * a retry can succeed without the frame (or the original clip) the first
+ * attempt intended, so the row must describe the note that exists instead of
+ * repeating the intent. `word` is kept when the caller does not report it.
+ */
+export function markSaved(
+  card: RecentCard,
+  noteId: number,
+  now = Date.now(),
+  stored?: { frame: boolean; audio: boolean },
+): RecentCard {
   return {
     ...card,
     status: 'saved',
@@ -157,7 +168,18 @@ export function markSaved(card: RecentCard, noteId: number, now = Date.now()): R
     attempts: 0,
     nextRetryAt: undefined,
     error: undefined,
+    media: stored ? { ...card.media, ...stored } : card.media,
   };
+}
+
+/** The saved note carries a live frame. Reads reality, not intent. */
+export function hasFrame(card: RecentCard): boolean {
+  return card.status === 'saved' && card.media?.frame === true;
+}
+
+/** The saved note carries audio (cue clip, word audio or TTS). */
+export function hasAudio(card: RecentCard): boolean {
+  return card.status === 'saved' && card.media?.audio === true;
 }
 
 /** Backoff that mirrors the engine's `pending_notes` schedule (60 s, 2 min, …). */

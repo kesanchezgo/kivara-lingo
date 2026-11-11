@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { AlertCircle, Check, Clock, Eye, History, Loader2, RefreshCw, Undo2, X } from '../../../ui/icons';
+import { AlertCircle, Check, Clock, Eye, FilmSlate, History, Loader2, RefreshCw, Undo2, Volume2, X } from '../../../ui/icons';
 import { sendMessage } from 'webext-bridge/content-script';
 import { t } from '../../../shared/i18n';
 import type {
@@ -10,7 +10,7 @@ import type {
   CardRetryAllResponse,
   CardRetryResponse,
 } from '../../../shared/types';
-import { MAX_CARD_RETRIES, isPending, type CardStatus, type RecentCard } from '../../../shared/cards';
+import { MAX_CARD_RETRIES, hasAudio, hasFrame, isPending, type CardStatus, type RecentCard } from '../../../shared/cards';
 import { originLabel } from '../../../shared/study/cardTags';
 import { IconTile, SectionLabel, ui } from '../../../ui/primitives/settings-primitives';
 
@@ -154,6 +154,9 @@ function RecentRow({
 
   const retry = () => run(async () => {
     const res = (await sendMessage('CARD_RETRY', { id: card.id }, 'background')) as CardRetryResponse;
+    // A permanent failure left no pending row to restore the blobs from: the
+    // retry saved the card, but without the scene/original audio. Say so.
+    if (res?.mediaLost) toast.warning(t('recent.mediaLost'));
     if (!res?.ok) toast.error(t('queue.willRetry'), { description: res?.error });
     return !!res?.ok;
   }, t('queue.autoSentOne'), t('recent.failed'));
@@ -209,6 +212,20 @@ function RecentRow({
           {meta}
         </div>
       </div>
+      {card.status === 'saved' && (hasFrame(card) || hasAudio(card)) && (
+        <span className="flex items-center gap-1 shrink-0 text-zinc-400 dark:text-zinc-500">
+          {hasFrame(card) && (
+            <span role="img" aria-label={t('recent.mFrame')} title={t('recent.mFrame')}>
+              <FilmSlate size={13} />
+            </span>
+          )}
+          {hasAudio(card) && (
+            <span role="img" aria-label={t('recent.mAudioAll')} title={t('recent.mAudioAll')}>
+              <Volume2 size={13} />
+            </span>
+          )}
+        </span>
+      )}
       {card.status === 'saved' ? (
         <span className="flex items-center gap-0.5 shrink-0">
           <button

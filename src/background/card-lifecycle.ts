@@ -87,11 +87,13 @@ export async function retryCard(
     } catch {
       // best-effort: the registry already reflects the outcome
     }
-    return { ok: result.ok, noteId: result.noteId, error: result.error };
+    return { ok: result.ok, noteId: result.noteId, error: result.error, warnings: result.warnings };
   }
 
-  // No queued row (permanent failure): rebuild the minimal request and let
-  // the idempotency check decide whether the note already exists.
+  // No queued row (permanent failure): the registry only holds flags, never
+  // the blobs (H4), so the original frame and cue clip are gone for good.
+  // Rebuild the minimal request, record that the media could not be carried,
+  // and let the idempotency check decide whether the note already exists.
   const request: CreateCardRequest = {
     token: card.word,
     sentence: card.sentence,
@@ -102,6 +104,7 @@ export async function retryCard(
     deck: card.deck,
     media: mediaForCard(card),
   };
+  const mediaLost = card.media?.frame === true || card.media?.audio === true;
   const result = await createCardFromRequest(request, effective, capture, { fromRetry: true });
   if (!result.ok && result.queued) {
     // A manual retry that failed on transport still belongs to the alarm:
@@ -120,7 +123,15 @@ export async function retryCard(
       // best-effort
     }
   }
-  return { ok: result.ok, noteId: result.noteId, error: result.error };
+  return {
+    ok: result.ok,
+    noteId: result.noteId,
+    error: result.error,
+    warnings: result.warnings,
+    // The retry saved a card, but not the one the first attempt intended: the
+    // caller must be able to tell the user instead of letting the row lie.
+    mediaLost: result.ok && mediaLost ? true : undefined,
+  };
 }
 
 /** Retry every pending card now (manual "Retry all"). */
