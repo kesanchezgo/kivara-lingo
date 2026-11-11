@@ -41,6 +41,8 @@ interface SidePanelProps {
   mapping: AnkiMapping;
   setMapping: (mapping: AnkiMapping | ((prev: AnkiMapping) => AnkiMapping)) => void;
   mockData: CardPreviewData;
+  /** Language of the playing subtitles; the Cards tab badges its deck row. */
+  episodeLang?: string;
 }
 
 type PanelTab = 'subtitles' | 'vocab' | 'cards' | 'settings';
@@ -120,6 +122,7 @@ export function SidePanel({
   mapping,
   setMapping,
   mockData,
+  episodeLang,
 }: SidePanelProps) {
   const deepLink = useDeepLinkSection();
   const [activeTab, setActiveTab] = useState<PanelTab>('cards');
@@ -398,7 +401,13 @@ export function SidePanel({
             <SubtitlesTab styles={styles} setStyles={setStyles} onOpenVocab={() => selectTab('vocab')} />
           )}
           {tab.id === 'cards' && (
-            <CardsTab mapping={mapping} setMapping={setMapping} mockData={mockData} />
+            <CardsTab
+              mapping={mapping}
+              setMapping={setMapping}
+              mockData={mockData}
+              episodeLang={episodeLang}
+              onOpenVocab={() => selectTab('vocab')}
+            />
           )}
           {tab.id === 'settings' && (
             <SettingsTab
