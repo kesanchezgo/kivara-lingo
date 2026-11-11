@@ -56,3 +56,51 @@ export const ENRICH_ERROR_KEYS: Record<EnrichErrorCode, string> = {
   network: 'vipx.errNetwork',
   unknown: 'vipx.status_error',
 };
+
+/**
+ * What to DO about each failure family, per the prototype's `vipx.err*Fix`
+ * lines. The permission family carries `{group}` — the host-permission group
+ * the row's "Grant access" action requests.
+ *
+ * Explicit map on purpose: the old code composed `` `${msgKey}Fix` `` at
+ * render time, so a family without a `*Fix` key rendered the raw key to the
+ * user (`vipx.errNetworkFix`), and the dead-key scanner could not see any of
+ * them. `unknown` has no fix — the panel has no idea what happened.
+ */
+export const ENRICH_ERROR_FIX_KEYS: Partial<Record<EnrichErrorCode, string>> = {
+  unauthorized: 'vipx.err401Fix',
+  forbidden: 'vipx.err403Fix',
+  notFound: 'vipx.err404Fix',
+  rateLimited: 'vipx.err429Fix',
+  server: 'vipx.err5xxFix',
+  timeout: 'vipx.errTimeoutFix',
+  permission: 'vipx.errCorsFix',
+  network: 'vipx.errNetworkFix',
+};
+
+/**
+ * Answers a source deserves before the generic family line. The prototype
+ * worded three of them by name — Unsplash's 401 IS a missing Access Key,
+ * Pixabay's 429 IS the shared quota, Reverso's 403 IS the anti-bot challenge —
+ * so the generic family text would say less than the failure did.
+ */
+export const ENRICH_SOURCE_FIX_KEYS: Record<string, Partial<Record<EnrichErrorCode, string>>> = {
+  unsplash: { unauthorized: 'vipx.fixUnsplash401' },
+  pixabay: { rateLimited: 'vipx.fixPixabay429' },
+  reverso: { forbidden: 'vipx.fixReverso403' },
+};
+
+/** A slow source still works: the fix is the prototype's `vipx.slowFix`. */
+export const ENRICH_SLOW_FIX_KEY = 'vipx.slowFix';
+
+/**
+ * Fix copy for one observation: the source-specific variant when the pair
+ * `(source, family)` has one, otherwise the family's generic line.
+ */
+export function enrichFixKey(
+  sourceId: string | undefined,
+  code: EnrichErrorCode,
+): string | undefined {
+  const sourceFix = sourceId ? ENRICH_SOURCE_FIX_KEYS[sourceId]?.[code] : undefined;
+  return sourceFix ?? ENRICH_ERROR_FIX_KEYS[code];
+}

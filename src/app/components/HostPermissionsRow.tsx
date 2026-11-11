@@ -18,7 +18,7 @@ import { InfoHint } from './InfoHint';
  * instead of pretending a request happened, and the granted-origins store.
  */
 
-interface PermissionGroup {
+export interface PermissionGroup {
   id: string;
   label: string;
   hint: string;
