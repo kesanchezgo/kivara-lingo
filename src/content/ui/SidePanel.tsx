@@ -17,6 +17,7 @@ import { VocabTab, VOCAB_TAB_ENABLED } from '../../app/components/tabs/VocabTab'
 import { useRecentCards, isPending } from '../../app/components/tabs/RecentCards';
 import { SegPill, FOCUS } from '../../ui/primitives/settings-primitives';
 import type { CardPreviewData } from '../../app/components/tabs/CardPreview';
+import type { EpisodeCue } from './EpisodeWords';
 
 /**
  * Side panel. The layout is the prototype's (16px header, segmented tab bar,
@@ -43,6 +44,11 @@ interface SidePanelProps {
   mapping: AnkiMapping;
   setMapping: (mapping: AnkiMapping | ((prev: AnkiMapping) => AnkiMapping)) => void;
   mockData: CardPreviewData;
+  /** Full subtitle track of the current episode; hosts without a player
+   * (Options) omit it and the Vocabulary tab hides its episode group. */
+  episode?: { cues: readonly EpisodeCue[]; lang: string } | null;
+  /** Open the transcript rail's Words view (only the content host can). */
+  onOpenEpisodeWords?: () => void;
   /** The rail is docked beside the panel: hand focus to it. */
   onToTranscript?: () => void;
   /** Language of the playing subtitles; the Cards tab badges its deck row. */
@@ -126,6 +132,8 @@ export function SidePanel({
   mapping,
   setMapping,
   mockData,
+  episode,
+  onOpenEpisodeWords,
   onToTranscript,
   episodeLang,
 }: SidePanelProps) {
@@ -433,7 +441,13 @@ export function SidePanel({
               onOpenTab={(target) => selectTab(target === 'vocab' ? 'vocab' : target)}
             />
           )}
-          {tab.id === 'vocab' && <VocabTab onOpenCards={() => selectTab('cards')} />}
+          {tab.id === 'vocab' && (
+            <VocabTab
+              onOpenCards={() => selectTab('cards')}
+              episode={episode}
+              onOpenEpisodeWords={onOpenEpisodeWords}
+            />
+          )}
         </div>
       ))}
     </div>
