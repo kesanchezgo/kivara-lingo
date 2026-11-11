@@ -34,7 +34,7 @@ import { useEpisode } from './useEpisode';
 import { cueIndexAt, useStudyPlayback } from './useStudyPlayback';
 import { TranscriptRail } from './TranscriptRail';
 import { StudyBar } from './StudyBar';
-import { applyColumnsCss, RAIL_WIDTH_PX } from './columns-css';
+import { applyColumnsCss, computeColumnLayout, computeColumnVisibility } from './columns-css';
 import { railOpenStore, railViewStore } from './ui-state';
 import { useChromeLocal } from '../../ui/hooks/useChromeLocal';
 import { aiConfigured } from '../../shared/ai-configured';
@@ -296,9 +296,36 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     adapter?.getCurrentTime?.() ?? (videoElement ? videoElement.currentTime * 1000 : 0),
   );
 
-  // Reserve the column on the right (H11/D1). Removed when the rail closes so
-  // the player returns to its own layout.
-  const railVisible = enabled && railOpen && !(panelOpen && !isPopupMode);
+  // ── The two columns on the right (H11/D1, #38) ──────────────────────────
+  // The transcript rail and the docked panel are NEIGHBOURS: both render at
+  // once (the panel no longer replaces the transcript) and the player gives up
+  // the room for both. `computeColumnVisibility` owns which ones count; the
+  // width math lives in columns-css.ts, the same module that injects the
+  // stylesheet, so the two can't disagree.
+  const columnVisibility = useMemo(
+    () => computeColumnVisibility({ enabled, railOpen, panelOpen, isPopupMode }),
+    [enabled, railOpen, panelOpen, isPopupMode],
+  );
+  const railVisible = columnVisibility.rail;
+  const panelDocked = columnVisibility.panel;
+  // The cap is a fraction of the viewport, so the layout has to follow its
+  // width — including into and out of fullscreen (innerWidth changes there).
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window === 'undefined' ? 0 : window.innerWidth,
+  );
+  useEffect(() => {
+    const readViewport = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', readViewport);
+    document.addEventListener('fullscreenchange', readViewport);
+    return () => {
+      window.removeEventListener('resize', readViewport);
+      document.removeEventListener('fullscreenchange', readViewport);
+    };
+  }, []);
+  const columnLayout = useMemo(
+    () => computeColumnLayout(columnVisibility, viewportWidth),
+    [columnVisibility, viewportWidth],
+  );
   /**
    * Jump and play through the adapter's controller. A platform that refuses
    * the seek (Netflix without its player API yet) leaves playback running
@@ -317,14 +344,21 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   );
   useEffect(() => {
     applyColumnsCss({
-      enabled: railVisible,
       platform: adapter?.platform,
-      widthPx: RAIL_WIDTH_PX,
+      state: columnVisibility,
+      viewportWidth,
     });
     return () => {
-      applyColumnsCss({ enabled: false, platform: adapter?.platform });
+      // Cleanup runs before every re-apply and on unmount. It closes both
+      // columns, which removes the stylesheet — and on YouTube dispatches the
+      // resize the player needs to go back to its own width.
+      applyColumnsCss({
+        platform: adapter?.platform,
+        state: { rail: false, panel: false },
+        viewportWidth,
+      });
     };
-  }, [railVisible, adapter?.platform]);
+  }, [columnVisibility, adapter?.platform, viewportWidth]);
 
   // Apply the "Limpieza visual" CSS whenever the toggles change. The CSS is
   // platform-aware (the matching selectors live in cleanup-css.ts) so the
@@ -1455,9 +1489,11 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             setExpandedMWEs={setExpandedMWEs}
             capturing={captureView !== null}
             study={studyBinding}
-            // The rail is the only place an explanation renders, so hide the action
-// while the rail cannot be visible (panel docked in place of it).
-            onExplain={aiOn && (!panelOpen || isPopupMode) ? requestExplain : undefined}
+            // The rail is the only place an explanation renders, and it now
+            // lives beside the panel instead of being replaced by it (#38) —
+            // `requestExplain` opens the rail, so the action needs no panel
+            // gate.
+            onExplain={aiOn ? requestExplain : undefined}
           />
           <CaptureOverlay view={captureView} cardTheme={subtitleStyles.cardTheme ?? 'dark'} />
         </div>
@@ -1501,8 +1537,6 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     studyBinding,
     aiOn,
     requestExplain,
-    panelOpen,
-    isPopupMode,
   ]);
 
   return (
@@ -1554,16 +1588,22 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         )}
 
       {/* F6: the transcript column (D1). It reserves its width on the player
-          root through columns-css.ts, so it never covers the picture. */}
+          root through columns-css.ts, so it never covers the picture. With the
+          panel docked it sits to the panel's LEFT, and the pair reserves both
+          widths — one computation, `columnLayout`, feeds this style and the
+          stylesheet. In overlay mode (#38, narrow viewport) nothing is
+          reserved and the columns paint over the player. */}
       {railVisible && (
         <div
           className="pointer-events-auto"
           style={{
             position: 'absolute',
             top: 0,
-            right: 0,
+            // `right` moves the rail clear of the docked panel. A floating
+            // panel reserves nothing, so the rail keeps the edge.
+            right: panelDocked ? columnLayout.panelWidth + columnLayout.gap : 0,
             bottom: 0,
-            width: RAIL_WIDTH_PX,
+            width: columnLayout.railWidth,
           }}
         >
           <TranscriptRail
@@ -1620,6 +1660,11 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             bottom: 0,
             display: 'flex',
             alignItems: 'stretch',
+            // Docked: the panel is a column and owns its reserved width, so
+            // the rail can sit beside it instead of under it. Floating: the
+            // panel is `fixed` and drags itself around; the wrapper stays a
+            // zero-width anchor.
+            ...(panelDocked ? { width: columnLayout.panelWidth } : null),
           }}
         >
           <SidePanel

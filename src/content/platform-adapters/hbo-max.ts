@@ -10,6 +10,24 @@ import { getDomMediaInfo } from './media-info';
 import type { SubtitleSource } from './types';
 
 /**
+ * The boxes Max lays the PICTURE in — the only elements the column
+ * reservation (`content/ui/columns-css.ts`) is allowed to shrink.
+ *
+ * `#root` is deliberately absent: it is Max's whole app shell (header, side
+ * rails, modals), so writing `right` on it moves the entire page instead of
+ * the player. `Fuse-Web-Play` is the styled-components wrapper that owns the
+ * player layer, and `PlayerContainer` is the release-stable class fragment
+ * both older and current Max builds expose. The live page is reverse-engineered
+ * by this adapter, so the anchors live beside it and the CSS module imports
+ * them instead of keeping a second, drifting copy.
+ */
+export const HBO_PLAYER_CONTAINER_SELECTORS: readonly string[] = [
+  '[data-testid="player-container"]',
+  '[class*="Fuse-Web-Play"]',
+  '[class*="PlayerContainer"]',
+];
+
+/**
  * Max ships subtitles in two ways:
  *  1. As real HTML5 `::cue` tracks. Those are reliably hidden with the
  *     `video::cue` / `video::-webkit-media-text-track-*` rules below.
