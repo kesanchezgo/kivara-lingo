@@ -223,11 +223,11 @@ describe('browseNote (See in Anki)', () => {
 });
 
 /**
- * The sentinel snapshot pipeline: findNotes → batched notesInfo → two
- * predicate findCards calls (maturity, seen). A note's word maps through its
- * `cards` array: any mature card → MATURE_DAYS, otherwise any seen card →
- * SEEN_DAYS, otherwise the note stays out. Any failed batch fails the WHOLE
- * answer loudly.
+ * The sentinel snapshot pipeline: findNotes → batched notesInfo → one
+ * maturity predicate (prop:ivl>=21). EVERY note enters the map: a note with
+ * any mature card maps to MATURE_DAYS, anything else to SEEN_DAYS — a word
+ * the deck holds is in Anki even when all its cards are new. Any failed
+ * batch fails the WHOLE answer loudly.
  */
 describe('wordIntervals', () => {
   it('maps each note to its sentinel through its card ids', async () => {
@@ -236,7 +236,7 @@ describe('wordIntervals', () => {
       // Several cards, only one mature: the note reads mature.
       { noteId: 2, fields: { word: { value: 'afford' } }, cards: [21, 22] },
       { noteId: 3, fields: { word: { value: 'day' } }, cards: [31] },
-      // All cards new: no sentinel, the word stays out of the map.
+      // All cards new: the word IS in Anki, so it enters with SEEN_DAYS.
       { noteId: 4, fields: { word: { value: 'unseen' } }, cards: [41] },
       // Duplicate headword, seen only: cannot downgrade the mature answer.
       { noteId: 5, fields: { word: { value: 'sane' } }, cards: [51] },
@@ -245,18 +245,17 @@ describe('wordIntervals', () => {
       findNotes: vi.fn(async () => [1, 2, 3, 4, 5]),
       notesInfo: vi.fn(async () => notes),
       findCards: vi.fn(async (query: string) =>
-        (query.endsWith('prop:ivl>=21') ? [11, 22] : [11, 21, 31, 51])),
+        (query.endsWith('prop:ivl>=21') ? [11, 22] : [])),
     });
     const { wordIntervals, MATURE_DAYS, SEEN_DAYS } = await import('../../src/background/card-actions');
     await expect(wordIntervals('English vocabulary', 'word', MAPPING as never))
-      .resolves.toEqual({ ok: true, words: { sane: MATURE_DAYS, afford: MATURE_DAYS, day: SEEN_DAYS } });
+      .resolves.toEqual({
+        ok: true,
+        words: { sane: MATURE_DAYS, afford: MATURE_DAYS, day: SEEN_DAYS, unseen: SEEN_DAYS },
+      });
+    expect(spies.findCards).toHaveBeenCalledTimes(1);
     expect(spies.findCards).toHaveBeenCalledWith(
       'deck:"English vocabulary" prop:ivl>=21',
-      MAPPING.ankiUrl,
-      undefined,
-    );
-    expect(spies.findCards).toHaveBeenCalledWith(
-      'deck:"English vocabulary" -is:new',
       MAPPING.ankiUrl,
       undefined,
     );
@@ -298,7 +297,7 @@ describe('wordIntervals', () => {
       findNotes: vi.fn(async () => ids),
       notesInfo: vi.fn(async (batch: number[]) =>
         batch.map((id) => ({ noteId: id, fields: { word: { value: `w${id}` } }, cards: [id] }))),
-      findCards: vi.fn(async (query: string) => (query.endsWith('prop:ivl>=21') ? [] : ids)),
+      findCards: vi.fn(async () => []),
     });
     const { wordIntervals } = await import('../../src/background/card-actions');
     const res = await wordIntervals('English vocabulary', 'word', MAPPING as never);
@@ -326,15 +325,14 @@ describe('wordIntervals', () => {
     expect(res).toEqual({ ok: false, error: 'boom' });
   });
 
-  it('fails the whole answer when a predicate findCards fails', async () => {
+  it('fails the whole answer when the maturity query fails', async () => {
     setup({
       findNotes: vi.fn(async () => [1]),
       notesInfo: vi.fn(async () => [
         { noteId: 2, fields: { word: { value: 'day' } }, cards: [3] },
       ]),
-      findCards: vi.fn(async (query: string) => {
-        if (query.endsWith('-is:new')) throw new Error('predicate failed');
-        return [];
+      findCards: vi.fn(async () => {
+        throw new Error('predicate failed');
       }),
     });
     const { wordIntervals } = await import('../../src/background/card-actions');

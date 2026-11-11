@@ -165,6 +165,21 @@ describe('word status storage', () => {
     expect(isInAnki('en', 'sane')).toBe(true);
   });
 
+  it('a saved card survives the refresh that follows it (isInAnki stays true)', async () => {
+    installChrome();
+    resetStudyStores();
+    await hydrateStudy('en');
+    // Saving writes the card with interval 0; a newly created Anki note has
+    // only new cards, so the old pipeline dropped it on the next snapshot —
+    // which made the UI offer to save the same word again.
+    noteCardSaved('en', 'sane');
+    expect(isInAnki('en', 'sane')).toBe(true);
+
+    replaceAnkiIntervals('en', { sane: 0 });
+    expect(isInAnki('en', 'sane')).toBe(true);
+    expect(ankiSummaryOf(studyStores('en').anki.get())).toEqual({ total: 1, mature: 0, learning: 1 });
+  });
+
   it('replaces the cached map with the snapshot: a word absent from Anki disappears', async () => {
     const { set } = installChrome();
     resetStudyStores();

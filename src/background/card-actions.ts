@@ -248,10 +248,10 @@ export async function browseNote(
 export const MATURE_DAYS = 21;
 
 /**
- * Sentinel interval for a seen (reviewed at least once, still not mature)
- * word. Real cards at this stage carry intervals anywhere from 0 to 20 days;
- * `SEEN_DAYS` is the single value the snapshot reports because `>= MATURE_DAYS`
- * is the only comparison made downstream.
+ * Sentinel interval for any word whose note has no mature card — including a
+ * note created moments ago, whose cards are all new. Real intervals at this
+ * stage run from 0 to 20 days; `SEEN_DAYS` is the single value the snapshot
+ * reports because `>= MATURE_DAYS` is the only comparison made downstream.
  */
 export const SEEN_DAYS = 0;
 
@@ -296,30 +296,25 @@ export async function wordIntervals(
     }
     if (noteIds.length === 0) return { ok: true, words: {} };
 
-    const [notes, matureCards, seenCards] = await Promise.all([
+    const [notes, matureCards] = await Promise.all([
       readNotes(noteIds, mapping),
       ankiConnect.findCards(`${deckQuery} prop:ivl>=21`, mapping.ankiUrl, mapping.apiKey),
-      ankiConnect.findCards(`${deckQuery} -is:new`, mapping.ankiUrl, mapping.apiKey),
     ]);
-    if (!Array.isArray(matureCards) || !Array.isArray(seenCards)) {
+    if (!Array.isArray(matureCards)) {
       throw new AnkiConnectError('findCards did not return a card list.', 'ANKI');
     }
 
     const mature = new Set(matureCards);
-    const seen = new Set(seenCards);
     const words: Record<string, number> = {};
     for (const note of notes) {
       const word = headwordOf(note?.fields, fieldName);
       if (!word) continue;
       const cards = Array.isArray(note?.cards) ? note.cards : [];
-      // Maturity wins over seen when a note has several cards; a note whose
-      // cards are all new has no sentinel and stays out of the map.
-      const days = cards.some((id) => mature.has(id))
-        ? MATURE_DAYS
-        : cards.some((id) => seen.has(id))
-          ? SEEN_DAYS
-          : undefined;
-      if (days === undefined) continue;
+      // EVERY note in the deck enters the map: a word the deck holds is in
+      // Anki, which is what `isInAnki` and the dedupe need. Maturity only
+      // decides between the two sentinels, so a note with nothing but new
+      // cards answers SEEN_DAYS (0) instead of disappearing.
+      const days = cards.some((id) => mature.has(id)) ? MATURE_DAYS : SEEN_DAYS;
       const previous = words[word];
       if (previous === undefined || days > previous) words[word] = days;
     }
