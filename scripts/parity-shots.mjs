@@ -31,7 +31,25 @@ const OUT = path.resolve(
   root,
   outArg > 0 && process.argv[outArg + 1] ? process.argv[outArg + 1] : 'docs/parity-shots',
 );
-const PLAYER_URL = pathToFileURL(path.join(root, 'tests', 'e2e', 'fixtures', 'player.html')).href;
+// The transcript is shot through the SAME route the e2e study specs use: a
+// fake youtube.com page serving the seekable fixture. The content script only
+// matches the streaming platforms' patterns, so a file:// URL would mount
+// nothing at all.
+const FIXTURE_HTML = fs.readFileSync(
+  path.join(root, 'tests', 'e2e', 'fixtures', 'player-seekable.html'),
+  'utf8',
+);
+const CUES_VTT = `WEBVTT
+
+00:00:00.000 --> 00:00:03.000
+Hello, this is a test cue.
+
+00:00:03.000 --> 00:00:06.000
+The rat ships frames and audio.
+
+00:00:06.000 --> 00:00:09.000
+Every crumb gets gnawed.
+`;
 
 if (!fs.existsSync(path.join(DIST, 'manifest.json'))) {
   console.error(`Built extension not found at ${DIST}. Run \`pnpm build\` first.`);
@@ -184,15 +202,21 @@ try {
     await page.waitForTimeout(350);
     await shot(panel, `cards-${suffix}`);
 
-    // Preferencias › Diccionarios: the section scrolls into view inside the tab.
+    // Preferencias › Diccionarios: open the accordion, wait for the pack list.
     await tab('Preferences').click();
-    const dictHeading = page.getByText('Dictionaries', { exact: false }).first();
-    if (await dictHeading.count()) {
-      await dictHeading.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(250);
+    const dictRow = page.getByText('Offline dictionaries', { exact: false }).first();
+    if (await dictRow.count()) {
+      await dictRow.scrollIntoViewIfNeeded();
+      await dictRow.click();
+      await page.waitForTimeout(700);
+      // Scroll to the seeded pack so the buckets (Included / Installed /
+      // Remote / Miss) and the import actions are in frame.
+      const packTitle = page.getByText('Essential English–Spanish', { exact: false }).first();
+      if (await packTitle.count()) await packTitle.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
       await shot(panel, `dict-${suffix}`);
     } else {
-      console.warn('dictionary section heading not found — screenshot skipped');
+      console.warn('offline dictionaries accordion not found — screenshot skipped');
     }
 
     // Vocabulario
@@ -206,15 +230,34 @@ try {
     const suffix = dark ? 'dark' : 'light';
     const video = await context.newPage();
     await video.emulateMedia({ colorScheme: dark ? 'dark' : 'light' });
-    await video.goto(PLAYER_URL);
+    await video.route('*://*.youtube.com/**', async (route) => {
+      const url = route.request().url();
+      if (url.endsWith('cues.vtt')) {
+        await route.fulfill({ status: 200, contentType: 'text/vtt', body: CUES_VTT });
+        return;
+      }
+      if (url.includes('/watch')) {
+        await route.fulfill({ status: 200, contentType: 'text/html', body: FIXTURE_HTML });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><html></html>' });
+    });
+    await video.goto('https://www.youtube.com/watch?v=kivara-parity');
+    await video.bringToFront();
     await video.waitForFunction(
       () => (window).__kivaraFixtureReady === true,
+      undefined,
+      { timeout: 30_000 },
+    );
+    // The overlay host proves the content script mounted before any keys fire.
+    await video.waitForFunction(
+      () => document.querySelectorAll('[id^="kivara-lingo"]').length > 0,
       undefined,
       { timeout: 20_000 },
     );
     await video.waitForTimeout(1200);
     await video.keyboard.press('Alt+T');
-    await video.waitForTimeout(600);
+    await video.waitForTimeout(900);
     await shot(video, `transcript-${suffix}`);
     await video.close();
   }
