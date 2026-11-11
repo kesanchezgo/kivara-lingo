@@ -49,6 +49,13 @@ export const EXPORT_PACK_STATS = 'EXPORT_PACK_STATS';
  */
 export const DICT_IMPORT_CHUNK_SIZE = 2000;
 
+/*
+ * Atomic installs stage the pack under `tmp-<finalId>` until COMMIT. The
+ * staging helpers live in `shared/db.ts` next to the tables they write, so
+ * the content-script dictionary module can see them without pulling the wire
+ * protocol into its chunk.
+ */
+
 export interface DictPackImportBeginMessage {
   type: typeof DICT_PACK_IMPORT_BEGIN;
   pack: DictPackRow;

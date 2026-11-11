@@ -27,7 +27,7 @@ import type {
 import type { SubtitleSource } from '../platform-adapters/types';
 import { getActiveTrackCues, getTrackByLanguage, onTrack } from '../platform-adapters/intercepted-bus';
 import { buildPreviewData } from '../../shared/preview-data';
-import { buildCardTags, newCardId } from '../../shared/cards';
+import { buildCardTags, cardSourceFromMedia, newCardId } from '../../shared/cards';
 import { buildExactNoteQuery } from '../../shared/anki-search';
 import { recordCardSaved, useWordStudy, type StudyBinding } from './study';
 import {
@@ -1582,6 +1582,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           deck,
           fieldName,
           tags: buildCardTags(kind, media, lang),
+          origin: cardSourceFromMedia(media),
         },
         captureSceneMedia,
       );

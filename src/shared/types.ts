@@ -1125,6 +1125,10 @@ export interface AnkiAddContextResponse {
    * means the scene was NOT written, 'tags' means it was and only the tags
    * failed. */
   partial?: 'fields' | 'tags';
+  /** Nothing new was written: the sentence was already on the note and no
+   * media or tags arrived. The notice then says the scene was already there
+   * instead of claiming an addition that did not happen. */
+  already?: boolean;
 }
 
 /** See in Anki: open the browser on a note id or a raw query. */

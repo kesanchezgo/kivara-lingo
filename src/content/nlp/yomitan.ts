@@ -26,7 +26,7 @@
  * Reference: https://github.com/yomidevs/yomitan/blob/master/docs/dictionaries.md
  */
 import { strFromU8, Unzip, UnzipInflate } from 'fflate';
-import { getDB } from '../../shared/db';
+import { getDB, TEMP_DICT_PACK_PREFIX } from '../../shared/db';
 import type { DictPackRow, DictTermRow } from '../../shared/dict-types';
 import type { DictionaryEntry } from '../../shared/types';
 import { lemmaCandidates } from './lemma';
@@ -472,9 +472,10 @@ export async function setPackEnabled(id: string, enabled: boolean): Promise<void
   await getDB().dict_packs.update(id, { enabled });
 }
 
-/** List installed packs (in install order). */
+/** List installed packs (in install order). Staging packs are not installed. */
 export async function listYomitanPacks(): Promise<DictPackRow[]> {
-  return getDB().dict_packs.orderBy('createdAt').toArray();
+  const packs = await getDB().dict_packs.orderBy('createdAt').toArray();
+  return packs.filter((p) => !p.id.startsWith(TEMP_DICT_PACK_PREFIX));
 }
 
 /**
@@ -494,7 +495,7 @@ export async function getYomitanHeadwords(lang = 'en'): Promise<string[]> {
   const db = getDB();
   // Same caveat as `lookupYomitanTerm` — IndexedDB doesn't index booleans
   // reliably, so we scan and filter in JS. The `dict_packs` table is tiny.
-  const allPacks = await db.dict_packs.toArray();
+  const allPacks = (await db.dict_packs.toArray()).filter((p) => !p.id.startsWith(TEMP_DICT_PACK_PREFIX));
   const packs = allPacks.filter(
     (p) =>
       p.enabled &&
@@ -547,7 +548,7 @@ export async function lookupYomitanTerm(
   //    can't rely on the index, so we always scan and filter in JS.
   //    The `dict_packs` table is small (a handful of rows even for
   //    power users) so the scan is essentially free.
-  const allPacks = await db.dict_packs.toArray();
+  const allPacks = (await db.dict_packs.toArray()).filter((p) => !p.id.startsWith(TEMP_DICT_PACK_PREFIX));
   const packs = allPacks.filter(
     (p) =>
       p.enabled &&

@@ -233,7 +233,7 @@ export function DictPacksSection({
       URL.revokeObjectURL(url);
       setFeedback({ kind: 'ok', message: t('dict.coverageExported', { count: fmtNumber(snap.rows.length) }) });
     } catch (err) {
-      setFeedback({ kind: 'err', message: t('dict.coverageImportError', { msg: (err as Error).message }) });
+      setFeedback({ kind: 'err', message: t('dict.coverageExportError', { msg: (err as Error).message }) });
     }
   }, []);
 

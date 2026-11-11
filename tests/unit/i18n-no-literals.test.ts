@@ -62,6 +62,20 @@ const LANGUAGE_NEUTRAL_EXACT = new Set([
 ]);
 
 /**
+ * Object properties whose value is always rendered copy. A plain literal in
+ * one of these is copy even when the Spanish heuristic cannot see it (an
+ * English label, a brand, a one-word enum), so this detection is driven by the
+ * property name rather than the language of the value.
+ */
+const COPY_PROPS = new Set(['label', 'description', 'title', 'hint']);
+
+/** Directories where object-literal copy is held to the i18n rule. */
+const OBJECT_PROP_DIRS = ['src/app/', 'src/onboarding/', 'src/content/'];
+
+/** An i18n key held in a lookup table and resolved later with `t(key)`. */
+const I18N_KEY_RE = /^[a-z][A-Za-z0-9_-]*(?:\.[A-Za-z0-9_-]+)+$/;
+
+/**
  * Unambiguous Spanish function words. A value containing one of these as a
  * whole word is Spanish copy (or about to be), and they never appear in
  * identifiers, class names or unit strings. Accents alone were not enough:
@@ -95,6 +109,134 @@ function spanishCandidate(text: string): boolean {
   return STOPWORD_RE.test(t);
 }
 
+/** Brands, product names and enum tokens that are the same in both locales. */
+const PROPER_NOUNS = new Set([
+  'OpenAI', 'Anthropic', 'Google Gemini', 'Gemini', 'WordNet (OEWN 2025)',
+  'Wiktionary REST', 'Wiktionary HTML', 'WiktionaryAPI', 'WiktApi / Kaikki',
+  'Moby Thesaurus', 'Thesaurus.com', 'WordHippo', 'TheIdioms',
+  'Free Dictionary API', 'Datamuse', 'Tatoeba', 'Lingua Libre',
+  'Google TTS fallback', 'Bing Images', 'Openverse', 'Wikimedia Commons',
+  'DuckDuckGo Images', 'Etymonline', 'YouGlish', 'Britannica Dictionary',
+  'Cambridge', 'Oxford', 'Oxford Learner’s', 'Longman LDOCE', 'Dictionary.com',
+  'Merriam-Webster', 'M-W Thesaurus', 'Oxford Collocations', 'PONS', 'bab.la',
+  'dict.cc', 'Reverso Context', 'Linguee', 'PROMT.One Contexts',
+  'WordReference', 'SpanishDict', 'Cambridge audio', 'Oxford audio', 'Forvo',
+  'Unsplash (BYOK)', 'Pixabay', 'Yomitan', 'Bundled', 'Word audio',
+  'Sentence audio', 'Picture', 'Video link', 'TTS', 'tabCapture', 'Bundle',
+  'Packs', 'Remoto', 'Miss', 'Default', 'KivaraLingo', 'Basic',
+  'Wiktionary EN→ES', 'Wiktionary EN IPA', 'Wiktionary EN→EN',
+]);
+
+/** Tailwind utility tokens (and variants) — never copy. */
+const CLASS_TOKEN_RE =
+  /^(?:[a-z-]+:)*(?:text|bg|border|ring|shadow|fill|stroke|from|via|to|outline|decoration|divide|placeholder|accent|caret|font|leading|tracking|opacity|rounded|transition|duration|delay|ease|animate|scale|rotate|translate|skew|origin|space|gap|p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|w|h|min|max|flex|grid|inline|block|hidden|absolute|relative|fixed|sticky|top|left|right|bottom|inset|z|overflow|truncate|whitespace|break|align|justify|items|content|self|order|col|row|object|aspect|cursor|select|pointer|resize|sr-only|antialiased|tabular)\b.*$/;
+
+function looksLikeClassList(value: string): boolean {
+  const tokens = value.trim().split(/\s+/).filter(Boolean);
+  return tokens.length > 0 && tokens.every((token) => CLASS_TOKEN_RE.test(token));
+}
+
+/** True when an object property value is a literal the i18n rule forbids. */
+export function objectPropCopy(prop: string, value: string): boolean {
+  if (!COPY_PROPS.has(prop)) return false;
+  const v = value.trim();
+  if (!v) return false;
+  if (I18N_KEY_RE.test(v)) return false;
+  if (PROPER_NOUNS.has(v)) return false;
+  if (LANGUAGE_NEUTRAL_EXACT.has(v)) return false;
+  if (NON_COPY_VALUES.test(v)) return false;
+  if (looksLikeClassList(v)) return false;
+  return true;
+}
+
+/** Copy legitimately not localized yet, with a reason. Keep this SHORT. */
+const ALLOWED: Record<string, string> = {};
+
+/**
+ * Scan one source file. Exported so the self-tests can run the detector over
+ * fixtures instead of trusting the repository scan to exercise every branch.
+ */
+export function scanSource(file: string, src: string): string[] {
+  const offenders: string[] = [];
+  const lines = src.split('\n');
+  const push = (lineNo: number, shape: string, value: string) => {
+    const id = `${file}:${lineNo}`;
+    if (ALLOWED[id]) return;
+    offenders.push(`${id}  ${shape}${value}`);
+  };
+  const objectProps = OBJECT_PROP_DIRS.some((dir) => file.startsWith(dir));
+
+  lines.forEach((line, i) => {
+    const no = i + 1;
+    const stripped = line.trim();
+    if (stripped.startsWith('//') || stripped.startsWith('*') || stripped.startsWith('/*')) return;
+
+    // `prop="..."`
+    for (const m of line.matchAll(/([A-Za-z][\w-]*)="([^"]*)"/g)) {
+      const [, prop, value] = m;
+      if (NON_COPY_PROPS.has(prop)) continue;
+      if (spanishCandidate(value)) push(no, `${prop}="`, `${value}"`);
+    }
+    // `prop={'...'}`
+    for (const m of line.matchAll(/([A-Za-z][\w-]*)=\{'([^']*)'\}/g)) {
+      const [, prop, value] = m;
+      if (NON_COPY_PROPS.has(prop)) continue;
+      if (spanishCandidate(value)) push(no, `${prop}={'`, `${value}'}`);
+    }
+    // `prop={`...`}`
+    for (const m of line.matchAll(/([A-Za-z][\w-]*)=\{`([^`]*)`\}/g)) {
+      const [, prop, value] = m;
+      if (NON_COPY_PROPS.has(prop)) continue;
+      if (spanishCandidate(value)) push(no, `${prop}={`, `\`${value}\``);
+    }
+    // `label: '...'` / `description: "..."` — object-literal copy.
+    if (objectProps) {
+      for (const m of line.matchAll(/([A-Za-z][\w-]*)\s*:\s*(['"])((?:\\.|(?!\2).)*)\2/g)) {
+        const [, prop, , value] = m;
+        if (objectPropCopy(prop, value)) push(no, `${prop}: `, `${value}`);
+      }
+    }
+    // text nodes on one line: >copy<
+    for (const m of line.matchAll(/>\s*([^<>{}\n]{2,80}?)\s*</g)) {
+      if (spanishCandidate(m[1])) push(no, '>', `${m[1]}<`);
+    }
+  });
+
+  // Multi-line text nodes: `>` on one line, copy on the following ones.
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!/>\s*$/.test(lines[i])) continue;
+    if (lines[i].includes('<')) continue; // a real element end, not a JSX block open
+    // A block comment that opens with `/**` and has `>` at the end of its
+    // opening line (a doc-comment whose first line is long enough to wrap)
+    // is prose, not JSX copy.
+    if (/\*\s*$/.test(lines[i]) || /^\/\*/.test(lines[i].trim())) continue;
+    const parts: string[] = [];
+    let end = -1;
+    for (let j = i + 1; j < Math.min(lines.length, i + 11); j += 1) {
+      const trimmed = lines[j].trim();
+      if (trimmed.startsWith('<') || trimmed.startsWith('/>')) {
+        end = j;
+        break;
+      }
+      // A JSX comment `{/* ... */}`: prose the author wrote, not copy.
+      if (trimmed.includes('/*')) break;
+      // Expressions (`cond ? a : b`, `&&`, maps, ternaries with a function
+      // call) are code, not copy.
+      if (/[?&|]|=>|\.map\(|^\}/.test(trimmed)) break;
+      const text = trimmed.replace(/^\{?\s*/, '').replace(/\s*\}?$/, '');
+      if (text) parts.push(text);
+    }
+    if (end < 0 || parts.length === 0) continue;
+    const joined = parts.join(' ');
+    if (!spanishCandidate(joined)) continue;
+    const id = `${file}:${i + 2}`;
+    if (ALLOWED[id]) continue;
+    offenders.push(`${id}  >(multi-line) ${joined.slice(0, 80)}`);
+  }
+
+  return offenders;
+}
+
 function scannedFiles(): string[] {
   const files: string[] = [];
   const walk = (dir: string) => {
@@ -116,82 +258,33 @@ function scannedFiles(): string[] {
   return files;
 }
 
-/** Copy legitimately not localized yet, with a reason. Keep this SHORT. */
-const ALLOWED: Record<string, string> = {};
-
 describe('no hardcoded Spanish copy in the UI', () => {
-  it('sees literals in props, brace-quoted values and text nodes', () => {
+  it('sees literals in props, object properties, brace-quoted values and text nodes', () => {
     const offenders: string[] = [];
     for (const file of scannedFiles()) {
-      const src = readFileSync(file, 'utf8');
-      const lines = src.split('\n');
-      const push = (lineNo: number, shape: string, value: string) => {
-        const id = `${file}:${lineNo}`;
-        if (ALLOWED[id]) return;
-        offenders.push(`${id}  ${shape}${value}`);
-      };
-
-      lines.forEach((line, i) => {
-        const no = i + 1;
-        const stripped = line.trim();
-        if (stripped.startsWith('//') || stripped.startsWith('*') || stripped.startsWith('/*')) return;
-
-        // `prop="…"`
-        for (const m of line.matchAll(/([A-Za-z][\w-]*)="([^"]*)"/g)) {
-          const [, prop, value] = m;
-          if (NON_COPY_PROPS.has(prop)) continue;
-          if (spanishCandidate(value)) push(no, `${prop}="`, `${value}"`);
-        }
-        // `prop={'…'}`
-        for (const m of line.matchAll(/([A-Za-z][\w-]*)=\{'([^']*)'\}/g)) {
-          const [, prop, value] = m;
-          if (NON_COPY_PROPS.has(prop)) continue;
-          if (spanishCandidate(value)) push(no, `${prop}={'`, `${value}'}`);
-        }
-        // `prop={`…`}`
-        for (const m of line.matchAll(/([A-Za-z][\w-]*)=\{`([^`]*)`\}/g)) {
-          const [, prop, value] = m;
-          if (NON_COPY_PROPS.has(prop)) continue;
-          if (spanishCandidate(value)) push(no, `${prop}={`, `\`${value}\`}`);
-        }
-        // text nodes on one line: >copy<
-        for (const m of line.matchAll(/>\s*([^<>{}\n]{2,80}?)\s*</g)) {
-          if (spanishCandidate(m[1])) push(no, '>', `${m[1]}<`);
-        }
-      });
-
-      // Multi-line text nodes: `>` on one line, copy on the following ones.
-      for (let i = 0; i < lines.length; i += 1) {
-        if (!/>\s*$/.test(lines[i])) continue;
-        if (lines[i].includes('<')) continue; // a real element end, not a JSX block open
-        // A block comment that opens with `/**` and has `>` at the end of its
-        // opening line (a doc-comment whose first line is long enough to wrap)
-        // is prose, not JSX copy.
-        if (/\*\s*$/.test(lines[i]) || /^\/\*/.test(lines[i].trim())) continue;
-        const parts: string[] = [];
-        let end = -1;
-        for (let j = i + 1; j < Math.min(lines.length, i + 11); j += 1) {
-          const trimmed = lines[j].trim();
-          if (trimmed.startsWith('<') || trimmed.startsWith('/>')) {
-            end = j;
-            break;
-          }
-          // A JSX comment `{/* … */}`: prose the author wrote, not copy.
-          if (trimmed.includes('/*')) break;
-          // Expressions (`cond ? a : b`, `&&`, maps, ternaries with a function
-          // call) are code, not copy.
-          if (/[?&|]|=>|\.map\(|^\}/.test(trimmed)) break;
-          const text = trimmed.replace(/^\{?\s*/, '').replace(/\s*\}?$/, '');
-          if (text) parts.push(text);
-        }
-        if (end < 0 || parts.length === 0) continue;
-        const joined = parts.join(' ');
-        if (!spanishCandidate(joined)) continue;
-        const id = `${file}:${i + 2}`;
-        if (ALLOWED[id]) continue;
-        offenders.push(`${id}  >(multi-line) ${joined.slice(0, 80)}`);
-      }
+      offenders.push(...scanSource(file, readFileSync(file, 'utf8')));
     }
     expect(offenders, 'Spanish literals left in the UI:\n' + offenders.join('\n')).toEqual([]);
+  });
+
+  it('flags object-property copy and passes keys, proper nouns and class lists', () => {
+    // Must fail: a plain literal in a copy-bearing property.
+    const bad = scanSource(
+      'src/app/example.tsx',
+      "const meta = { label: 'Cerrar panel', description: 'Otra frase' };",
+    );
+    expect(bad).toHaveLength(2);
+    expect(bad[0]).toContain("label: Cerrar panel");
+
+    // Must pass: keys, brands and styling are not copy.
+    const good = scanSource(
+      'src/app/example.tsx',
+      [
+        "const meta = { label: 'panel.close', description: 'cards.srcDescX' };",
+        "const brand = { title: 'Cambridge', hint: 'text-zinc-500 dark:text-zinc-400' };",
+        "const wired = { label: t('panel.close') };",
+      ].join('\n'),
+    );
+    expect(good).toEqual([]);
   });
 });

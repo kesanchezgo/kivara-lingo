@@ -36,6 +36,15 @@ interface SourceMeta {
 
 const sourceName = (s: SourceMeta) => (s.labelKey ? t(s.labelKey) : s.label);
 
+/** Health states resolve to literals so every status string is indexable. */
+const STATUS_KEY: Record<string, string> = {
+  ok: 'vipx.status_ok',
+  error: 'vipx.status_error',
+  slow: 'vipx.status_degraded',
+  degraded: 'vipx.status_degraded',
+  untested: 'vipx.status_untested',
+};
+
 const STD_DICT_SOURCES: SourceMeta[] = [
   { key: 'bundled', label: 'Bundled', labelKey: 'vip.srcBundled', hintKey: 'vip.wordnetDesc' },
   { key: 'wordnet', label: 'WordNet (OEWN 2025)', hintKey: 'vip.wordnetLocalDesc' },
@@ -202,7 +211,7 @@ export function VipSection() {
         {sources.map((s) => {
           const h = healthOf(s.key);
           const state = checking ? 'untested' : h?.state ?? 'untested';
-          const statusKey = state === 'slow' ? 'vipx.status_degraded' : `vipx.status_${state}`;
+          const statusKey = STATUS_KEY[state] ?? 'vipx.status_untested';
           const tip = `${t(statusKey)}${h ? ` · ${timeAgo(h.at)}` : ''}${h?.latencyMs ? ` · ${h.latencyMs} ms` : ''}`;
           // Old worker snapshots predate `code`, so re-classify here; the panel
           // and the orchestrator must read the same family from the same text.

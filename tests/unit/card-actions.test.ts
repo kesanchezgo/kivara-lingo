@@ -186,6 +186,40 @@ describe('addContextToNote (Add this scene)', () => {
     expect(spies.updateNoteFields).not.toHaveBeenCalled();
   });
 
+  it('answers already when the scene adds nothing new', async () => {
+    // The sentence is on the note, no media, no tags: "Add this scene" must
+    // not read as an addition that did not happen.
+    const spies = setup({
+      notesInfo: vi.fn(async () => [
+        { noteId: 77, fields: { Sentence: { value: 'First scene.' } }, cards: [55] },
+      ]),
+    });
+    const { addContextToNote } = await import('../../src/background/card-actions');
+    const res = await addContextToNote(
+      { noteId: 77, sentence: 'First scene.', tags: [] },
+      MAPPING as never,
+    );
+    expect(res).toEqual({ ok: true, noteId: 77, already: true });
+    expect(spies.updateNoteFields).not.toHaveBeenCalled();
+    expect(spies.addTags).not.toHaveBeenCalled();
+  });
+
+  it('does NOT answer already when the sentence repeats but media lands', async () => {
+    const spies = setup({
+      notesInfo: vi.fn(async () => [
+        { noteId: 77, fields: { Sentence: { value: 'First scene.' } }, cards: [55] },
+      ]),
+    });
+    const { addContextToNote } = await import('../../src/background/card-actions');
+    const res = await addContextToNote(
+      { noteId: 77, sentence: 'First scene.', tags: [], frame: 'data:image/jpeg,a' },
+      MAPPING as never,
+    );
+    expect(res).toMatchObject({ ok: true, noteId: 77 });
+    expect('already' in res).toBe(false);
+    expect(spies.storeMediaFile).toHaveBeenCalled();
+  });
+
   it('resolves the note id from the headword when the caller has none', async () => {
     const spies = setup();
     const { addContextToNote } = await import('../../src/background/card-actions');

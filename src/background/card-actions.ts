@@ -199,6 +199,13 @@ export async function addContextToNote(
     }
   }
 
+  // Nothing new anywhere: the sentence was already on the note and neither
+  // media nor tags arrived, so the caller says "already on your card" instead
+  // of reporting an addition that did not happen.
+  const sentenceAlreadyThere = !cueField || !request.sentence.trim()
+    || plainText(existing[cueField]?.value ?? '').includes(plainText(request.sentence));
+  const wroteNothing = sentenceAlreadyThere && !request.frame && !request.audio && tags.length === 0;
+
   // Fields FIRST, then tags: the fields carry the scene the user asked for,
   // and a tag failure must not discard them. Each write reports its own
   // failure so the caller can say honestly what landed.
@@ -226,7 +233,7 @@ export async function addContextToNote(
       };
     }
   }
-  return { ok: true, noteId };
+  return wroteNothing ? { ok: true, noteId, already: true } : { ok: true, noteId };
 }
 
 /** See in Anki: open the browser on `nid:<id>` or on the caller's query. */
