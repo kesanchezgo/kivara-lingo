@@ -105,4 +105,41 @@ describe('TranscriptRail', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].textContent).toContain('rat');
   });
+
+  /**
+   * The 900-line measurement (issue #39).
+   *
+   * What is measured: `statusOf` is called once per non-punctuation token by
+   * `markOf` inside a row. After the 900-row first render, opening search —
+   * a state change that does not touch any row prop — must not call it again.
+   * `before` is the count including the parent's `oneNewLines` pass. Without
+   * `memo` on the row, the same click reconciles all 900 rows and the count
+   * jumps by thousands. The second layer (`content-visibility: auto`) is
+   * asserted on the row node so a refactor cannot drop it silently.
+   */
+  it('does not reconcile 900 rows when an unrelated rail state changes', () => {
+    const statusOf = vi.fn(() => 'known' as const);
+    const many: SubtitleCue[] = Array.from({ length: 900 }, (_, index) => ({
+      id: `cue-${index}`,
+      start: index * 1000,
+      end: (index + 1) * 1000,
+      text: 'The rat ships frames.',
+      language: 'en',
+    }));
+    const { container } = render(
+      <TranscriptRail {...props({ cues: many, study: { ...study, statusOf } })} />,
+    );
+    expect(container.querySelectorAll('[data-kvl-cue]')).toHaveLength(900);
+    expect(container.querySelector('[data-kvl-cue]')?.className).toContain(
+      '[content-visibility:auto]',
+    );
+
+    const before = statusOf.mock.calls.length;
+    const search = screen
+      .getAllByRole('button')
+      .find((button) => /buscar|search/i.test(button.getAttribute('title') ?? ''));
+    expect(search).toBeTruthy();
+    fireEvent.click(search!);
+    expect(statusOf.mock.calls.length).toBe(before);
+  }, 20_000);
 });

@@ -273,12 +273,15 @@ export interface AnkiCardInfo {
 
 /**
  * Subset of a `notesInfo` record the extension reads: the note id, its fields
- * (the headword lives here) and the ids of its cards. `cards` is the join key
- * that maps a note to the maturity/seen predicates' card-id answers.
+ * (the headword lives here), its tags and the ids of its cards. `cards` is the
+ * join key that maps a note to the maturity/seen predicates' card-id answers.
+ * `noteId` is null when Anki no longer has the note (AnkiConnect answers the
+ * request anyway), and `tags` is what identifies a note this extension wrote.
  */
 export interface AnkiNoteInfo {
-  noteId: number;
+  noteId: number | null;
   fields: Record<string, { value: string }>;
+  tags?: string[];
   cards?: number[];
 }
 

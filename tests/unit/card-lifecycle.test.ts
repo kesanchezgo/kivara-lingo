@@ -76,6 +76,7 @@ function setup(options: {
   rows?: Row[];
   result?: { ok: boolean; noteId?: number; error?: string; warnings?: string[] };
   deleteResult?: { ok: boolean; error?: string; gone?: boolean };
+  ownership?: 'owned' | 'foreign' | 'gone' | 'unreadable';
 } = {}) {
   const cards = options.cards ?? [card()];
   const rows = options.rows ?? [{ id: 10, request: { cardId: 'card-1', token: 'sane', deck: 'English vocabulary', lang: 'en' }, retries: 1 }];
@@ -90,12 +91,14 @@ function setup(options: {
   const createCardFromRequest = vi.fn(async () => options.result ?? { ok: true, noteId: 900 });
   const retryPendingNotes = vi.fn(async () => ({ retried: 1, succeeded: 1 }));
   const deleteNote = vi.fn(async () => options.deleteResult ?? { ok: true });
+  const noteOwnership = vi.fn(async () => options.ownership ?? 'owned');
   const pendingDelete = vi.fn(async () => undefined);
   const pendingUpdate = vi.fn(async () => undefined);
   vi.doMock('../../src/background/card-registry', () => ({ cardRegistry: registry }));
   vi.doMock('../../src/background/capture-orchestrator', () => ({ createCardFromRequest, retryPendingNotes }));
   vi.doMock('../../src/background/card-actions', () => ({
     deleteNote,
+    noteOwnership,
     addContextToNote: vi.fn(),
     browseNote: vi.fn(),
     wordIntervals: vi.fn(),
@@ -110,7 +113,10 @@ function setup(options: {
     }),
   }));
 
-  return { registry, createCardFromRequest, retryPendingNotes, deleteNote, pendingDelete, pendingUpdate, rows, cards };
+  return {
+    registry, createCardFromRequest, retryPendingNotes, deleteNote, noteOwnership,
+    pendingDelete, pendingUpdate, rows, cards,
+  };
 }
 
 const MAPPING = {
@@ -326,5 +332,51 @@ describe('undoDeleteNote (Undo)', () => {
     await expect(undoDeleteNote(77, MAPPING as never)).resolves.toEqual({ ok: true, gone: true });
     expect(f.registry.removeByNoteId).toHaveBeenCalledWith(77);
     expect(studyStores('en').anki.get()).toEqual({});
+  });
+
+  /**
+   * Ownership guard (issue #39): no registry row means the tag must vouch for
+   * the note. A foreign note is refused before any network write.
+   */
+  it('deletes a note with no registry row when the tag says it is ours', async () => {
+    installStorage();
+    const f = setup({ cards: [], ownership: 'owned' });
+    const { undoDeleteNote } = await import('../../src/background/card-lifecycle');
+
+    await expect(undoDeleteNote(77, MAPPING as never)).resolves.toEqual({ ok: true });
+    expect(f.noteOwnership).toHaveBeenCalledWith(77, MAPPING);
+    expect(f.deleteNote).toHaveBeenCalledWith(77, MAPPING);
+  });
+
+  it('refuses a note that is neither in the registry nor tagged as ours', async () => {
+    installStorage();
+    const f = setup({ cards: [], ownership: 'foreign' });
+    const { undoDeleteNote } = await import('../../src/background/card-lifecycle');
+
+    const res = await undoDeleteNote(77, MAPPING as never);
+    expect(res).toMatchObject({ ok: false });
+    expect(res.error).toMatch(/not created by Kivara Lingo/);
+    expect(f.deleteNote).not.toHaveBeenCalled();
+    expect(f.registry.removeByNoteId).not.toHaveBeenCalled();
+  });
+
+  it('refuses when the ownership check itself cannot read Anki', async () => {
+    installStorage();
+    const f = setup({ cards: [], ownership: 'unreadable' });
+    const { undoDeleteNote } = await import('../../src/background/card-lifecycle');
+
+    const res = await undoDeleteNote(77, MAPPING as never);
+    expect(res).toMatchObject({ ok: false });
+    expect(res.error).toMatch(/could not verify/);
+    expect(f.deleteNote).not.toHaveBeenCalled();
+  });
+
+  it('treats an unknown, already-gone id as a complete undo with no delete call', async () => {
+    installStorage();
+    const f = setup({ cards: [], ownership: 'gone' });
+    const { undoDeleteNote } = await import('../../src/background/card-lifecycle');
+
+    await expect(undoDeleteNote(77, MAPPING as never)).resolves.toEqual({ ok: true, gone: true });
+    expect(f.deleteNote).not.toHaveBeenCalled();
   });
 });

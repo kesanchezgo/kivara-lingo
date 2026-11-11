@@ -51,6 +51,7 @@ export async function explainSentence(req: AiExplainRequest): Promise<AiExplainR
   const key = explainCacheKey(
     settings.provider,
     model,
+    settings.baseUrl ?? '',
     lang,
     uiLang,
     nativeLang,

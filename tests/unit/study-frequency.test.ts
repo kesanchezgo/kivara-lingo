@@ -37,7 +37,8 @@ describe('parseFrequency', () => {
 
   it('parses the committed asset', () => {
     const ranks = parseFrequency(enRank);
-    expect(ranks.size).toBe(21_731);
+    // Tracks `_meta.count`; the hygiene rules of issue #39 removed ~900 names.
+    expect(ranks.size).toBe(21_576);
     expect(ranks.rankOf('time')).toBe(80);
     expect(ranks.rankOf('day')).toBe(149);
     expect(ranks.rankOf('sane')).toBe(8342);

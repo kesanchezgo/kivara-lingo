@@ -11,7 +11,7 @@
  * app's own scrolls — active line changed, an explanation opened — do not.
  * The "follow" button brings it back.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   AlignLeft,
@@ -30,7 +30,7 @@ import {
   X,
 } from '../../ui/icons';
 import { t } from '../../shared/i18n';
-import { tokenizeSentence } from '../nlp/tokenize';
+import { tokenizeSentence, type Token } from '../nlp/tokenize';
 import { findRanges, foldForSearch, splitByRanges, type TextRange } from '../../shared/study/textSearch';
 import { markContainerAttrs, markOf, markAttrs, MARK_INK, StatusGlyph } from './wordMarks';
 import {
@@ -302,14 +302,31 @@ export function TranscriptRail(props: TranscriptRailProps) {
     requestAnimationFrame(() => searchBtnRef.current?.focus());
   };
 
-  const closeExplain = (index: number) => {
+  // Stable identities: every one of these is a prop of the memoised cue row,
+  // and a fresh closure here would defeat `memo` for all 900 lines at once.
+  const registerRow = useCallback((index: number, element: HTMLDivElement | null) => {
+    itemRefs.current[index] = element;
+  }, []);
+  const selectRow = useCallback(
+    (index: number) => {
+      onSeek(index);
+      setFollow(true);
+    },
+    [onSeek],
+  );
+  const toggleExplain = useCallback((index: number) => {
+    setExplainLine((current) => (current === index ? null : index));
+  }, []);
+  const resumeFollow = useCallback(() => setFollow(true), []);
+
+  const closeExplain = useCallback((index: number) => {
     setExplainLine(null);
     requestAnimationFrame(() =>
       itemRefs.current[index]?.querySelector<HTMLButtonElement>('button[aria-expanded]')?.focus(),
     );
-  };
+  }, []);
 
-  const revealExplain = (index: number) => {
+  const revealExplain = useCallback((index: number) => {
     const row = itemRefs.current[index];
     const list = listRef.current;
     if (!row || !list) return;
@@ -323,7 +340,7 @@ export function TranscriptRail(props: TranscriptRailProps) {
           ? top
           : visible;
     if (Math.abs(target - visible) >= 2) list.scrollTo({ top: target, behavior: 'smooth' });
-  };
+  }, []);
 
   const lineCounts: Record<LineFilter, number> = {
     all: cues.length,
@@ -540,127 +557,35 @@ export function TranscriptRail(props: TranscriptRailProps) {
                   : t(lineFilter === 'saved' ? 'rail.emptySaved' : 'rail.emptyOneNew')}
               </p>
             )}
-            {shown.map((index) => {
-              const cue = cues[index];
-              const isActive = index === activeIndex;
-              const past = index < activeIndex;
-              const saved = savedLines.has(index);
-              const hits = searchHits?.[index];
-              const jump = t('rail.jumpTitle', { time: fmtTime(cue.start) });
-              const explaining = explainLine === index && ai !== null;
-              return (
-                <div
-                  key={cue.id}
-                  ref={(element) => {
-                    itemRefs.current[index] = element;
-                  }}
-                  className="group/cue relative mx-3"
-                >
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    aria-current={isActive ? 'true' : undefined}
-                    title={jump}
-                    onClick={() => {
-                      onSeek(index);
-                      setFollow(true);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key !== 'Enter' && event.key !== ' ') return;
-                      event.preventDefault();
-                      onSeek(index);
-                      setFollow(true);
-                    }}
-                    className={`relative pl-3.5 pr-3 py-2.5 rounded-xl cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 transition-[background-color,box-shadow] duration-[220ms] ${
-                      isActive
-                        ? 'bg-white dark:bg-white/[0.04] ring-1 ring-zinc-900/[0.06] dark:ring-white/[0.06]'
-                        : 'hover:bg-zinc-900/[0.03] dark:hover:bg-white/[0.03]'
-                    }`}
-                  >
-                    {isActive && <CueProgress start={cue.start} end={cue.end} />}
-                    <div className="flex items-baseline gap-3">
-                      <span
-                        className={`w-9 text-[12px] tabular-nums shrink-0 ${
-                          isActive
-                            ? 'text-indigo-500 dark:text-indigo-400 font-medium'
-                            : 'text-zinc-400 dark:text-zinc-400'
-                        }`}
-                      >
-                        {fmtTime(cue.start)}
-                      </span>
-                      <p
-                        {...markContainerAttrs(newMarks)}
-                        className={`min-w-0 flex-1 text-[13px] leading-relaxed whitespace-pre-line transition-colors duration-200 ${
-                          isActive
-                            ? 'text-zinc-900 dark:text-white'
-                            : past
-                              ? 'text-zinc-400 dark:text-zinc-400'
-                              : 'text-zinc-700 dark:text-zinc-300'
-                        }`}
-                      >
-                        {lineTokens[index].map((token, tokenIndex) => {
-                          const text = hits
-                            ? highlight(token.text, tokenStarts[index][tokenIndex], hits)
-                            : token.text;
-                          if (token.kind === 'punct') return <span key={tokenIndex}>{text}</span>;
-                          const mark = markOf(token, study.statusOf);
-                          return mark.status ? (
-                            <span key={tokenIndex} className="kvl-tok" {...markAttrs(mark)}>
-                              {text}
-                            </span>
-                          ) : (
-                            <span key={tokenIndex}>{text}</span>
-                          );
-                        })}
-                      </p>
-                    </div>
-                  </div>
-
-                  {(isActive || ai) && (
-                    <div className="absolute right-2 -top-2 z-10 flex items-center gap-0.5 rounded-full bg-white dark:bg-zinc-800 ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.08] p-0.5 opacity-0 pointer-events-none group-hover/cue:opacity-100 group-hover/cue:pointer-events-auto group-focus-within/cue:opacity-100 group-focus-within/cue:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto">
-                      {isActive && <ReplayButton onReplay={onReplay} onReplaySlow={onReplaySlow} />}
-                      {ai && (
-                        <MiniButton
-                          title={explaining ? t('explain.close') : t('explain.action')}
-                          expanded={explaining}
-                          controls={explaining ? `kivara-explain-${index}` : undefined}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setExplainLine(explaining ? null : index);
-                          }}
-                        >
-                          <Sparkles size={11} />
-                        </MiniButton>
-                      )}
-                      {saved && (
-                        <span
-                          title={t('rail.saved')}
-                          aria-label={t('rail.saved')}
-                          className="w-6 h-6 flex items-center justify-center text-emerald-500 dark:text-emerald-400"
-                        >
-                          <Check size={11} weight="bold" />
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {explaining && ai && (
-                    <SentenceExplain
-                      id={`kivara-explain-${index}`}
-                      cue={cue}
-                      prev={cues[index - 1]?.text}
-                      next={cues[index + 1]?.text}
-                      lang={lang}
-                      uiLang={uiLang}
-                      nativeLang={nativeLang}
-                      ai={ai}
-                      onClose={() => closeExplain(index)}
-                      onReady={() => revealExplain(index)}
-                    />
-                  )}
-                </div>
-              );
-            })}
+            {shown.map((index) => (
+              <CueRow
+                key={cues[index].id}
+                cue={cues[index]}
+                index={index}
+                tokens={lineTokens[index]}
+                starts={tokenStarts[index]}
+                hits={searchHits?.[index]}
+                active={index === activeIndex}
+                past={index < activeIndex}
+                saved={savedLines.has(index)}
+                explaining={explainLine === index && ai !== null}
+                newMarks={newMarks}
+                statusOf={study.statusOf}
+                prevText={cues[index - 1]?.text}
+                nextText={cues[index + 1]?.text}
+                lang={lang}
+                uiLang={uiLang}
+                nativeLang={nativeLang}
+                ai={ai}
+                registerRow={registerRow}
+                onSelect={selectRow}
+                onToggleExplain={toggleExplain}
+                onCloseExplain={closeExplain}
+                onRevealExplain={revealExplain}
+                onReplay={onReplay}
+                onReplaySlow={onReplaySlow}
+              />
+            ))}
             {!follow && !searchHits && (
               <button
                 type="button"
@@ -719,6 +644,161 @@ export function TranscriptRail(props: TranscriptRailProps) {
     </aside>
   );
 }
+
+interface CueRowProps {
+  cue: SubtitleCue;
+  index: number;
+  tokens: readonly Token[];
+  starts: readonly number[];
+  hits: TextRange[] | undefined;
+  active: boolean;
+  past: boolean;
+  saved: boolean;
+  explaining: boolean;
+  newMarks: 'dotted' | 'none';
+  statusOf: StudyBinding['statusOf'];
+  prevText: string | undefined;
+  nextText: string | undefined;
+  lang: string;
+  uiLang: string;
+  nativeLang: string;
+  ai: AiPort | null;
+  registerRow(index: number, element: HTMLDivElement | null): void;
+  onSelect(index: number): void;
+  onToggleExplain(index: number): void;
+  onCloseExplain(index: number): void;
+  onRevealExplain(index: number): void;
+  onReplay(): void;
+  onReplaySlow(): void;
+}
+
+/**
+ * One transcript line.
+ *
+ * Memoised on purpose: an episode runs to ~900 cues, and the rail re-renders
+ * for reasons that do not touch a given row (search open, filter chip, the
+ * active line moving). Every prop is primitive or a stable parent identity —
+ * callbacks come from `useCallback`, token arrays from `useMemo` — so an
+ * unrelated rail update skips all rows instead of reconciling 900 of them.
+ *
+ * `content-visibility: auto` is the second layer: offscreen rows keep their
+ * DOM node (scroll maths, refs and search jumps stay exact) but the browser
+ * skips their layout and paint. `contain-intrinsic-size` keeps the scrollbar
+ * stable while they are skipped.
+ */
+const CueRow = memo(function CueRow({
+  cue, index, tokens, starts, hits, active, past, saved, explaining, newMarks,
+  statusOf, prevText, nextText, lang, uiLang, nativeLang, ai, registerRow,
+  onSelect, onToggleExplain, onCloseExplain, onRevealExplain, onReplay, onReplaySlow,
+}: CueRowProps) {
+  const jump = t('rail.jumpTitle', { time: fmtTime(cue.start) });
+  return (
+    <div
+      ref={(element) => registerRow(index, element)}
+      data-kvl-cue={index}
+      className="group/cue relative mx-3 [content-visibility:auto] [contain-intrinsic-size:auto_56px]"
+    >
+      <div
+        role="button"
+        tabIndex={0}
+        aria-current={active ? 'true' : undefined}
+        title={jump}
+        onClick={() => onSelect(index)}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          onSelect(index);
+        }}
+        className={`relative pl-3.5 pr-3 py-2.5 rounded-xl cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 transition-[background-color,box-shadow] duration-[220ms] ${
+          active
+            ? 'bg-white dark:bg-white/[0.04] ring-1 ring-zinc-900/[0.06] dark:ring-white/[0.06]'
+            : 'hover:bg-zinc-900/[0.03] dark:hover:bg-white/[0.03]'
+        }`}
+      >
+        {active && <CueProgress start={cue.start} end={cue.end} />}
+        <div className="flex items-baseline gap-3">
+          <span
+            className={`w-9 text-[12px] tabular-nums shrink-0 ${
+              active
+                ? 'text-indigo-500 dark:text-indigo-400 font-medium'
+                : 'text-zinc-400 dark:text-zinc-400'
+            }`}
+          >
+            {fmtTime(cue.start)}
+          </span>
+          <p
+            {...markContainerAttrs(newMarks)}
+            className={`min-w-0 flex-1 text-[13px] leading-relaxed whitespace-pre-line transition-colors duration-200 ${
+              active
+                ? 'text-zinc-900 dark:text-white'
+                : past
+                  ? 'text-zinc-400 dark:text-zinc-400'
+                  : 'text-zinc-700 dark:text-zinc-300'
+            }`}
+          >
+            {tokens.map((token, tokenIndex) => {
+              const text = hits
+                ? highlight(token.text, starts[tokenIndex], hits)
+                : token.text;
+              if (token.kind === 'punct') return <span key={tokenIndex}>{text}</span>;
+              const mark = markOf(token, statusOf);
+              return mark.status ? (
+                <span key={tokenIndex} className="kvl-tok" {...markAttrs(mark)}>
+                  {text}
+                </span>
+              ) : (
+                <span key={tokenIndex}>{text}</span>
+              );
+            })}
+          </p>
+        </div>
+      </div>
+
+      {(active || ai) && (
+        <div className="absolute right-2 -top-2 z-10 flex items-center gap-0.5 rounded-full bg-white dark:bg-zinc-800 ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.08] p-0.5 opacity-0 pointer-events-none group-hover/cue:opacity-100 group-hover/cue:pointer-events-auto group-focus-within/cue:opacity-100 group-focus-within/cue:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto">
+          {active && <ReplayButton onReplay={onReplay} onReplaySlow={onReplaySlow} />}
+          {ai && (
+            <MiniButton
+              title={explaining ? t('explain.close') : t('explain.action')}
+              expanded={explaining}
+              controls={explaining ? `kivara-explain-${index}` : undefined}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleExplain(index);
+              }}
+            >
+              <Sparkles size={11} />
+            </MiniButton>
+          )}
+          {saved && (
+            <span
+              title={t('rail.saved')}
+              aria-label={t('rail.saved')}
+              className="w-6 h-6 flex items-center justify-center text-emerald-500 dark:text-emerald-400"
+            >
+              <Check size={11} weight="bold" />
+            </span>
+          )}
+        </div>
+      )}
+
+      {explaining && ai && (
+        <SentenceExplain
+          id={`kivara-explain-${index}`}
+          cue={cue}
+          prev={prevText}
+          next={nextText}
+          lang={lang}
+          uiLang={uiLang}
+          nativeLang={nativeLang}
+          ai={ai}
+          onClose={() => onCloseExplain(index)}
+          onReady={() => onRevealExplain(index)}
+        />
+      )}
+    </div>
+  );
+});
 
 /** Progress inside the active cue: the only piece of the rail that follows the clock. */
 function CueProgress({ start, end }: { start: number; end: number }) {
