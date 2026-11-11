@@ -1,12 +1,71 @@
 /* Demo — how it works: the tour, host access and shortcuts (F8; prototype view). */
-import { Play, Rocket, Subtitles, MousePointerClick, Save, LayoutGrid, Mic, Globe } from '../../ui/icons';
+import { useState } from 'react';
+import { Play, Rocket, Subtitles, MousePointerClick, Save, LayoutGrid, Mic, Globe, CheckCircle2, Loader2 } from '../../ui/icons';
 import { t } from '../../shared/i18n';
 import { richText } from '../../shared/i18n/rich';
 import { useShortcuts } from '../../app/hooks/useShortcuts';
 import { InfoHint } from '../../app/components/InfoHint';
-import { HostPermissionsRow } from '../../app/components/HostPermissionsRow';
+import { HostPermissionsRow, HOST_GROUPS, isGroupComplete, originsFor, useGrantedOrigins } from '../../app/components/HostPermissionsRow';
+import { requestHosts } from '../../shared/host-permissions';
 import { StepSection } from './StepSection';
 import { ShortcutsPreview } from './ShortcutsPreview';
+
+/**
+ * "Permitir todo" — one click, one Chrome dialog. The card owns the missing
+ * count and the gesture; the rows below keep the per-group state so a user
+ * who wants only DeepL can still grant that group alone.
+ */
+export function HostAccessCard() {
+  const granted = useGrantedOrigins();
+  const [busy, setBusy] = useState(false);
+  const missing = HOST_GROUPS.filter((g) => !isGroupComplete(g, granted));
+  const done = missing.length === 0;
+
+  const allowAll = async () => {
+    // `requestHosts` fires `chrome.permissions.request` synchronously in the
+    // click's task, so every missing origin rides ONE prompt instead of one
+    // dialog per group.
+    setBusy(true);
+    try {
+      await requestHosts(missing.flatMap((g) => originsFor(g.providers)));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl bg-white dark:bg-white/[0.03] ring-1 ring-zinc-900/[0.06] dark:ring-white/[0.06] shadow-[0_1px_2px_rgba(16,24,40,.04)] dark:shadow-none p-4 flex items-center gap-3">
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${done ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300' : 'bg-indigo-500/[0.08] dark:bg-indigo-400/[0.12] text-indigo-600 dark:text-indigo-300'}`}>
+        {done ? <CheckCircle2 size={16} /> : <Globe size={16} />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+          {t('onb.hostTitle')}
+          <InfoHint text={t('vipx.permWhatBody')} maxWidth={260} />
+        </p>
+        <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+          {done
+            ? t('onb.hostDone')
+            : missing.length === 1
+              ? t('onb.hostDescOne')
+              : t('onb.hostDesc', { n: missing.length })}
+        </p>
+      </div>
+      {!done && (
+        <button
+          type="button"
+          data-testid="onb-host-allow-all"
+          disabled={busy}
+          onClick={() => void allowAll()}
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-indigo-600 text-white text-[12px] font-semibold hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-default transition-colors"
+        >
+          {busy && <Loader2 size={12} className="animate-spin" />}
+          {t('onb.hostAllow')}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export function DemoStep() {
   const { map } = useShortcuts();
@@ -46,15 +105,9 @@ export function DemoStep() {
         </ol>
       </div>
 
-      {/* Host access: the repo's real chrome.permissions rows */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-1.5 px-0.5">
-          <Globe size={13} className="text-zinc-400" />
-          <span className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">{t('onb.hostTitle')}</span>
-          <InfoHint text={t('vipx.permWhatBody')} maxWidth={260} />
-        </div>
-        <HostPermissionsRow />
-      </div>
+      {/* Host access: the allow-all card plus the repo's real chrome.permissions rows */}
+      <HostAccessCard />
+      <HostPermissionsRow showGrantAll={false} />
 
       <ShortcutsPreview />
 

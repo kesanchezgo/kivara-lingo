@@ -383,6 +383,8 @@ export function Onboarding() {
                 setAiEnrichOnSave={(v) => setAi({ ...ai, enrichOnSave: v })}
                 aiEnrichOnHover={ai.enrichOnHover}
                 setAiEnrichOnHover={(v) => setAi({ ...ai, enrichOnHover: v })}
+                aiCacheTtlDays={ai.cacheTtlDays}
+                setAiCacheTtlDays={(v) => setAi({ ...ai, cacheTtlDays: v })}
               />
             )}
             {step === 'demo' && <DemoStep />}
