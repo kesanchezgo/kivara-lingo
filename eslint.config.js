@@ -89,14 +89,13 @@ export default [
   {
     files: ['src/content/**/*.{ts,tsx}', 'src/app/components/**/*.{ts,tsx}', 'src/ui/**/*.{ts,tsx}'],
     ignores: [
-      // H5 exceptions: dictionary-pack plumbing that reaches chrome.storage/
-      // IndexedDB directly. yomitan.ts already runs in the worker or an
-      // extension page; the other three are moved behind the SW in F5-F9.
+      // H5 exception: the Yomitan module owns IndexedDB reads/writes and is
+      // reached only from extension contexts — the service worker
+      // (service-worker.ts, resolve-word.ts, enrichment/sources/), the
+      // onboarding page, and type-only from src/ui/ports. A content script
+      // cannot import it: the panel parses through yomitan-parse.ts (pure)
+      // and content/nlp/dict-import-client.ts ships the rows to the worker.
       'src/content/nlp/yomitan.ts',
-      'src/content/nlp/stardict.ts',
-      'src/content/nlp/csv-importer.ts',
-      'src/content/nlp/dict-format-detect.ts',
-      'src/app/components/tabs/DictPacksSection.tsx',
     ],
     rules: {
       'no-restricted-imports': [

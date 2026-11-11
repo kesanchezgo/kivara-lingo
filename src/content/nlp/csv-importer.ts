@@ -18,10 +18,13 @@
  * often on the first non-empty line. Quoted fields ("hello, world") are
  * honoured so users can paste exports from Anki / Quizlet without
  * cleanup. Blank lines and `#` comment lines are skipped silently.
+ *
+ * Pure module: it builds the `DictPackRow` + `DictTermRow` batch and nothing
+ * else. Persisting it belongs to the service worker (in a content script the
+ * IndexedDB is the SITE's database, not the extension's) — see
+ * `dict-import-client.ts` for the hand-off.
  */
-import { getDB } from '../../shared/db';
-import type { DictPackRow, DictTermRow } from '../../shared/db';
-import { recordPackInstall } from '../../shared/telemetry';
+import type { DictPackRow, DictTermRow, ParsedDictPack } from '../../shared/dict-types';
 
 /** Field order for a parsed CSV/TSV row. */
 type Field = 'word' | 'translation' | 'phonetic' | 'definition' | 'example';
@@ -79,23 +82,11 @@ export interface CsvImportOptions {
   targetLang?: string;
 }
 
-export interface CsvImportResult {
-  ok: true;
-  pack: DictPackRow;
-  termsImported: number;
-  skipped: number;
-}
-
-export interface CsvImportError {
-  ok: false;
-  error: string;
-}
-
 /**
  * Parse a raw CSV/TSV blob into structured rows.
  *
- * Exported for unit testing; the importer path below is the public surface
- * that also writes to IndexedDB.
+ * Exported for unit testing; `buildCsvPack` below is the public surface that
+ * turns a parsed blob into pack + term rows.
  */
 export function parseCsv(text: string): { fields: Field[]; rows: Record<Field, string>[] } {
   const lines = text
@@ -197,16 +188,27 @@ function csvPackId(title: string): string {
   return `pack-csv-${(hash >>> 0).toString(16)}`;
 }
 
+/** A parsed CSV list, ready to hand to the service worker. */
+export interface CsvPackDraft extends ParsedDictPack {
+  /** Rows that had a headword but no translation. */
+  skipped: number;
+}
+
+export type CsvPackDraftResult =
+  | { ok: true; draft: CsvPackDraft }
+  | { ok: false; error: string };
+
 /**
- * Parse a CSV/TSV blob and write it to IndexedDB as a synthetic pack.
+ * Parse a CSV/TSV blob and build the synthetic pack + term rows.
  *
- * Re-importing with the same `title` overwrites the previous rows so users
- * can keep updating a personal list without polluting the panel with copies.
+ * Re-importing with the same `title` produces the same pack id, so the service
+ * worker's replace-on-import behaviour keeps one copy instead of piling up
+ * duplicates. No I/O here: the caller ships `draft` to the worker.
  */
-export async function importCsvList(
+export function buildCsvPack(
   text: string,
   options: CsvImportOptions,
-): Promise<CsvImportResult | CsvImportError> {
+): CsvPackDraftResult {
   const title = options.title.trim();
   if (!title) return { ok: false, error: 'Missing list title' };
 
@@ -264,17 +266,5 @@ export async function importCsvList(
     createdAt: Date.now(),
   };
 
-  const db = getDB();
-  await db.transaction('rw', db.dict_packs, db.dict_terms, async () => {
-    await db.dict_terms.where('packId').equals(id).delete();
-    const CHUNK = 5000;
-    for (let i = 0; i < termRows.length; i += CHUNK) {
-      await db.dict_terms.bulkAdd(termRows.slice(i, i + CHUNK));
-    }
-    await db.dict_packs.put(pack);
-  });
-
-  void recordPackInstall(id, pack.title);
-
-  return { ok: true, pack, termsImported: termRows.length, skipped };
+  return { ok: true, draft: { pack, terms: termRows, skipped } };
 }

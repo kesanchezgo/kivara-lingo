@@ -27,6 +27,13 @@
  * `dict_terms` rows in Dexie), so once a pack is in IndexedDB every
  * surface — popover, save-card enrichment, options page — sees it.
  *
+ * Local files (3, 4 and 5) never touch IndexedDB from here: this panel runs
+ * inside the content script, where `IndexedDB` is the streaming site's
+ * database. The file is parsed locally and the rows go to the service worker
+ * over `DICT_PACK_IMPORT_*` (see `content/nlp/dict-import-client.ts`), which
+ * writes them under the extension's own origin. Same code path when the panel
+ * is mounted in the Options page.
+ *
  * The visual structure now mirrors the Figma mock 1:1: the section lives
  * inside the parent SettingsTab accordion, so its own header is implicit;
  * we render compact sub-sections (Catálogo, Instalados, Importar, Cobertura)
@@ -40,22 +47,27 @@ import {
   Download, FileText, Library, Trophy, ChevronDown, CheckCircle2, BarChart3, Link2, Sparkles,
   Package, Cloud, Ban,
 } from '../../../ui/icons';
-import type { DictPackRow, PackStatsRow } from '../../../shared/db';
-import { importCsvList } from '../../../content/nlp/csv-importer';
-import { autoImportDictFile } from '../../../content/nlp/dict-format-detect';
+import type { DictPackRow, PackStatsRow } from '../../../shared/dict-types';
+import {
+  importCsvTextViaWorker,
+  importDictFileViaWorker,
+} from '../../../content/nlp/dict-import-client';
 import {
   aggregateCoverage,
   BUNDLE_PACK_ID,
   DEFAULT_IDLE_THRESHOLD_MS,
-  exportCoverage,
   idlePacks,
-  importCoverage,
   MISS_PACK_ID,
-  readPackStats,
   REMOTE_PACK_ID,
-  resetCoverage,
   topPacksByHits,
-} from '../../../shared/telemetry';
+} from '../../../shared/telemetry-model';
+import {
+  exportPackStatsViaWorker,
+  importPackStatsViaWorker,
+  readPackStatsViaWorker,
+  resetPackStatsViaWorker,
+  type PackStatsFailure,
+} from '../../../shared/telemetry-client';
 import { useKivaraStore } from '../../../shared/use-kivara-store';
 import {
   RECOMMENDED_PACKS,
@@ -67,6 +79,16 @@ import { InfoHint } from '../InfoHint';
 interface ImportFeedback {
   kind: 'ok' | 'err';
   message: string;
+}
+
+/**
+ * Panel copy for a coverage operation that did not complete. A torn-down
+ * worker has no message worth showing (Chrome's is an English debug string),
+ * so it maps to the shared "worker did not respond" string; a rejection from
+ * the worker carries its own explanation (e.g. the snapshot validator).
+ */
+function failureMessage(failure: PackStatsFailure): string {
+  return failure.code === 'worker-unavailable' ? t('dict.swNoResponse') : failure.error;
 }
 
 const TIER_META: Record<RecommendedPack['tier'], { label: string; pill: string; icon: React.ReactNode }> = {
@@ -148,14 +170,13 @@ export function DictPacksSection() {
       }
       setPacks([]);
     }
-    try {
-      const rows = await readPackStats();
-      setStats(rows);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (!/context invalidated/i.test(msg)) {
-        console.warn('[Kivara Lingo] could not read telemetry', err);
-      }
+    const statsOutcome = await readPackStatsViaWorker();
+    if (statsOutcome.ok) {
+      setStats(statsOutcome.rows);
+    } else if (statsOutcome.code === 'failed') {
+      // `worker-unavailable` is the expected shape right after an extension
+      // reload; the panel just shows no stats until the page is refreshed.
+      console.warn('[Kivara Lingo] could not read telemetry', statsOutcome.error);
     }
   }, []);
 
@@ -166,14 +187,19 @@ export function DictPacksSection() {
   /* ── Coverage import / export ────────────────────────────────────────── */
 
   const onResetCoverage = useCallback(async () => {
-    await resetCoverage();
+    const outcome = await resetPackStatsViaWorker();
+    if (!outcome.ok && outcome.code === 'failed') {
+      console.warn('[Kivara Lingo] could not reset coverage', outcome.error);
+    }
     await refresh();
   }, [refresh]);
 
   const onExportCoverage = useCallback(async () => {
     setFeedback(null);
     try {
-      const snap = await exportCoverage('kivara-lingo');
+      const outcome = await exportPackStatsViaWorker('kivara-lingo');
+      if (!outcome.ok) throw new Error(failureMessage(outcome));
+      const snap = outcome.snapshot;
       const blob = new Blob([JSON.stringify(snap, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -210,11 +236,14 @@ export function DictPacksSection() {
       try {
         const text = await file.text();
         const raw = JSON.parse(text);
-        const result = await importCoverage(raw, 'merge');
+        // The snapshot is validated in the worker (parseSnapshot): version,
+        // rows array, and every row's field types and ranges.
+        const outcome = await importPackStatsViaWorker(raw, 'merge');
+        if (!outcome.ok) throw new Error(failureMessage(outcome));
         await refresh();
         setFeedback({
           kind: 'ok',
-          message: `Cobertura importada: ${result.added} filas nuevas, ${result.merged} fusionadas.`,
+          message: `Cobertura importada: ${outcome.added} filas nuevas, ${outcome.merged} fusionadas.`,
         });
       } catch (err) {
         setFeedback({
@@ -237,7 +266,7 @@ export function DictPacksSection() {
       setImporting(true);
       try {
         const buffer = await file.arrayBuffer();
-        const result = await autoImportDictFile(buffer, file.name);
+        const result = await importDictFileViaWorker(buffer, file.name);
         if (result.ok) {
           const formatLabel: Record<typeof result.format, string> = {
             yomitan: 'Yomitan',
@@ -254,13 +283,9 @@ export function DictPacksSection() {
               skip: skipNote,
             }),
           });
-          // Tell every tab to re-pull its in-memory headword cache so
-          // the tokenizer sees the new pack right away.
-          try {
-            chrome.runtime.sendMessage({ type: 'DICT_PACKS_CHANGED_NOTIFY' });
-          } catch {
-            // ignore
-          }
+          // No notify here: the worker broadcasts DICT_PACKS_CHANGED itself
+          // once the commit lands, which is what makes every tab re-pull its
+          // in-memory headword cache.
         } else {
           setFeedback({ kind: 'err', message: result.error });
         }
@@ -343,14 +368,15 @@ export function DictPacksSection() {
     setFeedback(null);
     setImportingCsv(true);
     try {
-      const result = await importCsvList(csvText, { title: csvTitle.trim() || 'Mi lista' });
+      const result = await importCsvTextViaWorker(csvText, { title: csvTitle.trim() || 'Mi lista' });
       if (result.ok) {
+        const skipped = result.skipped ?? 0;
         setFeedback({
           kind: 'ok',
           message: t('dict.importedOkFmt', {
             title: result.pack.title,
             count: result.termsImported.toLocaleString(),
-            skip: result.skipped > 0 ? t('dict.skippedNote', { count: result.skipped }) : '',
+            skip: skipped > 0 ? t('dict.skippedNote', { count: skipped }) : '',
           }),
         });
         setCsvText('');

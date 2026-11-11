@@ -76,6 +76,30 @@ import { dbg, dbgOnce } from '../shared/debug-log';
 
 import { getCacheStats, clearCaches } from './cache-admin';
 import { listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';
+import {
+  abortDictPackImport,
+  appendDictPackTerms,
+  beginDictPackImport,
+  commitDictPackImport,
+  isDictPackId,
+  sanitizePackRow,
+} from './dict-pack-store';
+import {
+  DICT_PACK_IMPORT_ABORT,
+  DICT_PACK_IMPORT_BEGIN,
+  DICT_PACK_IMPORT_COMMIT,
+  DICT_PACK_IMPORT_TERMS,
+  EXPORT_PACK_STATS,
+  GET_PACK_STATS,
+  IMPORT_PACK_STATS,
+  RESET_PACK_STATS,
+} from '../shared/dict-import-protocol';
+import {
+  exportCoverage,
+  importCoverage,
+  readPackStats,
+  resetCoverage,
+} from '../shared/telemetry';
 import { t } from '../shared/i18n/sw';
 import { fetchGuarded, validateDictPackInstallRequest } from '../shared/net-guard';
 const OPEN_SETTINGS_SECTION_KEY = 'kivara:open-settings-section';
@@ -1152,6 +1176,138 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     })();
     return true;
   }
+  // Local-file import hand-off (issue #32). The settings panel is rendered
+  // inside the content script, where IndexedDB is the streaming SITE's
+  // database — a pack written there was readable by the site and invisible to
+  // this worker. The panel now parses the file and sends the rows; the write
+  // happens here, against the extension's own origin.
+  //
+  // The three steps are stateless on purpose (an MV3 worker can be torn down
+  // between messages): BEGIN clears the previous install, TERMS appends a
+  // batch, COMMIT publishes the pack row. The sender is a content script, so
+  // every field is validated before it reaches the database.
+  if (message?.type === DICT_PACK_IMPORT_BEGIN) {
+    const pack = sanitizePackRow(message.pack);
+    if (!pack) {
+      sendResponse({ ok: false, error: 'Invalid pack metadata' });
+      return true;
+    }
+    void (async () => {
+      try {
+        await beginDictPackImport(pack.id);
+        sendResponse({ ok: true });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  if (message?.type === DICT_PACK_IMPORT_TERMS && typeof message.packId === 'string') {
+    const packId: string = message.packId;
+    if (!isDictPackId(packId)) {
+      sendResponse({ ok: false, error: 'Invalid pack id' });
+      return true;
+    }
+    void (async () => {
+      try {
+        const added = await appendDictPackTerms(packId, message.terms);
+        sendResponse({ ok: true, added });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  if (message?.type === DICT_PACK_IMPORT_COMMIT) {
+    const pack = sanitizePackRow(message.pack);
+    if (!pack) {
+      sendResponse({ ok: false, error: 'Invalid pack metadata' });
+      return true;
+    }
+    void (async () => {
+      try {
+        const termsImported = await commitDictPackImport(pack);
+        sendResponse({ ok: true, termsImported });
+        void broadcastDictPacksChanged();
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  if (message?.type === DICT_PACK_IMPORT_ABORT && typeof message.packId === 'string') {
+    const packId: string = message.packId;
+    if (!isDictPackId(packId)) {
+      sendResponse({ ok: false, error: 'Invalid pack id' });
+      return true;
+    }
+    void (async () => {
+      try {
+        await abortDictPackImport(packId);
+        sendResponse({ ok: true });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  // Coverage widget (issue #32, same class as the import above): the panel
+  // lives in the content script, so `pack_stats` reads and writes issued from
+  // there hit the SITE's database. These four messages keep the table on the
+  // extension's origin; `shared/telemetry` still owns the implementation.
+  if (message?.type === GET_PACK_STATS) {
+    void (async () => {
+      try {
+        sendResponse({ ok: true, rows: await readPackStats() });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  if (message?.type === RESET_PACK_STATS) {
+    void (async () => {
+      try {
+        await resetCoverage();
+        sendResponse({ ok: true });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  if (message?.type === IMPORT_PACK_STATS) {
+    // The snapshot is user-supplied JSON that crossed a content-script
+    // boundary: importCoverage runs it through parseSnapshot (version, rows
+    // array, every row's types and ranges) and throws on the first problem.
+    const mode = message.mode === 'replace' ? 'replace' : 'merge';
+    const raw: unknown = message.raw;
+    void (async () => {
+      try {
+        if (!raw || typeof raw !== 'object') {
+          sendResponse({ ok: false, error: t('telem.invalidNotObject') });
+          return;
+        }
+        const result = await importCoverage(raw, mode);
+        sendResponse({ ok: true, ...result });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
+  if (message?.type === EXPORT_PACK_STATS) {
+    const source =
+      typeof message.source === 'string' ? message.source.trim().slice(0, 80) : undefined;
+    void (async () => {
+      try {
+        sendResponse({ ok: true, snapshot: await exportCoverage(source) });
+      } catch (err) {
+        sendResponse({ ok: false, error: (err as Error).message });
+      }
+    })();
+    return true;
+  }
   // Content script asks for the full set of headwords known to the
   // user's enabled packs. Used by the tokenizer so words like `excuse`,
   // `pee`, `pants`, `seventh`, `grade` — which exist in the Wiktionary
@@ -1170,8 +1326,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     })();
     return true;
   }
-  // Side-panel page just imported a local file / CSV / StarDict. Fan
-  // out a DICT_PACKS_CHANGED to every tab so their tokenizers re-pull.
+  // Fan out a DICT_PACKS_CHANGED to every tab so their tokenizers re-pull.
+  // The local-file import no longer needs this (DICT_PACK_IMPORT_COMMIT
+  // broadcasts on its own); it stays as the explicit refresh for any other
+  // caller that changes packs out of band.
   if (message?.type === 'DICT_PACKS_CHANGED_NOTIFY') {
     void broadcastDictPacksChanged();
     sendResponse({ ok: true });
