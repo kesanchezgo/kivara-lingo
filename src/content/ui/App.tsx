@@ -1686,6 +1686,11 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             setStyles={setSubtitleStyles}
             mapping={ankiMapping}
             setMapping={setAnkiMapping}
+            episode={{ cues: episode.cues, lang: cueLanguage }}
+            onOpenEpisodeWords={() => {
+              railViewStore.set('words');
+              railOpenStore.set(true);
+            }}
             // Until Phase 3 wires dictionary/translation lookup to the live
             // cue, the preview falls back to a deterministic sample so
             // FRENTE / REVERSO render something. The live cue drives
