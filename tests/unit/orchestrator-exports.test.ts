@@ -42,6 +42,7 @@ describe('orchestrator exports', () => {
           "probeEnrichmentSource",
           "readEnrichmentCache",
           "runEnrichment",
+          "seedEnrichmentSourceHealth",
           "writeEnrichmentCache",
         ]
       `);
