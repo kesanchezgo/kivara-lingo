@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { AlertCircle, Check, Clock, Eye, FilmSlate, History, Loader2, RefreshCw, Undo2, Volume2, X } from '../../../ui/icons';
+import {
+  AlertCircle, Check, ChevronDown, Clock, Eye, FilmSlate, History, Loader2, RefreshCw, Undo2, Volume2, X,
+} from '../../../ui/icons';
 import { sendMessage } from 'webext-bridge/content-script';
 import { t } from '../../../shared/i18n';
 import type {
@@ -11,8 +13,10 @@ import type {
   CardRetryResponse,
 } from '../../../shared/types';
 import { MAX_CARD_RETRIES, hasAudio, hasFrame, isPending, type CardStatus, type RecentCard } from '../../../shared/cards';
-import { originLabel } from '../../../shared/study/cardTags';
-import { IconTile, SectionLabel, ui } from '../../../ui/primitives/settings-primitives';
+import { originLabel, tagsOf } from '../../../shared/study/cardTags';
+import {
+  Badge, Button, FilterChips, IconButton, IconTile, SectionLabel, ui, FOCUS,
+} from '../../../ui/primitives/settings-primitives';
 
 /**
  * Recent cards + retry queue (docs/REDESIGN-V2.md §3 H10, §7 F4).
@@ -25,6 +29,13 @@ import { IconTile, SectionLabel, ui } from '../../../ui/primitives/settings-prim
 export const RECENT_CARDS_KEY = 'kvl:cards.recent';
 
 export { isPending };
+
+/** Newest-first page size; "Show all" reveals the rest. */
+const PAGE = 5;
+
+/** A card with the optional context count some builds attach to the registry
+ * entry. The engine does not write it today; the row supports it when present. */
+type RecentRowCard = RecentCard & { contexts?: number };
 
 function readCards(value: unknown): RecentCard[] {
   if (!Array.isArray(value)) return [];
@@ -111,17 +122,52 @@ function fmtCountdown(ms: number): string {
   return seconds < 60 ? `${seconds} s` : `${Math.ceil(seconds / 60)} min`;
 }
 
-const ROW_ACTION =
-  'inline-flex items-center gap-1 text-[11px] font-medium px-1.5 h-7 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+/** Short label for a failure: the engine stores the message, so classify it
+ * into the same buckets AnkiConnect reports (network / timeout / API key). */
+function shortError(error?: string): string {
+  if (!error) return '';
+  const e = error.toLowerCase();
+  if (/(api.?key|unauthori[sz]ed|\b401\b|\b403\b)/.test(e)) return t('recent.err.apiKey');
+  if (/(timeout|timed out|took too long)/.test(e)) return t('recent.err.timeout');
+  if (/(network|failed to fetch|econnrefused|fetch failed|connect)/.test(e)) return t('recent.err.down');
+  return t('recent.err.other');
+}
+
+/** What a saved card is missing (old cards without a media record count as
+ * complete). */
+function missingMedia(card: RecentCard): string {
+  if (!card.media) return '';
+  const noWord = card.media.word === false;
+  const audio = !card.media.audio && noWord
+    ? t('recent.mAudioAll')
+    : !card.media.audio
+      ? t('recent.mAudio')
+      : noWord ? t('recent.mWord') : '';
+  const items = [!card.media.frame && t('recent.mFrame'), audio].filter(Boolean);
+  return items.length ? t('recent.missing', { items: items.join(t('recent.missingJoin')) }) : '';
+}
+
+/** Same clock for the whole list: 1 s countdowns, 30 s otherwise. */
+function useNow(intervalMs: number): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    setNow(Date.now());
+    const id = window.setInterval(() => setNow(Date.now()), intervalMs);
+    return () => window.clearInterval(id);
+  }, [intervalMs]);
+  return now;
+}
 
 function RecentRow({
   card,
   now,
+  emphasize,
   showLang,
   onChanged,
 }: {
-  card: RecentCard;
+  card: RecentRowCard;
   now: number;
+  emphasize: boolean;
   showLang: boolean;
   onChanged: () => void;
 }) {
@@ -140,17 +186,17 @@ function RecentRow({
     }
   }, [onChanged]);
 
-  const undo = () => run(async () => {
-    if (card.noteId == null) return false;
-    const res = (await sendMessage('ANKI_DELETE_NOTE', { noteId: card.noteId }, 'background')) as AnkiDeleteNoteResponse;
-    return !!res?.ok;
-  }, t('queue.undone'), t('queue.undoFailed'));
-
   const seeInAnki = () => run(async () => {
     if (card.noteId == null) return false;
     const res = (await sendMessage('ANKI_BROWSE', { noteId: card.noteId }, 'background')) as AnkiBrowseResponse;
     return !!res?.ok;
   }, t('wp.openedInAnki'), t('wp.openInAnkiFailed'));
+
+  const undo = () => run(async () => {
+    if (card.noteId == null) return false;
+    const res = (await sendMessage('ANKI_DELETE_NOTE', { noteId: card.noteId }, 'background')) as AnkiDeleteNoteResponse;
+    return !!res?.ok;
+  }, t('queue.undone'), t('queue.undoFailed'));
 
   const retry = () => run(async () => {
     const res = (await sendMessage('CARD_RETRY', { id: card.id }, 'background')) as CardRetryResponse;
@@ -166,39 +212,58 @@ function RecentRow({
     return !!res?.ok;
   }, t('queue.discarded'), t('queue.undoFailed'));
 
-  const origin = originLabel(card.source) ?? card.deck;
+  const nCtx = card.contexts ?? 0;
+  const origin = [
+    originLabel(card.source) ?? card.deck,
+    nCtx ? (nCtx === 1 ? t('recent.moreContextsOne') : t('recent.moreContexts', { n: nCtx })) : '',
+  ].filter(Boolean).join(' · ');
   const kindLabel = card.kind === 'word' || card.kind === 'expression'
     ? t(`recent.kind.${card.kind}`)
     : null;
+  const errLabel = card.error ? shortError(card.error) : '';
   const meta =
     card.status === 'saved'
-      ? `${origin}${origin ? ' · ' : ''}${relativeAgo(card.savedAt ?? card.createdAt, now)}`
+      ? `${origin} · ${relativeAgo(card.savedAt ?? card.createdAt, now)}`
       : card.status === 'sending'
         ? t('recent.sending')
         : card.status === 'queued'
           ? `${t('recent.retryIn', { time: fmtCountdown((card.nextRetryAt ?? now) - now) })} · ${t('recent.attempt', { n: card.attempts, max: MAX_CARD_RETRIES })}`
-          : `${t('recent.failed')}${card.error ? ` · ${card.error}` : ''}`;
+          : `${t('recent.failed')} · ${errLabel}`;
+  // Next to the kind, not at the end of the details (where "Undo" would clip
+  // it): the gap is always visible.
+  const missing = missingMedia(card);
+  const undoHidden = emphasize || busy
+    ? ''
+    : 'opacity-0 group-hover/r:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100';
+  const title = card.error
+    ? card.error
+    : [originLabel(card.source), card.deck, t(`lang.${card.lang}`), tagsOf(card).join(' ')].filter(Boolean).join(' · ');
 
   return (
-    <li className="kvl-row flex items-center gap-3 pl-3.5 pr-2 min-h-[52px] py-2">
+    <li className="group/r flex items-center gap-3 pl-3.5 pr-2 min-h-[52px] py-2">
       <StatusTile status={busy && card.status === 'saved' ? 'sending' : card.status} />
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1.5 min-w-0">
           <span
-            className="text-[13px] leading-[18px] font-medium text-zinc-800 dark:text-zinc-100 truncate"
+            className="text-[13px] leading-[18px] font-medium text-zinc-800 dark:text-zinc-100 truncate shrink-0 max-w-[60%]"
             title={card.word}
           >
             {card.word}
           </span>
           {kindLabel && (
-            <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 shrink-0">
+            <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 shrink-0">
               {kindLabel}
             </span>
           )}
-          {showLang && (
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-400 shrink-0">
-              {card.lang}
+          {missing && (
+            <span className="text-[11px] font-medium text-amber-700 dark:text-amber-400/90 truncate min-w-0" title={missing}>
+              · {missing}
             </span>
+          )}
+          {showLang && (
+            <Badge className="!h-4 !px-1 uppercase tracking-wide self-center" title={t(`lang.${card.lang}`)}>
+              {card.lang}
+            </Badge>
           )}
         </div>
         <div
@@ -207,69 +272,68 @@ function RecentRow({
             : card.status === 'queued'
               ? 'text-amber-700 dark:text-amber-400/90'
               : 'text-zinc-500 dark:text-zinc-400'}`}
-          title={card.error ?? card.sentence}
+          title={title}
+          data-card-tags={tagsOf(card).join(' ')}
         >
           {meta}
         </div>
       </div>
-      {card.status === 'saved' && (hasFrame(card) || hasAudio(card)) && (
-        <span className="flex items-center gap-1 shrink-0 text-zinc-400 dark:text-zinc-500">
-          {hasFrame(card) && (
-            <span role="img" aria-label={t('recent.mFrame')} title={t('recent.mFrame')}>
-              <FilmSlate size={13} />
-            </span>
-          )}
-          {hasAudio(card) && (
-            <span role="img" aria-label={t('recent.mAudioAll')} title={t('recent.mAudioAll')}>
-              <Volume2 size={13} />
-            </span>
-          )}
-        </span>
-      )}
-      {card.status === 'saved' ? (
+      {card.status === 'saved' && (
         <span className="flex items-center gap-0.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => void seeInAnki()}
-            disabled={busy}
-            className={`${ROW_ACTION} text-zinc-500 dark:text-zinc-400 hover:text-emerald-700 dark:hover:text-emerald-300`}
+          <span className="flex items-center gap-1 text-zinc-400 dark:text-zinc-500">
+            {hasFrame(card) && (
+              <span role="img" aria-label={t('recent.mFrame')} title={t('recent.mFrame')}>
+                <FilmSlate size={13} />
+              </span>
+            )}
+            {hasAudio(card) && (
+              <span role="img" aria-label={t('recent.mAudioAll')} title={t('recent.mAudioAll')}>
+                <Volume2 size={13} />
+              </span>
+            )}
+          </span>
+          <IconButton
+            size="sm"
+            aria-label={t('wp.seeInAnki')}
             title={t('wp.seeInAnki')}
+            disabled={busy}
+            onClick={() => void seeInAnki()}
           >
             <Eye size={13} />
-          </button>
-          <button
-            type="button"
+          </IconButton>
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<Undo2 size={14} />}
+            disabled={busy}
             onClick={() => void undo()}
-            disabled={busy}
-            className={`${ROW_ACTION} text-zinc-500 dark:text-zinc-400 hover:text-rose-700 dark:hover:text-rose-300`}
             title={t('recent.undoTitle')}
+            className={undoHidden}
           >
-            <Undo2 size={13} />
-            <span>{t('recent.undo')}</span>
-          </button>
+            {t('recent.undo')}
+          </Button>
         </span>
-      ) : card.status !== 'sending' ? (
+      )}
+      {(card.status === 'queued' || card.status === 'failed') && (
         <span className="flex items-center gap-0.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => void retry()}
-            disabled={busy}
-            className={`${ROW_ACTION} text-zinc-500 dark:text-zinc-400 hover:text-indigo-700 dark:hover:text-indigo-300`}
+          <IconButton
+            aria-label={t('recent.retry')}
             title={t('recent.retry')}
-          >
-            <RefreshCw size={13} />
-          </button>
-          <button
-            type="button"
-            onClick={() => void dismiss()}
             disabled={busy}
-            className={`${ROW_ACTION} text-zinc-500 dark:text-zinc-400 hover:text-rose-700 dark:hover:text-rose-300`}
-            title={t('recent.discard')}
+            onClick={() => void retry()}
           >
-            <X size={13} />
-          </button>
+            <RefreshCw size={14} />
+          </IconButton>
+          <IconButton
+            aria-label={t('recent.discard')}
+            title={t('recent.discard')}
+            disabled={busy}
+            onClick={() => void dismiss()}
+          >
+            <X size={14} />
+          </IconButton>
         </span>
-      ) : null}
+      )}
     </li>
   );
 }
@@ -277,13 +341,16 @@ function RecentRow({
 export function RecentCards({ onChanged }: { onChanged?: () => void } = {}) {
   const cards = useRecentCards();
   const pending = cards.filter(isPending);
-  const [now, setNow] = useState(() => Date.now());
+  const [filter, setFilter] = useState<'all' | 'queue'>('all');
+  const [expanded, setExpanded] = useState(false);
   const [busyAll, setBusyAll] = useState(false);
-  const hasQueued = pending.some((c) => c.status === 'queued');
+  const hasQueued = pending.some((card) => card.status === 'queued');
+  const now = useNow(hasQueued ? 1000 : 30_000);
+
+  // No pending cards → there is no filter to show: back to "All".
   useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), hasQueued ? 1000 : 30_000);
-    return () => window.clearInterval(id);
-  }, [pending.length, hasQueued]);
+    if (!pending.length && filter === 'queue') setFilter('all');
+  }, [pending.length, filter]);
 
   const retryAll = async () => {
     setBusyAll(true);
@@ -297,8 +364,14 @@ export function RecentCards({ onChanged }: { onChanged?: () => void } = {}) {
     }
   };
 
-  const ordered = [...pending, ...cards.filter((card) => !isPending(card))];
+  // Pending first (the only thing that asks for attention), then sent.
+  const ordered = filter === 'queue' ? pending : [...pending, ...cards.filter((card) => !isPending(card))];
+  const visible = expanded ? ordered : ordered.slice(0, PAGE);
+  // "Undo" always visible on the latest saved card (10 min); older ones on hover.
+  const latestSavedId = cards.find((card) => card.status === 'saved')?.id;
   const multiLang = new Set(cards.map((card) => card.lang)).size > 1;
+  const fresh = (card: RecentCard) => card.id === latestSavedId
+    || (card.status === 'saved' && now - (card.savedAt ?? card.createdAt) < 10 * 60_000);
 
   return (
     <section>
@@ -326,33 +399,47 @@ export function RecentCards({ onChanged }: { onChanged?: () => void } = {}) {
           </div>
         ) : (
           <>
-            {pending.length > 1 && (
-              <div className="flex items-center justify-between gap-2 px-3.5 py-2 border-b border-zinc-900/[0.06] dark:border-white/[0.06]">
-                <span className="text-[11px] font-medium text-amber-700 dark:text-amber-400">
-                  {t('recent.queuedCount', { n: pending.length })}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => void retryAll()}
-                  disabled={busyAll}
-                  className={`${ROW_ACTION} text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10`}
-                >
-                  <RefreshCw size={12} />
+            {pending.length > 0 && (
+              <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 border-b border-zinc-900/[0.06] dark:border-white/[0.06]">
+                {/* Filters the list: chips, like the transcript (the segmented
+                    control is reserved for choosing values). */}
+                <FilterChips
+                  ariaLabel={t('recent.title')}
+                  options={[
+                    { v: 'all', l: t('recent.filterAll'), count: cards.length },
+                    { v: 'queue', l: t('recent.filterQueue'), count: pending.length, icon: <Clock size={12} weight="bold" className="text-amber-600 dark:text-amber-400" /> },
+                  ]}
+                  value={filter}
+                  onChange={setFilter}
+                />
+                <Button size="sm" variant="soft" icon={<RefreshCw size={14} />} disabled={busyAll} onClick={() => void retryAll()}>
                   {t('recent.retryAll')}
-                </button>
+                </Button>
               </div>
             )}
             <ul className="divide-y divide-zinc-900/[0.06] dark:divide-white/[0.06]">
-              {ordered.map((card) => (
+              {visible.map((card) => (
                 <RecentRow
                   key={card.id}
                   card={card}
                   now={now}
+                  emphasize={fresh(card)}
                   showLang={multiLang}
                   onChanged={() => onChanged?.()}
                 />
               ))}
             </ul>
+            {ordered.length > PAGE && (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                aria-expanded={expanded}
+                className={`w-full flex items-center justify-center gap-1.5 h-10 border-t border-zinc-900/[0.06] dark:border-white/[0.06] text-[12px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 ${ui.rowHover} ${FOCUS}`}
+              >
+                {expanded ? t('recent.showLess') : t('recent.showAll', { n: ordered.length })}
+                <ChevronDown size={14} className={`transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+              </button>
+            )}
           </>
         )}
       </div>

@@ -45,6 +45,8 @@ interface SidePanelProps {
   mockData: CardPreviewData;
   /** The rail is docked beside the panel: hand focus to it. */
   onToTranscript?: () => void;
+  /** Language of the playing subtitles; the Cards tab badges its deck row. */
+  episodeLang?: string;
 }
 
 type PanelTab = 'subtitles' | 'vocab' | 'cards' | 'settings';
@@ -125,6 +127,7 @@ export function SidePanel({
   setMapping,
   mockData,
   onToTranscript,
+  episodeLang,
 }: SidePanelProps) {
   const deepLink = useDeepLinkSection();
   const shortcuts = useKivaraStore((state) => state.shortcuts);
@@ -415,7 +418,13 @@ export function SidePanel({
             <SubtitlesTab styles={styles} setStyles={setStyles} onOpenVocab={() => selectTab('vocab')} />
           )}
           {tab.id === 'cards' && (
-            <CardsTab mapping={mapping} setMapping={setMapping} mockData={mockData} />
+            <CardsTab
+              mapping={mapping}
+              setMapping={setMapping}
+              mockData={mockData}
+              episodeLang={episodeLang}
+              onOpenVocab={() => selectTab('vocab')}
+            />
           )}
           {tab.id === 'settings' && (
             <SettingsTab
