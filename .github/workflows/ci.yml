@@ -47,21 +47,20 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Extensions need a real Chromium from Playwright, plus the system
-      # libraries for it; xvfb covers any legacy-headless fallback.
-      # The Ubuntu mirror the runner resolves (azure.archive.ubuntu.com)
-      # intermittently fails DNS, which killed the whole job at this step with
-      # code 100 before any test ran. Retry the install; the browser download
-      # itself is already idempotent.
-      - name: Install Chromium (retry on mirror failures)
+      # Extensions need a real Chromium from Playwright; xvfb covers any
+      # legacy-headless fallback.
+      # The browser binary comes from Playwright's own CDN. `--with-deps` only
+      # adds the apt package set, and the runner's Ubuntu mirror intermittently
+      # fails DNS ("Temporary failure resolving azure.archive.ubuntu.com"),
+      # which killed this step with exit 100 before a single test ran — three
+      # retries did not help because the mirror stayed unreachable. The
+      # ubuntu-latest image already ships Chromium's shared libraries, so the
+      # deps pass is best-effort and never fails the job.
+      - name: Install Chromium (browser from CDN, apt deps best-effort)
         run: |
-          for attempt in 1 2 3; do
-            pnpm exec playwright install --with-deps chromium && exit 0
-            echo "attempt $attempt failed; retrying in 15s"
-            sleep 15
-          done
-          echo "playwright install failed after 3 attempts"
-          exit 1
+          pnpm exec playwright install chromium
+          pnpm exec playwright install-deps chromium \
+            || echo "::warning::install-deps skipped: apt mirror unreachable; runner image already provides the libraries"
       - run: pnpm build
       - run: xvfb-run --auto-servernum -- pnpm exec playwright test
 
@@ -81,19 +80,12 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # The Ubuntu mirror the runner resolves (azure.archive.ubuntu.com)
-      # intermittently fails DNS, which killed the whole job at this step with
-      # code 100 before any test ran. Retry the install; the browser download
-      # itself is already idempotent.
-      - name: Install Chromium (retry on mirror failures)
+      # See the `e2e` job: the apt mirror is flaky, the Playwright CDN is not.
+      - name: Install Chromium (browser from CDN, apt deps best-effort)
         run: |
-          for attempt in 1 2 3; do
-            pnpm exec playwright install --with-deps chromium && exit 0
-            echo "attempt $attempt failed; retrying in 15s"
-            sleep 15
-          done
-          echo "playwright install failed after 3 attempts"
-          exit 1
+          pnpm exec playwright install chromium
+          pnpm exec playwright install-deps chromium \
+            || echo "::warning::install-deps skipped: apt mirror unreachable; runner image already provides the libraries"
       # This wrapper does: build with KIVARA_E2E=1, then run the audio
       # workload against that build (scripts/run-e2e-with-flag.mjs).
       - run: xvfb-run --auto-servernum -- pnpm test:e2e:audio
