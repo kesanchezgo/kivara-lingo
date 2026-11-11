@@ -225,6 +225,68 @@ try {
     await shot(panel, `vocab-${suffix}`);
   }
 
+  // ── Preferencias › Enriquecimiento, with sources IN ERROR (canned
+  // observations through the E2E door) so the fix lines and row actions are
+  // real UI over real data paths.
+  const now = Date.now();
+  const seedHealth = {
+    unsplash: { state: 'error', lastError: 'HTTP 401 Unauthorized', code: 'unauthorized', at: now - 40_000 },
+    pixabay: { state: 'error', lastError: 'HTTP 429 Too Many Requests', code: 'rateLimited', at: now - 55_000 },
+    tatoeba: { state: 'error', lastError: 'missing host permission — the browser refused to let the extension reach this source', code: 'permission', at: now - 80_000 },
+    wordHippo: { state: 'slow', latencyMs: 3450, at: now - 120_000 },
+    datamuse: { state: 'ok', latencyMs: 180, at: now - 90_000 },
+    bundled: { state: 'ok', latencyMs: 22, at: now - 30_000 },
+  };
+  await page.evaluate((map) => new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({ type: 'KIVARA_E2E_SEED_HEALTH', data: { map } }, (r) => {
+      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      else resolve(r);
+    });
+  }), seedHealth).catch(() => console.warn('health seed skipped (production build?)'));
+
+  for (const dark of [false, true]) {
+    const suffix = dark ? 'dark' : 'light';
+    await page.reload();
+    await page.waitForTimeout(400);
+    await setDark(dark);
+    await tab('Preferences').click();
+    const enrichRow = page.getByText('Enrichment (Standard + VIP)', { exact: false }).first();
+    if (await enrichRow.count()) {
+      await enrichRow.scrollIntoViewIfNeeded();
+      await enrichRow.click();
+      await page.waitForTimeout(700);
+      const health = page.getByText('Source status', { exact: false }).first();
+      if (await health.count()) await health.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+      await shot(panel, `enrichment-${suffix}`);
+    } else {
+      console.warn('enrichment accordion not found — screenshot skipped');
+    }
+  }
+
+  // ── Onboarding · AI step: skipAll lands on Done, and Back has no locks.
+  for (const dark of [false, true]) {
+    const suffix = dark ? 'dark' : 'light';
+    await page.goto(`chrome-extension://${extensionId}/src/onboarding/index.html`);
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(500);
+    const darkNow = await page.evaluate(() => document.documentElement.classList.contains('dark'));
+    if (darkNow !== dark) {
+      await page.getByRole('button', { name: /theme|tema|dark mode|light mode/i }).first().click();
+      await page.waitForTimeout(250);
+    }
+    await page.getByRole('button', { name: /skip|saltar/i }).first().click();
+    await page.waitForTimeout(500);
+    await page.getByTestId('onboarding-back').click();
+    await page.waitForTimeout(400);
+    await page.getByTestId('onboarding-back').click();
+    await page.waitForTimeout(700);
+    const aiActive = await page.getByTestId('onboarding-step-ai').getAttribute('data-step-state');
+    if (aiActive !== 'active') console.warn(`onboarding landed on ${aiActive} — screenshot may show another step`);
+    await page.screenshot({ path: path.join(OUT, `onboarding-ai-${suffix}.png`) });
+    console.log(`wrote docs/parity-shots/onboarding-ai-${suffix}.png`);
+  }
+
   // Transcripción: the real overlay on the e2e player fixture.
   for (const dark of [false, true]) {
     const suffix = dark ? 'dark' : 'light';

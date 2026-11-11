@@ -423,6 +423,19 @@ export function clearEnrichmentSourceHealth(): void {
 }
 
 /**
+ * E2E-ONLY: replace the health map with canned observations.
+ *
+ * The parity screenshots need a source IN ERROR without a network: the
+ * `__E2E__` door in the service worker is the only caller, and rollup drops
+ * both the call and this export from a production bundle (the dist-artifacts
+ * test forbids the message name in `dist/` precisely so that stays true).
+ */
+export function seedEnrichmentSourceHealth(map: EnrichSourceHealthMap): void {
+  sourceHealth.clear();
+  for (const [id, health] of Object.entries(map)) sourceHealth.set(id, health);
+}
+
+/**
  * Run the enrichment chain for `token`. Always returns a result,
  * even when every source failed — fields just stay empty.
  */

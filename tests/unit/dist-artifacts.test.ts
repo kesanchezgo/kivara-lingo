@@ -48,6 +48,8 @@ const FORBIDDEN_TEXT = [
   'KIVARA_E2E_EXTRACT_AUDIO_CLIP',
   // The synthetic-stream escape hatch in the offscreen recorder.
   'kivara-e2e-synthetic',
+  // The canned health observations the parity screenshots seed.
+  'KIVARA_E2E_SEED_HEALTH',
 ];
 const FORBIDDEN_PATHS = [/(^|\/)e2e\//];
 /** What an un-rewritten worklet URL looks like in the bundle. */
