@@ -80,6 +80,7 @@ import {
   abortDictPackImport,
   appendDictPackTerms,
   beginDictPackImport,
+  beginDictPackOrphanCleanup,
   commitDictPackImport,
   isDictPackId,
   sanitizePackRow,
@@ -270,6 +271,11 @@ void loadMapping().then((m) => refreshAnkiOriginRules(m.ankiUrl),
   () => refreshAnkiOriginRules(),
 );
 void chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 }).catch(() => {});
+
+// Dictionary-pack imports live under a staging id until COMMIT. Sweep any
+// staging pack a torn import left behind; import steps await this pass (see
+// dict-pack-store) so a cold start cannot race a fresh BEGIN.
+void beginDictPackOrphanCleanup();
 
 /**
  * A grant changes what the enrichment chain can reach, so every cached answer
@@ -1194,7 +1200,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
     void (async () => {
       try {
-        await beginDictPackImport(pack.id);
+        await beginDictPackImport(pack);
         sendResponse({ ok: true });
       } catch (err) {
         sendResponse({ ok: false, error: (err as Error).message });

@@ -240,6 +240,23 @@ export function getDB(): KivaraDB {
   return _db;
 }
 
+/**
+ * Prefix of the staging id an import lives under until COMMIT.
+ *
+ * BEGIN writes the pack row and every term under `tmp-<finalId>`; COMMIT moves
+ * them to `<finalId>` in one transaction. A worker torn down mid-import leaves
+ * only a staging pack, which the start-up sweep recognizes and removes — a
+ * failed import can never look installed. Lives here (not in the wire-protocol
+ * module) so the content-script dictionary reader can filter staging packs
+ * without pulling that module into its bundle chunk.
+ */
+export const TEMP_DICT_PACK_PREFIX = 'tmp-';
+
+/** Staging id for the final pack id (deterministic — the worker is stateless). */
+export function tempDictPackId(finalId: string): string {
+  return `${TEMP_DICT_PACK_PREFIX}${finalId}`;
+}
+
 export function translationCacheKey(
   provider: string,
   source: string,

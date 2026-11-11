@@ -17,8 +17,9 @@
  *     `lang.${code}`, the `keysWithPrefix()` families the search indexes, the
  *     day-plural family `fmtDays()` resolves).
  *
- * The scan skips `src/shared/i18n/**` itself: the dictionary files hold every
- * key as a literal, so counting them would make the test pass vacuously.
+ * The scan skips the i18n data files themselves (they hold every key as a
+ * literal, so counting them would make the test pass vacuously) but still
+ * counts `index.ts` / `locale.ts`, where `fmtDays()` calls `t()` for real.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -29,11 +30,13 @@ import { ALL_MESSAGES } from '../../src/shared/i18n';
  * Dynamic families, each with the call site that resolves it.
  *
  * Template keys: `t(`lang.${code}`)`, `t(`tr.${mode}`)`, `t(`ws.level.${level}`)`,
- * `t(`recent.kind.${kind}`)`.
- * `keysWithPrefix()` families: src/app/components/tabs/settingsSearch.ts feeds
- * the Preferences search the prefixes below; a new control in one of those
- * sections is live even before it gets its own `t()` call.
- * `common.days*`: fmtDays() picks between `common.daysOne` and `common.daysN`.
+ * `t(`ws.levelCanDo.${canDo}`)`, `t(`recent.kind.${kind}`)`.
+ *
+ * Every other key must be reachable from a literal reference. `keysWithPrefix()`
+ * in settingsSearch.ts is a search index, not a renderer: a key only reachable
+ * from there is still dead in the UI, so the settings sections list their keys
+ * explicitly and a genuinely unused string is deleted instead of masked.
+ * `common.daysOne` / `common.daysN` are literal `t()` calls in fmtDays().
  */
 const ALLOWED_PREFIXES = [
   // Template-key families.
@@ -42,33 +45,26 @@ const ALLOWED_PREFIXES = [
   'ws.level.',
   'ws.levelCanDo.',
   'recent.kind.',
-  // fmtDays().
-  'common.days',
-  // settingsSearch.ts → keysWithPrefix().
-  'dict.',
-  'dictpack.',
-  'vip.',
-  'vipx.',
-  'ai.',
-  'aicompat.',
-  'perm.',
-  'sc.',
-  'subs.',
-  'sub.',
-  'ws.vocab',
-  'ws.self',
-  'ws.coverage',
-  'ws.ep.',
-  'vc.',
-  'vt.',
-  'cards.',
-  'recent.',
-  'queue.',
 ] as const;
 
 const ROOT = process.cwd();
 const SCANNED_DIRS = ['src', 'tests'];
-const SKIP_SEGMENT = `${path.sep}shared${path.sep}i18n${path.sep}`;
+const I18N_DIR = `${path.sep}shared${path.sep}i18n${path.sep}`;
+
+/**
+ * Files under `shared/i18n` that hold every key as a data literal. Scanning
+ * them would make the check pass vacuously. `index.ts` and `locale.ts` are NOT
+ * skipped: their literal `t('key')` calls (fmtDays) are real references.
+ */
+const I18N_DATA_FILES = new Set([
+  'cards.ts', 'common.ts', 'core.ts', 'dict.ts', 'onboarding.ts', 'panel.ts',
+  'popover.ts', 'popup.ts', 'settings.ts', 'shortcuts.ts', 'sw.ts', 'vip.ts',
+  'rich.tsx',
+]);
+
+function isDictionaryFile(file: string): boolean {
+  return file.includes(I18N_DIR) && I18N_DATA_FILES.has(path.basename(file));
+}
 
 function walk(dir: string, acc: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -85,7 +81,7 @@ export function referencedKeys(): Set<string> {
   const refs = new Set<string>();
   for (const dir of SCANNED_DIRS) {
     for (const file of walk(path.join(ROOT, dir))) {
-      if (file.includes(SKIP_SEGMENT)) continue;
+      if (isDictionaryFile(file)) continue;
       // This file fabricates dead keys on purpose; counting them as refs would
       // make the self-check pass for the wrong reason.
       if (file.endsWith('i18n-dead-keys.test.ts')) continue;

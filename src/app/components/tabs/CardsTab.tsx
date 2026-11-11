@@ -38,39 +38,39 @@ const FALLBACK_FIELDS: Record<string, string[]> = {
 const detectSource = detectFieldSource;
 
 const SOURCE_META: Record<FieldSource, { label: string; color: string; description: string }> = {
-  selection:        { label: 'Palabra',        color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',     description: t('cards.srcDescSelectedWord') },
-  cue:              { label: 'Frase',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: t('cards.srcDescActiveCue') },
-  context:          { label: 'Contexto',       color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: 'Línea anterior, la guardada y la siguiente' },
-  cloze:            { label: t('cards.srcCloze'), color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',              description: t('cards.srcDescCloze') },
-  source:           { label: t('cards.srcSource'), color: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300',           description: t('cards.srcDescSource') },
-  phonetic:         { label: t('cards.phonetic'),       color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',     description: t('cards.srcDescDictIpa') },
-  translation:      { label: t('cards.translation'),     color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: t('cards.nativeTranslation') },
-  bilingual:        { label: t('cards.srcLabelBilingual'),       color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: t('cards.bilingualGloss') },
-  monolingual:      { label: t('cards.srcLabelMonolingual'),     color: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300',     description: t('cards.definition') },
-  examples:         { label: 'Ejemplos',       color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300',     description: t('cards.srcDescDictExamples') },
-  frame:            { label: 'Picture',        color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300',             description: t('cards.srcDescCueScreenshot') },
-  'sentence-audio': { label: 'Sentence audio', color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',             description: t('cards.tabAudio') },
-  'word-audio':     { label: 'Word audio',     color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300',             description: t('cards.srcDescWordTts') },
-  'ai-definition':  { label: t('cards.aiDefinitionLabel'),    color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: t('cards.aiDefinitionHint') },
-  'ai-synonyms':    { label: t('cards.aiSynonymsLabel'),     color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: t('cards.aiSynonymsHint') },
-  'ai-collocations':{ label: 'IA · Colocaciones',  color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'Colocaciones comunes' },
-  'ai-nuance':      { label: 'IA · Matiz',        color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: t('cards.nuancedTranslation') },
-  'ai-register':    { label: 'IA · Registro',     color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'Registro (formal / informal / slang)' },
+  selection:        { label: 'cards.wordSelection',        color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',     description: 'cards.srcDescSelectedWord' },
+  cue:              { label: 'cards.srcLabelCue',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: 'cards.srcDescActiveCue' },
+  context:          { label: 'cards.srcLabelContext',       color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: 'cards.srcDescContext' },
+  cloze:            { label: 'cards.srcLabelCloze', color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',              description: 'cards.srcDescCloze' },
+  source:           { label: 'cards.srcLabelSource', color: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300',           description: 'cards.srcDescSource' },
+  phonetic:         { label: 'cards.phonetic',       color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',     description: 'cards.srcDescDictIpa' },
+  translation:      { label: 'cards.translation',     color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: 'cards.nativeTranslation' },
+  bilingual:        { label: 'cards.srcLabelBilingual',       color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: 'cards.bilingualGloss' },
+  monolingual:      { label: 'cards.srcLabelMonolingual',     color: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300',     description: 'cards.definition' },
+  examples:         { label: 'cards.examples',       color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300',     description: 'cards.srcDescDictExamples' },
+  frame:            { label: 'cards.srcLabelPicture',        color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300',             description: 'cards.srcDescCueScreenshot' },
+  'sentence-audio': { label: 'cards.srcLabelSentenceAudio', color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',             description: 'cards.tabAudio' },
+  'word-audio':     { label: 'cards.srcLabelWordAudio',     color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300',             description: 'cards.srcDescWordTts' },
+  'ai-definition':  { label: 'cards.aiDefinitionLabel',    color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'cards.aiDefinitionHint' },
+  'ai-synonyms':    { label: 'cards.aiSynonymsLabel',     color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'cards.aiSynonymsHint' },
+  'ai-collocations':{ label: 'cards.aiCollocationsLabel',  color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'cards.srcDescAiCollocations' },
+  'ai-nuance':      { label: 'cards.aiNuanceLabel',        color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'cards.nuancedTranslation' },
+  'ai-register':    { label: 'cards.aiRegisterLabel',     color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300', description: 'cards.srcDescAiRegister' },
   // Multi-source enrichment chain (Standard + VIP).
-  synonyms:         { label: t('cards.synonyms'),           color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: t('cards.synonymsHint') },
-  antonyms:         { label: t('cards.antonyms'),           color: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',             description: t('cards.antonymsHint') },
-  collocations:     { label: 'Combinaciones',       color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',     description: 'Colocaciones editoriales o corroboradas' },
-  frequency:        { label: 'Frecuencia',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: t('cards.srcDescFreqBands') },
-  etymology:        { label: t('cards.etymology'),          color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: t('cards.etymologyHint') },
-  mnemonic:         { label: t('cards.mnemonic'),        color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',     description: t('cards.mnemonicHint') },
-  image:             { label: 'Imagen',             color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300',             description: 'Imagen Unsplash / Pixabay / Wikimedia / DDG' },
-  'video-link':     { label: 'Video link',          color: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',                 description: t('cards.srcDescYouglish') },
+  synonyms:         { label: 'cards.synonyms',           color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: 'cards.synonymsHint' },
+  antonyms:         { label: 'cards.antonyms',           color: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',             description: 'cards.antonymsHint' },
+  collocations:     { label: 'cards.srcLabelCombos',       color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',     description: 'cards.srcDescCollocations' },
+  frequency:        { label: 'cards.srcLabelFrequency',          color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',                 description: 'cards.srcDescFreqBands' },
+  etymology:        { label: 'cards.etymology',          color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: 'cards.etymologyHint' },
+  mnemonic:         { label: 'cards.mnemonic',        color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',     description: 'cards.mnemonicHint' },
+  image:             { label: 'cards.srcLabelImage',             color: 'bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300',             description: 'cards.srcDescImage' },
+  'video-link':     { label: 'cards.srcLabelVideoLink',          color: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',                 description: 'cards.srcDescYouglish' },
   // Deprecated / backward-compatible labels.
-  dictionary:       { label: 'Diccionario',    color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: t('cards.srcDescLegacyCatchall') },
-  translate:        { label: 'Traducir',       color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: t('cards.srcDescLegacyChain') },
-  tabCapture:       { label: 'tabCapture',     color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',             description: t('cards.legacyTabAudio') },
-  tts:              { label: 'TTS',            color: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300',                description: '(legacy) Text-to-speech' },
-  manual:           { label: 'Manual',         color: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',                description: t('cards.writeItYourself') },
+  dictionary:       { label: 'cards.srcLabelDictionary',    color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',         description: 'cards.srcDescLegacyCatchall' },
+  translate:        { label: 'cards.srcLabelTranslate',       color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', description: 'cards.srcDescLegacyChain' },
+  tabCapture:       { label: 'cards.srcLabelTabCapture',     color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',             description: 'cards.legacyTabAudio' },
+  tts:              { label: 'cards.srcLabelTts',            color: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300',                description: 'cards.srcDescTts' },
+  manual:           { label: 'cards.srcLabelManual',         color: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',                description: 'cards.writeItYourself' },
 };
 
 /**
@@ -80,22 +80,22 @@ const SOURCE_META: Record<FieldSource, { label: string; color: string; descripti
  */
 const SOURCE_GROUPS: { label: string; options: FieldSource[] }[] = [
   {
-    label: 'Nativas',
+    label: 'cards.groupNative',
     options: [
       'selection', 'cue', 'context', 'cloze', 'source', 'phonetic', 'translation', 'bilingual',
       'monolingual', 'examples', 'frame', 'sentence-audio', 'word-audio',
     ],
   },
   {
-    label: 'Multi-fuente',
+    label: 'cards.groupMulti',
     options: ['synonyms', 'antonyms', 'collocations', 'frequency', 'etymology', 'image', 'video-link'],
   },
   {
-    label: 'IA',
+    label: 'cards.groupAi',
     options: ['ai-definition', 'ai-synonyms', 'ai-collocations', 'ai-nuance', 'ai-register', 'mnemonic'],
   },
   {
-    label: 'Otros',
+    label: 'cards.groupOther',
     options: ['manual'],
   },
 ];
@@ -271,7 +271,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
   }, [ankiFields, fieldFilter, onlyUnmapped, mapping.fieldSources]);
 
   const connError = conn === 'error'
-    ? (pingCode ? PING_ERROR_LABEL[pingCode] : pingError ?? 'No se pudo contactar AnkiConnect.')
+    ? (pingCode ? PING_ERROR_LABEL[pingCode] : pingError ?? t('cards.ankiUnknown'))
     : null;
 
   return (
@@ -310,7 +310,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
             </div>
           )}
 
-          <Row label={<span className="flex items-center gap-1"><Cpu size={10} className="text-zinc-400" />Endpoint</span>}>
+          <Row label={<span className="flex items-center gap-1"><Cpu size={10} className="text-zinc-400" />{t('cards.endpoint')}</span>}>
             <div className="flex gap-1.5">
               <input
                 value={mapping.ankiUrl}
@@ -333,7 +333,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
             </div>
           </Row>
 
-          <Row label={<span className="flex items-center gap-1"><Plug size={10} className="text-zinc-400" />API key</span>}>
+          <Row label={<span className="flex items-center gap-1"><Plug size={10} className="text-zinc-400" />{t('cards.apiKey')}</span>}>
             <SecretKeyInput
               stored={mapping.apiKey ?? ''}
               onChange={(v) => setMapping({ ...mapping, apiKey: v })}
@@ -461,7 +461,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
                     {auto && <Wand2 size={8} className="text-indigo-400/70 shrink-0" />}
                   </span>
                   <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${meta.color}`}>
-                    {meta.label}
+                    {t(meta.label)}
                   </span>
                   <ChevronDown size={10} className={`text-zinc-400 transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -476,13 +476,13 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
                   <div className="overflow-hidden">
                     <div className="border-t border-zinc-200/60 dark:border-zinc-800/60 p-1.5 bg-white dark:bg-zinc-900 space-y-1">
                       <div className="text-[10px] text-zinc-500 dark:text-zinc-400 px-1 leading-snug">
-                        {meta.description}
+                        {t(meta.description)}
                       </div>
                       <div className="space-y-1.5">
                         {SOURCE_GROUPS.map((group) => (
                           <div key={group.label} className="space-y-1">
                             <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-400 px-1">
-                              {group.label}
+                              {t(group.label)}
                             </div>
                             <div className="flex flex-wrap gap-1">
                               {group.options.map((s) => (
@@ -495,7 +495,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
                                       : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-700'
                                   }`}
                                 >
-                                  {SOURCE_META[s].label}
+                                  {t(SOURCE_META[s].label)}
                                 </button>
                               ))}
                             </div>
@@ -531,7 +531,7 @@ export function CardsTab({ mapping, setMapping, mockData }: CardsTabProps) {
                       : 'text-zinc-500 dark:text-zinc-400'
                   }`}
                 >
-                  {side === 'front' ? 'Frente' : 'Reverso'}
+                  {side === 'front' ? t('cards.front') : t('cards.back')}
                 </button>
               ))}
             </div>

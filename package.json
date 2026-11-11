@@ -51,6 +51,7 @@
     "esbuild": "0.25.12",
     "eslint": "^10.12.0",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "fake-indexeddb": "^6.2.8",
     "happy-dom": "^20.9.0",
     "tailwindcss": "4.1.12",
     "tsx": "^4.22.2",

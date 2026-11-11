@@ -92,9 +92,9 @@ function failureMessage(failure: PackStatsFailure): string {
 }
 
 const TIER_META: Record<RecommendedPack['tier'], { label: string; pill: string; icon: React.ReactNode }> = {
-  core:        { label: 'Esencial',    pill: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',     icon: <Sparkles size={9} /> },
-  recommended: { label: 'Recomendado', pill: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300', icon: null },
-  premium:     { label: 'Avanzado',    pill: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300', icon: null },
+  core:        { label: 'dict.tierCore',    pill: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',     icon: <Sparkles size={9} /> },
+  recommended: { label: 'dict.tierRecommended', pill: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300', icon: null },
+  premium:     { label: 'dict.tierPremium',    pill: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300', icon: null },
 };
 
 export function DictPacksSection() {
@@ -105,7 +105,7 @@ export function DictPacksSection() {
   const [feedback, setFeedback] = useState<ImportFeedback | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [csvOpen, setCsvOpen] = useState(false);
-  const [csvTitle, setCsvTitle] = useState('Mi lista');
+  const [csvTitle, setCsvTitle] = useState(t('dict.defaultListTitle'));
   const [csvText, setCsvText] = useState('');
   const [importingCsv, setImportingCsv] = useState(false);
   const [stats, setStats] = useState<PackStatsRow[]>([]);
@@ -190,6 +190,8 @@ export function DictPacksSection() {
     const outcome = await resetPackStatsViaWorker();
     if (!outcome.ok && outcome.code === 'failed') {
       console.warn('[Kivara Lingo] could not reset coverage', outcome.error);
+    } else {
+      setFeedback({ kind: 'ok', message: t('dict.countersCleared') });
     }
     await refresh();
   }, [refresh]);
@@ -212,12 +214,12 @@ export function DictPacksSection() {
       URL.revokeObjectURL(url);
       setFeedback({
         kind: 'ok',
-        message: `Cobertura exportada (${snap.rows.length} filas).`,
+        message: t('dict.coverageExported', { count: snap.rows.length.toLocaleString() }),
       });
     } catch (err) {
       setFeedback({
         kind: 'err',
-        message: `No se pudo exportar la cobertura: ${(err as Error).message}`,
+        message: t('dict.coverageExportError', { msg: (err as Error).message }),
       });
     }
   }, []);
@@ -243,12 +245,15 @@ export function DictPacksSection() {
         await refresh();
         setFeedback({
           kind: 'ok',
-          message: `Cobertura importada: ${outcome.added} filas nuevas, ${outcome.merged} fusionadas.`,
+          message: t('dict.coverageImported', {
+            added: outcome.added.toLocaleString(),
+            merged: outcome.merged.toLocaleString(),
+          }),
         });
       } catch (err) {
         setFeedback({
           kind: 'err',
-          message: `No se pudo importar: ${(err as Error).message}`,
+          message: t('dict.coverageImportError', { msg: (err as Error).message }),
         });
       }
     },
@@ -368,7 +373,7 @@ export function DictPacksSection() {
     setFeedback(null);
     setImportingCsv(true);
     try {
-      const result = await importCsvTextViaWorker(csvText, { title: csvTitle.trim() || 'Mi lista' });
+      const result = await importCsvTextViaWorker(csvText, { title: csvTitle.trim() || t('dict.defaultListTitle') });
       if (result.ok) {
         const skipped = result.skipped ?? 0;
         setFeedback({
@@ -405,7 +410,7 @@ export function DictPacksSection() {
         // Default the title to the filename minus extension if the user
         // hasn't typed one yet (or left the placeholder).
         const baseTitle = file.name.replace(/\.[^.]+$/, '');
-        if (!csvTitle.trim() || csvTitle === 'Mi lista') {
+        if (!csvTitle.trim() || csvTitle === t('dict.defaultListTitle')) {
           setCsvTitle(baseTitle);
         }
         setCsvText(text);
@@ -413,7 +418,7 @@ export function DictPacksSection() {
       } catch (err) {
         setFeedback({
           kind: 'err',
-          message: `No se pudo leer el archivo: ${(err as Error).message}`,
+          message: t('dict.readFileError', { msg: (err as Error).message }),
         });
       }
     },
@@ -501,7 +506,7 @@ export function DictPacksSection() {
                           <div className="flex items-center gap-1.5">
                             <span className="text-[11.5px] font-medium text-zinc-800 dark:text-zinc-200 truncate leading-tight">{p.title}</span>
                             <span className={`shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded inline-flex items-center gap-0.5 ${tier.pill}`}>
-                              {tier.icon}{tier.label}
+                              {tier.icon}{t(tier.label)}
                             </span>
                           </div>
                           <div className="text-[9.5px] text-zinc-500 tabular-nums leading-tight font-mono mt-0.5">
@@ -569,7 +574,7 @@ export function DictPacksSection() {
                       )}
                       {!pack.enabled && (
                         <span className="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">
-                          off
+                          {t('dict.off')}
                         </span>
                       )}
                     </div>
@@ -581,7 +586,7 @@ export function DictPacksSection() {
                     type="button"
                     onClick={() => void onToggle(pack)}
                     className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-700/60 transition-colors"
-                    title={pack.enabled ? 'Deshabilitar' : 'Habilitar'}
+                    title={pack.enabled ? t('dict.disable') : t('dict.enable')}
                   >
                     {pack.enabled ? <Power size={12} /> : <PowerOff size={12} />}
                   </button>
@@ -631,7 +636,7 @@ export function DictPacksSection() {
                 className="text-[10px] font-semibold px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1 transition-colors"
               >
                 {importingUrl === urlInput.trim() ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
-                Descargar
+                {t('dict.download')}
               </button>
             </div>
           </div>
@@ -647,7 +652,7 @@ export function DictPacksSection() {
                 title={t('dict.importFile')}
               >
                 {importing ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
-                Archivo local
+                {t('dict.localFile')}
               </button>
               <button
                 type="button"
@@ -659,7 +664,7 @@ export function DictPacksSection() {
                 }`}
               >
                 <FileText size={11} />
-                Pegar CSV/TSV
+                {t('dict.pasteCsv')}
               </button>
             </div>
           </div>
@@ -696,7 +701,7 @@ export function DictPacksSection() {
                   title={t('dict.loadCsv')}
                 >
                   <Upload size={10} />
-                  Archivo
+                  {t('dict.file')}
                 </button>
               </div>
               <textarea
@@ -753,7 +758,7 @@ export function DictPacksSection() {
         }
         trailing={
           <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-400">
-            {totals.total > 0 ? `${totals.total.toLocaleString()} lookups` : t('dict.noData')}
+            {totals.total > 0 ? t('dict.lookups', { count: totals.total.toLocaleString() }) : t('dict.noData')}
           </span>
         }
       >
@@ -775,7 +780,7 @@ export function DictPacksSection() {
               className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
               title={t('dict.exportSnapshotTitle')}
             >
-              Exportar
+              {t('dict.export')}
             </button>
             <button
               type="button"
@@ -783,7 +788,7 @@ export function DictPacksSection() {
               className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
               title={t('dict.importSnapshotTitle')}
             >
-              Importar
+              {t('dict.importSnapshot')}
             </button>
             <button
               type="button"
@@ -860,35 +865,35 @@ interface CoverageTotals {
 const COVERAGE_META = [
   {
     key: 'bundle' as const,
-    label: 'Bundle',
+    label: 'dict.covBundle',
     icon: <Package size={9} />,
     bar: 'bg-sky-400 dark:bg-sky-500',
     swatch: 'text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-500/10',
-    desc: 'Diccionario incluido (~4 100 entradas CEFR).',
+    desc: 'dict.covBundleDesc',
   },
   {
     key: 'packs' as const,
-    label: 'Packs',
+    label: 'dict.covPacks',
     icon: <Library size={9} />,
     bar: 'bg-indigo-400 dark:bg-indigo-500',
     swatch: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10',
-    desc: t('dict.resolvedByPack'),
+    desc: 'dict.resolvedByPack',
   },
   {
     key: 'remote' as const,
-    label: 'Remoto',
+    label: 'dict.covRemote',
     icon: <Cloud size={9} />,
     bar: 'bg-amber-400 dark:bg-amber-500',
     swatch: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10',
-    desc: t('dict.resolvedByRemote'),
+    desc: 'dict.resolvedByRemote',
   },
   {
     key: 'miss' as const,
-    label: 'Miss',
+    label: 'dict.covMiss',
     icon: <Ban size={9} />,
     bar: 'bg-rose-400 dark:bg-rose-500',
     swatch: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10',
-    desc: t('dict.noDefinition'),
+    desc: 'dict.noDefinition',
   },
 ];
 
@@ -911,16 +916,16 @@ function CoverageStats({ totals }: { totals: CoverageTotals }) {
             ? COVERAGE_META.map((m) => {
                 const pct = (values[m.key] / totals.total) * 100;
                 if (pct === 0) return null;
-                return <div key={m.key} className={m.bar} style={{ width: `${pct}%` }} title={`${m.label} · ${Math.round(pct)}%`} />;
+                return <div key={m.key} className={m.bar} style={{ width: `${pct}%` }} title={`${t(m.label)} · ${Math.round(pct)}%`} />;
               })
             : <div className="w-full bg-zinc-200/40 dark:bg-zinc-800/40" />}
         </div>
         <div className="flex items-center justify-between text-[9.5px] text-zinc-500 dark:text-zinc-400">
           <span className="inline-flex items-center gap-1">
             <CheckCircle2 size={9} className="text-emerald-500" />
-            <span className="tabular-nums">{hasData ? `${localPct}% local` : '— local'}</span>
+            <span className="tabular-nums">{hasData ? t('dict.localPct', { pct: localPct }) : t('dict.localPctNone')}</span>
           </span>
-          <span className="font-mono tabular-nums">{hasData ? totals.total.toLocaleString() : '0'} lookups</span>
+          <span className="font-mono tabular-nums">{t('dict.lookups', { count: hasData ? totals.total.toLocaleString() : '0' })}</span>
         </div>
       </div>
 
@@ -933,14 +938,14 @@ function CoverageStats({ totals }: { totals: CoverageTotals }) {
             <li
               key={m.key}
               className="flex items-center gap-1.5 rounded bg-white dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800/60 px-1.5 py-1 cursor-help"
-              title={m.desc}
+              title={t(m.desc)}
             >
               <span className={`inline-flex items-center justify-center w-4 h-4 rounded ${m.swatch}`}>
                 {m.icon}
               </span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-1">
-                  <span className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300 leading-none">{m.label}</span>
+                  <span className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300 leading-none">{t(m.label)}</span>
                   <span className="text-[9px] text-zinc-400 dark:text-zinc-400 tabular-nums ml-auto">{hasData ? `${pct}%` : '—'}</span>
                 </div>
                 <div className="text-[10.5px] font-mono tabular-nums text-zinc-800 dark:text-zinc-200 leading-tight">
@@ -997,7 +1002,7 @@ function TopPacksSection({ stats, packs, idlePackIds }: TopPacksSectionProps) {
       <div className="flex items-center gap-1.5 px-0.5">
         <Trophy size={10} className="text-amber-500" />
         <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex-1">{t('dictpack.topPacks')}</span>
-        <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-400">{totalHits.toLocaleString()} hits</span>
+        <span className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-400">{t('dict.hits', { count: totalHits.toLocaleString() })}</span>
       </div>
       <ol className="space-y-1">
         {ranking.map((row, idx) => {
@@ -1026,7 +1031,7 @@ function TopPacksSection({ stats, packs, idlePackIds }: TopPacksSectionProps) {
                   )}
                 </div>
                 <div className="text-[9px] text-zinc-500 dark:text-zinc-400 tabular-nums">
-                  {row.hits.toLocaleString()} hits · {share}%
+                  {t('dict.hits', { count: row.hits.toLocaleString() })} · {share}%
                   {pack ? t('dict.packTermsCount', { count: pack.termCount.toLocaleString() }) : t('dict.packDeleted')}
                 </div>
               </div>

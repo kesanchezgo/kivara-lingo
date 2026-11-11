@@ -8,12 +8,14 @@
  * script cannot reach, because in a content script `IndexedDB` resolves to the
  * host site's origin (issue #32).
  *
- * The import is replace-on-same-id: `BEGIN` clears the previous rows, `TERMS`
- * appends the new ones, `COMMIT` publishes the pack row. A torn import (tab
- * closed mid-way) leaves rows without a pack row, which no surface reads and
- * the next import of the same id clears.
+ * The import is atomic: `BEGIN` creates the pack row and every `TERMS` batch
+ * under a staging id (`tmp-<finalId>`), and `COMMIT` swaps the staged rows to
+ * the final id in one IndexedDB transaction together with the pack row. A
+ * torn import (worker killed mid-way) leaves only a staging pack, which
+ * `cleanupDictPackOrphans()` removes on the next worker start; a failed import
+ * never shows up as an installed pack.
  */
-import { getDB } from '../shared/db';
+import { getDB, TEMP_DICT_PACK_PREFIX, tempDictPackId } from '../shared/db';
 import type { DictPackRow, DictTermRow } from '../shared/dict-types';
 import { recordPackInstall } from '../shared/telemetry';
 
@@ -95,24 +97,35 @@ function sanitizeTermRow(raw: unknown, packId: string): DictTermRow | null {
   };
 }
 
-/** Drop the previous rows for this pack id. */
-export async function beginDictPackImport(packId: string): Promise<void> {
+/**
+ * Start an import: drop any previous staging rows for this pack and write the
+ * pack metadata under its staging id. Nothing is visible as an installed pack
+ * until `commitDictPackImport` runs.
+ */
+export async function beginDictPackImport(pack: DictPackRow): Promise<void> {
+  await settleOrphanCleanup();
   const db = getDB();
-  await db.dict_terms.where('packId').equals(packId).delete();
+  const stagingId = tempDictPackId(pack.id);
+  await db.transaction('rw', db.dict_packs, db.dict_terms, async () => {
+    await db.dict_terms.where('packId').equals(stagingId).delete();
+    await db.dict_packs.put({ ...pack, id: stagingId, termCount: 0 });
+  });
 }
 
-/** Append one validated batch of rows; returns how many rows landed. */
+/** Append one validated batch of rows to the staging pack; returns how many landed. */
 export async function appendDictPackTerms(
   packId: string,
   rawTerms: unknown,
 ): Promise<number> {
+  await settleOrphanCleanup();
   if (!Array.isArray(rawTerms)) throw new Error('terms must be an array');
   if (rawTerms.length > MAX_TERMS_PER_MESSAGE) {
     throw new Error(`too many terms in one message (${rawTerms.length} > ${MAX_TERMS_PER_MESSAGE})`);
   }
+  const stagingId = tempDictPackId(packId);
   const rows: DictTermRow[] = [];
   for (const raw of rawTerms) {
-    const row = sanitizeTermRow(raw, packId);
+    const row = sanitizeTermRow(raw, stagingId);
     if (row) rows.push(row);
   }
   if (rows.length === 0) return 0;
@@ -125,25 +138,101 @@ export async function appendDictPackTerms(
 }
 
 /**
- * Publish the pack row, mark the install in local telemetry and report how
- * many rows this pack currently owns. Anything left over from a previous
- * install was deleted by `BEGIN`.
+ * Publish the staged pack: one transaction drops the previous install of the
+ * final id, moves every staged row to it, deletes the staging pack row and
+ * writes the final pack row. A failure at any point rolls the whole swap back
+ * and the staging rows are cleaned by the next start-up pass.
  *
  * `termCount` is rewritten from the rows that actually landed, not trusted
  * from the message: `TERMS` may have dropped a malformed row, and the panel
  * renders this number.
  */
 export async function commitDictPackImport(pack: DictPackRow): Promise<number> {
+  await settleOrphanCleanup();
   const db = getDB();
-  const written = await db.dict_terms.where('packId').equals(pack.id).count();
-  if (written === 0) throw new Error('No rows were written for this pack');
-  await db.dict_packs.put({ ...pack, termCount: written });
+  const stagingId = tempDictPackId(pack.id);
+
+  const written = await db.transaction('rw', db.dict_packs, db.dict_terms, async () => {
+    const staged = await db.dict_terms.where('packId').equals(stagingId).count();
+    if (staged === 0) throw new Error('No rows were written for this pack');
+
+    // Replace semantics: the old install only disappears with the swap, so a
+    // failed commit leaves the previous pack intact.
+    await db.dict_terms.where('packId').equals(pack.id).delete();
+    await db.dict_terms.where('packId').equals(stagingId).modify({ packId: pack.id });
+    await db.dict_packs.delete(stagingId);
+    await db.dict_packs.put({ ...pack, termCount: staged });
+    return staged;
+  });
   void recordPackInstall(pack.id, pack.title);
   return written;
 }
 
-/** Best-effort cleanup after a failed step so no orphan rows are left behind. */
+/** Best-effort cleanup after a failed step so no staging rows are left behind. */
 export async function abortDictPackImport(packId: string): Promise<void> {
   const db = getDB();
-  await db.dict_terms.where('packId').equals(packId).delete();
+  const stagingId = tempDictPackId(packId);
+  await db.transaction('rw', db.dict_packs, db.dict_terms, async () => {
+    await db.dict_terms.where('packId').equals(stagingId).delete();
+    await db.dict_packs.delete(stagingId);
+  });
+}
+
+export interface DictOrphanCleanup {
+  /** Staging packs removed. */
+  packs: number;
+  /** Term rows removed (staging + orphaned). */
+  terms: number;
+}
+
+/**
+ * Start-up sweep: remove every staging pack left by a torn import and every
+ * term row whose pack id has no pack row. Committed packs are untouched.
+ * Runs once per service-worker start; import steps await `beginOrphanCleanup`
+ * so a cold start cannot delete a staging pack that is being written.
+ */
+export async function cleanupDictPackOrphans(): Promise<DictOrphanCleanup> {
+  const db = getDB();
+  const packIds = (await db.dict_packs.toCollection().primaryKeys()) as string[];
+  const knownPacks = new Set(packIds);
+  const stagingPacks = packIds.filter(
+    (id) => typeof id === 'string' && id.startsWith(TEMP_DICT_PACK_PREFIX),
+  );
+  const termPackIds = (await db.dict_terms.orderBy('packId').uniqueKeys()) as unknown as string[];
+  const orphanTermPacks = termPackIds.filter(
+    (id) => typeof id === 'string' && !knownPacks.has(id),
+  );
+  if (stagingPacks.length === 0 && orphanTermPacks.length === 0) {
+    return { packs: 0, terms: 0 };
+  }
+
+  let terms = 0;
+  await db.transaction('rw', db.dict_packs, db.dict_terms, async () => {
+    for (const id of new Set([...stagingPacks, ...orphanTermPacks])) {
+      terms += await db.dict_terms.where('packId').equals(id).count();
+      await db.dict_terms.where('packId').equals(id).delete();
+    }
+    for (const id of stagingPacks) await db.dict_packs.delete(id);
+  });
+  return { packs: stagingPacks.length, terms };
+}
+
+/**
+ * Barrier for the start-up sweep. The service worker calls this once at
+ * module load; every import step awaits the returned promise so the sweep and
+ * a fresh BEGIN cannot interleave. A failed sweep must not block imports.
+ */
+let orphanCleanup: Promise<void> | null = null;
+
+export function beginDictPackOrphanCleanup(): Promise<void> {
+  if (!orphanCleanup) {
+    orphanCleanup = cleanupDictPackOrphans()
+      .then(() => undefined)
+      .catch(() => undefined);
+  }
+  return orphanCleanup;
+}
+
+async function settleOrphanCleanup(): Promise<void> {
+  if (orphanCleanup) await orphanCleanup;
 }

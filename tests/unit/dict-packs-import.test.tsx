@@ -331,7 +331,7 @@ describe('DictPacksSection coverage route (#32)', { timeout: 30_000 }, () => {
     await openCoverage();
 
     // The GET went out and its rows drove the widget ("3 lookups").
-    await waitFor(() => expect(screen.getAllByText(/3 lookups/i).length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText(/3 consultas/i).length).toBeGreaterThan(0));
     expect(statsMessages(worker).map((m) => m.type)).toContain('GET_PACK_STATS');
   });
 
@@ -340,7 +340,7 @@ describe('DictPacksSection coverage route (#32)', { timeout: 30_000 }, () => {
     worker.stats.set('bundle', { packId: 'bundle', hits: 3, lastUsedAt: 1, createdAt: 1 });
     await mountPanel();
     await openCoverage();
-    await waitFor(() => expect(screen.getAllByText(/3 lookups/i).length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText(/3 consultas/i).length).toBeGreaterThan(0));
 
     fireEvent.click(screen.getByRole('button', { name: /^Reiniciar$/i }));
 
@@ -405,7 +405,7 @@ describe('DictPacksSection coverage route (#32)', { timeout: 30_000 }, () => {
     vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL });
     await mountPanel();
     await openCoverage();
-    await waitFor(() => expect(screen.getAllByText(/2 lookups/i).length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText(/2 consultas/i).length).toBeGreaterThan(0));
 
     fireEvent.click(screen.getByRole('button', { name: /^Exportar$/i }));
 

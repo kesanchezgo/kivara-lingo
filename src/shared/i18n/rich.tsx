@@ -2,7 +2,7 @@ import React from 'react';
 
 /**
  * One translatable sentence with `{name}` holes for the formatted parts
- * (bold, code, paths): `richText(t('cards.connHint'), { url: <code>…</code> })`.
+ * (bold, code, paths): `richText(t(key), { url: <code>…</code> })`.
  * Never split sentences into fragments — word order changes between languages.
  */
 export function richText(text: string, parts: Record<string, React.ReactNode>): React.ReactNode[] {

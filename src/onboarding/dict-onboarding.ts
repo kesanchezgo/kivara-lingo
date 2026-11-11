@@ -58,7 +58,7 @@ export const CURATED_DICT_PACKS: OnboardingDictPack[] = [
     size: '≈1.5 MB',
     defaultSelected: true,
     tier: 'core',
-    benefit: 'Imprescindible',
+    benefit: t('dictob.essential'),
   },
   {
     url: `${PACKS_BASE_URL}/kty-en-ipa.zip`,
