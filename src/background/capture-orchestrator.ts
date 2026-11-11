@@ -1085,7 +1085,10 @@ export async function createCardFromRequest(
         },
       );
       if (!stored) {
-        warnings.push('Audio palabra (URL): no descargable');
+        // The URL came from an enrichment source and did not download: the
+        // usual reason is the host permission for that source, so the notice
+        // points at Site access (prototype wording, both locales).
+        warnings.push(t('app.noWordAudioAccess'));
       }
     }
     if (!attached) {
@@ -1101,8 +1104,10 @@ export async function createCardFromRequest(
           storedMedia.audio = true;
         }
       } catch (err) {
-        const reason = err instanceof Error ? err.message : 'word-audio';
-        warnings.push(`TTS palabra: ${reason}`);
+        // No source and no synthesis: nothing to play. The user-facing line
+        // says what to turn on; the raw reason stays in the worker log.
+        console.warn('[Kivara Lingo] word audio failed:', err);
+        warnings.push(t('app.noWordAudio'));
       }
     }
     if (attached) storedMedia.audio = true;
