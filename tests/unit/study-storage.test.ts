@@ -7,7 +7,8 @@
  *     language being learned, is idempotent and never overwrites a
  *     per-language value that is already there;
  *   • marks live under `kvl:wordStatus:<lang>`, one key per language, and an
- *     `onChanged` from another context is adopted (a second tab sees it);
+ *     `onChanged` from another context is merged key by key (a second tab sees
+ *     it without clobbering this tab's marks);
  *   • saving a card turns a «known» hand mark into the card (`learning`), and
  *     the word is never saved twice because it is now in Anki;
  *   • the interval refresh is a SNAPSHOT: the cached map is replaced, a word
@@ -104,36 +105,47 @@ describe('migrateToLanguageProfiles', () => {
 });
 
 describe('word status storage', () => {
-  it('writes one key per language and adopts an onChanged from another context', async () => {
+  it('writes one key per language and merges an onChanged from another context', async () => {
     const { stored, listeners } = installChrome();
     resetStudyStores();
+    await hydrateStudy('en');
     setWordStatus('en', 'Sane', 'known');
     expect(studyStores('en').status.get()).toEqual({ sane: 'known' });
     await studyStores('en').status.flush();
     expect(stored['kvl:wordStatus:en']).toEqual({ sane: 'known' });
 
-    // Another tab marks another word: this context adopts it.
-    const change = { 'kvl:wordStatus:en': { newValue: { day: 'new' } } };
+    // Another tab, which already knew `sane`, marks another word: this context
+    // merges it key by key instead of clobbering its own map.
+    const change = {
+      'kvl:wordStatus:en': {
+        oldValue: { sane: 'known' },
+        newValue: { sane: 'known', day: 'new' },
+      },
+    };
     listeners.forEach((cb) => cb(change, 'local'));
-    expect(studyStores('en').status.get()).toEqual({ day: 'new' });
+    expect(studyStores('en').status.get()).toEqual({ sane: 'known', day: 'new' });
 
     // A mark in another language does not leak into this profile.
+    await hydrateStudy('fr');
     setWordStatus('fr', 'jour', 'learning');
     expect(studyStores('fr').status.get()).toEqual({ jour: 'learning' });
-    expect(studyStores('en').status.get()).toEqual({ day: 'new' });
+    expect(studyStores('en').status.get()).toEqual({ sane: 'known', day: 'new' });
   });
 
-  it('clears the hand mark with null, giving control back to Anki', () => {
+  it('clears the hand mark with null, giving control back to Anki', async () => {
     installChrome();
     resetStudyStores();
+    await hydrateStudy('en');
     setWordStatus('en', 'sane', 'known');
+    expect(studyStores('en').status.get()).toEqual({ sane: 'known' });
     setWordStatus('en', 'sane', null);
     expect(studyStores('en').status.get()).toEqual({});
   });
 
-  it('a saved card turns a «known» mark into learning and is never saved twice', () => {
+  it('a saved card turns a «known» mark into learning and is never saved twice', async () => {
     installChrome();
     resetStudyStores();
+    await hydrateStudy('en');
     setWordStatus('en', 'sane', 'known');
     noteCardSaved('en', 'sane');
 
@@ -143,9 +155,10 @@ describe('word status storage', () => {
     expect(ankiSummaryOf(studyStores('en').anki.get())).toEqual({ total: 1, mature: 0, learning: 1 });
   });
 
-  it('keeps a «new» mark when the word is saved', () => {
+  it('keeps a «new» mark when the word is saved', async () => {
     installChrome();
     resetStudyStores();
+    await hydrateStudy('en');
     setWordStatus('en', 'sane', 'new');
     noteCardSaved('en', 'sane');
     expect(studyStores('en').status.get()).toEqual({ sane: 'new' });
@@ -185,25 +198,28 @@ describe('word status storage', () => {
     expect(anki.get()).toEqual({ day: { interval: 0 }, time: { interval: 30 } });
   });
 
-  it('a snapshot never touches the user marks', () => {
+  it('a snapshot never touches the user marks', async () => {
     installChrome();
     resetStudyStores();
+    await hydrateStudy('en');
     setWordStatus('en', 'old', 'known');
     replaceAnkiIntervals('en', { sane: 21 });
     expect(studyStores('en').status.get()).toEqual({ old: 'known' });
     expect(studyStores('en').anki.get()).toEqual({ sane: { interval: 21 } });
   });
 
-  it('ignores malformed intervals instead of poisoning the snapshot', () => {
+  it('ignores malformed intervals instead of poisoning the snapshot', async () => {
     installChrome();
     resetStudyStores();
+    await hydrateStudy('en');
     replaceAnkiIntervals('en', { day: Number.NaN, time: -2, sane: 21 } as unknown as Record<string, number>);
     expect(studyStores('en').anki.get()).toEqual({ sane: { interval: 21 } });
   });
 
-  it('undo removes the word from the cache (removeAnkiWord), marks untouched', () => {
+  it('undo removes the word from the cache (removeAnkiWord), marks untouched', async () => {
     installChrome();
     resetStudyStores();
+    await hydrateStudy('en');
     setWordStatus('en', 'sane', 'new');
     replaceAnkiIntervals('en', { sane: 12, time: 30 });
     expect(isInAnki('en', 'sane')).toBe(true);

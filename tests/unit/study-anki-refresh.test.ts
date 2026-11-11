@@ -14,7 +14,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sendMessage } from 'webext-bridge/content-script';
 import { useKivaraStore } from '../../src/shared/use-kivara-store';
 import { getAnkiCoverage, recordCardSaved, refreshAnkiIntervals } from '../../src/content/ui/study';
-import { replaceAnkiIntervals, resetStudyStores, setWordStatus, studyStores } from '../../src/shared/study/wordStatus';
+import { replaceAnkiIntervals, hydrateStudy, resetStudyStores, setWordStatus, studyStores } from '../../src/shared/study/wordStatus';
 import { DEFAULT_ANKI_MAPPING } from '../../src/shared/store';
 
 const send = vi.mocked(sendMessage);
@@ -38,7 +38,7 @@ function installStorage() {
   };
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   resetStudyStores();
   installStorage();
   useKivaraStore.setState({
@@ -49,6 +49,9 @@ beforeEach(() => {
       fieldSources: { Front: 'selection' },
     },
   });
+  // The stores queue writes until hydration resolves; these tests read them
+  // synchronously right after a set.
+  await hydrateStudy('en');
 });
 
 describe('refresh after a save', () => {

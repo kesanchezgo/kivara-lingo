@@ -114,8 +114,11 @@ export function studyStores(lang: string): StudyStores {
   let found = stores.get(lang);
   if (!found) {
     found = {
-      status: createChromeLocalStore(langKey(WORD_STATUS_KEY, lang), {}, reviveStatusMap),
-      anki: createChromeLocalStore(langKey(ANKI_WORDS_KEY, lang), {}, reviveAnki),
+      // The two map stores merge `onChanged` key by key: two tabs marking
+      // different words must not clobber each other. The level profile is a
+      // single object, so it keeps replacing wholesale.
+      status: createChromeLocalStore(langKey(WORD_STATUS_KEY, lang), {}, reviveStatusMap, { merge: 'keys' }),
+      anki: createChromeLocalStore(langKey(ANKI_WORDS_KEY, lang), {}, reviveAnki, { merge: 'keys' }),
       profile: createChromeLocalStore(langKey(LEVEL_PROFILE_KEY, lang), DEFAULT_LEVEL_PROFILE, reviveLevelProfile),
     };
     stores.set(lang, found);
