@@ -165,17 +165,34 @@ export async function addContextToNote(
     }
   }
 
-  try {
-    if (tags.length > 0) {
-      await ankiConnect.addTags(tags, [noteId], mapping.ankiUrl, mapping.apiKey);
-    }
-    if (Object.keys(fields).length > 0) {
+  // Fields FIRST, then tags: the fields carry the scene the user asked for,
+  // and a tag failure must not discard them. Each write reports its own
+  // failure so the caller can say honestly what landed.
+  if (Object.keys(fields).length > 0) {
+    try {
       await ankiConnect.updateNoteFields(noteId, fields, mapping.ankiUrl, mapping.apiKey);
+    } catch (err) {
+      return {
+        ok: false,
+        noteId,
+        partial: 'fields',
+        error: err instanceof Error ? err.message : 'fields update failed',
+      };
     }
-    return { ok: true, noteId };
-  } catch (err) {
-    return { ok: false, noteId, error: err instanceof Error ? err.message : 'update failed' };
   }
+  if (tags.length > 0) {
+    try {
+      await ankiConnect.addTags(tags, [noteId], mapping.ankiUrl, mapping.apiKey);
+    } catch (err) {
+      return {
+        ok: false,
+        noteId,
+        partial: 'tags',
+        error: err instanceof Error ? err.message : 'tags update failed',
+      };
+    }
+  }
+  return { ok: true, noteId };
 }
 
 /** See in Anki: open the browser on `nid:<id>` or on the caller's query. */

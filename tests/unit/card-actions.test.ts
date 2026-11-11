@@ -149,6 +149,44 @@ describe('addContextToNote (Add this scene)', () => {
     expect(spies.cardsInfo).toHaveBeenCalledWith([55], MAPPING.ankiUrl, undefined);
   });
 
+  it('writes the fields before the tags', async () => {
+    const spies = setup();
+    const order: string[] = [];
+    spies.updateNoteFields.mockImplementation(async () => {
+      order.push('fields');
+      return null;
+    });
+    spies.addTags.mockImplementation(async () => {
+      order.push('tags');
+      return null;
+    });
+    const { addContextToNote } = await import('../../src/background/card-actions');
+    const res = await addContextToNote({ noteId: 77, sentence: 'Order.', tags: ['kivara::word'] }, MAPPING as never);
+    expect(res).toMatchObject({ ok: true });
+    expect(order).toEqual(['fields', 'tags']);
+  });
+
+  it('reports a fields failure and does not try the tags', async () => {
+    const spies = setup();
+    spies.updateNoteFields.mockRejectedValueOnce(new FakeAnkiError('fields rejected'));
+    const { addContextToNote } = await import('../../src/background/card-actions');
+    const res = await addContextToNote({ noteId: 77, sentence: 'Partial.', tags: ['kivara::word'] }, MAPPING as never);
+    expect(res).toMatchObject({ ok: false, noteId: 77, partial: 'fields' });
+    expect(res.error).toContain('fields rejected');
+    expect(spies.addTags).not.toHaveBeenCalled();
+  });
+
+  it('reports a tags failure after the scene landed', async () => {
+    const spies = setup();
+    spies.addTags.mockRejectedValueOnce(new FakeAnkiError('tags rejected'));
+    const { addContextToNote } = await import('../../src/background/card-actions');
+    const res = await addContextToNote({ noteId: 77, sentence: 'Partial.', tags: ['kivara::word'] }, MAPPING as never);
+    expect(res).toMatchObject({ ok: false, noteId: 77, partial: 'tags' });
+    expect(res.error).toContain('tags rejected');
+    // The scene itself was written before the tag call failed.
+    expect(spies.updateNoteFields).toHaveBeenCalledTimes(1);
+  });
+
   it('stores a frame and audio when supplied', async () => {
     const spies = setup();
     const { addContextToNote } = await import('../../src/background/card-actions');

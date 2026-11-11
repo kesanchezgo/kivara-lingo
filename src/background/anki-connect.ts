@@ -391,8 +391,14 @@ export const ankiConnect = {
   },
 
   /** Add tags to existing notes without touching their fields. */
+  /** AnkiConnect takes `tags` as ONE space-separated string; an array is
+   * rejected by the add-on (and silently ignored by some builds). */
   async addTags(tags: string[], notes: number[], url?: string, apiKey?: string): Promise<null> {
-    return invoke<null>('addTags', { tags, notes }, { url, apiKey, allowFallbackRetry: false });
+    return invoke<null>(
+      'addTags',
+      { tags: tags.join(' '), notes },
+      { url, apiKey, allowFallbackRetry: false },
+    );
   },
 
   /**

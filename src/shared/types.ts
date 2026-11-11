@@ -1114,7 +1114,15 @@ export interface AnkiAddContextRequest {
   /** Field that holds the headword, used to narrow the lookup. */
   fieldName?: string;
 }
-export interface AnkiAddContextResponse { ok: boolean; noteId?: number; error?: string; }
+export interface AnkiAddContextResponse {
+  ok: boolean;
+  noteId?: number;
+  error?: string;
+  /** Set when one of the two writes landed and the other did not: 'fields'
+   * means the scene was NOT written, 'tags' means it was and only the tags
+   * failed. */
+  partial?: 'fields' | 'tags';
+}
 
 /** See in Anki: open the browser on a note id or a raw query. */
 export interface AnkiBrowseRequest { noteId?: number; query?: string; }

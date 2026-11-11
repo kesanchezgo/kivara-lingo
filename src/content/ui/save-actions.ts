@@ -174,6 +174,15 @@ export async function addSceneToNote(
     });
     return true;
   }
+  // The fields landed but the tags did not: the scene is there, so this is a
+  // warning — not the "couldn't add" error, which would be a lie.
+  if (res?.partial === 'tags') {
+    toast.warning(t('app.addScenePartialTags'), {
+      description: res.error ?? ctx.token,
+      duration: 4000,
+    });
+    return true;
+  }
   toast.error(t('app.addSceneError'), { description: res?.error ?? t('popup.anki.down') });
   return false;
 }

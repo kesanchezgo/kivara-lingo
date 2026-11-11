@@ -34,11 +34,12 @@ describe('ankiConnect F4 actions', () => {
     expect(calls).toEqual([{ action: 'deleteNotes', params: { notes: [1, 2] }, key: 'secret' }]);
   });
 
-  it('addTags posts tags and note ids', async () => {
+  it('addTags posts ONE space-separated tag string and the note ids', async () => {
     const calls = stubFetch(null);
-    await ankiConnect.addTags(['kivara::lang::en'], [7]);
+    await ankiConnect.addTags(['kivara::lang::en', 'kivara::word'], [7]);
     expect(calls[0].action).toBe('addTags');
-    expect(calls[0].params).toEqual({ tags: ['kivara::lang::en'], notes: [7] });
+    // AnkiConnect takes `tags` as a string; an array is rejected by the add-on.
+    expect(calls[0].params).toEqual({ tags: 'kivara::lang::en kivara::word', notes: [7] });
   });
 
   it('guiBrowse posts the query and returns note ids', async () => {
