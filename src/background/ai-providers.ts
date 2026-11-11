@@ -253,6 +253,19 @@ async function callAnthropic(
   }
 }
 
+/**
+ * Thinking budget for a Gemini model.
+ *
+ * The Pro tier cannot disable reasoning: Gemini 2.5 Pro rejects
+ * `thinkingBudget: 0` with a 400 ("Thinking is required for this model"), so
+ * the field is OMITTED for Pro and the server applies its dynamic default.
+ * Flash and Flash-Lite accept 0, which is what these short structured-JSON
+ * prompts want — no reasoning tokens spent before the answer.
+ */
+function geminiThinkingConfig(model: string): { thinkingBudget: number } | undefined {
+  return /pro/i.test(model) ? undefined : { thinkingBudget: 0 };
+}
+
 async function callGemini(
   req: AiEnrichRequest,
   settings: AiSettings,
@@ -262,19 +275,17 @@ async function callGemini(
   const model = settings.model || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(settings.apiKey)}`;
   // Gemini 2.5+ models default to "thinking" mode which can swallow up
-  // to ~500 tokens of internal reasoning before producing output. With
-  // `thinkingBudget: 0` the model skips that step and behaves like a
-  // standard chat model — much cheaper, still accurate for our short
-  // structured-JSON prompt. `maxOutputTokens` is set generously so the
-  // JSON envelope (~700 tokens for our enrichment) never gets cut.
+  // to ~500 tokens of internal reasoning before producing output. Flash and
+  // Flash-Lite skip it with `thinkingBudget: 0` — much cheaper, still accurate
+  // for our short structured-JSON prompt; Pro cannot, so the field is omitted
+  // there (see geminiThinkingConfig). `maxOutputTokens` is set generously so
+  // the JSON envelope (~700 tokens for our enrichment) never gets cut.
   const body = {
     contents: [{ role: 'user', parts: [{ text: buildPrompt(req) }] }],
     generationConfig: {
       responseMimeType: 'application/json',
       maxOutputTokens: 1500,
-      // `thinkingConfig` is honored by 2.5-flash / 2.5-pro; older 2.0
-      // models silently ignore the field.
-      thinkingConfig: { thinkingBudget: 0 },
+      thinkingConfig: geminiThinkingConfig(model),
     },
   };
   let resp: Response;
@@ -606,7 +617,8 @@ export async function callAiJson(
             responseMimeType: 'application/json',
             temperature,
             maxOutputTokens: maxTokens,
-            thinkingConfig: { thinkingBudget: 0 },
+            // Pro cannot disable reasoning; the field is omitted there.
+            thinkingConfig: geminiThinkingConfig(model),
           },
         }),
       },
