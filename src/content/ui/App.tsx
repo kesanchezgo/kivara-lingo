@@ -36,7 +36,8 @@ import {
 } from './save-actions';
 import { useEpisode } from './useEpisode';
 import { cueIndexAt, SLOW_REPLAY_RATE, useStudyPlayback } from './useStudyPlayback';
-import { TranscriptRail } from './TranscriptRail';
+import { TranscriptRail, type NativeLineCue } from './TranscriptRail';
+import { focusFirstIn } from './column-focus';
 import { StudyBar } from './StudyBar';
 import { applyColumnsCss, computeColumnLayout, computeColumnVisibility } from './columns-css';
 import { railOpenStore, railViewStore } from './ui-state';
@@ -371,6 +372,16 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     () => computeColumnLayout(columnVisibility, viewportWidth),
     [columnVisibility, viewportWidth],
   );
+  // The two columns are separate subtrees: a button in one hands the keyboard
+  // to the other instead of leaving focus on the player.
+  const railHostRef = useRef<HTMLDivElement>(null);
+  const panelHostRef = useRef<HTMLDivElement>(null);
+  const focusRail = useCallback(() => {
+    requestAnimationFrame(() => focusFirstIn(railHostRef.current));
+  }, []);
+  const focusPanel = useCallback(() => {
+    requestAnimationFrame(() => focusFirstIn(panelHostRef.current));
+  }, []);
   /**
    * Jump and play through the adapter's controller. A platform that refuses
    * the seek (Netflix without its player API yet) leaves playback running
@@ -664,6 +675,27 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     // movie — tore down and set up the interval a thousand times an
     // episode).
   }, [adapter, targetLang]);
+
+  // The FULL native track, for the translated line under each transcript
+  // sentence (F6). The bus already holds it — the same `getTrackByLanguage`
+  // lookup the audio-quality fallback uses — so the rail shows every line's
+  // translation, not just the active cue's. No track (or a track in the same
+  // language as the subtitles) means no second line at all.
+  const [nativeLines, setNativeLines] = useState<NativeLineCue[] | null>(null);
+  useEffect(() => {
+    const read = () => {
+      const lang = (targetLang || 'es').slice(0, 2).toLowerCase();
+      const source = (cueLanguageRef.current || 'en').slice(0, 2).toLowerCase();
+      const track = lang === source ? null : getTrackByLanguage(lang);
+      setNativeLines(
+        track && track.cues.length > 0
+          ? track.cues.map((cue) => ({ start: cue.start, end: cue.end, text: cue.text }))
+          : null,
+      );
+    };
+    read();
+    return onTrack(read);
+  }, [targetLang, cueLanguage]);
 
   // Pause video while the user is reading a popover; resume on leave.
   //
@@ -1707,6 +1739,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           reserved and the columns paint over the player. */}
       {railVisible && (
         <div
+          ref={railHostRef}
           className="pointer-events-auto"
           style={{
             position: 'absolute',
@@ -1747,6 +1780,12 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             onStudyResume={studyPlayback.resumeIfKivaraPaused}
             ai={aiOn ? aiPort : null}
             explainRequest={explainTick}
+            nativeCues={nativeLines}
+            translation={study.translation}
+            onTranslationChange={(next) => setStudy((prev) => ({ ...prev, translation: next }))}
+            listenFirst={study.listenFirst}
+            onSaveWord={(word, sentence) => { void handleSaveCard(word, sentence); }}
+            onFocusPanel={panelDocked ? focusPanel : undefined}
             uiLang={currentLocale()}
             nativeLang={useKivaraStore.getState().translate.targetLanguage}
             panelOpen={panelOpen}
@@ -1760,6 +1799,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
 
       {enabled && panelOpen && (
         <div
+          ref={panelHostRef}
           className="pointer-events-auto"
           style={{
             position: 'absolute',
@@ -1783,6 +1823,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             isPopupMode={isPopupMode}
             onClose={() => setPanelOpen(false)}
             togglePopupMode={() => setIsPopupMode(!isPopupMode)}
+            onToTranscript={railVisible ? focusRail : undefined}
             isDarkMode={isDarkMode}
             toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
             styles={subtitleStyles}
@@ -1795,6 +1836,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             // `targetSentence` when present (shared builder — Options.tsx
             // uses the same source with no cue).
             mockData={buildPreviewData(activeCue?.text)}
+            episodeLang={cueLanguage}
           />
         </div>
       )}

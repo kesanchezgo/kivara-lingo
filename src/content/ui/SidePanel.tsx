@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Subtitles, LayoutGrid, Settings, X, ExternalLink, Moon, Sun, GripVertical, GraduationCap,
+  AlignLeft,
 } from '../../ui/icons';
 import { BrandGlyph } from '../../ui/BrandGlyph';
 import { t } from '../../shared/i18n';
+import { comboOf, withCombo } from './combo-hints';
 import type { PanelPosition } from '../../shared/store';
 import { useKivaraStore } from '../../shared/use-kivara-store';
 import type { AnkiMapping, SubtitleStyles } from '../../shared/types';
@@ -42,6 +44,10 @@ interface SidePanelProps {
   mapping: AnkiMapping;
   setMapping: (mapping: AnkiMapping | ((prev: AnkiMapping) => AnkiMapping)) => void;
   mockData: CardPreviewData;
+  /** The rail is docked beside the panel: hand focus to it. */
+  onToTranscript?: () => void;
+  /** Language of the playing subtitles; the Cards tab badges its deck row. */
+  episodeLang?: string;
 }
 
 type PanelTab = 'subtitles' | 'vocab' | 'cards' | 'settings';
@@ -121,8 +127,11 @@ export function SidePanel({
   mapping,
   setMapping,
   mockData,
+  onToTranscript,
+  episodeLang,
 }: SidePanelProps) {
   const deepLink = useDeepLinkSection();
+  const shortcuts = useKivaraStore((state) => state.shortcuts);
   const [activeTab, setActiveTab] = useState<PanelTab>('cards');
 
   // A deep link must not land on Cards: that tab never mounts SettingsTab, so
@@ -307,6 +316,17 @@ export function SidePanel({
           </div>
         </div>
         <div className="flex items-center gap-0.5">
+          {onToTranscript && (
+            <button
+              type="button"
+              onClick={onToTranscript}
+              className={HEAD_BTN}
+              title={t('panel.toTranscript')}
+              aria-label={t('panel.toTranscript')}
+            >
+              <AlignLeft size={16} />
+            </button>
+          )}
           {togglePopupMode && (
             <button
               type="button"
@@ -332,7 +352,7 @@ export function SidePanel({
               type="button"
               onClick={close}
               className={HEAD_BTN}
-              title={t('panel.closeTitle')}
+              title={withCombo(t('panel.closeTitle'), comboOf(shortcuts, 'panel'))}
               aria-label={t('panel.closeTitle')}
             >
               <X size={16} />
@@ -407,7 +427,13 @@ export function SidePanel({
             <SubtitlesTab styles={styles} setStyles={setStyles} onOpenVocab={() => selectTab('vocab')} />
           )}
           {tab.id === 'cards' && (
-            <CardsTab mapping={mapping} setMapping={setMapping} mockData={mockData} />
+            <CardsTab
+              mapping={mapping}
+              setMapping={setMapping}
+              mockData={mockData}
+              episodeLang={episodeLang}
+              onOpenVocab={() => selectTab('vocab')}
+            />
           )}
           {tab.id === 'settings' && (
             <SettingsTab

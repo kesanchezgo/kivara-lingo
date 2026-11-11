@@ -27,9 +27,10 @@ import type {
   ResolveWordResponse,
   ResolveWordStreamRequest,
 } from '../../shared/types';
-import { formatFrequencyBand, pickFrequencyWinner } from '../../shared/frequency';
+import { pickFrequencyWinner } from '../../shared/frequency';
 import { lookupDictionary } from '../nlp/dictionary';
 import { openResolveWordStream } from '../resolve-word-stream';
+import { FrequencyBadge, useWordRank } from './FrequencyBadge';
 
 export interface WordPopoverProps {
   cardTheme?: 'dark' | 'light' | 'auto';
@@ -440,6 +441,7 @@ export function WordPopover({
 }: WordPopoverProps) {
   const canonicalToken = lookupToken ?? token;
   const resolved = useResolveWord(canonicalToken, sentence, sourceLang, includeAi);
+  const rank = useWordRank(canonicalToken, sourceLang);
 
   const ref = useRef<HTMLDivElement>(null);
   const arrowRef = useRef<HTMLDivElement>(null);
@@ -686,17 +688,11 @@ export function WordPopover({
                 <ChipRow label={t('popover.combinations')} items={meta.collocations.slice(0, 8)} />
               )}
 
-              {freqWinner && (
-                <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                  <span className="text-[12px] font-medium text-zinc-500 dark:text-zinc-400 mr-1">{t('wp.frequency')}</span>
-                  <span
-                    className={`text-[11px] font-medium h-5 inline-flex items-center px-1.5 rounded-md normal-case ${META_CHIP}`}
-                    title={`${formatSource(freqWinner.source)} · ${freqWinner.corpus ?? freqWinner.scale}`}
-                  >
-                    {formatFrequencyBand(freqWinner.scale, freqWinner.value)}
-                  </span>
-                </div>
-              )}
+              <FrequencyBadge
+                rank={rank}
+                fallback={freqWinner}
+                fallbackTitle={freqWinner ? `${formatSource(freqWinner.source)} · ${freqWinner.corpus ?? freqWinner.scale}` : undefined}
+              />
 
               {meta.vip?.examples && meta.vip.examples.length > 0 && (
                 <div className="mt-1.5">

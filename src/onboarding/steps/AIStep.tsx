@@ -1,5 +1,5 @@
 import React from 'react';
-import { t } from '../../shared/i18n';
+import { t, fmtDays } from '../../shared/i18n';
 import { Sparkles, CheckCircle2, Ban, KeyRound, AlertTriangle, Cpu, Zap, Brain } from '../../ui/icons';
 import type { AiProvider } from '../../shared/types';
 import { MODELS_BY_PROVIDER } from '../../shared/ai-models';
@@ -20,12 +20,23 @@ export interface AIStepProps {
   setAiEnrichOnSave: (v: boolean) => void;
   aiEnrichOnHover: boolean;
   setAiEnrichOnHover: (v: boolean) => void;
+  aiCacheTtlDays: number;
+  setAiCacheTtlDays: (v: number) => void;
 }
+
+/** Cache TTL choices offered in the wizard. `SETTINGS → IA premium` keeps the
+ *  1–90 slider for an exact value; here the coarse set is enough. */
+const CACHE_TTL_DAYS = [1, 7, 14, 30, 60, 90] as const;
 
 export function AIStep({
   aiProvider, setAiProvider, aiApiKey, setAiApiKey, aiModel, setAiModel,
   aiEnrichOnSave, setAiEnrichOnSave, aiEnrichOnHover, setAiEnrichOnHover,
+  aiCacheTtlDays, setAiCacheTtlDays,
 }: AIStepProps) {
+  /** The free-text model id is a UI mode, not store state: `ai.model` already
+   *  holds any string, and persisting a sentinel like `__custom__` would send
+   *  it to the provider if the user moved on without typing. */
+  const [customModel, setCustomModel] = React.useState(false);
   /** The preset's suggested model for a provider — the same table the SETTINGS
    *  tab uses, so a withdrawn id is retired in one place and never offered
    *  here by accident. */
@@ -128,31 +139,83 @@ export function AIStep({
           </div>
           <div className="p-4 space-y-1.5">
             <label className="flex items-center gap-1.5 text-[12px] font-semibold text-zinc-700 dark:text-zinc-300">
-              <Cpu size={12} className="text-zinc-400" /> Modelo
+              <Cpu size={12} className="text-zinc-400" /> {t('set.modelLabel')}
             </label>
             {(() => {
               const opts = MODELS_BY_PROVIDER[aiProvider as Exclude<AiProvider, 'disabled'>] ?? [];
               const currentInList = opts.some((m) => m.value === aiModel);
+              // A model saved by an older build (or typed in Settings) is not
+              // in the preset list: keep it visible instead of rendering an
+              // empty select that looks like the choice was lost.
+              const showingCustom = customModel || (aiModel !== '' && !currentInList);
               return (
                 <>
                   <select
-                    value={currentInList ? aiModel : ''}
-                    onChange={(e) => setAiModel(e.target.value)}
+                    data-testid="onboarding-ai-model"
+                    value={showingCustom ? '__custom__' : aiModel}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '__custom__') {
+                        setCustomModel(true);
+                        if (currentInList) setAiModel('');
+                      } else {
+                        setCustomModel(false);
+                        setAiModel(v);
+                      }
+                    }}
                     className="sl-select sl-lg w-full font-mono"
                   >
-                    <option value="">{t("ai.selectModel")}</option>
+                    <option value="">{t('ai.selectModel')}</option>
                     {opts.map((m) => (
                       <option key={m.value} value={m.value}>{m.label} · {m.tag}</option>
                     ))}
+                    <option value="__custom__">{t('set.customModel')}</option>
                   </select>
-                  {aiModel && (
+                  {showingCustom && (
+                    <input
+                      type="text"
+                      data-testid="onboarding-ai-custom-model"
+                      value={currentInList ? '' : aiModel}
+                      onChange={(e) => setAiModel(e.target.value)}
+                      placeholder="deepseek-chat"
+                      aria-label={t('set.customModel')}
+                      className="sl-input sl-lg w-full font-mono"
+                      spellCheck={false}
+                      autoComplete="off"
+                    />
+                  )}
+                  {aiModel && !showingCustom && (
                     <p className="text-[10.5px] text-zinc-500 dark:text-zinc-400 leading-snug pt-0.5">
-                      {opts.find((m) => m.value === aiModel)?.tag ?? 'Modelo personalizado'}
+                      {opts.find((m) => m.value === aiModel)?.tag ?? t('set.customModel')}
                     </p>
                   )}
                 </>
               );
             })()}
+          </div>
+          <div className="p-4 space-y-1.5">
+            <label
+              htmlFor="onboarding-ai-cache-ttl"
+              className="flex items-center gap-1.5 text-[12px] font-semibold text-zinc-700 dark:text-zinc-300"
+            >
+              {t('set.cache')}
+            </label>
+            <select
+              id="onboarding-ai-cache-ttl"
+              data-testid="onboarding-ai-cache-ttl"
+              value={String(aiCacheTtlDays)}
+              onChange={(e) => setAiCacheTtlDays(Number(e.target.value))}
+              className="sl-select sl-lg w-full"
+            >
+              {CACHE_TTL_DAYS.map((days) => (
+                <option key={days} value={days}>{fmtDays(days)}</option>
+              ))}
+              {/* A value saved from the Settings slider (1–90, any number) is
+                  never silently rewritten: it keeps its own option. */}
+              {!CACHE_TTL_DAYS.includes(aiCacheTtlDays as (typeof CACHE_TTL_DAYS)[number]) && (
+                <option value={aiCacheTtlDays}>{fmtDays(aiCacheTtlDays)}</option>
+              )}
+            </select>
           </div>
           <div className="p-4">
             <ToggleRow
