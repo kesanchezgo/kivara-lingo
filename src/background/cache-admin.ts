@@ -69,7 +69,7 @@ export async function getCacheStats(): Promise<CacheStatsResult> {
     tableStats(db.media_cache),
   ]);
   const buckets: CacheBucketStats[] = [
-    { id: 'enrichment', label: 'Enriquecimiento (palabras/hover)', ...enrichment },
+    { id: 'enrichment', label: t('cache.bucketEnrichment'), ...enrichment },
     { id: 'translation', label: t('cache.bucketTranslations'), ...translation },
     { id: 'ai', label: t('cache.bucketAi'), ...ai },
     { id: 'explain', label: t('cache.bucketExplain'), ...explain },

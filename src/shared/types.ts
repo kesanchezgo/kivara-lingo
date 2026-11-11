@@ -1218,12 +1218,30 @@ export interface AnkiFieldsResponse {
  */
 export type EnrichSourceHealthState = 'ok' | 'slow' | 'error';
 
+/**
+ * Machine-readable failure family for a source that errored, so the VIP panel
+ * can show one tailored line instead of the provider's raw text. `unknown`
+ * means the classifier found no known shape; the raw message is shown then.
+ */
+export type EnrichErrorCode =
+  | 'unauthorized'
+  | 'forbidden'
+  | 'notFound'
+  | 'rateLimited'
+  | 'server'
+  | 'timeout'
+  | 'permission'
+  | 'network'
+  | 'unknown';
+
 export interface EnrichSourceHealth {
   state: EnrichSourceHealthState;
   /** Last successful (or failed) round trip, in milliseconds. */
   latencyMs?: number;
   /** Last failure message, truncated by the orchestrator. */
   lastError?: string;
+  /** Classified failure family; set only while `state === 'error'`. */
+  code?: EnrichErrorCode;
   /** Epoch ms of the observation. */
   at: number;
 }

@@ -18,6 +18,7 @@ import {
   endpointPath,
 } from '../../../shared/ai-models';
 import { compatibleHostFor } from '../../../shared/provider-hosts';
+import { classifyAiTestError } from '../../../shared/ai-test-errors';
 import {
   ensureProviderHosts,
   permissionsApiAvailable,
@@ -120,6 +121,26 @@ export function AiByokSection() {
     setAi({ ...ai, provider: 'disabled' });
   }
 
+  /**
+   * Raw provider text → the prototype's tailored sentence. Config gaps (no
+   * key, bad URL, missing model) are classified before the message, so a 404
+   * from an endpoint that never existed still reads as a URL problem.
+   */
+  const describeAiTestError = useCallback(
+    (raw: string): string => {
+      const key = classifyAiTestError({
+        provider: ai.provider,
+        apiKey: ai.apiKey,
+        model: ai.model,
+        baseUrl: ai.baseUrl,
+        keyless: compatKeyless,
+        error: raw,
+      });
+      return key ? t(key) : raw;
+    },
+    [ai.provider, ai.apiKey, ai.model, ai.baseUrl, compatKeyless],
+  );
+
   const runTest = useCallback(async () => {
     if (ai.provider === 'disabled' || !canValidate) return;
     const validationKey = `${ai.provider}|${ai.model}|${ai.baseUrl ?? ''}|${ai.apiFormat ?? ''}|${ai.apiKey}`;
@@ -146,12 +167,12 @@ export function AiByokSection() {
         });
       } else {
         lastValidatedKey.current = validationKey;
-        setTest({ state: 'error', error: response.error });
+        setTest({ state: 'error', error: describeAiTestError(response.error) });
       }
     } catch (err) {
       setTest({
         state: 'error',
-        error: err instanceof Error ? err.message : 'unknown error',
+        error: describeAiTestError(err instanceof Error ? err.message : 'unknown error'),
       });
     }
   }, [
@@ -162,6 +183,7 @@ export function AiByokSection() {
     ai.nativeLanguage,
     ai.provider,
     canValidate,
+    describeAiTestError,
     translate.sourceLang,
     translate.targetLanguage,
   ]);

@@ -26,6 +26,10 @@ export function LangStep({
   };
 
   const pickLang = (code: string) => {
+    // Closed languages are disabled, but keep the rule here too: the pair can
+    // never be moved to a language that has no dictionary/glosses yet.
+    const picked = getLang(code);
+    if (activeSlot === 'source' ? !picked.learn : !picked.speak) return;
     if (activeSlot === 'source') {
       // Picking the same code as the other slot auto-swaps, so a duplicate
       // never lands: the pair stays two different languages.
@@ -95,22 +99,28 @@ export function LangStep({
           const activeBg = activeSlot === 'source'
             ? 'bg-indigo-50 dark:bg-indigo-500/[0.12]'
             : 'bg-emerald-50 dark:bg-emerald-500/[0.10]';
+          // Open for the slot being edited (learn / your language); otherwise
+          // the language is closed today and reads "Coming soon".
+          const open = activeSlot === 'source' ? l.learn : l.speak;
           return (
             <button
               key={l.code}
               type="button"
               onClick={() => pickLang(l.code)}
+              disabled={!open}
               aria-pressed={isActiveSelection}
               className={[
-                'relative flex items-center gap-2.5 h-14 px-3.5 text-left transition-colors kvl-press',
+                'relative flex items-center gap-2.5 h-14 px-3.5 text-left transition-colors',
                 isActiveSelection ? activeBg : 'bg-white dark:bg-zinc-950',
-                'hover:bg-zinc-50 dark:hover:bg-white/[0.04]',
+                open ? 'kvl-press hover:bg-zinc-50 dark:hover:bg-white/[0.04]' : 'cursor-not-allowed',
               ].join(' ')}
             >
-              <span className="text-[20px] leading-none select-none" aria-hidden>{l.flag}</span>
+              {/* A language already picked in either slot stays normal; only
+                  closed ones are greyed out with "Coming soon". */}
+              <span className={`text-[20px] leading-none select-none ${open || isLearning || isNative ? '' : 'grayscale opacity-50'}`} aria-hidden>{l.flag}</span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[13px] font-medium leading-tight truncate text-zinc-900 dark:text-zinc-100">{l.name}</span>
-                <span className="block text-[12px] text-zinc-500 dark:text-zinc-400 leading-tight truncate">{l.native}</span>
+                <span className={`block text-[13px] font-medium leading-tight truncate ${open || isLearning || isNative ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-500'}`}>{l.name}</span>
+                <span className="block text-[12px] text-zinc-500 dark:text-zinc-400 leading-tight truncate">{l.learn || l.speak ? l.native : t('lang.soon')}</span>
               </span>
               {(isLearning || isNative) && (
                 <span className="flex gap-1 shrink-0">

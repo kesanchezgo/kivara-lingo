@@ -3,6 +3,7 @@ import { sendMessage } from 'webext-bridge/content-script';
 import { t, fmtNumber } from '../../../shared/i18n';
 import { richText } from '../../../shared/i18n/rich';
 import { normalizeTtlDays } from '../../../shared/cache-ttl';
+import { classifyEnrichError, ENRICH_ERROR_KEYS } from '../../../shared/enrich-health';
 import { useKivaraStore } from '../../../shared/use-kivara-store';
 import { SecretKeyInput } from '../SecretKeyInput';
 import type { EnrichSourceHealthMap, VipSettings } from '../../../shared/types';
@@ -212,6 +213,14 @@ export function VipSection() {
           const state = checking ? 'untested' : h?.state ?? 'untested';
           const statusKey = STATUS_KEY[state] ?? 'vipx.status_untested';
           const tip = `${t(statusKey)}${h ? ` · ${timeAgo(h.at)}` : ''}${h?.latencyMs ? ` · ${h.latencyMs} ms` : ''}`;
+          // Old worker snapshots predate `code`, so re-classify here; the panel
+          // and the orchestrator must read the same family from the same text.
+          const code = h?.state === 'error' ? (h.code ?? classifyEnrichError(h.lastError)) : null;
+          const msgKey = code ? ENRICH_ERROR_KEYS[code] : null;
+          const errorMsg = code && msgKey
+            ? t(msgKey, code === 'timeout' ? { s: Math.round(vip.perSourceTimeoutMs / 1000) || 4 } : undefined)
+            : null;
+          const errorFix = code && code !== 'unknown' && msgKey ? t(`${msgKey}Fix`) : null;
           return (
             <div key={s.key} className="kvl-row px-3 py-3">
               <div className="flex items-center gap-2.5">
@@ -231,8 +240,8 @@ export function VipSection() {
               </div>
               {h && (h.state === 'error' || h.state === 'slow') && (
                 <div className={`mt-1 pl-4 flex items-center gap-1.5 text-[12px] leading-4 ${h.state === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                  <span className="flex-1 min-w-0 truncate" title={h.lastError ?? tip}>
-                    {h.state === 'error' ? (h.lastError ?? t('vipx.status_error')) : t('vipx.slow', { s: fmtNumber(Math.round((h.latencyMs ?? 0) / 100) / 10) })}
+                  <span className="flex-1 min-w-0 truncate" title={errorFix ? `${errorMsg ?? h.lastError ?? tip} — ${errorFix}` : (errorMsg ?? h.lastError ?? tip)}>
+                    {h.state === 'error' ? (errorMsg ?? h.lastError ?? t('vipx.status_error')) : t('vipx.slow', { s: fmtNumber(Math.round((h.latencyMs ?? 0) / 100) / 10) })}
                   </span>
                 </div>
               )}
@@ -434,6 +443,19 @@ interface CacheBucket {
   bytes: number;
 }
 
+/**
+ * One label per bucket, the same four the prototype lists (plus `explain`,
+ * which the repo added later). Panel-side so the copy follows the UI locale
+ * even when the worker answered with a stale label.
+ */
+const BUCKET_LABEL_KEYS: Record<CacheBucket['id'], string> = {
+  enrichment: 'vip.bucketEnrichment',
+  translation: 'vip.bucketTranslation',
+  ai: 'vip.bucketAi',
+  explain: 'vip.bucketExplain',
+  media: 'vip.bucketMedia',
+};
+
 function formatBytes(bytes: number): string {
   if (bytes <= 0) return '0 KB';
   if (bytes < 1024 * 1024) return `${fmtNumber(Math.round(bytes / 1024))} KB`;
@@ -503,7 +525,7 @@ function CacheManager() {
         <ListGroup>
           {buckets.map((b) => (
             <div key={b.id} className="flex items-center justify-between gap-2 px-3 min-h-[40px] text-[13px]">
-              <span className="truncate text-zinc-700 dark:text-zinc-300">{b.label}</span>
+              <span className="truncate text-zinc-700 dark:text-zinc-300">{t(BUCKET_LABEL_KEYS[b.id])}</span>
               <span className="text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400 shrink-0">
                 {b.count} · {formatBytes(b.bytes)}
               </span>

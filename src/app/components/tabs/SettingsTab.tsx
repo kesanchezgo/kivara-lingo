@@ -12,6 +12,7 @@ import {
   Subtitles, GraduationCap, LayoutGrid, ChevronRight,
 } from '../../../ui/icons';
 import { DEFAULT_STUDY } from '../../../shared/store';
+import { LANGUAGES } from '../../../shared/languages';
 import { useKivaraStore } from '../../../shared/use-kivara-store';
 import type {
   EndDetect,
@@ -35,6 +36,7 @@ import {
 } from '../../../ui/primitives/settings-primitives';
 import { Select, inputCls, Slider } from '../../../ui/primitives/controls';
 import { DictPacksSection } from './DictPacksSection';
+import { packsSummary } from './section-summaries';
 import { VipSection } from './VipSection';
 import { AiByokSection } from './AiByokSection';
 import { playSound } from '../../../ui/sounds';
@@ -176,6 +178,8 @@ export function SettingsTab({
 
   /* ── Summaries ───────────────────────────────────────────────────────── */
   const { map: shortcutMap } = useShortcuts();
+  /** Enabled packs reported by DictPacksSection (it owns the pack listing). */
+  const [packCount, setPackCount] = useState(0);
   const keysSummary = SHORTCUT_DEFS
     .slice(0, 3)
     .map((s) => shortcutMap[s.id] || s.defaultCombo)
@@ -200,11 +204,17 @@ export function SettingsTab({
   const hideShadows = cleanup.hideShadows;
   const setHideShadows = (v: boolean) => setCleanup({ ...cleanup, hideShadows: v });
 
-  const LANGS: Array<[string, string]> = [
-    ['en', t('lang.en')], ['es', t('lang.es')], ['fr', t('lang.fr')], ['de', t('lang.de')],
-    ['it', t('lang.it')], ['pt', t('lang.pt')], ['ja', t('lang.ja')],
-    ['ko', t('lang.ko')], ['zh', t('lang.zh')],
-  ];
+  const langOption = (code: string, openFor: 'learn' | 'speak') => {
+    const lang = LANGUAGES.find((l) => l.code === code);
+    if (!lang) return null;
+    const open = openFor === 'learn' ? lang.learn : lang.speak;
+    const name = t(`lang.${lang.code}`);
+    return (
+      <option key={lang.code} value={lang.code} disabled={!open}>
+        {open ? name : `${name} · ${t('lang.soon')}`}
+      </option>
+    );
+  };
 
   function reopenOnboarding() {
     try {
@@ -421,7 +431,7 @@ export function SettingsTab({
                     className="w-full"
                     aria-label={t('set.learningLang')}
                   >
-                    {LANGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    {LANGUAGES.map((l) => langOption(l.code, 'learn'))}
                   </Select>
                 </Field>
                 <Field label={t('set.myLang')}>
@@ -431,7 +441,7 @@ export function SettingsTab({
                     className="w-full"
                     aria-label={t('set.myLang')}
                   >
-                    {LANGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    {LANGUAGES.map((l) => langOption(l.code, 'speak'))}
                   </Select>
                 </Field>
               </div>
@@ -589,13 +599,13 @@ export function SettingsTab({
                 id="kivara-section-dict"
                 icon={<BookOpen size={13} />}
                 title={t('set.sectionOfflineDicts')}
-                summary="yomitan"
+                summary={packsSummary(packCount)}
                 open={isOpen('dict')}
                 onToggle={() => toggle('dict')}
                 noPadding
                 description={t('set.dictDesc')}
               >
-                <DictPacksSection />
+                <DictPacksSection onEnabledCountChange={setPackCount} />
               </Accordion>
             )}
 
