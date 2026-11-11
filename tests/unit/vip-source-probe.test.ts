@@ -27,7 +27,7 @@ import {
   vipRowAction,
 } from '../../src/shared/enrich-health';
 
-const enrichBundled = vi.fn(async () => {
+const enrichBundled = vi.fn(async (_token: string) => {
   await sleep(30);
   return { definitions: ['bundled sense'] };
 });
@@ -112,8 +112,10 @@ describe('probeEnrichmentSource (the row Retry)', () => {
     expect(health?.code).toBe('rateLimited');
     expect(health?.lastError).toContain('429');
     // The row's fix line and action must agree with the family.
-    expect(enrichFixKey('tatoeba', health?.code)).toBe(ENRICH_ERROR_KEYS.rateLimited + 'Fix');
-    expect(vipRowAction('tatoeba', health?.code)).toBe('retry');
+    const code = health?.code;
+    expect(code).toBe('rateLimited');
+    expect(enrichFixKey('tatoeba', code)).toBe(ENRICH_ERROR_KEYS.rateLimited + 'Fix');
+    expect(vipRowAction('tatoeba', code)).toBe('retry');
   });
 
   it('reports a degraded source as slow, not ok', async () => {

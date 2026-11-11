@@ -125,8 +125,9 @@ export function vipRowAction(
  */
 export function enrichFixKey(
   sourceId: string | undefined,
-  code: EnrichErrorCode,
+  code: EnrichErrorCode | null | undefined,
 ): string | undefined {
+  if (code == null) return undefined;
   const sourceFix = sourceId ? ENRICH_SOURCE_FIX_KEYS[sourceId]?.[code] : undefined;
   return sourceFix ?? ENRICH_ERROR_FIX_KEYS[code];
 }

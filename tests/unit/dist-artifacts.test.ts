@@ -342,7 +342,7 @@ describe('a production build', () => {
     );
   });
 
-  it('keeps the icon payload inside its §8 size budget and actually ships it', { timeout: 60_000 }, async () => {
+  it('keeps the icon payload inside its §8 size budget and actually ships it', async () => {
     const generatedPath = path.join(process.cwd(), 'src/ui/icons.generated.tsx');
     const generated = readFileSync(generatedPath, 'utf8');
     // Prove the build ships this exact payload: an icon path literal from the
