@@ -7,9 +7,33 @@
  *  - SAME WORD, DIFFERENT SENTENCE: must be a NEW card, never a dedup hit.
  *  - HTML cue fields are compared after normalization, not raw.
  *  - retry carries request.audio (content-script clip) instead of TTS.
+ *  - a retry that cannot recover the blobs saves an HONEST registry row.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { escapeAnkiSearchTerm, buildExactNoteQuery } from '../../src/shared/anki-search';
+import { RECENT_CARDS_KEY, hasAudio, hasFrame, type RecentCard } from '../../src/shared/cards';
+
+/** chrome.storage.local over a plain map, so the SW registry can be asserted. */
+function installCardStorage(): Record<string, unknown> {
+  const stored: Record<string, unknown> = {};
+  (globalThis as unknown as { chrome: unknown }).chrome = {
+    storage: {
+      local: {
+        get: async (keys: string | string[]) => {
+          const out: Record<string, unknown> = {};
+          for (const key of Array.isArray(keys) ? keys : [keys]) {
+            if (key in stored) out[key] = stored[key];
+          }
+          return out;
+        },
+        set: async (items: Record<string, unknown>) => {
+          Object.assign(stored, items);
+        },
+      },
+    },
+  };
+  return stored;
+}
 
 describe('shared anki-search helpers', () => {
   it('escapes quotes, backslashes and wildcards', () => {
@@ -121,6 +145,7 @@ describe('retry idempotency', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.unstubAllGlobals();
+    delete (globalThis as { chrome?: unknown }).chrome;
   });
 
   it(
@@ -324,5 +349,51 @@ describe('retry idempotency', () => {
     expect(m.storeMediaFile.mock.calls[0][0]).toContain('hola');
     const fields = m.addNote.mock.calls[0]?.[0] as unknown as { fields: Record<string, string> };
     expect(Object.values(fields.fields).join(' ')).toContain('[sound:');
+  });
+
+  it('a retry that cannot recover the media saves an honest registry row', async () => {
+    const stored = installCardStorage();
+    const m = setupMocks({ findNotesIds: [] }); // no existing note
+    const { cardRegistry } = await import('../../src/background/card-registry');
+    // The permanent failure left only flags behind: the registry never held
+    // the blobs (H4), so the rebuilt request cannot carry them.
+    const seeded: RecentCard = {
+      id: 'card-1',
+      word: 'hola',
+      sentence: 'Hola mundo.',
+      status: 'failed',
+      kind: 'word',
+      deck: 'Deck',
+      lang: 'es',
+      createdAt: 1,
+      attempts: 1,
+      tags: [],
+      media: { frame: true, audio: true, word: true },
+    };
+    await cardRegistry.put(seeded);
+
+    const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+    const mapping = {
+      deckName: 'Deck',
+      modelName: 'Basic',
+      fieldSources: { Front: 'selection', Frame: 'frame', 'Sentence audio': 'sentence-audio' },
+    };
+    const request = { token: 'hola', sentence: 'Hola mundo.', language: 'es', cardId: 'card-1' };
+    const res = await createCardFromRequest(request as never, mapping as never, undefined as never, {
+      fromRetry: true,
+    });
+    expect(res.ok).toBe(true);
+    // No frame upload, and TTS is disabled in this harness: nothing was stored.
+    expect(m.storeMediaFile).not.toHaveBeenCalled();
+
+    const row = await cardRegistry.get('card-1');
+    expect(row?.status).toBe('saved');
+    // The row now describes the note that exists, not what was intended.
+    expect(row?.media).toEqual({ frame: false, audio: false, word: true });
+    expect(row && hasFrame(row)).toBe(false);
+    expect(row && hasAudio(row)).toBe(false);
+
+    const published = (stored[RECENT_CARDS_KEY] as RecentCard[])[0];
+    expect(published.media).toEqual({ frame: false, audio: false, word: true });
   });
 });

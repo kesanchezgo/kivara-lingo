@@ -1149,7 +1149,20 @@ export interface AnkiWordIntervalsErr { ok: false; error: string; }
 export type AnkiWordIntervalsResponse = AnkiWordIntervalsOk | AnkiWordIntervalsErr;
 
 export interface CardRetryRequest { id: string; }
-export interface CardRetryResponse { ok: boolean; noteId?: number; error?: string; }
+export interface CardRetryResponse {
+  ok: boolean;
+  noteId?: number;
+  error?: string;
+  /** Non-fatal notes from the retry (TTS fallback, failed media download). */
+  warnings?: string[];
+  /**
+   * The retry saved the card WITHOUT the frame and/or cue audio the first
+   * attempt intended. The registry only holds flags (H4), so a card whose
+   * pending row is gone cannot recover its blobs — the caller shows this
+   * instead of letting the saved row imply media it does not have.
+   */
+  mediaLost?: boolean;
+}
 export interface CardRetryAllResponse { ok: boolean; retried: number; succeeded: number; }
 export interface CardDismissRequest { id: string; }
 export interface CardDismissResponse { ok: boolean; }

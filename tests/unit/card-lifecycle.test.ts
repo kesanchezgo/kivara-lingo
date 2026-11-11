@@ -11,7 +11,14 @@ import type { RecentCard } from '../../src/shared/cards';
 
 interface Row {
   id?: number;
-  request: { cardId?: string; token?: string; deck?: string; lang?: string };
+  request: {
+    cardId?: string;
+    token?: string;
+    deck?: string;
+    lang?: string;
+    frame?: string;
+    audio?: string;
+  };
   retries: number;
   resolvedAudio?: { dataUrl: string; mime: string } | null;
 }
@@ -67,7 +74,7 @@ function installStorage(): Record<string, unknown> {
 function setup(options: {
   cards?: RecentCard[];
   rows?: Row[];
-  result?: { ok: boolean; noteId?: number; error?: string };
+  result?: { ok: boolean; noteId?: number; error?: string; warnings?: string[] };
   deleteResult?: { ok: boolean; error?: string; gone?: boolean };
 } = {}) {
   const cards = options.cards ?? [card()];
@@ -174,6 +181,59 @@ describe('retryCard', () => {
     setup({ cards: [] });
     const { retryCard } = await import('../../src/background/card-lifecycle');
     await expect(retryCard('nope', MAPPING as never, {} as never)).resolves.toMatchObject({ ok: false });
+  });
+
+  it('carries the original frame and audio from a queued row after a permanent failure', async () => {
+    const frame = 'data:image/jpeg;base64,FRAME';
+    const audio = 'data:audio/webm;base64,AUDIO';
+    const f = setup({
+      cards: [card({ status: 'failed', media: { frame: true, audio: true } })],
+      rows: [{ id: 10, request: { cardId: 'card-1', token: 'sane', deck: 'English vocabulary', lang: 'en', frame, audio }, retries: 1 }],
+    });
+    const { retryCard } = await import('../../src/background/card-lifecycle');
+    const res = await retryCard('card-1', MAPPING as never, {} as never);
+
+    const [request] = f.createCardFromRequest.mock.calls[0] as unknown as [{ frame?: string; audio?: string }];
+    // The row still holds the payload, so the retry re-attaches it verbatim.
+    expect(request.frame).toBe(frame);
+    expect(request.audio).toBe(audio);
+    expect(res).toMatchObject({ ok: true, noteId: 900 });
+    expect(res.mediaLost).toBeUndefined();
+  });
+
+  it('reports lost media when a permanent failure left no row to rebuild from', async () => {
+    const f = setup({
+      cards: [card({ status: 'failed', attempts: 10, media: { frame: true, audio: true } })],
+      rows: [],
+      result: { ok: true, noteId: 901, warnings: ['Reintento sin audio original: se usará TTS de la frase.'] },
+    });
+    const { retryCard } = await import('../../src/background/card-lifecycle');
+    const res = await retryCard('card-1', MAPPING as never, {} as never);
+
+    const [request] = f.createCardFromRequest.mock.calls[0] as unknown as [{ frame?: string; audio?: string }];
+    // Nothing in the registry holds the blobs: the rebuild cannot carry them.
+    expect(request.frame).toBeUndefined();
+    expect(request.audio).toBeUndefined();
+    // The caller is told, instead of receiving a silent media-less save.
+    expect(res).toMatchObject({ ok: true, noteId: 901, mediaLost: true });
+    expect(res.warnings).toEqual(['Reintento sin audio original: se usará TTS de la frase.']);
+  });
+
+  it('leaves a queued row that still has its pending payload untouched', async () => {
+    const frame = 'data:image/jpeg;base64,FRAME';
+    const audio = 'data:audio/webm;base64,AUDIO';
+    const rows = [{ id: 10, request: { cardId: 'card-1', token: 'sane', deck: 'English vocabulary', lang: 'en', frame, audio }, retries: 0 }];
+    const f = setup({ cards: [card({ status: 'queued', media: { frame: true, audio: true } })], rows });
+    const { retryCard } = await import('../../src/background/card-lifecycle');
+    await retryCard('card-1', MAPPING as never, {} as never);
+
+    const [request] = f.createCardFromRequest.mock.calls[0] as unknown as [{ frame?: string; audio?: string }];
+    expect(request.frame).toBe(frame);
+    expect(request.audio).toBe(audio);
+    // Only the status moves: the row's media flags are never rewritten here.
+    const patch = f.registry.patch.mock.calls[0]?.[1] as unknown as { status: string; media?: unknown };
+    expect(patch.status).toBe('sending');
+    expect(patch.media).toEqual({ frame: true, audio: true });
   });
 });
 
