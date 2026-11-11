@@ -97,7 +97,12 @@ const TIER_META: Record<RecommendedPack['tier'], { label: string; pill: string; 
   premium:     { label: 'Avanzado',    pill: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300', icon: null },
 };
 
-export function DictPacksSection() {
+export function DictPacksSection({
+  onEnabledCountChange,
+}: {
+  /** Reports how many installed packs are enabled, for the accordion summary. */
+  onEnabledCountChange?: (n: number) => void;
+} = {}) {
   const [packs, setPacks] = useState<DictPackRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
@@ -122,6 +127,13 @@ export function DictPacksSection() {
     () => new Set(idlePacks(stats).map((r) => r.packId)),
     [stats],
   );
+
+  // The summary belongs to the parent accordion; the listing is loaded here,
+  // so the count travels up after every refresh/toggle instead of the panel
+  // opening its own LIST_DICT_PACKS request.
+  useEffect(() => {
+    onEnabledCountChange?.(packs.filter((p) => p.enabled).length);
+  }, [packs, onEnabledCountChange]);
   const installedPackTitles = useMemo(
     () => new Set(packs.map((p) => p.title)),
     [packs],

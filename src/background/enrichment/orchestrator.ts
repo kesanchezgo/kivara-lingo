@@ -36,6 +36,7 @@ import type {
   SourcePartial,
 } from './types';
 import { gateSources } from './permissions-gate';
+import { classifyEnrichError } from '../../shared/enrich-health';
 
 import { freeDictionarySource } from './sources/free-dictionary';
 import { datamuseSource } from './sources/datamuse';
@@ -350,6 +351,9 @@ function recordSourceHealth(
     state,
     latencyMs,
     lastError: error ? error.slice(0, MAX_ERROR_CHARS) : undefined,
+    // Classified here so the panel never has to reverse-engineer a provider's
+    // phrasing; `classifyEnrichError` is also run panel-side on old snapshots.
+    code: state === 'error' ? classifyEnrichError(error) : undefined,
     at: Date.now(),
   });
 }

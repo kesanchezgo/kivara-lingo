@@ -1,20 +1,35 @@
-/* Lang catalogue for the onboarding language step. Moved verbatim. */
+/* Language catalogue for the onboarding language step.
+ *
+ * Derived from the single registry (`shared/languages`) so the wizard and
+ * Preferences › Language can never drift: `learn` / `speak` decide which slot
+ * a language can fill and the rest render as "Coming soon". */
 import { t } from '../../shared/i18n';
+import { LANGUAGES, languageOf, type LanguageInfo } from '../../shared/languages';
 
-export type LangMeta = { code: string; name: string; native: string; flag: string };
+export type LangMeta = {
+  code: string;
+  name: string;
+  native: string;
+  flag: string;
+  /** Available as the language you learn. */
+  learn: boolean;
+  /** Available as your language (translation destination). */
+  speak: boolean;
+};
 
-export const ONBOARDING_LANGS: LangMeta[] = [
-  { code: 'en', name: t('lang.en'),     native: 'English',    flag: '🇬🇧' },
-  { code: 'es', name: t('lang.es'),    native: 'Español',    flag: '🇪🇸' },
-  { code: 'fr', name: t('lang.fr'),    native: 'Français',   flag: '🇫🇷' },
-  { code: 'de', name: t('lang.de'),     native: 'Deutsch',    flag: '🇩🇪' },
-  { code: 'it', name: t('lang.it'),   native: 'Italiano',   flag: '🇮🇹' },
-  { code: 'pt', name: t('lang.pt'),  native: 'Português',  flag: '🇵🇹' },
-  { code: 'ja', name: t('lang.ja'),    native: '日本語',      flag: '🇯🇵' },
-  { code: 'ko', name: t('lang.ko'),    native: '한국어',       flag: '🇰🇷' },
-  { code: 'zh', name: t('lang.zh'),      native: '中文',        flag: '🇨🇳' },
-];
+function meta(l: LanguageInfo): LangMeta {
+  return {
+    code: l.code,
+    name: t(`lang.${l.code}`),
+    native: l.endonym,
+    flag: l.flag,
+    learn: l.learn,
+    speak: l.speak,
+  };
+}
+
+export const ONBOARDING_LANGS: LangMeta[] = LANGUAGES.map(meta);
 
 export function getLang(code: string): LangMeta {
-  return ONBOARDING_LANGS.find((l) => l.code === code) ?? ONBOARDING_LANGS[0];
+  return meta(languageOf(code));
 }

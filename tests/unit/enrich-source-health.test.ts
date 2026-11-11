@@ -96,6 +96,8 @@ describe('ENRICH_SOURCE_HEALTH', () => {
     expect(health.freeDictionary?.state).toBe('slow');
     expect(health.freeDictionary?.latencyMs).toBeGreaterThanOrEqual(320);
     expect(health.tatoeba).toMatchObject({ state: 'error', lastError: 'tatoeba is down' });
+    // The wire carries the classified family, not just the raw text.
+    expect(health.tatoeba?.code).toBe('unknown');
     expect(typeof health.bundled.at).toBe('number');
   });
 
