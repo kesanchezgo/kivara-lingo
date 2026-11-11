@@ -27,7 +27,7 @@ interface PermissionGroup {
 
 /** Translation, AI, TTS, media and packs each get their own switch: a user
  * who only wants DeepL never grants the other dictionary origins. */
-const GROUPS: PermissionGroup[] = [
+export const HOST_GROUPS: PermissionGroup[] = [
   {
     id: 'dict',
     label: t('perm.groupDict'),
@@ -78,20 +78,26 @@ const GROUPS: PermissionGroup[] = [
   },
 ];
 
-function originsFor(providers: readonly string[]): string[] {
+export function originsFor(providers: readonly string[]): string[] {
   const out = new Set<string>();
   for (const id of providers) for (const host of providerHosts(id)) out.add(host);
   return [...out];
 }
 
+/** A group is complete when every one of its origins is covered — either by
+ * the reactive store or by a pattern the browser reports as granted. */
+export function isGroupComplete(group: PermissionGroup, granted: string[]): boolean {
+  return originsFor(group.providers).every((o) => granted.includes(o) || hasOrigin(o));
+}
+
 /** React binding for the plain-JS store in shared/host-permissions-store.ts —
  * kept in the consumer so the SW graph (which reaches that module through
  * shared/host-permissions.ts) never imports React. */
-function useGrantedOrigins(): string[] {
+export function useGrantedOrigins(): string[] {
   return useSyncExternalStore(subscribeHostPermissions, getGrantedOrigins, () => []);
 }
 
-export function HostPermissionsRow() {
+export function HostPermissionsRow({ showGrantAll = true }: { showGrantAll?: boolean } = {}) {
   const granted = useGrantedOrigins();
   const [pending, setPending] = useState<string | null>(null);
   // `chrome.permissions` does not exist inside a CONTENT SCRIPT: this panel is
@@ -128,22 +134,19 @@ export function HostPermissionsRow() {
     }
   };
 
-  const completeOf = (providers: readonly string[]): boolean => {
-    const own = originsFor(providers);
-    return own.every((o) => granted.includes(o) || hasOrigin(o));
-  };
-  const grantedGroups = GROUPS.filter((g) => completeOf(g.providers)).length;
-  const missing = GROUPS.filter((g) => !completeOf(g.providers));
+  const completeOf = (group: PermissionGroup): boolean => isGroupComplete(group, granted);
+  const grantedGroups = HOST_GROUPS.filter(completeOf).length;
+  const missing = HOST_GROUPS.filter((g) => !completeOf(g));
 
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-1.5 px-0.5">
         <span className="text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
-          {t('vipx.permSummary', { on: grantedGroups, total: GROUPS.length })}
+          {t('vipx.permSummary', { on: grantedGroups, total: HOST_GROUPS.length })}
         </span>
         <InfoHint text={t('perm.intro')} maxWidth={260} />
         <span className="ml-auto" />
-        {missing.length > 0 && (
+        {showGrantAll && missing.length > 0 && (
           <Button
             size="sm"
             variant="soft"
@@ -157,8 +160,8 @@ export function HostPermissionsRow() {
       </div>
 
       <ListGroup>
-        {GROUPS.map((group) => {
-          const complete = completeOf(group.providers);
+        {HOST_GROUPS.map((group) => {
+          const complete = completeOf(group);
           const own = originsFor(group.providers);
           const have = own.filter((o) => granted.includes(o) || hasOrigin(o)).length;
           const busy = pending === group.id || pending === '__all';
