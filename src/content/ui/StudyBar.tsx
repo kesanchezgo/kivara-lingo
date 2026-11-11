@@ -24,9 +24,11 @@ import {
 } from '../../ui/icons';
 import { BrandGlyph } from '../../ui/BrandGlyph';
 import { t } from '../../shared/i18n';
+import { useKivaraStore } from '../../shared/use-kivara-store';
+import { comboOf, withCombo } from './combo-hints';
 import { useLongPress } from '../../ui/hooks/useLongPress';
 import { onRadioKeyDown, radioTabIndex } from '../../ui/primitives/settings-primitives';
-import { PLAYBACK_SPEEDS, SLOW_REPLAY_RATE } from '../platform-adapters/playback';
+import { PLAYBACK_SPEEDS } from '../platform-adapters/playback';
 
 const HIDE_AFTER_MS = 2600;
 
@@ -66,6 +68,8 @@ export function StudyBar(props: StudyBarProps) {
   } = props;
 
   const [visible, setVisible] = useState(false);
+  const shortcuts = useKivaraStore((state) => state.shortcuts);
+  const combo = (id: string) => comboOf(shortcuts, id);
   const hideTimer = useRef<number | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(Number.POSITIVE_INFINITY);
@@ -137,19 +141,19 @@ export function StudyBar(props: StudyBarProps) {
       <button type="button" onClick={onTogglePlay} title={playing ? t('player.pause') : t('player.play')} aria-label={playing ? t('player.pause') : t('player.play')} className={`${NAV} w-7`}>
         {playing ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
       </button>
-      <button type="button" onClick={onPrev} title={t('shortcut.prev')} aria-label={t('shortcut.prev')} className={NAV}>
+      <button type="button" onClick={onPrev} title={withCombo(t('shortcut.prev'), combo('prev'))} aria-label={t('shortcut.prev')} className={NAV}>
         <ChevronLeft size={14} weight="bold" />
       </button>
       <button
         type="button"
         {...replay}
-        title={`${t('shortcut.replay')}\n${t('player.holdSlower')}`}
+        title={`${withCombo(t('shortcut.replay'), combo('replay'))}\n${t('player.holdSlower')}`}
         aria-label={t('shortcut.replay')}
         className={NAV}
       >
         <RotateCcw size={13} weight="bold" />
       </button>
-      <button type="button" onClick={onNext} title={t('shortcut.next')} aria-label={t('shortcut.next')} className={NAV}>
+      <button type="button" onClick={onNext} title={withCombo(t('shortcut.next'), combo('next'))} aria-label={t('shortcut.next')} className={NAV}>
         <ChevronRight size={14} weight="bold" />
       </button>
 
@@ -158,7 +162,7 @@ export function StudyBar(props: StudyBarProps) {
       <button
         type="button"
         aria-pressed={autoPause}
-        title={t('rail.autoPause')}
+        title={withCombo(t('rail.autoPause'), combo('autoPause'))}
         aria-label={t('rail.autoPause')}
         onClick={onToggleAutoPause}
         className={chip(autoPause)}
@@ -169,7 +173,7 @@ export function StudyBar(props: StudyBarProps) {
       <button
         type="button"
         aria-pressed={loop}
-        title={t('rail.loop')}
+        title={withCombo(t('rail.loop'), combo('loop'))}
         aria-label={t('rail.loop')}
         onClick={onToggleLoop}
         className={chip(loop)}
@@ -183,7 +187,7 @@ export function StudyBar(props: StudyBarProps) {
       <div
         role="radiogroup"
         aria-label={t('rail.speed')}
-        title={`${t('rail.speed')} · ${SLOW_REPLAY_RATE}×`}
+        title={withCombo(t('rail.speed'), `${combo('slower') ?? ''} / ${combo('faster') ?? ''}`)}
         className="relative flex"
         onKeyDown={(event) => onRadioKeyDown(event, PLAYBACK_SPEEDS, speed, onSpeed)}
       >
@@ -209,7 +213,7 @@ export function StudyBar(props: StudyBarProps) {
       <button
         type="button"
         aria-pressed={railOpen}
-        title={t('rail.toggle')}
+        title={withCombo(t('rail.toggle'), combo('rail'))}
         aria-label={t('rail.toggle')}
         onClick={onToggleRail}
         className={`${NAV} ${railOpen ? 'text-indigo-400' : ''}`}
@@ -219,7 +223,7 @@ export function StudyBar(props: StudyBarProps) {
       <button
         type="button"
         aria-pressed={panelOpen}
-        title={t('app.panelToggle')}
+        title={withCombo(t('app.panelToggle'), combo('panel'))}
         aria-label={t('app.panelToggle')}
         onClick={onTogglePanel}
         className={`${NAV} ${panelOpen ? 'text-indigo-400' : ''}`}

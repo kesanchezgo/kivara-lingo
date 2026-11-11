@@ -12,7 +12,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { TranscriptRail, type TranscriptRailProps } from '../../src/content/ui/TranscriptRail';
+import { TranscriptRail, alignNativeLines, type TranscriptRailProps } from '../../src/content/ui/TranscriptRail';
 import type { StudyBinding } from '../../src/content/ui/study';
 import type { SubtitleCue } from '../../src/content/platform-adapters/types';
 
@@ -20,6 +20,13 @@ const cues: SubtitleCue[] = [
   { id: 'a', start: 0, end: 3000, text: 'Hello there.', language: 'en' },
   { id: 'b', start: 3000, end: 6000, text: 'The rat ships frames.', language: 'en' },
   { id: 'c', start: 6000, end: 9000, text: 'Every crumb gets gnawed.', language: 'en' },
+];
+
+/** Same timings, a different language: the platform's full native track. */
+const nativeCues = [
+  { start: 0, end: 3000, text: 'Hola.' },
+  { start: 3000, end: 6000, text: 'La rata envía fotogramas.' },
+  { start: 6000, end: 9000, text: 'Cada migaja es roída.' },
 ];
 
 const study: StudyBinding = {
@@ -44,6 +51,10 @@ function props(overrides: Partial<TranscriptRailProps> = {}): TranscriptRailProp
     study,
     newMarks: 'dotted',
     savedWords: new Set<string>(),
+    nativeCues: null,
+    translation: 'visible',
+    onTranslationChange: vi.fn(),
+    listenFirst: false,
     media: null,
     view: 'lines',
     onViewChange: vi.fn(),
@@ -142,4 +153,123 @@ describe('TranscriptRail', () => {
     fireEvent.click(search!);
     expect(statusOf.mock.calls.length).toBe(before);
   }, 20_000);
+
+  it('shows the native line under each sentence', () => {
+    const { container } = render(<TranscriptRail {...props({ nativeCues })} />);
+    const lines = container.querySelectorAll('[data-kvl-native]');
+    expect(lines).toHaveLength(3);
+    expect(lines[1].textContent).toBe('La rata envía fotogramas.');
+  });
+
+  it('shows nothing when the platform has no native track', () => {
+    const { container } = render(<TranscriptRail {...props()} />);
+    expect(container.querySelectorAll('[data-kvl-native]')).toHaveLength(0);
+  });
+
+  it('blurs and hides the native line with the shared translation state', () => {
+    const { container, rerender } = render(
+      <TranscriptRail {...props({ nativeCues, translation: 'blur' })} />,
+    );
+    const blurred = container.querySelector('[data-kvl-native]');
+    expect(blurred?.className).toContain('blur-[3px]');
+
+    rerender(<TranscriptRail {...props({ nativeCues, translation: 'hidden' })} />);
+    expect(container.querySelectorAll('[data-kvl-native]')).toHaveLength(0);
+  });
+
+  it('cycles visible → blurred → hidden from the header switch', () => {
+    const onTranslationChange = vi.fn();
+    const { container, rerender } = render(
+      <TranscriptRail {...props({ onTranslationChange })} />,
+    );
+    fireEvent.click(screen.getByTitle('Difuminar traducción'));
+    expect(onTranslationChange).toHaveBeenLastCalledWith('blur');
+
+    rerender(
+      <TranscriptRail {...props({ translation: 'blur', onTranslationChange })} />,
+    );
+    fireEvent.click(screen.getByTitle('Ocultar traducción'));
+    expect(onTranslationChange).toHaveBeenLastCalledWith('hidden');
+
+    rerender(
+      <TranscriptRail {...props({ translation: 'hidden', onTranslationChange })} />,
+    );
+    fireEvent.click(screen.getByTitle('Mostrar traducción'));
+    expect(onTranslationChange).toHaveBeenLastCalledWith('visible');
+    expect(container.querySelectorAll('[data-kvl-native]')).toHaveLength(0);
+  });
+
+  it('searches the native line as well as the source text', () => {
+    const { container } = render(<TranscriptRail {...props({ nativeCues })} />);
+    fireEvent.click(screen.getByTitle('Buscar en la transcripción'));
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'fotogramas' } });
+    const rows = lineRows(container);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].textContent).toContain('rat');
+    expect(container.querySelector('[data-kvl-native]')?.textContent).toContain('fotogramas');
+  });
+
+  it('blurs future lines while Listen-first sounds and reveals them on pause', () => {
+    const { container, rerender } = render(
+      <TranscriptRail
+        {...props({ nativeCues, listenFirst: true, playing: true, activeIndex: 0 })}
+      />,
+    );
+    const lines = Array.from(container.querySelectorAll<HTMLElement>('[data-kvl-native]'));
+    expect(lines[0].className).toContain('blur-[3px]');
+    expect(lines[1].className).toContain('blur-[3px]');
+
+    rerender(
+      <TranscriptRail
+        {...props({ nativeCues, listenFirst: true, playing: false, activeIndex: 0 })}
+      />,
+    );
+    expect(container.querySelector<HTMLElement>('[data-kvl-native]')?.className).not.toContain(
+      'blur-[3px]',
+    );
+  });
+
+  it('saves the only new word through the overlay capture callback', () => {
+    const onSaveWord = vi.fn();
+    render(<TranscriptRail {...props({ study: oneNewStudy, onSaveWord })} />);
+    const save = screen.getByTitle(/única palabra nueva/);
+    fireEvent.click(save);
+    expect(onSaveWord).toHaveBeenCalledWith('rat', 'The rat ships frames.');
+  });
+
+  it('carries the shortcut combos in the tooltips', () => {
+    const { container } = render(<TranscriptRail {...props()} />);
+    expect(container.querySelector('[title*="Alt+R"]')).toBeTruthy();
+    expect(container.querySelector('[title*="Alt+Q"]')).toBeTruthy();
+    expect(container.querySelector('[title*="Alt+L"]')).toBeTruthy();
+  });
+
+  it('hands focus to the panel when it is docked, and toggles it otherwise', () => {
+    const onFocusPanel = vi.fn();
+    const onTogglePanel = vi.fn();
+    const { rerender } = render(
+      <TranscriptRail
+        {...props({ panelOpen: true, onFocusPanel, onTogglePanel })}
+      />,
+    );
+    fireEvent.click(screen.getByTitle(/Cerrar panel/));
+    expect(onFocusPanel).toHaveBeenCalledTimes(1);
+    expect(onTogglePanel).not.toHaveBeenCalled();
+
+    rerender(
+      <TranscriptRail
+        {...props({ panelOpen: false, onFocusPanel, onTogglePanel })}
+      />,
+    );
+    fireEvent.click(screen.getByTitle(/Ir al panel/));
+    expect(onTogglePanel).toHaveBeenCalledTimes(1);
+  });
+
+  it('aligns native lines by maximum overlap', () => {
+    expect(alignNativeLines(cues, nativeCues)).toEqual([
+      'Hola.',
+      'La rata envía fotogramas.',
+      'Cada migaja es roída.',
+    ]);
+  });
 });
