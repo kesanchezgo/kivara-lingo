@@ -50,6 +50,8 @@ const FORBIDDEN_TEXT = [
   'kivara-e2e-synthetic',
   // The canned health observations the parity screenshots seed.
   'KIVARA_E2E_SEED_HEALTH',
+  // The canned Anki ping/answers the wizard walk uses.
+  'kivara-e2e-anki',
 ];
 const FORBIDDEN_PATHS = [/(^|\/)e2e\//];
 /** What an un-rewritten worklet URL looks like in the bundle. */

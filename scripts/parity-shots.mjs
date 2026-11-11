@@ -244,6 +244,13 @@ try {
     });
   }), seedHealth).catch(() => console.warn('health seed skipped (production build?)'));
 
+  // The VIP tier is opt-in: without the master switch the Unsplash/Pixabay
+  // rows do not render and the shot loses its «Add key» actions.
+  await page.evaluate(
+    (blob) => chrome.storage.sync.set({ 'kivara-lingo-state': blob }),
+    JSON.stringify({ state: { vip: { enabled: true } }, version: 3 }),
+  );
+
   for (const dark of [false, true]) {
     const suffix = dark ? 'dark' : 'light';
     await page.reload();
@@ -253,10 +260,34 @@ try {
     const enrichRow = page.getByText('Enrichment (Standard + VIP)', { exact: false }).first();
     if (await enrichRow.count()) {
       await enrichRow.scrollIntoViewIfNeeded();
-      await enrichRow.click();
-      await page.waitForTimeout(700);
-      const health = page.getByText('Source status', { exact: false }).first();
-      if (await health.count()) await health.scrollIntoViewIfNeeded();
+      await enrichRow.click({ force: true });
+      await page.waitForTimeout(900);
+      // The failing rows are the story: Tatoeba (permission → Grant access),
+      // Unsplash (401 → Add key), Pixabay (429 → Add key), WordHippo (slow →
+      // the slow advice). Scroll the section's own overflow container so the
+      // VIP rows frame the shot; scrollIntoView kept getting reset by the
+      // section's re-render when the health fetch landed.
+      const scrolled = await page.evaluate(() => {
+        const row = [...document.querySelectorAll('.kvl-row')]
+          .find((el) => el.textContent.includes('Unsplash'));
+        if (!row) return 'row-not-found';
+        // The TRUE scroll container: computed overflow-y auto/scroll AND
+        // content taller than the box — the ancestor walk alone can stop at
+        // a coincidentally-overflowing wrapper that cannot scroll.
+        let scroller = row.parentElement;
+        while (scroller) {
+          const style = getComputedStyle(scroller);
+          const scrollable = /auto|scroll/.test(style.overflowY)
+            && scroller.scrollHeight > scroller.clientHeight + 40;
+          if (scrollable) break;
+          scroller = scroller.parentElement;
+        }
+        if (!scroller) return 'scroller-not-found';
+        scroller.scrollTop = row.getBoundingClientRect().top
+          - scroller.getBoundingClientRect().top + scroller.scrollTop - 64;
+        return `scrolled to ${Math.round(scroller.scrollTop)}`;
+      });
+      console.log('enrichment scroll:', scrolled);
       await page.waitForTimeout(300);
       await shot(panel, `enrichment-${suffix}`);
     } else {
@@ -264,23 +295,46 @@ try {
     }
   }
 
-  // ── Onboarding · AI step: skipAll lands on Done, and Back has no locks.
+  // ── Onboarding · AI step. The wizard walks FORWARD with the locks fed by
+  // seeded store state (level, deck+model) and the E2E canned ping for the
+  // marked Anki URL. skipAll() closes the window, so it is not usable here.
+  const seedState = {
+    state: {
+      vip: { enabled: true },
+      ankiMapping: {
+        ankiUrl: 'http://127.0.0.1:8765/kivara-e2e-anki',
+        decks: { en: 'English::Speak Daily' },
+        modelName: 'KivaraLingo',
+      },
+      translate: { sourceLanguage: 'en', targetLanguage: 'es' },
+    },
+    version: 3,
+  };
+  // The level profile is a per-language chrome-local store, not the main
+  // persisted blob: `kvl:levelProfile:<lang>`.
+  const seedProfile = { selfLevel: 'A2', vocabTest: null };
+  const next = page.getByRole('button', { name: /siguiente|next/i });
   for (const dark of [false, true]) {
     const suffix = dark ? 'dark' : 'light';
+    await page.evaluate(
+      ({ blob, profile }) => Promise.all([
+        chrome.storage.sync.set({ 'kivara-lingo-state': blob }),
+        chrome.storage.local.set({ 'kvl:levelProfile:en': profile }),
+      ]),
+      { blob: JSON.stringify(seedState), profile: seedProfile },
+    );
     await page.goto(`chrome-extension://${extensionId}/src/onboarding/index.html`);
     await page.waitForLoadState('load');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(600);
     const darkNow = await page.evaluate(() => document.documentElement.classList.contains('dark'));
     if (darkNow !== dark) {
       await page.getByRole('button', { name: /theme|tema|dark mode|light mode/i }).first().click();
       await page.waitForTimeout(250);
     }
-    await page.getByRole('button', { name: /skip|saltar/i }).first().click();
-    await page.waitForTimeout(500);
-    await page.getByTestId('onboarding-back').click();
-    await page.waitForTimeout(400);
-    await page.getByTestId('onboarding-back').click();
-    await page.waitForTimeout(700);
+    for (let i = 0; i < 6; i += 1) {
+      await next.click();
+      await page.waitForTimeout(600);
+    }
     const aiActive = await page.getByTestId('onboarding-step-ai').getAttribute('data-step-state');
     if (aiActive !== 'active') console.warn(`onboarding landed on ${aiActive} — screenshot may show another step`);
     await page.screenshot({ path: path.join(OUT, `onboarding-ai-${suffix}.png`) });

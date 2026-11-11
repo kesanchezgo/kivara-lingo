@@ -566,6 +566,12 @@ onMessage('ANKI_PING', async ({ data }) => {
   // silently ignored in favour of whatever settings hold.
   if (auth.error) return asJson({ ok: false, error: auth.error });
   const { url, apiKey } = auth;
+  // E2E-ONLY canned answer (parity screenshots, wizard walks): a URL carrying
+  // the marker is answered without any network. Production compiles the
+  // branch out and dist-artifacts forbids the marker inside dist/.
+  if (__E2E__ && url?.includes('kivara-e2e-anki')) {
+    return asJson({ ok: true, version: 241119 });
+  }
   // Sync the rules BEFORE pinging: the ping itself is an http request that
   // needs the Origin rewrite on a custom port. Awaited for the same reason
   // as CREATE_CARD.
