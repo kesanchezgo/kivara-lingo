@@ -19,8 +19,13 @@ export interface AnkiActionSignature {
 export interface AnkiSignaturesFixture {
   _meta: {
     source: string;
+    downloadUrl: string;
+    addonId: number;
+    packageSha256: string;
+    packageBytes: number;
+    initPath: string;
+    initSha256: string;
     fetchedAt: string;
-    sha256: string;
     note: string;
   };
   actions: Record<string, AnkiActionSignature>;

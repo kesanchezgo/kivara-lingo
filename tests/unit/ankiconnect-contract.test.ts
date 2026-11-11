@@ -177,11 +177,21 @@ describe('AnkiConnect client contract', () => {
     }
   });
 
-  it('fixture metadata points at the official add-on and is not a stub', () => {
-    expect(ANKICONNECT_SIGNATURES._meta.source).toMatch(
-      /^https:\/\/raw\.githubusercontent\.com\/ankicommunity\/anki-connect\/.+__init__\.py$/,
+  it('fixture metadata points at the official add-on package and is not a stub', () => {
+    // Generated from the AnkiWeb package Anki itself installs (add-on
+    // 2055492159), not from a GitHub checkout: the sha256 pins the exact
+    // package the signatures were read from.
+    expect(ANKICONNECT_SIGNATURES._meta.source).toBe(
+      'https://ankiweb.net/shared/info/2055492159',
     );
-    expect(ANKICONNECT_SIGNATURES._meta.sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(ANKICONNECT_SIGNATURES._meta.downloadUrl).toMatch(
+      /^https:\/\/ankiweb\.net\/shared\/download\/2055492159\?v=2\.1&p=\d+$/,
+    );
+    expect(ANKICONNECT_SIGNATURES._meta.addonId).toBe(2055492159);
+    expect(ANKICONNECT_SIGNATURES._meta.packageSha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(ANKICONNECT_SIGNATURES._meta.initSha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(ANKICONNECT_SIGNATURES._meta.packageBytes).toBeGreaterThan(0);
+    expect(ANKICONNECT_SIGNATURES._meta.initPath).toMatch(/__init__\.py$/);
 
     const entries = Object.entries(ANKICONNECT_SIGNATURES.actions);
     expect(entries.length).toBeGreaterThan(0);
