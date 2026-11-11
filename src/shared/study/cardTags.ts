@@ -71,21 +71,45 @@ export function slugTag(s: string): string {
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
+/**
+ * Series/movie names that carry no information, only the platform: a title
+ * that fell back to the site name must never become a series tag
+ * (`kivara::netflix`, `kivara::youtube`). Both the visible name and the slug
+ * are reserved.
+ */
+const GENERIC_GROUP_SLUGS = new Set(
+  Object.values(PLATFORMS).flatMap((p) => [p.slug, slugTag(p.name)]),
+);
+
+/** Slug of a series/movie name, or `undefined` when it is only the platform. */
+function groupSlug(name: string | undefined): string | undefined {
+  if (!name) return undefined;
+  const slug = slugTag(name);
+  if (!slug || GENERIC_GROUP_SLUGS.has(slug)) return undefined;
+  return slug;
+}
+
 /** `s01e01` if there is both a season and an episode. */
 export function episodeCode(src: CardSource): string | undefined {
   return src.season != null && src.episode != null ? `s${pad(src.season)}e${pad(src.episode)}` : undefined;
 }
 
-/** `kivara::<series>::<episode>`, `kivara::<movie>` or `kivara::youtube::<title>`. */
-export function sourceTag(src: CardSource): string {
-  const title = src.title ? slugTag(src.title) : '';
-  if (src.series) {
+/**
+ * `kivara::<series>::<episode>`, `kivara::<movie>` or `kivara::youtube::<title>`.
+ *
+ * Returns `undefined` when there is nothing to identify (no series, or a title
+ * that is only the platform name). The explicit platform tag lives in
+ * `platformTag()`; a missing title is better than a wrong one.
+ */
+export function sourceTag(src: CardSource): string | undefined {
+  const title = groupSlug(src.title);
+  const series = groupSlug(src.series);
+  if (series) {
     const item = episodeCode(src) ?? title;
-    const group = slugTag(src.series) || PLATFORMS[src.platform].slug;
-    return item ? `${TAG_ROOT}::${group}::${item}` : `${TAG_ROOT}::${group}`;
+    return item ? `${TAG_ROOT}::${series}::${item}` : `${TAG_ROOT}::${series}`;
   }
-  if (src.platform === 'youtube') return title ? `${TAG_ROOT}::youtube::${title}` : `${TAG_ROOT}::youtube`;
-  return `${TAG_ROOT}::${title || PLATFORMS[src.platform].slug}`;
+  if (src.platform === 'youtube') return title ? `${TAG_ROOT}::youtube::${title}` : undefined;
+  return title ? `${TAG_ROOT}::${title}` : undefined;
 }
 
 /** `kivara::platform::<platform>`. */
@@ -102,7 +126,12 @@ export function langTag(lang: string): string {
 }
 
 export function cardTags(kind: CardKind, source?: CardSource, lang?: string): string[] {
-  return [...(lang ? [langTag(lang)] : []), ...(source ? [platformTag(source.platform), sourceTag(source)] : []), kindTag(kind)];
+  const sourceTags = source
+    ? [platformTag(source.platform), sourceTag(source)].filter(
+        (tag): tag is string => typeof tag === 'string',
+      )
+    : [];
+  return [...(lang ? [langTag(lang)] : []), ...sourceTags, kindTag(kind)];
 }
 
 /**
