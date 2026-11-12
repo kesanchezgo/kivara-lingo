@@ -9,13 +9,21 @@ import { createInterceptedAdapter } from './intercepted-adapter';
 import { getDomMediaInfo } from './media-info';
 import type { SubtitleSource } from './types';
 
+/**
+ * Hide ONLY Disney+'s caption text wrapper, never the overlay shells.
+ * `.btm-media-overlays` is the player's whole overlay layer: it can wrap
+ * the `<video>` and the control bar, so hiding it wholesale killed the
+ * site's controls and its subtitle menu too. `.dss-subtitle-renderer-wrapper`
+ * is the box that holds only the caption text (the `*` keeps any inner
+ * spans/backdrop inside that one box hidden); `video::cue` covers the
+ * native text tracks.
+ */
 const HIDE_NATIVE_CSS = `
   .dss-subtitle-renderer-wrapper,
   .dss-subtitle-renderer-wrapper *,
   video::cue,
   video::-webkit-media-text-track-display,
-  video::-webkit-media-text-track-container,
-  .btm-media-overlays { display: none !important; }
+  video::-webkit-media-text-track-container { display: none !important; }
 `;
 
 export function createDisneyPlusAdapter(): SubtitleSource {
