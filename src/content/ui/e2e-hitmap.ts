@@ -1,3 +1,5 @@
+import { getShadowRoot } from '../shadow-host';
+
 /**
  * E2E hit-map for controls inside a CLOSED shadow root (test-only).
  *
@@ -50,7 +52,7 @@ export interface E2EHit {
  * viewport coordinates. A hidden container (opacity transition) still reports
  * rects; the caller decides whether the bar is worth publishing.
  */
-export function collectHits(container: HTMLElement): E2EHit[] {
+export function collectHits(container: ParentNode): E2EHit[] {
   const hits: E2EHit[] = [];
   const nodes = container.querySelectorAll<HTMLElement>('[aria-label], [role="radio"]');
   for (const el of nodes) {
@@ -73,36 +75,48 @@ export function collectHits(container: HTMLElement): E2EHit[] {
 }
 
 /**
- * Publish the hit map onto the element's shadow host. Called from the bar's
- * own effect; returns the cleanup that removes the attribute.
+ * Mount the map for BOTH hosts (video overlay and panel). One interval per
+ * root; the bar is whatever carries `role="toolbar"` inside the video root,
+ * so the geometry cases keep measuring the real bar.
+ *
+ * Returns the cleanup that stops every interval and removes the attributes.
  */
-export function publishHits(container: HTMLElement): () => void {
-  const root = container.getRootNode();
-  const host = root instanceof ShadowRoot ? root.host : null;
-  if (!(host instanceof HTMLElement)) return () => {};
-  const write = () => {
-    try {
-      host.setAttribute(E2E_HITMAP_ATTR, JSON.stringify(collectHits(container)));
-      const root = container.getRootNode();
-      const scope = root instanceof ShadowRoot ? root : document;
-      const bar = container.getBoundingClientRect();
-      const tokens = [...scope.querySelectorAll<HTMLElement>('[data-tok-idx]')].map((el) => {
-        const r = el.getBoundingClientRect();
-        return { x: r.x, y: r.y, width: r.width, height: r.height };
-      });
-      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({
-        bar: { x: bar.x, y: bar.y, width: bar.width, height: bar.height },
-        tokens,
-      }));
-    } catch {
-      /* serialization of a detached node: nothing to publish */
-    }
-  };
-  write();
-  const id = window.setInterval(write, 400);
-  return () => {
-    window.clearInterval(id);
-    host.removeAttribute(E2E_HITMAP_ATTR);
-    host.removeAttribute(E2E_BOXES_ATTR);
-  };
+export function publishAllRoots(): () => void {
+  const hosts = ['kivara-lingo-video-host', 'kivara-lingo-host']
+    .map((id) => document.getElementById(id))
+    .filter((el): el is HTMLElement => el !== null);
+  const cleanups: Array<() => void> = [];
+  for (const host of hosts) {
+    const root = getShadowRoot(host);
+    if (!root) continue;
+    const write = () => {
+      try {
+        host.setAttribute(E2E_HITMAP_ATTR, JSON.stringify(collectHits(root)));
+        const bar = root.querySelector<HTMLElement>('[role="toolbar"]');
+        const tokens = [...root.querySelectorAll<HTMLElement>('[data-tok-idx]')].map((el) => {
+          const r = el.getBoundingClientRect();
+          // The text rides along so the suite can assert WHAT the line says
+          // (the translated caption) without reading a closed root.
+          return { x: r.x, y: r.y, width: r.width, height: r.height, text: el.textContent?.trim() ?? '' };
+        });
+        const barRect = bar?.getBoundingClientRect();
+        host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({
+          bar: barRect
+            ? { x: barRect.x, y: barRect.y, width: barRect.width, height: barRect.height }
+            : null,
+          tokens,
+        }));
+      } catch {
+        /* a detached root: nothing to publish */
+      }
+    };
+    write();
+    const id = window.setInterval(write, 400);
+    cleanups.push(() => {
+      window.clearInterval(id);
+      host.removeAttribute(E2E_HITMAP_ATTR);
+      host.removeAttribute(E2E_BOXES_ATTR);
+    });
+  }
+  return () => cleanups.forEach((fn) => fn());
 }
