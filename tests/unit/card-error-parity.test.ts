@@ -86,6 +86,17 @@ const CASES: Case[] = [
     code: 'LOOPBACK_REFUSED',
     family: 'anki-down',
   },
+  {
+    // The wrapper's last-resort sentence: it means the transport failed in a
+    // way nobody classified, so it belongs with "Anki is down" — the family
+    // the worker reports for the same failure. By TEXT alone it used to read
+    // `anki-error` (it mentions AnkiConnect), which is the mismatch this case
+    // pins.
+    name: 'unknown contact failure',
+    text: (locale) => message(locale, 'anki.unknown'),
+    code: 'NETWORK',
+    family: 'anki-down',
+  },
 ];
 
 afterEach(() => {

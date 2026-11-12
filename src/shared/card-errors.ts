@@ -53,7 +53,10 @@ export function classifyCardError(
   // Anki's own refusals so a wrapped "No se pudo contactar AnkiConnect" reads
   // as "Anki is down", not as a rejected note. The loopback refusal belongs to
   // the same family: the endpoint is unreachable by policy.
-  if (/(network|failed to fetch|econnrefused|fetch failed|\bconnect\b|refused|unreachable|econnreset|no se pudo contactar|could not reach|could not contact|loopback|no es local)/.test(text)) {
+  // `contactando|contacting`: the wrapper's "unknown error contacting
+  // AnkiConnect" means the transport died before anything classified it —
+  // the same family the worker reports for that failure.
+  if (/(network|failed to fetch|econnrefused|fetch failed|\bconnect\b|refused|unreachable|econnreset|no se pudo contactar|could not reach|could not contact|contactando|contacting|loopback|no es local)/.test(text)) {
     return 'anki-down';
   }
   // Anki's own refusals. The bare `anki` token is gone: it matched every
