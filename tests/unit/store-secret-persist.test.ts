@@ -103,10 +103,18 @@ function flush(ms = 60): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/** Poll instead of sleeping a fixed delay. The persist path is async and a
+/**
+ * Poll instead of sleeping a fixed delay. The persist path is async and a
  * fixed sleep raced under a loaded machine (two CI jobs at once), flaking
- * tests that used to pass in isolation. */
-async function waitFor(predicate: () => boolean, tries = 100): Promise<void> {
+ * tests that used to pass in isolation.
+ *
+ * Budget: 250 × 20 ms = 5 s. It was 100 × 20 ms = 2 s, and a full-suite run
+ * was measured spending 2 194 ms in the write under load — the poll expired
+ * 194 ms before the slot existed. The predicate is cheap and the happy path
+ * returns on the first poll, so the wider ceiling costs nothing when things
+ * are fast and buys the whole spread when they are not.
+ */
+async function waitFor(predicate: () => boolean, tries = 250): Promise<void> {
   for (let i = 0; i < tries; i += 1) {
     if (predicate()) return;
     await flush(20);
