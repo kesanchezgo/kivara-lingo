@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ExternalLink, KeyRound, Loader2, Zap, Info } from '../../../ui/icons';
 import { sendMessage } from 'webext-bridge/content-script';
 import { t, fmtDays } from '../../../shared/i18n';

@@ -1,5 +1,5 @@
 /* Language step — the pair the rest of the wizard configures (F8, prototype view). */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { t } from '../../shared/i18n';
 import { richText } from '../../shared/i18n/rich';
 import { Languages, GraduationCap, ArrowLeftRight, AlertTriangle } from '../../ui/icons';

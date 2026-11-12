@@ -9,11 +9,21 @@ import { createInterceptedAdapter } from './intercepted-adapter';
 import { getDomMediaInfo } from './media-info';
 import type { SubtitleSource } from './types';
 
+/**
+ * Hide ONLY the caption text box, never player chrome.
+ *
+ * Prime's own "subtitle" classes (`.atvwebplayersdk-subtitle-text`,
+ * `[data-testid="subtitle"]`) name the EPISODE subtitle shown under the
+ * title, and the SDK's subtitle/caption settings menus carry "caption"
+ * in their class names too — a `[class*="caption"]`-style wildcard
+ * swallowed all of them. Every rule below is an exact hook for the box
+ * that renders caption text; `.atvwebplayersdk-captions-overlay` wraps
+ * only that text (the `<video>` and the controls are siblings in the
+ * player container, never inside it).
+ */
 const HIDE_NATIVE_CSS = `
   .atvwebplayersdk-captions-text,
   .atvwebplayersdk-captions-overlay,
-  [class*="captions"],
-  [class*="caption"],
   video::cue,
   video::-webkit-media-text-track-display,
   video::-webkit-media-text-track-container { display: none !important; }

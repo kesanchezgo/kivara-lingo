@@ -225,7 +225,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   const savedWordsCacheRef = useRef<Map<string, Set<string>>>(new Map());
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         // Wait for zustand-persist rehydration: before it completes the
         // store holds defaults (empty deckName) even when the user has
@@ -612,14 +612,20 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         fireNext();
         return;
       }
+      // Translation is best-effort: a rejected call just skips this cue,
+      // but the rejection must be observed or it lands as an unhandled one.
       sendMessage(
         'TRANSLATE',
         { text, sourceLang, targetLang: nativeLang },
         'background',
-      ).finally(() => {
-        if (cancelled) return;
-        window.setTimeout(fireNext, 60);
-      });
+      )
+        .catch(() => {
+          // ignore — the next cue still fires via .finally below
+        })
+        .finally(() => {
+          if (cancelled) return;
+          window.setTimeout(fireNext, 60);
+        });
     };
     fireNext();
     return () => {
@@ -765,7 +771,9 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         }
         attempts += 1;
         const p = videoElement.play();
-        if (p && typeof p.then === 'function') {
+        // Same shape note as the pause watchdog below: `p &&` puts a promise
+        // in a boolean-conditional position; `typeof p?.then` does not.
+        if (typeof p?.then === 'function') {
           p.then(() => {
             kivaraPausedRef.current = false;
           }).catch((err) => {
@@ -879,7 +887,10 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         }
         attempts += 1;
         const p = videoElement.play();
-        if (p && typeof p.then === 'function') {
+        // `typeof p?.then === 'function'` instead of `p && typeof p.then…`:
+        // play() is Promise-valued, and a promise in a boolean-conditional
+        // position is exactly the accidental-await shape the lint rule bans.
+        if (typeof p?.then === 'function') {
           p.then(() => {
             kivaraPausedRef.current = false;
           }).catch((err) => {

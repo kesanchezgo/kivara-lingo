@@ -2,7 +2,7 @@
 
 import type { TranslateProvider, TranslateSettings } from '../shared/types';
 import { t } from '../shared/i18n/sw';
-import { assertPublicHttpUrl, readBodyBounded } from '../shared/net-guard';
+import { readBodyBounded } from '../shared/net-guard';
 
 export interface ProviderResult {
   ok: true;
@@ -56,7 +56,7 @@ export function sameOrigin(asked: string, landed: string): boolean {
 }
 
 /** The message for a redirected-off-origin response, localised. */
-function originMismatch(asked: string, landed: string): string {
+function originMismatch(landed: string): string {
   try {
     return t('translate.originMismatch', { origin: new URL(landed).origin });
   } catch {
@@ -76,7 +76,7 @@ function withTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Resp
       // half-read stream open until GC — the throw used to leave both attached.
       if ((res.ok || res.redirected) && !sameOrigin(String(input), res.url || String(input))) {
         void res.body?.cancel().catch(() => {});
-        throw new Error(originMismatch(String(input), res.url || String(input)));
+        throw new Error(originMismatch(res.url || String(input)));
       }
       if (!res.ok) {
         void res.body?.cancel().catch(() => {});

@@ -15,7 +15,7 @@
  * The word-status selector is F5. `statusSlot` is the hook point: F5 passes
  * the selector there and nothing in this file changes.
  */
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { t } from '../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
 import {
@@ -346,11 +346,12 @@ function PopoverAction({ icon, label, title, href }: { icon: React.ReactNode; la
         try { e.currentTarget.blur(); } catch { /* element may be gone */ }
         if (!href) return;
         // The site's page can intercept window.open; the SW has chrome.tabs.
-        try {
-          chrome.runtime.sendMessage({ type: 'OPEN_URL', url: href });
-        } catch {
-          window.open(href, '_blank', 'noopener,noreferrer');
-        }
+        // sendMessage rejects asynchronously (SW asleep, no receiver yet) — a
+        // synchronous try/catch never sees that rejection, so the fallback
+        // lives in .catch instead of a sync catch block.
+        chrome.runtime
+          .sendMessage({ type: 'OPEN_URL', url: href })
+          .catch(() => window.open(href, '_blank', 'noopener,noreferrer'));
       }}
       title={title}
       className="flex-1 flex items-center justify-center gap-1.5 px-2 h-10 text-[12px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-900/[0.04] dark:hover:bg-white/[0.04] transition-colors"

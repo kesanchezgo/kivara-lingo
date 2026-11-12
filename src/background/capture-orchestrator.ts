@@ -1009,7 +1009,7 @@ export async function createCardFromRequest(
     // sentence — Anki will still play it on review.
     if (!sentenceAudioAttached) {
       try {
-        const tts = await generateTtsAudio(request.sentence, lang);
+        const tts = await generateTtsAudio(request.sentence);
         if (tts.ok) {
           const filename = safeFilename(`${request.token}_sentence`, extForMime(tts.mime));
           const data = dataUrlToBase64(tts.dataUrl);
@@ -1055,7 +1055,7 @@ export async function createCardFromRequest(
     } else {
       warnings.push(t('capture.retryTts'));
       try {
-        const tts = await generateTtsAudio(request.sentence, lang);
+        const tts = await generateTtsAudio(request.sentence);
         if (tts.ok) {
           const filename = safeFilename(`${request.token}_sentence`, extForMime(tts.mime));
           const data = dataUrlToBase64(tts.dataUrl);
@@ -1105,7 +1105,7 @@ export async function createCardFromRequest(
       // Fall back to TTS synthesis when the enrichment chain didn't
       // ship a usable URL or the download failed.
       try {
-        const tts = await generateTtsAudio(headword, lang);
+        const tts = await generateTtsAudio(headword);
         if (tts.ok) {
           const filename = safeFilename(headword, extForMime(tts.mime));
           const data = dataUrlToBase64(tts.dataUrl);
@@ -1131,7 +1131,7 @@ export async function createCardFromRequest(
     const ttsText = fields[legacyTtsField] || request.sentence;
     if (ttsText) {
       try {
-        const tts = await generateTtsAudio(ttsText, lang);
+        const tts = await generateTtsAudio(ttsText);
         if (tts.ok) {
           const filename = safeFilename(request.token, extForMime(tts.mime));
           const data = dataUrlToBase64(tts.dataUrl);

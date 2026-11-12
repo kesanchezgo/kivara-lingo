@@ -1,5 +1,5 @@
 /* Anki connection — ping + link diagram (F8; prototype view, repo ping/testids). */
-import { CheckCircle2, AlertTriangle, Loader2, Play, Plug, Globe, BookText, PlugZap } from '../../ui/icons';
+import { AlertTriangle, Loader2, Play, Plug, Globe, BookText, PlugZap } from '../../ui/icons';
 import type { AnkiMapping } from '../../shared/types';
 import { t } from '../../shared/i18n';
 import { richText } from '../../shared/i18n/rich';

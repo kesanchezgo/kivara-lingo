@@ -1,4 +1,4 @@
-import React, {
+import {
   useEffect,
   useLayoutEffect,
   useReducer,
@@ -80,7 +80,7 @@ export function SettingsTab({
 } = {}) {
   const {
     capture, setCapture, cleanup, setCleanup, mode, setMode,
-    translate, setTranslate, study, setStudy, ai, setAi, tts, setTts, vip,
+    translate, setTranslate, study, setStudy, ai, tts, setTts, vip,
   } = useKivaraStore();
 
   /* ── Open sections ───────────────────────────────────────────────────── */
@@ -216,14 +216,14 @@ export function SettingsTab({
     );
   };
 
-  function reopenOnboarding() {
+  // The message rejects asynchronously (SW asleep, no receiver) — a sync
+  // try/catch never sees it, so the awaited call is what the catch guards.
+  async function reopenOnboarding() {
+    const url = chrome.runtime.getURL('src/onboarding/index.html');
     try {
-      chrome.runtime.sendMessage({
-        type: 'OPEN_URL',
-        url: chrome.runtime.getURL('src/onboarding/index.html'),
-      });
+      await chrome.runtime.sendMessage({ type: 'OPEN_URL', url });
     } catch {
-      window.open(chrome.runtime.getURL('src/onboarding/index.html'), '_blank');
+      window.open(url, '_blank');
     }
   }
 
