@@ -236,10 +236,10 @@ export async function fetchJson<T = unknown>(
  */
 export function parseHtml(html: string): Document | null {
 
-  const D = (globalThis as any).DOMParser;
-  if (typeof D !== 'function') return null;
+  const Parser = (globalThis as { DOMParser?: typeof DOMParser }).DOMParser;
+  if (typeof Parser !== 'function') return null;
   try {
-    return new D().parseFromString(html, 'text/html');
+    return new Parser().parseFromString(html, 'text/html');
   } catch {
     return null;
   }

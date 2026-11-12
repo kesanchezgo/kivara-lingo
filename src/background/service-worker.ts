@@ -348,8 +348,15 @@ async function loadCaptureBufferSec(): Promise<number> {
 }
 
 
-function asJson<T>(value: T): any {
-  return value as unknown as any;
+/**
+ * The bridge's replies are JSON payloads; each message declares its response
+ * type in the handler map (`OnMessageCallback<Req, Res>`), and this helper now
+ * carries that type through instead of erasing it to `any`. The handler's
+ * return value is checked against `Res` at the registration site, so a shape
+ * mistake fails the build instead of shipping.
+ */
+function asJson<T>(value: T): T {
+  return value;
 }
 
 onMessage('CREATE_CARD', async ({ data }) => {
@@ -775,7 +782,7 @@ export async function startAudioCaptureHandler(data: unknown): Promise<StartCapt
   return result;
 }
 
-export async function stopAudioCaptureHandler(): Promise<{}> {
+export async function stopAudioCaptureHandler(): Promise<{ ok: boolean }> {
   await stopAudioCapture();
   await chrome.alarms.clear(OFFSCREEN_KEEPALIVE_ALARM);
   return { ok: true };

@@ -35,6 +35,13 @@ export interface EnrichmentContext {
    * any wave finished).
    */
   signal?: AbortSignal;
+  /**
+   * BYOK image-source credentials. The image sources (Unsplash, Pixabay) read
+   * them from the context; before this they were smuggled in with an
+   * `(ctx as any)` cast, which is exactly the kind of hole that hides a rename.
+   */
+  unsplashAccessKey?: string;
+  pixabayApiKey?: string;
 }
 
 /**

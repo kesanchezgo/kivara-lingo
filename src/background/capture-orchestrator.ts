@@ -245,7 +245,10 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
     binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)));
   }
 
-  return (globalThis as any).btoa(binary);
+  // `btoa` is a global in every context this runs in (service worker, page).
+  const encode = (globalThis as { btoa?: (data: string) => string }).btoa;
+  if (typeof encode !== 'function') throw new Error('btoa unavailable');
+  return encode(binary);
 }
 
 function resolveField(field: string, source: FieldSource, ctx: ResolveContext): string {
