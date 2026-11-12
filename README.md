@@ -229,11 +229,11 @@ La ruta de audio sí está completa y es el valor que ya se usa hoy: captura de 
 
 | Plataforma | Estrategia de subtítulos |
 |---|---|
-| YouTube | `<video>.textTracks` (HTML5) |
-| Netflix | Intercepta TTML/WebVTT vía `main-world-interceptor.ts` |
-| Disney+ | `<video>.textTracks` (Shaka Player) |
-| HBO Max / Max | Intercepta WebVTT del manifest HLS/DASH |
-| Prime Video | Intercepta TTML embebido |
+| YouTube | Bus interceptado de `/api/timedtext` primero (incluida la pista traducida auto-fetch con `tlang`), luego `<video>.textTracks`, y como último recurso el DOM de subtítulos de la página |
+| Netflix | Intercepta TTML/DFXP de `*.nflxvideo.net` vía `main-world-interceptor.ts` |
+| Disney+ | Bus interceptado: segmentos WebVTT + parseo del manifest DASH (MPD) para las pistas alternativas |
+| HBO Max / Max | Bus interceptado: segmentos WebVTT + parseo del manifest DASH (MPD) para las pistas alternativas |
+| Prime Video | Bus interceptado: TTML/DFXP en los dominios de Amazon (`media-amazon.com`, `primevideo.com`, CloudFront) |
 
 ---
 
