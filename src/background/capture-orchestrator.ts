@@ -1228,8 +1228,14 @@ export async function createCardFromRequest(
       ok: false,
       error: message,
       // Classified HERE, where the original error object exists: the panel
-      // translates the code instead of re-guessing provider wording.
-      errorCode: classifyCardError(message),
+      // translates the code instead of re-guessing provider wording. The
+      // transport code is the precise answer — the message may have been
+      // rewritten or may name "AnkiConnect" itself, which the text patterns
+      // cannot read as a transport failure.
+      errorCode: classifyCardError(
+        message,
+        err instanceof AnkiConnectError ? err.code : undefined,
+      ),
       warnings,
       queued: retryable,
     };

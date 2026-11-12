@@ -35,11 +35,11 @@ The rat ships frames and audio.
 Every crumb gets gnawed.
 `;
 
-/** A cue long enough to wrap to TWO lines at 640×360 (and at 1280×720). */
+/** A cue long enough to wrap, with a first line that reaches the right edge. */
 const CUES_VTT_LONG = `WEBVTT
 
 00:00:00.000 --> 00:00:03.000
-Hello, this is a test cue that keeps going, because the caption really does wrap onto a second line on a small player.
+Hello, this is a test cue that fills the first line completely, because the caption really does wrap onto a second line on a small player.
 
 00:00:03.000 --> 00:00:06.000
 The rat ships frames and audio.
@@ -137,9 +137,10 @@ const LABEL = {
   replay: 'Repetir frase',
 } as const;
 
-/** The bar's box and every token's box, as the bar published them. */
+/** The bar's box, the corner icons' boxes and every token's box, as published. */
 async function boxesOf(page: Page): Promise<{
   bar: { x: number; y: number; width: number; height: number };
+  badges: Array<{ x: number; y: number; width: number; height: number }>;
   tokens: Array<{ x: number; y: number; width: number; height: number }>;
 }> {
   const raw = await page.evaluate(() => document.getElementById('kivara-lingo-video-host')
@@ -164,6 +165,10 @@ async function clickSpeed(page: Page, value: string): Promise<void> {
 /** Move the pointer so the bar appears, then wait for its hit map. */
 async function armBar(page: Page): Promise<void> {
   await page.mouse.move(320, 200);
+  // The publisher writes every 400 ms; without this wait the click below can
+  // use a snapshot from BEFORE the pointer moved (or from before the bar
+  // flipped above a taller caption plate) and land on empty video.
+  await page.waitForTimeout(500);
   await expect.poll(
     () => page.evaluate(() => document.getElementById('kivara-lingo-video-host')
       ?.getAttribute('data-kivara-e2e-hits')?.length ?? 0),
@@ -289,25 +294,59 @@ test.describe('StudyBar buttons (mouse, closed shadow root)', () => {
   });
 
   /**
-   * The bar used to sit at `bottom-16` ON TOP of the caption on a small
-   * player: the tokens under it could not be clicked. The bar now measures
-   * the caption plate and parks above it.
+   * The caption plate, the study bar and the corner icons, by real rectangles.
+   *
+   * The bar used to sit at `bottom-16` ON TOP of the caption on a small player:
+   * the tokens under it could not be clicked, so it now parks on the opposite
+   * half. The corner icons (Listen-first, mode) used to be pinned to `top-4
+   * right-4` of the caption band — INSIDE a two-line caption that reaches the
+   * right edge. All three must stay off each other.
+   *
+   * Parked mid-cue on purpose: the long first cue is the wrapping, right-edge
+   * case, and playing through it would race the assertion against the cue
+   * boundary.
    */
   for (const size of [{ width: 640, height: 360 }, { width: 1280, height: 720 }] as const) {
-    test(`the bar never covers a subtitle token at ${size.width}×${size.height}`, async ({ context }) => {
+    test(`neither the bar nor the corner icons cover a token at ${size.width}×${size.height}`, async ({ context }) => {
       test.setTimeout(90_000);
       const page = await openPlayer(context, { vtt: CUES_VTT_LONG });
       await page.setViewportSize({ width: size.width, height: size.height });
-      await page.waitForTimeout(400);
+      // The fixture's stage is a fixed 640×360 box. The PLAYER is what the
+      // overlay measures, so the stage has to follow the viewport or the wide
+      // case would measure the same 640 px player as the small one.
+      await page.addStyleTag({
+        content: '#stage{width:100vw !important;height:100vh !important;max-height:100vh}',
+      });
+      // Pause inside the first (long) cue: the geometry is what is asserted.
+      await page.evaluate(() => {
+        const video = document.querySelector('video')!;
+        video.pause();
+        video.currentTime = 1.2;
+      });
+      await page.waitForTimeout(500);
       await armBar(page);
       await expect.poll(async () => (await boxesOf(page)).tokens.length, { timeout: 8_000 })
         .toBeGreaterThan(5);
-      const { bar, tokens } = await boxesOf(page);
-      const covered = tokens.filter((token) => overlaps(bar, token));
-      expect(covered, `${covered.length} token(s) under the bar`).toEqual([]);
-      // The bar is still inside the frame.
-      expect(bar.y).toBeGreaterThanOrEqual(0);
-      expect(bar.y + bar.height).toBeLessThanOrEqual(size.height);
+      const { bar, badges, tokens } = await boxesOf(page);
+      // Listen-first and the mode toggle are always there.
+      expect(badges.length).toBeGreaterThanOrEqual(2);
+
+      const coveredByBar = tokens.filter((token) => overlaps(bar, token));
+      expect(coveredByBar, `${coveredByBar.length} token(s) under the bar at ${size.width}×${size.height}`)
+        .toEqual([]);
+
+      for (const badge of badges) {
+        const covered = tokens.filter((token) => overlaps(badge, token));
+        expect(covered, `${covered.length} token(s) under a corner icon at ${size.width}×${size.height}`)
+          .toEqual([]);
+        expect(overlaps(bar, badge), 'the bar and a corner icon overlap').toBe(false);
+      }
+
+      // Everything stays inside the frame.
+      for (const box of [bar, ...badges]) {
+        expect(box.y).toBeGreaterThanOrEqual(0);
+        expect(box.y + box.height).toBeLessThanOrEqual(size.height);
+      }
       await page.close();
     });
   }
@@ -369,3 +408,127 @@ test.describe('StudyBar buttons (mouse, closed shadow root)', () => {
     await page.close();
   });
 });
+
+/**
+ * A SEEK is not the end of a cue.
+ *
+ * Loop and end-of-cue auto-pause compare two consecutive ticks. A tick is a
+ * few ms of playback, but a seek (a scrub, the platform's own chapter jump)
+ * skips seconds at once — and the old bookkeeping read that jump as "the cue
+ * ended": a forward jump past a cue's end looped back to that cue's start (or
+ * paused mid-cue), and the cue reference stayed put across the jump.
+ *
+ * These cases drive the REAL media element (`video.currentTime`), which is the
+ * same path a user scrub takes, plus the controller path through the buttons.
+ */
+test.describe('a seek is not the end of a cue', () => {
+  /** Jump the media element, the way a scrub / platform control does. */
+  const seekTo = (page: Page, seconds: number) =>
+    page.evaluate((value) => {
+      const video = document.querySelector('video')!;
+      video.currentTime = value;
+    }, seconds);
+
+  /** Park the playhead so the settings can be armed before natural playback
+   *  reaches a real cue end (arming takes long enough to cross 3 s). */
+  async function parkAt(page: Page, seconds: number): Promise<void> {
+    await page.evaluate((value) => {
+      const video = document.querySelector('video')!;
+      video.pause();
+      video.currentTime = value;
+    }, seconds);
+    // The element snaps a seek to a frame boundary, so allow a little drift.
+    await expect.poll(() => time(page), { timeout: 5_000 }).toBeGreaterThan(seconds - 0.2);
+    expect(await time(page)).toBeLessThan(seconds + 0.2);
+    // Let the bar republish: a new cue can move it above/below the caption.
+    await page.waitForTimeout(500);
+  }
+
+  const play = (page: Page) => page.evaluate(() => document.querySelector('video')!.play());
+
+  test('loop: a jump into the next cue does not snap back', async ({ context }) => {
+    test.setTimeout(90_000);
+    const page = await openPlayer(context);
+    // Park inside cue 1 (0–3 s), arm the loop through its button, then play.
+    await parkAt(page, 1);
+    await armBar(page);
+    await clickInRoot(page, VIDEO_HOST, LABEL.loop);
+    await expect.poll(() => pressedInRoot(page, VIDEO_HOST, LABEL.loop), { timeout: 5_000 }).toBe('true');
+    await play(page);
+    await page.waitForTimeout(300);
+    expect(await time(page)).toBeLessThan(2.9);
+
+    // The jump that is not playback: 1.x → 4.2 s (inside cue 2, 3–6 s).
+    await seekTo(page, 4.2);
+    await page.waitForTimeout(600);
+    const at = await time(page);
+    expect(at, `loop snapped back to ${at.toFixed(2)}s`).toBeGreaterThanOrEqual(4.2);
+    expect(at).toBeLessThan(6);
+    expect(await paused(page)).toBe(false);
+
+    // ... and it keeps advancing from the destination instead of restarting.
+    await page.waitForTimeout(400);
+    expect(await time(page)).toBeGreaterThan(at);
+    await page.close();
+  });
+
+  test('auto-pause: a jump into the next cue pauses only at its real end', async ({ context }) => {
+    test.setTimeout(90_000);
+    const page = await openPlayer(context);
+    await parkAt(page, 1);
+    await armBar(page);
+    await clickInRoot(page, VIDEO_HOST, LABEL.autoPause);
+    await expect.poll(() => pressedInRoot(page, VIDEO_HOST, LABEL.autoPause), { timeout: 5_000 })
+      .toBe('true');
+    await play(page);
+    await page.waitForTimeout(300);
+    expect(await time(page)).toBeLessThan(2.9);
+
+    // 1.x → 4.2 s: past cue 1's end, but that end was never played.
+    await seekTo(page, 4.2);
+    // Still playing at ~5 s — an auto-pause fired by the jump would have
+    // stopped the playhead at 4.2 and this poll would time out.
+    await expect.poll(() => time(page), { timeout: 4_000 }).toBeGreaterThan(4.9);
+    expect(await paused(page)).toBe(false);
+
+    // The genuine end of cue 2 (6 s) still pauses.
+    await expect.poll(() => paused(page), { timeout: 6_000 }).toBe(true);
+    const at = await time(page);
+    expect(at).toBeGreaterThanOrEqual(5.85);
+    expect(at).toBeLessThanOrEqual(6.6);
+    await page.close();
+  });
+
+  test('seeking back fires neither loop nor auto-pause', async ({ context }) => {
+    test.setTimeout(90_000);
+    const page = await openPlayer(context);
+    // Both triggers armed, parked inside cue 2, then playing.
+    await parkAt(page, 4.6);
+    await armBar(page);
+    await clickInRoot(page, VIDEO_HOST, LABEL.loop);
+    await expect.poll(() => pressedInRoot(page, VIDEO_HOST, LABEL.loop), { timeout: 5_000 }).toBe('true');
+    await clickInRoot(page, VIDEO_HOST, LABEL.autoPause);
+    await expect.poll(() => pressedInRoot(page, VIDEO_HOST, LABEL.autoPause), { timeout: 5_000 })
+      .toBe('true');
+    await play(page);
+    await page.waitForTimeout(300);
+
+    // Back inside the same cue: no loop restart, no pause.
+    await seekTo(page, 3.4);
+    await page.waitForTimeout(500);
+    expect(await paused(page)).toBe(false);
+    const inside = await time(page);
+    expect(inside, `restarted or paused at ${inside.toFixed(2)}s`).toBeGreaterThanOrEqual(3.4);
+    expect(inside).toBeLessThan(6);
+
+    // Back into an earlier cue: still no loop restart, still no pause.
+    await seekTo(page, 1.4);
+    await page.waitForTimeout(500);
+    expect(await paused(page)).toBe(false);
+    const earlier = await time(page);
+    expect(earlier, `restarted or paused at ${earlier.toFixed(2)}s`).toBeGreaterThanOrEqual(1.4);
+    expect(earlier).toBeLessThan(3);
+    await page.close();
+  });
+});
+

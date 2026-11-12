@@ -55,6 +55,13 @@ export function resetPlaybackClockForTests(): void {
   clockListeners.clear();
 }
 
+/** Playhead polling period, ms. */
+const TICK_MS = 100;
+/** Floor for the "this was a jump, not playback" gap. */
+const JUMP_FLOOR_MS = 1000;
+/** A gap of more than this many ticks (scaled by the rate) is a jump. */
+const JUMP_TICKS = 3;
+
 const loopStore = createChromeLocalStore<boolean>('kvl:study.loop', false);
 const speedStore = createChromeLocalStore<number>('kvl:study.speed', 1, (raw) =>
   typeof raw === 'number' && PLAYBACK_SPEEDS.includes(raw) ? raw : 1,
@@ -144,6 +151,25 @@ export function useStudyPlayback({
     return cueIndexAt(cuesRef.current, active.currentTimeMs());
   }, []);
 
+  /**
+   * Point the crossing bookkeeping at the cue under `timeMs`, without treating
+   * the move that got us there as playback.
+   *
+   * A SEEK is a jump, not a tick: the playhead skips a span of time, so the
+   * previous/current pair says nothing about the cue having played out. Both
+   * halves must be re-anchored at the DESTINATION, exactly as `seekCue` always
+   * did — otherwise a forward jump looks like crossing the end of the cue we
+   * left (loop yanks the user back, or auto-pause fires mid-cue) and a
+   * backward jump leaves `activeCueRef` pointing at a cue the playhead is no
+   * longer near.
+   */
+  const anchorAt = useCallback((timeMs: number): void => {
+    const list = cuesRef.current;
+    const index = cueIndexAt(list, timeMs);
+    lastTimeRef.current = timeMs;
+    activeCueRef.current = index >= 0 ? list[index] : null;
+  }, []);
+
   useEffect(() => {
     if (!controller) return;
     let disposed = false;
@@ -166,7 +192,21 @@ export function useStudyPlayback({
       }
       // Crossing the end of the cue. Loop wins over auto-pause; a slow pass
       // always ends paused (you asked to hear THAT line).
-      const crossed = endedCue !== null && previous < endedCue.end && time >= endedCue.end;
+      //
+      // Belt and braces on top of the seek listeners: a tick that advanced by
+      // more than a few ticks worth of playing time is a JUMP — a scrub, a
+      // platform chapter marker, a seek that landed between two ticks — so the
+      // end it appears to cross was never played. A genuine end-of-cue tick
+      // moves by a few ms, well under the floor.
+      const rate = controller.getRate();
+      const jumpGapMs = Math.max(
+        JUMP_FLOOR_MS,
+        JUMP_TICKS * TICK_MS * (Number.isFinite(rate) && rate > 0 ? rate : 1),
+      );
+      const crossed = !(time - previous > jumpGapMs)
+        && endedCue !== null
+        && previous < endedCue.end
+        && time >= endedCue.end;
       if (!crossed) return;
       const endedSlow = slowOnceRef.current;
       slowOnceRef.current = false;
@@ -179,11 +219,13 @@ export function useStudyPlayback({
       }
       if (loopRef.current) {
         const start = endedCue.start;
+        // Anchor BEFORE the seek resolves: the loop's own jump is a seek, and
+        // the next tick may land inside the media element's seek.
+        anchorAt(start + 10);
         void controller
           .seek(start + 10)
           .then(() => {
-            lastTimeRef.current = start;
-            activeCueRef.current = endedCue;
+            anchorAt(start + 10);
             void controller.play().catch(() => {});
           })
           .catch(() => {
@@ -203,7 +245,25 @@ export function useStudyPlayback({
       disposed = true;
       window.clearInterval(handle);
     };
-  }, [controller, pausedByKivara]);
+  }, [controller, pausedByKivara, anchorAt]);
+
+  /**
+   * Seek listeners: a user scrub, the platform's own controls, or anything
+   * else that moves the media element re-anchors the crossing bookkeeping at
+   * the destination. Without this, the first tick after a forward jump sees
+   * `previous` inside the old cue and `time` past its end — indistinguishable
+   * from the cue having played out.
+   */
+  useEffect(() => {
+    if (!video) return;
+    const onSeek = () => anchorAt(video.currentTime * 1000);
+    video.addEventListener('seeking', onSeek);
+    video.addEventListener('seeked', onSeek);
+    return () => {
+      video.removeEventListener('seeking', onSeek);
+      video.removeEventListener('seeked', onSeek);
+    };
+  }, [video, anchorAt]);
 
   // A platform- or user-initiated play means the auto-pause is over, so the
   // hover-resume watchdog must stop treating the pause as ours.
@@ -232,11 +292,14 @@ export function useStudyPlayback({
       const target = list[safe];
       slowOnceRef.current = false;
       controller.setRate(speedRef.current);
+      // Re-anchor at the DESTINATION before the seek lands: the controller may
+      // resolve after one or more ticks, and during a jump `previous` still
+      // points into the cue we are leaving.
+      anchorAt(target.start + 10);
       void controller
         .seek(target.start + 10)
         .then(() => {
-          lastTimeRef.current = target.start;
-          activeCueRef.current = target;
+          anchorAt(target.start + 10);
           markAutoPaused(false);
           if (play) {
             pausedByKivara.current = false;
@@ -248,7 +311,7 @@ export function useStudyPlayback({
           // is written to the element, so playback just keeps going.
         });
     },
-    [controller, pausedByKivara],
+    [controller, pausedByKivara, anchorAt],
   );
 
   const prev = useCallback(() => seekCue(getActiveIndex() - 1), [getActiveIndex, seekCue]);
