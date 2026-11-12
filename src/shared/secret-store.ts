@@ -24,6 +24,8 @@
  * acceptable because re-installs already wipe `chrome.storage`.
  */
 
+import { t } from './i18n/core';
+
 const STORAGE_KEY = 'kivara-secret-store-salt-v1';
 const PREFIX = 'enc:v1:'; // versioned so we can rotate the schema later
 
@@ -160,7 +162,7 @@ export function isEncrypted(value: string | undefined | null): boolean {
  */
 export class SecretEncryptionUnavailableError extends Error {
   constructor(readonly cause?: unknown) {
-    super('Cifrado no disponible: la clave no se guardó en texto plano.');
+    super(t('secret.encryptionUnavailable'));
     this.name = 'SecretEncryptionUnavailableError';
   }
 }
@@ -500,7 +502,7 @@ async function saveSecrets(
       // landed, so the next save must still honour the user's Quitar.
       throw err instanceof SecretEncryptionUnavailableError
         ? err
-        : new Error('local slot write failed');
+        : new Error(t('secret.slotWriteFailed'));
     }
     for (const { section, field, plain } of written) {
       const key = secretSlotKey(section, field);

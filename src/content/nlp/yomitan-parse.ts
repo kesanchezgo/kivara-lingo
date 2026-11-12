@@ -76,7 +76,7 @@ export function parseYomitanPack(zipBytes: ArrayBuffer | Uint8Array): YomitanPar
     const bytes = zipBytes instanceof Uint8Array ? zipBytes : new Uint8Array(zipBytes);
     files = unzipSync(bytes);
   } catch (err) {
-    return { ok: false, error: `Could not unzip pack: ${(err as Error).message}` };
+    return { ok: false, error: t('yomitan.unzipFailed', { reason: (err as Error).message }) };
   }
 
   // index.json may live at the root OR inside a folder (some packs ship as
@@ -145,7 +145,7 @@ export function parseYomitanPack(zipBytes: ArrayBuffer | Uint8Array): YomitanPar
         });
       }
     } catch (err) {
-      return { ok: false, error: `No se pudo parsear ${name}: ${(err as Error).message}` };
+      return { ok: false, error: t('yomitan.parseFailed', { name, reason: (err as Error).message }) };
     }
   }
 
@@ -173,7 +173,7 @@ export function parseYomitanPack(zipBytes: ArrayBuffer | Uint8Array): YomitanPar
         });
       }
     } catch (err) {
-      return { ok: false, error: `No se pudo parsear ${name}: ${(err as Error).message}` };
+      return { ok: false, error: t('yomitan.parseFailed', { name, reason: (err as Error).message }) };
     }
   }
 

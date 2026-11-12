@@ -96,10 +96,16 @@ export const RECOMMENDED_PACKS: RecommendedPack[] = [
   },
 ];
 
+/**
+ * Group label keys, resolved at RENDER time with `t(labelKey)` by the
+ * consumer (DictPacksSection): the catalogue module is imported before the
+ * locale can matter, and resolving here froze one locale for every surface.
+ * `phonetic` carries its own key — it no longer borrows another group's copy.
+ */
 export const GROUP_LABELS: Record<RecommendedPack['group'], string> = {
-  bilingual:   t('dictpack.groupBilingual'),
-  monolingual: t('dictpack.groupMonolingual'),
-  phonetic:    t('onb.fieldPhonetic'),
-  frequency:   'Frecuencia y nivel',
-  examples:    t('dictpack.groupExamples'),
+  bilingual:   'dictpack.groupBilingual',
+  monolingual: 'dictpack.groupMonolingual',
+  phonetic:    'dictpack.groupPhonetic',
+  frequency:   'dictpack.groupFrequency',
+  examples:    'dictpack.groupExamples',
 };

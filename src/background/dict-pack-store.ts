@@ -16,6 +16,7 @@
  * never shows up as an installed pack.
  */
 import { getDB, TEMP_DICT_PACK_PREFIX, tempDictPackId } from '../shared/db';
+import { t } from '../shared/i18n/sw';
 import type { DictPackRow, DictTermRow } from '../shared/dict-types';
 import { recordPackInstall } from '../shared/telemetry';
 
@@ -118,9 +119,9 @@ export async function appendDictPackTerms(
   rawTerms: unknown,
 ): Promise<number> {
   await settleOrphanCleanup();
-  if (!Array.isArray(rawTerms)) throw new Error('terms must be an array');
+  if (!Array.isArray(rawTerms)) throw new Error(t('dictpack.termsNotArray'));
   if (rawTerms.length > MAX_TERMS_PER_MESSAGE) {
-    throw new Error(`too many terms in one message (${rawTerms.length} > ${MAX_TERMS_PER_MESSAGE})`);
+    throw new Error(t('dictpack.tooManyTerms', { count: rawTerms.length, max: MAX_TERMS_PER_MESSAGE }));
   }
   const stagingId = tempDictPackId(packId);
   const rows: DictTermRow[] = [];
@@ -154,7 +155,7 @@ export async function commitDictPackImport(pack: DictPackRow): Promise<number> {
 
   const written = await db.transaction('rw', db.dict_packs, db.dict_terms, async () => {
     const staged = await db.dict_terms.where('packId').equals(stagingId).count();
-    if (staged === 0) throw new Error('No rows were written for this pack');
+    if (staged === 0) throw new Error(t('dictpack.noRowsWritten'));
 
     // Replace semantics: the old install only disappears with the swap, so a
     // failed commit leaves the previous pack intact.

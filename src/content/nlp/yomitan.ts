@@ -276,7 +276,7 @@ export async function importYomitanPackStreaming(
     try {
       arr = JSON.parse(strFromU8(slot.bytes)) as YomitanTermTuple[];
     } catch (err) {
-      return { ok: false, error: `No se pudo parsear ${slot.name}: ${(err as Error).message}` };
+      return { ok: false, error: t('yomitan.parseFailed', { name: slot.name, reason: (err as Error).message }) };
     }
     // Free the raw bytes immediately — they're already parsed into arr.
     slot.bytes = null;
@@ -335,7 +335,7 @@ export async function importYomitanPackStreaming(
     try {
       arr = JSON.parse(strFromU8(slot.bytes)) as unknown[];
     } catch (err) {
-      return { ok: false, error: `No se pudo parsear ${slot.name}: ${(err as Error).message}` };
+      return { ok: false, error: t('yomitan.parseFailed', { name: slot.name, reason: (err as Error).message }) };
     }
     slot.bytes = null;
 
@@ -424,7 +424,7 @@ export async function importYomitanPackFromUrl(
     bytes = await fetchPackBytes(url, onProgress);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return { ok: false, error: `No se pudo descargar el pack: ${message}` };
+    return { ok: false, error: t('yomitan.packDownloadFailed', { reason: message }) };
   }
   return importYomitanPack(bytes);
 }

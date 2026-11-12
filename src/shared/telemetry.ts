@@ -228,7 +228,7 @@ export function parseSnapshot(raw: unknown): CoverageSnapshot {
   const obj = raw as Record<string, unknown>;
   if (obj.version !== CURRENT_SNAPSHOT_VERSION) {
     throw new Error(
-      `Versión de snapshot no soportada: ${String(obj.version)} (esperaba ${CURRENT_SNAPSHOT_VERSION}).`,
+      t('telem.badVersion', { version: String(obj.version), expected: CURRENT_SNAPSHOT_VERSION }),
     );
   }
   if (!Array.isArray(obj.rows)) {

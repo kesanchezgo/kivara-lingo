@@ -24,6 +24,7 @@
  * IndexedDB is the SITE's database, not the extension's) — see
  * `dict-import-client.ts` for the hand-off.
  */
+import { t } from '../../shared/i18n/sw';
 import type { DictPackRow, DictTermRow, ParsedDictPack } from '../../shared/dict-types';
 
 /** Field order for a parsed CSV/TSV row. */
@@ -216,7 +217,7 @@ export function buildCsvPack(
   try {
     parsed = parseCsv(text);
   } catch (err) {
-    return { ok: false, error: `Could not parse CSV: ${(err as Error).message}` };
+    return { ok: false, error: t('yomitan.csvParseFailed', { reason: (err as Error).message }) };
   }
   if (parsed.rows.length === 0) {
     return { ok: false, error: 'No data rows found' };
