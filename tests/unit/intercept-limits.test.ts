@@ -106,6 +106,22 @@ describe('cue limits', () => {
     expect(seen).not.toHaveBeenCalled();
     expect(getLastTrack()).toBeNull();
   });
+
+  it('drops cues whose end is before their start (D4)', () => {
+    unsubscribe = onTrack(() => {});
+    post({
+      source: EVENT,
+      url: 'https://example.test/backwards',
+      cues: [
+        cue(0, 1, 'good'),
+        cue(5, 2, 'backwards'),
+        cue(2, 2, 'empty span'),
+      ],
+    });
+    // A backwards cue never matches a playhead and would be picked as the
+    // "next line"; an empty span at least names an instant, so it stays.
+    expect(getLastTrack()?.cues.map((c) => c.text)).toEqual(['good', 'empty span']);
+  });
 });
 
 describe('DASH manifest limit', () => {

@@ -95,6 +95,9 @@ function sanitizeCues(raw: unknown): RawCue[] {
     const cue = item as { start?: unknown; end?: unknown; text?: unknown; align?: unknown };
     if (typeof cue.start !== 'number' || !Number.isFinite(cue.start)) continue;
     if (typeof cue.end !== 'number' || !Number.isFinite(cue.end)) continue;
+    // A backwards cue never matches a playhead and poisons the list App sorts
+    // for "next line": drop it here, not downstream.
+    if (cue.end < cue.start) continue;
     if (typeof cue.text !== 'string') continue;
     const align = cue.align;
     const keepAlign = align === 'start' || align === 'center' || align === 'end'

@@ -3,10 +3,10 @@
  *
  * Only Kivara's own group — previous, replay (hold = slower), next, auto-pause,
  * loop, speed — plus the transcript and panel toggles. The platform's native
- * bar is deliberately NOT touched (decision D2): this bar floats above it,
- * bottom-right of the player, and follows the same visibility rule the site's
- * own controls use — appear on pointer activity over the player, fade out after
- * a couple of seconds.
+ * bar is deliberately NOT touched (decision D2): this bar floats above it, at
+ * the right of the player on whichever half the caption leaves free, and
+ * follows the same visibility rule the site's own controls use — appear on
+ * pointer activity over the player, fade out after a couple of seconds.
  *
  * It reads no global state: every value and action arrives from App, which owns
  * the PlaybackController and the persisted preferences.
@@ -29,6 +29,15 @@ import { comboOf, withCombo } from './combo-hints';
 import { useLongPress } from '../../ui/hooks/useLongPress';
 import { onRadioKeyDown, radioTabIndex } from '../../ui/primitives/settings-primitives';
 import { PLAYBACK_SPEEDS } from '../platform-adapters/playback';
+import {
+  CAPTION_BOX_ATTR,
+  captionRect,
+  hostOf,
+  onCaptionGeometryChange,
+  oppositeSide,
+  scopeOf,
+  type VerticalSide,
+} from './overlay-geometry';
 
 const HIDE_AFTER_MS = 2600;
 
@@ -121,8 +130,7 @@ export function StudyBar(props: StudyBarProps) {
   useEffect(() => {
     const element = barRef.current;
     if (!element) return;
-    const root = element.getRootNode();
-    const host = root instanceof ShadowRoot && root.host instanceof HTMLElement ? root.host : null;
+    const host = hostOf(element);
     const measure = () => {
       const source = host ?? element.parentElement;
       if (!source) return;
@@ -140,41 +148,57 @@ export function StudyBar(props: StudyBarProps) {
   const compact = width < 760;
 
   /**
-   * Where the bar sits: clear of the caption, always.
+   * Where the bar sits: on the half of the player the caption does NOT occupy.
    *
    * `bottom-16` was a guess. At 640×360 the caption sits at ~85 % of the
    * player, so the bar landed ON it and swallowed clicks on the words it
-   * covered. The bar now measures the caption's text plate
-   * (`[data-kivara-caption-box]`, published by SubtitleOverlay) and parks just
-   * above it, clamped to the player so it never leaves the frame.
+   * covered. The bar measures the caption's text plate
+   * (`[data-kivara-caption-box]`, published by SubtitleOverlay) and parks on
+   * the opposite half — never just above the plate, because the sentence
+   * toolbar opens 48 px over it and the bar ended up under its own hover
+   * toolbar.
+   *
+   * No poll: `ResizeObserver` on the player and on the plate covers resizes,
+   * and `SubtitleOverlay` announces every cue change because the plate can MOVE
+   * without resizing (a new cue, a different vertical offset) — the one event
+   * no observer in this component can see.
    */
-  const [barSide, setBarSide] = useState<'top' | 'bottom'>('bottom');
+  const [barSide, setBarSide] = useState<VerticalSide>('bottom');
   useEffect(() => {
     if (!enabled) return;
     const element = barRef.current;
     if (!element) return;
-    const root = element.getRootNode();
-    const scope = root instanceof ShadowRoot ? root : document;
-    const host = root instanceof ShadowRoot && root.host instanceof HTMLElement ? root.host : null;
+    const scope = scopeOf(element);
+    const host = hostOf(element);
+
     const place = () => {
-      const box = scope.querySelector<HTMLElement>('[data-kivara-caption-box]')?.getBoundingClientRect();
+      const plate = captionRect(scope);
       const hostRect = host?.getBoundingClientRect();
-      if (!box || !hostRect || hostRect.height === 0) {
+      if (!plate || !hostRect || hostRect.height === 0) {
         setBarSide('bottom');
         return;
       }
-      // Park on the FAR side of the caption, never just above it: the
-      // sentence toolbar opens 48-76 px above the plate on hover, so "right
-      // above" put the bar under its own hover toolbar (the e2e clicks landed
-      // on the toolbar). The opposite half is always clear.
-      const captionCenter = box.top + box.height / 2 - hostRect.top;
-      setBarSide(captionCenter > hostRect.height / 2 ? 'top' : 'bottom');
+      setBarSide(oppositeSide(plate, hostRect));
     };
+
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(place);
+    const observePlate = () => {
+      if (!observer) return;
+      const plate = scope.querySelector<HTMLElement>(`[${CAPTION_BOX_ATTR}]`);
+      if (plate) observer.observe(plate);
+    };
+
+    if (host && observer) observer.observe(host);
+    observePlate();
     place();
-    // Captions move with the cue and the player resizes: follow both without
-    // re-measuring on every frame.
-    const id = window.setInterval(place, 400);
-    return () => window.clearInterval(id);
+    const off = onCaptionGeometryChange(() => {
+      observePlate();
+      place();
+    });
+    return () => {
+      off();
+      observer?.disconnect();
+    };
   }, [enabled]);
 
   // The E2E hit map for BOTH roots is mounted by App (see e2e-hitmap.ts);
