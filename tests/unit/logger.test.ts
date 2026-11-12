@@ -7,7 +7,14 @@
  * banner and per-recording lines to everyone.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { devLog, initLogFlag, logEnabled } from '../../src/shared/logger';
+import {
+  __resetLogForTests,
+  dbg,
+  dbgOnce,
+  devLog,
+  initLogFlag,
+  logEnabled,
+} from '../../src/shared/logger';
 
 /**
  * `__DEV__` is a build constant. In vitest it is undefined, so `devBuild()` is
@@ -64,5 +71,76 @@ describe('devLog', () => {
     devLog('quiet');
     expect(log).not.toHaveBeenCalled();
     (globalThis as unknown as { chrome?: unknown }).chrome = original;
+  });
+});
+
+describe('dbg', () => {
+  it('shares the devLog gate: silent without the flag', async () => {
+    __resetLogForTests();
+    setDebugFlag(false);
+    initLogFlag();
+    await new Promise((r) => setTimeout(r, 0));
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    dbg('[Kivara Lingo] command:', 'toggle-panel');
+    expect(log).not.toHaveBeenCalled();
+    expect(logEnabled()).toBe(false);
+  });
+
+  it('prints once the kivaraDebug flag is on', async () => {
+    __resetLogForTests();
+    setDebugFlag(true);
+    initLogFlag();
+    await new Promise((r) => setTimeout(r, 0));
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    dbg('[Kivara Lingo] command:', 'toggle-panel');
+    expect(log).toHaveBeenCalledWith('[Kivara Lingo] command:', 'toggle-panel');
+  });
+});
+
+describe('dbgOnce', () => {
+  it('logs one line per distinct argument tuple', async () => {
+    __resetLogForTests();
+    setDebugFlag(true);
+    initLogFlag();
+    await new Promise((r) => setTimeout(r, 0));
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    dbgOnce('[Kivara Lingo] unmapped custom combo:', 'Ctrl+K');
+    dbgOnce('[Kivara Lingo] unmapped custom combo:', 'Ctrl+K');
+    dbgOnce('[Kivara Lingo] unmapped custom combo:', 'Ctrl+Shift+K');
+    expect(log).toHaveBeenCalledTimes(2);
+    expect(log).toHaveBeenNthCalledWith(1, '[Kivara Lingo] unmapped custom combo:', 'Ctrl+K');
+    expect(log).toHaveBeenNthCalledWith(2, '[Kivara Lingo] unmapped custom combo:', 'Ctrl+Shift+K');
+  });
+
+  it('records nothing while the gate is closed', async () => {
+    __resetLogForTests();
+    setDebugFlag(false);
+    initLogFlag();
+    await new Promise((r) => setTimeout(r, 0));
+    dbgOnce('suppressed'); // closed gate: the key must NOT be recorded
+    setDebugFlag(true);
+    initLogFlag();
+    await new Promise((r) => setTimeout(r, 0));
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    dbgOnce('suppressed');
+    expect(log).toHaveBeenCalledTimes(1);
+  });
+
+  it('dedupe resets only via __resetLogForTests', async () => {
+    __resetLogForTests();
+    setDebugFlag(true);
+    initLogFlag();
+    await new Promise((r) => setTimeout(r, 0));
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    dbgOnce('once-only');
+    dbgOnce('once-only');
+    expect(log).toHaveBeenCalledTimes(1);
+    // The seam also clears the gate flag — re-open it after the reset.
+    __resetLogForTests();
+    setDebugFlag(true);
+    initLogFlag();
+    await new Promise((r) => setTimeout(r, 0));
+    dbgOnce('once-only');
+    expect(log).toHaveBeenCalledTimes(2);
   });
 });
