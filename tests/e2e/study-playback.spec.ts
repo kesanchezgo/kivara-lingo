@@ -66,6 +66,76 @@ async function openPlayer(context: { newPage(): Promise<Page> }): Promise<Page> 
   return page;
 }
 
+/**
+ * Click a control by its accessible name INSIDE the closed shadow root.
+ *
+ * The bar lives in a `mode: 'closed'` root, so Playwright locators cannot see
+ * it, and a content script's `window` is its isolated world — not the page's.
+ * The one channel both worlds share is the DOM: the StudyBar (E2E build only)
+ * publishes each control's CENTER into `data-kivara-e2e-hits` on the shadow
+ * host. This helper reads it and clicks with the mouse — a real gesture on the
+ * real button, which is the only honest way to prove a button is wired.
+ */
+async function hitOf(page: Page, hostId: string, label: string) {
+  const hits = await page.evaluate((id) => {
+    const raw = document.getElementById(id)?.getAttribute('data-kivara-e2e-hits');
+    return raw ? (JSON.parse(raw) as Array<{ label: string; x: number; y: number; pressed?: string }>) : [];
+  }, hostId);
+  const hit = hits.find((h) => h.label === label);
+  if (!hit) {
+    throw new Error(`no "${label}" in the bar hit-map (saw: ${hits.map((h) => h.label).join(', ')})`);
+  }
+  return hit;
+}
+
+async function clickInRoot(page: Page, hostId: string, label: string): Promise<void> {
+  const hit = await hitOf(page, hostId, label);
+  await page.mouse.click(hit.x, hit.y);
+}
+
+/** aria-pressed / aria-checked of a control, as the bar published it. */
+async function pressedInRoot(page: Page, hostId: string, label: string): Promise<string | null> {
+  return (await hitOf(page, hostId, label)).pressed ?? null;
+}
+
+/*
+ * Persistence is checked THROUGH THE UI, not through `chrome.storage`: the
+ * page world Playwright evaluates in has no `chrome.*` (only the content
+ * script's isolated world does). Click the control, reload, and the restored
+ * `aria-pressed` IS the storage assertion — with the extra guarantee that no
+ * code path can pass it by writing the key without rendering from it.
+ */
+
+const VIDEO_HOST = 'kivara-lingo-video-host';
+
+/**
+ * Accessible names as the harness renders them: `tests/e2e/fixtures.ts` pins
+ * `--lang=es` so the content script resolves the Spanish dictionary. Kept in
+ * one place so a copy change shows up once.
+ */
+const LABEL = {
+  loop: 'Bucle',
+  autoPause: 'Pausa al final de cada frase',
+  prev: 'Frase anterior',
+  next: 'Frase siguiente',
+  replay: 'Repetir frase',
+} as const;
+
+/** Click a speed radio by its visible text ("1.25×"), via the same hit map. */
+async function clickSpeed(page: Page, value: string): Promise<void> {
+  await clickInRoot(page, VIDEO_HOST, value);
+}
+
+/** Move the pointer so the bar appears, then wait for its hit map. */
+async function armBar(page: Page): Promise<void> {
+  await page.mouse.move(320, 200);
+  await expect.poll(
+    () => page.evaluate(() => document.getElementById('kivara-lingo-video-host')
+      ?.getAttribute('data-kivara-e2e-hits')?.length ?? 0),
+    { timeout: 8_000 },
+  ).toBeGreaterThan(10);
+}
+
 const time = (page: Page) => page.evaluate(() => document.querySelector('video')!.currentTime);
 const paused = (page: Page) => page.evaluate(() => document.querySelector('video')!.paused);
 const rate = (page: Page) => page.evaluate(() => document.querySelector('video')!.playbackRate);
@@ -109,6 +179,85 @@ test.describe('study playback over the PlaybackController', () => {
     await expect.poll(() => rate(page), { timeout: 5_000 }).toBeCloseTo(1.25, 3);
     await page.keyboard.press('Alt+,');
     await expect.poll(() => rate(page), { timeout: 5_000 }).toBeCloseTo(1, 3);
+    await page.close();
+  });
+});
+
+/**
+ * The StudyBar BUTTONS, clicked with the mouse (not the shortcuts).
+ *
+ * These exist because the loop button was wired to the TRANSCRIPT toggle in
+ * App.tsx: clicking it opened the rail, `aria-pressed` stayed false, no
+ * `kvl:study.loop` was written and the clip ran past the cue. A shortcut test
+ * could never catch that — the keyboard path was correct the whole time.
+ */
+test.describe('StudyBar buttons (mouse, closed shadow root)', () => {
+  test('loop button starts the loop: pressed, persisted, cue restarts', async ({ context }) => {
+    test.setTimeout(90_000);
+    const page = await openPlayer(context);
+    await armBar(page);
+    await clickInRoot(page, VIDEO_HOST, LABEL.loop);
+    await expect.poll(() => pressedInRoot(page, VIDEO_HOST, LABEL.loop), { timeout: 5_000 }).toBe('true');
+    // With loop on, the cue restarts instead of running past its end.
+    await page.waitForTimeout(4500);
+    expect(await paused(page)).toBe(false);
+    expect(await time(page)).toBeLessThan(4);
+    // Persisted: a reload restores the pressed state from storage.
+    await page.reload();
+    await page.waitForFunction(() => document.querySelector('video')!.currentTime > 0.02);
+    await armBar(page);
+    await expect.poll(() => pressedInRoot(page, VIDEO_HOST, LABEL.loop), { timeout: 8_000 }).toBe('true');
+    await page.close();
+  });
+
+  test('auto-pause button stops at the end of the cue', async ({ context }) => {
+    test.setTimeout(90_000);
+    const page = await openPlayer(context);
+    await armBar(page);
+    await clickInRoot(page, VIDEO_HOST, LABEL.autoPause);
+    await expect.poll(() => pressedInRoot(page, VIDEO_HOST, LABEL.autoPause), { timeout: 5_000 })
+      .toBe('true');
+    await expect.poll(() => paused(page), { timeout: 12_000 }).toBe(true);
+    const at = await time(page);
+    expect(at).toBeGreaterThanOrEqual(2.85);
+    expect(at).toBeLessThanOrEqual(3.6);
+    await page.close();
+  });
+
+  test('next / prev buttons move by line', async ({ context }) => {
+    test.setTimeout(90_000);
+    const page = await openPlayer(context);
+    await armBar(page);
+    await clickInRoot(page, VIDEO_HOST, LABEL.next);
+    await expect.poll(() => time(page), { timeout: 8_000 }).toBeGreaterThan(2.8);
+    expect(await time(page)).toBeLessThan(4.5);
+    await clickInRoot(page, VIDEO_HOST, LABEL.prev);
+    await expect.poll(() => time(page), { timeout: 8_000 }).toBeLessThan(0.6);
+    await page.close();
+  });
+
+  test('replay button returns to the start of the current cue', async ({ context }) => {
+    test.setTimeout(90_000);
+    const page = await openPlayer(context);
+    await armBar(page);
+    // Park the playhead inside the first cue, then replay it.
+    await page.evaluate(() => {
+      document.querySelector('video')!.currentTime = 1.4;
+    });
+    await page.waitForTimeout(300);
+    await clickInRoot(page, VIDEO_HOST, LABEL.replay);
+    await expect.poll(() => time(page), { timeout: 6_000 }).toBeLessThan(0.5);
+    await page.close();
+  });
+
+  test('speed radios apply 1.25× and 0.75× by click', async ({ context }) => {
+    test.setTimeout(90_000);
+    const page = await openPlayer(context);
+    await armBar(page);
+    await clickSpeed(page, '1.25×');
+    await expect.poll(() => rate(page), { timeout: 5_000 }).toBeCloseTo(1.25, 3);
+    await clickSpeed(page, '0.75×');
+    await expect.poll(() => rate(page), { timeout: 5_000 }).toBeCloseTo(0.75, 3);
     await page.close();
   });
 });

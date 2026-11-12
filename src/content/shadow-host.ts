@@ -300,6 +300,23 @@ export class ShadowHost {
     }
     shadowRoot.appendChild(portalContainer);
 
+    // E2E-ONLY: expose the closed root so the Playwright suite can locate a
+    // control's CENTER and click it with the mouse — a real gesture on the
+    // real button. Locators cannot pierce `mode: 'closed'`, and driving the
+    // same controls through keyboard shortcuts would not prove the button is
+    // wired. A production bundle compiles this out; dist-artifacts forbids
+    // the marker in `dist/`.
+    if (__E2E__) {
+      const registry = (window as unknown as {
+        __kivaraRoots?: Record<string, { root: ShadowRoot; rect: () => DOMRect }>;
+      });
+      registry.__kivaraRoots = registry.__kivaraRoots ?? {};
+      registry.__kivaraRoots[hostElement.id] = {
+        root: shadowRoot,
+        rect: () => hostElement.getBoundingClientRect(),
+      };
+    }
+
     return { hostElement, shadowRoot, reactRoot, portalContainer };
   }
 }

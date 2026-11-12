@@ -125,6 +125,20 @@ export function StudyBar(props: StudyBarProps) {
   }, []);
   const compact = width < 760;
 
+  // E2E-ONLY: publish the bar's control rects on the shadow host, the one
+  // channel the page world can read (see e2e-hitmap.ts). Compiled out of a
+  // production bundle with the constant branch.
+  useEffect(() => {
+    if (!__E2E__) return;
+    const element = barRef.current;
+    if (!element) return;
+    let cleanup: (() => void) | undefined;
+    void import('./e2e-hitmap').then(({ publishHits }) => {
+      if (barRef.current === element) cleanup = publishHits(element);
+    });
+    return () => cleanup?.();
+  }, []);
+
   const replay = useLongPress(onReplay, onReplaySlow);
 
   if (!enabled) return null;
