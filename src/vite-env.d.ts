@@ -16,3 +16,7 @@ declare module 'virtual:__PCM_WORKLET_URL__' {
 // bundle; any other build leaves it out entirely. Declared here so the
 // tree-shaken `if (__E2E__)` block type-checks in both configurations.
 declare const __E2E__: boolean;
+
+// Development flag (vite.config.ts `define`). `vite build` sets it false, so
+// `devLog` is silent in every shipped bundle; `vite dev` sets it true.
+declare const __DEV__: boolean;

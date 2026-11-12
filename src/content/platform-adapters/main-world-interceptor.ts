@@ -20,6 +20,7 @@
  *      TTML signatures. This catches platforms (notably HBO Max) that serve
  *      WebVTT segments without a `.vtt` extension in the URL.
  */
+import { devLog } from '../../shared/logger';
 import { parseAny, detectSubtitleKind, detectTrackLanguage } from './parsers';
 
 const TAG = '[Kivara Lingo / MAIN]';
@@ -621,5 +622,5 @@ declare global {
     }
   });
 
-  console.log(TAG, 'fetch / XHR interception installed');
+  devLog(TAG, 'fetch / XHR interception installed');
 })();
