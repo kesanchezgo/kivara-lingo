@@ -12,7 +12,7 @@ import {
   onTrack,
   type InterceptedTrack,
 } from './intercepted-bus';
-import type { CueListener, MediaInfo, PlaybackController, SubtitleCue, SubtitleSource } from './types';
+import type { CueListener, MediaInfo, SubtitleCue, SubtitleSource } from './types';
 import { createMediaPlaybackController, createNetflixPlaybackController } from './playback';
 import { cuesFromRawTrack, findCueAt, pickBestAltCue } from './tracks';
 

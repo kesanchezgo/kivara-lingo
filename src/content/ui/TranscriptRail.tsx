@@ -12,7 +12,6 @@
  * The "follow" button brings it back.
  */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
 import {
   AlignLeft,
   BookText,
@@ -379,7 +378,6 @@ export function TranscriptRail(props: TranscriptRailProps) {
   const toggleExplain = useCallback((index: number) => {
     setExplainLine((current) => (current === index ? null : index));
   }, []);
-  const resumeFollow = useCallback(() => setFollow(true), []);
 
   const closeExplain = useCallback((index: number) => {
     setExplainLine(null);

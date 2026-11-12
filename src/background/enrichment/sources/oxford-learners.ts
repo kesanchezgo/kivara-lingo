@@ -14,7 +14,6 @@
 import { fetchHtml, resolveUrl } from '../fetcher';
 import {
   extractByClass,
-  extractAttrByClass,
   stripHtml,
 } from '../html-utils';
 import type { EnrichmentSource, SourcePartial } from '../types';

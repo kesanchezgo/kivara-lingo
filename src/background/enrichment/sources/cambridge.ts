@@ -29,7 +29,6 @@ import {
   stripHtml,
 } from '../html-utils';
 import type {
-  EnrichmentContext,
   EnrichmentSource,
   SenseRelationGroup,
   SourcePartial,

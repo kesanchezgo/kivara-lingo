@@ -7,7 +7,7 @@ import type { SubtitleSource } from './platform-adapters/types';
 import type { Mount as OverlayMount } from './fullscreen-overlay-core';
 import { useKivaraStore } from '../shared/use-kivara-store';
 import { clearBus, reprocessLastDashManifest } from './platform-adapters/intercepted-bus';
-import { dbg, dbgOnce } from '../shared/debug-log';
+import { dbg } from '../shared/debug-log';
 import { bumpMountGen, enqueueMount, readMountGen } from './mount-queue';
 import { setYomitanHeadwords } from './nlp/yomitan-headwords';
 import { updateOverlayParent, type RestoreState } from './fullscreen-overlay-core';

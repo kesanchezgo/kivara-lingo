@@ -15,7 +15,7 @@
  * The word-status selector is F5. `statusSlot` is the hook point: F5 passes
  * the selector there and nothing in this file changes.
  */
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { t } from '../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
 import {

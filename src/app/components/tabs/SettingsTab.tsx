@@ -1,4 +1,4 @@
-import React, {
+import {
   useEffect,
   useLayoutEffect,
   useReducer,
@@ -80,7 +80,7 @@ export function SettingsTab({
 } = {}) {
   const {
     capture, setCapture, cleanup, setCleanup, mode, setMode,
-    translate, setTranslate, study, setStudy, ai, setAi, tts, setTts, vip,
+    translate, setTranslate, study, setStudy, ai, tts, setTts, vip,
   } = useKivaraStore();
 
   /* ── Open sections ───────────────────────────────────────────────────── */

@@ -217,41 +217,6 @@ export async function encodeMp3Mono(
   return new Blob(chunks as BlobPart[], { type: 'audio/mpeg' });
 }
 
-/**
- * End-to-end pipeline that produces an MP3 ready to attach to Anki. Same
- * semantics as `convertBlobToWav` but smaller output.
- */
-export async function convertBlobToMp3(
-  blob: Blob,
-  options: {
-    targetSampleRate?: number;
-    bitrateKbps?: number;
-    startMs?: number;
-    endMs?: number;
-  } = {},
-): Promise<{ blob: Blob; sampleRate: number; durationMs: number; samples: Float32Array }> {
-  const target = options.targetSampleRate ?? 16_000;
-  const decoded = await decodeToMonoPcm(blob, target);
-
-  let samples = decoded.samples;
-  if (options.startMs != null || options.endMs != null) {
-    samples = trimPcm(
-      samples,
-      target,
-      options.startMs ?? 0,
-      options.endMs ?? decoded.durationMs,
-    );
-  }
-
-  const mp3 = await encodeMp3Mono(samples, target, options.bitrateKbps ?? 64);
-  return {
-    blob: mp3,
-    sampleRate: target,
-    durationMs: Math.round((samples.length / target) * 1000),
-    samples,
-  };
-}
-
 function writeAscii(view: DataView, offset: number, text: string): void {
   for (let i = 0; i < text.length; i++) {
     view.setUint8(offset + i, text.charCodeAt(i));
