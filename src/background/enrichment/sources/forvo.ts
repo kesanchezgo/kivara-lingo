@@ -44,10 +44,10 @@ const LANG_MAP: Record<string, string> = {
 
 function b64Decode(b64: string): string | null {
   try {
-    // atob exists in service-worker globalThis.
-
-    const decoded = (globalThis as any).atob(b64);
-    return decoded || null;
+    // `atob` is a global in every context this runs in (service worker, page).
+    const decode = (globalThis as { atob?: (data: string) => string }).atob;
+    if (typeof decode !== 'function') throw new Error('atob unavailable');
+    return decode(b64) || null;
   } catch {
     return null;
   }
