@@ -213,9 +213,11 @@ export function Onboarding() {
     setStep(n);
   }
 
-  function openDemo() {
+  // tabs.create rejects asynchronously — a sync try/catch never sees it, so
+  // the awaited call is what the catch guards.
+  async function openDemo() {
     try {
-      chrome.tabs.create({ url: DEMO_URL });
+      await chrome.tabs.create({ url: DEMO_URL });
       window.close();
     } catch {
       window.open(DEMO_URL, '_blank', 'noopener');

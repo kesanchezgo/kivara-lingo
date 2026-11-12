@@ -315,25 +315,30 @@ function tryChromeTts(text: string, lang: string): Promise<TtsResponse> {
     const timeoutId = setTimeout(() => {
       done({ ok: false, error: 'tts timed out' });
     }, 30_000);
-    try {
-      chrome.tts.stop();
-      chrome.tts.speak(cleanText, {
-        lang,
-        rate: 0.95,
-        enqueue: false,
-        onEvent: (event) => {
-          if (event.type === 'end') done({ ok: true });
-          else if (event.type === 'error') {
-            done({ ok: false, error: event.errorMessage ?? 'tts error' });
-          } else if (event.type === 'cancelled' || event.type === 'interrupted') {
-            // Both are terminal and neither means success: the caller
-            // was awaiting on this and nothing else would resolve it.
-            done({ ok: false, error: event.errorMessage ?? 'tts interrupted' });
-          }
-        },
-      });
-    } catch (err) {
-      done({ ok: false, error: err instanceof Error ? err.message : 'tts unavailable' });
-    }
+    // The executor is synchronous, but stop()/speak() reject asynchronously —
+    // a sync try/catch never sees that, so the awaited calls live in an
+    // async IIFE (the Promise executor cannot be async).
+    void (async () => {
+      try {
+        await chrome.tts.stop();
+        await chrome.tts.speak(cleanText, {
+          lang,
+          rate: 0.95,
+          enqueue: false,
+          onEvent: (event) => {
+            if (event.type === 'end') done({ ok: true });
+            else if (event.type === 'error') {
+              done({ ok: false, error: event.errorMessage ?? 'tts error' });
+            } else if (event.type === 'cancelled' || event.type === 'interrupted') {
+              // Both are terminal and neither means success: the caller
+              // was awaiting on this and nothing else would resolve it.
+              done({ ok: false, error: event.errorMessage ?? 'tts interrupted' });
+            }
+          },
+        });
+      } catch (err) {
+        done({ ok: false, error: err instanceof Error ? err.message : 'tts unavailable' });
+      }
+    })();
   });
 }

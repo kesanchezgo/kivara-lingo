@@ -17,7 +17,7 @@
  *   • a corrupt persisted value leaves the initial value in place instead of
  *     throwing on hydrate.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import { createChromeLocalStore } from '../../src/shared/chrome-local-store';
 
 type ChangesCb = (
@@ -28,9 +28,13 @@ type ChangesCb = (
 const KEY = 'kvl:test';
 let changes: ChangesCb | null = null;
 
+// any-in/any-out on purpose: `ReturnType<typeof vi.fn>` narrows
+// mockImplementation(Once) to a void-returning callback, which makes the
+// promise-returning fakes below misused-promises violations for no
+// behavioral reason.
 interface FakeStorage {
-  get: ReturnType<typeof vi.fn>;
-  set: ReturnType<typeof vi.fn>;
+  get: Mock<(...args: any[]) => any>;
+  set: Mock<(...args: any[]) => any>;
 }
 
 function installFakeStorage(stored: Record<string, unknown> = {}): FakeStorage {
