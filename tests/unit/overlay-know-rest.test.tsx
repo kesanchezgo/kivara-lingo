@@ -14,8 +14,10 @@ import { render, screen, cleanup, fireEvent, act } from '@testing-library/react'
 import { toast } from 'sonner';
 import { t } from '../../src/shared/i18n';
 import { SubtitleOverlay } from '../../src/content/ui/SubtitleOverlay';
-import type { StudyBinding } from '../../src/content/ui/study';
-import type { WordStatus } from '../../src/shared/study/wordStatus';
+import { useWordStudy, type StudyBinding } from '../../src/content/ui/study';
+import {
+  resetStudyStores, setWordStatus, studyStores, type WordStatus,
+} from '../../src/shared/study/wordStatus';
 
 vi.mock('sonner', () => {
   const toast = vi.fn();
@@ -34,6 +36,9 @@ afterEach(() => {
   cleanup();
   vi.mocked(toast).mockReset();
   vi.mocked(toast.error).mockReset();
+  // The study stores are module singletons: a mark left behind would leak
+  // into the next test's snapshot.
+  resetStudyStores('en');
 });
 
 const CUE = { id: 'c1', text: 'the quick fox', start: 0, end: 3000, language: 'en' };
@@ -71,6 +76,79 @@ function renderOverlay(study?: StudyBinding) {
   );
 }
 
+/**
+ * The overlay bound to the REAL study hook. `useWordStudy` is the same binding
+ * App hands the overlay in production, so the marks it resolves come from the
+ * per-language chrome store — nothing here is a mock of the status layer.
+ */
+function OverlayWithRealStudy() {
+  const wordStudy = useWordStudy('en');
+  const study: StudyBinding = {
+    statusOf: wordStudy.statusOf,
+    detailOf: wordStudy.detailOf,
+    setStatus: wordStudy.setStatus,
+    inAnki: wordStudy.inAnki,
+    userStatusOf: wordStudy.userStatusOf,
+  };
+  return (
+    <SubtitleOverlay
+      subtitleStyles={{ keepNativeLineBreaks: false } as never}
+      cue={CUE}
+      altCue={null}
+      mode="learning"
+      saveRequestKey={null}
+      onSaveCard={vi.fn(async () => ({ ok: true }))}
+      onTokenHoverChange={() => {}}
+      initialSavedWords={new Set()}
+      playing={false}
+      study={study}
+    />
+  );
+}
+
+/** Current marks map straight out of the per-language store. */
+function marksOf(): Record<string, string> {
+  return studyStores('en').status.get() as unknown as Record<string, string>;
+}
+
+/** Flush the store's async write + notification chain. */
+function settle(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+/** In-memory `chrome.storage.local` for the real study stores. */
+function installFakeStorage(): { restore: () => void } {
+  const stored: Record<string, unknown> = {};
+  const listeners: Array<(changes: Record<string, { newValue?: unknown }>, area: string) => void> = [];
+  const original = (globalThis as unknown as { chrome: { storage: { local: unknown; onChanged: unknown } } }).chrome.storage;
+  (globalThis as unknown as { chrome: { storage: Record<string, unknown> } }).chrome.storage = {
+    ...original,
+    local: {
+      get: async (keys: string | string[]) => {
+        const wanted = Array.isArray(keys) ? keys : [keys];
+        const out: Record<string, unknown> = {};
+        for (const key of wanted) if (key in stored) out[key] = stored[key];
+        return out;
+      },
+      set: async (items: Record<string, unknown>) => {
+        Object.assign(stored, items);
+        for (const [key, newValue] of Object.entries(items)) {
+          for (const cb of listeners) cb({ [key]: { newValue } }, 'local');
+        }
+      },
+      remove: async (keys: string | string[]) => {
+        for (const key of Array.isArray(keys) ? keys : [keys]) delete stored[key];
+      },
+    },
+    onChanged: { addListener: (cb: (typeof listeners)[number]) => { listeners.push(cb); } },
+  };
+  return {
+    restore: () => {
+      (globalThis as unknown as { chrome: { storage: unknown } }).chrome.storage = original;
+    },
+  };
+}
+
 /** Hover the subtitle plate so the sentence toolbar opens. */
 function openToolbar(): void {
   const plate = document.querySelector('[data-kivara-hover-zone="true"]') as HTMLElement;
@@ -102,24 +180,46 @@ describe('know the rest', () => {
     expect(screen.getByRole('button', { name: t('ovl.knowRestOne') })).toBeTruthy();
   });
 
-  it('offers Undo and reverts only words still marked known', () => {
-    const { study, statuses } = binding({});
-    renderOverlay(study);
+  /**
+   * The Undo runs 5 s after the click, from a closure built in an EARLIER
+   * render. With a fake binding whose `userStatusOf` reads a mutable object
+   * the bug was invisible; here the overlay gets the REAL `useWordStudy`
+   * binding, so `userStatusOf` reads the marks map captured in the render that
+   * painted the button — exactly the production failure (the guard saw every
+   * word it had just marked as "not known" and reverted nothing).
+   */
+  it('Undo reverts every word it marked, but not the one the user changed', async () => {
+    const storage = installFakeStorage();
+    await setWordStatus('en', 'the', 'new');
+    await setWordStatus('en', 'quick', 'new');
+    await setWordStatus('en', 'fox', 'new');
+
+    const view = render(<OverlayWithRealStudy />);
     openToolbar();
-    fireEvent.click(screen.getByRole('button', { name: t('ovl.knowRest', { n: 3 }) }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: t('ovl.knowRest', { n: 3 }) }));
+      await settle();
+    });
+
     const options = vi.mocked(toast).mock.calls[0][1] as {
       action: { label: string; onClick: () => void };
     };
     expect(options.action.label).toBe(t('recent.undo'));
+    // The three are now known in the REAL store.
+    expect(marksOf()).toMatchObject({ the: 'known', quick: 'known', fox: 'known' });
 
-    // The user marks one of them learning again before pressing Undo: that
-    // hand mark must survive — Undo only reverts what is still «known».
-    statuses.fox = 'learning';
-    act(() => options.action.onClick());
+    // The user re-marks one as learning before pressing Undo: that hand mark
+    // must survive — Undo only reverts what is still «known».
+    await setWordStatus('en', 'fox', 'learning');
 
-    expect(statuses.fox).toBe('learning');
-    expect(statuses.the).toBeUndefined();
-    expect(statuses.quick).toBeUndefined();
+    await act(async () => {
+      options.action.onClick();
+      await settle();
+    });
+
+    expect(marksOf()).toMatchObject({ the: 'new', quick: 'new', fox: 'learning' });
+    view.unmount();
+    storage.restore();
   });
 
   it('renders no button when the line has no new words', () => {
