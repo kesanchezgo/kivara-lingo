@@ -2,7 +2,7 @@
  * Yomitan installed packs source — Standard tier.
  *
  * Queries the IndexedDB-backed Yomitan dictionary cache (filled by
- * `src/content/nlp/yomitan.ts`'s `importYomitanPack*`) for the user's
+ * `src/content/nlp/yomitan.ts`'s `importYomitanPackStreaming`) for the user's
  * installed kty-* packs. This is the most powerful Standard-tier
  * resource — `kty-en-es` has ~61k terms and `kty-en-ipa` ~140k IPA rows
  * (verified 2026-10-07 from the shipped ZIPs), covering phrasal verbs,

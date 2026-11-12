@@ -1,4 +1,4 @@
-import { assertPublicHttpUrl, readBodyBounded } from '../shared/net-guard';
+import { readBodyBounded } from '../shared/net-guard';
 import { compatibleHostFor } from '../shared/provider-hosts';
 import type {
   AiApiFormat,

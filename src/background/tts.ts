@@ -128,7 +128,7 @@ function blobToDataUrl(blob: Blob): Promise<string> {
  * credentials; `openai` / `elevenlabs` force a specific one; `disabled`
  * skips remote TTS entirely.
  */
-export async function generateTtsAudio(text: string, lang: string): Promise<GenerateTtsResult> {
+export async function generateTtsAudio(text: string): Promise<GenerateTtsResult> {
   const trimmed = text.trim();
   if (!trimmed) return { ok: false, error: 'empty text' };
 

@@ -13,7 +13,7 @@
  */
 
 import { fetchJson } from '../fetcher';
-import type { EnrichmentContext, EnrichmentSource, SourcePartial } from '../types';
+import type { EnrichmentSource, SourcePartial } from '../types';
 
 interface FreeDictResponse {
   word: string;

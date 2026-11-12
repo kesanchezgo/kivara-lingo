@@ -33,7 +33,6 @@ import type {
   ResolveWordResponse,
   ResolveWordWave,
   ResolveWordStreamMsg,
-  ResolveWordStreamRequest,
   TranslateRequest,
   TranslateResponse,
   TtsSpeakRequest,
@@ -73,7 +72,7 @@ import { getVipSettings, loadTranslateTargetLang } from './vip-settings';
 import { clearEnrichmentCache, clearMemEnrichmentCache, getEnrichmentSourceHealth, probeEnrichmentSource, seedEnrichmentSourceHealth } from './enrichment/orchestrator';
 
 /** Deep-link section for OPEN_SETTINGS (see the handler below). */
-import { dbg, dbgOnce } from '../shared/debug-log';
+import { dbg } from '../shared/debug-log';
 
 import { getCacheStats, clearCaches } from './cache-admin';
 import { listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';

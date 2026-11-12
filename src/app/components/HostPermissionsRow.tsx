@@ -1,4 +1,4 @@
-import React, { useSyncExternalStore, useState } from 'react';
+import { useSyncExternalStore, useState } from 'react';
 import { t } from '../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
 import { KeyRound, ShieldCheck, Loader2 } from '../../ui/icons';

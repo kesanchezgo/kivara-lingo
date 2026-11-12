@@ -30,7 +30,6 @@
 import { devLog, initLogFlag } from '../shared/logger';
 import {
   convertBlobToWav,
-  convertBlobToMp3,
   blobToDataUrl,
   encodeWavMono,
   encodeMp3Mono,
@@ -148,8 +147,6 @@ async function startCapture(
   }
 }
 
-/** E2E-only synthetic stream holder (see `openStream`). */
-let e2eStream: MediaStream | null = null;
 /** Loop timers for the synthetic stream's repeating burst (E2E only). */
 const e2eRepeaters: Array<() => void> = [];
 
@@ -197,7 +194,6 @@ async function openStream(streamId: string): Promise<MediaStream> {
     const dest = ctx.createMediaStreamDestination();
     gate.connect(dest);
     osc.start();
-    e2eStream = dest.stream;
     e2eRepeaters.push(() => clearInterval(repeat));
     return dest.stream;
   }
@@ -285,7 +281,7 @@ async function wirePcmCapture(): Promise<void> {
       workletNode.port.onmessage = (
         event: MessageEvent<{ channels: Float32Array[]; length: number; sampleRate?: number }>,
       ) => {
-        const { channels, length } = event.data;
+        const { length } = event.data;
         workletBlocksSeen += 1;
         try {
           // The block carries its own rate; a message without one (or with one

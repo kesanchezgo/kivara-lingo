@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Eye, EyeOff, X, AlertTriangle } from '../../ui/icons';
 import { inputCls } from '../../ui/primitives/controls';
 import { markSecretExplicitClear, unreadableSecret, hasHiddenSecret } from '../../shared/secret-store';

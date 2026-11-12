@@ -30,7 +30,7 @@ export interface ResolveWordStreamHandlers {
 const REPLAY_LIMIT = 1;
 
 /**
- * Open the stream. `REPLAY_LIMIT = 1` is the whole retry budget: the first
+ * Open the stream. `REPLAY_LIMIT` is the whole retry budget: the first
  * disconnect gets one replay; a second disconnect gives up and reports.
  */
 export function openResolveWordStream(
@@ -39,7 +39,7 @@ export function openResolveWordStream(
 ): { close: () => void } {
   let port: chrome.runtime.Port | null = null;
   let closed = false;
-  let replayUsed = false;
+  let replaysUsed = 0;
   let finished = false;
   /** Set right before the replay posts: the re-sent local must not re-skin. */
   let replayed = false;
@@ -91,11 +91,11 @@ export function openResolveWordStream(
         // The stream completed and the worker closed the port: done is done.
         return;
       }
-      if (!replayUsed) {
+      if (replaysUsed < REPLAY_LIMIT) {
         // Mid-flight disconnect: the SW restarted between phases. Replay the
         // request once on a fresh port (attach() posts it) before telling the
         // popover anything.
-        replayUsed = true;
+        replaysUsed += 1;
         replayed = true;
         attach();
         return;

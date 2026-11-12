@@ -34,7 +34,6 @@ import {
   cleanIpa,
   extractFirstIpa,
   packIdFor as packId,
-  parseYomitanPack,
   type YomitanIndex,
   type YomitanTermTuple,
 } from './yomitan-parse';
@@ -55,44 +54,7 @@ export interface ImportError {
 }
 
 /**
- * Parse a `.zip` Yomitan pack and write its entries into IndexedDB.
- *
- * The parse itself lives in `yomitan-parse.ts` (pure, so the in-page panel can
- * parse a local file without reaching the database). This module is the
- * worker/extension-page side: it owns the write.
- *
- * Importing the same (title, revision) twice will overwrite the previous
- * entries (the pack id is deterministic, so we delete-then-insert the term
- * rows atomically in a transaction).
- */
-export async function importYomitanPack(
-  zipBytes: ArrayBuffer | Uint8Array,
-): Promise<ImportResult | ImportError> {
-  const parsed = parseYomitanPack(zipBytes);
-  if (!parsed.ok) return parsed;
-  const { pack, terms } = parsed.parsed;
-
-  const db = getDB();
-  // Atomic replace: delete any existing terms for this pack id, then insert
-  // the fresh batch in one transaction so we never have a half-imported pack.
-  await db.transaction('rw', db.dict_packs, db.dict_terms, async () => {
-    await db.dict_terms.where('packId').equals(pack.id).delete();
-    // Chunk inserts — IndexedDB throws when single-batch bulks are too large
-    // (~30 MB), and big Yomitan packs (Jitendex etc.) can ship 500k+ terms.
-    const CHUNK = 5000;
-    for (let i = 0; i < terms.length; i += CHUNK) {
-      await db.dict_terms.bulkAdd(terms.slice(i, i + CHUNK));
-    }
-    await db.dict_packs.put(pack);
-  });
-
-  void recordPackInstall(pack.id, pack.title);
-
-  return { ok: true, pack, termsImported: terms.length };
-}
-
-/**
- * Streaming variant of `importYomitanPack` for very large archives (the
+ * Streaming importer for very large archives (the
  * EN→EN Wiktionary pack decompresses to ~700 MB of JSON; loading the whole
  * thing in memory crashes the renderer / occasionally the SW too).
  *
@@ -403,56 +365,6 @@ export async function importYomitanPackStreaming(
   });
 
   return { ok: true, pack, termsImported: termsParsed };
-}
-
-/**
- * Convenience wrapper that fetches a pack ZIP from `url` and imports it.
- *
- * The fetch is delegated to the background service worker (which has the
- * extension's host permissions) when `chrome.runtime.sendMessage` is
- * available — that keeps Cloudflare R2 / GitHub Pages / generic CORS-allowed
- * hosts working from any side-panel context, regardless of the page origin.
- * In non-extension contexts (e.g. vitest, the side-by-side prototype) we
- * fall back to a direct `fetch()`.
- */
-export async function importYomitanPackFromUrl(
-  url: string,
-  onProgress?: (received: number, total: number) => void,
-): Promise<ImportResult | ImportError> {
-  let bytes: ArrayBuffer;
-  try {
-    bytes = await fetchPackBytes(url, onProgress);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return { ok: false, error: `No se pudo descargar el pack: ${message}` };
-  }
-  return importYomitanPack(bytes);
-}
-
-/**
- * Fetch raw bytes for a dictionary pack with automatic retries and timeout.
- *
- * Tries the extension context first (direct fetch with host_permissions).
- * Falls back to the SW proxy only if the direct fetch fails due to CORS
- * (shouldn't happen for URLs in host_permissions, but kept as safety net).
- *
- * Retries up to 3 times with exponential backoff (1s → 3s → 9s).
- * `headerTimeoutMs` is a HEADER deadline (the response must arrive); the body
- * is bounded by inactivity instead of a total, so a 127 MB pack on a slow link
- * keeps streaming instead of being killed at 120 s. A silent connection is
- * still fatal after 15 s.
- */
-async function fetchPackBytes(
-  url: string,
-  onProgress?: (received: number, total: number) => void,
-): Promise<ArrayBuffer> {
-  const { fetchWithRetry } = await import('../../shared/resilient-fetch');
-  return fetchWithRetry(url, {
-    maxRetries: 3,
-    headerTimeoutMs: 120_000,
-    staleTimeoutMs: 15_000,
-    onProgress,
-  });
 }
 
 /** Delete a pack and all of its term rows. */

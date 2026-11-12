@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { sendMessage } from 'webext-bridge/content-script';
 import { t, fmtNumber } from '../../../shared/i18n';
 import { richText } from '../../../shared/i18n/rich';
@@ -12,7 +12,7 @@ import { useKivaraStore } from '../../../shared/use-kivara-store';
 import { SecretKeyInput } from '../SecretKeyInput';
 import type { EnrichSourceHealthMap, VipSettings } from '../../../shared/types';
 import {
-  AlertTriangle, Database, KeyRound, Loader2, RefreshCw, ShieldCheck, Trash2,
+  AlertTriangle, Database, KeyRound, RefreshCw, ShieldCheck, Trash2,
 } from '../../../ui/icons';
 import {
   Button, Callout, ListGroup, QuickRow, Row, SubLabel, Toggle,

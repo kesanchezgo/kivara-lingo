@@ -21,8 +21,6 @@
  */
 
 import type {
-  DictionaryEntry,
-  VipEnrichment,
   VipSettings,
   EnrichSourceHealth,
   EnrichSourceHealthMap,
@@ -31,8 +29,6 @@ import type {
   EnrichmentContext,
   EnrichmentResult,
   EnrichmentSource,
-  ImageCandidate,
-  SenseRelationGroup,
   SourcePartial,
 } from './types';
 import { gateSources } from './permissions-gate';
@@ -87,7 +83,6 @@ import {
   getEnrichmentCacheStats,
   readEnrichmentCache,
   writeEnrichmentCache,
-  DEFAULT_VIP_CACHE_TTL_DAYS,
 } from './cache';
 
 // Re-exported so cache-admin.ts and the SW keep importing the cache surface
