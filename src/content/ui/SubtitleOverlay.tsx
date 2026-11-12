@@ -148,6 +148,13 @@ export function SubtitleOverlay({
   const expandedMWEs = controlledExpanded ?? localExpanded;
   const setExpandedMWEs = controlledSetExpanded ?? setLocalExpanded;
 
+  // Live handle on the study binding for callbacks that outlive their render
+  // (the Undo inside a toast lives for 5 s). Refreshed on every render so a
+  // long-lived callback reads CURRENT marks instead of the ones it was built
+  // with.
+  const studyRef = useRef(study);
+  studyRef.current = study;
+
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wordHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -511,8 +518,16 @@ export function SubtitleOverlay({
       action: {
         label: t('recent.undo'),
         onClick: () => {
+          // The binding in THIS closure is the one from the render that
+          // painted the button: its `userStatusOf` reads the marks map as it
+          // was BEFORE the click, so every word it just marked still looks
+          // "not known" and the guard below skips them all — Undo reeled
+          // nothing back. Read the LIVE binding instead (the ref below is
+          // refreshed on every render).
+          const live = studyRef.current;
+          if (!live) return;
           for (const [key, status] of previous) {
-            if (study.userStatusOf(key) === 'known') study.setStatus(key, status);
+            if (live.userStatusOf(key) === 'known') live.setStatus(key, status);
           }
         },
       },
