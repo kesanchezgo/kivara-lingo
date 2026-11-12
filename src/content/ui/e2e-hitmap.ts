@@ -150,7 +150,12 @@ function publishHost(host: HTMLElement): () => void {
         // (the translated caption) without reading a closed root.
         return { x: r.x, y: r.y, width: r.width, height: r.height, text: el.textContent?.trim() ?? '' };
       });
-      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({ bar, badges, tokens }));
+      // The native-language line (the dual caption) also rides along: the
+      // behaviour spec asserts the translated text, which lives in the same
+      // closed root as the tokens.
+      const dual = root.querySelector<HTMLElement>('[data-kivara-dual]')
+        ?.textContent?.trim() ?? '';
+      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({ bar, badges, tokens, dual }));
     } catch {
       /* a detached root: nothing to publish */
     }
