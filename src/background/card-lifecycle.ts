@@ -17,6 +17,7 @@ import type {
   CreateCardRequest,
   MediaInfo,
 } from '../shared/types';
+import { t } from '../shared/i18n/sw';
 import { beginRetry, isPending, mediaFromSource, type RecentCard } from '../shared/cards';
 import { getDB } from '../shared/db';
 import { profileLangOf, removeAnkiWord } from '../shared/study/wordStatus';
@@ -194,10 +195,10 @@ export async function undoDeleteNote(
   if (!known) {
     const ownership = await noteOwnership(noteId, mapping);
     if (ownership === 'foreign') {
-      return { ok: false, error: 'note was not created by Kivara Lingo' };
+      return { ok: false, error: t('cards.noteForeign') };
     }
     if (ownership === 'unreadable') {
-      return { ok: false, error: 'could not verify the note belongs to Kivara Lingo' };
+      return { ok: false, error: t('cards.noteOwnershipUnreadable') };
     }
     if (ownership === 'gone') {
       // Nothing left to delete. No registry row and no word to clear either.

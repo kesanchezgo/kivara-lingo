@@ -51,21 +51,6 @@ const LONGMAN_BAND_KEY: Record<string, string> = {
   W3: 'freq.topWritten3000',
 };
 
-/**
- * Worker fallback labels: `formatFrequencyBand` also runs in the service
- * worker (Anki context field), whose dictionary is the core subset. When the
- * active translator does not carry the Longman key, the label stays readable
- * instead of printing the raw key.
- */
-const LONGMAN_BAND_LABEL: Record<string, string> = {
-  S1: 'Top 1000 hablado',
-  S2: 'Top 2000 hablado',
-  S3: 'Top 3000 hablado',
-  W1: 'Top 1000 escrito',
-  W2: 'Top 2000 escrito',
-  W3: 'Top 3000 escrito',
-};
-
 /** books-band value → i18n key. */
 const BOOKS_BAND_KEY: Record<number, string> = {
   1: 'freq.veryFrequent',
@@ -73,25 +58,6 @@ const BOOKS_BAND_KEY: Record<number, string> = {
   3: 'freq.common',
   4: 'freq.uncommon',
 };
-
-/** books-band worker fallbacks, same reason as the Longman table. */
-const BOOKS_BAND_LABEL: Record<number, string> = {
-  1: 'Muy frecuente',
-  2: 'Frecuente',
-  3: 'Común',
-  4: 'Poco común',
-};
-
-/** Resolve a key, keeping the readable fallback when the current dictionary
- * (the worker's core subset) does not carry it. */
-function labelOf(
-  key: string,
-  translate: (key: string) => string,
-  fallback: string,
-): string {
-  const out = translate(key);
-  return out === key ? fallback : out;
-}
 
 export function formatFrequencyBand(
   scale: string,
@@ -101,12 +67,12 @@ export function formatFrequencyBand(
   if (scale === 'longman-spoken' || scale === 'longman-written') {
     const band = String(value).toUpperCase();
     const key = LONGMAN_BAND_KEY[band];
-    if (key) return labelOf(key, translate, LONGMAN_BAND_LABEL[band]);
+    if (key) return translate(key);
   }
   if (scale === 'books-band') {
     const band = Number(value);
     const key = BOOKS_BAND_KEY[band];
-    if (key) return labelOf(key, translate, BOOKS_BAND_LABEL[band]);
+    if (key) return translate(key);
   }
   return `${scale}: ${value}`;
 }

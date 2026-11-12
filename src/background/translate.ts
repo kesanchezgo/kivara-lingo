@@ -1,5 +1,6 @@
 /// <reference types="chrome" />
 
+import { t } from '../shared/i18n/sw';
 import { lookupDictionary } from '../content/nlp/dictionary';
 import type {
   DictionaryEntry,
@@ -211,7 +212,7 @@ export async function translateText(req: TranslateRequest): Promise<TranslateRes
     if (settings.provider === 'offline') {
       return {
         ok: false,
-        error: 'Translation provider is set to offline.',
+        error: t('translate.providerOffline'),
         provider: 'offline',
       };
     }
@@ -224,8 +225,7 @@ export async function translateText(req: TranslateRequest): Promise<TranslateRes
     if (chain.length === 0) {
       return {
         ok: false,
-        error:
-          'No translation providers enabled in chain mode. Enable free or premium tier in Settings.',
+        error: t('translate.chainEmpty'),
         provider: 'offline',
       };
     }

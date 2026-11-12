@@ -23,6 +23,8 @@
  * callers should be aware that this allocates the full buffer in memory.
  */
 
+import { t } from './i18n/core';
+
 export interface ResilientFetchOptions {
   maxRetries?: number;
   /**
@@ -91,7 +93,7 @@ export async function fetchWithRetry(
       }
     }
   }
-  throw lastError ?? new Error('Fetch failed after all retries');
+  throw lastError ?? new Error(t('fetch.exhaustedRetries'));
 }
 
 async function fetchOnce(
@@ -172,7 +174,7 @@ async function fetchOnce(
           idleReject = () =>
             reject(
               new FetchAbortedError(
-                `El servidor dejó de enviar datos durante más de ${Math.round(staleTimeoutMs / 1000)} s. Comprueba la conexión y vuelve a intentarlo.`,
+                t('fetch.stalledBody', { seconds: Math.round(staleTimeoutMs / 1000) }),
               ),
             );
         });
@@ -210,8 +212,8 @@ async function fetchOnce(
       const stalled = staleFired;
       throw new FetchAbortedError(
         stalled
-          ? `La descarga se detuvo: el servidor dejó de enviar datos durante más de ${Math.round(staleTimeoutMs / 1000)} s. Comprueba la conexión y vuelve a intentarlo.`
-          : `El servidor no respondió en ${Math.round(headerTimeoutMs / 1000)} s. Vuelve a intentarlo.`,
+          ? t('fetch.stalledDownload', { seconds: Math.round(staleTimeoutMs / 1000) })
+          : t('fetch.headerTimeout', { seconds: Math.round(headerTimeoutMs / 1000) }),
       );
     }
     throw err;

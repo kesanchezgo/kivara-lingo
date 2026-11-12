@@ -16,6 +16,7 @@
  * Spec reference: https://github.com/huzheng001/stardict-3/blob/master/dict/doc/StarDictFileFormat
  */
 import { unzipSync, gunzipSync, strFromU8 } from 'fflate';
+import { t } from '../../shared/i18n/sw';
 import type { DictPackRow, DictTermRow, ParsedDictPack } from '../../shared/dict-types';
 
 export type StarDictParseResult = { ok: true; parsed: ParsedDictPack } | { ok: false; error: string };
@@ -49,7 +50,7 @@ export function parseStarDictPack(
     const bytes = zipBytes instanceof Uint8Array ? zipBytes : new Uint8Array(zipBytes);
     files = unzipSync(bytes);
   } catch (err) {
-    return { ok: false, error: `Could not unzip pack: ${(err as Error).message}` };
+    return { ok: false, error: t('yomitan.unzipFailed', { reason: (err as Error).message }) };
   }
 
   // Locate the .ifo — it's the only file with a guaranteed extension.

@@ -32,6 +32,7 @@ import type {
   SourcePartial,
 } from './types';
 import { gateSources } from './permissions-gate';
+import { t } from '../../shared/i18n/sw';
 import { classifyEnrichError } from '../../shared/enrich-health';
 
 import { freeDictionarySource } from './sources/free-dictionary';
@@ -390,7 +391,7 @@ export async function probeEnrichmentSource(
       source.id,
       'error',
       undefined,
-      'missing host permission — the browser refused to let the extension reach this source',
+      t('enrich.hostPermissionGate'),
     );
     return sourceHealth.get(source.id);
   }

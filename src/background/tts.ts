@@ -1,5 +1,6 @@
 /// <reference types="chrome" />
 
+import { t } from '../shared/i18n/sw';
 import type { TtsResponse, TtsSettings } from '../shared/types';
 import { speakViaOffscreen } from './audio-capture-manager';
 import { getAiSettings } from './ai-enrich';
@@ -145,7 +146,7 @@ export async function generateTtsAudio(text: string): Promise<GenerateTtsResult>
     if (!tts.elevenLabsApiKey) {
       return {
         ok: false,
-        error: 'ElevenLabs requires an API key (Settings → TTS premium)',
+        error: t('tts.elevenlabsKeyRequired'),
       };
     }
     const result = await generateViaElevenLabs(trimmed, tts);
@@ -213,7 +214,7 @@ async function generateViaElevenLabs(
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : 'ElevenLabs body read failed',
+      error: err instanceof Error ? err.message : t('tts.elevenlabsBodyReadFailed'),
     };
   }
 }
@@ -223,7 +224,7 @@ async function generateViaOpenAi(text: string): Promise<GenerateTtsResult> {
   if (ai.provider !== 'openai' || !ai.apiKey) {
     return {
       ok: false,
-      error: 'TTS audio requires OpenAI provider + API key',
+      error: t('tts.openaiKeyRequired'),
     };
   }
 
@@ -263,7 +264,7 @@ async function generateViaOpenAi(text: string): Promise<GenerateTtsResult> {
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : 'OpenAI TTS body read failed',
+      error: err instanceof Error ? err.message : t('tts.openaiBodyReadFailed'),
     };
   }
 }
@@ -295,7 +296,7 @@ function tryChromeTts(text: string, lang: string): Promise<TtsResponse> {
     }
     const cleanText = typeof text === 'string' ? text.trim() : '';
     if (!cleanText) {
-      resolve({ ok: false, error: 'no text to speak' });
+      resolve({ ok: false, error: t('tts.noText') });
       return;
     }
     let settled = false;

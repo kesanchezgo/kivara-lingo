@@ -14,6 +14,7 @@
  *    to `speechSynthesis` when `chrome.tts` is unavailable.
  */
 
+import { t } from '../shared/i18n/sw';
 import type {
   AudioCaptureStatus,
   AudioClipResponse,
@@ -269,7 +270,7 @@ function sendToOffscreen<T = unknown>(message: Record<string, unknown>): Promise
     const timer = setTimeout(() => {
       if (settled) return;
       settled = true;
-      reject(new Error('el documento offscreen no respondió'));
+      reject(new Error(t('capture.offscreenNoResponse')));
     }, OFFSCREEN_RPC_TIMEOUT_MS);
 
     try {
@@ -447,7 +448,7 @@ export async function extractAudioClip(
   options: ExtractAudioClipOptions = {},
 ): Promise<AudioClipResponse> {
   if (!(await hydrateCaptureSession())) {
-    return { ok: false, error: 'Audio capture is not active for this tab.' };
+    return { ok: false, error: t('capture.inactiveTab') };
   }
   try {
     const result = await sendToOffscreen<AudioClipResponse>({
@@ -479,7 +480,7 @@ export async function speakViaOffscreen(text: string, lang: string): Promise<Tts
         text,
         lang,
       });
-      return result ?? { ok: false, error: 'no response from offscreen' };
+      return result ?? { ok: false, error: t('capture.offscreenNoRpc') };
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'offscreen TTS failed';
       return { ok: false, error: reason };

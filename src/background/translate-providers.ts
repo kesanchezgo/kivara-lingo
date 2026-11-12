@@ -1,6 +1,7 @@
 /// <reference types="chrome" />
 
 import type { TranslateProvider, TranslateSettings } from '../shared/types';
+import { t } from '../shared/i18n/sw';
 import { readBodyBounded } from '../shared/net-guard';
 
 export interface ProviderResult {
@@ -57,9 +58,9 @@ export function sameOrigin(asked: string, landed: string): boolean {
 /** The message for a redirected-off-origin response, localised. */
 function originMismatch(landed: string): string {
   try {
-    return `proveedor redirigió a otro origen (${new URL(landed).origin})`;
+    return t('translate.originMismatch', { origin: new URL(landed).origin });
   } catch {
-    return `proveedor redirigió a otro origen (${landed})`;
+    return t('translate.originMismatch', { origin: landed });
   }
 }
 
@@ -428,7 +429,7 @@ export async function callOne(
       return callLingva(text, source, target, settings.lingvaUrl);
     case 'offline':
     default:
-      return { ok: false, error: 'offline provider has no network call', provider: 'offline' };
+      return { ok: false, error: t('translate.offlineNoNetwork'), provider: 'offline' };
   }
 }
 
@@ -495,7 +496,7 @@ export async function callChain(
   return {
     ok: false,
     attempted,
-    error: attempted[attempted.length - 1]?.error ?? 'no provider succeeded',
+    error: attempted[attempted.length - 1]?.error ?? t('translate.noProviderSucceeded'),
   };
 }
 
@@ -526,7 +527,7 @@ export async function callChainRaced(
 ): Promise<ChainResult | ChainError> {
   const candidates = providers.filter((p) => p !== 'offline');
   if (candidates.length === 0) {
-    return { ok: false, attempted: [], error: 'no provider in race' };
+    return { ok: false, attempted: [], error: t('translate.noProviderInRace') };
   }
   if (candidates.length === 1) {
     return callChain(candidates, text, source, target, settings);
@@ -568,7 +569,7 @@ export async function callChainRaced(
               resolve({
                 ok: false,
                 attempted,
-                error: attempted[attempted.length - 1]?.error ?? 'no provider succeeded',
+                error: attempted[attempted.length - 1]?.error ?? t('translate.noProviderSucceeded'),
               });
             }
           }
@@ -585,7 +586,7 @@ export async function callChainRaced(
             resolve({
               ok: false,
               attempted,
-              error: attempted[attempted.length - 1]?.error ?? 'no provider succeeded',
+              error: attempted[attempted.length - 1]?.error ?? t('translate.noProviderSucceeded'),
             });
           }
         });

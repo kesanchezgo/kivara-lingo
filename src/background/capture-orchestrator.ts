@@ -653,11 +653,11 @@ export async function createCardFromRequest(
         platform: request.platform,
       });
       if (result.ok) aiData = result.data;
-      else warnings.push(`IA no respondió: ${result.error}`);
+      else warnings.push(t('capture.aiNoResponse', { reason: result.error }));
     }
   } catch (err) {
     const reason = err instanceof Error ? err.message : 'AI failure';
-    warnings.push(`IA no respondió: ${reason}`);
+    warnings.push(t('capture.aiNoResponse', { reason }));
   }
 
   const ctx: ResolveContext = {
@@ -708,7 +708,7 @@ export async function createCardFromRequest(
       }
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'sentence-translation';
-      warnings.push(`Traducción de frase no disponible: ${reason}`);
+      warnings.push(t('capture.sentenceTranslationUnavailable', { reason }));
     }
   }
   if (!ctx.sentenceTranslation) ctx.sentenceTranslation = usable(request.sentenceTranslation);
@@ -810,7 +810,7 @@ export async function createCardFromRequest(
     }
   } catch (err) {
     const reason = err instanceof Error ? err.message : 'enrichment';
-    warnings.push(`Enriquecimiento parcial: ${reason}`);
+    warnings.push(t('capture.enrichmentPartial', { reason }));
   }
 
   // AI mnemonic / etymology overlay. The AI provider returns higher-
@@ -856,12 +856,12 @@ export async function createCardFromRequest(
           `Style: clean, vivid, memorable, single subject, no text, no logos.`;
         const img = await generateAiImage(prompt, aiSettings);
         if (img.ok) ctx.imageUrl = img.url;
-        else warnings.push(`DALL-E falló: ${img.error}`);
+        else warnings.push(t('capture.dalleFailed', { reason: img.error }));
       }
     }
   } catch (err) {
     const reason = err instanceof Error ? err.message : 'image-gen';
-    warnings.push(`Imagen IA: ${reason}`);
+    warnings.push(t('capture.aiImageFailed', { reason }));
   }
 
   // Fill the phonetic field on cards where the local dictionary stack
@@ -873,7 +873,7 @@ export async function createCardFromRequest(
       if (augmented) ctx.phonetic = augmented;
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'phonetic-augment';
-      warnings.push(`Fonética no disponible: ${reason}`);
+      warnings.push(t('capture.phoneticUnavailable', { reason }));
     }
   }
 
@@ -921,7 +921,7 @@ export async function createCardFromRequest(
       storedMedia.frame = true;
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'frame';
-      warnings.push(`No se pudo guardar el frame: ${reason}`);
+      warnings.push(t('capture.frameStoreFailed', { reason }));
     }
   }
 
@@ -948,7 +948,7 @@ export async function createCardFromRequest(
         }
       },
     );
-    if (!stored) warnings.push('Imagen VIP: no se pudo descargar');
+    if (!stored) warnings.push(t('capture.vipImageFailed'));
   }
 
   // Audio — three flavours:
@@ -997,7 +997,7 @@ export async function createCardFromRequest(
         sentenceAudioAttached = true;
       } catch (err) {
         const reason = err instanceof Error ? err.message : 'audio';
-        warnings.push(`No se pudo guardar el audio: ${reason}`);
+        warnings.push(t('capture.audioStoreFailed', { reason }));
       }
     } else {
       const status = await getAudioCaptureStatus();
@@ -1050,7 +1050,7 @@ export async function createCardFromRequest(
         sentenceAudioAttached = true;
       } catch (err) {
         const reason = err instanceof Error ? err.message : 'audio';
-        warnings.push(`No se pudo guardar el audio guardado: ${reason}`);
+        warnings.push(t('capture.carriedAudioStoreFailed', { reason }));
       }
     } else {
       warnings.push(t('capture.retryTts'));
@@ -1141,7 +1141,7 @@ export async function createCardFromRequest(
         }
       } catch (err) {
         const reason = err instanceof Error ? err.message : 'tts';
-        warnings.push(`TTS no respondió: ${reason}`);
+        warnings.push(t('capture.ttsNoResponse', { reason }));
       }
     }
   }

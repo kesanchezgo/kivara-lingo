@@ -31,6 +31,8 @@
  * private address) — documented, not fixable from here, see PRIVACY.md.
  */
 
+import { t } from './i18n/core';
+
 /** Largest response we ever read into memory, per call. */
 export const DEFAULT_MAX_BYTES = 8 * 1024 * 1024;
 
@@ -98,17 +100,17 @@ export function assertPublicHttpUrl(raw: string, opts: { allowHttp?: boolean } =
   try {
     url = new URL(raw);
   } catch {
-    throw new UrlNotAllowedError('URL inválida');
+    throw new UrlNotAllowedError(t('net.urlInvalid'));
   }
   if (url.protocol !== 'https:' && !(url.protocol === 'http:' && opts.allowHttp)) {
-    throw new UrlNotAllowedError('Solo se permiten URLs https://');
+    throw new UrlNotAllowedError(t('net.httpsOnly'));
   }
   if (isBlockedHost(url.hostname)) {
-    throw new UrlNotAllowedError('URL no permitida');
+    throw new UrlNotAllowedError(t('net.urlNotAllowed'));
   }
   // A URL embedding credentials is a phishing classic and we never send any.
   if (url.username || url.password) {
-    throw new UrlNotAllowedError('URL no permitida');
+    throw new UrlNotAllowedError(t('net.urlNotAllowed'));
   }
   return url;
 }
@@ -154,12 +156,12 @@ export interface PackInstallRequest {
  * Returns the error message, or null when the request may proceed.
  */
 export function validateDictPackInstallRequest(req: PackInstallRequest): string | null {
-  if (req.senderId !== req.runtimeId) return 'sender no permitido';
+  if (req.senderId !== req.runtimeId) return t('net.senderNotAllowed');
   try {
     assertPublicHttpUrl(req.url);
     return null;
   } catch (err) {
-    return err instanceof Error ? err.message : 'URL no permitida';
+    return err instanceof Error ? err.message : t('net.urlNotAllowed');
   }
 }
 
@@ -173,7 +175,7 @@ export interface LimitsOptions {
 
 class SizeLimitError extends Error {
   constructor(limit: number) {
-    super(`respuesta mayor de ${limit} bytes`);
+    super(t('net.tooLarge', { limit }));
     this.name = 'SizeLimitError';
   }
 }

@@ -479,7 +479,7 @@ export function DictPacksSection({
             return (
               <div key={group} className="space-y-1.5">
                 <div className="text-[12px] font-medium text-zinc-400 dark:text-zinc-500 px-1">
-                  {GROUP_LABELS[group]}
+                  {t(GROUP_LABELS[group])}
                 </div>
                 <ListGroup>
                   {cards.map((p) => {

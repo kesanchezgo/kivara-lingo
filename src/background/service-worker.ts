@@ -772,7 +772,7 @@ export async function startAudioCaptureHandler(data: unknown): Promise<StartCapt
     }
   }
   if (tabId == null) {
-    return { ok: false, error: 'No active tab' };
+    return { ok: false, error: t('sw.noActiveTab') };
   }
   const bufferSec = await loadCaptureBufferSec();
   const result = await startAudioCapture(tabId, bufferSec);
@@ -1160,7 +1160,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   // data: or chrome: URLs from a compromised/companion page message.
   if (message?.type === 'OPEN_URL' && typeof message.url === 'string') {
     if (!/^https?:\/\//i.test(message.url)) {
-      sendResponse({ ok: false, error: 'URL must be http(s)://' });
+      sendResponse({ ok: false, error: t('sw.openUrlHttpOnly') });
       return true;
     }
     void chrome.tabs.create({ url: message.url });
