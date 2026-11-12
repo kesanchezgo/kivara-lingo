@@ -1509,7 +1509,13 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             // "saved" highlight never painted.
             return { ok: true, noteId: response.noteId, warnings: response.warnings };
           }
-          showCardSaveError(response?.error, response?.queued === true, saveToastId, handleViewQueue);
+          showCardSaveError(
+            response?.error,
+            response?.queued === true,
+            saveToastId,
+            handleViewQueue,
+            response?.errorCode,
+          );
           if (studyNow.sounds) playSound('error');
           return response ?? { ok: false, error: 'unknown' };
         } catch (err) {

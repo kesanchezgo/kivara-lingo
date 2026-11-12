@@ -16,8 +16,10 @@ import type {
   AnkiAddContextRequest,
   AnkiAddContextResponse,
   AnkiDeleteNoteResponse,
+  CreateCardErrorCode,
   CreateCardKind,
 } from '../../shared/types';
+import { CARD_ERROR_LABEL_KEYS } from '../../shared/card-errors';
 import { originLabel, type CardSource } from '../../shared/study/cardTags';
 import { showSavedToast } from './CardToasts';
 
@@ -171,8 +173,16 @@ export function showCardSaveError(
   queued = false,
   id?: string | number,
   onViewQueue?: () => void,
+  errorCode?: CreateCardErrorCode,
 ): void {
-  const reason = detail?.trim() || t('popup.anki.down');
+  const raw = detail?.trim();
+  // When the worker classified the failure, the CODE names the family in the
+  // user's language; the provider sentence stays as a secondary detail because
+  // it is usually technical (and often English) and reads as noise alone.
+  const label = errorCode ? t(CARD_ERROR_LABEL_KEYS[errorCode]) : '';
+  const reason = label
+    ? (raw && raw !== label ? `${label} — ${raw}` : label)
+    : (raw || t('popup.anki.down'));
   // "View queue" only makes sense for a card that IS queued: it lands on the
   // Cards tab, where the retry queue and its "retry now" live.
   const action = queued && onViewQueue
