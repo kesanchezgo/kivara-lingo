@@ -14,7 +14,7 @@ import {
 } from './intercepted-bus';
 import type { CueListener, MediaInfo, PlaybackController, SubtitleCue, SubtitleSource } from './types';
 import { createMediaPlaybackController, createNetflixPlaybackController } from './playback';
-import { cuesFromRawTrack } from './tracks';
+import { cuesFromRawTrack, findCueAt, pickBestAltCue } from './tracks';
 
 export interface InterceptedAdapterOptions {
   platform: SubtitleSource['platform'];
@@ -52,83 +52,6 @@ function buildHideStyle(css: string): HTMLStyleElement | null {
   return style;
 }
 
-/**
- * Find the cue from `track` that best matches the requested time / range.
- *
- * Lookup order:
- *   1. If `sourceRange` is given, find the cue with the MAXIMUM temporal
- *      overlap with `[sourceRange.start, sourceRange.end]`. This is the
- *      deterministic behaviour: for any two tracks with even partial
- *      overlap we always pick the same alt cue, regardless of how the
- *      timestamps drift.
- *   2. Containment of the point: any cue whose window covers `timeMs`.
- *   3. Nearest cue (by midpoint distance) within `NEAREST_TOLERANCE_MS`
- *      of `timeMs`. Catches the edge case where the alt cue starts or
- *      ends a few hundred ms before/after the source cue.
- *
- * Returns `null` when even the nearest cue is too far to be plausible.
- */
-function pickBestAltCue(
-  cues: ReadonlyArray<{ start: number; end: number; text: string; align?: SubtitleCue['align'] }>,
-  timeMs: number,
-  sourceRange?: { start: number; end: number },
-): { start: number; end: number; text: string; align?: SubtitleCue['align'] } | null {
-  if (cues.length === 0) return null;
-
-  // 1. Range-aware overlap pick — most deterministic when we know
-  //    the source range.
-  if (sourceRange && sourceRange.end > sourceRange.start) {
-    let bestOverlap = 0;
-    let bestCue: typeof cues[number] | null = null;
-    let bestDistance = Infinity;
-    for (const c of cues) {
-      // Skip cues that can't possibly overlap the source range.
-      if (c.end < sourceRange.start) continue;
-      if (c.start > sourceRange.end) break; // cues are time-sorted
-      const overlapStart = Math.max(c.start, sourceRange.start);
-      const overlapEnd = Math.min(c.end, sourceRange.end);
-      const overlap = overlapEnd - overlapStart;
-      if (overlap > bestOverlap) {
-        bestOverlap = overlap;
-        bestCue = c;
-        bestDistance = 0;
-      } else if (overlap === bestOverlap && bestCue && overlap > 0) {
-        // Tie-break by midpoint proximity to source midpoint.
-        const sourceMid = (sourceRange.start + sourceRange.end) / 2;
-        const cMid = (c.start + c.end) / 2;
-        const dist = Math.abs(cMid - sourceMid);
-        if (dist < bestDistance) {
-          bestCue = c;
-          bestDistance = dist;
-        }
-      }
-    }
-    if (bestCue) return bestCue;
-  }
-
-  // 2. Strict containment of the requested timestamp.
-  const contained = cues.find((c) => timeMs >= c.start && timeMs <= c.end);
-  if (contained) return contained;
-
-  // 3. Nearest cue by midpoint distance, with a generous tolerance so
-  //    we still resolve when the alt track lags or leads the source by
-  //    up to 1.5 s — beyond that we'd risk attaching the wrong line.
-  const NEAREST_TOLERANCE_MS = 1500;
-  let nearest: typeof cues[number] | null = null;
-  let nearestDelta = Infinity;
-  for (const c of cues) {
-    if (c.end < timeMs - NEAREST_TOLERANCE_MS) continue;
-    if (c.start > timeMs + NEAREST_TOLERANCE_MS) break;
-    const mid = (c.start + c.end) / 2;
-    const delta = Math.abs(mid - timeMs);
-    if (delta < nearestDelta) {
-      nearestDelta = delta;
-      nearest = c;
-    }
-  }
-  return nearest;
-}
-
 export function createInterceptedAdapter(opts: InterceptedAdapterOptions): SubtitleSource {
   const listeners: CueListener[] = [];
   let track: InterceptedTrack | null = null;
@@ -147,7 +70,7 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
 
   function pickCueAt(timeMs: number): SubtitleCue | null {
     if (!track) return null;
-    const hit = track.cues.find((c) => timeMs >= c.start && timeMs <= c.end);
+    const hit = findCueAt(track.cues, timeMs);
     if (!hit) return null;
     return {
       id: `${opts.platform}-${hit.start}-${hit.end}`,

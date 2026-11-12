@@ -431,3 +431,21 @@ test.describe('a seek is not the end of a cue', () => {
   });
 });
 
+/**
+ * B7 — the active cue comes from the intercepted track, not from the DOM.
+ *
+ * This page has NO `<video>.textTracks` entry and NO caption DOM: the whole
+ * track arrives through the MAIN-world interceptor at `/api/timedtext`. The
+ * pre-fix adapter emitted nothing here; the fix resolves the cue from the bus
+ * by `video.currentTime` and keeps its real `start`/`end`/`id`.
+ *
+ * The save path is observed through the SW-owned card registry
+ * (`kvl:cards.recent`), read with `chrome.storage.local` in the service
+ * worker — the page world cannot see `chrome.*`, and the content→background
+ * message rides webext-bridge's persistent Port, not `runtime.onMessage`.
+ * With no deck configured the save lands a `no-deck` row whose `sentence` is
+ * the line the adapter resolved from the bus. The request's `cueStart` /
+ * `cueEnd` / `contextLines` mapping is unit-tested on
+ * `buildCueRequestFields` (same active cue, no React).
+ */
+;

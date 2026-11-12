@@ -1,22 +1,40 @@
 import type { SubtitleSource, SubtitleCue, CueListener } from './types';
 import { getYouTubeMediaInfo } from './media-info';
 import { useKivaraStore } from '../../shared/use-kivara-store';
-import { getActiveTrackCues, getKnownLanguages, getLastTrack, getTrackByLanguage, onTrack } from './intercepted-bus';
+import {
+  getActiveTrackCues,
+  getKnownLanguages,
+  getLastTrack,
+  getTrackByLanguage,
+  onTrack,
+  type InterceptedTrack,
+} from './intercepted-bus';
 import { createMediaPlaybackController } from './playback';
-import { cuesFromRawTrack, cuesFromTextTracks } from './tracks';
+import {
+  cueFromRaw,
+  cuesFromRawTrack,
+  cuesFromTextTracks,
+  findCueAt,
+  findCueByText,
+  pickBestAltCue,
+} from './tracks';
 
 /**
  * YouTube adapter.
  *
  * Strategy:
- *  1) Prefer the HTML5 `<video>.textTracks` API. YouTube exposes timed-text
- *     tracks once captions are enabled by the user. We switch the active
- *     track to `hidden` to suppress YouTube's own rendering and listen to
- *     `cuechange` for precise cue boundaries.
- *  2) Fall back to polling YouTube's caption DOM (`.captions-text`) so the
- *     adapter still works on live streams or when YouTube renders captions
- *     without exposing a TextTrack.
- *  3) Inject CSS to permanently hide YouTube's native caption window.
+ *  1) Prefer the intercepted track on the bus. The MAIN-world interceptor
+ *     already holds the WHOLE `/api/timedtext` track (source and translated)
+ *     with the real timings, so the active cue is a pure containment lookup
+ *     by `video.currentTime` — no guessing.
+ *  2) The HTML5 `<video>.textTracks` API is the second source; the browser's
+ *     VTTCue bounds are real too, and `cuechange` is precise.
+ *  3) YouTube's caption DOM (`.caption-visual-line`) is the LAST resort, for
+ *     live streams and players that render captions without exposing either.
+ *     Its text is re-anchored to the bus by NORMALISED text, so the emitted
+ *     cue keeps the track's real start/end/id; `[now, now+2000]` survives
+ *     only when the bus has no track at all.
+ *  4) Inject CSS to permanently hide YouTube's native caption window.
  */
 export function attachYouTube(): SubtitleSource | null {
   const videoEl = document.querySelector<HTMLVideoElement>('video');
@@ -47,10 +65,72 @@ export function attachYouTube(): SubtitleSource | null {
     listeners.forEach((l) => l(cue ? [cue] : []));
   }
 
+  /** Emit only when the active cue actually changed (the poll runs at 120 ms). */
+  function emitActive(cue: SubtitleCue | null) {
+    if (cue === null) {
+      if (currentActiveCue) emit(null);
+      return;
+    }
+    const current = currentActiveCue;
+    if (
+      current &&
+      current.id === cue.id &&
+      current.start === cue.start &&
+      current.end === cue.end &&
+      current.text === cue.text
+    ) {
+      return;
+    }
+    emit(cue);
+  }
+
+  function sourceLanguage(): string {
+    return useKivaraStore.getState().translate.sourceLang || 'en';
+  }
+
+  /**
+   * The source-language track on the intercepted bus. Falls back to the last
+   * track of any language (legacy interceptors don't tag language), exactly
+   * like `intercepted-adapter.ts` and `fullTrack()`.
+   */
+  function sourceTrack(): InterceptedTrack | null {
+    return getTrackByLanguage(sourceLanguage()) ?? getLastTrack();
+  }
+
+  /** The bus cue containing `timeMs`, with the track's real id/start/end. */
+  function busCueAt(timeMs: number): SubtitleCue | null {
+    const track = sourceTrack();
+    if (!track || track.cues.length === 0) return null;
+    const hit = findCueAt(track.cues, timeMs);
+    if (!hit) return null;
+    return cueFromRaw(hit, track.language || sourceLanguage(), 'youtube');
+  }
+
+  /** The bus cue matching a piece of DOM caption text, by normalised text. */
+  function busCueByText(text: string): SubtitleCue | null {
+    const track = sourceTrack();
+    if (!track || track.cues.length === 0) return null;
+    const hit = findCueByText(track.cues, text);
+    if (!hit) return null;
+    return cueFromRaw(hit, track.language || sourceLanguage(), 'youtube');
+  }
+
+  /**
+   * Last-resort path: the caption text came from the DOM. Re-anchor it to the
+   * bus by normalised text so the cue keeps the track's real timings. Only
+   * when the bus has NO track do we fall back to `[now, now+2000]` — invented
+   * bounds are worse than none, because they become the saved card's
+   * `cueStart` / `cueEnd`.
+   */
   function pushFromText(text: string) {
     const trimmed = text.trim();
     if (!trimmed) {
-      if (currentActiveCue) emit(null);
+      emitActive(null);
+      return;
+    }
+    const track = sourceTrack();
+    if (track && track.cues.length > 0) {
+      emitActive(busCueByText(trimmed));
       return;
     }
     if (currentActiveCue && currentActiveCue.text === trimmed) return;
@@ -60,7 +140,7 @@ export function attachYouTube(): SubtitleSource | null {
       start: now,
       end: now + 2000,
       text: trimmed,
-      language: activeTrack?.language || 'en',
+      language: activeTrack?.language || sourceLanguage(),
     });
   }
 
@@ -68,7 +148,16 @@ export function attachYouTube(): SubtitleSource | null {
     if (!activeTrack) return;
     const cues = activeTrack.activeCues;
     if (!cues || cues.length === 0) {
-      if (currentActiveCue) emit(null);
+      // A `textTracks` cue ending does not mean the line ended: the bus may
+      // still hold it (and the DOM may still show it). The poll decides.
+      return;
+    }
+
+    // The intercepted track is authoritative: the playhead alone answers
+    // which line is active, with the file's own timings.
+    const fromBus = busCueAt(video.currentTime * 1000);
+    if (fromBus) {
+      emitActive(fromBus);
       return;
     }
 
@@ -101,7 +190,14 @@ export function attachYouTube(): SubtitleSource | null {
     }
 
     if (!text) {
-      if (currentActiveCue) emit(null);
+      emitActive(null);
+      return;
+    }
+    // The bus holds a track but the playhead is in a gap (drift / a cue the
+    // element has not switched yet): re-anchor by text, never by guess.
+    const track = sourceTrack();
+    if (track && track.cues.length > 0) {
+      emitActive(busCueByText(text));
       return;
     }
     const first = cues[0] as VTTCue;
@@ -117,7 +213,7 @@ export function attachYouTube(): SubtitleSource | null {
       start: first.startTime * 1000,
       end: last.endTime * 1000,
       text,
-      language: activeTrack.language || 'en',
+      language: activeTrack.language || sourceLanguage(),
       align: cueAlign,
     });
   }
@@ -184,10 +280,21 @@ export function attachYouTube(): SubtitleSource | null {
   }
 
   function pollDom() {
+    // 1. The intercepted track holds the whole subtitle file with real
+    //    timings: the playhead alone answers which line is active. This is
+    //    the primary source (and the only one that works when the player
+    //    renders `/api/timedtext` without a `<video>.textTracks` entry).
+    const fromBus = busCueAt(video.currentTime * 1000);
+    if (fromBus) {
+      emitActive(fromBus);
+      return;
+    }
+
     // When TextTracks are available and have active cues, prefer them.
     if (activeTrack && activeTrack.activeCues && activeTrack.activeCues.length > 0) return;
 
-    // YouTube renders captions in the DOM using .caption-visual-line elements
+    // 2. Last resort: YouTube renders captions in the DOM using
+    //    .caption-visual-line elements
     // (one per line). Fall back to .captions-text if the newer structure isn't
     // found. Each .caption-visual-line is a separate line of the subtitle.
     const lines = document.querySelectorAll('.caption-visual-line');
@@ -315,6 +422,11 @@ export function attachYouTube(): SubtitleSource | null {
         busUnsub = onTrack((track) => {
           if (!track.cues?.length) return;
           notifyTrackListeners();
+          // The track (or its translated sibling) may arrive mid-cue, after
+          // the last poll tick — resolve the active line right away instead
+          // of waiting for the next 120 ms tick.
+          const fromBus = busCueAt(video.currentTime * 1000);
+          if (fromBus) emitActive(fromBus);
         });
       }
       const initial = fullTrack();
@@ -391,56 +503,7 @@ export function attachYouTube(): SubtitleSource | null {
     ): SubtitleCue | null {
       const altTrack = getTrackByLanguage(lang);
       if (!altTrack) return null;
-      const cues = altTrack.cues;
-      if (cues.length === 0) return null;
-
-      let hit: typeof cues[number] | null = null;
-
-      // 1. Range-aware overlap pick (preferred when caller provides range).
-      if (sourceRange && sourceRange.end > sourceRange.start) {
-        let bestOverlap = 0;
-        let bestDistance = Infinity;
-        for (const c of cues) {
-          if (c.end < sourceRange.start) continue;
-          if (c.start > sourceRange.end) break;
-          const overlap = Math.min(c.end, sourceRange.end) - Math.max(c.start, sourceRange.start);
-          if (overlap > bestOverlap) {
-            bestOverlap = overlap;
-            hit = c;
-            bestDistance = 0;
-          } else if (overlap === bestOverlap && hit && overlap > 0) {
-            const sourceMid = (sourceRange.start + sourceRange.end) / 2;
-            const cMid = (c.start + c.end) / 2;
-            const dist = Math.abs(cMid - sourceMid);
-            if (dist < bestDistance) {
-              hit = c;
-              bestDistance = dist;
-            }
-          }
-        }
-      }
-
-      // 2. Strict containment of `timeMs`.
-      if (!hit) {
-        hit = cues.find((c) => timeMs >= c.start && timeMs <= c.end) ?? null;
-      }
-
-      // 3. Nearest cue within 1.5 s — handles minor drift.
-      if (!hit) {
-        const NEAREST_TOLERANCE_MS = 1500;
-        let nearestDelta = Infinity;
-        for (const c of cues) {
-          if (c.end < timeMs - NEAREST_TOLERANCE_MS) continue;
-          if (c.start > timeMs + NEAREST_TOLERANCE_MS) break;
-          const mid = (c.start + c.end) / 2;
-          const delta = Math.abs(mid - timeMs);
-          if (delta < nearestDelta) {
-            nearestDelta = delta;
-            hit = c;
-          }
-        }
-      }
-
+      const hit = pickBestAltCue(altTrack.cues, timeMs, sourceRange);
       if (!hit) return null;
       return {
         id: `youtube-alt-${lang}-${hit.start}-${hit.end}`,

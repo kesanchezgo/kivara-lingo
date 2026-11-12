@@ -277,7 +277,12 @@ function publishHost(host: HTMLElement): () => void {
           status: el.getAttribute('data-ws') ?? '',
         };
       });
-      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({ bar, badges, tokens }));
+      // The native-language line (the dual caption) rides along: the specs
+      // assert the translated text, which lives in the same closed root as
+      // the tokens.
+      const dual = root.querySelector<HTMLElement>('[data-kivara-dual]')
+        ?.textContent?.trim() ?? '';
+      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({ bar, badges, tokens, dual }));
       host.setAttribute(E2E_STATE_ATTR, JSON.stringify(collectState(root)));
       watchToasts();
     } catch {

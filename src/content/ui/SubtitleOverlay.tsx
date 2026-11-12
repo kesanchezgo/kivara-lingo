@@ -1102,9 +1102,12 @@ export function SubtitleOverlay({
           )}
 
           {/* Translation: visible, blurred until hover, or hidden — the same
-              study setting as the transcript. Listen-first also waits for the pause. */}
+              study setting as the transcript. Listen-first also waits for the pause.
+              `data-kivara-dual` lets the e2e suite read this line through the
+              host's published box map (the root is closed); inert in production. */}
           {translationVisible && dualCaptionText && (
             <div
+              data-kivara-dual=""
               className="mt-2 text-[0.65em] transition-all duration-300 overflow-hidden max-h-20 opacity-100"
               style={{
                 whiteSpace: subtitleStyles.keepNativeLineBreaks ? 'pre-line' : undefined,
