@@ -17,6 +17,7 @@
  * or re-create duplicate cards. They have their own management UI.
  */
 
+import type { Table } from 'dexie';
 import { getDB } from '../shared/db';
 import { clearMemEnrichmentCache } from './enrichment/orchestrator';
 import { t } from '../shared/i18n/sw';
@@ -39,10 +40,23 @@ export interface CacheStatsResult {
 }
 
 
-async function tableStats(table: any, approxRowBytes?: (row: unknown) => number): Promise<{ count: number; bytes: number }> {
+/**
+ * One of the string-keyed cache tables, or `undefined` when the table is
+ * absent on an old schema (Dexie only creates a table on first write — a
+ * DB opened before `explain_cache` existed reads as undefined here). The
+ * row type stays opaque: stats only serialises, clear only counts/clears,
+ * and the concrete row types already live on `KivaraDB` (`src/shared/db.ts`,
+ * the same tables `enrichment/cache.ts` uses typed).
+ */
+type CacheTable = Table<unknown, string>;
+
+async function tableStats(
+  table: CacheTable | undefined,
+  approxRowBytes?: (row: unknown) => number,
+): Promise<{ count: number; bytes: number }> {
   try {
     if (!table) return { count: 0, bytes: 0 };
-    const rows = (await table.toArray()) as unknown[];
+    const rows = await table.toArray();
     if (!rows.length) return { count: 0, bytes: 0 };
     let bytes = 0;
     for (const r of rows) {
@@ -60,7 +74,7 @@ async function tableStats(table: any, approxRowBytes?: (row: unknown) => number)
 
 export async function getCacheStats(): Promise<CacheStatsResult> {
 
-  const db = getDB() as any;
+  const db = getDB();
   const [enrichment, translation, ai, explain, media] = await Promise.all([
     tableStats(db.vip_cache),
     tableStats(db.translation_cache),
@@ -91,8 +105,8 @@ export async function clearCaches(
   which: 'all' | CacheBucketStats['id'],
 ): Promise<number> {
 
-  const db = getDB() as any;
-  const table = {
+  const db = getDB();
+  const table: Record<CacheBucketStats['id'], CacheTable | undefined> = {
     enrichment: db.vip_cache,
     translation: db.translation_cache,
     ai: db.ai_cache,
@@ -106,7 +120,7 @@ export async function clearCaches(
       : [table[which]];
   for (const t of targets) {
     try {
-      if (!t) continue;
+      if (!t) continue; // table absent on an old schema
       removed += (await t.count()) ?? 0;
       await t.clear();
     } catch {
