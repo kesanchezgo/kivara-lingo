@@ -1719,7 +1719,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                   setStudy((prev) => ({ ...prev, autoPauseCue: next }));
                 }}
                 loop={studyPlayback.loop}
-                onToggleLoop={() => railOpenStore.set(!railOpen)}
+                onToggleLoop={() => studyPlayback.setLoop(!studyPlayback.loop)}
                 speed={studyPlayback.speed}
                 onSpeed={studyPlayback.setSpeed}
                 railOpen={railOpen}

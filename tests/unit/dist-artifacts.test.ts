@@ -52,6 +52,9 @@ const FORBIDDEN_TEXT = [
   'KIVARA_E2E_SEED_HEALTH',
   // The canned Anki ping/answers the wizard walk uses.
   'kivara-e2e-anki',
+  // The shadow-root handle the e2e suite clicks through. Attributes are the
+  // only channel that crosses the content script's isolated world.
+  'data-kivara-e2e-hits',
 ];
 const FORBIDDEN_PATHS = [/(^|\/)e2e\//];
 /** What an un-rewritten worklet URL looks like in the bundle. */
