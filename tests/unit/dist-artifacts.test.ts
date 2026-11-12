@@ -55,6 +55,7 @@ const FORBIDDEN_TEXT = [
   // The shadow-root handle the e2e suite clicks through. Attributes are the
   // only channel that crosses the content script's isolated world.
   'data-kivara-e2e-hits',
+  'data-kivara-e2e-boxes',
 ];
 const FORBIDDEN_PATHS = [/(^|\/)e2e\//];
 /** What an un-rewritten worklet URL looks like in the bundle. */

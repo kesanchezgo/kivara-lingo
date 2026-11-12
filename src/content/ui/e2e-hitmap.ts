@@ -18,6 +18,21 @@
  */
 export const E2E_HITMAP_ATTR = 'data-kivara-e2e-hits';
 
+/**
+ * Second channel: the BAR's own box and every subtitle token's box, in
+ * viewport coordinates. The e2e suite asserts the bar never covers a token by
+ * comparing rectangles — it cannot call `elementFromPoint` on a token, because
+ * a closed root answers with the host for anything inside it.
+ */
+export const E2E_BOXES_ATTR = 'data-kivara-e2e-boxes';
+
+export interface E2EBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface E2EHit {
   /** Accessible name of the control. */
   label: string;
@@ -68,6 +83,17 @@ export function publishHits(container: HTMLElement): () => void {
   const write = () => {
     try {
       host.setAttribute(E2E_HITMAP_ATTR, JSON.stringify(collectHits(container)));
+      const root = container.getRootNode();
+      const scope = root instanceof ShadowRoot ? root : document;
+      const bar = container.getBoundingClientRect();
+      const tokens = [...scope.querySelectorAll<HTMLElement>('[data-tok-idx]')].map((el) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.x, y: r.y, width: r.width, height: r.height };
+      });
+      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({
+        bar: { x: bar.x, y: bar.y, width: bar.width, height: bar.height },
+        tokens,
+      }));
     } catch {
       /* serialization of a detached node: nothing to publish */
     }
@@ -77,5 +103,6 @@ export function publishHits(container: HTMLElement): () => void {
   return () => {
     window.clearInterval(id);
     host.removeAttribute(E2E_HITMAP_ATTR);
+    host.removeAttribute(E2E_BOXES_ATTR);
   };
 }
