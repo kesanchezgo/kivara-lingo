@@ -10,7 +10,11 @@ on:
 
 jobs:
   unit:
-    runs-on: ubuntu-latest
+    # Pinned, not `ubuntu-latest`: the fleet has started migrating that label
+    # to Ubuntu 26.04, and Playwright 1.60 refuses to install Chromium there
+    # ("Playwright does not support chromium on ubuntu26.04-x64"), which killed
+    # every e2e job before a single test ran. 24.04 is the supported image.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -35,7 +39,11 @@ jobs:
       - run: pnpm typecheck
 
   e2e:
-    runs-on: ubuntu-latest
+    # Pinned, not `ubuntu-latest`: the fleet has started migrating that label
+    # to Ubuntu 26.04, and Playwright 1.60 refuses to install Chromium there
+    # ("Playwright does not support chromium on ubuntu26.04-x64"), which killed
+    # every e2e job before a single test ran. 24.04 is the supported image.
+    runs-on: ubuntu-24.04
     # The manual-verification suite waits for the service worker to be torn
     # down (35s) before asking it for Anki again.
     timeout-minutes: 15
@@ -73,7 +81,11 @@ jobs:
   # asserts the AudioWorklet default under KIVARA_E2E=1) only ever ran
   # locally. Adds ~90 s to the pipeline.
   e2e-audio:
-    runs-on: ubuntu-latest
+    # Pinned, not `ubuntu-latest`: the fleet has started migrating that label
+    # to Ubuntu 26.04, and Playwright 1.60 refuses to install Chromium there
+    # ("Playwright does not support chromium on ubuntu26.04-x64"), which killed
+    # every e2e job before a single test ran. 24.04 is the supported image.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -102,7 +114,11 @@ jobs:
   # deliberate product risk, not a defect path. Failing CI here would
   # block unrelated work without a fix path.
   lint:
-    runs-on: ubuntu-latest
+    # Pinned, not `ubuntu-latest`: the fleet has started migrating that label
+    # to Ubuntu 26.04, and Playwright 1.60 refuses to install Chromium there
+    # ("Playwright does not support chromium on ubuntu26.04-x64"), which killed
+    # every e2e job before a single test ran. 24.04 is the supported image.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
