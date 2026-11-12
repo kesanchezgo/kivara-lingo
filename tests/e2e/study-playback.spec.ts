@@ -15,13 +15,24 @@
  * test in `tests/unit/transcript-rail.test.tsx`, and the controller seek itself
  * by the tests below.
  */
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { test, expect, type Page } from './fixtures';
+import {
+  armBar,
+  boxesOf,
+  clickInRoot,
+  clickSpeed,
+  LABEL,
+  openPlayer as openFixture,
+  overlaps,
+  paused,
+  pressedInRoot,
+  rate,
+  readFixture,
+  time,
+  VIDEO_HOST,
+} from './helpers';
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const FIXTURE = fs.readFileSync(path.join(here, 'fixtures', 'player-seekable.html'), 'utf8');
+const FIXTURE = readFixture('player-seekable.html');
 
 const CUES_VTT = `WEBVTT
 
@@ -49,136 +60,21 @@ Every crumb gets gnawed.
 `;
 
 async function openPlayer(
-  context: { newPage(): Promise<Page> },
+  context: Parameters<typeof openFixture>[0],
   opts: { vtt?: string } = {},
 ): Promise<Page> {
-  const page = await context.newPage();
-  await page.route('*://*.youtube.com/**', async (route) => {
-    const url = route.request().url();
-    if (url.endsWith('cues.vtt')) {
-      await route.fulfill({ status: 200, contentType: 'text/vtt', body: opts.vtt ?? CUES_VTT });
-      return;
-    }
-    if (url.includes('/watch')) {
-      await route.fulfill({ status: 200, contentType: 'text/html', body: FIXTURE });
-      return;
-    }
-    await route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><html></html>' });
-  });
-  await page.goto('https://www.youtube.com/watch?v=kivara-f6');
-  await page.bringToFront();
-  await page.waitForFunction(
-    () => (window as Window & { __kivaraFixtureReady?: unknown }).__kivaraFixtureReady === true,
-    undefined,
-    { timeout: 30_000 },
-  );
-  // The overlay host proves the content script mounted the App on this page.
-  await expect
-    .poll(() => page.evaluate(() => document.querySelectorAll('#kivara-lingo-host').length), {
-      timeout: 15_000,
-    })
-    .toBeGreaterThan(0);
-  await page.waitForFunction(() => document.querySelector('video')!.currentTime > 0.02);
-  return page;
-}
-
-/**
- * Click a control by its accessible name INSIDE the closed shadow root.
- *
- * The bar lives in a `mode: 'closed'` root, so Playwright locators cannot see
- * it, and a content script's `window` is its isolated world — not the page's.
- * The one channel both worlds share is the DOM: the StudyBar (E2E build only)
- * publishes each control's CENTER into `data-kivara-e2e-hits` on the shadow
- * host. This helper reads it and clicks with the mouse — a real gesture on the
- * real button, which is the only honest way to prove a button is wired.
- */
-async function hitOf(page: Page, hostId: string, label: string) {
-  const hits = await page.evaluate((id) => {
-    const raw = document.getElementById(id)?.getAttribute('data-kivara-e2e-hits');
-    return raw ? (JSON.parse(raw) as Array<{ label: string; x: number; y: number; pressed?: string }>) : [];
-  }, hostId);
-  const hit = hits.find((h) => h.label === label);
-  if (!hit) {
-    throw new Error(`no "${label}" in the bar hit-map (saw: ${hits.map((h) => h.label).join(', ')})`);
-  }
-  return hit;
-}
-
-async function clickInRoot(page: Page, hostId: string, label: string): Promise<void> {
-  const hit = await hitOf(page, hostId, label);
-  await page.mouse.click(hit.x, hit.y);
-}
-
-/** aria-pressed / aria-checked of a control, as the bar published it. */
-async function pressedInRoot(page: Page, hostId: string, label: string): Promise<string | null> {
-  return (await hitOf(page, hostId, label)).pressed ?? null;
+  return openFixture(context, { fixture: FIXTURE, vtt: opts.vtt ?? CUES_VTT });
 }
 
 /*
+ * The bar lives in a `mode: 'closed'` root, so Playwright locators cannot see
+ * it; every control is clicked through the E2E hit map (see `helpers.ts`).
  * Persistence is checked THROUGH THE UI, not through `chrome.storage`: the
  * page world Playwright evaluates in has no `chrome.*` (only the content
  * script's isolated world does). Click the control, reload, and the restored
  * `aria-pressed` IS the storage assertion — with the extra guarantee that no
  * code path can pass it by writing the key without rendering from it.
  */
-
-const VIDEO_HOST = 'kivara-lingo-video-host';
-
-/**
- * Accessible names as the harness renders them: `tests/e2e/fixtures.ts` pins
- * `--lang=es` so the content script resolves the Spanish dictionary. Kept in
- * one place so a copy change shows up once.
- */
-const LABEL = {
-  loop: 'Bucle',
-  autoPause: 'Pausa al final de cada frase',
-  prev: 'Frase anterior',
-  next: 'Frase siguiente',
-  replay: 'Repetir frase',
-} as const;
-
-/** The bar's box, the corner icons' boxes and every token's box, as published. */
-async function boxesOf(page: Page): Promise<{
-  bar: { x: number; y: number; width: number; height: number };
-  badges: Array<{ x: number; y: number; width: number; height: number }>;
-  tokens: Array<{ x: number; y: number; width: number; height: number }>;
-}> {
-  const raw = await page.evaluate(() => document.getElementById('kivara-lingo-video-host')
-    ?.getAttribute('data-kivara-e2e-boxes') ?? null);
-  if (!raw) throw new Error('no box map published');
-  return JSON.parse(raw) as never;
-}
-
-function overlaps(
-  a: { x: number; y: number; width: number; height: number },
-  b: { x: number; y: number; width: number; height: number },
-): boolean {
-  return a.x < b.x + b.width && b.x < a.x + a.width
-    && a.y < b.y + b.height && b.y < a.y + a.height;
-}
-
-/** Click a speed radio by its visible text ("1.25×"), via the same hit map. */
-async function clickSpeed(page: Page, value: string): Promise<void> {
-  await clickInRoot(page, VIDEO_HOST, value);
-}
-
-/** Move the pointer so the bar appears, then wait for its hit map. */
-async function armBar(page: Page): Promise<void> {
-  await page.mouse.move(320, 200);
-  // The publisher writes every 400 ms; without this wait the click below can
-  // use a snapshot from BEFORE the pointer moved (or from before the bar
-  // flipped above a taller caption plate) and land on empty video.
-  await page.waitForTimeout(500);
-  await expect.poll(
-    () => page.evaluate(() => document.getElementById('kivara-lingo-video-host')
-      ?.getAttribute('data-kivara-e2e-hits')?.length ?? 0),
-    { timeout: 8_000 },
-  ).toBeGreaterThan(10);
-}
-
-const time = (page: Page) => page.evaluate(() => document.querySelector('video')!.currentTime);
-const paused = (page: Page) => page.evaluate(() => document.querySelector('video')!.paused);
-const rate = (page: Page) => page.evaluate(() => document.querySelector('video')!.playbackRate);
 
 test.describe('study playback over the PlaybackController', () => {
   test('next line seeks through the controller', async ({ context }) => {
@@ -327,7 +223,10 @@ test.describe('StudyBar buttons (mouse, closed shadow root)', () => {
       await armBar(page);
       await expect.poll(async () => (await boxesOf(page)).tokens.length, { timeout: 8_000 })
         .toBeGreaterThan(5);
-      const { bar, badges, tokens } = await boxesOf(page);
+      const boxes = await boxesOf(page);
+      const { badges, tokens } = boxes;
+      const bar = boxes.bar;
+      if (!bar) throw new Error('the bar did not publish a box');
       // Listen-first and the mode toggle are always there.
       expect(badges.length).toBeGreaterThanOrEqual(2);
 

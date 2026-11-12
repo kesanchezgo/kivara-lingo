@@ -1705,7 +1705,21 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   return (
     <div
       className={`font-sans text-zinc-900 dark:text-zinc-100 pointer-events-none ${isDarkMode ? 'dark' : ''}`}
-      style={{ position: 'fixed', inset: 0, zIndex: 2147483646, colorScheme: isDarkMode ? 'dark' : 'light' }}
+      // The panel host is `height: 0` on purpose (it must not swallow page
+      // clicks) and `contain: layout` makes it the containing block for this
+      // fixed layer — so `inset: 0` resolved to a 0 px-tall box and the rail's
+      // `overflow-y-auto` line list clipped every row. Size the layer against
+      // the VIEWPORT explicitly; it stays pointer-events-none, so only the
+      // rail/panel wrappers that opt in receive clicks.
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100vh',
+        zIndex: 2147483646,
+        colorScheme: isDarkMode ? 'dark' : 'light',
+      }}
     >
       <div className="pointer-events-auto">
         <Toaster position="top-center" theme={isDarkMode ? 'dark' : 'light'} />

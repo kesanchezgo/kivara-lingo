@@ -39,6 +39,16 @@
       </video>
     </div>
 
+    <!-- YouTube's caption window: `youtube.ts` polls `.caption-visual-line`
+         and hides the container while the Kivara overlay is on. -->
+    <div id="captions" class="ytp-caption-window-container" aria-hidden="true">
+      <div class="caption-window">
+        <div class="captions-text">
+          <div class="caption-visual-line"></div>
+        </div>
+      </div>
+    </div>
+
     <script>
       const canvas = document.createElement('canvas');
       canvas.width = 640;
@@ -81,11 +91,16 @@
             .play()
             .then(() => {
               // Exactly what YouTube's player does when captions load: one
-            // /api/timedtext request for the ORIGINAL track. The interceptor
-            // sees it, posts the cues, and the bus then asks for &tlang=<native>
-            // on its own.
-            void fetch('/api/timedtext?v=kivara-behaviour&lang=en&fmt=json3');
-            window.__kivaraFixtureReady = true;
+              // /api/timedtext request for the ORIGINAL track. The interceptor
+              // sees it, posts the cues, and the bus then asks for &tlang=<native>
+              // on its own.
+              void fetch('/api/timedtext?v=kivara-behaviour&lang=en&fmt=json3');
+              // The caption DOM, on the same 0–3 / 3–6 / 6–9 s lines as the
+              // EN track. This is the input the adapter's DOM fallback reads
+              // when the player exposes no TextTrack — the reason the fixture
+              // needs it at all.
+              driveCaptions(video);
+              window.__kivaraFixtureReady = true;
             })
             .catch(() => {
               window.__kivaraFixtureReady = 'play-rejected';
@@ -94,6 +109,33 @@
       };
       recorder.start();
       setTimeout(() => recorder.stop(), 6500);
+
+      /**
+       * Write the caption line for the playhead, on a 100 ms timer, the way
+       * the real player repaints its caption window. Reading `currentTime`
+       * (rather than a wall clock) keeps the line correct after a seek, which
+       * the study playback exercises.
+       */
+      function driveCaptions(video) {
+        const line = document.querySelector('.caption-visual-line');
+        const LINES = [
+          { from: 0, to: 3, text: 'Hello, this is a test cue.' },
+          { from: 3, to: 6, text: 'The rat ships frames and audio.' },
+          { from: 6, to: 9, text: 'Every crumb gets gnawed.' },
+        ];
+        let shown = '';
+        const tick = () => {
+          const at = video.currentTime;
+          const hit = LINES.find((cue) => at >= cue.from && at < cue.to);
+          const text = hit ? hit.text : '';
+          if (text !== shown) {
+            shown = text;
+            line.textContent = text;
+          }
+        };
+        tick();
+        window.setInterval(tick, 100);
+      }
     </script>
   </body>
 </html>
