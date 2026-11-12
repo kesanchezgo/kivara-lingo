@@ -31,40 +31,22 @@ export const HBO_PLAYER_CONTAINER_SELECTORS: readonly string[] = [
  * Max ships subtitles in two ways:
  *  1. As real HTML5 `::cue` tracks. Those are reliably hidden with the
  *     `video::cue` / `video::-webkit-media-text-track-*` rules below.
- *  2. As DOM-rendered overlays whose class names change per release. To stay
- *     resilient we match anything that *looks* like a subtitle/caption
- *     container — substring matches on common class fragments plus known
- *     `data-testid`s. Kivara's own UI is inside Shadow DOM, so these broad
- *     selectors can't accidentally hide it.
+ *  2. As DOM-rendered overlays from the Bitmovin player UI. The `bmpui-*`
+ *     subtitle overlay/label elements hold ONLY caption text (the video and
+ *     the control bar live in separate `bmpui` containers), so they are safe
+ *     to hide. The release-specific styled-components class fragments used
+ *     to be matched with `[class*="caption"]`-style wildcards, but those
+ *     also matched anything merely CONTAINING "caption"/"subtitle" — the
+ *     subtitle settings menu, the control bar — so only exact hooks remain.
+ *     Kivara's own UI is inside Shadow DOM, so none of these selectors can
+ *     accidentally hide it.
  */
 const HIDE_NATIVE_CSS = `
   video::cue,
   video::-webkit-media-text-track-display,
   video::-webkit-media-text-track-container,
   video::-webkit-media-text-track-display-backdrop,
-  [class*="SubtitleRenderer"],
-  [class*="subtitleRenderer"],
-  [class*="SubtitleOverlay"],
-  [class*="subtitleOverlay"],
-  [class*="subtitle-overlay"],
-  [class*="CaptionsRenderer"],
-  [class*="captionsRenderer"],
-  [class*="CaptionContainer"],
-  [class*="captionContainer"],
-  [class*="caption-container"],
-  [class*="captions-container"],
-  [class*="CaptionsContainer"],
-  [class*="captionsContainer"],
-  [class*="CaptionWindow"],
-  [class*="caption-window"],
-  [class*="CaptionLine"],
-  [class*="caption-line"],
-  [class*="CaptionText"],
-  [class*="caption-text"],
-  [class*="captionText"],
   [data-testid="captions-container"],
-  [data-testid*="caption" i],
-  [data-testid*="subtitle" i],
   .bmpui-ui-subtitle-overlay,
   .bmpui-subtitle-overlay,
   .bmpui-ui-subtitle-label {
