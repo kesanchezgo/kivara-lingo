@@ -1078,10 +1078,31 @@ export interface CreateCardRequest {
   platform?: string;
 }
 
+/**
+ * Why a card could not be created, as a STABLE code the UI translates.
+ *
+ * The raw `error` string is a provider sentence in whatever language the
+ * worker ran in; classifying it in the panel meant re-guessing per build (and
+ * the guesses lived in `shortError`). The code travels with the response and
+ * the registry row, and the copy lives in the dictionaries.
+ */
+export type CreateCardErrorCode =
+  | 'no-deck'
+  | 'no-model'
+  | 'disabled'
+  | 'no-token'
+  | 'api-key'
+  | 'timeout'
+  | 'anki-down'
+  | 'anki-error'
+  | 'unknown';
+
 export interface CreateCardResponse {
   ok: boolean;
   noteId?: number;
   error?: string;
+  /** Machine-readable reason, when the failure has a known family. */
+  errorCode?: CreateCardErrorCode;
   warnings?: string[];
   fields?: Record<string, string>;
   /**

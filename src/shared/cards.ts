@@ -11,7 +11,7 @@
  * can be unit-tested and imported from the SW without dragging in `chrome.*`.
  */
 
-import type { CreateCardKind, MediaInfo } from './types';
+import type { CreateCardErrorCode, CreateCardKind, MediaInfo } from './types';
 import type { CardSource, Platform } from './study/cardTags';
 import { cardTags } from './study/cardTags';
 
@@ -34,6 +34,8 @@ export interface RecentCard {
   attempts: number;
   nextRetryAt?: number;
   error?: string;
+  /** Classified reason (see CreateCardErrorCode): the panel translates THIS. */
+  errorCode?: CreateCardErrorCode;
   noteId?: number;
   /** Hierarchical + legacy Anki tags already sent with the note. */
   tags: string[];
@@ -188,20 +190,36 @@ export function retryDelayMs(attempts: number): number {
 }
 
 /** A transport failure that the retry queue will pick up again. */
-export function markQueued(card: RecentCard, error: string, now = Date.now()): RecentCard {
+export function markQueued(
+  card: RecentCard,
+  error: string,
+  now = Date.now(),
+  errorCode?: CreateCardErrorCode,
+): RecentCard {
   const attempts = card.attempts + 1;
   return {
     ...card,
     status: 'queued',
     attempts,
     error,
+    ...(errorCode ? { errorCode } : {}),
     nextRetryAt: now + retryDelayMs(attempts),
   };
 }
 
 /** A permanent failure: an API key, a validation error, an HTTP 4xx. */
-export function markFailed(card: RecentCard, error: string): RecentCard {
-  return { ...card, status: 'failed', error, nextRetryAt: undefined };
+export function markFailed(
+  card: RecentCard,
+  error: string,
+  errorCode?: CreateCardErrorCode,
+): RecentCard {
+  return {
+    ...card,
+    status: 'failed',
+    error,
+    ...(errorCode ? { errorCode } : {}),
+    nextRetryAt: undefined,
+  };
 }
 
 export function isPending(card: RecentCard): boolean {
