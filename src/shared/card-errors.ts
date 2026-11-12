@@ -49,14 +49,20 @@ export function classifyCardError(
   // `tardó` is the Spanish half of the timeout sentence the client throws;
   // without it the same failure read as "Anki is down" in one locale only.
   if (/(timeout|timed out|took too long|deadline|tard[oó] (?:más|demasiado))/.test(text)) return 'timeout';
-  // Anki's own refusals name the add-on or what it rejected. Checked BEFORE
-  // the transport pattern on purpose: "AnkiConnect" itself contains the word
-  // "connect", and a model-not-found must not be reported as "Anki is down".
-  if (/(anki|addnote|duplicate|notetype|field|not found)/.test(text)) return 'anki-error';
-  // `\bconnect\b`, not `connect`: the bare word matched inside "AnkiConnect"
-  // and turned every provider sentence into a network failure.
-  if (/(network|failed to fetch|econnrefused|fetch failed|\bconnect\b|refused|unreachable|econnreset)/.test(text)) {
+  // A transport failure names the network, not the provider. Checked BEFORE
+  // Anki's own refusals so a wrapped "No se pudo contactar AnkiConnect" reads
+  // as "Anki is down", not as a rejected note. The loopback refusal belongs to
+  // the same family: the endpoint is unreachable by policy.
+  if (/(network|failed to fetch|econnrefused|fetch failed|\bconnect\b|refused|unreachable|econnreset|no se pudo contactar|could not reach|could not contact|loopback|no es local)/.test(text)) {
     return 'anki-down';
+  }
+  // Anki's own refusals. The bare `anki` token is gone: it matched every
+  // sentence that merely mentioned the add-on, including the transport ones
+  // above. `ankiconnect` stays because those sentences were already routed, so
+  // what reaches here is the provider speaking about itself — an HTTP status,
+  // an unreadable body, a model/deck refusal.
+  if (/(ankiconnect|addnote|duplicate|notetype|field|not found|model|deck)/.test(text)) {
+    return 'anki-error';
   }
   return 'unknown';
 }

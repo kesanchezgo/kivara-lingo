@@ -126,12 +126,15 @@ describe('the row renders the code, not the raw sentence', () => {
     render(React.createElement(RecentCards));
     // The meta line reads «Sin enviar · <label>», so the match is by substring.
     expect(screen.getByText(new RegExp(t('recent.code.apiKey')))).toBeTruthy();
-    expect(screen.queryByText(new RegExp(t('recent.err.down')))).toBeNull();
+    expect(screen.queryByText(new RegExp(t('recent.code.ankiDown')))).toBeNull();
   });
 
   it('falls back to classifying the raw text on a legacy row without a code', () => {
-    seedRegistry([row({ status: 'failed', error: 'HTTP 401 Unauthorized' })]);
+    // An Anki refusal: the classifier names `anki-error`, whose label differs
+    // from the old `recent.err.other` copy, so this proves the row delegated
+    // instead of keeping a second regex table.
+    seedRegistry([row({ status: 'failed', error: 'addNote failed: duplicate' })]);
     render(React.createElement(RecentCards));
-    expect(screen.getByText(new RegExp(t('recent.err.apiKey')))).toBeTruthy();
+    expect(screen.getByText(new RegExp(t('recent.code.ankiError')))).toBeTruthy();
   });
 });
