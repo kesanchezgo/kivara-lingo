@@ -812,6 +812,11 @@ export function SubtitleOverlay({
         {/* Subtitle text */}
         <div
           className="rounded-md px-4 py-2 transition-all duration-300 cursor-pointer"
+          // Stable hook for the StudyBar: it measures THIS box (the text
+          // plate) to park itself clear of the caption. The hover zone above
+          // also wraps the toolbars, so measuring it would push the bar far
+          // too high.
+          data-kivara-caption-box="true"
           {...markContainerAttrs(newMarks)}
           style={{
             fontSize: `${fontSize}px`,

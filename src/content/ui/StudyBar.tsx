@@ -125,6 +125,40 @@ export function StudyBar(props: StudyBarProps) {
   }, []);
   const compact = width < 760;
 
+  /**
+   * Where the bar sits: clear of the caption, always.
+   *
+   * `bottom-16` was a guess. At 640×360 the caption sits at ~85 % of the
+   * player, so the bar landed ON it and swallowed clicks on the words it
+   * covered. The bar now measures the caption's text plate
+   * (`[data-kivara-caption-box]`, published by SubtitleOverlay) and parks just
+   * above it, clamped to the player so it never leaves the frame.
+   */
+  const [barBottom, setBarBottom] = useState(64);
+  useEffect(() => {
+    if (!enabled) return;
+    const element = barRef.current;
+    if (!element) return;
+    const root = element.getRootNode();
+    const scope = root instanceof ShadowRoot ? root : document;
+    const host = root instanceof ShadowRoot && root.host instanceof HTMLElement ? root.host : null;
+    const place = () => {
+      const box = scope.querySelector<HTMLElement>('[data-kivara-caption-box]')?.getBoundingClientRect();
+      const hostRect = host?.getBoundingClientRect();
+      if (!box || !hostRect || hostRect.height === 0) {
+        setBarBottom(64);
+        return;
+      }
+      const above = Math.round(hostRect.bottom - box.top + 10);
+      setBarBottom(Math.max(64, Math.min(hostRect.height - 80, above)));
+    };
+    place();
+    // Captions move with the cue and the player resizes: follow both without
+    // re-measuring on every frame.
+    const id = window.setInterval(place, 400);
+    return () => window.clearInterval(id);
+  }, [enabled]);
+
   // E2E-ONLY: publish the bar's control rects on the shadow host, the one
   // channel the page world can read (see e2e-hitmap.ts). Compiled out of a
   // production bundle with the constant branch.
@@ -146,9 +180,10 @@ export function StudyBar(props: StudyBarProps) {
   return (
     <div
       ref={barRef}
-      className={`absolute bottom-16 right-3 z-30 flex items-center gap-0.5 rounded-lg bg-zinc-900/80 ring-1 ring-white/[0.08] backdrop-blur-md p-0.5 text-white transition-opacity duration-200 ${
+      className={`absolute right-3 z-30 flex items-center gap-0.5 rounded-lg bg-zinc-900/80 ring-1 ring-white/[0.08] backdrop-blur-md p-0.5 text-white transition-opacity duration-200 ${
         visible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       } [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto`}
+      style={{ bottom: barBottom }}
       role="toolbar"
       aria-label={t('rail.title')}
     >
