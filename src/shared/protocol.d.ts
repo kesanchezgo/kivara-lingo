@@ -32,6 +32,9 @@ import type {
   CardRetryAllResponse,
   CardDismissRequest,
   CardDismissResponse,
+  AnkiListsReply,
+  AnkiFieldsReply,
+  AnkiErrorReply,
 } from './types';
 import type {
   DictPackImportBeginMessage,
@@ -69,11 +72,11 @@ declare module 'webext-bridge' {
       { ok: boolean; error?: string }
     >;
     ANKI_PING: ProtocolWithReturn<{ url?: string; apiKey?: string }, AnkiPingResponse>;
-    ANKI_DECKS: ProtocolWithReturn<{ url?: string; apiKey?: string }, AnkiListsResponse>;
-    ANKI_MODELS: ProtocolWithReturn<{ url?: string; apiKey?: string }, AnkiListsResponse>;
-    ANKI_FIELDS: ProtocolWithReturn<{ url?: string; apiKey?: string; modelName: string }, AnkiFieldsResponse>;
+    ANKI_DECKS: ProtocolWithReturn<{ url?: string; apiKey?: string }, AnkiListsReply>;
+    ANKI_MODELS: ProtocolWithReturn<{ url?: string; apiKey?: string }, AnkiListsReply>;
+    ANKI_FIELDS: ProtocolWithReturn<{ url?: string; apiKey?: string; modelName: string }, AnkiFieldsReply>;
     ANKI_CREATE_DECK: ProtocolWithReturn<{ url?: string; apiKey?: string; deckName: string }, { ok: boolean; error?: string }>;
-    ANKI_SAVED_WORDS: ProtocolWithReturn<{ url?: string; apiKey?: string; deckName?: string; fieldName?: string }, { words: string[] }>;
+    ANKI_SAVED_WORDS: ProtocolWithReturn<{ url?: string; apiKey?: string; deckName?: string; fieldName?: string }, { words: string[] } | AnkiErrorReply>;
     ANKI_DELETE_NOTE: ProtocolWithReturn<AnkiDeleteNoteRequest, AnkiDeleteNoteResponse>;
     ANKI_ADD_CONTEXT: ProtocolWithReturn<AnkiAddContextRequest, AnkiAddContextResponse>;
     ANKI_BROWSE: ProtocolWithReturn<AnkiBrowseRequest, AnkiBrowseResponse>;

@@ -1205,10 +1205,27 @@ export interface AnkiPingResponse {
   code?: AnkiPingErrorCode;
 }
 
+/**
+ * Replies that can also be a refusal. The handlers answered `{ ok: false,
+ * error }` all along; the types did not say so, and `asJson` returning `any`
+ * hid the mismatch. Adding the envelope here is what lets the return type be
+ * checked at every registration.
+ */
+export interface AnkiErrorReply {
+  /** `false` at every call site; widened to `boolean` so a handler that
+   *  builds the envelope inline is assignable without a cast at each return. */
+  ok: boolean;
+  error: string;
+}
+
+export type AnkiListsReply = AnkiListsResponse | AnkiErrorReply;
+
 export interface AnkiListsResponse {
   decks: string[];
   models: string[];
 }
+
+export type AnkiFieldsReply = AnkiFieldsResponse | AnkiErrorReply;
 
 export interface AnkiFieldsResponse {
   fields: string[];

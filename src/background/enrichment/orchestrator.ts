@@ -463,9 +463,8 @@ export async function runEnrichment(
   // Pass BYOK image-source credentials through the ctx — sources read
   // them off the ctx via type cast (see unsplash.ts / pixabay.ts).
 
-  (ctx as any).unsplashAccessKey = opts.vip.unsplashAccessKey;
-
-  (ctx as any).pixabayApiKey = opts.vip.pixabayApiKey;
+  ctx.unsplashAccessKey = opts.vip.unsplashAccessKey;
+  ctx.pixabayApiKey = opts.vip.pixabayApiKey;
 
   // Images are excluded from the popover fan-out (they're the slowest
   // sources and least essential while hovering); they run for the card.
