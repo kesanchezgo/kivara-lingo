@@ -13,6 +13,7 @@ import type {
   CardRetryResponse,
 } from '../../../shared/types';
 import { MAX_CARD_RETRIES, hasAudio, hasFrame, isPending, type CardStatus, type RecentCard } from '../../../shared/cards';
+import { CARD_ERROR_LABEL_KEYS } from '../../../shared/card-errors';
 import { originLabel, tagsOf } from '../../../shared/study/cardTags';
 import {
   Badge, Button, FilterChips, IconButton, IconTile, SectionLabel, ui, FOCUS,
@@ -124,6 +125,10 @@ function fmtCountdown(ms: number): string {
 
 /** Short label for a failure: the engine stores the message, so classify it
  * into the same buckets AnkiConnect reports (network / timeout / API key). */
+/**
+ * Legacy fallback: rows written before `errorCode` existed carry only the raw
+ * provider sentence, so it is classified here. New rows never reach this.
+ */
 function shortError(error?: string): string {
   if (!error) return '';
   const e = error.toLowerCase();
@@ -222,7 +227,13 @@ function RecentRow({
   // template family the dead-key scan allows, and a test walks the whole
   // union so a new kind without copy fails CI.
   const kindLabel = t(`recent.kind.${card.kind}`);
-  const errLabel = card.error ? shortError(card.error) : '';
+  // The CODE wins: it is what the worker classified at the failure, and the
+  // dictionary owns the sentence. `shortError` remains for rows written before
+  // codes existed (and for a row whose code has no label, which cannot happen
+  // without failing the label test).
+  const errLabel = card.errorCode
+    ? t(CARD_ERROR_LABEL_KEYS[card.errorCode])
+    : card.error ? shortError(card.error) : '';
   const meta =
     card.status === 'saved'
       ? `${origin} · ${relativeAgo(card.savedAt ?? card.createdAt, now)}`

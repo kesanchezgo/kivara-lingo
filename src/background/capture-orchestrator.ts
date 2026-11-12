@@ -21,6 +21,7 @@ import {
   newRecentCard,
 } from '../shared/cards';
 import { cardRegistry } from './card-registry';
+import { classifyCardError } from '../shared/card-errors';
 import { originLabel } from '../shared/study/cardTags';
 import { translateText, translateToken } from './translate';
 import { extractAudioClip, getAudioCaptureStatus } from './audio-capture-manager';
@@ -590,9 +591,15 @@ export async function createCardFromRequest(
     const current = await cardRegistry.get(request.cardId);
     if (!current) return;
     if (response.queued) {
-      await cardRegistry.patch(request.cardId, markQueued(current, response.error ?? 'unknown'));
+      await cardRegistry.patch(
+        request.cardId,
+        markQueued(current, response.error ?? 'unknown', Date.now(), response.errorCode),
+      );
     } else {
-      await cardRegistry.patch(request.cardId, markFailed(current, response.error ?? 'unknown'));
+      await cardRegistry.patch(
+        request.cardId,
+        markFailed(current, response.error ?? 'unknown', response.errorCode),
+      );
     }
   };
 
@@ -604,12 +611,12 @@ export async function createCardFromRequest(
 
   // Validate required mapping fields before attempting any work.
   if (!deck) {
-    const out: CreateCardResponse = { ok: false, error: t('capture.noDeck') };
+    const out: CreateCardResponse = { ok: false, error: t('capture.noDeck'), errorCode: 'no-deck' };
     await registryOutcome(out);
     return out;
   }
   if (!mapping.modelName) {
-    const out: CreateCardResponse = { ok: false, error: t('capture.noModel') };
+    const out: CreateCardResponse = { ok: false, error: t('capture.noModel'), errorCode: 'no-model' };
     await registryOutcome(out);
     return out;
   }
@@ -1217,7 +1224,15 @@ export async function createCardFromRequest(
         // ignore
       }
     }
-    const out: CreateCardResponse = { ok: false, error: message, warnings, queued: retryable };
+    const out: CreateCardResponse = {
+      ok: false,
+      error: message,
+      // Classified HERE, where the original error object exists: the panel
+      // translates the code instead of re-guessing provider wording.
+      errorCode: classifyCardError(message),
+      warnings,
+      queued: retryable,
+    };
     await registryOutcome(out);
     return out;
   }
