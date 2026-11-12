@@ -7,7 +7,7 @@ import type { SubtitleSource } from './platform-adapters/types';
 import type { Mount as OverlayMount } from './fullscreen-overlay-core';
 import { useKivaraStore } from '../shared/use-kivara-store';
 import { clearBus, reprocessLastDashManifest } from './platform-adapters/intercepted-bus';
-import { dbg } from '../shared/debug-log';
+import { dbg, initLogFlag } from '../shared/logger';
 import { bumpMountGen, enqueueMount, readMountGen } from './mount-queue';
 import { setYomitanHeadwords } from './nlp/yomitan-headwords';
 import { updateOverlayParent, type RestoreState } from './fullscreen-overlay-core';
@@ -568,4 +568,7 @@ observeNavigation();
 // have no element to hand back.
 observeFocusTrail();
 observeFullscreen();
+// Wire the debug gate (debug-log.ts used to self-init on import; since the
+// logger unification the shared flag must be wired explicitly per context).
+initLogFlag();
 void init().catch((err) => console.warn('[Kivara Lingo] init failed', err));

@@ -72,7 +72,7 @@ import { getVipSettings, loadTranslateTargetLang } from './vip-settings';
 import { clearEnrichmentCache, clearMemEnrichmentCache, getEnrichmentSourceHealth, probeEnrichmentSource, seedEnrichmentSourceHealth } from './enrichment/orchestrator';
 
 /** Deep-link section for OPEN_SETTINGS (see the handler below). */
-import { dbg } from '../shared/debug-log';
+import { dbg, initLogFlag } from '../shared/logger';
 
 import { getCacheStats, clearCaches } from './cache-admin';
 import { listYomitanPacks, deleteYomitanPack, setPackEnabled, importYomitanPackStreaming, getYomitanHeadwords } from '../content/nlp/yomitan';
@@ -103,6 +103,11 @@ import {
 } from '../shared/telemetry';
 import { t } from '../shared/i18n/sw';
 import { fetchGuarded, validateDictPackInstallRequest } from '../shared/net-guard';
+
+// Wire the debug gate (debug-log.ts used to self-init on import; since the
+// logger unification the shared flag must be wired explicitly per context).
+initLogFlag();
+
 const OPEN_SETTINGS_SECTION_KEY = 'kivara:open-settings-section';
 
 const RETRY_ALARM = 'kivara-lingo-retry-pending';

@@ -12,7 +12,7 @@ import { Pause } from '../../ui/icons';
 import { useKivaraStore } from '../../shared/use-kivara-store';
 import { captureFrame, captureBestFrame } from '../capture/frame';
 import { comboFromEvent, normalizeCombo, readManifestCombos } from '../../shared/shortcuts';
-import { dbgOnce } from '../../shared/debug-log';
+import { dbgOnce } from '../../shared/logger';
 import { getShadowRoot, overKivaraZone } from '../shadow-host';
 import { PortalContainerProvider } from '../../ui/portal';
 import { eventPathIsEditable } from '../utils/keyboard';
