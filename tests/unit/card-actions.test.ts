@@ -3,7 +3,7 @@
  * See in Anki and word intervals. Each test uses a fake AnkiConnect module —
  * the service worker's handlers are thin wrappers over these functions.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { t } from '../../src/shared/i18n';
 
 class FakeAnkiError extends Error {
@@ -13,16 +13,20 @@ class FakeAnkiError extends Error {
   }
 }
 
+// Typed as any-in/any-out on purpose: these fakes carry different real
+// signatures, and `ReturnType<typeof vi.fn>` narrows `mockImplementation` to a
+// void-returning callback, which makes the async implementations here
+// misused-promises violations for no behavioral reason.
 interface Spies {
-  deleteNotes: ReturnType<typeof vi.fn>;
-  addTags: ReturnType<typeof vi.fn>;
-  guiBrowse: ReturnType<typeof vi.fn>;
-  findCards: ReturnType<typeof vi.fn>;
-  findNotes: ReturnType<typeof vi.fn>;
-  cardsInfo: ReturnType<typeof vi.fn>;
-  notesInfo: ReturnType<typeof vi.fn>;
-  updateNoteFields: ReturnType<typeof vi.fn>;
-  storeMediaFile: ReturnType<typeof vi.fn>;
+  deleteNotes: Mock<(...args: any[]) => any>;
+  addTags: Mock<(...args: any[]) => any>;
+  guiBrowse: Mock<(...args: any[]) => any>;
+  findCards: Mock<(...args: any[]) => any>;
+  findNotes: Mock<(...args: any[]) => any>;
+  cardsInfo: Mock<(...args: any[]) => any>;
+  notesInfo: Mock<(...args: any[]) => any>;
+  updateNoteFields: Mock<(...args: any[]) => any>;
+  storeMediaFile: Mock<(...args: any[]) => any>;
 }
 
 function setup(overrides: Partial<Spies> = {}): Spies {

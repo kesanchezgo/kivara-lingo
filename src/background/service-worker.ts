@@ -1035,25 +1035,30 @@ async function broadcastDictPacksChanged() {
   }
 }
 
-chrome.commands.onCommand.addListener(async (command: string) => {
+// Chrome listeners discard their return value, so an async listener leaks an
+// unobserved promise — multi-step bodies run in a voided async IIFE instead
+// (same shape as the tabs.onRemoved listener below).
+chrome.commands.onCommand.addListener((command: string) => {
   dbg('[Kivara Lingo] command:', command);
-  await broadcastToActive({ type: 'RUN_COMMAND', command });
+  void broadcastToActive({ type: 'RUN_COMMAND', command });
 });
 
 // First-run onboarding: open the onboarding page when the user first installs.
-chrome.runtime.onInstalled.addListener(async (details) => {
-  dbg('[Kivara Lingo] installed / updated', details.reason);
-  if (details.reason === 'install') {
-    try {
-      await chrome.tabs.create({
-        url: chrome.runtime.getURL('src/onboarding/index.html'),
-      });
-    } catch (err) {
-      console.warn('[Kivara Lingo] could not open onboarding', err);
+chrome.runtime.onInstalled.addListener((details) => {
+  void (async () => {
+    dbg('[Kivara Lingo] installed / updated', details.reason);
+    if (details.reason === 'install') {
+      try {
+        await chrome.tabs.create({
+          url: chrome.runtime.getURL('src/onboarding/index.html'),
+        });
+      } catch (err) {
+        console.warn('[Kivara Lingo] could not open onboarding', err);
+      }
     }
-  }
-  // Set up periodic retry of any queued AnkiConnect notes.
-  await chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 });
+    // Set up periodic retry of any queued AnkiConnect notes.
+    await chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 });
+  })();
 });
 
 // Re-create the alarm on every SW wake-up — alarms persist across SW restarts
@@ -1062,16 +1067,18 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 // refresh; the alarm lives HERE so the ordering is obvious in one place).
 // NOTE: do not add a second chrome.runtime.onStartup listener elsewhere in
 // this file — the DNR refresh races itself across listeners.
-chrome.runtime.onStartup.addListener(async () => {
-  await chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 });
-  // Refresh the Origin-rewrite rules for the user's saved Anki URL at
-  // every wake-up (custom port / remote host), not just on CREATE_CARD.
-  try {
-    const mapping = await loadMapping();
-    await refreshAnkiOriginRules(mapping.ankiUrl);
-  } catch {
-    // ignore — CREATE_CARD refreshes again on demand
-  }
+chrome.runtime.onStartup.addListener(() => {
+  void (async () => {
+    await chrome.alarms.create(RETRY_ALARM, { periodInMinutes: 1 });
+    // Refresh the Origin-rewrite rules for the user's saved Anki URL at
+    // every wake-up (custom port / remote host), not just on CREATE_CARD.
+    try {
+      const mapping = await loadMapping();
+      await refreshAnkiOriginRules(mapping.ankiUrl);
+    } catch {
+      // ignore — CREATE_CARD refreshes again on demand
+    }
+  })();
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
@@ -1084,37 +1091,39 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   })();
 });
 
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name === OFFSCREEN_KEEPALIVE_ALARM) {
-    // Ping the offscreen document to reset Chrome's 30 s inactivity timer.
-    // If the document is gone (user killed it, unexpected GC), restart capture.
-    try {
-      const status = await getAudioCaptureStatus();
-      if (!status.active) {
+chrome.alarms.onAlarm.addListener((alarm) => {
+  void (async () => {
+    if (alarm.name === OFFSCREEN_KEEPALIVE_ALARM) {
+      // Ping the offscreen document to reset Chrome's 30 s inactivity timer.
+      // If the document is gone (user killed it, unexpected GC), restart capture.
+      try {
+        const status = await getAudioCaptureStatus();
+        if (!status.active) {
+          await chrome.alarms.clear(OFFSCREEN_KEEPALIVE_ALARM);
+          return;
+        }
+        await chrome.runtime.sendMessage({ type: 'OFFSCREEN_STATUS' });
+      } catch {
+        // The offscreen document is gone, so the stale-state bug bites here:
+        // `activeTabId` and the stored session still say "capturing", the UI
+        // stays in its recording state and the next card saves a frame with
+        // no audio. Clear the alarm AND tear the capture state down.
         await chrome.alarms.clear(OFFSCREEN_KEEPALIVE_ALARM);
-        return;
+        await stopAudioCapture().catch(() => {});
       }
-      await chrome.runtime.sendMessage({ type: 'OFFSCREEN_STATUS' });
-    } catch {
-      // The offscreen document is gone, so the stale-state bug bites here:
-      // `activeTabId` and the stored session still say "capturing", the UI
-      // stays in its recording state and the next card saves a frame with
-      // no audio. Clear the alarm AND tear the capture state down.
-      await chrome.alarms.clear(OFFSCREEN_KEEPALIVE_ALARM);
-      await stopAudioCapture().catch(() => {});
+      return;
     }
-    return;
-  }
-  if (alarm.name !== RETRY_ALARM) return;
-  try {
-    const [mapping, capture] = await Promise.all([loadMapping(), loadCaptureSettings()]);
-    const { retried, succeeded } = await retryPendingNotes(mapping, capture);
-    if (retried > 0) {
-      dbg('[Kivara Lingo] retry pending notes', { retried, succeeded });
+    if (alarm.name !== RETRY_ALARM) return;
+    try {
+      const [mapping, capture] = await Promise.all([loadMapping(), loadCaptureSettings()]);
+      const { retried, succeeded } = await retryPendingNotes(mapping, capture);
+      if (retried > 0) {
+        dbg('[Kivara Lingo] retry pending notes', { retried, succeeded });
+      }
+    } catch (err) {
+      console.warn('[Kivara Lingo] retry alarm failed', err);
     }
-  } catch (err) {
-    console.warn('[Kivara Lingo] retry alarm failed', err);
-  }
+  })();
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

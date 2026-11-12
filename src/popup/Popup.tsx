@@ -188,7 +188,12 @@ export function Popup() {
   }
 
   function openOptions() {
-    if (chrome.runtime.openOptionsPage) chrome.runtime.openOptionsPage();
+    // openOptionsPage rejects asynchronously (e.g. no options page in the
+    // manifest); surface it instead of letting the rejection vanish.
+    if (!chrome.runtime.openOptionsPage) return;
+    chrome.runtime.openOptionsPage().catch((err) => {
+      console.warn('[Kivara Lingo] could not open options page', err);
+    });
   }
 
   const statusDot =

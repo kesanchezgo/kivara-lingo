@@ -11,6 +11,8 @@ export default [
       sourceType: 'module',
       parserOptions: {
         ecmaFeatures: { jsx: true },
+        project: ['./tsconfig.json'],
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     plugins: {
@@ -25,6 +27,13 @@ export default [
       // rule that would have caught the audit's #13 the first time.
       'react-hooks/exhaustive-deps': 'warn',
       'react-hooks/rules-of-hooks': 'error',
+      // Type-aware promise rules: chrome.* MV3 APIs reject asynchronously,
+      // so a synchronous try/catch around the call never runs its catch.
+      // ignoreVoid keeps the repo's `void fn()` fire-and-forget idiom
+      // legal; attributes are exempt from the void-return check because an
+      // async onClick is how the UI handles chrome APIs.
+      '@typescript-eslint/no-floating-promises': ['error', { ignoreVoid: true }],
+      '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: { attributes: false } }],
       // The tseslint rules are listed at `off` because:
       //  (a) ~20 existing `eslint-disable-next-line
       //      @typescript-eslint/no-explicit-any` comments (written
@@ -38,10 +47,36 @@ export default [
     },
   },
   {
-    // Same parser and the hook rules for the tests and the build scripts:
-    // a hook called conditionally inside a test helper is the same bug, and
-    // `tests/` used to be entirely unlinted.
-    files: ['tests/**/*.ts', 'tests/**/*.tsx', 'scripts/**/*.{ts,mts,cjs,mjs}'],
+    // Same parser and the hook rules for the tests: a hook called
+    // conditionally inside a test helper is the same bug, and `tests/` used
+    // to be entirely unlinted. Type-aware, like the src block, so the
+    // promise rules also cover the test code that drives the chrome APIs.
+    files: ['tests/**/*.ts', 'tests/**/*.tsx'],
+    languageOptions: {
+      parser: tsParser,
+      ecmaVersion: 2023,
+      sourceType: 'module',
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+        project: ['./tsconfig.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    plugins: {
+      'react-hooks': reactHooksPlugin,
+      '@typescript-eslint': tsPlugin,
+    },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      '@typescript-eslint/no-floating-promises': ['error', { ignoreVoid: true }],
+      '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: { attributes: false } }],
+    },
+  },
+  {
+    // The build scripts: the block mixes plain .js/.cjs/.mjs files that no
+    // tsconfig covers, so it stays non-type-aware (the promise rules need a
+    // parser project and would hard-error here). Left as-is on purpose.
+    files: ['scripts/**/*.{ts,mts,cjs,mjs}'],
     languageOptions: {
       parser: tsParser,
       ecmaVersion: 2023,
