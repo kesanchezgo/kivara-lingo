@@ -36,6 +36,8 @@ export interface E2EBox {
 export interface E2EHit {
   /** Accessible name of the control. */
   label: string;
+  /** Visible text inside the control ('' when it renders icon-only). */
+  text: string;
   /** Viewport coordinates of its center. */
   x: number;
   y: number;
@@ -61,6 +63,7 @@ export function collectHits(container: HTMLElement): E2EHit[] {
     if (!label) continue;
     hits.push({
       label,
+      text: el.textContent?.trim() ?? '',
       x: rect.x + rect.width / 2,
       y: rect.y + rect.height / 2,
       ...(pressed === null ? {} : { pressed }),

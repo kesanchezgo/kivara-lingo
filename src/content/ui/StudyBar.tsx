@@ -112,15 +112,29 @@ export function StudyBar(props: StudyBarProps) {
     };
   }, [enabled]);
 
-  // Width of the bar: below 760 px the toggles show icon only (the prototype's
-  // measured breakpoint) so the group does not overflow a small player.
+  // Width of the PLAYER decides icon-only mode, not the bar's own width.
+  //
+  // Measuring the bar was self-fulfilling: hiding the labels shrank the bar to
+  // ~260 px, which stayed under 760 px forever, so the labels never came back
+  // even on a 1920 px player. The overlay container is the player's box, so
+  // its width is what "a small player" means.
   useEffect(() => {
     const element = barRef.current;
     if (!element) return;
-    const observer = new ResizeObserver(([entry]) => {
-      setWidth(Math.round(entry.contentRect.width));
-    });
-    observer.observe(element);
+    const root = element.getRootNode();
+    const host = root instanceof ShadowRoot && root.host instanceof HTMLElement ? root.host : null;
+    const measure = () => {
+      const source = host ?? element.parentElement;
+      if (!source) return;
+      const measured = Math.round(source.getBoundingClientRect().width);
+      setWidth(measured);
+      // E2E-ONLY: the suite has to know WHEN the bar has learned the player's
+      // width, or it would read a hit map published by the previous measure.
+      if (__E2E__) host?.setAttribute('data-kivara-e2e-width', String(measured));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(host ?? element.parentElement ?? element);
     return () => observer.disconnect();
   }, []);
   const compact = width < 760;

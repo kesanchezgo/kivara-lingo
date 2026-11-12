@@ -309,6 +309,52 @@ test.describe('StudyBar buttons (mouse, closed shadow root)', () => {
     });
   }
 
+  /**
+   * Icon-only mode follows the PLAYER, not the bar.
+   *
+   * `compact` used to be computed from the bar's own width; hiding the labels
+   * shrank the bar below the 760 px breakpoint for good, so a wide player never
+   * got its labels back. At 1280 the chips must read «Auto-pausa» / «Bucle»; at
+   * 640 they are icons only.
+   */
+  for (const size of [{ width: 1280, height: 720, labels: true }, { width: 640, height: 360, labels: false }] as const) {
+    test(`icon-only mode follows the player width at ${size.width}px`, async ({ context }) => {
+      test.setTimeout(90_000);
+      const page = await openPlayer(context);
+      await page.setViewportSize({ width: size.width, height: size.height });
+      // The fixture's stage is a fixed 640×360 box. The PLAYER is what the bar
+      // measures, so the stage has to follow the viewport for this test to say
+      // anything about a wide player.
+      await page.addStyleTag({
+        content: '#stage{width:100vw !important;height:100vh !important;max-height:100vh}',
+      });
+      await page.waitForTimeout(600);
+      await armBar(page);
+      // Wait until the bar has MEASURED the player: without this the spec can
+      // read a hit map from before the resize (the bar publishes every 400 ms).
+      await expect.poll(
+        () => page.evaluate(() => document.getElementById('kivara-lingo-video-host')?.getAttribute('data-kivara-e2e-width')),
+        { timeout: 8_000 },
+      ).toBe(String(size.width));
+      await page.waitForTimeout(500);
+      await armBar(page);
+      const hits = await page.evaluate((id) => {
+        const raw = document.getElementById(id)?.getAttribute('data-kivara-e2e-hits');
+        return raw ? (JSON.parse(raw) as Array<{ label: string; text: string }>) : [];
+      }, VIDEO_HOST);
+      const loop = hits.find((h) => h.label === LABEL.loop);
+      expect(loop).toBeTruthy();
+      if (size.labels) {
+        expect(loop!.text).toBe(LABEL.loop);
+        expect(hits.find((h) => h.label === LABEL.autoPause)?.text).toBe('Auto-pausa');
+      } else {
+        expect(loop!.text).toBe('');
+        expect(hits.find((h) => h.label === LABEL.autoPause)?.text).toBe('');
+      }
+      await page.close();
+    });
+  }
+
   test('speed radios apply 1.25× and 0.75× by click', async ({ context }) => {
     test.setTimeout(90_000);
     const page = await openPlayer(context);

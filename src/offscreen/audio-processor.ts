@@ -27,6 +27,7 @@
  * `audio-capture-manager.ts`.
  */
 
+import { devLog, initLogFlag } from '../shared/logger';
 import {
   convertBlobToWav,
   convertBlobToMp3,
@@ -274,7 +275,7 @@ async function wirePcmCapture(): Promise<void> {
     (forcedPathOverride === null && typeof AudioWorkletNode === 'function' && PCM_WORKLET_DEFAULT);
 
   if (!useWorklet) {
-    console.log('[Kivara Lingo] ScriptProcessor path (forced or unavailable)');
+    devLog('[Kivara Lingo] ScriptProcessor path (forced or unavailable)');
   } else {
     try {
       await ctx.audioWorklet.addModule(pcmWorkletUrl);
@@ -388,7 +389,7 @@ async function beginCapture(
   };
 
   mediaRecorder.start(TIMESLICE_MS);
-  console.log('[Kivara Lingo] offscreen recording', { mime: recordedMime, bufferSizeMs });
+  devLog('[Kivara Lingo] offscreen recording', { mime: recordedMime, bufferSizeMs });
   return { ok: true, mimeType: recordedMime };
 }
 
@@ -832,4 +833,5 @@ chrome.runtime.onMessage.addListener((rawMsg: unknown, _sender, sendResponse) =>
   return false;
 });
 
-console.log('[Kivara Lingo] offscreen audio worker ready');
+initLogFlag();
+devLog('[Kivara Lingo] offscreen audio worker ready');
