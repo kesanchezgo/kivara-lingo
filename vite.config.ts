@@ -103,6 +103,10 @@ export default defineConfig({
     // A production build has no reference to it: the e2e dist guard greps for
     // both the page and the listener to prove that.
     __E2E__: JSON.stringify(process.env.KIVARA_E2E === '1'),
+    // Development flag for the logger. `vite build` (what ships, and what CI
+    // builds) is NOT development, so a shipped bundle logs nothing from
+    // `devLog`; `vite dev` keeps the console loud.
+    __DEV__: JSON.stringify(process.env.NODE_ENV !== 'production' && process.env.VITE_DEV === '1'),
   },
   plugins: [
     figmaAssetResolver(),
