@@ -82,13 +82,37 @@ export function collectHits(container: ParentNode): E2EHit[] {
  * Returns the cleanup that stops every interval and removes the attributes.
  */
 export function publishAllRoots(): () => void {
-  const hosts = ['kivara-lingo-video-host', 'kivara-lingo-host']
-    .map((id) => document.getElementById(id))
-    .filter((el): el is HTMLElement => el !== null);
   const cleanups: Array<() => void> = [];
-  for (const host of hosts) {
-    const root = getShadowRoot(host);
-    if (!root) continue;
+  const started = new Set<string>();
+  const HOST_IDS = ['kivara-lingo-video-host', 'kivara-lingo-host'];
+  // The two hosts mount at different times (the video overlay appears with the
+  // player, the panel with the first pointer move). Attaching only to the ones
+  // present at App's first effect left the map empty on a slow boot — watch
+  // for the rest instead of racing the mount order.
+  const attach = () => {
+    for (const id of HOST_IDS) {
+      if (started.has(id)) continue;
+      const host = document.getElementById(id);
+      if (host) {
+        started.add(id);
+        cleanups.push(publishHost(host));
+      }
+    }
+    if (started.size === HOST_IDS.length) window.clearInterval(watcher);
+  };
+  const watcher = window.setInterval(attach, 200);
+  attach();
+  return () => {
+    window.clearInterval(watcher);
+    cleanups.forEach((fn) => fn());
+  };
+}
+
+/** One host's interval writer. */
+function publishHost(host: HTMLElement): () => void {
+  const root = getShadowRoot(host);
+  if (!root) return () => {};
+  {
     const write = () => {
       try {
         host.setAttribute(E2E_HITMAP_ATTR, JSON.stringify(collectHits(root)));
@@ -112,11 +136,10 @@ export function publishAllRoots(): () => void {
     };
     write();
     const id = window.setInterval(write, 400);
-    cleanups.push(() => {
+    return () => {
       window.clearInterval(id);
       host.removeAttribute(E2E_HITMAP_ATTR);
       host.removeAttribute(E2E_BOXES_ATTR);
-    });
+    };
   }
-  return () => cleanups.forEach((fn) => fn());
 }
