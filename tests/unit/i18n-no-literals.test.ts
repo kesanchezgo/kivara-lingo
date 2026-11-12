@@ -196,6 +196,15 @@ export function scanSource(file: string, src: string): string[] {
         if (objectPropCopy(prop, value)) push(no, `${prop}: `, `${value}`);
       }
     }
+    // `new AnkiConnectError('...')` — the sentence the user reads when Anki
+    // fails. A literal here never reached the dictionary, so it ships in one
+    // locale only; the argument must be a `t(...)` call (or a variable that
+    // already carries its translation).
+    for (const m of line.matchAll(/new\s+AnkiConnectError\s*\(\s*(?:'([^']*)'|"([^"]*)"|`([^`]*)`)/g)) {
+      const value = m[1] ?? m[2] ?? m[3] ?? '';
+      if (!value.trim() || value.includes('t(')) continue;
+      push(no, 'new AnkiConnectError(', value);
+    }
     // text nodes on one line: >copy<
     for (const m of line.matchAll(/>\s*([^<>{}\n]{2,80}?)\s*</g)) {
       if (spanishCandidate(m[1])) push(no, '>', `${m[1]}<`);
@@ -283,6 +292,35 @@ describe('no hardcoded Spanish copy in the UI', () => {
         "const meta = { label: 'panel.close', description: 'cards.srcDescX' };",
         "const brand = { title: 'Cambridge', hint: 'text-zinc-500 dark:text-zinc-400' };",
         "const wired = { label: t('panel.close') };",
+      ].join('\n'),
+    );
+    expect(good).toEqual([]);
+  });
+
+  it('flags a literal sentence passed to new AnkiConnectError', () => {
+    // Must fail: the three literal shapes — single quote, double quote and a
+    // template literal that never calls `t()`.
+    const bad = scanSource(
+      'src/background/anki-connect.ts',
+      [
+        "throw new AnkiConnectError('AnkiConnect tardó más de 4000ms en responder.', 'TIMEOUT');",
+        "throw new AnkiConnectError(\"Anki URL is not loopback.\", 'LOOPBACK_REFUSED');",
+        "throw new AnkiConnectError(`AnkiConnect respondió ${status}.`, 'HTTP');",
+      ].join('\n'),
+    );
+    expect(bad).toHaveLength(3);
+    expect(bad[0]).toContain('new AnkiConnectError(AnkiConnect tardó');
+    expect(bad[1]).toContain('new AnkiConnectError(Anki URL is not loopback.');
+    expect(bad[2]).toContain('new AnkiConnectError(AnkiConnect respondió');
+
+    // Must pass: a translated argument, a template that calls `t()`, and a
+    // variable that already carries the provider's own sentence.
+    const good = scanSource(
+      'src/background/anki-connect.ts',
+      [
+        "throw new AnkiConnectError(t('anki.timeout', { ms: 4000 }), 'TIMEOUT');",
+        "throw new AnkiConnectError(`${t('anki.http', { status })}`, 'HTTP');",
+        'throw new AnkiConnectError(message, "ANKI");',
       ].join('\n'),
     );
     expect(good).toEqual([]);

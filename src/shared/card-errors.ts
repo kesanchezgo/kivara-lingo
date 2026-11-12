@@ -46,10 +46,17 @@ export function classifyCardError(
   const text = (raw ?? '').trim().toLowerCase();
   if (!text) return 'unknown';
   if (/(api.?key|unauthori[sz]ed|\b401\b|\b403\b|forbidden)/.test(text)) return 'api-key';
-  if (/(timeout|timed out|took too long|deadline)/.test(text)) return 'timeout';
-  if (/(network|failed to fetch|econnrefused|fetch failed|connect|refused|unreachable|econnreset)/.test(text)) {
+  // `tardó` is the Spanish half of the timeout sentence the client throws;
+  // without it the same failure read as "Anki is down" in one locale only.
+  if (/(timeout|timed out|took too long|deadline|tard[oó] (?:más|demasiado))/.test(text)) return 'timeout';
+  // Anki's own refusals name the add-on or what it rejected. Checked BEFORE
+  // the transport pattern on purpose: "AnkiConnect" itself contains the word
+  // "connect", and a model-not-found must not be reported as "Anki is down".
+  if (/(anki|addnote|duplicate|notetype|field|not found)/.test(text)) return 'anki-error';
+  // `\bconnect\b`, not `connect`: the bare word matched inside "AnkiConnect"
+  // and turned every provider sentence into a network failure.
+  if (/(network|failed to fetch|econnrefused|fetch failed|\bconnect\b|refused|unreachable|econnreset)/.test(text)) {
     return 'anki-down';
   }
-  if (/(anki|addnote|duplicate|notetype|field)/.test(text)) return 'anki-error';
   return 'unknown';
 }

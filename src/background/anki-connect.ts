@@ -114,7 +114,7 @@ async function invokeOnce<T = unknown>(
     const aborted = err instanceof DOMException && err.name === 'AbortError';
     if (aborted) {
       throw new AnkiConnectError(
-        `AnkiConnect tardó más de ${timeoutMs}ms en responder.`,
+        t('anki.timeout', { ms: timeoutMs }),
         'TIMEOUT',
       );
     }
@@ -123,7 +123,7 @@ async function invokeOnce<T = unknown>(
     // tip is the same in both cases (open Anki, install AnkiConnect,
     // check the URL).
     throw new AnkiConnectError(
-      `No se pudo contactar AnkiConnect (${reason}). ¿Está Anki abierto y AnkiConnect instalado?`,
+      t('anki.network', { reason }),
       'NETWORK',
     );
   } finally {
@@ -131,7 +131,7 @@ async function invokeOnce<T = unknown>(
   }
 
   if (!response.ok) {
-    throw new AnkiConnectError(`AnkiConnect respondió ${response.status}.`, 'HTTP');
+    throw new AnkiConnectError(t('anki.http', { status: response.status }), 'HTTP');
   }
 
   const res = await response.json().catch((parseErr: unknown) => {
@@ -143,9 +143,10 @@ async function invokeOnce<T = unknown>(
     // through to the fallback URL, creating a second note via a channel
     // it should not even have tried.
     throw new AnkiConnectError(
-      `AnkiConnect devolvió una respuesta ilegible (${
-        parseErr instanceof Error ? parseErr.message : String(parseErr)
-      }). ¿Está algo más escuchando en ${url}?`,
+      t('anki.unreadable', {
+        reason: parseErr instanceof Error ? parseErr.message : String(parseErr),
+        url,
+      }),
       'HTTP',
     );
   });
@@ -185,10 +186,7 @@ async function invoke<T = unknown>(
   // normalize it — the loopback rule applies to what we FETCH.
   const primary = normalizeUrl(opts.url);
   if (opts.url != null && opts.url !== '' && !isLoopbackAnkiUrl(primary)) {
-    throw new AnkiConnectError(
-      'Anki URL is not loopback; the extension refuses remote Anki endpoints. Configure AnkiConnect on this machine.',
-      'LOOPBACK_REFUSED',
-    );
+    throw new AnkiConnectError(t('anki.loopbackRefused'), 'LOOPBACK_REFUSED');
   }
   const urls = fallbackUrls(primary);
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -224,7 +222,7 @@ async function invoke<T = unknown>(
   }
   throw lastErr instanceof Error
     ? lastErr
-    : new AnkiConnectError('Error desconocido contactando AnkiConnect.', 'NETWORK');
+    : new AnkiConnectError(t('anki.unknown'), 'NETWORK');
 }
 
 export interface AnkiNote {

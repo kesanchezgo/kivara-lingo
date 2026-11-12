@@ -7,6 +7,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ankiConnect } from '../../src/background/anki-connect';
+import { t } from '../../src/shared/i18n';
 
 interface Call { action: string; params: Record<string, unknown>; key?: string }
 
@@ -86,7 +87,11 @@ describe('ankiConnect F4 actions', () => {
   it('refuses a non-loopback URL before fetching', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    await expect(ankiConnect.deleteNotes([1], 'http://anki.example.com:8765')).rejects.toThrow(/loopback/i);
+    // The refusal is the dictionary sentence now, not a literal: assert the
+    // key the client throws rather than one locale's wording.
+    await expect(ankiConnect.deleteNotes([1], 'http://anki.example.com:8765')).rejects.toThrow(
+      t('anki.loopbackRefused'),
+    );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

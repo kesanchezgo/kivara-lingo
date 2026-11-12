@@ -4,6 +4,7 @@
  * the service worker's handlers are thin wrappers over these functions.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { t } from '../../src/shared/i18n';
 
 class FakeAnkiError extends Error {
   constructor(message: string, public readonly code?: string) {
@@ -436,6 +437,6 @@ describe('wordIntervals', () => {
     const { wordIntervals } = await import('../../src/background/card-actions');
     const res = await wordIntervals('English vocabulary', 'word', MAPPING as never);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/fewer records/);
+    if (!res.ok) expect(res.error).toBe(t('anki.badRecordCount', { action: 'notesInfo' }));
   });
 });

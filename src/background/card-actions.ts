@@ -19,6 +19,7 @@ import { buildExactNoteQuery, escapeAnkiSearchTerm } from '../shared/anki-search
 import { LEGACY_CARD_TAG } from '../shared/cards';
 import { TAG_ROOT } from '../shared/study/cardTags';
 import { ankiConnect, AnkiConnectError, dataUrlToBase64, type AnkiNoteInfo } from './anki-connect';
+import { t } from '../shared/i18n/sw';
 
 function escapeHtml(text: string): string {
   return text
@@ -314,7 +315,10 @@ async function readNotes(noteIds: number[], mapping: AnkiMapping): Promise<AnkiN
     const batch = noteIds.slice(start, start + NOTES_READ_BATCH);
     const part = await ankiConnect.notesInfo(batch, mapping.ankiUrl, mapping.apiKey);
     if (!Array.isArray(part) || part.length !== batch.length) {
-      throw new AnkiConnectError('notesInfo returned fewer records than notes.', 'ANKI');
+      throw new AnkiConnectError(
+        t('anki.badRecordCount', { action: 'notesInfo' }),
+        'ANKI',
+      );
     }
     out.push(...part);
   }
@@ -333,7 +337,7 @@ export async function wordIntervals(
     const deckQuery = `deck:"${escapeAnkiSearchTerm(deck)}"`;
     const noteIds = await ankiConnect.findNotes(deckQuery, mapping.ankiUrl, mapping.apiKey);
     if (!Array.isArray(noteIds)) {
-      throw new AnkiConnectError('findNotes did not return a note list.', 'ANKI');
+      throw new AnkiConnectError(t('anki.badList', { action: 'findNotes' }), 'ANKI');
     }
     if (noteIds.length === 0) return { ok: true, words: {} };
 
@@ -342,7 +346,7 @@ export async function wordIntervals(
       ankiConnect.findCards(`${deckQuery} prop:ivl>=21`, mapping.ankiUrl, mapping.apiKey),
     ]);
     if (!Array.isArray(matureCards)) {
-      throw new AnkiConnectError('findCards did not return a card list.', 'ANKI');
+      throw new AnkiConnectError(t('anki.badList', { action: 'findCards' }), 'ANKI');
     }
 
     const mature = new Set(matureCards);
