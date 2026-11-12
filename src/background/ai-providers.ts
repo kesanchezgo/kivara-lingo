@@ -755,7 +755,11 @@ export async function generateAiImage(
     return { ok: false, error: 'OpenAI returned non-JSON' };
   }
 
-  const url = (data as any)?.data?.[0]?.url as string | undefined;
+  // The image endpoint answers { data: [{ url }] }; narrow it field by field
+  // instead of asserting through `any`.
+  const first = (data as { data?: unknown } | null)?.data;
+  const entry = Array.isArray(first) ? (first[0] as { url?: unknown } | undefined) : undefined;
+  const url = typeof entry?.url === 'string' ? entry.url : undefined;
   if (!url) return { ok: false, error: 'OpenAI image response missing URL' };
   return { ok: true, url };
 }

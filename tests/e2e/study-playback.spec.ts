@@ -35,12 +35,28 @@ The rat ships frames and audio.
 Every crumb gets gnawed.
 `;
 
-async function openPlayer(context: { newPage(): Promise<Page> }): Promise<Page> {
+/** A cue long enough to wrap to TWO lines at 640×360 (and at 1280×720). */
+const CUES_VTT_LONG = `WEBVTT
+
+00:00:00.000 --> 00:00:03.000
+Hello, this is a test cue that keeps going, because the caption really does wrap onto a second line on a small player.
+
+00:00:03.000 --> 00:00:06.000
+The rat ships frames and audio.
+
+00:00:06.000 --> 00:00:09.000
+Every crumb gets gnawed.
+`;
+
+async function openPlayer(
+  context: { newPage(): Promise<Page> },
+  opts: { vtt?: string } = {},
+): Promise<Page> {
   const page = await context.newPage();
   await page.route('*://*.youtube.com/**', async (route) => {
     const url = route.request().url();
     if (url.endsWith('cues.vtt')) {
-      await route.fulfill({ status: 200, contentType: 'text/vtt', body: CUES_VTT });
+      await route.fulfill({ status: 200, contentType: 'text/vtt', body: opts.vtt ?? CUES_VTT });
       return;
     }
     if (url.includes('/watch')) {
@@ -120,6 +136,25 @@ const LABEL = {
   next: 'Frase siguiente',
   replay: 'Repetir frase',
 } as const;
+
+/** The bar's box and every token's box, as the bar published them. */
+async function boxesOf(page: Page): Promise<{
+  bar: { x: number; y: number; width: number; height: number };
+  tokens: Array<{ x: number; y: number; width: number; height: number }>;
+}> {
+  const raw = await page.evaluate(() => document.getElementById('kivara-lingo-video-host')
+    ?.getAttribute('data-kivara-e2e-boxes') ?? null);
+  if (!raw) throw new Error('no box map published');
+  return JSON.parse(raw) as never;
+}
+
+function overlaps(
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number },
+): boolean {
+  return a.x < b.x + b.width && b.x < a.x + a.width
+    && a.y < b.y + b.height && b.y < a.y + a.height;
+}
 
 /** Click a speed radio by its visible text ("1.25×"), via the same hit map. */
 async function clickSpeed(page: Page, value: string): Promise<void> {
@@ -249,6 +284,30 @@ test.describe('StudyBar buttons (mouse, closed shadow root)', () => {
     await expect.poll(() => time(page), { timeout: 6_000 }).toBeLessThan(0.5);
     await page.close();
   });
+
+  /**
+   * The bar used to sit at `bottom-16` ON TOP of the caption on a small
+   * player: the tokens under it could not be clicked. The bar now measures
+   * the caption plate and parks above it.
+   */
+  for (const size of [{ width: 640, height: 360 }, { width: 1280, height: 720 }] as const) {
+    test(`the bar never covers a subtitle token at ${size.width}×${size.height}`, async ({ context }) => {
+      test.setTimeout(90_000);
+      const page = await openPlayer(context, { vtt: CUES_VTT_LONG });
+      await page.setViewportSize({ width: size.width, height: size.height });
+      await page.waitForTimeout(400);
+      await armBar(page);
+      await expect.poll(async () => (await boxesOf(page)).tokens.length, { timeout: 8_000 })
+        .toBeGreaterThan(5);
+      const { bar, tokens } = await boxesOf(page);
+      const covered = tokens.filter((token) => overlaps(bar, token));
+      expect(covered, `${covered.length} token(s) under the bar`).toEqual([]);
+      // The bar is still inside the frame.
+      expect(bar.y).toBeGreaterThanOrEqual(0);
+      expect(bar.y + bar.height).toBeLessThanOrEqual(size.height);
+      await page.close();
+    });
+  }
 
   /**
    * Icon-only mode follows the PLAYER, not the bar.

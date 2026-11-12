@@ -73,6 +73,22 @@ export function clearMemEnrichmentCache(): void {
 
 /* ─── Persistent (IndexedDB) layer ─────────────────────────────────────── */
 
+/**
+ * The table stores `payload: unknown` on purpose (IndexedDB can hand back a
+ * row written by an older build), so the reader narrows it instead of casting
+ * through `any`. The shape check is deliberately shallow — the fields the
+ * caller touches — and anything that fails it is treated as a MISS, not an
+ * error: a stale row must never poison a lookup.
+ */
+function asEnrichmentResult(payload: unknown): EnrichmentResult | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const p = payload as { entry?: unknown; vip?: unknown; needsAccess?: unknown };
+  if (p.entry !== undefined && (p.entry === null || typeof p.entry !== 'object')) return null;
+  if (p.vip !== undefined && (p.vip === null || typeof p.vip !== 'object')) return null;
+  if (p.needsAccess !== undefined && !Array.isArray(p.needsAccess)) return null;
+  return payload as EnrichmentResult;
+}
+
 async function readCache(key: string, ttlDays: number): Promise<EnrichmentResult | null> {
   // 1. Hot layer first — instant, no await, no IndexedDB hop.
   const hot = memGet(key, ttlDays);
@@ -81,20 +97,27 @@ async function readCache(key: string, ttlDays: number): Promise<EnrichmentResult
   try {
     const db = getDB();
 
-    const row = (await (db as any).vip_cache?.get(key)) as CacheRow | undefined;
+    const row = await db.vip_cache.get(key);
     if (!row) return null;
     const ageMs = Date.now() - (row.storedAt ?? 0);
     if (ageMs > ttlDays * 24 * 3600 * 1000) return null;
+    const payload = asEnrichmentResult(row.payload);
+    if (!payload) {
+      // A row this build cannot read is a miss, and leaving it there would
+      // make the same miss pay the read cost forever.
+      await clearCachedEntry(key);
+      return null;
+    }
     // A cached answer that still lists sources waiting for access is treated
     // as a miss: the grant may have arrived since the row was written, and the
     // payload would keep reporting them missing for the whole TTL.
-    if (isHeldBack(row.payload)) {
+    if (isHeldBack(payload)) {
       await clearCachedEntry(key);
       return null;
     }
     // Warm the in-memory layer so the next re-hover is instant.
-    memSet(key, row.payload);
-    return row.payload;
+    memSet(key, payload);
+    return payload;
   } catch {
     return null;
   }
@@ -104,7 +127,7 @@ async function clearCachedEntry(key: string): Promise<void> {
   try {
     const db = getDB();
 
-    await (db as any).vip_cache?.delete(key);
+    await db.vip_cache.delete(key);
   } catch {
     // ignore — a stale row is recoverable
   }
@@ -126,7 +149,7 @@ async function writeCache(
   try {
     const db = getDB();
 
-    await (db as any).vip_cache?.put({ key, payload, storedAt: Date.now() });
+    await db.vip_cache.put({ key, payload, storedAt: Date.now() });
     void pruneCaches(effectiveTtlDays);
   } catch {
     // ignore — cache misses are recoverable.
@@ -197,18 +220,7 @@ async function pruneCaches(ttlDays: number = DEFAULT_VIP_CACHE_TTL_DAYS): Promis
   try {
     const db = getDB();
 
-    const table = ((db as any).vip_cache ?? null) as
-      | {
-          where(index: string): { below(threshold: number): { delete(): Promise<number> } };
-          orderBy(index: string): {
-            reverse(): { offset(n: number): { primaryKeys(): Promise<string[]> } };
-          };
-          count(): Promise<number>;
-          bulkDelete(keys: string[]): Promise<void>;
-          toArray(): Promise<CacheRow[]>;
-        }
-      | null;
-    if (!table) return;
+    const table = db.vip_cache;
 
     const rows = await table.toArray().catch(() => [] as CacheRow[]);
     const orphans = rows.filter((r) => !r.storedAt).map((r) => r.key);
@@ -246,16 +258,7 @@ async function pruneCaches(ttlDays: number = DEFAULT_VIP_CACHE_TTL_DAYS): Promis
 async function pruneExpiredExplainRows(now: number): Promise<void> {
   try {
     const db = getDB();
-    // No disable comment here: the `no-explicit-any` rule is off (see
-    // eslint.config.js) and a fresh directive costs a warning slot.
-    const table = ((db as any).explain_cache ?? null) as
-      | {
-          where(index: string): {
-            belowOrEqual(threshold: number): { delete(): Promise<number> };
-          };
-        }
-      | null;
-    if (!table) return;
+    const table = db.explain_cache;
     await table.where('expiresAt').belowOrEqual(now).delete();
   } catch {
     // Same rule as the vip sweep: a cache that will not prune is still a cache.
@@ -288,8 +291,7 @@ export async function clearEnrichmentCache(): Promise<number> {
   try {
     const db = getDB();
 
-    const table = (db as any).vip_cache;
-    if (!table) return 0;
+    const table = db.vip_cache;
     // count-then-clear on purpose: reading every payload just to know how many
     // rows there were was a full table scan for a number the index can answer.
     const rows = await table.count();
@@ -309,8 +311,8 @@ export async function getEnrichmentCacheStats(): Promise<{ count: number; bytes:
   try {
     const db = getDB();
 
-    const rows = (await (db as any).vip_cache?.toArray()) as CacheRow[] | undefined;
-    if (!rows || !rows.length) return { count: 0, bytes: 0 };
+    const rows = await db.vip_cache.toArray();
+    if (!rows.length) return { count: 0, bytes: 0 };
     let bytes = 0;
     for (const row of rows) {
       try {

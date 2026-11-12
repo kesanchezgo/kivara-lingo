@@ -222,9 +222,11 @@ function RecentRow({
     originLabel(card.source) ?? card.deck,
     nCtx ? (nCtx === 1 ? t('recent.moreContextsOne') : t('recent.moreContexts', { n: nCtx })) : '',
   ].filter(Boolean).join(' · ');
-  const kindLabel = card.kind === 'word' || card.kind === 'expression'
-    ? t(`recent.kind.${card.kind}`)
-    : null;
+  // Every CreateCardKind has a label: a `cloze` card used to show none, and
+  // adding a kind meant hunting this condition. `recent.kind.*` is the one
+  // template family the dead-key scan allows, and a test walks the whole
+  // union so a new kind without copy fails CI.
+  const kindLabel = t(`recent.kind.${card.kind}`);
   // The CODE wins: it is what the worker classified at the failure, and the
   // dictionary owns the sentence. `shortError` remains for rows written before
   // codes existed (and for a row whose code has no label, which cannot happen
