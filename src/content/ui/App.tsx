@@ -36,6 +36,7 @@ import {
 } from './save-actions';
 import { useEpisode } from './useEpisode';
 import { cueIndexAt, SLOW_REPLAY_RATE, useStudyPlayback } from './useStudyPlayback';
+import { buildCueRequestFields } from './save-request';
 import { TranscriptRail, type NativeLineCue } from './TranscriptRail';
 import { focusFirstIn } from './column-focus';
 import { StudyBar } from './StudyBar';
@@ -1453,12 +1454,9 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         const kind = cardKindOf(tokenValue);
         // Neighbouring cues for the `context` field source. The active cue is
         // located by id because the saved sentence may come from a selection
-        // inside the line, not from the cue object itself.
-        const cueIndex = activeCue ? episode.cues.findIndex((c) => c.id === activeCue.id) : -1;
-        const contextLines =
-          cueIndex >= 0
-            ? { prev: episode.cues[cueIndex - 1]?.text, next: episode.cues[cueIndex + 1]?.text }
-            : undefined;
+        // inside the line, not from the cue object itself. Pure helper so the
+        // mapping is unit-tested without React.
+        const { contextLines, cueStart, cueEnd } = buildCueRequestFields(activeCue, episode.cues);
         const request: CreateCardRequest = {
           token: tokenValue,
           sentence,
@@ -1469,8 +1467,8 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           media,
           contextLines,
           frame: frameDataUrl ?? undefined,
-          cueStart: activeCue?.start,
-          cueEnd: activeCue?.end,
+          cueStart,
+          cueEnd,
           videoTimeAtSave: audioAnchor.videoTimeAtSave,
           videoPausedAtSave: audioAnchor.videoPausedAtSave,
           language: lang,

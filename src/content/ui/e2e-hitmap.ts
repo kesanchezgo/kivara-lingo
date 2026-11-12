@@ -124,11 +124,17 @@ function publishHost(host: HTMLElement): () => void {
           return { x: r.x, y: r.y, width: r.width, height: r.height, text: el.textContent?.trim() ?? '' };
         });
         const barRect = bar?.getBoundingClientRect();
+        // The native-language line (the dual caption) also rides along: the
+        // study-playback spec asserts the translated text, which lives in the
+        // same closed root as the tokens.
+        const dual = root.querySelector<HTMLElement>('[data-kivara-dual]')
+          ?.textContent?.trim() ?? '';
         host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({
           bar: barRect
             ? { x: barRect.x, y: barRect.y, width: barRect.width, height: barRect.height }
             : null,
           tokens,
+          dual,
         }));
       } catch {
         /* a detached root: nothing to publish */

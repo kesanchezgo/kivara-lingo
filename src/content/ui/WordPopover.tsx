@@ -902,6 +902,7 @@ export function WordPopover({
           ) : (
             <button
               type="button"
+              aria-label={t('wp.save')}
               onClick={(e) => onSave(e, canonicalToken)}
               className="flex-1 flex items-center justify-center gap-1.5 px-2 h-10 text-[12px] font-semibold text-white bg-indigo-500 hover:bg-indigo-400 transition-colors normal-case"
             >

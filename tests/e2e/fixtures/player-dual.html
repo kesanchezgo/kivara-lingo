@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Kivara e2e dual-track player fixture</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #000;
+      }
+      #stage {
+        position: relative;
+        width: 640px;
+        height: 360px;
+        margin: 0 auto;
+      }
+      video {
+        width: 100%;
+        height: 100%;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <!--
+        A SEEKABLE synthetic clip with NO `<track>` element and NO caption
+        DOM. This is the shape that used to make the YouTube adapter emit
+        nothing: the player renders `/api/timedtext` and the extension only
+        sees it through the MAIN-world interceptor, i.e. the intercepted bus.
+
+        The fetch below is fired only after the content script's host exists,
+        because the ISOLATED-world bus listener mounts at document_idle while
+        this page's script runs earlier. The route answers the source track
+        (`lang=en`); the bus then auto-fetches `tlang=es` itself, which the
+        spec routes to the Spanish json3 body.
+      -->
+      <video id="player" muted playsinline crossorigin="anonymous"></video>
+    </div>
+
+    <script>
+      const canvas = document.createElement('canvas');
+      canvas.width = 640;
+      canvas.height = 360;
+      const ctx = canvas.getContext('2d');
+
+      let frame = 0;
+      let recorder = null;
+      function draw() {
+        const gradient = ctx.createLinearGradient(0, 0, 640, 360);
+        gradient.addColorStop(0, `hsl(${(frame * 4) % 360}, 80%, 50%)`);
+        gradient.addColorStop(1, `hsl(${(frame * 4 + 120) % 360}, 80%, 40%)`);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 640, 360);
+        ctx.fillStyle = '#fff';
+        ctx.font = '48px sans-serif';
+        ctx.fillText(`frame ${frame}`, 40, 200);
+        frame += 1;
+        if (!recorder || recorder.state === 'recording') requestAnimationFrame(draw);
+      }
+
+      const stream = canvas.captureStream(25);
+      draw();
+      const chunks = [];
+      recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) chunks.push(event.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const video = document.getElementById('player');
+        video.src = URL.createObjectURL(blob);
+        video.load();
+        video.addEventListener('loadedmetadata', () => {
+          video.currentTime = 0.05;
+          video
+            .play()
+            .then(() => {
+              window.__kivaraFixtureReady = true;
+            })
+            .catch(() => {
+              window.__kivaraFixtureReady = 'play-rejected';
+            });
+        });
+      };
+      recorder.start();
+      setTimeout(() => recorder.stop(), 6500);
+
+      // Feed the MAIN-world interceptor once the extension's overlay host is
+      // up (the bus listener exists by then). `window.fetch` is patched by the
+      // MAIN content script at document_start.
+      const feed = window.setInterval(() => {
+        const host = document.getElementById('kivara-lingo-video-host');
+        if (!host || !window.__kivaraFixtureReady) return;
+        window.clearInterval(feed);
+        fetch('/api/timedtext?v=kivara-f6&lang=en&fmt=json3').catch(() => {});
+      }, 100);
+    </script>
+  </body>
+</html>
