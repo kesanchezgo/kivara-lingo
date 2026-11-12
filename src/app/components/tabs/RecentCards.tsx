@@ -13,7 +13,7 @@ import type {
   CardRetryResponse,
 } from '../../../shared/types';
 import { MAX_CARD_RETRIES, hasAudio, hasFrame, isPending, type CardStatus, type RecentCard } from '../../../shared/cards';
-import { CARD_ERROR_LABEL_KEYS } from '../../../shared/card-errors';
+import { CARD_ERROR_LABEL_KEYS, classifyCardError } from '../../../shared/card-errors';
 import { originLabel, tagsOf } from '../../../shared/study/cardTags';
 import {
   Badge, Button, FilterChips, IconButton, IconTile, SectionLabel, ui, FOCUS,
@@ -123,19 +123,15 @@ function fmtCountdown(ms: number): string {
   return seconds < 60 ? `${seconds} s` : `${Math.ceil(seconds / 60)} min`;
 }
 
-/** Short label for a failure: the engine stores the message, so classify it
- * into the same buckets AnkiConnect reports (network / timeout / API key). */
 /**
  * Legacy fallback: rows written before `errorCode` existed carry only the raw
- * provider sentence, so it is classified here. New rows never reach this.
+ * provider sentence. Classify it with the SAME function the worker uses, then
+ * read the SAME label table — one source of truth, so an old row and a new one
+ * name a failure identically. New rows never reach this.
  */
 function shortError(error?: string): string {
   if (!error) return '';
-  const e = error.toLowerCase();
-  if (/(api.?key|unauthori[sz]ed|\b401\b|\b403\b)/.test(e)) return t('recent.err.apiKey');
-  if (/(timeout|timed out|took too long)/.test(e)) return t('recent.err.timeout');
-  if (/(network|failed to fetch|econnrefused|fetch failed|connect)/.test(e)) return t('recent.err.down');
-  return t('recent.err.other');
+  return t(CARD_ERROR_LABEL_KEYS[classifyCardError(error)]);
 }
 
 /** What a saved card is missing (old cards without a media record count as

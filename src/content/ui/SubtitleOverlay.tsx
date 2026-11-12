@@ -11,7 +11,7 @@
  * the save promise resolves ok) and the hover signal App uses to pause the
  * video (kivaraPausedRef: only resume what Kivara paused).
  */
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
 import { toast } from 'sonner';
@@ -37,6 +37,17 @@ import { CARD_UNDONE_EVENT, cardKindOf } from './save-actions';
 import { markOf, markAttrs, markContainerAttrs } from './wordMarks';
 import { WordStatusSelector } from './WordStatusSelector';
 import type { StudyBinding } from './study';
+import {
+  barRect,
+  CAPTION_BOX_ATTR,
+  captionRect,
+  hostOf,
+  notifyCaptionGeometryChange,
+  oppositeSide,
+  placeBadgeGroup,
+  scopeOf,
+  toBox,
+} from './overlay-geometry';
 
 export interface SubtitleOverlayProps {
   subtitleStyles: SubtitleStyles;
@@ -298,6 +309,70 @@ export function SubtitleOverlay({
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
+
+  // ── Corner icons (Listen-first, mode). Their position comes from measured
+  // rectangles, never from a CSS corner: at 640×360 a two-line caption reaches
+  // the right edge and the old `top-4 right-4` sat on top of it.
+  const layerRef = useRef<HTMLDivElement>(null);
+  const badgesRef = useRef<HTMLDivElement>(null);
+  const [badgePlacement, setBadgePlacement] = useState<{ left: number; top: number } | null>(null);
+
+  /**
+   * Re-seat the icon group outside the caption plate.
+   *
+   * Same measurements StudyBar takes (`[data-kivara-caption-box]` + host rect +
+   * `oppositeSide`), plus the bar's own rect so a candidate can never land on
+   * it. Positions are relative to the band because that is the containing
+   * block of the icon group (and it moves as one piece with the plate).
+   */
+  const placeBadges = useCallback(() => {
+    const layer = layerRef.current;
+    const group = badgesRef.current;
+    if (!layer || !group) return;
+    const groupRect = group.getBoundingClientRect();
+    if (groupRect.width === 0 || groupRect.height === 0) return;
+    const scope = scopeOf(layer);
+    const layerRect = layer.getBoundingClientRect();
+    const hostRect = hostOf(layer)?.getBoundingClientRect() ?? layerRect;
+    if (hostRect.width === 0 || hostRect.height === 0) return;
+    const plate = captionRect(scope);
+    const bar = barRect(scope);
+    const placement = placeBadgeGroup(
+      toBox(hostRect),
+      plate ? toBox(plate) : null,
+      { width: groupRect.width, height: groupRect.height },
+      plate ? oppositeSide(plate, hostRect) : 'bottom',
+      bar ? toBox(bar) : null,
+    );
+    const next = {
+      left: Math.round(placement.x - layerRect.x),
+      top: Math.round(placement.y - layerRect.y),
+    };
+    setBadgePlacement((prev) => (
+      prev && prev.left === next.left && prev.top === next.top ? prev : next
+    ));
+  }, []);
+
+  // The plate can move WITHOUT resizing (a new cue, another vertical offset),
+  // which no observer can see. This component owns the cue, so it announces the
+  // change for StudyBar and the E2E map, then re-seats its own icons.
+  useLayoutEffect(() => {
+    notifyCaptionGeometryChange();
+    placeBadges();
+  });
+
+  // A resize does not re-render this component — the plate re-wraps in place —
+  // so the player and the plate are observed directly.
+  useEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return;
+    const layer = layerRef.current;
+    if (!layer) return;
+    const observer = new ResizeObserver(placeBadges);
+    observer.observe(layer);
+    const plate = scopeOf(layer).querySelector<HTMLElement>(`[${CAPTION_BOX_ATTR}]`);
+    if (plate) observer.observe(plate);
+    return () => observer.disconnect();
+  }, [placeBadges]);
 
   useEffect(() => () => {
     if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
@@ -648,18 +723,26 @@ export function SubtitleOverlay({
 
   return (
     <div
+      ref={layerRef}
       // With a card open the layer rises above the player controls (z-20/30).
       className={`absolute inset-x-0 ${hoveredKey ? 'z-[35]' : 'z-10'} flex flex-col items-center px-8 transition-all duration-300`}
       style={{ top: `${verticalPercent}%`, transform: 'translateY(-50%)' }}
     >
-      {/* Extension badge + study toggles (top-right of the video) */}
-      <div className="absolute top-4 right-4 z-30 flex items-center gap-1.5 pointer-events-auto">
+      {/* Extension badge + study toggles. Placed OUTSIDE the caption plate:
+          the sentence toolbar opens above it and, with a caption that reaches
+          the right edge, the top-right corner is inside the text. */}
+      <div
+        ref={badgesRef}
+        className={`absolute z-30 flex items-center gap-1.5 pointer-events-auto ${badgePlacement ? '' : 'top-4 right-4'}`}
+        style={badgePlacement ?? undefined}
+      >
         {expandedMWEs.size > 0 && !reading && (
           <button
             type="button"
             onClick={rejoinAllMWEs}
             className="h-8 bg-zinc-900/80 backdrop-blur-md text-zinc-200 hover:text-white text-[12px] font-medium px-2.5 rounded-lg ring-1 ring-white/[0.08] shadow-lg flex items-center gap-1.5 hover:bg-zinc-800/90 kvl-press"
             title={t('overlay.rejoinAllTitle')}
+            {...(__E2E__ ? { 'data-kivara-badge': 'rejoin' } : {})}
           >
             <Link2 size={14} /> {t('ovl.joinMwe')}
           </button>
@@ -675,6 +758,7 @@ export function SubtitleOverlay({
           }`}
           title={t('listen.title')}
           aria-label={t('listen.title')}
+          {...(__E2E__ ? { 'data-kivara-badge': 'listen-first' } : {})}
         >
           <Ear size={16} />
         </button>
@@ -684,6 +768,7 @@ export function SubtitleOverlay({
           className="group/badge w-8 h-8 rounded-lg bg-zinc-900/80 hover:bg-zinc-800/90 backdrop-blur-md ring-1 ring-white/[0.08] flex items-center justify-center kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60"
           title={!reading ? t('subs.modeLearning') : t('subs.modeReading')}
           aria-label={!reading ? t('subs.modeLearning') : t('subs.modeReading')}
+          {...(__E2E__ ? { 'data-kivara-badge': 'mode' } : {})}
         >
           {!reading ? (
             <span className="relative flex items-center justify-center">
@@ -812,10 +897,10 @@ export function SubtitleOverlay({
         {/* Subtitle text */}
         <div
           className="rounded-md px-4 py-2 transition-all duration-300 cursor-pointer"
-          // Stable hook for the StudyBar: it measures THIS box (the text
-          // plate) to park itself clear of the caption. The hover zone above
-          // also wraps the toolbars, so measuring it would push the bar far
-          // too high.
+          // Stable hook for the shared overlay geometry (`overlay-geometry.ts`):
+          // StudyBar, these corner icons and the E2E map all measure THIS box
+          // (the text plate). The hover zone above also wraps the toolbars, so
+          // measuring it would push the bar far too high.
           data-kivara-caption-box="true"
           {...markContainerAttrs(newMarks)}
           style={{

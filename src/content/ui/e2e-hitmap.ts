@@ -1,4 +1,5 @@
 import { getShadowRoot } from '../shadow-host';
+import { CAPTION_BOX_ATTR, onCaptionGeometryChange } from './overlay-geometry';
 
 /**
  * E2E hit-map for controls inside a CLOSED shadow root (test-only).
@@ -10,21 +11,23 @@ import { getShadowRoot } from '../shadow-host';
  * worlds share.
  *
  * This module writes each control's CENTER (viewport coordinates, where the
- * host page can click) into an attribute on the shadow host, refreshed while
- * the bar is visible. The Playwright suite reads that attribute and clicks the
- * coordinates with the mouse: a real gesture on the real button.
+ * host page can click) into an attribute on the shadow host. The Playwright
+ * suite reads that attribute and clicks the coordinates with the mouse: a real
+ * gesture on the real button.
  *
- * Ship safety: only `StudyBar` calls this, inside `if (__E2E__)`, and the
- * production build compiles that branch out — rollup then drops the module and
- * `dist-artifacts.test.ts` forbids the attribute name in `dist/`.
+ * Ship safety: `App` mounts this inside `if (__E2E__)` (and the badge markers in
+ * `SubtitleOverlay` are written under the same constant), and the production
+ * build compiles that branch out — rollup then drops the module and
+ * `dist-artifacts.test.ts` forbids the attribute names in `dist/`.
  */
 export const E2E_HITMAP_ATTR = 'data-kivara-e2e-hits';
 
 /**
- * Second channel: the BAR's own box and every subtitle token's box, in
- * viewport coordinates. The e2e suite asserts the bar never covers a token by
- * comparing rectangles — it cannot call `elementFromPoint` on a token, because
- * a closed root answers with the host for anything inside it.
+ * Second channel: the BAR's own box, the corner icons' boxes and every subtitle
+ * token's box, in viewport coordinates. The e2e suite asserts the bar and the
+ * icons never cover a token by comparing rectangles — it cannot call
+ * `elementFromPoint` on a token, because a closed root answers with the host
+ * for anything inside it.
  */
 export const E2E_BOXES_ATTR = 'data-kivara-e2e-boxes';
 
@@ -74,21 +77,26 @@ export function collectHits(container: ParentNode): E2EHit[] {
   return hits;
 }
 
+function boxOf(el: Element | null): E2EBox | null {
+  const rect = el?.getBoundingClientRect();
+  if (!rect || (rect.width === 0 && rect.height === 0)) return null;
+  return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+}
+
 /**
- * Mount the map for BOTH hosts (video overlay and panel). One interval per
- * root; the bar is whatever carries `role="toolbar"` inside the video root,
- * so the geometry cases keep measuring the real bar.
+ * Mount the map for BOTH hosts (video overlay and panel).
  *
- * Returns the cleanup that stops every interval and removes the attributes.
+ * The two hosts mount at different times (the video overlay appears with the
+ * player, the panel with the first pointer move), so host discovery is a
+ * `MutationObserver` on the document — the DOM already fires the event the old
+ * 200 ms watcher was polling for.
+ *
+ * Returns the cleanup that stops every observer and removes the attributes.
  */
 export function publishAllRoots(): () => void {
   const cleanups: Array<() => void> = [];
   const started = new Set<string>();
   const HOST_IDS = ['kivara-lingo-video-host', 'kivara-lingo-host'];
-  // The two hosts mount at different times (the video overlay appears with the
-  // player, the panel with the first pointer move). Attaching only to the ones
-  // present at App's first effect left the map empty on a slow boot — watch
-  // for the rest instead of racing the mount order.
   const attach = () => {
     for (const id of HOST_IDS) {
       if (started.has(id)) continue;
@@ -98,54 +106,101 @@ export function publishAllRoots(): () => void {
         cleanups.push(publishHost(host));
       }
     }
-    if (started.size === HOST_IDS.length) window.clearInterval(watcher);
   };
-  const watcher = window.setInterval(attach, 200);
+  const watcher = new MutationObserver(attach);
+  watcher.observe(document.documentElement, { childList: true, subtree: true });
   attach();
   return () => {
-    window.clearInterval(watcher);
+    watcher.disconnect();
     cleanups.forEach((fn) => fn());
   };
 }
 
-/** One host's interval writer. */
+/**
+ * One host's writer.
+ *
+ * Nothing here polls. The three things that move a box are three events:
+ *
+ *   • the player resizes          → ResizeObserver on the host;
+ *   • the plate resizes           → ResizeObserver on the plate;
+ *   • a cue swaps / text changes  → `SubtitleOverlay`'s geometry notification
+ *                                   (the plate can MOVE without resizing) plus
+ *                                   a MutationObserver on the root for token
+ *                                   text and `aria-pressed` flips, which are
+ *                                   attribute/character writes, not geometry.
+ *
+ * Writes are coalesced into one microtask so a cue that mutates twenty token
+ * nodes publishes once.
+ */
 function publishHost(host: HTMLElement): () => void {
   const root = getShadowRoot(host);
   if (!root) return () => {};
-  {
-    const write = () => {
-      try {
-        host.setAttribute(E2E_HITMAP_ATTR, JSON.stringify(collectHits(root)));
-        const bar = root.querySelector<HTMLElement>('[role="toolbar"]');
-        const tokens = [...root.querySelectorAll<HTMLElement>('[data-tok-idx]')].map((el) => {
-          const r = el.getBoundingClientRect();
-          // The text rides along so the suite can assert WHAT the line says
-          // (the translated caption) without reading a closed root.
-          return { x: r.x, y: r.y, width: r.width, height: r.height, text: el.textContent?.trim() ?? '' };
-        });
-        const barRect = bar?.getBoundingClientRect();
-        // The native-language line (the dual caption) also rides along: the
-        // study-playback spec asserts the translated text, which lives in the
-        // same closed root as the tokens.
-        const dual = root.querySelector<HTMLElement>('[data-kivara-dual]')
-          ?.textContent?.trim() ?? '';
-        host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({
-          bar: barRect
-            ? { x: barRect.x, y: barRect.y, width: barRect.width, height: barRect.height }
-            : null,
-          tokens,
-          dual,
-        }));
-      } catch {
-        /* a detached root: nothing to publish */
-      }
-    };
-    write();
-    const id = window.setInterval(write, 400);
-    return () => {
-      window.clearInterval(id);
-      host.removeAttribute(E2E_HITMAP_ATTR);
-      host.removeAttribute(E2E_BOXES_ATTR);
-    };
-  }
+
+  let queued = false;
+  const write = () => {
+    try {
+      host.setAttribute(E2E_HITMAP_ATTR, JSON.stringify(collectHits(root)));
+      const bar = boxOf(root.querySelector('[role="toolbar"]'));
+      const badges = [...root.querySelectorAll<HTMLElement>('[data-kivara-badge]')]
+        .map((el) => boxOf(el))
+        .filter((box): box is E2EBox => box !== null);
+      const tokens = [...root.querySelectorAll<HTMLElement>('[data-tok-idx]')].map((el) => {
+        const r = el.getBoundingClientRect();
+        // The text rides along so the suite can assert WHAT the line says
+        // (the translated caption) without reading a closed root.
+        return { x: r.x, y: r.y, width: r.width, height: r.height, text: el.textContent?.trim() ?? '' };
+      });
+      // The native-language line (the dual caption) also rides along: the
+      // behaviour spec asserts the translated text, which lives in the same
+      // closed root as the tokens.
+      const dual = root.querySelector<HTMLElement>('[data-kivara-dual]')
+        ?.textContent?.trim() ?? '';
+      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({ bar, badges, tokens, dual }));
+    } catch {
+      /* a detached root: nothing to publish */
+    }
+  };
+  const schedule = () => {
+    if (queued) return;
+    queued = true;
+    queueMicrotask(() => {
+      queued = false;
+      write();
+    });
+  };
+
+  write();
+
+  const resize = typeof ResizeObserver === 'undefined'
+    ? null
+    : new ResizeObserver(schedule);
+  if (resize) resize.observe(host);
+  const observePlate = () => {
+    if (!resize) return;
+    const plate = root.querySelector<HTMLElement>(`[${CAPTION_BOX_ATTR}]`);
+    if (plate) resize.observe(plate);
+  };
+  observePlate();
+
+  const offGeometry = onCaptionGeometryChange(() => {
+    observePlate();
+    schedule();
+  });
+
+  const mutations = new MutationObserver(schedule);
+  mutations.observe(root, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ['aria-pressed', 'aria-checked', 'aria-label', 'data-tok-idx'],
+  });
+
+  return () => {
+    offGeometry();
+    resize?.disconnect();
+    mutations.disconnect();
+    host.removeAttribute(E2E_HITMAP_ATTR);
+    host.removeAttribute(E2E_BOXES_ATTR);
+  };
 }
