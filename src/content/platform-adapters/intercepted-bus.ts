@@ -42,7 +42,72 @@ export interface InterceptedTrack {
 type TrackListener = (track: InterceptedTrack) => void;
 
 const listeners = new Set<TrackListener>();
+
+/**
+ * Hard limits on what a page script can push through `window.postMessage`.
+ *
+ * The bus is fed by the MAIN-world interceptor, but the channel is public
+ * shape knowledge: any script on the page can post a `kivara-lingo:*` message
+ * with the (readable) nonce. Before these limits it could hand us a 500k-cue
+ * array, cues whose text was megabytes of HTML, or an MPD of arbitrary size,
+ * and every one of those went straight into memory and the regex parsers.
+ *
+ * Generous for real captions (a 3-hour film is ~5k cues, the longest line a
+ * few hundred characters; a live MPD is tens of KB), tight enough that a
+ * hostile post cannot become a memory or CPU event.
+ */
+export const INTERCEPT_LIMITS = {
+  /** Cues kept from one track (the rest are dropped, oldest-first order kept). */
+  cues: 20_000,
+  /** Characters kept per cue text. */
+  cueText: 2_000,
+  /** Bytes of DASH manifest accepted. */
+  mpdBytes: 2 * 1024 * 1024,
+  /** Track URLs remembered for de-duplication (LRU). */
+  seenUrls: 500,
+} as const;
+
+/**
+ * Bounded, insertion-ordered set: `Set` already iterates oldest-first, so the
+ * eviction is the same one the DASH guard uses. A plain `Set` here grew for the
+ * whole life of a live session, one URL per subtitle segment refresh.
+ */
+function rememberSeen(seen: Set<string>, key: string, limit: number): boolean {
+  if (seen.has(key)) return false;
+  seen.add(key);
+  while (seen.size > limit) {
+    const oldest = seen.values().next().value;
+    if (oldest === undefined) break;
+    seen.delete(oldest);
+  }
+  return true;
+}
+
 const seenUrls = new Set<string>();
+
+/** One message's cues, validated field by field and bounded. */
+function sanitizeCues(raw: unknown): RawCue[] {
+  if (!Array.isArray(raw)) return [];
+  const out: RawCue[] = [];
+  for (const item of raw) {
+    if (out.length >= INTERCEPT_LIMITS.cues) break;
+    if (!item || typeof item !== 'object') continue;
+    const cue = item as { start?: unknown; end?: unknown; text?: unknown; align?: unknown };
+    if (typeof cue.start !== 'number' || !Number.isFinite(cue.start)) continue;
+    if (typeof cue.end !== 'number' || !Number.isFinite(cue.end)) continue;
+    if (typeof cue.text !== 'string') continue;
+    const align = cue.align;
+    const keepAlign = align === 'start' || align === 'center' || align === 'end'
+      || align === 'left' || align === 'right';
+    out.push({
+      start: cue.start,
+      end: cue.end,
+      text: cue.text.slice(0, INTERCEPT_LIMITS.cueText),
+      ...(keepAlign ? { align } : {}),
+    });
+  }
+  return out;
+}
 const tracksByLang = new Map<string, InterceptedTrack>();
 let lastTrack: InterceptedTrack | null = null;
 
@@ -104,13 +169,19 @@ window.addEventListener('message', (event) => {
     // us a forged MPD and hijack the dual-subtitle track.
     if (m.nonce !== BUS_NONCE) return;
     if (typeof m.url === 'string' && typeof m.body === 'string') {
+      // A manifest bigger than the limit is not a manifest we can trust (or
+      // parse cheaply): drop it once, loudly enough to debug, and move on.
+      if (m.body.length > INTERCEPT_LIMITS.mpdBytes) {
+        console.warn('[Kivara Lingo] DASH manifest ignored: over the size limit');
+        return;
+      }
       void handleDashManifest(m.url, m.body);
     }
     return;
   }
   if (!isOurMessage(event.data)) return;
   const url = event.data.url;
-  const cues = event.data.cues;
+  const cues = sanitizeCues(event.data.cues);
   if (!cues.length) return;
   const language =
     typeof event.data.language === 'string' && event.data.language ? event.data.language : null;
@@ -120,7 +191,7 @@ window.addEventListener('message', (event) => {
   // selector. For language-keyed lookups we also store on the latest URL.
   const alreadySeen = seenUrls.has(url) && lastTrack?.url === url;
   if (alreadySeen) return;
-  seenUrls.add(url);
+  rememberSeen(seenUrls, url, INTERCEPT_LIMITS.seenUrls);
 
   const next: InterceptedTrack = { url, cues, language };
   lastTrack = next;
@@ -448,6 +519,28 @@ async function maybeFetchTranslatedTrack(
   } catch {
     // Network failed — non-fatal, the bilingual line falls back to MT.
   }
+}
+
+/**
+ * Forget every collected track (tests). Module state otherwise outlives a
+ * suite the way it outlives a page: the bus is a per-tab singleton.
+ */
+/**
+ * How many track URLs the de-dup LRU currently holds (tests). The bound IS the
+ * property under test: it cannot be observed through the public API, because a
+ * replayed URL is treated as a new track either way once it is no longer the
+ * current one.
+ */
+export function __seenUrlCountForTests(): number {
+  return seenUrls.size;
+}
+
+export function __resetInterceptedBusForTests(): void {
+  tracksByLang.clear();
+  seenUrls.clear();
+  dashManifestsSeen.clear();
+  lastTrack = null;
+  lastMpdBody = null;
 }
 
 export function onTrack(listener: TrackListener): () => void {
