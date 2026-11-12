@@ -450,6 +450,18 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     };
   }, [adapter, enabled, subtitlesVisible]);
 
+  // E2E-ONLY: publish the clickable centers of both closed roots (video
+  // overlay and panel) so the Playwright suite can click real controls with
+  // the mouse. Compiled out of a production bundle with the constant branch.
+  useEffect(() => {
+    if (!__E2E__) return;
+    let cleanup: (() => void) | undefined;
+    void import('./e2e-hitmap').then(({ publishAllRoots }) => {
+      cleanup = publishAllRoots();
+    });
+    return () => cleanup?.();
+  }, []);
+
   // Sync dark mode on hosts + overlay root so theme.css `.dark` selector works.
   useEffect(() => {
     const mainHost = document.getElementById('kivara-lingo-host');

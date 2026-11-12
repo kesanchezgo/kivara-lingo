@@ -275,9 +275,12 @@ test.describe('StudyBar buttons (mouse, closed shadow root)', () => {
     test.setTimeout(90_000);
     const page = await openPlayer(context);
     await armBar(page);
-    // Park the playhead inside the first cue, then replay it.
+    // Park the playhead inside the first cue, PAUSE (so the seek cannot be
+    // overtaken by playback before the poll looks), then replay it.
     await page.evaluate(() => {
-      document.querySelector('video')!.currentTime = 1.4;
+      const video = document.querySelector('video')!;
+      video.pause();
+      video.currentTime = 1.4;
     });
     await page.waitForTimeout(300);
     await clickInRoot(page, VIDEO_HOST, LABEL.replay);
