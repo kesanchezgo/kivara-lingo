@@ -15,37 +15,24 @@
  * test in `tests/unit/transcript-rail.test.tsx`, and the controller seek itself
  * by the tests below.
  */
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { test, expect, type Page } from './fixtures';
+import {
+  armBar,
+  boxesOf,
+  clickInRoot,
+  clickSpeed,
+  LABEL,
+  openPlayer as openFixture,
+  overlaps,
+  paused,
+  pressedInRoot,
+  rate,
+  readFixture,
+  time,
+  VIDEO_HOST,
+} from './helpers';
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const FIXTURE = fs.readFileSync(path.join(here, 'fixtures', 'player-seekable.html'), 'utf8');
-/**
- * No `<track>` element and no caption DOM: the player only renders
- * `/api/timedtext`, which the MAIN-world interceptor hands to the bus. This is
- * the shape where the adapter used to emit nothing.
- */
-const DUAL_FIXTURE = fs.readFileSync(path.join(here, 'fixtures', 'player-dual.html'), 'utf8');
-
-/** The source track the fixture fetches (`lang=en`). */
-const SOURCE_JSON3 = JSON.stringify({
-  events: [
-    { tStartMs: 0, dDurationMs: 3000, segs: [{ utf8: 'Hello, this is a test cue.' }] },
-    { tStartMs: 3000, dDurationMs: 3000, segs: [{ utf8: 'The rat ships frames and audio.' }] },
-    { tStartMs: 6000, dDurationMs: 3000, segs: [{ utf8: 'Every crumb gets gnawed.' }] },
-  ],
-});
-
-/** The translated track the bus auto-fetches (`tlang=es`). */
-const SPANISH_JSON3 = JSON.stringify({
-  events: [
-    { tStartMs: 0, dDurationMs: 3000, segs: [{ utf8: 'Hola, esta es una frase de prueba.' }] },
-    { tStartMs: 3000, dDurationMs: 3000, segs: [{ utf8: 'La rata envía fotogramas y audio.' }] },
-    { tStartMs: 6000, dDurationMs: 3000, segs: [{ utf8: 'Cada migaja se roe.' }] },
-  ],
-});
+const FIXTURE = readFixture('player-seekable.html');
 
 const CUES_VTT = `WEBVTT
 
@@ -73,180 +60,21 @@ Every crumb gets gnawed.
 `;
 
 async function openPlayer(
-  context: { newPage(): Promise<Page> },
+  context: Parameters<typeof openFixture>[0],
   opts: { vtt?: string } = {},
 ): Promise<Page> {
-  const page = await context.newPage();
-  await page.route('*://*.youtube.com/**', async (route) => {
-    const url = route.request().url();
-    if (url.endsWith('cues.vtt')) {
-      await route.fulfill({ status: 200, contentType: 'text/vtt', body: opts.vtt ?? CUES_VTT });
-      return;
-    }
-    if (url.includes('/watch')) {
-      await route.fulfill({ status: 200, contentType: 'text/html', body: FIXTURE });
-      return;
-    }
-    await route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><html></html>' });
-  });
-  await page.goto('https://www.youtube.com/watch?v=kivara-f6');
-  await page.bringToFront();
-  await page.waitForFunction(
-    () => (window as Window & { __kivaraFixtureReady?: unknown }).__kivaraFixtureReady === true,
-    undefined,
-    { timeout: 30_000 },
-  );
-  // The overlay host proves the content script mounted the App on this page.
-  await expect
-    .poll(() => page.evaluate(() => document.querySelectorAll('#kivara-lingo-host').length), {
-      timeout: 15_000,
-    })
-    .toBeGreaterThan(0);
-  await page.waitForFunction(() => document.querySelector('video')!.currentTime > 0.02);
-  return page;
-}
-
-/**
- * B7 fixture: no `<video>.textTracks`, no caption DOM — only `/api/timedtext`.
- *
- * The page fetches the source track once the extension's video host exists
- * (the bus listener mounts at document_idle). The bus then auto-fetches
- * `?tlang=es`, which this route answers with the Spanish json3 body.
- */
-async function openDualPlayer(context: { newPage(): Promise<Page> }): Promise<Page> {
-  const page = await context.newPage();
-  await page.route('*://*.youtube.com/**', async (route) => {
-    const url = route.request().url();
-    if (url.includes('/api/timedtext')) {
-      const translated = new URL(url).searchParams.get('tlang') === 'es';
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: translated ? SPANISH_JSON3 : SOURCE_JSON3,
-      });
-      return;
-    }
-    if (url.includes('/watch')) {
-      await route.fulfill({ status: 200, contentType: 'text/html', body: DUAL_FIXTURE });
-      return;
-    }
-    await route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><html></html>' });
-  });
-  await page.goto('https://www.youtube.com/watch?v=kivara-f6');
-  await page.bringToFront();
-  await page.waitForFunction(
-    () => (window as Window & { __kivaraFixtureReady?: unknown }).__kivaraFixtureReady === true,
-    undefined,
-    { timeout: 30_000 },
-  );
-  await page.waitForFunction(
-    () => document.getElementById('kivara-lingo-video-host') !== null,
-    undefined,
-    { timeout: 20_000 },
-  );
-  await page.waitForFunction(() => document.querySelector('video')!.currentTime > 0.02);
-  return page;
-}
-
-/**
- * Click a control by its accessible name INSIDE the closed shadow root.
- *
- * The bar lives in a `mode: 'closed'` root, so Playwright locators cannot see
- * it, and a content script's `window` is its isolated world — not the page's.
- * The one channel both worlds share is the DOM: the StudyBar (E2E build only)
- * publishes each control's CENTER into `data-kivara-e2e-hits` on the shadow
- * host. This helper reads it and clicks with the mouse — a real gesture on the
- * real button, which is the only honest way to prove a button is wired.
- */
-async function hitOf(page: Page, hostId: string, label: string) {
-  const hits = await page.evaluate((id) => {
-    const raw = document.getElementById(id)?.getAttribute('data-kivara-e2e-hits');
-    return raw ? (JSON.parse(raw) as Array<{ label: string; x: number; y: number; pressed?: string }>) : [];
-  }, hostId);
-  const hit = hits.find((h) => h.label === label);
-  if (!hit) {
-    throw new Error(`no "${label}" in the bar hit-map (saw: ${hits.map((h) => h.label).join(', ')})`);
-  }
-  return hit;
-}
-
-async function clickInRoot(page: Page, hostId: string, label: string): Promise<void> {
-  const hit = await hitOf(page, hostId, label);
-  await page.mouse.click(hit.x, hit.y);
-}
-
-/** aria-pressed / aria-checked of a control, as the bar published it. */
-async function pressedInRoot(page: Page, hostId: string, label: string): Promise<string | null> {
-  return (await hitOf(page, hostId, label)).pressed ?? null;
+  return openFixture(context, { fixture: FIXTURE, vtt: opts.vtt ?? CUES_VTT });
 }
 
 /*
+ * The bar lives in a `mode: 'closed'` root, so Playwright locators cannot see
+ * it; every control is clicked through the E2E hit map (see `helpers.ts`).
  * Persistence is checked THROUGH THE UI, not through `chrome.storage`: the
  * page world Playwright evaluates in has no `chrome.*` (only the content
  * script's isolated world does). Click the control, reload, and the restored
  * `aria-pressed` IS the storage assertion — with the extra guarantee that no
  * code path can pass it by writing the key without rendering from it.
  */
-
-const VIDEO_HOST = 'kivara-lingo-video-host';
-
-/**
- * Accessible names as the harness renders them: `tests/e2e/fixtures.ts` pins
- * `--lang=es` so the content script resolves the Spanish dictionary. Kept in
- * one place so a copy change shows up once.
- */
-const LABEL = {
-  loop: 'Bucle',
-  autoPause: 'Pausa al final de cada frase',
-  prev: 'Frase anterior',
-  next: 'Frase siguiente',
-  replay: 'Repetir frase',
-} as const;
-
-/** The bar's box, the corner icons' boxes and every token's box, as published. */
-async function boxesOf(page: Page): Promise<{
-  bar: { x: number; y: number; width: number; height: number };
-  badges: Array<{ x: number; y: number; width: number; height: number }>;
-  tokens: Array<{ x: number; y: number; width: number; height: number; text?: string }>;
-  /** Native-language line (dual caption) as the overlay painted it. */
-  dual?: string;
-}> {
-  const raw = await page.evaluate(() => document.getElementById('kivara-lingo-video-host')
-    ?.getAttribute('data-kivara-e2e-boxes') ?? null);
-  if (!raw) throw new Error('no box map published');
-  return JSON.parse(raw) as never;
-}
-
-function overlaps(
-  a: { x: number; y: number; width: number; height: number },
-  b: { x: number; y: number; width: number; height: number },
-): boolean {
-  return a.x < b.x + b.width && b.x < a.x + a.width
-    && a.y < b.y + b.height && b.y < a.y + a.height;
-}
-
-/** Click a speed radio by its visible text ("1.25×"), via the same hit map. */
-async function clickSpeed(page: Page, value: string): Promise<void> {
-  await clickInRoot(page, VIDEO_HOST, value);
-}
-
-/** Move the pointer so the bar appears, then wait for its hit map. */
-async function armBar(page: Page): Promise<void> {
-  await page.mouse.move(320, 200);
-  // The publisher writes every 400 ms; without this wait the click below can
-  // use a snapshot from BEFORE the pointer moved (or from before the bar
-  // flipped above a taller caption plate) and land on empty video.
-  await page.waitForTimeout(500);
-  await expect.poll(
-    () => page.evaluate(() => document.getElementById('kivara-lingo-video-host')
-      ?.getAttribute('data-kivara-e2e-hits')?.length ?? 0),
-    { timeout: 8_000 },
-  ).toBeGreaterThan(10);
-}
-
-const time = (page: Page) => page.evaluate(() => document.querySelector('video')!.currentTime);
-const paused = (page: Page) => page.evaluate(() => document.querySelector('video')!.paused);
-const rate = (page: Page) => page.evaluate(() => document.querySelector('video')!.playbackRate);
 
 test.describe('study playback over the PlaybackController', () => {
   test('next line seeks through the controller', async ({ context }) => {
@@ -395,7 +223,10 @@ test.describe('StudyBar buttons (mouse, closed shadow root)', () => {
       await armBar(page);
       await expect.poll(async () => (await boxesOf(page)).tokens.length, { timeout: 8_000 })
         .toBeGreaterThan(5);
-      const { bar, badges, tokens } = await boxesOf(page);
+      const boxes = await boxesOf(page);
+      const { badges, tokens } = boxes;
+      const bar = boxes.bar;
+      if (!bar) throw new Error('the bar did not publish a box');
       // Listen-first and the mode toggle are always there.
       expect(badges.length).toBeGreaterThanOrEqual(2);
 
@@ -617,73 +448,4 @@ test.describe('a seek is not the end of a cue', () => {
  * `cueEnd` / `contextLines` mapping is unit-tested on
  * `buildCueRequestFields` (same active cue, no React).
  */
-test.describe('B7: active cue from the intercepted track', () => {
-  test('dual line and save bounds come from the bus track', async ({ context, serviceWorker }) => {
-    test.setTimeout(120_000);
-    const page = await openDualPlayer(context);
-
-    // Park at 5.7 s — inside the second bus cue (3000–6000 ms).
-    await page.evaluate(() => {
-      const video = document.querySelector('video')!;
-      video.pause();
-      video.currentTime = 5.7;
-    });
-    await expect.poll(() => time(page), { timeout: 8_000 }).toBeGreaterThan(5.5);
-
-    // The ES track is auto-fetched by the bus after the source track lands;
-    // the overlay resolves the dual line from it, not from MT.
-    await expect.poll(async () => (await boxesOf(page)).dual, { timeout: 20_000 })
-      .toBe('La rata envía fotogramas y audio.');
-    const boxes = await boxesOf(page);
-    const sourceLine = boxes.tokens.map((token) => token.text ?? '').join(' ');
-    expect(sourceLine).toContain('rat');
-
-    // Hover the token and click its card's save button (both inside the
-    // closed root; the centers come from the published box/hit maps).
-    const rat = boxes.tokens.find((token) => (token.text ?? '').includes('rat'));
-    expect(rat, 'the "rat" token box').toBeTruthy();
-    await page.mouse.move(rat!.x + rat!.width / 2, rat!.y + rat!.height / 2);
-    await expect.poll(async () => {
-      const hits = await page.evaluate((id) => {
-        const raw = document.getElementById(id)?.getAttribute('data-kivara-e2e-hits');
-        return raw ? (JSON.parse(raw) as Array<{ label: string }>) : [];
-      }, VIDEO_HOST);
-      return hits.some((hit) => hit.label === 'Guardar');
-    }, { timeout: 10_000 }).toBe(true);
-    await clickInRoot(page, VIDEO_HOST, 'Guardar');
-
-    // The save must reach CREATE_CARD with THIS cue as its sentence. The
-    // content→background message travels over webext-bridge's persistent
-    // Port (not chrome.runtime.onMessage), so the request envelope is not
-    // observable from Playwright; the SW-owned registry IS, and it stores
-    // the token/sentence the app sent. The cue bounds and `contextLines`
-    // built from the same active cue are covered by the unit test on
-    // `buildCueRequestFields`.
-    await expect.poll(async () => serviceWorker.evaluate(async () => {
-      const raw = await chrome.storage.local.get('kvl:cards.recent');
-      const list = (raw['kvl:cards.recent'] ?? []) as Array<{
-        word?: string;
-        sentence?: string;
-        status?: string;
-        errorCode?: string;
-      }>;
-      return list.find((card) => card.errorCode === 'no-deck' && card.status === 'failed') ?? null;
-    }), { timeout: 30_000 }).not.toBeNull();
-
-    const saved = await serviceWorker.evaluate(async () => {
-      const raw = await chrome.storage.local.get('kvl:cards.recent');
-      const list = (raw['kvl:cards.recent'] ?? []) as Array<{
-        word?: string;
-        sentence?: string;
-        errorCode?: string;
-      }>;
-      return list.find((card) => card.errorCode === 'no-deck') ?? null;
-    });
-    expect(saved?.word?.toLowerCase()).toContain('rat');
-    // The source line is the SECOND bus cue — this is the line the active-cue
-    // lookup resolved, not a DOM guess.
-    expect(saved?.sentence).toBe('The rat ships frames and audio.');
-
-    await page.close();
-  });
-});
+;

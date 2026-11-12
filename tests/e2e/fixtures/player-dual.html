@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Kivara e2e dual-track player fixture</title>
+    <title>Kivara e2e study player fixture</title>
     <style>
       html,
       body {
@@ -25,18 +25,28 @@
   <body>
     <div id="stage">
       <!--
-        A SEEKABLE synthetic clip with NO `<track>` element and NO caption
-        DOM. This is the shape that used to make the YouTube adapter emit
-        nothing: the player renders `/api/timedtext` and the extension only
-        sees it through the MAIN-world interceptor, i.e. the intercepted bus.
+        A SEEKABLE synthetic clip: the canvas is recorded for ~6.5 s with
+        MediaRecorder and the resulting WebM becomes the video source. The
+        original fixture used `canvas.captureStream()` directly, which is live
+        and therefore NOT seekable — the study controls (previous/next, loop,
+        auto-pause) cannot be exercised on it.
 
-        The fetch below is fired only after the content script's host exists,
-        because the ISOLATED-world bus listener mounts at document_idle while
-        this page's script runs earlier. The route answers the source track
-        (`lang=en`); the bus then auto-fetches `tlang=es` itself, which the
-        spec routes to the Spanish json3 body.
+        The captions are the same VTT the smoke test uses (0–3 s, 3–6 s,
+        6–9 s); the clip is shorter than the last cue on purpose, nothing here
+        needs it.
       -->
-      <video id="player" muted playsinline crossorigin="anonymous"></video>
+      <video id="player" muted playsinline crossorigin="anonymous">
+      </video>
+    </div>
+
+    <!-- YouTube's caption window: `youtube.ts` polls `.caption-visual-line`
+         and hides the container while the Kivara overlay is on. -->
+    <div id="captions" class="ytp-caption-window-container" aria-hidden="true">
+      <div class="caption-window">
+        <div class="captions-text">
+          <div class="caption-visual-line"></div>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -73,10 +83,34 @@
         video.src = URL.createObjectURL(blob);
         video.load();
         video.addEventListener('loadedmetadata', () => {
+          window.__kivaraClipDuration = video.duration;
+          // Park the playhead at the first cue and start playing: the study
+          // behaviours are driven from here.
           video.currentTime = 0.05;
           video
             .play()
             .then(() => {
+              // Exactly what YouTube's player does when captions load: one
+              // /api/timedtext request for the ORIGINAL track. The interceptor
+              // sees it, posts the cues, and the bus then asks for &tlang=<native>
+              // on its own.
+              // Feed the MAIN-world interceptor once the extension's overlay
+              // host is up (the bus listener exists by then); fall back to an
+              // immediate call if it already is.
+              if (document.getElementById('kivara-lingo-video-host')) {
+                void fetch('/api/timedtext?v=kivara-behaviour&lang=en&fmt=json3');
+              } else {
+                const feed = window.setInterval(() => {
+                  if (!document.getElementById('kivara-lingo-video-host')) return;
+                  window.clearInterval(feed);
+                  void fetch('/api/timedtext?v=kivara-behaviour&lang=en&fmt=json3');
+                }, 100);
+              }
+              // The caption DOM, on the same 0–3 / 3–6 / 6–9 s lines as the
+              // EN track. This is the input the adapter's DOM fallback reads
+              // when the player exposes no TextTrack — the reason the fixture
+              // needs it at all.
+              driveCaptions(video);
               window.__kivaraFixtureReady = true;
             })
             .catch(() => {
@@ -87,15 +121,32 @@
       recorder.start();
       setTimeout(() => recorder.stop(), 6500);
 
-      // Feed the MAIN-world interceptor once the extension's overlay host is
-      // up (the bus listener exists by then). `window.fetch` is patched by the
-      // MAIN content script at document_start.
-      const feed = window.setInterval(() => {
-        const host = document.getElementById('kivara-lingo-video-host');
-        if (!host || !window.__kivaraFixtureReady) return;
-        window.clearInterval(feed);
-        fetch('/api/timedtext?v=kivara-f6&lang=en&fmt=json3').catch(() => {});
-      }, 100);
+      /**
+       * Write the caption line for the playhead, on a 100 ms timer, the way
+       * the real player repaints its caption window. Reading `currentTime`
+       * (rather than a wall clock) keeps the line correct after a seek, which
+       * the study playback exercises.
+       */
+      function driveCaptions(video) {
+        const line = document.querySelector('.caption-visual-line');
+        const LINES = [
+          { from: 0, to: 3, text: 'Hello, this is a test cue.' },
+          { from: 3, to: 6, text: 'The rat ships frames and audio.' },
+          { from: 6, to: 9, text: 'Every crumb gets gnawed.' },
+        ];
+        let shown = '';
+        const tick = () => {
+          const at = video.currentTime;
+          const hit = LINES.find((cue) => at >= cue.from && at < cue.to);
+          const text = hit ? hit.text : '';
+          if (text !== shown) {
+            shown = text;
+            line.textContent = text;
+          }
+        };
+        tick();
+        window.setInterval(tick, 100);
+      }
     </script>
   </body>
 </html>

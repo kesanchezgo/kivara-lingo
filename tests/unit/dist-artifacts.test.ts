@@ -56,6 +56,9 @@ const FORBIDDEN_TEXT = [
   // only channel that crosses the content script's isolated world.
   'data-kivara-e2e-hits',
   'data-kivara-e2e-boxes',
+  // The READ side of the same map: rail rows, translated lines, live regions
+  // and the visible tab text, which carry no accessible name to click.
+  'data-kivara-e2e-state',
   // Marks the corner icons for the geometry case. E2E build only: the markers
   // are written under `__E2E__`, so a production bundle that still contains
   // the name was not compiled with the constant.
