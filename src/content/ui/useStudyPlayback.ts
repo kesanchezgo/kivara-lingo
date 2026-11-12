@@ -57,10 +57,12 @@ export function resetPlaybackClockForTests(): void {
 
 /** Playhead polling period, ms. */
 const TICK_MS = 100;
-/** Floor for the "this was a jump, not playback" gap. */
-const JUMP_FLOOR_MS = 1000;
-/** A gap of more than this many ticks (scaled by the rate) is a jump. */
-const JUMP_TICKS = 3;
+/**
+ * Video may run this far ahead of wall-clock × rate before a tick counts as a
+ * jump. It absorbs timer coalescing and keyframe rounding; a real scrub moves
+ * the playhead by seconds while the clock barely moves.
+ */
+const JUMP_MARGIN_MS = 250;
 
 const loopStore = createChromeLocalStore<boolean>('kvl:study.loop', false);
 const speedStore = createChromeLocalStore<number>('kvl:study.speed', 1, (raw) =>
@@ -137,6 +139,10 @@ export function useStudyPlayback({
   suspendedRef.current = suspended;
   const slowOnceRef = useRef(false);
   const lastTimeRef = useRef(0);
+  /** Wall clock at the previous tick. The jump guard compares the video
+   * advance against the REAL elapsed time, so a hidden tab that coalesces
+   * ticks into one-per-second does not look like a scrub. */
+  const lastNowRef = useRef(0);
   /** The cue that contained the previous tick. Contiguous VTT cues start
    * exactly where the previous one ends, so at the crossing tick the cue
    * under the playhead is ALREADY the next one — the end that was crossed
@@ -175,6 +181,9 @@ export function useStudyPlayback({
     let disposed = false;
     const tick = () => {
       if (disposed) return;
+      const nowMs = performance.now();
+      const elapsedMs = Math.max(0, nowMs - lastNowRef.current);
+      lastNowRef.current = nowMs;
       const time = controller.currentTimeMs();
       publishTime(time);
       const list = cuesRef.current;
@@ -193,17 +202,16 @@ export function useStudyPlayback({
       // Crossing the end of the cue. Loop wins over auto-pause; a slow pass
       // always ends paused (you asked to hear THAT line).
       //
-      // Belt and braces on top of the seek listeners: a tick that advanced by
-      // more than a few ticks worth of playing time is a JUMP — a scrub, a
-      // platform chapter marker, a seek that landed between two ticks — so the
-      // end it appears to cross was never played. A genuine end-of-cue tick
-      // moves by a few ms, well under the floor.
+      // Belt and braces on top of the seek listeners: a tick whose video
+      // advance outruns the wall-clock advance at the current rate is a JUMP —
+      // a scrub, a platform chapter marker, a seek that landed between two
+      // ticks — so the end it appears to cross was never played. Measuring
+      // against real elapsed time (not a fixed gap) keeps a throttled hidden
+      // tab, where one tick legitimately advances ~1 s of video, a normal tick.
       const rate = controller.getRate();
-      const jumpGapMs = Math.max(
-        JUMP_FLOOR_MS,
-        JUMP_TICKS * TICK_MS * (Number.isFinite(rate) && rate > 0 ? rate : 1),
-      );
-      const crossed = !(time - previous > jumpGapMs)
+      const safeRate = Number.isFinite(rate) && rate > 0 ? rate : 1;
+      const expectedAdvanceMs = elapsedMs * safeRate;
+      const crossed = time - previous <= expectedAdvanceMs + JUMP_MARGIN_MS
         && endedCue !== null
         && previous < endedCue.end
         && time >= endedCue.end;
@@ -239,7 +247,8 @@ export function useStudyPlayback({
         markAutoPaused(true);
       }
     };
-    const handle = window.setInterval(tick, 100);
+    const handle = window.setInterval(tick, TICK_MS);
+    lastNowRef.current = performance.now();
     tick();
     return () => {
       disposed = true;
