@@ -72,7 +72,12 @@ jobs:
           # still inside apt). 180 s is plenty when the mirror answers.
           timeout 180 pnpm exec playwright install-deps chromium \
             || echo "::warning::install-deps skipped: apt mirror unreachable or slow; runner image already provides the libraries"
-      - run: pnpm build
+      # KIVARA_E2E=1: the suite clicks controls that live inside CLOSED shadow
+      # roots, which needs the E2E build's hit-map (the same door the audio job
+      # uses). The PRODUCTION artifact is asserted by `dist-artifacts` in the
+      # unit job — no bridge page, no E2E doors, budgets intact — so this job
+      # is about behaviour, and behaviour needs the instrumented build.
+      - run: KIVARA_E2E=1 pnpm build
       - run: xvfb-run --auto-servernum -- pnpm exec playwright test
 
   # The KIVARA_E2E=1 build variant ships the E2E test bridge page
