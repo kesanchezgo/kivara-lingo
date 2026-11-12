@@ -70,7 +70,7 @@ import { enrichWithAi } from './ai-enrich';
 import { resolveWordStreaming } from './resolve-word';
 import { installResolveWordPort } from './enrichment/stream';
 import { getVipSettings, loadTranslateTargetLang } from './vip-settings';
-import { clearEnrichmentCache, clearMemEnrichmentCache, getEnrichmentSourceHealth, probeEnrichmentSource } from './enrichment/orchestrator';
+import { clearEnrichmentCache, clearMemEnrichmentCache, getEnrichmentSourceHealth, probeEnrichmentSource, seedEnrichmentSourceHealth } from './enrichment/orchestrator';
 
 /** Deep-link section for OPEN_SETTINGS (see the handler below). */
 import { dbg, dbgOnce } from '../shared/debug-log';
@@ -566,6 +566,12 @@ onMessage('ANKI_PING', async ({ data }) => {
   // silently ignored in favour of whatever settings hold.
   if (auth.error) return asJson({ ok: false, error: auth.error });
   const { url, apiKey } = auth;
+  // E2E-ONLY canned answer (parity screenshots, wizard walks): a URL carrying
+  // the marker is answered without any network. Production compiles the
+  // branch out and dist-artifacts forbids the marker inside dist/.
+  if (__E2E__ && url?.includes('kivara-e2e-anki')) {
+    return asJson({ ok: true, version: 241119 });
+  }
   // Sync the rules BEFORE pinging: the ping itself is an http request that
   // needs the Origin rewrite on a custom port. Awaited for the same reason
   // as CREATE_CARD.
@@ -1602,6 +1608,13 @@ if (__E2E__) {
         // forced rather than the one it requested.
         return respond(Promise.resolve(getAudioCaptureStatusWithPath() as Promise<unknown>));
       case 'KIVARA_E2E_EXTRACT_AUDIO_CLIP':        return respond(extractAudioClipHandler((message as { data?: unknown }).data));
+      case 'KIVARA_E2E_SEED_HEALTH':
+        // Canned observations for the parity screenshots: real rows, real
+        // fix lines, no network.
+        seedEnrichmentSourceHealth(
+          ((message as { data?: { map?: Record<string, unknown> } }).data?.map ?? {}) as Parameters<typeof seedEnrichmentSourceHealth>[0],
+        );
+        return respond(Promise.resolve({ ok: true }));
       default:
         return false;
     }
