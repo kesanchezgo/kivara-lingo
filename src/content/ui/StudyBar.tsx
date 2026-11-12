@@ -134,7 +134,7 @@ export function StudyBar(props: StudyBarProps) {
    * (`[data-kivara-caption-box]`, published by SubtitleOverlay) and parks just
    * above it, clamped to the player so it never leaves the frame.
    */
-  const [barBottom, setBarBottom] = useState(64);
+  const [barSide, setBarSide] = useState<'top' | 'bottom'>('bottom');
   useEffect(() => {
     if (!enabled) return;
     const element = barRef.current;
@@ -146,11 +146,15 @@ export function StudyBar(props: StudyBarProps) {
       const box = scope.querySelector<HTMLElement>('[data-kivara-caption-box]')?.getBoundingClientRect();
       const hostRect = host?.getBoundingClientRect();
       if (!box || !hostRect || hostRect.height === 0) {
-        setBarBottom(64);
+        setBarSide('bottom');
         return;
       }
-      const above = Math.round(hostRect.bottom - box.top + 10);
-      setBarBottom(Math.max(64, Math.min(hostRect.height - 80, above)));
+      // Park on the FAR side of the caption, never just above it: the
+      // sentence toolbar opens 48-76 px above the plate on hover, so "right
+      // above" put the bar under its own hover toolbar (the e2e clicks landed
+      // on the toolbar). The opposite half is always clear.
+      const captionCenter = box.top + box.height / 2 - hostRect.top;
+      setBarSide(captionCenter > hostRect.height / 2 ? 'top' : 'bottom');
     };
     place();
     // Captions move with the cue and the player resizes: follow both without
@@ -183,7 +187,7 @@ export function StudyBar(props: StudyBarProps) {
       className={`absolute right-3 z-30 flex items-center gap-0.5 rounded-lg bg-zinc-900/80 ring-1 ring-white/[0.08] backdrop-blur-md p-0.5 text-white transition-opacity duration-200 ${
         visible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       } [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto`}
-      style={{ bottom: barBottom }}
+      style={barSide === 'top' ? { top: 12 } : { bottom: 12 }}
       role="toolbar"
       aria-label={t('rail.title')}
     >
