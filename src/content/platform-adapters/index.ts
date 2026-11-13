@@ -5,6 +5,7 @@ import { createNetflixAdapter } from './netflix';
 import { createDisneyPlusAdapter } from './disney-plus';
 import { createHboMaxAdapter } from './hbo-max';
 import { createPrimeVideoAdapter } from './prime-video';
+import { isPrimeRoute } from './platform-hosts';
 // Side-effect import: registers the postMessage listener that receives
 // subtitle tracks from the MAIN-world interceptor.
 import './intercepted-bus';
@@ -32,10 +33,7 @@ export async function detectPlatform(): Promise<SubtitleSource | null> {
   // amazon.* is only Prime under /gp/video: the rest of the store must not
   // mount the adapter (and the manifest only injects there, so in practice
   // this branch is unreachable off-route — the guard keeps it honest).
-  if (
-    (host.includes('primevideo.com'))
-    || (/\.amazon\.(?:com|co\.uk|de|es|fr|it|co\.jp|ca|com\.mx|com\.br|in)$/.test(host) && window.location.pathname.startsWith('/gp/video/'))
-  ) {
+  if (isPrimeRoute(host, window.location.pathname)) {
     return createPrimeVideoAdapter();
   }
 
