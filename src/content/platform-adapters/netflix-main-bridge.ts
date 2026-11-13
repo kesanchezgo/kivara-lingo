@@ -57,7 +57,7 @@ function ensureListener(): void {
  * time (no player API yet, e.g. before the watch page booted) — the caller
  * shows "not seekable" and playback keeps going.
  */
-export function seekThroughMainWorld(timeMs: number, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<void> {
+function playbackCommand(command: Record<string, unknown>, timeoutMs: number): Promise<void> {
   ensureListener();
   const nonce = currentNonce();
   if (!nonce) return Promise.reject(new Error('playback bridge not ready'));
@@ -69,13 +69,26 @@ export function seekThroughMainWorld(timeMs: number, timeoutMs = DEFAULT_TIMEOUT
     }, timeoutMs);
     pending.set(id, { resolve, reject, timer });
     try {
-      window.postMessage({ source: CMD_EVENT, id, cmd: 'seek', timeMs, nonce }, '*');
+      window.postMessage({ source: CMD_EVENT, id, nonce, ...command }, '*');
     } catch (err) {
       pending.delete(id);
       window.clearTimeout(timer);
       reject(err instanceof Error ? err : new Error(String(err)));
     }
   });
+}
+
+export function seekThroughMainWorld(timeMs: number, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<void> {
+  return playbackCommand({ cmd: 'seek', timeMs }, timeoutMs);
+}
+
+/**
+ * Point 3: set the playback rate through the platform's own API. Rejects when
+ * there is no nonce (generic hosts), no MAIN answer in time, or the MAIN side
+ * has no rate API — the caller falls back to the element in every case.
+ */
+export function rateThroughMainWorld(rate: number, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<void> {
+  return playbackCommand({ cmd: 'rate', rate }, timeoutMs);
 }
 
 /** Test seam: drop every pending request (module reloads in unit tests). */

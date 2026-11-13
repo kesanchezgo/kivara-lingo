@@ -66,8 +66,12 @@ describe('media PlaybackController', () => {
     controller.pause();
     expect(controller.isPaused()).toBe(true);
     controller.setRate(99);
+    // Point 3: the rate goes through the MAIN bridge first and lands on the
+    // element in a follow-up microtask — flush it before reading back.
+    await new Promise((r) => setTimeout(r, 0));
     expect(controller.getRate()).toBe(4);
     controller.setRate(0.0001);
+    await new Promise((r) => setTimeout(r, 0));
     expect(controller.getRate()).toBe(0.25);
     fake.paused = false;
     expect(controller.currentTimeMs()).toBe(0);

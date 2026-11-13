@@ -441,6 +441,8 @@ declare global {
 
   interface NetflixVideoPlayer {
     seek?: (ms: number) => void;
+    /** Point 3: present on current builds (the native speed menu uses it). */
+    setPlaybackRate?: (rate: number) => void;
     /** Documented on current builds; used to pick the active session. */
     isPlaying?: () => boolean;
   }
@@ -555,7 +557,7 @@ declare global {
   window.addEventListener('message', (event) => {
     if (event.source !== window) return;
     const data = event.data as
-      | { source?: unknown; id?: unknown; cmd?: unknown; timeMs?: unknown; nonce?: unknown }
+      | { source?: unknown; id?: unknown; cmd?: unknown; timeMs?: unknown; rate?: unknown; nonce?: unknown }
       | null;
     if (!data || typeof data !== 'object') return;
 
@@ -591,6 +593,51 @@ declare global {
         /* page is going away */
       }
     };
+    // Point 3: the rate goes through the platform's own API so the native
+    // speed menu stays in sync. YouTube first (the documented player object),
+    // then Netflix's session player, then the facade. A build that renames
+    // the API answers an error and the ISOLATED side falls back to the
+    // element — no fight, no guesswork.
+    if (data.cmd === 'rate') {
+      const rate = Number(data.rate);
+      if (!Number.isFinite(rate) || rate < 0.25 || rate > 4) {
+        reply(false, 'rate out of range');
+        return;
+      }
+      try {
+        const yt = (window as unknown as { movie_player?: { setPlaybackRate?: (r: number) => void } })
+          .movie_player;
+        if (typeof yt?.setPlaybackRate === 'function') {
+          yt.setPlaybackRate(rate);
+          reply(true);
+          return;
+        }
+      } catch {
+        /* fall through to Netflix */
+      }
+      try {
+        const session = netflixSessionPlayer();
+        if (typeof session?.setPlaybackRate === 'function') {
+          session.setPlaybackRate(rate);
+          reply(true);
+          return;
+        }
+      } catch {
+        /* fall through to the facade */
+      }
+      try {
+        const player = netflixPlayer();
+        if (typeof player?.setPlaybackRate === 'function') {
+          player.setPlaybackRate(rate);
+          reply(true);
+          return;
+        }
+      } catch {
+        /* fall through to the error reply */
+      }
+      reply(false, 'no rate API available');
+      return;
+    }
     if (data.cmd !== 'seek' || typeof data.timeMs !== 'number') {
       reply(false, 'unsupported command');
       return;
