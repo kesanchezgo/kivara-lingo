@@ -56,7 +56,6 @@ describe('the intercepted adapter poll survives native-subtitle toggles', () => 
     vi.useFakeTimers();
     const adapter = createInterceptedAdapter({
       platform: 'netflix',
-      language: 'es-ES',
       hideNativeCss: '.watch-video--player-view + div',
       getVideo: () => null,
     });

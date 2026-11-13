@@ -13,13 +13,12 @@ import {
   type InterceptedTrack,
 } from './intercepted-bus';
 import type { CueListener, MediaInfo, SubtitleCue, SubtitleSource } from './types';
+import { useKivaraStore } from '../../shared/use-kivara-store';
 import { createMediaPlaybackController, createNetflixPlaybackController } from './playback';
 import { cuesFromRawTrack, findCueAt, pickBestAltCue } from './tracks';
 
 export interface InterceptedAdapterOptions {
   platform: SubtitleSource['platform'];
-  /** BCP-47 language tag for cues (best-guess; Phase 3: parse from manifest) */
-  language: string;
   /** CSS to inject in document head to hide the native subtitle layer */
   hideNativeCss?: string;
   /** Optional callback for adapter-specific setup */
@@ -77,7 +76,7 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
       start: hit.start,
       end: hit.end,
       text: hit.text,
-      language: opts.language,
+      language: track.language ?? sourceLanguage(),
       align: hit.align,
     };
   }
@@ -116,14 +115,29 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
     }
   }
 
-  // Primary language for the adapter (just the two-letter subtag).
-  const primaryLang = opts.language.split(/[-_]/)[0].toLowerCase();
+  /**
+   * The source-track language, resolved the same way youtube.ts resolves
+   * it: the user's configured `translate.sourceLang` (the language they
+   * are LEARNING) wins; `'en'` only covers the bootstrap window before the
+   * store hydrates. Read live — never once at mount — so a panel language
+   * change takes effect without waiting for a page reload. This is what
+   * keeps the adapter's adoption key in step with the DASH loader, which
+   * downloads the source track under the very same `translate.sourceLang`.
+   */
+  function sourceLanguage(): string {
+    return useKivaraStore.getState().translate.sourceLang || 'en';
+  }
+
+  /** Primary language for adoption/lookup (just the primary subtag). */
+  function primaryLang(): string {
+    return sourceLanguage().split(/[-_]/)[0].toLowerCase();
+  }
 
   /** F6: the whole cue list of the active (or last known) track. */
   function fullTrack(): SubtitleCue[] {
-    const source = track ?? getTrackByLanguage(primaryLang) ?? getLastTrack();
+    const source = track ?? getTrackByLanguage(primaryLang()) ?? getLastTrack();
     if (!source || source.cues.length === 0) return [];
-    return cuesFromRawTrack(source.cues, source.language ?? opts.language, opts.platform);
+    return cuesFromRawTrack(source.cues, source.language ?? sourceLanguage(), opts.platform);
   }
 
   function notifyTrackListeners() {
@@ -140,13 +154,14 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
 
   // Subscribe to intercepted tracks (replays last one if already seen).
   // Only adopt a track as the *primary* (source) caption when its detected
-  // language matches `opts.language` — or when the language is unknown
-  // (legacy interceptors don't tag language). Tracks for other languages
-  // (e.g. the native ES dual caption) live on the bus and are pulled via
-  // `getAltCueAt(...)` without disturbing the active source caption.
+  // language matches the user's configured source language — or when the
+  // language is unknown (legacy interceptors don't tag language). Tracks
+  // for other languages (e.g. the native ES dual caption) live on the bus
+  // and are pulled via `getAltCueAt(...)` without disturbing the active
+  // source caption.
   const offTrack = onTrack((next) => {
     const nextLang = next.language?.split(/[-_]/)[0].toLowerCase() ?? null;
-    if (nextLang && nextLang !== primaryLang) {
+    if (nextLang && nextLang !== primaryLang()) {
       // Track for a *different* language — keep the bus copy for the alt
       // cue lookup, but don't replace our source captions. Polling stays
       // alive so when (and if) a matching primary track arrives later we
@@ -185,10 +200,6 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
     },
     getActiveCue() {
       return activeCue;
-    },
-    seek(timeMs) {
-      const v = getVideo() ?? lastVideo;
-      if (v) v.currentTime = timeMs / 1000;
     },
     hideNativeSubtitles() {
       if (opts.hideNativeCss && !hideStyle) {

@@ -50,7 +50,11 @@ export interface SubtitleSource {
   onCueChange(listener: CueListener): void;
   getCurrentTime(): number;
   getActiveCue(): SubtitleCue | null;
-  seek(timeMs: number): void;
+
+  // Deliberately NO `seek` here. Every seek goes through the
+  // PlaybackController (`playback.seek`) — the single vetted path below.
+  // A second seek on this interface bypassed the Netflix MAIN-world bridge
+  // and could diverge from it; it existed unused and was removed.
 
   hideNativeSubtitles(): void;
   showNativeSubtitles(): void;

@@ -123,9 +123,6 @@ export function attachGenericHtml5(video: HTMLVideoElement): SubtitleSource {
     getActiveCue() {
       return currentActiveCue;
     },
-    seek(timeMs) {
-      video.currentTime = timeMs / 1000;
-    },
     hideNativeSubtitles() {
       if (activeTrack) activeTrack.mode = 'hidden';
     },
