@@ -511,21 +511,21 @@ export function glossPosShape(gloss: string): 'verb' | 'noun-adj' {
 }
 
 
-export function contextTranslationScore(candidate: string, token: string, sentence?: string): number {
+function contextTranslationScore(candidate: string, token: string, sentence?: string): number {
   const [score] = contextTranslationTrace(candidate, token, sentence);
   return score;
 }
 
 /** Reason codes mirroring the translation ranking rules. Exported for
  * the ranking tests. */
-export function contextTranslationReasons(candidate: string, token: string, sentence?: string): string[] {
+function contextTranslationReasons(candidate: string, token: string, sentence?: string): string[] {
   const [, reasons] = contextTranslationTrace(candidate, token, sentence);
   return reasons;
 }
 
 /** Single source of truth for the translation ranking: score + codes.
  * Exported for the ranking tests. */
-export function contextTranslationTrace(candidate: string, token: string, sentence?: string): [number, string[]] {
+function contextTranslationTrace(candidate: string, token: string, sentence?: string): [number, string[]] {
   const c = candidate.toLowerCase().trim();
   const t = token.toLowerCase().trim();
   const s = sentence?.toLowerCase() ?? '';
@@ -1442,7 +1442,7 @@ export interface ImageScore {
  * with every reason code, not just the winner. This is the single source
  * of truth the winner-picker below consumes — no second ranking pass.
  */
-export function scoreImageCandidate(
+function scoreImageCandidate(
   candidate: AttributedImageCandidate,
   ctx: {
     normalizedToken: string;
@@ -1649,7 +1649,7 @@ const ABSTRACT_PRAYER_OBJECTS = new Set([
  */
 const ETYMOLOGY_DOMAIN_LABEL_RE = /\bin\s+(anatomy|botany|zoology|pathology|physiology|geology|astronomy|astrology|mythology|heraldry|architecture|music|law|theology)\b/i;
 
-export function etymologyDomainLabel(text: string): string | undefined {
+function etymologyDomainLabel(text: string): string | undefined {
   return ETYMOLOGY_DOMAIN_LABEL_RE.exec(text)?.[1]?.toLowerCase();
 }
 
@@ -1664,7 +1664,7 @@ export function etymologyDomainLabel(text: string): string | undefined {
  * vip published "illuminated; afire… Slang meaning drunk 1914" for
  * "The show was lit." (genial).
  */
-export function isSlangSenseDefinition(definition: string | undefined): boolean {
+function isSlangSenseDefinition(definition: string | undefined): boolean {
   if (!definition) return false;
   return /\bslang\b/i.test(definition);
 }
@@ -1758,7 +1758,7 @@ export interface GlossWithSources {
  * silently DROPPED from vip.translations, the context-rule gloss included,
  * which is exactly the gloss the picker exists to surface.
  */
-export function pickLexicalTranslationsWithSources(
+function pickLexicalTranslationsWithSources(
   token: string,
   translations: Array<{ source: string; text: string }>,
   ctx: Pick<EnrichmentContext, 'sentence'> & { targetLang?: string },

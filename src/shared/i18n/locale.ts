@@ -7,7 +7,7 @@
  */
 import type { AreaDict, Locale, StringMap } from './types';
 
-export function detectLocale(): Locale {
+function detectLocale(): Locale {
   try {
     const chromeI18n = (globalThis as { chrome?: { i18n?: { getUILanguage?: () => string } } }).chrome?.i18n;
     const fromChrome = chromeI18n?.getUILanguage?.();

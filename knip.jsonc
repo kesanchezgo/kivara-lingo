@@ -1,0 +1,47 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+
+  // The extension has no single import graph: each surface boots from its own
+  // HTML entry, the interceptor and the offscreen document are injected by the
+  // manifest, and the e2e/scripts/test trees are consumers too. Listing them as
+  // entries is what makes the "unused" verdict mean "nothing in the repo reads
+  // it" instead of "vite didn't tree-shake it".
+  "entry": [
+    "src/content/index.tsx",
+    "src/background/service-worker.ts",
+    "src/options/main.tsx",
+    "src/popup/main.tsx",
+    "src/onboarding/main.tsx",
+    "src/offscreen/*.ts",
+    "src/content/platform-adapters/main-world-interceptor.ts",
+    "tests/e2e/**",
+    "tests/**",
+    "scripts/**"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "tests/**/*.{ts,tsx}",
+    "scripts/**/*.{ts,mts,cjs,mjs}"
+  ],
+
+  "ignore": [
+    // Read as TEXT by scripts/build-icons.mjs (it parses the mapping and emits
+    // icons.generated.tsx), so no module ever imports it and knip can't see the
+    // consumer. Removing the file breaks `pnpm icons:build`.
+    "src/ui/icon-map.ts"
+  ],
+  "ignoreDependencies": [
+    // Consumed from CSS: src/styles/tailwind.css does `@import 'tailwindcss'`.
+    // Knip only walks JS imports, and @tailwindcss/vite pulls it in at build.
+    "tailwindcss"
+  ],
+
+  "rules": {
+    // Exports are gated: an unexported helper is a real dead-end. Exported
+    // TYPES are not — an `interface Props` exported next to its component is
+    // documentation, and 79 of them are still in the tree while that sweep
+    // hasn't happened. Reported as warnings so they stay visible without
+    // blocking the build on a cleanup nobody asked for yet.
+    "types": "warn"
+  }
+}

@@ -19,7 +19,7 @@ export interface PreviewData {
   monolingual?: string;
 }
 
-export const DEFAULT_PREVIEW_SENTENCE = "These days, Nicola doesn't travel much.";
+const DEFAULT_PREVIEW_SENTENCE = "These days, Nicola doesn't travel much.";
 
 const SAMPLE: Omit<PreviewData, 'targetSentence'> = {
   nativeSentence: 'Estos días, Nicola no viaja mucho.',

@@ -177,31 +177,6 @@ export function extractAttrByClass(
 }
 
 /**
- * Pull the value of `attr` from a single tag identified by an arbitrary
- * `tag[attr*="needle"]` style key — used when sources put the data we
- * want in `<meta property="og:image" content="…">`-style nodes.
- */
-export function extractMeta(
-  html: string,
-  property: string,
-): string | null {
-  if (!html) return null;
-  const escProp = property.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-  // <meta property="..." content="...">
-  let m = new RegExp(
-    `<meta[^>]*\\b(?:property|name)\\s*=\\s*("|')${escProp}\\1[^>]*\\bcontent\\s*=\\s*("|')([^"']*)\\2`,
-    'i',
-  ).exec(html);
-  if (m) return m[3];
-  // <meta content="..." property="...">
-  m = new RegExp(
-    `<meta[^>]*\\bcontent\\s*=\\s*("|')([^"']*)\\1[^>]*\\b(?:property|name)\\s*=\\s*("|')${escProp}\\3`,
-    'i',
-  ).exec(html);
-  return m ? m[2] : null;
-}
-
-/**
  * Extract every `href` from `<a class="cl" href="...">…</a>` and return
  * `{ href, text }` pairs. Used by Cambridge/Reverso to grab "more like
  * this" links and synonyms lists.

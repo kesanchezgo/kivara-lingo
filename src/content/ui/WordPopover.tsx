@@ -270,7 +270,7 @@ const SOURCE_LABEL: Record<string, string> = {
 };
 
 /** Provider attribution. No secret ever reaches this string. */
-export function formatSource(source: string | null | undefined): string {
+function formatSource(source: string | null | undefined): string {
   if (!source) return '\u2014';
   if (source.startsWith('pack:')) {
     const title = source.slice(5).trim();

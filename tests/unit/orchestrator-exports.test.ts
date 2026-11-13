@@ -8,9 +8,13 @@
  * tripwire — `vitest -u` updates it on a deliberate change, which is exactly
  * what a real split is.
  *
- * The cache names MUST stay exported from the orchestrator even though they now
- * live in ./cache: that re-export is what keeps the two consumers from having
- * to learn about the split.
+ * The cache names used to be re-exported from here as well, on the theory that
+ * the service worker and cache-admin needed them through the orchestrator.
+ * They never did: both reach for `clearMemEnrichmentCache` (or ./cache itself),
+ * and `readEnrichmentCache` / `writeEnrichmentCache` / `mergeFields` are only
+ * used inside this module. The re-export is gone — a public surface nothing
+ * imports is one that silently rots — and this snapshot lists what is really
+ * consumed from outside.
  */
 import { describe, it, expect } from 'vitest';
 import type { VipSettings } from '../../src/shared/types';
@@ -31,19 +35,14 @@ describe('orchestrator exports', () => {
         [
           "ALL_SOURCE_IDS",
           "ENRICHMENT_CACHE_VERSION",
-          "activeSourceSignature",
           "clearEnrichmentCache",
           "clearEnrichmentSourceHealth",
           "clearMemEnrichmentCache",
-          "getEnrichmentCacheStats",
           "getEnrichmentSourceHealth",
           "makeCacheKey",
-          "mergeFields",
           "probeEnrichmentSource",
-          "readEnrichmentCache",
           "runEnrichment",
           "seedEnrichmentSourceHealth",
-          "writeEnrichmentCache",
         ]
       `);
   }, 30_000);

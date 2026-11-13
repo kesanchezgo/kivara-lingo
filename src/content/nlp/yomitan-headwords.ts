@@ -58,14 +58,3 @@ export function setYomitanHeadwords(words: ReadonlyArray<string>): void {
   headwords = next;
   loaded = true;
 }
-
-/** Drop the cache — used when the user toggles a pack off / on. */
-export function clearYomitanHeadwords(): void {
-  headwords = new Set();
-  loaded = false;
-}
-
-/** Diagnostic / coverage telemetry. */
-export function getYomitanHeadwordCount(): number {
-  return headwords.size;
-}

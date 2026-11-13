@@ -48,7 +48,7 @@ export interface RecentCard {
 export const RECENT_CARDS_KEY = 'kvl:cards.recent';
 export const RECENT_LIMIT = 50;
 /** First-retry delay; mirrors the engine's `nextAttemptAt + 60_000`. */
-export const CARD_RETRY_BASE_MS = 60_000;
+const CARD_RETRY_BASE_MS = 60_000;
 export const MAX_CARD_RETRIES = 10;
 /** The pre-v2 flat tag, still written so saved searches keep working (D3). */
 export const LEGACY_CARD_TAG = 'kivara-lingo';
@@ -185,7 +185,7 @@ export function hasAudio(card: RecentCard): boolean {
 }
 
 /** Backoff that mirrors the engine's `pending_notes` schedule (60 s, 2 min, …). */
-export function retryDelayMs(attempts: number): number {
+function retryDelayMs(attempts: number): number {
   return Math.min(CARD_RETRY_BASE_MS * 30, CARD_RETRY_BASE_MS * 2 ** Math.max(0, attempts - 1));
 }
 

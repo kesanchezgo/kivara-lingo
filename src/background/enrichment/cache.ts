@@ -165,13 +165,12 @@ function isHeldBack(payload: EnrichmentResult | null | undefined): boolean {
 
 const MAX_VIP_CACHE_ROWS = 2000;
 const PRUNE_INTERVAL_MS = 5 * 60 * 1000;
-export const DEFAULT_VIP_CACHE_TTL_DAYS = DEFAULT_CACHE_TTL_DAYS;
+const DEFAULT_VIP_CACHE_TTL_DAYS = DEFAULT_CACHE_TTL_DAYS;
 
 // The TTL guard itself lives in shared/cache-ttl so the app bundle never
 // pulls Dexie in just to validate a number. Re-exported so the cache's
 // own surface stays whole for existing callers.
 import { DEFAULT_CACHE_TTL_DAYS, normalizeTtlDays } from '../../shared/cache-ttl';
-export { DEFAULT_CACHE_TTL_DAYS, normalizeTtlDays };
 
 let lastPruneAt = 0;
 

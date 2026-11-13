@@ -46,7 +46,7 @@ export class FetchAbortedError extends Error {
   }
 }
 
-export class FetchHttpError extends Error {
+class FetchHttpError extends Error {
   status: number;
   constructor(status: number, statusText: string) {
     super(`HTTP ${status} ${statusText}`);

@@ -35,8 +35,9 @@ import {
   withAudioHint, type SceneMedia,
 } from './save-actions';
 import { useEpisode } from './useEpisode';
-import { cueIndexAt, SLOW_REPLAY_RATE, useStudyPlayback } from './useStudyPlayback';
+import { cueIndexAt, useStudyPlayback } from './useStudyPlayback';
 import { buildCueRequestFields } from './save-request';
+import { SLOW_REPLAY_RATE } from '../platform-adapters/playback';
 import { TranscriptRail, type NativeLineCue } from './TranscriptRail';
 import { focusFirstIn } from './column-focus';
 import { StudyBar } from './StudyBar';

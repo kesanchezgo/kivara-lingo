@@ -143,7 +143,7 @@ export function allProviderHosts(): string[] {
  * Exported on its own so the settings UI and the provider module read the same
  * closed list: an endpoint outside it is refused before a request is made.
  */
-export const OPENAI_COMPATIBLE_HOSTS: readonly string[] = PROVIDER_HOSTS['ai:openai-compatible'];
+const OPENAI_COMPATIBLE_HOSTS: readonly string[] = PROVIDER_HOSTS['ai:openai-compatible'];
 
 /**
  * Manifest pattern that covers `rawUrl`, or null when the endpoint is not on

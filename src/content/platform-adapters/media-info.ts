@@ -131,7 +131,7 @@ export function getDomMediaInfo(
  * in the page's MAIN world, so the ISOLATED content script asks for it over
  * the same `postMessage` channel the subtitle bridge already uses.
  */
-export const MEDIA_INFO_CMD = 'kivara-lingo:media-info';
+const MEDIA_INFO_CMD = 'kivara-lingo:media-info';
 export const MEDIA_INFO_RESULT = 'kivara-lingo:media-info-result';
 
 /** The slice of `videoDetails` the tags need. */
@@ -184,7 +184,7 @@ function ensureBridgeListener(): void {
  * Ask the MAIN world for the player response. Fire-and-forget: the reply lands
  * through the listener above and the next `getMediaInfo()` call uses it.
  */
-export function requestYoutubeMediaInfoFromMainWorld(): void {
+function requestYoutubeMediaInfoFromMainWorld(): void {
   ensureBridgeListener();
   const nonce = bridgeNonce();
   if (!nonce) return;

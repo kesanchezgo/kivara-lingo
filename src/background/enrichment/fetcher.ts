@@ -20,7 +20,7 @@
 
 import { assertPublicHttpUrl, readBodyBounded } from '../../shared/net-guard';
 
-export const DEFAULT_USER_AGENT =
+const DEFAULT_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
 /**
@@ -54,7 +54,7 @@ interface FetchOptions {
 }
 
 /** Default body deadline when the caller does not pin one. */
-export const DEFAULT_BODY_TIMEOUT_MS = 20_000;
+const DEFAULT_BODY_TIMEOUT_MS = 20_000;
 const BODY_TIMEOUT_MS = DEFAULT_BODY_TIMEOUT_MS;
 
 /** Race a fetch against a timeout. Throws AbortError on cancellation. */
@@ -224,56 +224,6 @@ export async function fetchJson<T = unknown>(
     }
   } catch {
     return null;
-  }
-}
-
-/**
- * Lightweight DOM parser for service-worker land. The SW can't use
- * `DOMParser` directly in some Chrome builds (it's not on the global),
- * so we lazy-import via `globalThis.DOMParser`. If unavailable, we
- * fall back to a regex-based extractor — the sources that need true
- * DOM walking degrade gracefully (return empty partial).
- */
-export function parseHtml(html: string): Document | null {
-
-  const Parser = (globalThis as { DOMParser?: typeof DOMParser }).DOMParser;
-  if (typeof Parser !== 'function') return null;
-  try {
-    return new Parser().parseFromString(html, 'text/html');
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Helper for sources that just need `textContent` from a CSS selector.
- * Returns `[]` when the parser is unavailable, so callers can use
- * `selectAllText(doc, '.x')` without null-check boilerplate.
- */
-export function selectAllText(doc: Document | null, selector: string): string[] {
-  if (!doc) return [];
-  try {
-    return Array.from(doc.querySelectorAll(selector))
-      .map((el) => (el.textContent ?? '').trim())
-      .filter(Boolean);
-  } catch {
-    return [];
-  }
-}
-
-/** Same as `selectAllText` but returns a single attribute per match. */
-export function selectAllAttr(
-  doc: Document | null,
-  selector: string,
-  attr: string,
-): string[] {
-  if (!doc) return [];
-  try {
-    return Array.from(doc.querySelectorAll(selector))
-      .map((el) => (el.getAttribute(attr) ?? '').trim())
-      .filter(Boolean);
-  } catch {
-    return [];
   }
 }
 

@@ -1,5 +1,4 @@
-import type { DictionaryEntry } from '../../shared/types';
-import { getDictionary, lookupDictionary } from './dictionary';
+import { getDictionary } from './dictionary';
 import { isLikelyProperNoun, lemmaCandidates } from './lemma';
 import { mweLemmaCandidates } from './mwe-lemma';
 import { hasYomitanHeadword } from './yomitan-headwords';
@@ -239,37 +238,4 @@ export function tokenizeSentence(
     }
   });
   return tokens;
-}
-
-/**
- * Returns dictionary metadata for a token. Falls back to lemma candidates so
- * "running" returns the entry for "run". Returns a placeholder entry when
- * nothing is found.
- */
-export function lookup(token: string, lang = 'en'): DictionaryEntry {
-  const literal = lookupDictionary(token, lang);
-  if (literal) return literal;
-
-  // Multi-word phrase: try MWE lemma candidates ("big girls" → "big girl",
-  // "kicked the bucket" → "kick the bucket") before falling back to the
-  // single-word lemmatizer.
-  if (token.includes(' ')) {
-    const mweCandidates = mweLemmaCandidates(token);
-    for (let i = 1; i < mweCandidates.length; i += 1) {
-      const hit = lookupDictionary(mweCandidates[i], lang);
-      if (hit) return { ...hit, token, lemmaOf: mweCandidates[i] };
-    }
-  }
-
-  const candidates = lemmaCandidates(token);
-  for (let i = 1; i < candidates.length; i++) {
-    const hit = lookupDictionary(candidates[i], lang);
-    if (hit) return { ...hit, token };
-  }
-
-  return {
-    token,
-    type: token.includes(' ') ? 'phrase' : 'word',
-    translation: '—',
-  };
 }

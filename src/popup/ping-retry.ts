@@ -24,9 +24,9 @@ import { useEffect, useRef } from 'react';
 export type PingStatus = 'idle' | 'pinging' | 'ok' | 'error';
 
 /** A lost boot ping: watchdog 5 s, then a silent re-ping. Budget per opening. */
-export const BOOT_RETRY_MS = 2_500;
-export const BOOT_RETRY_MAX = 2;
-export const BOOT_WATCHDOG_MS = 5_000;
+const BOOT_RETRY_MS = 2_500;
+const BOOT_RETRY_MAX = 2;
+const BOOT_WATCHDOG_MS = 5_000;
 
 /** Disconnected: forced poll every 4 s while the status is error.
  *

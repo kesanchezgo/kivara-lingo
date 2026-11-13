@@ -42,7 +42,7 @@ export function intersects(a: OverlayBox, b: OverlayBox): boolean {
     && a.y < b.y + b.height && b.y < a.y + a.height;
 }
 
-export function expand(box: OverlayBox, by: number): OverlayBox {
+function expand(box: OverlayBox, by: number): OverlayBox {
   return { x: box.x - by, y: box.y - by, width: box.width + by * 2, height: box.height + by * 2 };
 }
 

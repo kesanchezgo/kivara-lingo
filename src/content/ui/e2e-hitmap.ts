@@ -20,7 +20,7 @@ import { CAPTION_BOX_ATTR, onCaptionGeometryChange } from './overlay-geometry';
  * build compiles that branch out — rollup then drops the module and
  * `dist-artifacts.test.ts` forbids the attribute names in `dist/`.
  */
-export const E2E_HITMAP_ATTR = 'data-kivara-e2e-hits';
+const E2E_HITMAP_ATTR = 'data-kivara-e2e-hits';
 
 /**
  * Second channel: the BAR's own box, the corner icons' boxes and every subtitle
@@ -29,7 +29,7 @@ export const E2E_HITMAP_ATTR = 'data-kivara-e2e-hits';
  * `elementFromPoint` on a token, because a closed root answers with the host
  * for anything inside it.
  */
-export const E2E_BOXES_ATTR = 'data-kivara-e2e-boxes';
+const E2E_BOXES_ATTR = 'data-kivara-e2e-boxes';
 
 /**
  * Third channel: the parts of the UI that are READ, not clicked.
@@ -40,7 +40,7 @@ export const E2E_BOXES_ATTR = 'data-kivara-e2e-boxes';
  * publishes them as data — presence, text and whether the blur filter is on —
  * so the suite can assert what the user sees without poking at internals.
  */
-export const E2E_STATE_ATTR = 'data-kivara-e2e-state';
+const E2E_STATE_ATTR = 'data-kivara-e2e-state';
 
 export interface E2EBox {
   x: number;
@@ -105,7 +105,7 @@ const TEXT_CAP = 20_000;
  * `title` and then to the visible text, so every control the suite clicks is
  * reachable by the same name a user would read.
  */
-export function collectHits(container: ParentNode): E2EHit[] {
+function collectHits(container: ParentNode): E2EHit[] {
   const hits: E2EHit[] = [];
   const nodes = container.querySelectorAll<HTMLElement>(
     '[aria-label], [role="radio"], button',
@@ -144,7 +144,7 @@ function isFiltered(el: Element): boolean {
  * The read-only surface of one root: rail rows (source + translated line),
  * the overlay's translated caption and every live region.
  */
-export function collectState(root: ParentNode): E2EState {
+function collectState(root: ParentNode): E2EState {
   const rows: E2ERow[] = [];
   for (const row of root.querySelectorAll<HTMLElement>('[data-kvl-cue]')) {
     const raw = row.getAttribute('data-kvl-cue');

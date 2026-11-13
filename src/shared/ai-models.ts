@@ -161,13 +161,6 @@ export const OPENAI_COMPATIBLE_PRESETS: CompatPreset[] = [
   },
 ];
 
-export const PLACEHOLDER_BY_PROVIDER: Record<Exclude<AiProvider, 'disabled'>, string> = {
-  openai: 'sk-...',
-  anthropic: 'sk-ant-...',
-  'google-ai': 'AIza...',
-  'openai-compatible': 'sk-...',
-};
-
 /**
  * Default model id picked when the user enables a provider for the first
  * time. Mirrors the mock catalog so the onboarding tile defaults match

@@ -82,7 +82,7 @@ export function IconTile({ children, className = '' }: { children: React.ReactNo
   return <span aria-hidden="true" className={`${ui.tile} ${className}`}>{children}</span>;
 }
 
-export function Chevron({ open }: { open: boolean }) {
+function Chevron({ open }: { open: boolean }) {
   return <ChevronDown size={14} aria-hidden="true" className={`text-zinc-400 dark:text-zinc-400 transition-transform duration-[220ms] ease-[var(--kvl-ease)] ${open ? 'rotate-180' : ''}`} />;
 }
 

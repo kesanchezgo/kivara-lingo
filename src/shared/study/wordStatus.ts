@@ -29,7 +29,7 @@
  */
 import { createChromeLocalStore, type ChromeLocalStore } from '../chrome-local-store';
 import {
-  LEVEL_RANK, LEVEL_VOCAB, MODEL, STUDY_LEVELS, difficulty, estimateTheta, levelForVocab,
+  LEVEL_RANK, LEVEL_VOCAB, MODEL, STUDY_LEVELS, difficulty, estimateTheta,
   levelProgress, pKnown, vocabOf, wordFeatures,
   type Cognate, type Obs, type StudyLevel, type WordFeaturesInput,
 } from './lexicalModel';
@@ -51,13 +51,13 @@ export interface AnkiCard {
 /** Interval from which Anki considers a card mature. */
 export const MATURE_INTERVAL_DAYS = 21;
 
-export const WORD_STATUS_KEY = 'kvl:wordStatus';
-export const ANKI_WORDS_KEY = 'kvl:ankiWords';
+const WORD_STATUS_KEY = 'kvl:wordStatus';
+const ANKI_WORDS_KEY = 'kvl:ankiWords';
 /** Flag of the one-time move from the global keys to per-language profiles. */
-export const PROFILES_FLAG = 'kvl:profilesV';
+const PROFILES_FLAG = 'kvl:profilesV';
 
 /** `kvl:wordStatus:en`, `kvl:ankiWords:fr`... */
-export const langKey = (base: string, lang: string) => `${base}:${lang}`;
+const langKey = (base: string, lang: string) => `${base}:${lang}`;
 
 /** Status keys are lemmas, lowercased, with typographic apostrophes folded. */
 export const normalizeStatusKey = (s: string): string =>
@@ -77,7 +77,7 @@ export interface StudyWords {
 
 const isStatus = (v: unknown): v is WordStatus => v === 'new' || v === 'learning' || v === 'known';
 
-export function reviveStatusMap(raw: unknown): Record<string, WordStatus> {
+function reviveStatusMap(raw: unknown): Record<string, WordStatus> {
   const out: Record<string, WordStatus> = {};
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
     for (const [k, v] of Object.entries(raw)) if (isStatus(v)) out[normalizeStatusKey(k)] = v;
@@ -85,7 +85,7 @@ export function reviveStatusMap(raw: unknown): Record<string, WordStatus> {
   return out;
 }
 
-export function reviveAnki(raw: unknown): Record<string, AnkiCard> {
+function reviveAnki(raw: unknown): Record<string, AnkiCard> {
   const out: Record<string, AnkiCard> = {};
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
     for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
@@ -206,11 +206,6 @@ export function hydrateStudy(lang: string): Promise<void> {
 
 /* ── Marks ─────────────────────────────────────────────────────────────── */
 
-/** Only what the user marked in a profile (no Anki, no estimate). */
-export function getUserStatus(lang: string, tokenKey: string): WordStatus | undefined {
-  return studyStores(lang).status.get()[normalizeStatusKey(tokenKey)];
-}
-
 /** `null` clears the user mark: Anki or the estimate takes over again. */
 export function setWordStatus(lang: string, tokenKey: string, status: WordStatus | null): void {
   const k = normalizeStatusKey(tokenKey);
@@ -228,7 +223,7 @@ export function setWordStatus(lang: string, tokenKey: string, status: WordStatus
 /* ── Anki intervals ────────────────────────────────────────────────────── */
 
 /** Register or update the interval of one word (0 for a card just created). */
-export function setAnkiWord(lang: string, tokenKey: string, interval = 0): void {
+function setAnkiWord(lang: string, tokenKey: string, interval = 0): void {
   const k = normalizeStatusKey(tokenKey);
   const safe = Number.isFinite(interval) && interval >= 0 ? interval : 0;
   studyStores(lang).anki.set((prev) => (prev[k]?.interval === safe ? prev : { ...prev, [k]: { interval: safe } }));
@@ -586,4 +581,3 @@ export function startRange(
 }
 
 /** The vocabulary column of a level; re-exported so the views do not import the model twice. */
-export { levelForVocab };

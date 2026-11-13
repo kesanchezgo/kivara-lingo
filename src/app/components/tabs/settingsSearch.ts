@@ -73,7 +73,7 @@ const INDEX: Record<SearchId, Entry> = {
   about: { keys: ['set.groupAbout', 'set.supportProject', 'set.repeatInit'], extra: ['Ko-fi', 'GitHub', 'Sponsors', 'PayPal', 'donar', 'donate', 'onboarding', 'asistente', 'wizard'] },
 };
 
-export const normalize = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+const normalize = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
 /** Settings that live in other panel tabs: offered as a shortcut. */
 export type OtherTab = 'subtitles' | 'vocab' | 'cards';
@@ -117,7 +117,7 @@ export function searchOtherTabs(query: string): OtherTab[] {
   return (Object.keys(OTHER_TABS) as OtherTab[]).filter((tab) => terms.every((term) => h[tab].includes(term)));
 }
 
-export const SEARCH_IDS = Object.keys(INDEX) as SearchId[];
+const SEARCH_IDS = Object.keys(INDEX) as SearchId[];
 
 /** Ids containing every term of the query (an empty query matches all). */
 export function searchSettings(query: string): Set<SearchId> {

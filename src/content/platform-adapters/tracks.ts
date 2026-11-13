@@ -28,7 +28,7 @@ function primaryLang(code: string | null | undefined): string {
  * makes the re-anchor deterministic without letting a fuzzy match invent a
  * line.
  */
-export function normalizeCueText(text: string): string {
+function normalizeCueText(text: string): string {
   return text.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 }
 

@@ -37,6 +37,14 @@ jobs:
       # a passing lie; `node` adds the node/vitest globals for scripts and
       # tests. `typecheck` runs both.
       - run: pnpm typecheck
+      # Dead-export gate. `noUnusedLocals` catches the ones an EDITOR sees, but
+      # it cannot see an `export` no other module imports — that is what knip
+      # reads, following the five HTML entry points, the injected interceptor,
+      # the offscreen document, scripts and tests. Two false positives are
+      # ignored in knip.jsonc (icon-map.ts is read as text by the icon
+      # builder; tailwindcss is consumed from CSS). Exported TYPES are warnings:
+      # 79 of them are still in the tree and no one asked for that sweep yet.
+      - run: pnpm knip
 
   e2e:
     # Pinned, not `ubuntu-latest`: the fleet has started migrating that label

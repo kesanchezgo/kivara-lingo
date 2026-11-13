@@ -45,7 +45,7 @@ async function readBounded<JSONLike>(
 }
 
 /** Where the response must land: the origin that was asked for. */
-export function sameOrigin(asked: string, landed: string): boolean {
+function sameOrigin(asked: string, landed: string): boolean {
   try {
     const a = new URL(asked);
     const b = new URL(landed);
@@ -431,19 +431,6 @@ export async function callOne(
     default:
       return { ok: false, error: t('translate.offlineNoNetwork'), provider: 'offline' };
   }
-}
-
-/**
- * Legacy single-provider dispatch retained so any caller that hasn't migrated
- * to chain mode keeps working.
- */
-export async function callProvider(
-  text: string,
-  source: string,
-  target: string,
-  settings: TranslateSettings,
-): Promise<ProviderResult | ProviderError> {
-  return callOne(settings.provider, text, source, target, settings);
 }
 
 export interface ChainStep {

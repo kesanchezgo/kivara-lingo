@@ -29,7 +29,7 @@ import { StatusGlyph, MARK_INK } from './wordMarks';
 import { FilterChips, FOCUS, buttonCls } from '../../ui/primitives/settings-primitives';
 import type { StudyBinding } from './study';
 
-export const PAGE_SIZE = 40;
+const PAGE_SIZE = 40;
 const FILTERS: readonly WordStatus[] = ['new', 'learning', 'known'];
 
 export interface EpisodeWord {
