@@ -744,7 +744,7 @@ function untagForSync(raw: string): string {
  * can drive getItem/setItem directly without waiting on zustand's debounce;
  * `retrySyncWrite` deliberately does NOT reuse it (see its docblock — a
  * re-seal there is what used to delete every key). */
-export const syncStateStorage: StateStorage = makeChromeStorage('sync');
+const syncStateStorage: StateStorage = makeChromeStorage('sync');
 
 /** Re-send the blob this context already sealed. Called from the banner's
  * retry button once the user frees sync space or re-enables Chrome sync.

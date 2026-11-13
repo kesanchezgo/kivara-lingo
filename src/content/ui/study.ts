@@ -55,7 +55,7 @@ export { profileLangOf };
  * `ranks` is null while the list is loading: the estimate then falls back to
  * the CEFR level alone, which is a valid (if coarser) basis.
  */
-export function createStudyWords(lang: string, ranks: FrequencyRanks | null): StudyWords {
+function createStudyWords(lang: string, ranks: FrequencyRanks | null): StudyWords {
   return {
     features(tokenKey) {
       const key = normalizeKey(tokenKey);
@@ -127,7 +127,7 @@ export function getAnkiCoverage(lang: string): AnkiCoverage {
 }
 
 /** Subscribe to coverage changes (React-safe: stable snapshot references). */
-export function subscribeAnkiCoverage(listener: () => void): () => void {
+function subscribeAnkiCoverage(listener: () => void): () => void {
   coverageListeners.add(listener);
   return () => { coverageListeners.delete(listener); };
 }

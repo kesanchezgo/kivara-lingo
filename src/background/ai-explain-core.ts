@@ -13,7 +13,7 @@ import type { AiExplainRequest, SentenceExplanation } from '../shared/types';
 import { extractJsonBlock } from './ai-providers';
 
 /** Per-field caps from §10. Anything longer is clipped, never sent back. */
-export const EXPLAIN_CAPS = {
+const EXPLAIN_CAPS = {
   meaning: 220,
   grammar: 400,
   /** Maximum number of expression rows. */
@@ -47,7 +47,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * (`pt-BR`) resolves through its base code. Unknown codes fall back to the raw
  * code — still usable, and never a crash.
  */
-export const LANGUAGE_NAMES: Record<string, string> = {
+const LANGUAGE_NAMES: Record<string, string> = {
   ar: 'Arabic',
   ca: 'Catalan',
   cs: 'Czech',

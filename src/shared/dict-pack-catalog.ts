@@ -9,7 +9,7 @@ import { t } from './i18n/core';
  * wizard (subset) can share metadata + URLs and stay in lock-step.
  */
 
-export const PACKS_BASE_URL =
+const PACKS_BASE_URL =
   'https://pub-c3d38cca4dc2403b88934c56748f5144.r2.dev/releases/latest';
 
 export interface RecommendedPack {

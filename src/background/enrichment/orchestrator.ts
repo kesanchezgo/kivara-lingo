@@ -81,22 +81,15 @@ import { sourceGate } from './source-tiers';
 import { normalizeTtlDays } from '../../shared/cache-ttl';
 import {
   clearMemEnrichmentCache,
-  getEnrichmentCacheStats,
   readEnrichmentCache,
   writeEnrichmentCache,
 } from './cache';
 
 // Re-exported so cache-admin.ts and the SW keep importing the cache surface
 // from the orchestrator: a split must not ripple through every call site.
-export {
-  clearMemEnrichmentCache,
-  getEnrichmentCacheStats,
-  readEnrichmentCache,
-  writeEnrichmentCache,
-};
+export { clearMemEnrichmentCache };
 // The merger lives in merge.ts now; this re-export keeps the orchestrator's
 // surface stable for whoever reached it through here before the split.
-export { mergeFields } from './merge';
 
 export { clearEnrichmentCache } from './cache';
 import { translateText } from '../translate';
@@ -307,7 +300,7 @@ export function makeCacheKey(
  * Keep credentials out of the key; only their presence affects which
  * public endpoint can answer.
  */
-export function activeSourceSignature(vip: VipSettings): string {
+function activeSourceSignature(vip: VipSettings): string {
   const enabled = Object.entries(VIP_SOURCES)
     .filter(([flag, source]) => {
       if (!source) return false;

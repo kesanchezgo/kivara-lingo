@@ -46,7 +46,7 @@ const text = (s?: string | null): FieldValue => (s && s.trim() ? { kind: 'text',
 const list = (xs?: string[]): FieldValue => text(xs?.length ? xs.join(' · ') : '');
 
 /** The value a source would put in the card. */
-export function fieldValue(
+function fieldValue(
   src: FieldSource,
   card: CardPreviewData,
   aiOn: boolean,

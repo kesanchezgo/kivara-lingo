@@ -375,7 +375,7 @@ export interface SecretSlotIO {
 
 /** chrome.storage.local-backed IO; in-memory fallback for tests / no chrome. */
 const memorySlots = new Map<string, unknown>();
-export const defaultSlotIO: SecretSlotIO = {
+const defaultSlotIO: SecretSlotIO = {
   async get(keys) {
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
       const found = await chrome.storage.local.get(keys);

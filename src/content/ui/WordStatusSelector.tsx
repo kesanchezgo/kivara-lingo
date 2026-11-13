@@ -39,7 +39,7 @@ const LINK =
  * (probability + main reason + the action to take) > no data. The probability
  * is shown between 1 % and 99 %: it is an estimate, never a certainty.
  */
-export function statusCaption(d: StatusDetail, isSaved: boolean): string {
+function statusCaption(d: StatusDetail, isSaved: boolean): string {
   if (d.source === 'user') return isSaved ? t('ws.src.userInDeck') : t('ws.src.user');
   if (d.source === 'history') return d.status === 'known' ? t('ws.src.mature') : t('ws.src.deck');
   const b = d.basis;

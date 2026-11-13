@@ -156,7 +156,7 @@ interface BuildOpts {
   platform?: SubtitleSource['platform'];
 }
 
-export function buildCleanupCss({ hideUI, hideShadows, platform }: BuildOpts): string {
+function buildCleanupCss({ hideUI, hideShadows, platform }: BuildOpts): string {
   if (!hideUI && !hideShadows) return '';
 
   const rules = RULES[platform ?? 'generic'] ?? RULES.generic;

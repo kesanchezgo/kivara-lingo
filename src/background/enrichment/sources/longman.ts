@@ -38,7 +38,7 @@ function cleanUnique(values: string[], limit: number): string[] {
   return result;
 }
 
-export function extractLongmanFrequency(html: string): FrequencyEvidence[] {
+function extractLongmanFrequency(html: string): FrequencyEvidence[] {
   const evidence: FrequencyEvidence[] = [];
   const seen = new Set<string>();
 
@@ -59,7 +59,7 @@ export function extractLongmanFrequency(html: string): FrequencyEvidence[] {
   return evidence;
 }
 
-export function extractLongmanRelationGroups(html: string, token = ''): SenseRelationGroup[] {
+function extractLongmanRelationGroups(html: string, token = ''): SenseRelationGroup[] {
   const groups: SenseRelationGroup[] = [];
   const seen = new Set<string>();
   const normalizedToken = token.trim().toLocaleLowerCase();

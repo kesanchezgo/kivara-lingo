@@ -49,12 +49,6 @@ export function usePlaybackTimeMs(): number {
   return useSyncExternalStore(subscribeClock, () => clockMs, () => clockMs);
 }
 
-/** Test seam: reset the module clock between mounts. */
-export function resetPlaybackClockForTests(): void {
-  clockMs = 0;
-  clockListeners.clear();
-}
-
 /** Playhead polling period, ms. */
 const TICK_MS = 100;
 /**
@@ -432,16 +426,4 @@ export function cueIndexAt(cues: readonly SubtitleCue[], timeMs: number): number
   return found;
 }
 
-/** Cue index plus whether the playhead sits inside a cue. */
-export function activeCueOf(
-  cues: readonly SubtitleCue[],
-  timeMs: number,
-): SubtitleCue | null {
-  const index = cueIndexAt(cues, timeMs);
-  if (index < 0) return null;
-  const cue = cues[index];
-  return timeMs <= cue.end ? cue : null;
-}
-
 /** Exposed for the study bar's speed readout. */
-export { PLAYBACK_SPEEDS, SLOW_REPLAY_RATE };

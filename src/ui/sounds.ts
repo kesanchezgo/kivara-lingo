@@ -24,7 +24,7 @@ const audio = () => {
   } catch { return null; }
 };
 
-export const soundsEnabled = () => {
+const soundsEnabled = () => {
   try { return JSON.parse(localStorage.getItem('kvl:sounds') ?? 'true') !== false; } catch { return true; }
 };
 

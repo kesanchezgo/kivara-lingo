@@ -297,7 +297,7 @@ export interface DictStepRowStatusProps {
   status: InstallState | undefined;
 }
 
-export function DictStepRowStatus({ isInstalled, installedTermCount, status }: DictStepRowStatusProps) {
+function DictStepRowStatus({ isInstalled, installedTermCount, status }: DictStepRowStatusProps) {
   if (status?.status === 'installed') {
     return (
       <p className="text-[12px] text-emerald-600 dark:text-emerald-400 mt-1 inline-flex items-center gap-1">

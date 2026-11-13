@@ -57,7 +57,7 @@ export const VC_BANDS = BAND_EDGES.length;
 export const VC_PER_BAND = 10;
 export const VC_FAKES_SHOWN = 5;
 /** The highest rank the check can measure. */
-export const VC_MAX = BAND_EDGES[VC_BANDS - 1];
+const VC_MAX = BAND_EDGES[VC_BANDS - 1];
 
 export function bandOfRank(rank: number): number {
   for (let i = 0; i < BAND_EDGES.length; i += 1) if (rank <= BAND_EDGES[i]) return i;
@@ -161,7 +161,7 @@ export function sampleTest(source: VocabBank = COMMITTED_BANK, seed = Date.now()
 }
 
 /** What was shown in a saved attempt (a test without `shown` has no evidence). */
-export function shownItems(shown: readonly string[] | undefined, source: VocabBank = COMMITTED_BANK): VcItem[] {
+function shownItems(shown: readonly string[] | undefined, source: VocabBank = COMMITTED_BANK): VcItem[] {
   if (!shown?.length) return [];
   const wanted = new Set(shown);
   const out = source.items.filter((it) => wanted.has(it.word));
@@ -209,14 +209,14 @@ export function checkOptions(source: VocabBank, word: string, avoid: readonly st
 export type VcCheckAnswer = 'ok' | 'wrong' | 'idk';
 export type VcChecks = Record<string, VcCheckAnswer>;
 export const VC_CHECK_MAX = 5;
-export const VC_CHECK_GUESS = 0.2;
+const VC_CHECK_GUESS = 0.2;
 
 /** `null` = «No lo sé». */
 export const checkAnswerOf = (source: VocabBank, word: string, gloss: string | null): VcCheckAnswer =>
   gloss === null ? 'idk' : gloss === glossOf(source, word) ? 'ok' : 'wrong';
 
 /** Difficulty of an item: its subtitle rank, minus the cognate effect with its gloss. */
-export function itemDifficulty(it: VcItem, l1: string): number {
+function itemDifficulty(it: VcItem, l1: string): number {
   const base = Math.log(Math.max(1, it.rank));
   const sim = l1 === 'es' && it.gloss ? orthoSim(it.word, it.gloss) : 0;
   return base - (sim > MODEL.cognateMin ? cognateShift({ word: it.gloss!, sim }) : 0);

@@ -1,20 +1,12 @@
 import { toast } from 'sonner';
 import { CheckCircle2, Undo2, X, AlertTriangle } from '../../ui/icons';
 import { t } from '../../shared/i18n';
-import type { AnkiPingErrorCode } from '../../shared/types';
 
 /**
  * Card-queue notices shared by the overlay and the recent-cards list: same
  * copy and same "Undo" in both. View only — the queue owner and the undo call
  * land with F4; this component receives the undo action as a callback.
  */
-
-/** Human-readable reason for an AnkiConnect failure (same copy as the popup). */
-export function ankiReason(code?: AnkiPingErrorCode): string {
-  if (code === 'API_KEY') return t('popup.anki.errApiKey');
-  if (code === 'TIMEOUT') return t('popup.anki.errTimeout');
-  return t('popup.anki.down');
-}
 
 /** The subset of a recent card this notice needs to render. */
 export interface ToastCard {

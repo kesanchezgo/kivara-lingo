@@ -75,7 +75,7 @@ function stripHtml(s: string): string {
 }
 
 /** Parse WebVTT text (e.g. Disney+/HBO Max external subtitle file). */
-export function parseWebVTT(input: string): RawCue[] {
+function parseWebVTT(input: string): RawCue[] {
   if (!input) return [];
   const lines = input.replace(/\r/g, '').split('\n');
   const cues: RawCue[] = [];
@@ -144,7 +144,7 @@ export function parseWebVTT(input: string): RawCue[] {
  * `<p begin="..." end="..." ...>text</p>` elements. Some platforms wrap text
  * in `<span>` lines.
  */
-export function parseTTML(input: string): RawCue[] {
+function parseTTML(input: string): RawCue[] {
   if (!input) return [];
   // Pull out the tickRate (optional) to convert "1234567t" timings.
   const tickMatch = /tickRate\s*=\s*"(\d+)"/.exec(input);

@@ -29,8 +29,6 @@ for (const item of data.items) {
   if (!BY_EN.has(key)) BY_EN.set(key, { es: item.es, note: item.note });
 }
 
-export const FALSE_FRIEND_COUNT = BY_EN.size;
-
 /** The Spanish twin of an English lemma, or undefined when it is not a trap. */
 export function falseFriendOf(lemma: string): FalseFriend | undefined {
   return BY_EN.get(lemma.trim().toLowerCase());

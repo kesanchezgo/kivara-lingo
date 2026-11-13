@@ -114,7 +114,7 @@ export function withAudioHint(
 }
 
 /** What is missing from a scene, in the prototype's wording (amber notes). */
-export function sceneMediaNotes(media: SceneMedia): string[] {
+function sceneMediaNotes(media: SceneMedia): string[] {
   if (media.frame && media.audio) return [];
   if (!media.frame && !media.audio) return [t('app.noMedia')];
   if (!media.frame) return [t('app.noFrame')];

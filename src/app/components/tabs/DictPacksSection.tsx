@@ -58,11 +58,7 @@ import {
 } from '../../../content/nlp/dict-import-client';
 import {
   aggregateCoverage,
-  BUNDLE_PACK_ID,
-  DEFAULT_IDLE_THRESHOLD_MS,
   idlePacks,
-  MISS_PACK_ID,
-  REMOTE_PACK_ID,
   topPacksByHits,
 } from '../../../shared/telemetry-model';
 import {
@@ -979,6 +975,3 @@ function TopPacksSection({ stats, packs, idlePackIds }: TopPacksSectionProps) {
     </div>
   );
 }
-
-// Re-export the pseudo-ids so callers can correlate stats rows with packs.
-export { BUNDLE_PACK_ID, MISS_PACK_ID, REMOTE_PACK_ID, DEFAULT_IDLE_THRESHOLD_MS };
