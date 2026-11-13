@@ -1755,6 +1755,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           <PortalContainerProvider container={videoPortalContainer ?? null}>
             <div className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'dark' : ''}`}>
               <StudyBar
+                platform={adapter?.platform}
                 enabled={enabled}
                 playing={playing}
                 onTogglePlay={studyPlayback.togglePlay}
