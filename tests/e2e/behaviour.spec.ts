@@ -81,10 +81,27 @@ function json3(lines: readonly string[]): string {
  * makes for itself; everything else is the original EN track.
  */
 async function openDual(context: BrowserContext): Promise<Page> {
-  return openPlayer(context, {
+  const page = await openPlayer(context, {
     fixture: FIXTURE,
     timedtext: (url) => json3(url.searchParams.get('tlang') === 'es' ? ES : EN),
   });
+  await expectClipOutlastsCueTwo(page);
+  return page;
+}
+
+/**
+ * The clip must be longer than the SECOND cue's 6.0 s end.
+ *
+ * A loaded runner drops the tail of the canvas recording — a 6.5 s recording
+ * once measured 5.5 s of WebM — and the media element then paused BY ITSELF at
+ * the end of the stream. B5 read that as the cue logic pausing early. Failing
+ * here names the real cause instead of leaving a 5.5 s mystery in the run log.
+ */
+async function expectClipOutlastsCueTwo(page: Page): Promise<void> {
+  const clip = await page.evaluate(
+    () => (window as Window & { __kivaraClipDuration?: number }).__kivaraClipDuration ?? 0,
+  );
+  expect(clip, 'the recorded clip is shorter than cue 2 (6.0 s): runner dropped the tail').toBeGreaterThan(7.2);
 }
 
 /** Open the transcript rail through the StudyBar's own button. */

@@ -25,15 +25,19 @@
   <body>
     <div id="stage">
       <!--
-        A SEEKABLE synthetic clip: the canvas is recorded for ~6.5 s with
-        MediaRecorder and the resulting WebM becomes the video source. The
-        original fixture used `canvas.captureStream()` directly, which is live
-        and therefore NOT seekable — the study controls (previous/next, loop,
-        auto-pause) cannot be exercised on it.
+        A SEEKABLE synthetic clip: the canvas is recorded with MediaRecorder
+        and the resulting WebM becomes the video source. The original fixture
+        used `canvas.captureStream()` directly, which is live and therefore
+        NOT seekable — the study controls (previous/next, loop, auto-pause)
+        cannot be exercised on it.
 
         The captions are the same VTT the smoke test uses (0–3 s, 3–6 s,
-        6–9 s); the clip is shorter than the last cue on purpose, nothing here
-        needs it.
+        6–9 s). The clip has to OUTLAST the SECOND cue: the auto-pause
+        regression plays straight through 6.0 s, and when the clip ended
+        sooner the media element paused BY ITSELF at the end of the stream —
+        the test then read a pause at ~5.5 s and blamed the cue logic. The
+        recording runs 9 s because a loaded runner drops the canvas tail: a
+        6.5 s recording measured 5.5 s of WebM on CI.
       -->
       <video id="player" muted playsinline crossorigin="anonymous">
         <track id="cues" kind="subtitles" srclang="en" label="English" default src="./cues.vtt" />
@@ -89,7 +93,7 @@
         });
       };
       recorder.start();
-      setTimeout(() => recorder.stop(), 6500);
+      setTimeout(() => recorder.stop(), 9000);
     </script>
   </body>
 </html>

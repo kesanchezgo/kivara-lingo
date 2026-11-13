@@ -63,7 +63,15 @@ async function openPlayer(
   context: Parameters<typeof openFixture>[0],
   opts: { vtt?: string } = {},
 ): Promise<Page> {
-  return openFixture(context, { fixture: FIXTURE, vtt: opts.vtt ?? CUES_VTT });
+  const page = await openFixture(context, { fixture: FIXTURE, vtt: opts.vtt ?? CUES_VTT });
+  // Same guard as the dual fixture: an auto-pause expectation at 6.0 s is
+  // meaningless when the recorded clip ends at 5.5 s and the media element
+  // pauses by itself.
+  const clip = await page.evaluate(
+    () => (window as Window & { __kivaraClipDuration?: number }).__kivaraClipDuration ?? 0,
+  );
+  expect(clip, 'the recorded clip is shorter than cue 2 (6.0 s): runner dropped the tail').toBeGreaterThan(7.2);
+  return page;
 }
 
 /*
