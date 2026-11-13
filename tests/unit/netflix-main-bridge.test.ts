@@ -41,6 +41,15 @@ function installNetflix(netflix: unknown): void {
   (window as NetflixTestWindow).netflix = netflix;
 }
 
+function sendRate(rate: number, id: string): void {
+  window.dispatchEvent(
+    new MessageEvent('message', {
+      source: window,
+      data: { source: CMD_SOURCE, id, cmd: 'rate', rate, nonce: NONCE },
+    }),
+  );
+}
+
 function sendSeek(timeMs: number, id: string): void {
   // Dispatch explicitly: happy-dom does not guarantee `event.source` on
   // postMessage-delivered events, and the MAIN handler gates on it.
@@ -207,5 +216,64 @@ describe('Netflix MAIN-world seek routing', () => {
     expect(result.ok).toBe(true);
     expect(firstSeek).toHaveBeenCalledWith(60_000);
     expect(secondSeek).not.toHaveBeenCalled();
+  });
+});
+
+/** A YouTube MAIN-world player stub, the way the real page exposes it. */
+function installYouTube(): { rates: number[] } {
+  const rates: number[] = [];
+  (window as unknown as Record<string, unknown>).movie_player = {
+    setPlaybackRate(rate: number) { rates.push(rate); },
+  };
+  return { rates };
+}
+
+describe('MAIN-world rate command (point 3)', () => {
+  beforeEach(() => {
+    document.documentElement.setAttribute('data-kivara-nonce', NONCE);
+  });
+  afterEach(() => {
+    document.documentElement.removeAttribute('data-kivara-nonce');
+    delete (window as unknown as Record<string, unknown>).movie_player;
+    delete (window as NetflixTestWindow).netflix;
+  });
+
+  it('YouTube: routes the rate through movie_player.setPlaybackRate', async () => {
+    const yt = installYouTube();
+    sendRate(1.25, 'r1');
+    const result = await nextResult('r1');
+    expect(result.ok).toBe(true);
+    expect(yt.rates).toEqual([1.25]);
+  });
+
+  it('Netflix: the session player API sets the rate when it exists', async () => {
+    const rates: number[] = [];
+    installNetflix(
+      makeApi({
+        getAllPlayerSessionIds: () => ['s1'],
+        getVideoPlayerBySessionId: (id: string) =>
+          id === 's1'
+            ? { seek: vi.fn(), setPlaybackRate: (r: number) => rates.push(r) }
+            : null,
+      }),
+    );
+    sendRate(0.75, 'r2');
+    const result = await nextResult('r2');
+    expect(result.ok).toBe(true);
+    expect(rates).toEqual([0.75]);
+  });
+
+  it('refuses rates outside [0.25, 4]', async () => {
+    const yt = installYouTube();
+    sendRate(10, 'r3');
+    const result = await nextResult('r3');
+    expect(result.ok).toBe(false);
+    expect(yt.rates).toEqual([]);
+  });
+
+  it('with no rate API anywhere it answers an error (the element fallback applies)', async () => {
+    sendRate(1.25, 'r4');
+    const result = await nextResult('r4');
+    expect(result.ok).toBe(false);
   });
 });

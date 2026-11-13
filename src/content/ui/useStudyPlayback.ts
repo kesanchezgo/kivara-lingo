@@ -21,10 +21,11 @@ import {
   type MutableRefObject,
 } from 'react';
 import { useKivaraStore } from '../../shared/use-kivara-store';
+import { dbg } from '../../shared/logger';
 import { createChromeLocalStore } from '../../shared/chrome-local-store';
 import { useChromeLocal } from '../../ui/hooks/useChromeLocal';
 import type { PlaybackController, SubtitleCue } from '../platform-adapters/types';
-import { PLAYBACK_SPEEDS, SLOW_REPLAY_RATE } from '../platform-adapters/playback';
+import { clampRate, createRateSync, PLAYBACK_SPEEDS, SLOW_REPLAY_RATE } from '../platform-adapters/playback';
 
 /* ── Clock, outside React ────────────────────────────────────────────────
  * The transcript's per-line progress bar is the only surface that follows the
@@ -60,7 +61,7 @@ const JUMP_MARGIN_MS = 250;
 
 const loopStore = createChromeLocalStore<boolean>('kvl:study.loop', false);
 const speedStore = createChromeLocalStore<number>('kvl:study.speed', 1, (raw) =>
-  typeof raw === 'number' && PLAYBACK_SPEEDS.includes(raw) ? raw : 1,
+  typeof raw === 'number' && Number.isFinite(raw) ? clampRate(raw) : 1,
 );
 
 export interface StudyPlaybackOptions {
@@ -127,6 +128,18 @@ export function useStudyPlayback({
   loopRef.current = loop;
   const speedRef = useRef(speed);
   speedRef.current = speed;
+
+  // Point 3: every rate Kivara writes is MARKED, so a ratechange within the
+  // echo window is ours, and one that disagrees is the platform reverting —
+  // retried once, then the platform's rate is accepted (no fight). A
+  // ratechange outside any armed window is the user on the NATIVE menu, and
+  // Kivara's speed follows it through the store.
+  const rateSyncRef = useRef<ReturnType<typeof createRateSync> | null>(null);
+  const applyRateRef = useRef((_rate: number) => {});
+  applyRateRef.current = (rate: number) => {
+    rateSyncRef.current?.applied(rate);
+    controller?.setRate(rate);
+  };
   const autoPauseRef = useRef(autoPause);
   autoPauseRef.current = autoPause;
   const suspendedRef = useRef(suspended);
@@ -213,7 +226,7 @@ export function useStudyPlayback({
       const endedSlow = slowOnceRef.current;
       slowOnceRef.current = false;
       if (endedSlow) {
-        controller.setRate(speedRef.current);
+        applyRateRef.current(speedRef.current);
         pausedByKivara.current = true;
         controller.pause();
         markAutoPaused(true);
@@ -283,8 +296,30 @@ export function useStudyPlayback({
   // Switching the study speed sets the live rate, except during a slow pass.
   useEffect(() => {
     if (!controller || slowOnceRef.current) return;
-    controller.setRate(speed);
+    applyRateRef.current(speed);
   }, [controller, speed]);
+
+  // Point 3: hear the player's own rate. Kivara's setRate goes through the
+  // platform API (the bridge), so the native speed menu reflects ours; when
+  // the NATIVE menu moves instead, the store follows it here.
+  const videoForRate = video;
+  useEffect(() => {
+    if (!videoForRate) return;
+    const sync = createRateSync(videoForRate, {
+      apply: (rate) => applyRateRef.current(rate),
+      accept: (rate) => {
+        if (suspendedRef.current) return; // a capture pins 1x: no sync
+        speedStore.set(clampRate(rate));
+      },
+      onPlatformRevert: (rate) => {
+        dbg('[Kivara Lingo] the platform reverted our playback rate; accepted', rate);
+      },
+    }, {
+      shouldAccept: (rate) => rate >= 0.25 && rate <= 4,
+    });
+    rateSyncRef.current = sync;
+    return () => sync.detach();
+  }, [videoForRate]);
 
   const seekCue = useCallback(
     (index: number, play = true) => {
@@ -294,7 +329,7 @@ export function useStudyPlayback({
       const safe = Math.max(0, Math.min(list.length - 1, index));
       const target = list[safe];
       slowOnceRef.current = false;
-      controller.setRate(speedRef.current);
+      applyRateRef.current(speedRef.current);
       // Re-anchor at the DESTINATION before the seek lands: the controller may
       // resolve after one or more ticks, and during a jump `previous` still
       // points into the cue we are leaving.
@@ -326,12 +361,12 @@ export function useStudyPlayback({
     const index = getActiveIndex();
     if (index < 0) return;
     slowOnceRef.current = true;
-    controller.setRate(SLOW_REPLAY_RATE);
+    applyRateRef.current(SLOW_REPLAY_RATE);
     seekCue(index);
     // seekCue restores the general rate on its own; the slow pass re-applies
     // its own rate AFTER that promise's synchronous body, so the order holds
     // on HTML5 and on the Netflix bridge alike.
-    controller.setRate(SLOW_REPLAY_RATE);
+    applyRateRef.current(SLOW_REPLAY_RATE);
   }, [controller, getActiveIndex, seekCue]);
 
   const togglePlay = useCallback(() => {

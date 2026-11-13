@@ -17,7 +17,7 @@
  * `<video>` on SPA navigation, and a captured element would go stale.
  */
 import type { PlaybackController } from './types';
-import { seekThroughMainWorld } from './netflix-main-bridge';
+import { rateThroughMainWorld, seekThroughMainWorld } from './netflix-main-bridge';
 
 /** Study speeds. The same list backs the transcript and the study bar. */
 export const PLAYBACK_SPEEDS: readonly number[] = [0.75, 1, 1.25];
@@ -86,11 +86,24 @@ export function createMediaPlaybackController(
       const video = getVideo();
       if (!video) return;
       const next = clampRate(rate);
-      try {
-        video.playbackRate = next;
-      } catch {
-        /* the platform may freeze playbackRate; keep the old one */
-      }
+      // Point 3: the platform API keeps its native speed menu in sync. The
+      // bridge rejects fast on hosts without the MAIN interceptor (no nonce),
+      // so generic sites still write the element directly.
+      rateThroughMainWorld(next)
+        .then(() => {
+          try {
+            video.playbackRate = next;
+          } catch {
+            /* the API already did it */
+          }
+        })
+        .catch(() => {
+          try {
+            video.playbackRate = next;
+          } catch {
+            /* the platform may freeze playbackRate; keep the old one */
+          }
+        });
     },
     isPaused() {
       return getVideo()?.paused ?? true;
@@ -133,17 +146,87 @@ export function createNetflixPlaybackController(
     setRate(rate) {
       const video = getVideo();
       if (!video) return;
-      try {
-        video.playbackRate = clampRate(rate);
-      } catch {
-        /* frozen playbackRate */
-      }
+      const next = clampRate(rate);
+      rateThroughMainWorld(next)
+        .then(() => {
+          try {
+            video.playbackRate = next;
+          } catch {
+            /* the API already did it */
+          }
+        })
+        .catch(() => {
+          try {
+            video.playbackRate = next;
+          } catch {
+            /* frozen playbackRate */
+          }
+        });
     },
     isPaused() {
       return getVideo()?.paused ?? true;
     },
     currentTimeMs() {
       return (getVideo()?.currentTime ?? 0) * 1000;
+    },
+  };
+}
+
+
+/**
+ * Point 3: keeps Kivara's speed and the player's real rate in step.
+ *
+ *  -  — call right before handing  to the controller:
+ *    the next  within the echo window is OUR apply echoing back.
+ *  - A  that disagrees with what we just applied is a platform
+ *    revert: re-apply ONCE, and if it reverts again accept the platform's
+ *    rate (no fight) — reported through .
+ *  - A  outside the echo window is the user moving the NATIVE
+ *    menu: Kivara's speed follows it through .
+ */
+interface RateSyncHandlers {
+  apply(rate: number): void;
+  accept(rate: number): void;
+  onPlatformRevert?(rate: number): void;
+}
+
+export function createRateSync(
+  video: HTMLVideoElement,
+  handlers: RateSyncHandlers,
+  opts: { echoMs?: number; shouldAccept?: (rate: number) => boolean } = {},
+): { applied(rate: number): void; detach(): void } {
+  const echoMs = opts.echoMs ?? 600;
+  let lastApplied: number | null = null;
+  let appliedAt = 0;
+  let retried = false;
+  const onChange = () => {
+    const actual = video.playbackRate;
+    if (lastApplied !== null && Date.now() - appliedAt < echoMs) {
+      if (Math.abs(actual - lastApplied) < 0.01) return; // our own echo
+      if (!retried) {
+        retried = true;
+        appliedAt = Date.now();
+        handlers.apply(lastApplied);
+        return;
+      }
+      // It reverted again: the platform wins, no loop.
+      lastApplied = null;
+      if (opts.shouldAccept?.(actual) ?? true) handlers.accept(actual);
+      handlers.onPlatformRevert?.(actual);
+      return;
+    }
+    lastApplied = null;
+    if (opts.shouldAccept?.(actual) ?? true) handlers.accept(actual);
+  };
+  video.addEventListener('ratechange', onChange);
+  return {
+    applied(rate: number) {
+      lastApplied = rate;
+      appliedAt = Date.now();
+      retried = false;
+    },
+    detach() {
+      video.removeEventListener('ratechange', onChange);
     },
   };
 }
