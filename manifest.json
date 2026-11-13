@@ -36,7 +36,18 @@
     "http://[::1]/*",
     "http://localhost:8765/*",
     "http://localhost/*",
-    "https://*.youtube.com/embed/*"
+    "https://*.youtube.com/embed/*",
+    "*://*.amazon.com/gp/video/*",
+    "*://*.amazon.co.uk/gp/video/*",
+    "*://*.amazon.de/gp/video/*",
+    "*://*.amazon.es/gp/video/*",
+    "*://*.amazon.fr/gp/video/*",
+    "*://*.amazon.it/gp/video/*",
+    "*://*.amazon.co.jp/gp/video/*",
+    "*://*.amazon.ca/gp/video/*",
+    "*://*.amazon.com.mx/gp/video/*",
+    "*://*.amazon.com.br/gp/video/*",
+    "*://*.amazon.in/gp/video/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
@@ -50,7 +61,18 @@
         "*://*.disneyplus.com/*",
         "*://*.hbomax.com/*",
         "*://*.max.com/*",
-        "*://*.primevideo.com/*"
+        "*://*.primevideo.com/*",
+        "*://*.amazon.com/gp/video/*",
+        "*://*.amazon.co.uk/gp/video/*",
+        "*://*.amazon.de/gp/video/*",
+        "*://*.amazon.es/gp/video/*",
+        "*://*.amazon.fr/gp/video/*",
+        "*://*.amazon.it/gp/video/*",
+        "*://*.amazon.co.jp/gp/video/*",
+        "*://*.amazon.ca/gp/video/*",
+        "*://*.amazon.com.mx/gp/video/*",
+        "*://*.amazon.com.br/gp/video/*",
+        "*://*.amazon.in/gp/video/*"
       ],
       "js": [
         "src/content/index.tsx"
@@ -65,7 +87,18 @@
         "*://*.disneyplus.com/*",
         "*://*.hbomax.com/*",
         "*://*.max.com/*",
-        "*://*.primevideo.com/*"
+        "*://*.primevideo.com/*",
+        "*://*.amazon.com/gp/video/*",
+        "*://*.amazon.co.uk/gp/video/*",
+        "*://*.amazon.de/gp/video/*",
+        "*://*.amazon.es/gp/video/*",
+        "*://*.amazon.fr/gp/video/*",
+        "*://*.amazon.it/gp/video/*",
+        "*://*.amazon.co.jp/gp/video/*",
+        "*://*.amazon.ca/gp/video/*",
+        "*://*.amazon.com.mx/gp/video/*",
+        "*://*.amazon.com.br/gp/video/*",
+        "*://*.amazon.in/gp/video/*"
       ],
       "js": [
         "src/content/platform-adapters/main-world-interceptor.ts"
@@ -88,7 +121,18 @@
         "*://*.disneyplus.com/*",
         "*://*.hbomax.com/*",
         "*://*.max.com/*",
-        "*://*.primevideo.com/*"
+        "*://*.primevideo.com/*",
+        "*://*.amazon.com/*",
+        "*://*.amazon.co.uk/*",
+        "*://*.amazon.de/*",
+        "*://*.amazon.es/*",
+        "*://*.amazon.fr/*",
+        "*://*.amazon.it/*",
+        "*://*.amazon.co.jp/*",
+        "*://*.amazon.ca/*",
+        "*://*.amazon.com.mx/*",
+        "*://*.amazon.com.br/*",
+        "*://*.amazon.in/*"
       ]
     }
   ],

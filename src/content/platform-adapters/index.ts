@@ -29,7 +29,13 @@ export async function detectPlatform(): Promise<SubtitleSource | null> {
     return createHboMaxAdapter();
   }
 
-  if (host.includes('primevideo.com') || host.includes('amazon.com')) {
+  // amazon.* is only Prime under /gp/video: the rest of the store must not
+  // mount the adapter (and the manifest only injects there, so in practice
+  // this branch is unreachable off-route — the guard keeps it honest).
+  if (
+    (host.includes('primevideo.com'))
+    || (/\.amazon\.(?:com|co\.uk|de|es|fr|it|co\.jp|ca|com\.mx|com\.br|in)$/.test(host) && window.location.pathname.startsWith('/gp/video/'))
+  ) {
     return createPrimeVideoAdapter();
   }
 
