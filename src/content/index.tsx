@@ -9,6 +9,8 @@ import { useKivaraStore } from '../shared/use-kivara-store';
 import { clearBus, reprocessLastDashManifest } from './platform-adapters/intercepted-bus';
 import { dbg, initLogFlag } from '../shared/logger';
 import { bumpMountGen, enqueueMount, readMountGen } from './mount-queue';
+import { mountDenied } from './mount-gate';
+import { findVideoContainerIn } from './video-container';
 import { setYomitanHeadwords } from './nlp/yomitan-headwords';
 import { updateOverlayParent, type RestoreState } from './fullscreen-overlay-core';
 
@@ -156,37 +158,10 @@ function currentMediaId(): string {
 }
 
 function findVideoContainer(): { video: HTMLVideoElement | null; container: HTMLElement | null } {
-  const host = window.location.hostname;
-
-  // Per-platform anchor preferences. Falls back to the video's parent element
-  // for unknown layouts.
-  const platformSelectors: Array<{ test: RegExp; selectors: string[] }> = [
-    { test: /youtube\.com$/, selectors: ['.html5-video-player'] },
-    { test: /netflix\.com$/, selectors: ['.watch-video', '.watch-video--player-view'] },
-    { test: /disneyplus\.com$/, selectors: ['.btm-media-player', '.btm-media-overlays'] },
-    { test: /(hbomax|max)\.com$/, selectors: ['#root', '[data-testid="player-container"]'] },
-    {
-      test: /primevideo\.com$/,
-      selectors: ['.webPlayerSDKContainer', '.atvwebplayersdk-player-container'],
-    },
-  ];
-
-  for (const { test, selectors } of platformSelectors) {
-    if (!test.test(host)) continue;
-    for (const selector of selectors) {
-      const el = document.querySelector<HTMLElement>(selector);
-      if (el) {
-        const video = el.querySelector<HTMLVideoElement>('video');
-        if (video) return { video, container: el };
-      }
-    }
-  }
-
-  const video = document.querySelector<HTMLVideoElement>('video');
-  return {
-    video,
-    container: (video?.parentElement as HTMLElement | null) ?? null,
-  };
+  // Gated (point 1): known platforms mount only on their playback route and
+  // container — never over storefront trailers or home-feed previews. The
+  // rules and their rationale live in mount-gate.ts / video-container.ts.
+  return findVideoContainerIn(document, window.location.hostname, window.location.pathname);
 }
 
 async function waitForVideo(timeoutMs = 15000): Promise<{ video: HTMLVideoElement; container: HTMLElement } | null> {
@@ -513,8 +488,15 @@ async function handleNavigation() {
   // the SPA to paint while not adding a perceptible delay to the
   // interactive case (waitForVideo returns on the very first poll).
   const found = await waitForVideo(3000);
-  if (!found) {
-    await enqueueMount(gen, async () => unmount());
+  const offRoute = mountDenied(window.location.hostname, window.location.pathname);
+  if (!found || offRoute) {
+    // Leaving the playback route (Netflix /watch → /browse) is a demount, and
+    // the bus must drop the previous title's tracks with it. Mounting again
+    // on the way back is handleNavigation's next call, once per return.
+    await enqueueMount(gen, async () => {
+      unmount();
+      clearBus();
+    });
     return;
   }
   const { video, container } = found;
