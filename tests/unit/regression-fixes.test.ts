@@ -187,13 +187,11 @@ describe('adapter lifecycle (#2/#3)', () => {
 
     const a1 = createInterceptedAdapter({
       platform: 'netflix',
-      language: 'en',
       hideNativeCss: '.player-timedtext { display: none }',
     });
     const stylesAfterA1 = Array.from(document.querySelectorAll('style'));
     const a2 = createInterceptedAdapter({
       platform: 'netflix',
-      language: 'en',
       hideNativeCss: '.player-timedtext { display: none }',
     });
     expect(document.querySelectorAll('style').length).toBe(before + 2);

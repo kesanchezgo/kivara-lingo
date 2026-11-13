@@ -60,7 +60,8 @@ const HIDE_NATIVE_CSS = `
 export function createHboMaxAdapter(): SubtitleSource {
   return createInterceptedAdapter({
     platform: 'hbo',
-    language: 'en',
+    // The source-track language follows the user's `translate.sourceLang`
+    // (resolved live by the shared factory — never a hardcoded `'en'`).
     hideNativeCss: HIDE_NATIVE_CSS,
     getVideo: () => document.querySelector<HTMLVideoElement>('video'),
     getMediaInfo: () => getDomMediaInfo('hbo', {

@@ -29,7 +29,8 @@ const HIDE_NATIVE_CSS = `
 export function createDisneyPlusAdapter(): SubtitleSource {
   return createInterceptedAdapter({
     platform: 'disney',
-    language: 'en',
+    // The source-track language follows the user's `translate.sourceLang`
+    // (resolved live by the shared factory — never a hardcoded `'en'`).
     hideNativeCss: HIDE_NATIVE_CSS,
     getVideo: () => {
       const playerWrap = document.querySelector('.btm-media-player') ?? document.querySelector('.btm-media-overlays');

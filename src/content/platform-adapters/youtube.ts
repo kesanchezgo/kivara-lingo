@@ -394,9 +394,6 @@ export function attachYouTube(): SubtitleSource | null {
     getActiveCue() {
       return currentActiveCue;
     },
-    seek(timeMs) {
-      video.currentTime = timeMs / 1000;
-    },
     hideNativeSubtitles() {
       ensureHideStyle();
       if (activeTrack) activeTrack.mode = 'hidden';

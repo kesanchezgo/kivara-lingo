@@ -32,7 +32,8 @@ const HIDE_NATIVE_CSS = `
 export function createPrimeVideoAdapter(): SubtitleSource {
   return createInterceptedAdapter({
     platform: 'prime',
-    language: 'en',
+    // The source-track language follows the user's `translate.sourceLang`
+    // (resolved live by the shared factory — never a hardcoded `'en'`).
     hideNativeCss: HIDE_NATIVE_CSS,
     getVideo: () => {
       const player =

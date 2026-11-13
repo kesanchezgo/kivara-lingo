@@ -100,9 +100,9 @@ function readNetflixMedia(): MediaInfo {
 export function createNetflixAdapter(): SubtitleSource {
   return createInterceptedAdapter({
     platform: 'netflix',
-    // Netflix doesn't expose the cue language in the URL — most casual users
-    // pick English; the user can override in the panel.
-    language: 'en',
+    // Netflix doesn't expose the cue language in the URL; the shared factory
+    // resolves the source track from the user's `translate.sourceLang` — the
+    // panel override this file used to promise — instead of a hardcoded 'en'.
     hideNativeCss: HIDE_NATIVE_CSS,
     // Never `video.currentTime` on Netflix (error M7375): seeks go through the
     // player API in the MAIN world (F6 · docs/REDESIGN-V2.md §4.5).
