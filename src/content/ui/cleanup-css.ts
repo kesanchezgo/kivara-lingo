@@ -154,15 +154,22 @@ interface BuildOpts {
   hideUI: boolean;
   hideShadows: boolean;
   platform?: SubtitleSource['platform'];
+  /**
+   * Point 4: TRUE while the pointer is idle over the video (the chrome hides),
+   * FALSE on pointer activity (the chrome shows again). Defaults to true so
+   * callers that don't track the pointer keep the previous always-hidden
+   * behavior.
+   */
+  controlsIdle?: boolean;
 }
 
-function buildCleanupCss({ hideUI, hideShadows, platform }: BuildOpts): string {
+export function buildCleanupCss({ hideUI, hideShadows, controlsIdle = true, platform }: BuildOpts): string {
   if (!hideUI && !hideShadows) return '';
 
   const rules = RULES[platform ?? 'generic'] ?? RULES.generic;
   const selectors: string[] = [];
 
-  if (hideUI) {
+  if (hideUI && controlsIdle) {
     selectors.push(...rules.hideUI, ...COMMON_HIDE_UI);
   }
   if (hideShadows) {
