@@ -104,22 +104,45 @@ function flush(ms = 60): Promise<void> {
 }
 
 /**
+ * A live secret slot: ciphertext under the current format, not a tombstone and
+ * not blank. `__cleared__` and `''` both mean "no key"; only `enc:v1:` means
+ * the write landed.
+ */
+function isSealed(value: string | undefined): boolean {
+  return typeof value === 'string' && value.startsWith('enc:v1:');
+}
+
+/**
  * Poll instead of sleeping a fixed delay. The persist path is async and a
  * fixed sleep raced under a loaded machine (two CI jobs at once), flaking
  * tests that used to pass in isolation.
  *
- * Budget: 250 × 20 ms = 5 s. It was 100 × 20 ms = 2 s, and a full-suite run
- * was measured spending 2 194 ms in the write under load — the poll expired
- * 194 ms before the slot existed. The predicate is cheap and the happy path
- * returns on the first poll, so the wider ceiling costs nothing when things
- * are fast and buys the whole spread when they are not.
+ * Budget: 12 s by default, and each test's own timeout is its sum of budgets
+ * plus a margin. It was 100 attempts of 20 ms = 2 s, then 250 (nominally 5 s):
+ * a full-suite run was measured spending 2 194 ms in one write under load, and
+ * with six copies of this file on a saturated CPU a single write + decrypt was
+ * seen taking ~8 s of wall clock.
+ *
+ * The budget is a DEADLINE, not an attempt count. As `tries = 250` of
+ * `flush(20)` it read as 5 s but only was 5 s on an idle box: when the machine
+ * is starved a 20 ms timer comes back much later, so one nominal "5 s" wait
+ * could outlive the whole test limit and surface as `Test timed out` with no
+ * clue which wait was stuck. With a deadline the cap is real, and the sum of a
+ * test's budgets is exactly what that test's timeout has to clear.
+ *
+ * `what` names the wait in the failure. Without it every timeout in this file
+ * said "waitFor timed out", which under load pointed at the poller instead of
+ * at the write that never landed.
  */
-async function waitFor(predicate: () => boolean, tries = 250): Promise<void> {
-  for (let i = 0; i < tries; i += 1) {
+async function waitFor(predicate: () => boolean, what: string, budgetMs = 12_000): Promise<void> {
+  const deadline = Date.now() + budgetMs;
+  for (;;) {
     if (predicate()) return;
+    if (Date.now() >= deadline) {
+      throw new Error(`waitFor timed out after ${(budgetMs / 1000).toFixed(1)}s: ${what}`);
+    }
     await flush(20);
   }
-  throw new Error('waitFor timed out');
 }
 
 describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
@@ -148,7 +171,7 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     // Wait for the write to actually land instead of sleeping a fixed 60 ms:
     // the persist path is async and, on a loaded machine (two CI jobs at
     // once), the assertion below used to run before the slot existed.
-    await waitFor(() => local.get(SLOT_KEY)?.startsWith('enc:v1:') === true);
+    await waitFor(() => isSealed(local.get(SLOT_KEY)), "A's key lands in the local slot");
     // SYNC must carry NO secret material — neither plaintext nor ciphertext.
     const syncRaw = sync.get(SYNC_KEY);
     expect(syncRaw).toBeDefined();
@@ -165,8 +188,13 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     vi.resetModules();
     const modB = await import('../../src/shared/use-kivara-store');
     // getItem runs during hydration — wait for the value to appear.
-    await waitFor(() => modB.useKivaraStore.getState().ai.apiKey === 'sk-e2e-roundtrip');
-  });
+    await waitFor(
+      () => modB.useKivaraStore.getState().ai.apiKey === 'sk-e2e-roundtrip',
+      'the second context reads the key back',
+    );
+    // 2 × 12 s of budgets + room for the module graph: a starved import of
+    // this graph was measured at several seconds on its own.
+  }, 40_000);
 
   it("a cleared key ('' via Quitar) survives a second context (no resurrection)", async () => {
     const modA = await import('../../src/shared/use-kivara-store');
@@ -174,13 +202,16 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     modA.useKivaraStore.setState({
       ai: { ...modA.useKivaraStore.getState().ai, apiKey: 'sk-to-clear' },
     });
-    await waitFor(() => !!local.get(SLOT_KEY));
+    await waitFor(() => isSealed(local.get(SLOT_KEY)), "A's key lands in the local slot");
     // Quitar path: the UI marks an explicit clear before saving.
     markSecretExplicitClear('ai', 'apiKey');
     modA.useKivaraStore.setState({
       ai: { ...modA.useKivaraStore.getState().ai, apiKey: '' },
     });
-    await waitFor(() => local.get(SLOT_KEY) === '__cleared__');
+    await waitFor(
+      () => local.get(SLOT_KEY) === '__cleared__',
+      'Quitar writes the tombstone',
+    );
 
     expect(local.get(SLOT_KEY)).toBe('__cleared__');
 
@@ -189,9 +220,13 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     // '' is also the default, so waiting for it proves nothing: wait for
     // hydration itself to have run (the store exposes it) and then assert the
     // key was NOT resurrected from the tombstone.
-    await waitFor(() => modB.useKivaraStore.persist.hasHydrated?.() === true);
+    await waitFor(
+      () => modB.useKivaraStore.persist.hasHydrated?.() === true,
+      'the second context hydrates',
+    );
     expect(modB.useKivaraStore.getState().ai.apiKey).toBe('');
-  });
+    // 3 × 12 s of budgets + room for the module graph.
+  }, 50_000);
 
   it('the sync retry never tombstones the saved keys', async () => {
     // 🔴 regression: retrySyncWrite used to replay the sealed blob through
@@ -210,9 +245,8 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     // the test above wins and this one reads `undefined`, which asserts as
     // "the retry tombstoned the key" — a real regression reported as a pass
     // blocker. Wait for the write to land instead.
-    await waitFor(() => local.get(SLOT_KEY)?.startsWith('enc:v1:') === true);
-    const slotBefore = local.get(SLOT_KEY);
-    expect(typeof slotBefore).toBe('string');
+    await waitFor(() => isSealed(local.get(SLOT_KEY)), "A's key lands in the local slot");
+    expect(isSealed(local.get(SLOT_KEY))).toBe(true);
     expect(modA.getSyncWriteFailed()).toBe(false);
 
     // Quota blows on the next persist write.
@@ -220,8 +254,9 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     useKivaraStore.setState({
       enabled: !useKivaraStore.getState().enabled,
     });
-    await flush();
-    expect(modA.getSyncWriteFailed()).toBe(true);
+    // The failure is reported from the write's catch, so it lands a tick after
+    // setState — a fixed `flush()` here read the flag before the throw.
+    await waitFor(() => modA.getSyncWriteFailed(), 'the failed sync write is reported');
 
     // The banner retries: the already-sealed blob is replayed verbatim.
     env.failSync = false;
@@ -236,15 +271,26 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     expect(modA.getSyncWriteFailed()).toBe(false);
 
     // Keys intact, both in the slot and after a full reload of the context.
-    expect(local.get(SLOT_KEY)).toBe(slotBefore);
-    expect(await decryptSecret(local.get(SLOT_KEY) as string)).toBe('sk-retry-survivor');
+    //
+    // NOT a byte comparison against the pre-toggle ciphertext: the toggle
+    // still writes the slot (local succeeds, only sync is quota-stuck) and a
+    // re-seal of the same plaintext carries a fresh IV, so the ciphertext
+    // legitimately differs depending on which write won the race. That the
+    // retry never touches the slot is asserted above, from the recorded writes.
+    const slotAfterRetry = local.get(SLOT_KEY);
+    expect(slotAfterRetry).not.toBe('__cleared__');
+    expect(await decryptSecret(slotAfterRetry as string)).toBe('sk-retry-survivor');
 
     vi.resetModules();
     const modC = await import('../../src/shared/use-kivara-store');
     // Poll for the hydrated value rather than sleeping a fixed delay — under
     // a loaded machine this used to read the store before hydration finished.
-    await waitFor(() => modC.useKivaraStore.getState().ai.apiKey === 'sk-retry-survivor');
-  });
+    await waitFor(
+      () => modC.useKivaraStore.getState().ai.apiKey === 'sk-retry-survivor',
+      'the reloaded context reads the key back',
+    );
+    // 3 × 12 s of budgets + room for the module graph.
+  }, 50_000);
 
   it('a Quitar from another context is not mistaken for our own tombstone', async () => {
     // 🟠 regression: `__cleared__` is byte-identical whoever writes it, so A
@@ -256,7 +302,12 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     modA.useKivaraStore.setState({
       ai: { ...modA.useKivaraStore.getState().ai, apiKey: 'sk-one' },
     });
-    await flush();
+    // The A write is async and this used to be a fixed 60 ms sleep. The module
+    // reset below runs on the MAIN thread regardless of that write, so under
+    // load the sleep expired first, B hydrated from an empty slot, and B never
+    // re-reads — the failure then surfaced one step later, at "B reads A's
+    // key". Wait for the ciphertext itself, then reset.
+    await waitFor(() => isSealed(local.get(SLOT_KEY)), "A's 'sk-one' reaches the local slot");
 
     // ---- Context B hydrates with the key and rewrites + clears it.
     vi.resetModules();
@@ -264,20 +315,37 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     const secretB = await import('../../src/shared/secret-store');
     // Wait for the hydration EVENT, not a guessed 320 ms: the persist read is
     // async and the fixed sleep was the flake under a loaded machine.
-    await waitFor(() => modB.useKivaraStore.persist.hasHydrated?.() === true);
-    await waitFor(() => modB.useKivaraStore.getState().ai.apiKey === 'sk-one');
+    await waitFor(() => modB.useKivaraStore.persist.hasHydrated?.() === true, 'context B hydrates', 8_000);
+    await waitFor(
+      () => modB.useKivaraStore.getState().ai.apiKey === 'sk-one',
+      "context B reads A's key",
+    );
 
+    const sealedByA = local.get(SLOT_KEY);
     modB.useKivaraStore.setState({
       ai: { ...modB.useKivaraStore.getState().ai, apiKey: 'sk-two' },
     });
-    await flush();
+    // Wait for B's write to REPLACE A's ciphertext — a bare "not the tombstone"
+    // check passes on A's old value and proves nothing about B.
+    await waitFor(
+      () => {
+        const value = local.get(SLOT_KEY);
+        return isSealed(value) && value !== sealedByA;
+      },
+      "B's 'sk-two' replaces the slot",
+      8_000,
+    );
     expect(local.get(SLOT_KEY)).not.toBe('__cleared__');
 
     secretB.markSecretExplicitClear('ai', 'apiKey');
     modB.useKivaraStore.setState({
       ai: { ...modB.useKivaraStore.getState().ai, apiKey: '' },
     });
-    await flush();
+    await waitFor(
+      () => local.get(SLOT_KEY) === '__cleared__',
+      "B's Quitar tombstones the slot",
+      8_000,
+    );
     expect(local.get(SLOT_KEY)).toBe('__cleared__');
 
     // B's writes reach A as local onChanged events, exactly as chrome does.
@@ -291,7 +359,12 @@ describe('zustand persist × secret slots (setItem/getItem e2e)', () => {
     // can resurrect the key it no longer has. The rehydrate is DEBOUNCED
     // (250 ms), so poll instead of assuming the last flush covered it —
     // under a loaded machine this assertion used to run before it landed.
-    await waitFor(() => modA.useKivaraStore.getState().ai.apiKey === '');
+    await waitFor(
+      () => modA.useKivaraStore.getState().ai.apiKey === '',
+      'A rehydrates on the foreign tombstone',
+      8_000,
+    );
     expect(secretA.isOwnLocalWrite(SLOT_KEY, '__cleared__')).toBe(false);
-  });
+    // 12 + 8 + 12 + 8 + 8 + 8 = 56 s of budgets + room for the module graph.
+  }, 70_000);
 });
