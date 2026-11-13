@@ -28,10 +28,19 @@ function hostsFromProviderHosts(): string[] {
 
 function hostsFromManifest(): string[] {
   const manifest = readJson('manifest.json');
-  return manifest.optional_host_permissions ?? [];
+  // An origin is satisfiable either way: `optional_host_permissions` is the
+  // grant list the UI prompts for, and a MANDATORY host permission is already
+  // held — `chrome.permissions.request` on it is a no-op that answers true.
+  // The loopback endpoints (Anki, local AI) live in `host_permissions`
+  // because the extension cannot work without them, so they need no optional
+  // duplicate (and repeating them there was the bug this split fixes).
+  return [
+    ...(manifest.optional_host_permissions ?? []),
+    ...(manifest.host_permissions ?? []),
+  ];
 }
 
-describe('PROVIDER_HOSTS vs manifest optional_host_permissions', () => {
+describe('PROVIDER_HOSTS vs the manifest grants', () => {
   it('every origin the UI offers is on the grant list', () => {
     const providers = hostsFromProviderHosts();
     const granted = new Set(hostsFromManifest());
@@ -39,5 +48,14 @@ describe('PROVIDER_HOSTS vs manifest optional_host_permissions', () => {
     // No origin may be silently ungranted: that is what makes the "Grant"
     // button in the UI reject the whole request and the toggle stay dead.
     expect(missing, `providers ask for these origins with no manifest entry: ${missing.join(', ')}`).toEqual([]);
+  });
+
+  it('the loopback endpoints are mandatory, not optional', () => {
+    const manifest = readJson('manifest.json');
+    const optional: string[] = manifest.optional_host_permissions ?? [];
+    expect(optional).not.toContain('http://127.0.0.1/*');
+    expect(optional).not.toContain('http://localhost/*');
+    expect(manifest.host_permissions).toContain('http://127.0.0.1/*');
+    expect(manifest.host_permissions).toContain('http://localhost/*');
   });
 });
