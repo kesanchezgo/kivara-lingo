@@ -187,7 +187,7 @@ describe('buildColumnsCss', () => {
   it('writes the reserved width the layout computed, per platform', () => {
     const rail = computeColumnLayout(RAIL_ONLY, 1920);
     expect(cssFor('youtube', RAIL_ONLY)).toContain(`calc(100% - ${rail.reserved}px)`);
-    expect(cssFor('netflix', RAIL_ONLY)).toContain(`right: ${rail.reserved}px !important;`);
+    expect(cssFor('netflix', RAIL_ONLY)).toContain(`width: calc(100% - ${rail.reserved}px) !important;`);
     expect(cssFor('disney', RAIL_ONLY)).toContain(`right: ${rail.reserved}px !important;`);
     expect(cssFor('prime', RAIL_ONLY)).toContain(`right: ${rail.reserved}px !important;`);
     expect(cssFor('hbo', RAIL_ONLY)).toContain(`right: ${rail.reserved}px !important;`);
@@ -284,7 +284,7 @@ describe('applyColumnsCss', () => {
     applyColumnsCss({ platform: 'netflix', state: BOTH, viewportWidth: 2560 });
     const second = styleFor('netflix');
     expect(second).toBe(first);
-    expect(second?.textContent).toContain('right: 840px !important;');
+    expect(second?.textContent).toContain('width: calc(100% - 840px) !important;');
     expect(document.querySelectorAll('style[id^="kivara-columns-"]')).toHaveLength(1);
   });
 

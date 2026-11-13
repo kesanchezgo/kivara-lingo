@@ -208,8 +208,14 @@ const RULES: Record<Platform, ColumnsRules> = {
     resize: ['.html5-video-player', '#movie_player'],
   },
   netflix: {
-    shrink: ['.watch-video', '.watch-video--player-view', '[data-uia="watch-video"]'],
-    resize: [],
+    // Live-measured on a real watch page (2026-11, Chrome 157): the player
+    // containers are `position: absolute` with an explicit width, so `right`
+    // is over-constrained and does NOTHING — the video stayed 2246×1080 with
+    // the rule applied and the columns floated over the video, covering
+    // Netflix's own control row. `width` moves the player (2246→1406), the
+    // same mechanism youtube's resize rule uses.
+    shrink: [],
+    resize: ['.watch-video', '.watch-video--player-view', '[data-uia="watch-video"]'],
   },
   hbo: {
     // Never `#root` (the whole app shell). The player container comes from the
