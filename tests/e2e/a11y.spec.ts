@@ -14,8 +14,13 @@
  *    `Runtime.callFunctionOn`. The audit runs on the real closed tree with the
  *    real stylesheet, without opening the root the product deliberately hides.
  *
- * WCAG tag set only: ax's "best-practice" bucket (landmarks, heading order on
- * a 460px panel) would fail on decisions the product makes on purpose.
+ * The WCAG-tagged audits stay tag-scoped: axe's "best-practice" bucket
+ * (landmarks, heading order on a 460px panel) would fail on decisions the
+ * product makes on purpose. The one exception is the default-ruleset gate
+ * below, which keeps every rule but blocks on `critical` impact only: its
+ * 2026-11-12 scan of the four tabs found nothing critical, and the two
+ * moderate findings on <html> (landmark-one-main, page-has-heading-one) are
+ * documented debt, not gate failures.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -207,6 +212,33 @@ test.describe('accessibility', () => {
     const hasOutline = focus!.outline.startsWith('solid') && focus!.outline !== 'solid 0px';
     const hasRing = focus!.shadow !== 'none';
     expect(hasOutline || hasRing, `no focus indicator on ${focus!.tag}: ${JSON.stringify(focus)}`).toBe(true);
+  });
+
+  test('the options page has no critical violations in the default ruleset', async ({ context, extensionId }) => {
+    test.setTimeout(90_000);
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/src/options/index.html`);
+    await page.locator('#kivara-panel-tab-settings').waitFor({ state: 'visible', timeout: 20_000 });
+
+    // No `withTags`: the default ruleset is the widest axe runs, every rule
+    // included. This gate blocks on `critical` impact only — the 2026-11-12
+    // scan of these four tabs found zero critical violations, and the two
+    // moderate findings on <html> (landmark-one-main, page-has-heading-one)
+    // are documented debt, deliberately below the bar (see the header note).
+    const critical: string[] = [];
+    for (const tab of ['subtitles', 'vocab', 'cards', 'settings']) {
+      await page.locator(`#kivara-panel-tab-${tab}`).click();
+      await page.waitForTimeout(700);
+      const results = await new AxeBuilder({ page }).analyze();
+      for (const v of results.violations as unknown as AxeViolation[]) {
+        if (v.impact !== 'critical') continue;
+        critical.push(
+          `${v.id} (${v.impact}): ${v.help}\n` +
+            v.nodes.map((n) => `  - ${n.target.join(' ')}: ${n.summary?.replace(/\s+/g, ' ')}`).join('\n'),
+        );
+      }
+    }
+    expect(critical, critical.join('\n\n')).toEqual([]);
   });
 
   test('the panel respects prefers-reduced-motion', async ({ context, extensionId }) => {
