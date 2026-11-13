@@ -7,6 +7,7 @@ import { SidePanel } from './SidePanel';
 import { SubtitleOverlay } from './SubtitleOverlay';
 import { CaptureOverlay, type CaptureAudio, type CaptureView } from './CaptureOverlay';
 import { applyCleanupCss } from './cleanup-css';
+import { usePointerIdleOverPlayer } from './pointer-idle';
 import { playSound } from '../../ui/sounds';
 import { Pause } from '../../ui/icons';
 import { useKivaraStore } from '../../shared/use-kivara-store';
@@ -422,6 +423,11 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // platform-aware (the matching selectors live in cleanup-css.ts) so the
   // same setting can hide YouTube's bottom controls *and* HBO Max's hover
   // gradients without leaking onto pages we don't recognise.
+  // Point 4: «Limpieza visual» follows pointer activity over the video — the
+  // chrome hides while the pointer is IDLE and shows again the moment it
+  // moves. hideShadows keeps its previous always-on behavior; the CAPTURE
+  // (drawImage on the <video>) never depended on this CSS.
+  const controlsIdle = usePointerIdleOverPlayer(videoElement, enabled && cleanup.hideUI);
   useEffect(() => {
     if (!enabled) {
       applyCleanupCss({ hideUI: false, hideShadows: false, platform: adapter?.platform });
@@ -430,12 +436,13 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     applyCleanupCss({
       hideUI: cleanup.hideUI,
       hideShadows: cleanup.hideShadows,
+      controlsIdle,
       platform: adapter?.platform,
     });
     return () => {
       applyCleanupCss({ hideUI: false, hideShadows: false, platform: adapter?.platform });
     };
-  }, [cleanup.hideUI, cleanup.hideShadows, adapter?.platform, enabled]);
+  }, [cleanup.hideUI, cleanup.hideShadows, controlsIdle, adapter?.platform, enabled]);
 
   // Show/hide native subtitles based on extension state. When the user
   // disables the extension or hides subtitles, restore the platform's own
