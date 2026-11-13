@@ -31,8 +31,20 @@ import { test, expect, type Page } from './fixtures';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PLAYER_FIXTURE = fs.readFileSync(path.join(here, 'fixtures', 'player.html'), 'utf8');
-const require = createRequire(import.meta.url);
-const AXE_SOURCE = (require('axe-core') as { source: string }).source;
+
+/**
+ * axe's browser bundle, taken from `@axe-core/playwright`'s OWN dependency
+ * tree instead of a bare `require('axe-core')`.
+ *
+ * `axe-core` is not a direct dependency of this repo — it arrives as
+ * `@axe-core/playwright`'s. Resolving it from the test file worked only while
+ * pnpm happened to expose it at the top level; the honest resolution is from
+ * the package that declares it, and it keeps the version locked to the same
+ * one the builder uses.
+ */
+const requireHere = createRequire(import.meta.url);
+const requireFromAxe = createRequire(requireHere.resolve('@axe-core/playwright'));
+const AXE_SOURCE = fs.readFileSync(requireFromAxe.resolve('axe-core/axe.min.js'), 'utf8');
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
