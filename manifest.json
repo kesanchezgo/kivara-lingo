@@ -193,8 +193,6 @@
     "128": "src/assets/icons/icon-128.png"
   },
   "optional_host_permissions": [
-    "http://127.0.0.1/*",
-    "http://localhost/*",
     "https://*.bing.net/*",
     "https://*.dictionary.cambridge.org/*",
     "https://*.forvo.com/*",
@@ -279,5 +277,6 @@
     "https://www.wordhippo.com/*",
     "https://www.wordreference.com/*",
     "https://youglish.com/*"
-  ]
+  ],
+  "minimum_chrome_version": "116"
 }
