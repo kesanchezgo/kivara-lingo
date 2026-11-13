@@ -28,21 +28,24 @@ import { useKivaraStore } from '../../shared/use-kivara-store';
 import { comboOf, withCombo } from './combo-hints';
 import { useLongPress } from '../../ui/hooks/useLongPress';
 import { onRadioKeyDown, radioTabIndex } from '../../ui/primitives/settings-primitives';
+import { placeStudyBar, safeZoneFor, type BarPlacement } from './study-bar-safe-zone';
+import type { SubtitleSource } from '../platform-adapters/types';
 import { PLAYBACK_SPEEDS } from '../platform-adapters/playback';
 import {
   CAPTION_BOX_ATTR,
   captionRect,
   hostOf,
   onCaptionGeometryChange,
-  oppositeSide,
   scopeOf,
-  type VerticalSide,
 } from './overlay-geometry';
 
 const HIDE_AFTER_MS = 2600;
 
 export interface StudyBarProps {
   enabled: boolean;
+  /** Point 5: the platform drives the bar's SAFE ZONE (margins + native
+   * chrome to avoid). */
+  platform?: SubtitleSource['platform'];
   playing: boolean;
   onTogglePlay(): void;
   onPrev(): void;
@@ -71,7 +74,7 @@ function playerRect(): DOMRect | null {
 
 export function StudyBar(props: StudyBarProps) {
   const {
-    enabled, playing, onTogglePlay, onPrev, onReplay, onReplaySlow, onNext,
+    platform, enabled, playing, onTogglePlay, onPrev, onReplay, onReplaySlow, onNext,
     autoPause, onToggleAutoPause, loop, onToggleLoop, speed, onSpeed,
     railOpen, onToggleRail, panelOpen, onTogglePanel,
   } = props;
@@ -163,7 +166,7 @@ export function StudyBar(props: StudyBarProps) {
    * without resizing (a new cue, a different vertical offset) — the one event
    * no observer in this component can see.
    */
-  const [barSide, setBarSide] = useState<VerticalSide>('bottom');
+  const [placement, setPlacement] = useState<BarPlacement>({ side: 'bottom', top: null, bottom: 12 });
   useEffect(() => {
     if (!enabled) return;
     const element = barRef.current;
@@ -174,11 +177,26 @@ export function StudyBar(props: StudyBarProps) {
     const place = () => {
       const plate = captionRect(scope);
       const hostRect = host?.getBoundingClientRect();
-      if (!plate || !hostRect || hostRect.height === 0) {
-        setBarSide('bottom');
+      if (!hostRect || hostRect.height === 0) {
+        setPlacement({ side: 'bottom', top: null, bottom: 12 });
         return;
       }
-      setBarSide(oppositeSide(plate, hostRect));
+      const zone = safeZoneFor(platform);
+      const controls = zone.controls.length
+        ? [...document.querySelectorAll<HTMLElement>(zone.controls.join(','))]
+            .map((el) => el.getBoundingClientRect())
+            .filter((r) => r.width > 0 && r.height > 0)
+            .map((r) => ({ x: r.x, y: r.y, width: r.width, height: r.height }))
+        : [];
+      setPlacement(placeStudyBar({
+        host: { x: hostRect.x, y: hostRect.y, width: hostRect.width, height: hostRect.height },
+        caption: plate
+          ? { x: plate.x, y: plate.y, width: plate.width, height: plate.height }
+          : null,
+        bar: { width: element?.getBoundingClientRect().width || 260, height: element?.getBoundingClientRect().height || 30 },
+        zone,
+        controls,
+      }));
     };
 
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(place);
@@ -189,6 +207,12 @@ export function StudyBar(props: StudyBarProps) {
     };
 
     if (host && observer) observer.observe(host);
+    const controlSelectors = safeZoneFor(platform).controls;
+    if (observer && controlSelectors.length > 0) {
+      for (const el of document.querySelectorAll<HTMLElement>(controlSelectors.join(','))) {
+        observer.observe(el);
+      }
+    }
     observePlate();
     place();
     const off = onCaptionGeometryChange(() => {
@@ -199,7 +223,7 @@ export function StudyBar(props: StudyBarProps) {
       off();
       observer?.disconnect();
     };
-  }, [enabled]);
+  }, [enabled, platform]);
 
   // The E2E hit map for BOTH roots is mounted by App (see e2e-hitmap.ts);
   // the bar only publishes the width it measured, which is what the
@@ -215,7 +239,7 @@ export function StudyBar(props: StudyBarProps) {
       className={`absolute right-3 z-30 flex items-center gap-0.5 rounded-lg bg-zinc-900/80 ring-1 ring-white/[0.08] backdrop-blur-md p-0.5 text-white transition-opacity duration-200 ${
         visible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       } [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto`}
-      style={barSide === 'top' ? { top: 12 } : { bottom: 12 }}
+      style={placement.top !== null ? { top: placement.top } : { bottom: placement.bottom ?? 12 }}
       role="toolbar"
       aria-label={t('rail.title')}
     >
