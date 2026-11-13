@@ -9,6 +9,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { isPrimeRoute } from '../../src/content/platform-adapters/platform-hosts';
 
 // Vitest runs from the repo root; the manifest lives there. (`import.meta.url`
 // is an http(s) URL under the transform, so it cannot address files.)
@@ -90,26 +91,45 @@ describe('manifest: Prime Video on the Amazon domains', () => {
 });
 
 describe('detectPlatform: amazon.* is Prime only under /gp/video', () => {
-  /** Mirrors the guard in src/content/platform-adapters/index.ts. */
-  function isPrimeRoute(url: string): boolean {
-    const host = new URL(url).hostname;
-    const path = new URL(url).pathname;
-    return (
-      host.includes('primevideo.com')
-      || (/\.amazon\.(?:com|co\.uk|de|es|fr|it|co\.jp|ca|com\.mx|com\.br|in)$/.test(host)
-        && path.startsWith('/gp/video/'))
-    );
-  }
-
   it('treats a /gp/video page as Prime', () => {
     for (const tld of TLDS) {
-      expect(isPrimeRoute(`https://${DOMAIN(tld)}/gp/video/detail/B0X`), tld).toBe(true);
+      const host = `www.amazon.${tld}`;
+      expect(isPrimeRoute(host, '/gp/video/detail/B0X'), tld).toBe(true);
     }
   });
 
+  it('treats the domain WITHOUT www as Prime too', () => {
+    // `*.amazon.com` in the manifest covers the bare host as well, so Chrome
+    // injects the content script on `amazon.com/gp/video/...` — the detector
+    // has to agree, or the page gets the generic HTML5 fallback instead of the
+    // Prime adapter (no audio route, no DASH tracks).
+    for (const tld of TLDS) {
+      expect(isPrimeRoute(`amazon.${tld}`, '/gp/video/detail/B0X'), tld).toBe(true);
+    }
+  });
+
+  it('accepts any other subdomain of the Amazon domain', () => {
+    expect(isPrimeRoute('smile.amazon.com', '/gp/video/detail/B0X')).toBe(true);
+    expect(isPrimeRoute('m.amazon.de', '/gp/video/detail/B0X')).toBe(true);
+  });
+
   it('does NOT treat the rest of Amazon as Prime', () => {
-    expect(isPrimeRoute('https://www.amazon.com/dp/B0X')).toBe(false);
-    expect(isPrimeRoute('https://www.amazon.de/gp/cart')).toBe(false);
-    expect(isPrimeRoute('https://www.amazon.co.uk/')).toBe(false);
+    expect(isPrimeRoute('www.amazon.com', '/dp/B0X')).toBe(false);
+    expect(isPrimeRoute('www.amazon.de', '/gp/cart')).toBe(false);
+    expect(isPrimeRoute('www.amazon.co.uk', '/')).toBe(false);
+    // Bare host on a non-Prime route stays out too: the path is what gates it.
+    expect(isPrimeRoute('amazon.com', '/dp/B0X')).toBe(false);
+  });
+
+  it('does not read a lookalike domain as Amazon', () => {
+    // `notamazon.com` ends with "amazon.com": the old check needed a dot in
+    // front of the label, and dropping that anchor would let this through.
+    expect(isPrimeRoute('notamazon.com', '/gp/video/detail/B0X')).toBe(false);
+    expect(isPrimeRoute('amazon.com.evil.test', '/gp/video/detail/B0X')).toBe(false);
+  });
+
+  it('keeps primevideo.com as Prime everywhere', () => {
+    expect(isPrimeRoute('www.primevideo.com', '/detail/B0X')).toBe(true);
+    expect(isPrimeRoute('primevideo.com', '/')).toBe(true);
   });
 });
