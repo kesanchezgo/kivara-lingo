@@ -77,6 +77,10 @@ export interface E2EState {
   live: string[];
   /** Text of the VISIBLE tab panels only (the rail and the open panel tab). */
   text: string;
+  /** Point 2: the no-subtitles notice's text, when rendered in this root. */
+  noSubs: string | null;
+  /** Diagnostic: the visible tab panels (id + text sample). */
+  panels: Array<{ id: string; text: string }>;
 }
 
 export interface E2EHit {
@@ -193,7 +197,15 @@ function collectState(root: ParentNode): E2EState {
     .join('\n')
     .slice(0, TEXT_CAP);
 
-  return { rows, translation, live, text };
+  const noSubsEl = root.querySelector<HTMLElement>('[data-kvl-no-subs]');
+  const noSubs = noSubsEl?.textContent?.trim() ?? null;
+
+  // Diagnostic: every visible tab panel with its id and a text sample —
+  // tells the suite WHICH panel published the text it is reading.
+  const panels = [...root.querySelectorAll<HTMLElement>('[role="tabpanel"]:not([hidden])')]
+    .map((el) => ({ id: el.id || el.getAttribute('aria-labelledby') || '?', text: (el.textContent ?? '').slice(0, 60) }));
+
+  return { rows, translation, live, text, noSubs, panels };
 }
 
 function boxOf(el: Element | null): E2EBox | null {

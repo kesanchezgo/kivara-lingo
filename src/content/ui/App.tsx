@@ -35,6 +35,7 @@ import {
   withAudioHint, type SceneMedia,
 } from './save-actions';
 import { useEpisode } from './useEpisode';
+import { useNoCueNotice } from './no-cues-notice';
 import { cueIndexAt, useStudyPlayback } from './useStudyPlayback';
 import { buildCueRequestFields } from './save-request';
 import { SLOW_REPLAY_RATE } from '../platform-adapters/playback';
@@ -312,6 +313,9 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // The full track comes from the adapter v2 (already seeked to the current
   // platform's semantics); every jump below goes through `episode.controller`.
   const episode = useEpisode(adapter);
+  // Point 2: with playback running and zero cues for ~5 s, say why it is blank.
+  const noCueNoticeRaw = useNoCueNotice(playing, episode.cues.length);
+  const noCuesNotice = enabled && noCueNoticeRaw;
   const studyPlayback = useStudyPlayback({
     controller: episode.controller,
     cues: episode.cues,
@@ -1634,6 +1638,8 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}
         >
           <SubtitleOverlay
+            noCuesNotice={noCuesNotice}
+            noticePlatform={adapter?.platform}
             subtitleStyles={subtitleStyles}
             cue={activeCue}
             altCue={altCue}
@@ -1795,6 +1801,8 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           }}
         >
           <TranscriptRail
+            noCuesNotice={noCuesNotice}
+            noticePlatform={adapter?.platform}
             cues={episode.cues}
             activeIndex={activeCueIndex}
             lang={cueLanguage}
