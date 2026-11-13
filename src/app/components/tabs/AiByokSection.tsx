@@ -47,8 +47,11 @@ type AiTestStatus =
  * optional host permission from inside the click, the only place Chrome will
  * show the prompt.
  *
- * `openai-compatible` is part of the store/store type from F2 but its tile
- * stays hidden until F7 ships the curated endpoint list (H13, D7).
+ * `openai-compatible` is part of the store/store type from F2; F7 shipped its
+ * curated endpoint list (H13, D7). The card runs only endpoints from
+ * `shared/provider-hosts.ts` (`OPENAI_COMPATIBLE_HOSTS` / `compatibleHostFor`):
+ * anything outside the list is refused before a request, and the host
+ * permission is requested inside the click that saves the endpoint.
  */
 export function AiByokSection() {
   const ai = useKivaraStore((s) => s.ai);

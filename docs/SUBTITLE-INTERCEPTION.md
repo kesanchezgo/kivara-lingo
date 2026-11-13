@@ -348,7 +348,7 @@ Common breakage patterns:
 | `src/content/platform-adapters/parsers.ts` | WebVTT / TTML / DFXP / JSON3 parsers, language detection from URL/body |
 | `src/content/platform-adapters/dash-subtitle-loader.ts` | MPD parser + segment expander + multi-segment downloader + best-track picker |
 | `src/content/platform-adapters/intercepted-adapter.ts` | Generic adapter for Netflix/HBO/Disney/Prime that consumes the bus |
-| `src/content/platform-adapters/youtube.ts` | YouTube-specific adapter (DOM polling for cue boundaries + bus consumption for alt language) |
+| `src/content/platform-adapters/youtube.ts` | YouTube-specific adapter (bus-first cue boundaries from `/api/timedtext` — including the auto-fetched `tlang` track — then `<video>.textTracks`, DOM captions last; bus consumption for alt language) |
 | `src/content/index.tsx` | Bootstrapper, syncs Zustand language to DOM attributes, calls `clearBus()` + `reprocessLastDashManifest()` on language change or SPA nav |
 | `src/content/ui/App.tsx` | Adapter glue, synchronous alt-cue resolution in `onCueChange`, `getAltCueAt` polling at 50 ms, `onTrack`-driven re-ticks |
 | `src/content/ui/SubtitleOverlay.tsx` | Renders the source + bilingual lines, MT fallback when neither bus track has the language |

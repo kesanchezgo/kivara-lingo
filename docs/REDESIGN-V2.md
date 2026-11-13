@@ -111,7 +111,7 @@ Cognados y falsos amigos ES↔EN	Desplazamiento por cognado y aviso de falso ami
 Banco de la prueba y pseudopalabras	VocabCheck	Muestreo por franjas de la lista de frecuencias más pseudopalabras generadas una vez y revisadas.
 deleteNotes, addTags, guiBrowse, findCards, cardsInfo	Deshacer, Añadir esta escena, Ver en Anki y estado «madura» (intervalo ≥ 21 d)	Ampliar anki-connect.ts. updateNoteFields ya existe.
 Salud por fuente	VipSection (ok · lenta · error, con acción)	El orquestador guarda la latencia y el último error por fuente en memoria del SW; mensaje ENRICH_SOURCE_HEALTH.
-Pista completa y metadatos del episodio	Transcripción, Palabras del episodio, etiquetas y Recientes	Adaptador v2 (4.5). intercepted-bus.getActiveTrackCues ya existe para Netflix, Max y Prime.
+Pista completa y metadatos del episodio	Transcripción, Palabras del episodio, etiquetas y Recientes	Adaptador v2 (4.5). intercepted-bus.getActiveTrackCues ya existe para Netflix, Max, Prime y Disney+ (YouTube la resuelve del bus y textTracks).
 H9 · Alto — Etiquetas y mazos (continuidad de datos del usuario)
 Hoy: etiquetas ['kivara-lingo', platform] (capture-orchestrator.ts:1021) y un único deckName. ANKI_SAVED_WORDS y la deduplicación consultan ese mazo.
 v2: un mazo por idioma (ankiMapping.decks) y las etiquetas kivara::lang::<idioma>, kivara::<serie>::<episodio> y kivara::<tipo>.
@@ -249,9 +249,9 @@ export interface SubtitleSource {
   playback?: PlaybackController;                   // obligatorio en F6
 }
 Plataforma	Pista completa	Salto	Metadatos
-YouTube	textTracks[i].cues / timedtext interceptado	video.currentTime (tolerado)	ytInitialPlayerResponse.videoDetails (título, canal)
+YouTube	timedtext interceptado (bus, con la pista tlang auto-fetch) / textTracks[i].cues	video.currentTime (tolerado)	ytInitialPlayerResponse.videoDetails (título, canal)
 Netflix	intercepted-bus.getActiveTrackCues	API del reproductor en MAIN	Metadatos del reproductor o DOM; document.title como respaldo
-Max, Prime, Disney+	bus / textTracks	video.currentTime (verificar en cada uno)	DOM del título; document.title como respaldo
+Max, Prime, Disney+	bus (sin textTracks)	video.currentTime	DOM del título; document.title como respaldo
 Genérico	textTracks	video.currentTime	document.title
 4.6 API del service worker: mensajes nuevos
 // Anki / tarjetas (F4)
