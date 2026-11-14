@@ -53,6 +53,7 @@ import { inputCls } from '../../ui/primitives/controls';
 import { useLongPress } from '../../ui/hooks/useLongPress';
 import { EpisodeWords, buildEpisodeVocabulary } from './EpisodeWords';
 import { NoSubtitlesNotice } from './no-cues-notice';
+import { LanguageMismatchNotice } from './language-mismatch';
 import { SentenceExplain } from './SentenceExplain';
 import { PLAYBACK_SPEEDS } from '../platform-adapters/playback';
 import { usePlaybackTimeMs } from './useStudyPlayback';
@@ -85,6 +86,8 @@ export interface TranscriptRailProps {
   /** Point 2: after ~5 s of playback with zero cues, explain the empty state. */
   noCuesNotice?: boolean;
   noticePlatform?: string;
+  /** Point 4: the track's language differs from the learned one. */
+  languageMismatch?: { track: string; learning: string } | null;
   activeIndex: number;
   lang: string;
   study: StudyBinding;
@@ -140,7 +143,7 @@ export interface TranscriptRailProps {
 
 export function TranscriptRail(props: TranscriptRailProps) {
   const {
-    cues, noCuesNotice = false, noticePlatform, activeIndex, lang, study, newMarks, savedWords, media, view, onViewChange,
+    cues, noCuesNotice = false, noticePlatform, languageMismatch = null, activeIndex, lang, study, newMarks, savedWords, media, view, onViewChange,
     onSeek, onReplay, onReplaySlow, capturing = false, autoPause, onToggleAutoPause,
     loop, onToggleLoop, speed, onSpeed, playing, pauseOnExplain, onStudyPause,
     onStudyResume, ai, explainRequest = 0, uiLang, nativeLang, panelOpen, onTogglePanel,
@@ -514,6 +517,16 @@ export function TranscriptRail(props: TranscriptRailProps) {
       {noCuesNotice && cues.length === 0 && (
         <div className="shrink-0 px-3 pt-3">
           <NoSubtitlesNotice platform={noticePlatform} />
+        </div>
+      )}
+
+      {languageMismatch && (
+        <div className="shrink-0 px-3 pt-3">
+          <LanguageMismatchNotice
+            track={languageMismatch.track}
+            learning={languageMismatch.learning}
+            platform={noticePlatform}
+          />
         </div>
       )}
 

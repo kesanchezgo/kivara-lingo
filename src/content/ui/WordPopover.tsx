@@ -31,6 +31,7 @@ import { pickFrequencyWinner } from '../../shared/frequency';
 import { lookupDictionary } from '../nlp/dictionary';
 import { openResolveWordStream } from '../resolve-word-stream';
 import { FrequencyBadge, useWordRank } from './FrequencyBadge';
+import { LanguageMismatchNotice } from './language-mismatch';
 
 export interface WordPopoverProps {
   cardTheme?: 'dark' | 'light' | 'auto';
@@ -43,6 +44,13 @@ export interface WordPopoverProps {
   lookupToken?: string;
   sentence?: string;
   sourceLang?: string;
+  /**
+   * Point 4: the selected track is in another language than the one being
+   * learned. The card shows the mismatch instead of definitions, and the
+   * lookup stream is never opened — a Spanish word has no business in an
+   * English dictionary.
+   */
+  languageMismatch?: { track: string; learning: string; platform?: string };
   includeAi?: boolean;
   kind: 'mwe' | 'known' | 'proper-noun-known' | 'unknown' | 'mastered' | 'ignored' | 'punct';
   mweKind?: 'idiom' | 'phrasal';
@@ -105,10 +113,16 @@ function useResolveWord(
   sentence: string,
   sourceLang: string,
   includeAi: boolean,
+  /** Point 4: never resolve when the track's language is not the learned one. */
+  disabled = false,
 ): ResolveState {
   const [state, setState] = useState<ResolveState>(INITIAL_STATE);
 
   useEffect(() => {
+    if (disabled) {
+      setState(INITIAL_STATE);
+      return;
+    }
     const local = lookupDictionary(token, sourceLang) ?? null;
     const localTr = (local?.translation ?? '').trim();
     const localHasRealTranslation = !!local && localTr !== '' && localTr !== '—';
@@ -243,7 +257,7 @@ function useResolveWord(
       stream.close();
       stopPronunciation();
     };
-  }, [token, sentence, sourceLang, includeAi]);
+  }, [token, sentence, sourceLang, includeAi, disabled]);
 
   return state;
 }
@@ -424,6 +438,7 @@ export function WordPopover({
   lookupToken,
   sentence = '',
   sourceLang = 'en',
+  languageMismatch,
   includeAi = false,
   kind,
   mweKind,
@@ -441,7 +456,7 @@ export function WordPopover({
   statusSlot,
 }: WordPopoverProps) {
   const canonicalToken = lookupToken ?? token;
-  const resolved = useResolveWord(canonicalToken, sentence, sourceLang, includeAi);
+  const resolved = useResolveWord(canonicalToken, sentence, sourceLang, includeAi, !!languageMismatch);
   const rank = useWordRank(canonicalToken, sourceLang);
 
   const ref = useRef<HTMLDivElement>(null);
@@ -646,7 +661,13 @@ export function WordPopover({
 
         {/* Body */}
         <div ref={bodyRef} className="px-3.5 py-2.5 space-y-1.5 overflow-y-auto kvl-scroll max-h-[420px]">
-          {isResolving ? (
+          {languageMismatch ? (
+            <LanguageMismatchNotice
+              track={languageMismatch.track}
+              learning={languageMismatch.learning}
+              platform={languageMismatch.platform}
+            />
+          ) : isResolving ? (
             <LoadingCard hasSentence={showSentence} />
           ) : (
             <>

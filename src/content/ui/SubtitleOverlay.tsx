@@ -14,6 +14,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../shared/i18n';
 import { NoSubtitlesNotice } from './no-cues-notice';
+import { LanguageMismatchNotice } from './language-mismatch';
 import { sendMessage } from 'webext-bridge/content-script';
 import { toast } from 'sonner';
 import {
@@ -92,6 +93,12 @@ export interface SubtitleOverlayProps {
   /** Point 2: explain a zero-cue playback after ~5 s. */
   noCuesNotice?: boolean;
   noticePlatform?: string;
+  /**
+   * Point 4: the selected track is in another language than the one being
+   * learned. The overlay says so, and the word card refuses to look up the
+   * word in the wrong language.
+   */
+  languageMismatch?: { track: string; learning: string } | null;
   /** Expressions split by hand (Alt+wheel or the card). Owned by App. */
   expandedMWEs?: Set<string>;
   setExpandedMWEs?: React.Dispatch<React.SetStateAction<Set<string>>>;
@@ -138,6 +145,7 @@ export function SubtitleOverlay({
   playing = false,
   noCuesNotice = false,
   noticePlatform,
+  languageMismatch = null,
   expandedMWEs: controlledExpanded,
   setExpandedMWEs: controlledSetExpanded,
   capturing = false,
@@ -751,6 +759,15 @@ export function SubtitleOverlay({
           <NoSubtitlesNotice platform={noticePlatform} />
         </div>
       )}
+      {languageMismatch && (
+        <div className="absolute inset-x-0 top-[12%] flex justify-center px-6" aria-live="polite">
+          <LanguageMismatchNotice
+            track={languageMismatch.track}
+            learning={languageMismatch.learning}
+            platform={noticePlatform}
+          />
+        </div>
+      )}
       {/* Extension badge + study toggles. Placed OUTSIDE the caption plate:
           the sentence toolbar opens above it and, with a caption that reaches
           the right edge, the top-right corner is inside the text. */}
@@ -1073,6 +1090,7 @@ export function SubtitleOverlay({
                         lookupToken={tok.key}
                         sentence={targetSentence}
                         sourceLang={cueLanguage}
+                        languageMismatch={languageMismatch ?? undefined}
                         includeAi={includeAi}
                         kind={tok.kind}
                         mweKind={tok.mweKind}
