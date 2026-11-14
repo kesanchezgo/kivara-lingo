@@ -1707,6 +1707,11 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     ensureSubtitleAudioReady,
     enabled,
     subtitlesVisible,
+    // QA finding (real Netflix): a memoized portal freezes its subtree — a
+    // prop missing from these deps never updates. `noCuesNotice` was absent,
+    // so the overlay kept an empty caption forever while the rail (rendered
+    // outside the memo) showed the notice correctly.
+    noCuesNotice,
     isDarkMode,
     mode,
     saveTick,
