@@ -150,7 +150,7 @@ export function attachGenericHtml5(video: HTMLVideoElement): SubtitleSource {
         if (index !== -1) trackCueListeners.splice(index, 1);
       };
     },
-    playback: createMediaPlaybackController(() => video),
+    playback: createMediaPlaybackController(() => video, { platform: 'generic' }),
     destroy() {
       // The generic adapter is used on any page with a <video>, and SPA
       // navigation there replaces the element. Unbinding the track and
