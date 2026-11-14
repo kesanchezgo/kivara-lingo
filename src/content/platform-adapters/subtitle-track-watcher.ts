@@ -53,6 +53,12 @@ export function createSubtitleTrackWatcher(deps: SubtitleTrackWatcherDeps): Subt
   let switching = false;
   let attempts = 0;
   let stopped = false;
+  /**
+   * Set when the player gave a final answer ("kept its track" / "language not
+   * offered"). Asking again in the same episode only fights the user or the
+   * platform — the notice explains it instead.
+   */
+  let settled = false;
 
   const clearLoop = (): void => {
     if (timer !== null) deps.clearInterval(timer);
@@ -68,12 +74,19 @@ export function createSubtitleTrackWatcher(deps: SubtitleTrackWatcherDeps): Subt
       clearLoop();
       return;
     }
+    if (settled) return;
     const lang = deps.learningLang();
     if (!lang || switching || deps.hasTrackFor(lang)) return;
     switching = true;
     void deps.switchTo(lang)
       .then((result) => {
         deps.log('[Kivara Lingo] subtitle track', result.ok ? 'switched' : 'kept', result);
+        // 'no subtitle API' means the player is not up yet — that one is worth
+        // retrying. Any other answer is final for this episode.
+        if (!result.ok && result.reason !== 'no subtitle API') {
+          settled = true;
+          clearLoop();
+        }
       })
       .catch(() => {
         /* the notice explains a refusal */
@@ -86,6 +99,7 @@ export function createSubtitleTrackWatcher(deps: SubtitleTrackWatcherDeps): Subt
   const startLoop = (): void => {
     if (stopped || timer !== null) return;
     attempts = 0;
+    settled = false;
     unsubscribeTrack = deps.onTrack((language) => {
       const want = deps.learningLang();
       if (language && language !== want) attempt();
