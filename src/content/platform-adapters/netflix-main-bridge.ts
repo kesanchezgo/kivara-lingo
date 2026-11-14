@@ -19,7 +19,7 @@ const RESULT_EVENT = 'kivara-lingo:playback-result';
 const DEFAULT_TIMEOUT_MS = 1500;
 
 interface PendingSeek {
-  resolve: () => void;
+  resolve: (data?: unknown) => void;
   reject: (error: Error) => void;
   timer: number;
 }
@@ -38,7 +38,7 @@ function ensureListener(): void {
   window.addEventListener('message', (event) => {
     if (event.source !== window) return;
     const data = event.data as
-      | { source?: unknown; id?: unknown; nonce?: unknown; ok?: unknown; error?: unknown }
+      | { source?: unknown; id?: unknown; nonce?: unknown; ok?: unknown; error?: unknown; data?: unknown }
       | null;
     if (!data || typeof data !== 'object' || data.source !== RESULT_EVENT) return;
     if (data.nonce !== currentNonce()) return;
@@ -47,7 +47,7 @@ function ensureListener(): void {
     if (!entry) return;
     pending.delete(data.id);
     window.clearTimeout(entry.timer);
-    if (data.ok === true) entry.resolve();
+    if (data.ok === true) entry.resolve(data.data);
     else entry.reject(new Error(typeof data.error === 'string' ? data.error : 'seek refused'));
   });
 }
@@ -57,17 +57,17 @@ function ensureListener(): void {
  * time (no player API yet, e.g. before the watch page booted) — the caller
  * shows "not seekable" and playback keeps going.
  */
-function playbackCommand(command: Record<string, unknown>, timeoutMs: number): Promise<void> {
+function playbackCommand<T = unknown>(command: Record<string, unknown>, timeoutMs: number): Promise<T> {
   ensureListener();
   const nonce = currentNonce();
   if (!nonce) return Promise.reject(new Error('playback bridge not ready'));
   const id = `p${(++counter).toString(36)}${Date.now().toString(36)}`;
-  return new Promise<void>((resolve, reject) => {
+  return new Promise<T>((resolve, reject) => {
     const timer = window.setTimeout(() => {
       pending.delete(id);
       reject(new Error('player API did not answer'));
     }, timeoutMs);
-    pending.set(id, { resolve, reject, timer });
+    pending.set(id, { resolve: (data) => resolve(data as T), reject, timer });
     try {
       window.postMessage({ source: CMD_EVENT, id, nonce, ...command }, '*');
     } catch (err) {
@@ -96,4 +96,15 @@ export function resetPlaybackBridgeForTests(): void {
   for (const entry of pending.values()) window.clearTimeout(entry.timer);
   pending.clear();
   counter = 0;
+}
+
+/**
+ * Point 5: the player's own metadata for the current video. `title` is what
+ * the MAIN world sees for the session; `videoId` identifies the stream.
+ */
+export function mediaThroughMainWorld(
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<{ videoId?: string; title?: string }> {
+  return playbackCommand<{ videoId?: string; title?: string }>({ cmd: 'media' }, timeoutMs)
+    .then((data) => ({ videoId: data?.videoId, title: data?.title }));
 }
