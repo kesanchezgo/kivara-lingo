@@ -146,6 +146,8 @@ vi.mock('../../src/content/platform-adapters/netflix-main-bridge', () => ({
 
 describe('createNetflixAdapter asks the player for the learning-language track', () => {
   beforeEach(() => {
+    // Kivara must be ON: with it off the watcher touches nothing (point 1).
+    useKivaraStore.setState({ enabled: true });
     bridgeCalls.select.length = 0;
     bus.tracks.clear();
     bus.last = null;
@@ -162,7 +164,8 @@ describe('createNetflixAdapter asks the player for the learning-language track',
     bus.tracks.set('es', track('es'));
     const adapter = createNetflixAdapter();
     try {
-      await new Promise((r) => setTimeout(r, 0));
+      await new Promise((r) => setTimeout(r, 50));
+
       expect(bridgeCalls.select).toContain('en');
     } finally {
       adapter.destroy?.();

@@ -21,6 +21,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from './fixtures';
+import type { Worker } from '@playwright/test';
 import { readFixture, stateOf, waitForState, VIDEO_HOST, PANEL_HOST } from './helpers';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -159,3 +160,38 @@ test('Kivara switches the subtitle track itself, without asking the user', async
 });
 
 
+
+/** Write the master switch before the page loads (the store hydrates at start). */
+async function seedEnabled(sw: Worker, enabled: boolean): Promise<void> {
+  await sw.evaluate(async (arg: { enabled: boolean }) => {
+    const KEY = 'kivara-lingo-state';
+    const cur = await chrome.storage.sync.get(KEY);
+    const parsed = cur[KEY] ? JSON.parse(String(cur[KEY])) : { state: {}, version: 0 };
+    parsed.state = { ...(parsed.state ?? {}), enabled: arg.enabled };
+    await chrome.storage.sync.set({ [KEY]: JSON.stringify(parsed) });
+  }, { enabled });
+}
+
+const switchCalls = (page: import('@playwright/test').Page) =>
+  page.evaluate(() => (window as Window & { __kivaraSubtitleSwitch?: string[] }).__kivaraSubtitleSwitch ?? []);
+
+test('with Kivara OFF the player is never touched', async ({ context, serviceWorker }) => {
+  await seedEnabled(serviceWorker, false);
+  const page = await openNetflix(context, ttml(SPANISH, 'es'));
+  try {
+    await page.waitForTimeout(9_000);
+    expect(await switchCalls(page)).toEqual([]);
+  } finally {
+    await page.close();
+  }
+});
+
+test('with Kivara ON the switch happens', async ({ context, serviceWorker }) => {
+  await seedEnabled(serviceWorker, true);
+  const page = await openNetflix(context, ttml(SPANISH, 'es'));
+  try {
+    await expect.poll(() => switchCalls(page), { timeout: 20_000 }).toContain('T:en');
+  } finally {
+    await page.close();
+  }
+});

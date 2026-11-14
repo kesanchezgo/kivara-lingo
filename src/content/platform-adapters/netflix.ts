@@ -13,6 +13,7 @@
 import { createInterceptedAdapter } from './intercepted-adapter';
 import { mediaThroughMainWorld } from './netflix-main-bridge';
 import { switchSubtitleToLanguage } from './subtitle-switch';
+import { createSubtitleTrackWatcher } from './subtitle-track-watcher';
 import { getTrackByLanguage, onTrack } from './intercepted-bus';
 import { useKivaraStore } from '../../shared/use-kivara-store';
 import { devLog } from '../../shared/logger';
@@ -168,75 +169,51 @@ function readNetflixMedia(): MediaInfo {
 }
 
 /**
- * Make the player serve the subtitle track of the language being learned.
+ * Keep the player's subtitle language in step with what the user learns.
  *
- * The user configures what they study; nobody should have to open Netflix's
- * subtitle menu. When the bus has no track for that language (Netflix only
- * exposes the one selected in its own UI), the app asks the player to switch,
- * which makes Netflix fetch that TTML and the bus publish it. A few retries
- * cover the window before the player API exists; a failure is not fatal — the
- * overlay explains the track it ended up reading.
+ * The policy lives in `createSubtitleTrackWatcher` (unit-tested): nothing
+ * happens while Kivara is off, and the loop stops the moment the master switch
+ * goes off. This function only supplies the real dependencies.
  */
-/**
- * Make the player serve the subtitle track of the language being learned.
- *
- * The user configures what they study; nobody should open Netflix's subtitle
- * menu. Two triggers, because the player API appears late:
- *  - the bus publishing a track proves the player is alive (attempt right
- *    there), and
- *  - a short interval covers the case where the player serves nothing at all
- *    (subtitles off), where no track ever arrives.
- *
- * Every attempt is cheap and idempotent: once the learning track is on the
- * bus there is nothing left to do. A failure is not fatal — the overlay says
- * which track it ended up reading.
- */
-const LEARNING_TRACK_ATTEMPTS = 12;
-const LEARNING_TRACK_INTERVAL_MS = 2_500;
-let stopLearningTrackWatch: (() => void) | null = null;
-
-function ensureLearningSubtitleTrack(): void {
-  stopLearningTrackWatch?.();
-  const learningLang = (): string =>
-    (useKivaraStore.getState().translate.sourceLang || 'en').split(/[-_]/)[0].toLowerCase();
-  let tries = 0;
-  let switching = false;
-
-  const attempt = (): void => {
-    const lang = learningLang();
-    if (!lang || getTrackByLanguage(lang) || switching) return;
-    switching = true;
-    void switchSubtitleToLanguage(lang)
-      .then((result) => devLog('[Kivara Lingo] subtitle track', result.ok ? 'switched' : 'kept', result))
-      .catch(() => {
-        /* the platform may not offer that language: the notice says so */
-      })
-      .finally(() => {
-        switching = false;
+function makeTrackWatcher() {
+  return createSubtitleTrackWatcher({
+    // Two gates, and both matter: the persisted value may not have arrived
+    // yet when the adapter mounts (it defaults to ON), so acting before
+    // hydration would touch the player of a user who switched Kivara off.
+    isEnabled: () => {
+      const persist = (useKivaraStore as unknown as { persist?: { hasHydrated?: () => boolean } }).persist;
+      if (persist?.hasHydrated && !persist.hasHydrated()) return false;
+      return useKivaraStore.getState().enabled !== false;
+    },
+    learningLang: () => (useKivaraStore.getState().translate.sourceLang || 'en').split(/[-_]/)[0].toLowerCase(),
+    hasTrackFor: (lang) => !!getTrackByLanguage(lang),
+    switchTo: (lang) => switchSubtitleToLanguage(lang),
+    onTrack: (listener) => onTrack((track) => listener((track.language ?? '').split(/[-_]/)[0].toLowerCase())),
+    subscribeEnabled: (listener) => {
+      const offStore = useKivaraStore.subscribe((state, prev) => {
+        if (state.enabled !== prev.enabled) listener();
       });
-  };
-
-  // The player just published a track: it is ready to be asked.
-  const off = onTrack((track) => {
-    const language = (track.language ?? '').split(/[-_]/)[0].toLowerCase();
-    if (language && language !== learningLang()) attempt();
+      const persist = (useKivaraStore as unknown as {
+        persist?: { onFinishHydration?: (cb: () => void) => () => void };
+      }).persist;
+      const offHydration = persist?.onFinishHydration?.(listener) ?? (() => {});
+      return () => {
+        offStore();
+        offHydration();
+      };
+    },
+    setInterval: (handler, ms) => window.setInterval(handler, ms),
+    clearInterval: (id) => window.clearInterval(id),
+    log: (...args) => devLog(...args),
   });
-  const timer = window.setInterval(() => {
-    tries += 1;
-    attempt();
-    if (tries >= LEARNING_TRACK_ATTEMPTS) window.clearInterval(timer);
-  }, LEARNING_TRACK_INTERVAL_MS);
-  stopLearningTrackWatch = () => {
-    window.clearInterval(timer);
-    off();
-  };
-  attempt();
 }
 
 export function createNetflixAdapter(): SubtitleSource {
   // One shot per mount: the player's own title/id, used as the first choice
   // for `readNetflixMedia`. Failure is silent — document.title still answers.
-  ensureLearningSubtitleTrack();
+  // One watcher per adapter: it starts and stops with the mount.
+  const trackWatcher = makeTrackWatcher();
+  trackWatcher.start();
   void mediaThroughMainWorld()
     .then((media) => {
       mainMedia = media;
@@ -244,7 +221,7 @@ export function createNetflixAdapter(): SubtitleSource {
       if (video) mainMediaByVideo.set(video, media);
     })
     .catch(() => {});
-  return createInterceptedAdapter({
+  const adapter = createInterceptedAdapter({
     platform: 'netflix',
     // Netflix doesn't expose the cue language in the URL; the shared factory
     // resolves the source track from the user's `translate.sourceLang` — the
@@ -256,4 +233,11 @@ export function createNetflixAdapter(): SubtitleSource {
     getVideo: findNetflixVideo,
     getMediaInfo: readNetflixMedia,
   });
+  return {
+    ...adapter,
+    destroy() {
+      trackWatcher.stop();
+      adapter.destroy?.();
+    },
+  };
 }
