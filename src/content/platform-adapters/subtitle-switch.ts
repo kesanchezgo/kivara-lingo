@@ -18,8 +18,14 @@ import { pickTimedTextTrack, type TimedTextTrackInfo } from './timed-text';
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => window.setTimeout(resolve, ms));
 
-/** The subtitle menu button Netflix renders in its control bar. */
-const MENU_BUTTON = '[data-uia="control-audio-subtitle"], [aria-label*="Audio" i]';
+/**
+ * The subtitle menu button Netflix renders in its control bar.
+ *
+ * Exactly this hook, verified on the real page: the old `[aria-label*="Audio"]
+ * wildcard also matched unrelated controls (and would match a different
+ * language's UI), and opening the wrong panel is worse than not opening one.
+ */
+const MENU_BUTTON = '[data-uia="control-audio-subtitle"]';
 
 function currentLang(track: { bcp47?: string } | null | undefined): string {
   return (track?.bcp47 ?? '').split(/[-_]/)[0].toLowerCase();
