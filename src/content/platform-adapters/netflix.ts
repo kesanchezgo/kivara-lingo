@@ -11,7 +11,10 @@
  *    subtitle rendering containers
  */
 import { createInterceptedAdapter } from './intercepted-adapter';
-import { mediaThroughMainWorld } from './netflix-main-bridge';
+import { mediaThroughMainWorld, selectSubtitleTrackThroughMainWorld } from './netflix-main-bridge';
+import { getTrackByLanguage } from './intercepted-bus';
+import { useKivaraStore } from '../../shared/use-kivara-store';
+import { devLog } from '../../shared/logger';
 import { getDomMediaInfo } from './media-info';
 import type { MediaInfo } from '../../shared/types';
 import type { SubtitleSource } from './types';
@@ -163,9 +166,40 @@ function readNetflixMedia(): MediaInfo {
   };
 }
 
+/**
+ * Make the player serve the subtitle track of the language being learned.
+ *
+ * The user configures what they study; nobody should have to open Netflix's
+ * subtitle menu. When the bus has no track for that language (Netflix only
+ * exposes the one selected in its own UI), the app asks the player to switch,
+ * which makes Netflix fetch that TTML and the bus publish it. A few retries
+ * cover the window before the player API exists; a failure is not fatal — the
+ * overlay explains the track it ended up reading.
+ */
+function ensureLearningSubtitleTrack(attempts = 4, delayMs = 2_500): void {
+  const learningLang = (): string =>
+    (useKivaraStore.getState().translate.sourceLang || 'en').split(/[-_]/)[0].toLowerCase();
+  let tries = 0;
+  const attempt = () => {
+    tries += 1;
+    const lang = learningLang();
+    if (getTrackByLanguage(lang)) return;
+    void selectSubtitleTrackThroughMainWorld(lang)
+      .then((track) => devLog('[Kivara Lingo] subtitle track switched', track))
+      .catch(() => {
+        /* the platform may not offer that language: the notice says so */
+      })
+      .finally(() => {
+        if (tries < attempts) window.setTimeout(attempt, delayMs);
+      });
+  };
+  attempt();
+}
+
 export function createNetflixAdapter(): SubtitleSource {
   // One shot per mount: the player's own title/id, used as the first choice
   // for `readNetflixMedia`. Failure is silent — document.title still answers.
+  ensureLearningSubtitleTrack();
   void mediaThroughMainWorld()
     .then((media) => {
       mainMedia = media;

@@ -38,7 +38,7 @@ export function LanguageMismatchNotice({ track, learning, platform }: LanguageMi
     <div
       data-kvl-lang-mismatch
       aria-live="polite"
-      className="w-full rounded-lg bg-sky-500/10 ring-1 ring-inset ring-sky-500/30 px-3 py-2.5 text-[12.5px] leading-snug text-sky-700 dark:text-sky-300"
+      className="w-full rounded-lg bg-amber-500/10 ring-1 ring-inset ring-amber-500/30 px-3 py-2.5 text-[12.5px] leading-snug text-amber-700 dark:text-amber-300"
     >
       {name ? t('rail.langMismatch', vars) : t('rail.langMismatchGeneric', vars)}
     </div>

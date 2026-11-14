@@ -34,6 +34,42 @@
     </div>
 
     <script>
+      // Minimal player API stub: the shape the MAIN-world interceptor reads.
+      // It records the subtitle switch Kivara asks for, so the e2e can assert
+      // that the app changes the track itself instead of telling the user to.
+      window.__kivaraSubtitleSwitch = [];
+      window.__kivaraSubtitleTracks = [
+        { trackId: 'T:es', bcp47: 'es', displayName: 'Español', trackType: 'PRIMARY', rawTrackType: 'SUBTITLES', isNoneTrack: false, isForcedNarrative: false },
+        { trackId: 'T:en', bcp47: 'en', displayName: 'Inglés', trackType: 'ASSISTIVE', rawTrackType: 'CLOSEDCAPTIONS', isNoneTrack: false, isForcedNarrative: false },
+      ];
+      const session = {
+        seek: () => {},
+        setPlaybackRate: () => {},
+        isPlaying: () => true,
+        getTimedTextTrackList: () => window.__kivaraSubtitleTracks,
+        getTimedTextTrack: () => ({ trackId: 'T:es', bcp47: 'es' }),
+        setTimedTextTrack: (id) => { window.__kivaraSubtitleSwitch.push(id); },
+        getTimedTextVisibility: () => true,
+        setTimedTextVisible: () => {},
+      };
+      window.netflix = {
+        appContext: {
+          state: {
+            playerApp: {
+              getAPI: () => ({
+                videoPlayer: {
+                  getAllPlayerSessionIds: () => ['session-1'],
+                  getVideoPlayerBySessionId: () => session,
+                  getPlayingSessionId: () => 'session-1',
+                  getAllPlayerStates: () => [session],
+                  getPlayerByIndex: () => session,
+                },
+              }),
+            },
+          },
+        },
+      };
+
       const canvas = document.createElement('canvas');
       canvas.width = 640;
       canvas.height = 360;
@@ -92,3 +128,4 @@
     </script>
   </body>
 </html>
+

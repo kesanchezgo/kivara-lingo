@@ -38,7 +38,7 @@ describe('WordPopover with a language mismatch', () => {
   it('shows the mismatch and opens no lookup stream', () => {
     streamSpy.mockClear();
     render(<WordPopover {...baseProps} languageMismatch={{ track: 'es', learning: 'en' }} />);
-    expect(screen.getByText(/estás aprendiendo|you are learning/i)).toBeTruthy();
+    expect(screen.getByText(/no pude cambiar los subtítulos|could not switch/i)).toBeTruthy();
     expect(streamSpy).not.toHaveBeenCalled();
   });
 

@@ -119,3 +119,57 @@ describe('the adapter does not stamp the learning language on a track', () => {
     }
   });
 });
+
+/**
+ * The app switches the track itself: nobody opens Netflix's subtitle menu to
+ * pick what they are learning.
+ */
+const bridgeCalls = vi.hoisted(() => ({ select: [] as string[], media: 0 }));
+
+vi.mock('../../src/content/platform-adapters/netflix-main-bridge', () => ({
+  selectSubtitleTrackThroughMainWorld: async (lang: string) => {
+    bridgeCalls.select.push(lang);
+    return { trackId: `T:${lang}`, bcp47: lang };
+  },
+  mediaThroughMainWorld: async () => {
+    bridgeCalls.media += 1;
+    return { videoId: '1', title: 'x' };
+  },
+}));
+
+describe('createNetflixAdapter asks the player for the learning-language track', () => {
+  beforeEach(() => {
+    bridgeCalls.select.length = 0;
+    bus.tracks.clear();
+    bus.last = null;
+    bus.listeners.clear();
+    setSourceLang('en');
+  });
+  afterEach(() => {
+    bus.tracks.clear();
+    bus.last = null;
+    bus.listeners.clear();
+  });
+
+  it('selects the learning language when the bus has no track for it', async () => {
+    bus.tracks.set('es', track('es'));
+    const adapter = createNetflixAdapter();
+    try {
+      await new Promise((r) => setTimeout(r, 0));
+      expect(bridgeCalls.select).toContain('en');
+    } finally {
+      adapter.destroy?.();
+    }
+  });
+
+  it('does not touch the player when the learning track is already on the bus', async () => {
+    bus.tracks.set('en', track('en'));
+    const adapter = createNetflixAdapter();
+    try {
+      await new Promise((r) => setTimeout(r, 0));
+      expect(bridgeCalls.select).toHaveLength(0);
+    } finally {
+      adapter.destroy?.();
+    }
+  });
+});

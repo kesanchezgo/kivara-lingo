@@ -108,3 +108,17 @@ export function mediaThroughMainWorld(
   return playbackCommand<{ videoId?: string; title?: string }>({ cmd: 'media' }, timeoutMs)
     .then((data) => ({ videoId: data?.videoId, title: data?.title }));
 }
+
+/**
+ * Ask the player to switch to the subtitle track of `lang`. The language is
+ * the one the user configured to learn — the app does the switching.
+ */
+export function selectSubtitleTrackThroughMainWorld(
+  lang: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<{ trackId?: string; bcp47?: string }> {
+  return playbackCommand<{ trackId?: string; bcp47?: string }>(
+    { cmd: 'subtitles', action: 'select', lang },
+    timeoutMs,
+  );
+}

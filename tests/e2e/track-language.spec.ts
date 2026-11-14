@@ -100,7 +100,7 @@ test('a Spanish TTML with xml:lang="es" is shown and explained, never hidden', a
     await waitForState(
       page,
       VIDEO_HOST,
-      (state) => state.live.some((t) => /estás aprendiendo/i.test(t)),
+      (state) => state.live.some((t) => /no pude cambiar los subtítulos/i.test(t)),
       'the mismatch notice explains the Spanish track',
       20_000,
     );
@@ -118,7 +118,7 @@ test('a Spanish TTML with no declared language is detected, not stamped as Engli
     await waitForState(
       page,
       VIDEO_HOST,
-      (state) => state.live.some((t) => /estás aprendiendo/i.test(t)),
+      (state) => state.live.some((t) => /no pude cambiar los subtítulos/i.test(t)),
       'the detector names Spanish when the track declares nothing',
       20_000,
     );
@@ -135,9 +135,27 @@ test('an English TTML raises no mismatch notice', async ({ context }) => {
     // Give the app the same window the other cases use before concluding.
     await page.waitForTimeout(8_000);
     const live = (await stateOf(page, VIDEO_HOST)).live;
-    expect(live.join(' ')).not.toMatch(/estás aprendiendo|subtitles are in/i);
+    expect(live.join(' ')).not.toMatch(/no pude cambiar los subtítulos|could not switch/i);
     expect(live.join(' ')).not.toMatch(/no hay subtítulos activos/i);
   } finally {
     await page.close();
   }
 });
+
+test('Kivara switches the subtitle track itself, without asking the user', async ({ context }) => {
+  const page = await openNetflix(context, ttml(SPANISH, 'es'));
+  try {
+    // The bus only has the Spanish track; the learner is on English. The app
+    // must ask the player for the English track through the MAIN-world bridge.
+    await expect
+      .poll(
+        () => page.evaluate(() => (window as Window & { __kivaraSubtitleSwitch?: string[] }).__kivaraSubtitleSwitch ?? []),
+        { message: 'the app asked the player for the English track', timeout: 20_000 },
+      )
+      .toContain('T:en');
+  } finally {
+    await page.close();
+  }
+});
+
+

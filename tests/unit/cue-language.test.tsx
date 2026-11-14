@@ -82,7 +82,7 @@ describe('LanguageMismatchNotice', () => {
     expect(text).toContain('Español');
     expect(text).toContain('English');
     expect(text).toContain('Netflix');
-    expect(text).toMatch(/estás aprendiendo/i);
+    expect(text).toMatch(/no pude cambiar/i);
   });
 
   it('the English copy names both languages and the platform', () => {
@@ -92,7 +92,7 @@ describe('LanguageMismatchNotice', () => {
     expect(text).toContain('Español');
     expect(text).toContain('English');
     expect(text).toContain('Netflix');
-    expect(text).toMatch(/you are learning/i);
+    expect(text).toMatch(/could not switch/i);
   });
 
   it('renders with the endonyms of the two languages', () => {
