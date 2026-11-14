@@ -11,6 +11,7 @@ import { dbg, initLogFlag } from '../shared/logger';
 import { bumpMountGen, enqueueMount, readMountGen } from './mount-queue';
 import { mountDenied, navWaitMs } from './mount-gate';
 import { findVideoContainerIn } from './video-container';
+import { installNavigationTriggers } from './nav-triggers';
 import { setYomitanHeadwords } from './nlp/yomitan-headwords';
 import { updateOverlayParent, type RestoreState } from './fullscreen-overlay-core';
 
@@ -378,6 +379,7 @@ async function init() {
   // not mount in parallel (see enqueueMount). The adapter is created
   // INSIDE the task, after the generation survived — not before.
   await enqueueMount(gen, async () => {
+    dbg('[Kivara Lingo] init mount task running');
     const adapter = await detectPlatform();
     // Final generation check before actually mounting: a navigation that
     // landed during the adapter creation would mount the OLD video. The
@@ -401,20 +403,12 @@ function observeNavigation() {
   // for a video, re-detecting the adapter and possibly remounting.
   document.addEventListener('yt-navigate-finish', () => scheduleNavigation(600));
 
-  // Generic SPA fallback: watch URL changes via popstate / pushState patching.
-  const origPush = history.pushState;
-  history.pushState = function (...args) {
-    const result = origPush.apply(this, args);
-    scheduleLocationChange();
-    return result;
-  };
-  const origReplace = history.replaceState;
-  history.replaceState = function (...args) {
-    const result = origReplace.apply(this, args);
-    scheduleLocationChange();
-    return result;
-  };
-  window.addEventListener('popstate', scheduleLocationChange);
+  // Generic SPA fallback: pushState/replaceState patches, popstate, Chrome's
+  // Navigation API and a 1 Hz href watchdog. The patch alone is NOT enough:
+  // Netflix's framework captured the native history methods before this
+  // script ran, so its navigations bypassed the patch and `popstate` does not
+  // fire for pushState — Kivara never mounted on /watch (QA stage A3).
+  installNavigationTriggers(window, scheduleLocationChange);
   window.addEventListener('kivara-locationchange', () => scheduleNavigation(600));
 }
 
@@ -524,6 +518,7 @@ async function handleNavigation() {
     // the `return` above left every one of them alive with its intervals
     // and listeners piling up per navigation. Now a task that decides not
     // to mount never pays for the adapter it did not use.
+    dbg('[Kivara Lingo] nav mount task running');
     const adapter = await detectPlatform();
     // Generation re-check AFTER the await: another navigation may have run
     // (or a task may have been queued) while `detectPlatform` walked the DOM.
