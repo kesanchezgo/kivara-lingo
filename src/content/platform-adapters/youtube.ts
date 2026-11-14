@@ -14,7 +14,7 @@ import {
   cueFromRaw,
   cuesFromRawTrack,
   cuesFromTextTracks,
-  findCueAt,
+  findActiveCues,
   findCueByText,
   pickBestAltCue,
 } from './tracks';
@@ -101,9 +101,17 @@ export function attachYouTube(): SubtitleSource | null {
   function busCueAt(timeMs: number): SubtitleCue | null {
     const track = sourceTrack();
     if (!track || track.cues.length === 0) return null;
-    const hit = findCueAt(track.cues, timeMs);
-    if (!hit) return null;
-    return cueFromRaw(hit, track.language || '', 'youtube');
+    // Overlapping cues are combined, exactly like the intercepted adapter: the
+    // second line must appear at its own start, not when the first one ends.
+    const active = findActiveCues(track.cues, timeMs);
+    if (active.length === 0) return null;
+    const start = active[0].start;
+    const end = active.reduce((max, cue) => Math.max(max, cue.end), active[0].end);
+    return cueFromRaw(
+      { start, end, text: active.map((cue) => cue.text).join('\n') },
+      track.language || '',
+      'youtube',
+    );
   }
 
   /** The bus cue matching a piece of DOM caption text, by normalised text. */
