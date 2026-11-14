@@ -9,7 +9,7 @@ import { useKivaraStore } from '../shared/use-kivara-store';
 import { clearBus, reprocessLastDashManifest } from './platform-adapters/intercepted-bus';
 import { dbg, initLogFlag } from '../shared/logger';
 import { bumpMountGen, enqueueMount, readMountGen } from './mount-queue';
-import { mountDenied } from './mount-gate';
+import { mountDenied, navWaitMs } from './mount-gate';
 import { findVideoContainerIn } from './video-container';
 import { setYomitanHeadwords } from './nlp/yomitan-headwords';
 import { updateOverlayParent, type RestoreState } from './fullscreen-overlay-core';
@@ -487,7 +487,10 @@ async function handleNavigation() {
   // the video HAS arrived — was never re-dispatched. 3 s is enough for
   // the SPA to paint while not adding a perceptible delay to the
   // interactive case (waitForVideo returns on the very first poll).
-  const found = await waitForVideo(3000);
+  // Per-route wait (QA finding): real Netflix takes longer than the flat 3 s
+  // to paint the player after the SPA lands on /watch — the short wait made
+  // the handler demount and never mount on the watch page at all.
+  const found = await waitForVideo(navWaitMs(window.location.hostname, window.location.pathname));
   const offRoute = mountDenied(window.location.hostname, window.location.pathname);
   if (!found || offRoute) {
     // Leaving the playback route (Netflix /watch → /browse) is a demount, and
