@@ -261,7 +261,7 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
     },
     playback: opts.playback === 'netflix'
       ? createNetflixPlaybackController(() => getVideo() ?? lastVideo)
-      : createMediaPlaybackController(() => getVideo() ?? lastVideo),
+      : createMediaPlaybackController(() => getVideo() ?? lastVideo, { platform: opts.platform }),
     ...(opts.getMediaInfo ? { getMediaInfo: opts.getMediaInfo } : {}),
     destroy() {
       // Everything this context started, undone. Anything left running would

@@ -17,6 +17,7 @@ import {
   resetPlaybackBridgeForTests,
   seekThroughMainWorld,
 } from '../../src/content/platform-adapters/netflix-main-bridge';
+import * as bridge from '../../src/content/platform-adapters/netflix-main-bridge';
 import { cueIndexAt } from '../../src/content/ui/useStudyPlayback';
 
 class FakeVideo extends EventTarget {
@@ -66,12 +67,8 @@ describe('media PlaybackController', () => {
     controller.pause();
     expect(controller.isPaused()).toBe(true);
     controller.setRate(99);
-    // Point 3: the rate goes through the MAIN bridge first and lands on the
-    // element in a follow-up microtask — flush it before reading back.
-    await new Promise((r) => setTimeout(r, 0));
     expect(controller.getRate()).toBe(4);
     controller.setRate(0.0001);
-    await new Promise((r) => setTimeout(r, 0));
     expect(controller.getRate()).toBe(0.25);
     fake.paused = false;
     expect(controller.currentTimeMs()).toBe(0);
@@ -168,5 +165,53 @@ describe('cueIndexAt', () => {
   it('keeps the line just passed between cues and -1 before the first', () => {
     expect(cueIndexAt(cues, 2500)).toBe(1);
     expect(cueIndexAt(cues, 5000)).toBe(2);
+  });
+});
+
+/**
+ * Point 3 follow-up — the rate bridge belongs to the platforms that HAVE a
+ * speed API.
+ *
+ * Only YouTube (`movie_player.setPlaybackRate`) and Netflix expose one. On
+ * Disney+, Max, Prime and every generic host the bridge was a round trip that
+ * could not succeed: the MAIN interceptor has no player API there, the reply
+ * was a rejection, and the rate landed late in a follow-up microtask — the
+ * study bar showed the old speed for a frame and an external `ratechange`
+ * could race it.
+ */
+describe('rate application per platform', () => {
+  const bridgeSpy = () => vi.spyOn(bridge, 'rateThroughMainWorld');
+
+  it('writes the element directly on Disney+, Max, Prime and generic hosts', async () => {
+    const spy = bridgeSpy();
+    for (const platform of ['disney', 'hbo', 'prime', 'generic'] as const) {
+      const fake = new FakeVideo();
+      const controller = createMediaPlaybackController(() => asVideo(fake), { platform });
+      controller.setRate(1.25);
+      expect(controller.getRate(), platform).toBe(1.25);
+    }
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it('keeps the YouTube bridge (its API is the one that exists)', async () => {
+    const spy = bridgeSpy().mockResolvedValue(undefined);
+    const fake = new FakeVideo();
+    const controller = createMediaPlaybackController(() => asVideo(fake), { platform: 'youtube' });
+    controller.setRate(1.25);
+    expect(spy).toHaveBeenCalledWith(1.25);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(controller.getRate()).toBe(1.25);
+    spy.mockRestore();
+  });
+
+  it('falls back to the element when the YouTube bridge rejects', async () => {
+    const spy = bridgeSpy().mockRejectedValue(new Error('no api'));
+    const fake = new FakeVideo();
+    const controller = createMediaPlaybackController(() => asVideo(fake), { platform: 'youtube' });
+    controller.setRate(0.75);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(controller.getRate()).toBe(0.75);
+    spy.mockRestore();
   });
 });

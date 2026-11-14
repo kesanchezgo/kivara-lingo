@@ -16,7 +16,10 @@
  * Both take a getter instead of the element: streaming players replace their
  * `<video>` on SPA navigation, and a captured element would go stale.
  */
-import type { PlaybackController } from './types';
+import type { PlaybackController, SubtitleSource } from './types';
+
+/** Platform tags the HTML5 controller understands. */
+type PlaybackPlatform = SubtitleSource['platform'];
 import { rateThroughMainWorld, seekThroughMainWorld } from './netflix-main-bridge';
 
 /** Study speeds. The same list backs the transcript and the study bar. */
@@ -54,10 +57,20 @@ function seekElement(video: HTMLVideoElement, seconds: number): Promise<void> {
   });
 }
 
-/** HTML5 controller. `getVideo()` is read on every call, never captured. */
+/**
+ * HTML5 controller. `getVideo()` is read on every call, never captured.
+ *
+ * `platform` decides HOW the rate is applied: only YouTube (and Netflix, in
+ * its own controller) exposes a speed API worth a MAIN-world round trip. On
+ * Disney+, Max, Prime and generic hosts that bridge could never succeed — no
+ * player API exists there — so the rate is written straight to the element,
+ * with no microtask between the click and the new speed.
+ */
 export function createMediaPlaybackController(
   getVideo: () => HTMLVideoElement | null,
+  opts: { platform?: PlaybackPlatform } = {},
 ): PlaybackController {
+  const useRateBridge = opts.platform === 'youtube';
   return {
     async seek(timeMs) {
       const video = getVideo();
@@ -86,9 +99,16 @@ export function createMediaPlaybackController(
       const video = getVideo();
       if (!video) return;
       const next = clampRate(rate);
-      // Point 3: the platform API keeps its native speed menu in sync. The
-      // bridge rejects fast on hosts without the MAIN interceptor (no nonce),
-      // so generic sites still write the element directly.
+      if (!useRateBridge) {
+        try {
+          video.playbackRate = next;
+        } catch {
+          /* the platform may freeze playbackRate; keep the old one */
+        }
+        return;
+      }
+      // YouTube: `movie_player.setPlaybackRate` keeps the native speed menu in
+      // sync, so the API goes first and the element is the safety net.
       rateThroughMainWorld(next)
         .then(() => {
           try {

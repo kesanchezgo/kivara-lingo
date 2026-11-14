@@ -443,7 +443,7 @@ export function attachYouTube(): SubtitleSource | null {
         }
       };
     },
-    playback: createMediaPlaybackController(() => video),
+    playback: createMediaPlaybackController(() => video, { platform: 'youtube' }),
     destroy() {
       // A YouTube SPA navigation reuses the SAME <video>, so without this the
       // old adapter's 120 ms poll and its textTracks listeners keep running
