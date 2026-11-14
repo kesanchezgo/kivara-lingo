@@ -951,6 +951,15 @@ export async function createCardFromRequest(
     if (!stored) warnings.push(t('capture.vipImageFailed'));
   }
 
+  // Point 6: say WHY the picture is missing. A DRM-protected video cannot be
+  // drawn to a canvas, so `request.frame` never arrives; without this line the
+  // card came out pictureless with no explanation and the user had no way to
+  // know it was the video, not the extension. Silence when no image field is
+  // mapped at all — there was nothing to fill.
+  if ((frameField || imageField) && !request.frame && !ctx.imageUrl) {
+    warnings.push(t('capture.frameProtected'));
+  }
+
   // Audio — three flavours:
   //   sentence-audio (preferred for the cue's full audio, sourced from the
   //                   live tab-capture buffer),
