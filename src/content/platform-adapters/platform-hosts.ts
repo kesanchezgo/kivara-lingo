@@ -9,6 +9,15 @@ const AMAZON_PRIME_HOST =
   /(^|\.)amazon\.(?:com|co\.uk|de|es|fr|it|co\.jp|ca|com\.mx|com\.br|in)$/;
 
 /**
+ * Every hostname that can serve Prime Video: the eleven Amazon storefronts
+ * plus primevideo.com. The mount gate and `detectPlatform` both read this, so
+ * a new domain cannot be added to one and forgotten in the other.
+ */
+export function isPrimeHost(host: string): boolean {
+  return host.includes('primevideo.com') || AMAZON_PRIME_HOST.test(host);
+}
+
+/**
  * `primevideo.com` is Prime everywhere; on the Amazon domains it is Prime only
  * under `/gp/video/` — the rest of the store must fall through to the generic
  * player (and the manifest does not inject there anyway).
