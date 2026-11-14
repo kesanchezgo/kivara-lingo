@@ -13,6 +13,7 @@
  */
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../shared/i18n';
+import { NoSubtitlesNotice } from './no-cues-notice';
 import { sendMessage } from 'webext-bridge/content-script';
 import { toast } from 'sonner';
 import {
@@ -88,6 +89,9 @@ export interface SubtitleOverlayProps {
   initialSavedWords?: Set<string>;
   /** The video is playing — drives Listen-first blur. */
   playing?: boolean;
+  /** Point 2: explain a zero-cue playback after ~5 s. */
+  noCuesNotice?: boolean;
+  noticePlatform?: string;
   /** Expressions split by hand (Alt+wheel or the card). Owned by App. */
   expandedMWEs?: Set<string>;
   setExpandedMWEs?: React.Dispatch<React.SetStateAction<Set<string>>>;
@@ -132,6 +136,8 @@ export function SubtitleOverlay({
   onTokenHoverChange,
   initialSavedWords,
   playing = false,
+  noCuesNotice = false,
+  noticePlatform,
   expandedMWEs: controlledExpanded,
   setExpandedMWEs: controlledSetExpanded,
   capturing = false,
@@ -684,7 +690,19 @@ export function SubtitleOverlay({
     });
   };
 
-  if (!cue || !targetSentence.trim()) return null;
+  if (!cue || !targetSentence.trim()) {
+    // Point 2: with zero cues the caption area is BLANK — exactly the moment
+    // the notice must speak. The hooks above have all run, so this early
+    // return stays rules-of-hooks-clean.
+    if (!noCuesNotice) return null;
+    return (
+      <div className="absolute inset-0" aria-live="polite">
+        <div className="absolute inset-x-0 top-[12%] flex justify-center px-10">
+          <NoSubtitlesNotice platform={noticePlatform} />
+        </div>
+      </div>
+    );
+  }
 
   const rgb = hexToRgb(subtitleStyles.backgroundColor);
   const bgOpacity = (subtitleStyles.backgroundOpacity ?? 60) / 100;
@@ -728,6 +746,11 @@ export function SubtitleOverlay({
       className={`absolute inset-x-0 ${hoveredKey ? 'z-[35]' : 'z-10'} flex flex-col items-center px-8 transition-all duration-300`}
       style={{ top: `${verticalPercent}%`, transform: 'translateY(-50%)' }}
     >
+      {noCuesNotice && (
+        <div className="absolute inset-x-0 top-[12%] flex justify-center px-10" aria-live="polite">
+          <NoSubtitlesNotice platform={noticePlatform} />
+        </div>
+      )}
       {/* Extension badge + study toggles. Placed OUTSIDE the caption plate:
           the sentence toolbar opens above it and, with a caption that reaches
           the right edge, the top-right corner is inside the text. */}
