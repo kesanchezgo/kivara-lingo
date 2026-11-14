@@ -103,7 +103,7 @@ export function attachYouTube(): SubtitleSource | null {
     if (!track || track.cues.length === 0) return null;
     const hit = findCueAt(track.cues, timeMs);
     if (!hit) return null;
-    return cueFromRaw(hit, track.language || sourceLanguage(), 'youtube');
+    return cueFromRaw(hit, track.language || '', 'youtube');
   }
 
   /** The bus cue matching a piece of DOM caption text, by normalised text. */
@@ -112,7 +112,7 @@ export function attachYouTube(): SubtitleSource | null {
     if (!track || track.cues.length === 0) return null;
     const hit = findCueByText(track.cues, text);
     if (!hit) return null;
-    return cueFromRaw(hit, track.language || sourceLanguage(), 'youtube');
+    return cueFromRaw(hit, track.language || '', 'youtube');
   }
 
   /**
@@ -140,7 +140,7 @@ export function attachYouTube(): SubtitleSource | null {
       start: now,
       end: now + 2000,
       text: trimmed,
-      language: activeTrack?.language || sourceLanguage(),
+      language: activeTrack?.language || '',
     });
   }
 
@@ -213,7 +213,7 @@ export function attachYouTube(): SubtitleSource | null {
       start: first.startTime * 1000,
       end: last.endTime * 1000,
       text,
-      language: activeTrack.language || sourceLanguage(),
+      language: activeTrack.language || '',
       align: cueAlign,
     });
   }

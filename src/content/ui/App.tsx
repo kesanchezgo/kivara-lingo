@@ -37,7 +37,7 @@ import {
 } from './save-actions';
 import { useEpisode } from './useEpisode';
 import { useNoCueNotice } from './no-cues-notice';
-import { declaredTrackLanguage, detectTrackLanguage, isLanguageMismatch } from './cue-language';
+import { detectTrackLanguage, isLanguageMismatch } from './cue-language';
 import { cueIndexAt, useStudyPlayback } from './useStudyPlayback';
 import { buildCueRequestFields } from './save-request';
 import { SLOW_REPLAY_RATE } from '../platform-adapters/playback';
@@ -319,7 +319,6 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // The episode key is what makes a NEW empty episode re-arm the notice: same
   // element, new source = new episode on most platforms.
   const noCueNoticeRaw = useNoCueNotice(playing, episode.cues.length, 5_000, videoElement?.currentSrc ?? '');
-  const noCuesNotice = enabled && noCueNoticeRaw;
 
   // ── Point 4: the track's language is not necessarily the learned one ────
   // The adapter's declaration (TTML xml:lang / VTT header / bus track) wins;
@@ -336,6 +335,9 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       : null),
     [trackLanguage, learningLang],
   );
+  // With a track in another language there ARE cues: telling the user "no
+  // subtitles are active" would be false, and the mismatch notice answers.
+  const noCuesNotice = enabled && noCueNoticeRaw && !languageMismatch;
   const studyPlayback = useStudyPlayback({
     controller: episode.controller,
     cues: episode.cues,
@@ -529,9 +531,11 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       }
       const first = cues[0];
       // The TRACK's language, not the learned one: a Spanish track labelled
-      // `en` sends every card to an English dictionary.
-      const declared = declaredTrackLanguage(cues);
-      cueLanguageRef.current = first.language || declared || cueLanguageRef.current || '';
+      // `en` sends every card to an English dictionary. When the adapter
+      // declares nothing, the detector answers (it samples the first cues);
+      // an unknown track keeps the previous value instead of inventing one.
+      const declared = first.language || (cues.length > 0 ? detectTrackLanguage(cues) : '');
+      cueLanguageRef.current = declared || cueLanguageRef.current || '';
       setCueLanguage(cueLanguageRef.current);
       setActiveCue({
         id: first.id,
