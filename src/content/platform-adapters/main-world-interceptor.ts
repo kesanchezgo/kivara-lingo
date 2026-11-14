@@ -445,6 +445,8 @@ declare global {
     setPlaybackRate?: (rate: number) => void;
     /** Documented on current builds; used to pick the active session. */
     isPlaying?: () => boolean;
+    /** Point 5: the id of the video this session is playing. */
+    getCurrentVideoId?: () => string | undefined;
   }
   interface NetflixVideoPlayerApi {
     getPlayerByIndex?: (index: number) => NetflixVideoPlayer | undefined;
@@ -583,16 +585,32 @@ declare global {
     if (data.source !== PLAYBACK_CMD) return;
     if (data.nonce !== currentNonce()) return;
     if (typeof data.id !== 'string') return;
-    const reply = (ok: boolean, error?: string) => {
+    const reply = (ok: boolean, error?: string, payload?: unknown) => {
       try {
         window.postMessage(
-          { source: PLAYBACK_RESULT, id: data.id, ok, error, nonce: currentNonce() },
+          { source: PLAYBACK_RESULT, id: data.id, ok, error, data: payload, nonce: currentNonce() },
           '*',
         );
       } catch {
         /* page is going away */
       }
     };
+    // Point 5: the player's own metadata for the CURRENT video. The page's
+    // DOM is full of interface strings ("Así aprenderás"); the session id and
+    // the document title are the only title facts that belong to the video.
+    if (data.cmd === 'media') {
+      let videoId: string | undefined;
+      try {
+        const session = netflixSessionPlayer();
+        videoId = typeof session?.getCurrentVideoId === 'function' ? session.getCurrentVideoId() : undefined;
+      } catch { /* no player API on this page */ }
+      reply(true, undefined, {
+        videoId: videoId ?? undefined,
+        title: typeof document === 'undefined' ? '' : document.title,
+      });
+      return;
+    }
+
     // Point 3: the rate goes through the platform's own API so the native
     // speed menu stays in sync. YouTube first (the documented player object),
     // then Netflix's session player, then the facade. A build that renames
