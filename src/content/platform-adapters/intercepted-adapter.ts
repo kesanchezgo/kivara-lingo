@@ -15,7 +15,7 @@ import {
 import type { CueListener, MediaInfo, SubtitleCue, SubtitleSource } from './types';
 import { useKivaraStore } from '../../shared/use-kivara-store';
 import { createMediaPlaybackController, createNetflixPlaybackController } from './playback';
-import { cuesFromRawTrack, findCueAt, pickBestAltCue } from './tracks';
+import { cuesFromRawTrack, findActiveCues, pickBestAltCue } from './tracks';
 
 export interface InterceptedAdapterOptions {
   platform: SubtitleSource['platform'];
@@ -67,21 +67,32 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
     return document.querySelector<HTMLVideoElement>('video');
   }
 
+  /**
+   * The caption for `timeMs`.
+   *
+   * Overlapping cues are COMBINED — every active line, in start order, joined
+   * with a newline — instead of the first one winning. The composite id only
+   * changes when the SET changes, so the overlay re-emits the moment a second
+   * line enters (the bug: B appeared when A ended) and stays put while the
+   * same set is on screen.
+   */
   function pickCueAt(timeMs: number): SubtitleCue | null {
     if (!track) return null;
-    const hit = findCueAt(track.cues, timeMs);
-    if (!hit) return null;
+    const active = findActiveCues(track.cues, timeMs);
+    if (active.length === 0) return null;
+    const start = active[0].start;
+    const end = active.reduce((max, cue) => Math.max(max, cue.end), active[0].end);
     return {
-      id: `${opts.platform}-${hit.start}-${hit.end}`,
-      start: hit.start,
-      end: hit.end,
-      text: hit.text,
+      id: `${opts.platform}-${active.map((cue) => `${cue.start}-${cue.end}`).join('|')}`,
+      start,
+      end,
+      text: active.map((cue) => cue.text).join('\n'),
       // The TRACK's language, never the learning language: stamping
       // `sourceLang` here made a Spanish track look English, so the
       // disagreement notice never fired and lookups went to the wrong
       // dictionary.
       language: track.language ?? '',
-      align: hit.align,
+      align: active[0].align,
     };
   }
 

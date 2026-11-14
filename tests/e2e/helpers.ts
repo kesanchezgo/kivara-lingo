@@ -60,6 +60,8 @@ export interface E2ERow extends E2EBox {
 export interface E2EState {
   rows: E2ERow[];
   translation: { text: string; filtered: boolean } | null;
+  /** The caption plate as rendered (overlapping cues are space-joined here). */
+  caption: string;
   live: string[];
   text: string;
 }

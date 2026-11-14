@@ -39,7 +39,7 @@ function normalizeCueText(text: string): string {
  * containment rule cannot drift: strict `start <= t <= end`, first hit wins
  * (the parsers emit time-sorted cues).
  */
-export function findCueAt<T extends { start: number; end: number }>(
+function findCueAt<T extends { start: number; end: number }>(
   cues: readonly T[],
   timeMs: number,
 ): T | null {
@@ -47,6 +47,23 @@ export function findCueAt<T extends { start: number; end: number }>(
     if (timeMs >= cue.start && timeMs <= cue.end) return cue;
   }
   return null;
+}
+
+/**
+ * EVERY cue active at `timeMs`, in start order.
+ *
+ * Subtitles overlap: a line can start before the previous one ends (the
+ * fixture case is A 0–3 s and B 2.3–5 s). Returning just the first match made
+ * Kivara paint A and show B only when A ended — 700 ms late, which is exactly
+ * the drift the QA measured.
+ */
+export function findActiveCues<T extends { start: number; end: number }>(
+  cues: readonly T[],
+  timeMs: number,
+): T[] {
+  return cues
+    .filter((cue) => timeMs >= cue.start && timeMs <= cue.end)
+    .sort((a, b) => a.start - b.start);
 }
 
 /**

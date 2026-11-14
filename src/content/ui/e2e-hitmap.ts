@@ -73,6 +73,9 @@ export interface E2EState {
   rows: E2ERow[];
   /** Overlay's translated caption, or null while none is rendered. */
   translation: E2ETranslation | null;
+  /** The caption plate's text (source lines, `
+` collapsed to spaces). */
+  caption: string;
   /** Every `[aria-live]` region's text (search count, status announcements). */
   live: string[];
   /** Text of the VISIBLE tab panels only (the rail and the open panel tab). */
@@ -184,6 +187,10 @@ function collectState(root: ParentNode): E2EState {
     ? { text: translationText, filtered: isFiltered(translationEl) }
     : null;
 
+  // The plate as the user reads it: overlapping cues are combined with a
+  // newline, so the e2e can tell "both lines" from "only one".
+  const caption = (plate?.textContent ?? '').replace(/\s+/g, ' ').trim();
+
   const live = [...root.querySelectorAll<HTMLElement>('[aria-live]')]
     .map((el) => el.textContent?.trim() ?? '')
     .filter(Boolean);
@@ -205,7 +212,7 @@ function collectState(root: ParentNode): E2EState {
   const panels = [...root.querySelectorAll<HTMLElement>('[role="tabpanel"]:not([hidden])')]
     .map((el) => ({ id: el.id || el.getAttribute('aria-labelledby') || '?', text: (el.textContent ?? '').slice(0, 60) }));
 
-  return { rows, translation, live, text, noSubs, panels };
+  return { rows, translation, caption, live, text, noSubs, panels };
 }
 
 function boxOf(el: Element | null): E2EBox | null {
