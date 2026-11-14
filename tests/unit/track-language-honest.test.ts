@@ -127,6 +127,13 @@ describe('the adapter does not stamp the learning language on a track', () => {
 const bridgeCalls = vi.hoisted(() => ({ select: [] as string[], media: 0 }));
 
 vi.mock('../../src/content/platform-adapters/netflix-main-bridge', () => ({
+  listSubtitleTracks: async () => ({
+    tracks: [
+      { trackId: 'T:es', bcp47: 'es', displayName: 'Español', isNoneTrack: false, isForcedNarrative: false },
+      { trackId: 'T:en', bcp47: 'en', displayName: 'Inglés', isNoneTrack: false, isForcedNarrative: false },
+    ],
+    current: { trackId: 'T:es', bcp47: 'es' },
+  }),
   selectSubtitleTrackThroughMainWorld: async (lang: string) => {
     bridgeCalls.select.push(lang);
     return { trackId: `T:${lang}`, bcp47: lang };

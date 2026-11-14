@@ -122,3 +122,13 @@ export function selectSubtitleTrackThroughMainWorld(
     timeoutMs,
   );
 }
+
+/** The player's subtitle track list and the current track. */
+export function listSubtitleTracks(
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<{ tracks: import('./timed-text').TimedTextTrackInfo[]; current: import('./timed-text').TimedTextTrackInfo | null }> {
+  return playbackCommand<{ tracks?: import('./timed-text').TimedTextTrackInfo[]; current?: import('./timed-text').TimedTextTrackInfo }>(
+    { cmd: 'subtitles', action: 'list' },
+    timeoutMs,
+  ).then((data) => ({ tracks: data?.tracks ?? [], current: data?.current ?? null }));
+}

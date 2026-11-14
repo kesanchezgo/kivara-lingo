@@ -11,8 +11,9 @@
  *    subtitle rendering containers
  */
 import { createInterceptedAdapter } from './intercepted-adapter';
-import { mediaThroughMainWorld, selectSubtitleTrackThroughMainWorld } from './netflix-main-bridge';
-import { getTrackByLanguage } from './intercepted-bus';
+import { mediaThroughMainWorld } from './netflix-main-bridge';
+import { switchSubtitleToLanguage } from './subtitle-switch';
+import { getTrackByLanguage, onTrack } from './intercepted-bus';
 import { useKivaraStore } from '../../shared/use-kivara-store';
 import { devLog } from '../../shared/logger';
 import { getDomMediaInfo } from './media-info';
@@ -176,22 +177,58 @@ function readNetflixMedia(): MediaInfo {
  * cover the window before the player API exists; a failure is not fatal — the
  * overlay explains the track it ended up reading.
  */
-function ensureLearningSubtitleTrack(attempts = 4, delayMs = 2_500): void {
+/**
+ * Make the player serve the subtitle track of the language being learned.
+ *
+ * The user configures what they study; nobody should open Netflix's subtitle
+ * menu. Two triggers, because the player API appears late:
+ *  - the bus publishing a track proves the player is alive (attempt right
+ *    there), and
+ *  - a short interval covers the case where the player serves nothing at all
+ *    (subtitles off), where no track ever arrives.
+ *
+ * Every attempt is cheap and idempotent: once the learning track is on the
+ * bus there is nothing left to do. A failure is not fatal — the overlay says
+ * which track it ended up reading.
+ */
+const LEARNING_TRACK_ATTEMPTS = 12;
+const LEARNING_TRACK_INTERVAL_MS = 2_500;
+let stopLearningTrackWatch: (() => void) | null = null;
+
+function ensureLearningSubtitleTrack(): void {
+  stopLearningTrackWatch?.();
   const learningLang = (): string =>
     (useKivaraStore.getState().translate.sourceLang || 'en').split(/[-_]/)[0].toLowerCase();
   let tries = 0;
-  const attempt = () => {
-    tries += 1;
+  let switching = false;
+
+  const attempt = (): void => {
     const lang = learningLang();
-    if (getTrackByLanguage(lang)) return;
-    void selectSubtitleTrackThroughMainWorld(lang)
-      .then((track) => devLog('[Kivara Lingo] subtitle track switched', track))
+    if (!lang || getTrackByLanguage(lang) || switching) return;
+    switching = true;
+    void switchSubtitleToLanguage(lang)
+      .then((result) => devLog('[Kivara Lingo] subtitle track', result.ok ? 'switched' : 'kept', result))
       .catch(() => {
         /* the platform may not offer that language: the notice says so */
       })
       .finally(() => {
-        if (tries < attempts) window.setTimeout(attempt, delayMs);
+        switching = false;
       });
+  };
+
+  // The player just published a track: it is ready to be asked.
+  const off = onTrack((track) => {
+    const language = (track.language ?? '').split(/[-_]/)[0].toLowerCase();
+    if (language && language !== learningLang()) attempt();
+  });
+  const timer = window.setInterval(() => {
+    tries += 1;
+    attempt();
+    if (tries >= LEARNING_TRACK_ATTEMPTS) window.clearInterval(timer);
+  }, LEARNING_TRACK_INTERVAL_MS);
+  stopLearningTrackWatch = () => {
+    window.clearInterval(timer);
+    off();
   };
   attempt();
 }
