@@ -14,7 +14,10 @@ class FakeAnkiError extends Error {
   }
 }
 
-function setupMocks(addNoteImpl?: () => Promise<number>) {
+function setupMocks(
+  addNoteImpl?: () => Promise<number>,
+  opts: { imageUrl?: string } = {},
+) {
   const addNote = vi.fn(addNoteImpl ?? (async () => 123));
   const findNotes = vi.fn(async () => [] as number[]);
   const notesInfo = vi.fn(async () => [] as Array<{ noteId: number; fields: Record<string, { value: string }> }>);
@@ -52,7 +55,10 @@ function setupMocks(addNoteImpl?: () => Promise<number>) {
     enrichWithAi: async () => ({ ok: false, error: 'disabled' }),
   }));
   vi.doMock('../../src/background/enrichment/orchestrator', () => ({
-    runEnrichment: async () => ({ entry: null }),
+    runEnrichment: async () => ({
+      entry: null,
+      ...(opts.imageUrl ? { vip: { imageUrl: opts.imageUrl } } : {}),
+    }),
   }));
   vi.doMock('../../src/background/tts', () => ({
     generateTtsAudio: async () => ({ ok: false, error: 'disabled' }),
@@ -75,7 +81,8 @@ function setupMocks(addNoteImpl?: () => Promise<number>) {
   }));
   vi.doMock('../../src/shared/net-guard', () => ({
     fetchMediaWithLimits: async () => {
-      throw new Error('offline');
+      if (!opts.imageUrl) throw new Error('offline');
+      return { bytes: new Uint8Array([1, 2, 3]), contentType: 'image/jpeg' };
     },
     mediaExtFor: () => 'jpg',
   }));
@@ -254,5 +261,50 @@ describe('CREATE_CARD v2 payload', () => {
       deck: 'English vocabulary',
     }, MAPPING as never, undefined as never);
     expect(res).toMatchObject({ ok: false, queued: false });
+  });
+});
+
+/**
+ * Point 6 — say WHY the picture is missing.
+ *
+ * On Netflix the frame capture returns nothing: the video is DRM-protected and
+ * `drawImage(video)` cannot read it. The card came out with an empty Image
+ * field and NO explanation, and the web-image fallback was never mentioned.
+ */
+describe('missing frame (protected video)', () => {
+  const FRAME_MAPPING = {
+    ankiUrl: 'http://127.0.0.1:8765',
+    deckName: 'Kivara QA',
+    modelName: 'Kivara QA Basic',
+    fieldSources: { Front: 'selection', Sentence: 'cue', Image: 'frame' },
+  };
+
+  it('warns that the video is protected when there is no image source', async () => {
+    const m = setupMocks();
+    const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+    const res = await createCardFromRequest({
+      token: 'chimes',
+      sentence: '[alarm chimes]',
+      kind: 'word',
+      lang: 'en',
+      deck: 'Kivara QA',
+    }, FRAME_MAPPING as never, undefined as never);
+    expect(res.ok).toBe(true);
+    expect(res.warnings?.join(' ')).toMatch(/vídeo está protegido|video is protected/i);
+  });
+
+  it('uses the web image instead of the frame when one is available', async () => {
+    const m = setupMocks(undefined, { imageUrl: 'https://images.example/sane.jpg' });
+    const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+    const res = await createCardFromRequest({
+      token: 'chimes',
+      sentence: '[alarm chimes]',
+      kind: 'word',
+      lang: 'en',
+      deck: 'Kivara QA',
+    }, FRAME_MAPPING as never, undefined as never);
+    const note = (m.addNote.mock.calls as unknown as Array<[{ fields: Record<string, string> }]>)[0][0];
+    expect(note.fields.Image).toContain('<img src=');
+    expect(res.warnings?.join(' ')).not.toMatch(/protegido|protected/i);
   });
 });
