@@ -14,6 +14,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { t } from '../../shared/i18n';
+import { NoticePill } from './language-mismatch';
 
 /** Kivara's UI names for the platforms it knows (generic falls to ''). */
 const PLATFORM_NAMES: Record<string, string> = {
@@ -66,21 +67,15 @@ export function useNoCueNotice(
  * `ariaLive` marks the overlay variant: the e2e state publishes `[aria-live]`
  * text as `live`, so the suite can assert the notice inside the closed root.
  */
-export function NoSubtitlesNotice({
-  platform,
-}: {
-  platform?: string;
-}) {
+export function NoSubtitlesNotice({ platform }: { platform?: string }) {
   const name = platformPlayerName(platform);
   return (
-    <div
-      data-kvl-no-subs
-      aria-live="polite"
-      className="w-full rounded-lg bg-amber-500/10 ring-1 ring-inset ring-amber-500/30 px-3 py-2.5 text-[12.5px] leading-snug text-amber-700 dark:text-amber-300"
-    >
-      {name
-        ? t('rail.noSubs', { platform: name })
-        : t('rail.noSubsGeneric')}
+    <div data-kvl-no-subs aria-live="polite" className="max-w-full">
+      <NoticePill
+        tone="amber"
+        title={t('rail.noSubsTitle')}
+        body={name ? t('rail.noSubs', { platform: name }) : t('rail.noSubsGeneric')}
+      />
     </div>
   );
 }

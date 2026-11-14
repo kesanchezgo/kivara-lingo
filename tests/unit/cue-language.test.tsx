@@ -76,29 +76,30 @@ const fill = (template: string, vars: Record<string, string>) =>
 
 describe('LanguageMismatchNotice', () => {
   it('the Spanish copy names both languages and the platform', () => {
-    const text = fill(ALL_MESSAGES.es['rail.langMismatch']!, {
-      track: 'Español', learning: 'English', platform: 'Netflix',
-    });
-    expect(text).toContain('Español');
-    expect(text).toContain('English');
-    expect(text).toContain('Netflix');
-    expect(text).toMatch(/estás aprendiendo/i);
+    const vars = { track: 'Español', learning: 'English', platform: 'Netflix' };
+    const title = fill(ALL_MESSAGES.es['rail.langMismatchTitle']!, vars);
+    const body = fill(ALL_MESSAGES.es['rail.langMismatch']!, vars);
+    expect(title).toContain('Español');
+    expect(body).toContain('English');
+    expect(body).toContain('Netflix');
+    expect(body).toMatch(/no pude cambiarlos/i);
   });
 
   it('the English copy names both languages and the platform', () => {
-    const text = fill(ALL_MESSAGES.en['rail.langMismatch']!, {
-      track: 'Español', learning: 'English', platform: 'Netflix',
-    });
-    expect(text).toContain('Español');
-    expect(text).toContain('English');
-    expect(text).toContain('Netflix');
-    expect(text).toMatch(/you are learning/i);
+    const vars = { track: 'Español', learning: 'English', platform: 'Netflix' };
+    const title = fill(ALL_MESSAGES.en['rail.langMismatchTitle']!, vars);
+    const body = fill(ALL_MESSAGES.en['rail.langMismatch']!, vars);
+    expect(title).toContain('Español');
+    expect(body).toContain('English');
+    expect(body).toContain('Netflix');
+    expect(body).toMatch(/could not switch/i);
   });
 
   it('renders with the endonyms of the two languages', () => {
-    render(<LanguageMismatchNotice track="es" learning="en" platform="netflix" />);
-    const node = screen.getByText(/subt|subtitle/i);
-    expect(node.textContent).toContain('Español');
-    expect(node.textContent).toContain('English');
+    const { container } = render(<LanguageMismatchNotice track="es" learning="en" platform="netflix" />);
+    const text = container.textContent ?? '';
+    expect(text).toContain('Español');
+    expect(text).toContain('English');
+    expect(text).toContain('Netflix');
   });
 });

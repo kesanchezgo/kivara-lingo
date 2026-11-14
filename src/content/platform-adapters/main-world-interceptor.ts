@@ -22,6 +22,7 @@
  */
 import { devLog } from '../../shared/logger';
 import { parseAny, detectSubtitleKind, detectTrackLanguage } from './parsers';
+import { pickTimedTextTrack } from './timed-text';
 
 const TAG = '[Kivara Lingo / MAIN]';
 const EVENT = 'kivara-lingo:subtitle-track';
@@ -447,6 +448,21 @@ declare global {
     isPlaying?: () => boolean;
     /** Point 5: the id of the video this session is playing. */
     getCurrentVideoId?: () => string | undefined;
+    /** Subtitle track control — the app picks the learning language itself. */
+    getTimedTextTrackList?: () => Array<{
+      trackId?: string;
+      bcp47?: string;
+      displayName?: string;
+      trackType?: string;
+      rawTrackType?: string;
+      isNoneTrack?: boolean;
+      isForcedNarrative?: boolean;
+      isImageBased?: boolean;
+    }>;
+    getTimedTextTrack?: () => { trackId?: string; bcp47?: string } | undefined;
+    setTimedTextTrack?: (trackId: string) => void;
+    setTimedTextVisible?: (visible: boolean) => void;
+    getTimedTextVisibility?: () => boolean;
   }
   interface NetflixVideoPlayerApi {
     getPlayerByIndex?: (index: number) => NetflixVideoPlayer | undefined;
@@ -559,7 +575,7 @@ declare global {
   window.addEventListener('message', (event) => {
     if (event.source !== window) return;
     const data = event.data as
-      | { source?: unknown; id?: unknown; cmd?: unknown; timeMs?: unknown; rate?: unknown; nonce?: unknown }
+      | { source?: unknown; id?: unknown; cmd?: unknown; timeMs?: unknown; rate?: unknown; action?: unknown; lang?: unknown; nonce?: unknown }
       | null;
     if (!data || typeof data !== 'object') return;
 
@@ -595,6 +611,45 @@ declare global {
         /* page is going away */
       }
     };
+    // Subtitle track: list them, or select the one for a language. The user
+    // configures what they are learning; Kivara does the switching.
+    if (data.cmd === 'subtitles') {
+      const session = netflixSessionPlayer();
+      if (!session || typeof session.getTimedTextTrackList !== 'function') {
+        reply(false, 'no subtitle API');
+        return;
+      }
+      let tracks: ReturnType<NonNullable<typeof session.getTimedTextTrackList>> = [];
+      try {
+        tracks = session.getTimedTextTrackList() ?? [];
+      } catch {
+        reply(false, 'subtitle API threw');
+        return;
+      }
+      if (data.action === 'list') {
+        let current: unknown = undefined;
+        try { current = session.getTimedTextTrack?.(); } catch { /* none */ }
+        reply(true, undefined, { tracks, current });
+        return;
+      }
+      const picked = pickTimedTextTrack(tracks, String(data.lang ?? ''));
+      if (!picked?.trackId) {
+        reply(false, 'no track for that language');
+        return;
+      }
+      try {
+        session.setTimedTextTrack?.(picked.trackId);
+      } catch {
+        reply(false, 'setTimedTextTrack threw');
+        return;
+      }
+      try {
+        if (session.getTimedTextVisibility?.() === false) session.setTimedTextVisible?.(true);
+      } catch { /* visibility is best effort */ }
+      reply(true, undefined, { trackId: picked.trackId, bcp47: picked.bcp47 });
+      return;
+    }
+
     // Point 5: the player's own metadata for the CURRENT video. The page's
     // DOM is full of interface strings ("Así aprenderás"); the session id and
     // the document title are the only title facts that belong to the video.
