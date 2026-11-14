@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Kivara e2e Netflix fixture</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #000;
+      }
+      .watch-video {
+        position: relative;
+        width: 640px;
+        height: 360px;
+        margin: 0 auto;
+      }
+      video {
+        width: 100%;
+        height: 100%;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      A Netflix watch page in miniature: the `.watch-video` wrapper the mount
+      gate looks for, on /watch/<id>, and a real fetch to an `nflxvideo.net`
+      URL so the MAIN-world interceptor sees a TTML and publishes it on the
+      bus. The TTML body (and its xml:lang) comes from the spec's route.
+    -->
+    <div class="watch-video">
+      <video id="player" muted playsinline crossorigin="anonymous"></video>
+    </div>
+
+    <script>
+      const canvas = document.createElement('canvas');
+      canvas.width = 640;
+      canvas.height = 360;
+      const ctx = canvas.getContext('2d');
+
+      let frame = 0;
+      let recorder = null;
+      function draw() {
+        const gradient = ctx.createLinearGradient(0, 0, 640, 360);
+        gradient.addColorStop(0, `hsl(${(frame * 4) % 360}, 80%, 50%)`);
+        gradient.addColorStop(1, `hsl(${(frame * 4 + 120) % 360}, 80%, 40%)`);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 640, 360);
+        ctx.fillStyle = '#fff';
+        ctx.font = '48px sans-serif';
+        ctx.fillText(`frame ${frame}`, 40, 200);
+        frame += 1;
+        if (!recorder || recorder.state === 'recording') requestAnimationFrame(draw);
+      }
+
+      const stream = canvas.captureStream(25);
+      draw();
+      const chunks = [];
+      recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) chunks.push(event.data);
+      };
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const video = document.getElementById('player');
+        video.src = URL.createObjectURL(blob);
+        video.load();
+        video.addEventListener('loadedmetadata', async () => {
+          window.__kivaraClipDuration = video.duration;
+          video.currentTime = 0.05;
+          try {
+            await video.play();
+          } catch {
+            window.__kivaraFixtureReady = 'play-rejected';
+            return;
+          }
+          // The subtitle request the player makes: same host shape Netflix
+          // uses, with `?o=` so the interceptor's fast path matches.
+          try {
+            const res = await fetch('https://ipv4-c001.nflxvideo.net/sub/es/seg.xml?o=12345');
+            const body = await res.text();
+            window.__kivaraTtmlBytes = body.length;
+          } catch (err) {
+            window.__kivaraTtmlError = String(err);
+          }
+          window.__kivaraFixtureReady = true;
+        });
+      };
+      recorder.start();
+      setTimeout(() => recorder.stop(), 9000);
+    </script>
+  </body>
+</html>

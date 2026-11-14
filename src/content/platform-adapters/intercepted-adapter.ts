@@ -76,7 +76,11 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
       start: hit.start,
       end: hit.end,
       text: hit.text,
-      language: track.language ?? sourceLanguage(),
+      // The TRACK's language, never the learning language: stamping
+      // `sourceLang` here made a Spanish track look English, so the
+      // disagreement notice never fired and lookups went to the wrong
+      // dictionary.
+      language: track.language ?? '',
       align: hit.align,
     };
   }
@@ -137,7 +141,7 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
   function fullTrack(): SubtitleCue[] {
     const source = track ?? getTrackByLanguage(primaryLang()) ?? getLastTrack();
     if (!source || source.cues.length === 0) return [];
-    return cuesFromRawTrack(source.cues, source.language ?? sourceLanguage(), opts.platform);
+    return cuesFromRawTrack(source.cues, source.language ?? '', opts.platform);
   }
 
   function notifyTrackListeners() {
@@ -162,14 +166,28 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
   const offTrack = onTrack((next) => {
     const nextLang = next.language?.split(/[-_]/)[0].toLowerCase() ?? null;
     if (nextLang && nextLang !== primaryLang()) {
-      // Track for a *different* language — keep the bus copy for the alt
-      // cue lookup, but don't replace our source captions. Polling stays
-      // alive so when (and if) a matching primary track arrives later we
-      // pick it up immediately.
-      startPolling();
+      // A track in another language. It stays on the bus for the alt-cue
+      // lookup, and it is used as the caption ONLY while no source-language
+      // track exists: dropping it left the overlay blank with no explanation
+      // (QA: a Spanish TTML with xml:lang="es" and a learner on English showed
+      // nothing at all). App reads the cue's language and explains the
+      // mismatch.
+      if (!track) {
+        track = next;
+        // Two tracks can share cue timings (same subtitle, different
+        // language). The cue id is built from start/end, so without this a
+        // track swap kept the OLD text on screen until the next boundary.
+        lastEmittedId = null;
+        tick();
+        startPolling();
+        notifyTrackListeners();
+      } else {
+        startPolling();
+      }
       return;
     }
     track = next;
+    lastEmittedId = null;
     tick();
     startPolling();
     // F6: a fresh (or translated) track is a new full cue list for the rail.

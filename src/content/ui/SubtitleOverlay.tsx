@@ -702,11 +702,22 @@ export function SubtitleOverlay({
     // Point 2: with zero cues the caption area is BLANK — exactly the moment
     // the notice must speak. The hooks above have all run, so this early
     // return stays rules-of-hooks-clean.
-    if (!noCuesNotice) return null;
+    // A language mismatch is also an answer to a blank caption, and it is the
+    // one that applies when a track exists but is in the wrong language (the
+    // no-cues notice would be false there).
+    if (!noCuesNotice && !languageMismatch) return null;
     return (
       <div className="absolute inset-0" aria-live="polite">
-        <div className="absolute inset-x-0 top-[12%] flex justify-center px-10">
-          <NoSubtitlesNotice platform={noticePlatform} />
+        <div className="absolute inset-x-0 top-[12%] flex justify-center px-6">
+          {languageMismatch ? (
+            <LanguageMismatchNotice
+              track={languageMismatch.track}
+              learning={languageMismatch.learning}
+              platform={noticePlatform}
+            />
+          ) : (
+            <NoSubtitlesNotice platform={noticePlatform} />
+          )}
         </div>
       </div>
     );
