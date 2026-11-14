@@ -27,6 +27,8 @@ import type {
   SourcePartial,
 } from './types';
 import { sourceTierRank } from './source-tiers';
+import { normalizeDefinition } from './normalize-definition';
+import { dbg } from '../../shared/logger';
 
 /* ─── Merge logic ─────────────────────────────────────────────────────── */
 
@@ -2169,13 +2171,27 @@ export function mergeFields(
         }
       }
     }
-    for (const d of partial.definitions ?? []) allDefs.push({ source: source.id, text: d });
+    // Point 7: a source's machine key is not a definition. The raw payload is
+    // logged once per changed candidate so the next QA names the source.
+    for (const d of partial.definitions ?? []) {
+      const text = normalizeDefinition(d, token);
+      if (text !== d) {
+        dbg('[kivara:enrichment:raw]', { source: source.id, token, before: d, after: text });
+      }
+      if (text) allDefs.push({ source: source.id, text });
+    }
     for (const d of partial.definitionsPos ?? []) {
       if (d.pos && !definitionPos.has(d.text.trim().toLowerCase())) {
         definitionPos.set(d.text.trim().toLowerCase(), d.pos);
       }
     }
-    for (const t of partial.translations ?? []) allTrans.push({ source: source.id, text: t });
+    for (const t of partial.translations ?? []) {
+      const text = normalizeDefinition(t, token);
+      if (text !== t) {
+        dbg('[kivara:enrichment:raw]', { source: source.id, token, before: t, after: text });
+      }
+      if (text) allTrans.push({ source: source.id, text });
+    }
     for (const e of partial.examples ?? []) {
       allExamples.push({ source: source.id, text: e.text, translation: e.translation });
     }
