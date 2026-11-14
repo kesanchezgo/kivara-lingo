@@ -19,12 +19,16 @@ export interface SubtitleSwitchOutcome {
 export interface SubtitleTrackWatcherDeps {
   /** Master switch. Nothing happens while it is off. */
   isEnabled(): boolean;
+  /** The user's own setting: may Kivara change the subtitle track at all? */
+  autoEnabled(): boolean;
   /** The language being learned, two-letter. Empty disables the watcher. */
   learningLang(): string;
   /** TRUE when the bus already holds a track for the language. */
   hasTrackFor(lang: string): boolean;
   /** Ask the player; resolves with what actually happened. */
   switchTo(lang: string): Promise<SubtitleSwitchOutcome>;
+  /** The player's CURRENT subtitle track (to notice a manual change). */
+  currentTrack(): Promise<{ bcp47?: string; isNone?: boolean } | null>;
   /** Subscribe to the platform publishing a subtitle track. */
   onTrack(listener: (language: string) => void): () => void;
   /** Subscribe to store changes (the master switch). */
@@ -59,6 +63,8 @@ export function createSubtitleTrackWatcher(deps: SubtitleTrackWatcherDeps): Subt
    * platform — the notice explains it instead.
    */
   let settled = false;
+  /** The language we set — a different one afterwards is the user's choice. */
+  let acted: string | null = null;
 
   const clearLoop = (): void => {
     if (timer !== null) deps.clearInterval(timer);
@@ -69,8 +75,9 @@ export function createSubtitleTrackWatcher(deps: SubtitleTrackWatcherDeps): Subt
 
   const attempt = (): void => {
     // The one rule that outranks every other: Kivara does not touch the
-    // player while it is switched off.
-    if (!deps.isEnabled()) {
+    // player while it is switched off — or while the user turned this
+    // behaviour off in Preferences.
+    if (!deps.isEnabled() || !deps.autoEnabled()) {
       clearLoop();
       return;
     }
@@ -83,6 +90,7 @@ export function createSubtitleTrackWatcher(deps: SubtitleTrackWatcherDeps): Subt
         deps.log('[Kivara Lingo] subtitle track', result.ok ? 'switched' : 'kept', result);
         // 'no subtitle API' means the player is not up yet — that one is worth
         // retrying. Any other answer is final for this episode.
+        if (result.ok) acted = lang;
         if (!result.ok && result.reason !== 'no subtitle API') {
           settled = true;
           clearLoop();
@@ -105,9 +113,25 @@ export function createSubtitleTrackWatcher(deps: SubtitleTrackWatcherDeps): Subt
       if (language && language !== want) attempt();
     });
     timer = deps.setInterval(() => {
-      attempts += 1;
-      attempt();
-      if (attempts >= maxAttempts) clearLoop();
+      void (async () => {
+        attempts += 1;
+        // Check the user's choice FIRST: a manual change must stop the loop
+        // before this tick asks the player for anything.
+        if (acted) {
+          const now = await deps.currentTrack().catch(() => null);
+          if (now) {
+            const lang = (now.bcp47 ?? '').split(/[-_]/)[0].toLowerCase();
+            if (lang !== acted) {
+              settled = true;
+              deps.log('[Kivara Lingo] the user chose another subtitle track; leaving it', { was: acted, now: lang || 'off' });
+              clearLoop();
+              return;
+            }
+          }
+        }
+        attempt();
+        if (attempts >= maxAttempts) clearLoop();
+      })();
     }, intervalMs);
     attempt();
   };

@@ -400,6 +400,15 @@ export function SettingsTab({
                   />
                 </QuickRow>
               )}
+              {show('q-autotrack') && (
+                <QuickRow label={t('set.autoSubtitle')} info={t('set.autoSubtitleDesc')}>
+                  <Toggle
+                    on={studyState.autoSubtitleTrack}
+                    onChange={(v) => setStudyKey('autoSubtitleTrack', v)}
+                    ariaLabel={t('set.autoSubtitle')}
+                  />
+                </QuickRow>
+              )}
               {show('q-sounds') && (
                 <QuickRow label={t('set.sounds')} info={t('set.soundsDesc')}>
                   <Toggle
