@@ -133,3 +133,66 @@ describe('subtitle track watcher — the master switch', () => {
     watcher.stop();
   });
 });
+
+/**
+ * Point 2 — a refusal is final for the episode.
+ *
+ * The loop used to keep asking every 2.5 s: the player had already said no
+ * ("kept its track") and the watcher kept knocking, which also re-opened the
+ * subtitle menu over and over.
+ */
+describe('subtitle track watcher — no retry loop', () => {
+  it('stops after one attempt when the player kept its track', async () => {
+    const h = harness({
+      switchTo: async (lang) => {
+        h.switches.push(lang);
+        return { ok: false, reason: 'the player kept its track' };
+      },
+    });
+    const watcher = createSubtitleTrackWatcher(h.deps);
+    watcher.start();
+    await new Promise((r) => setTimeout(r, 0));
+
+    h.tickAll();
+    h.fireTrack('es');
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(h.switches).toHaveLength(1);
+    expect(h.running()).toBe(false);
+    expect(h.trackListeners()).toBe(0);
+    watcher.stop();
+  });
+
+  it('stops after one attempt when the language is not offered', async () => {
+    const h = harness({
+      switchTo: async (lang) => {
+        h.switches.push(lang);
+        return { ok: false, reason: 'language not offered' };
+      },
+    });
+    const watcher = createSubtitleTrackWatcher(h.deps);
+    watcher.start();
+    await new Promise((r) => setTimeout(r, 0));
+    h.tickAll();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(h.switches).toHaveLength(1);
+    watcher.stop();
+  });
+
+  it('keeps retrying while the player API is not up yet', async () => {
+    const h = harness({
+      switchTo: async (lang) => {
+        h.switches.push(lang);
+        return { ok: false, reason: 'no subtitle API' };
+      },
+    });
+    const watcher = createSubtitleTrackWatcher(h.deps);
+    watcher.start();
+    await new Promise((r) => setTimeout(r, 0));
+    h.tickAll();
+    h.tickAll();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(h.switches.length).toBeGreaterThan(1);
+    watcher.stop();
+  });
+});
