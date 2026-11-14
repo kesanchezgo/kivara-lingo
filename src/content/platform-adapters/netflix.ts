@@ -11,7 +11,7 @@
  *    subtitle rendering containers
  */
 import { createInterceptedAdapter } from './intercepted-adapter';
-import { mediaThroughMainWorld } from './netflix-main-bridge';
+import { listSubtitleTracks, mediaThroughMainWorld } from './netflix-main-bridge';
 import { switchSubtitleToLanguage } from './subtitle-switch';
 import { createSubtitleTrackWatcher } from './subtitle-track-watcher';
 import { getTrackByLanguage, onTrack } from './intercepted-bus';
@@ -186,7 +186,9 @@ function makeTrackWatcher() {
       return useKivaraStore.getState().enabled !== false;
     },
     learningLang: () => (useKivaraStore.getState().translate.sourceLang || 'en').split(/[-_]/)[0].toLowerCase(),
+    autoEnabled: () => useKivaraStore.getState().study.autoSubtitleTrack !== false,
     hasTrackFor: (lang) => !!getTrackByLanguage(lang),
+    currentTrack: () => listSubtitleTracks().then((list) => list.current ?? null),
     switchTo: (lang) => switchSubtitleToLanguage(lang),
     onTrack: (listener) => onTrack((track) => listener((track.language ?? '').split(/[-_]/)[0].toLowerCase())),
     subscribeEnabled: (listener) => {

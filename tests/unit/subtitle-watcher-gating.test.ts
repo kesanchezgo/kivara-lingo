@@ -11,6 +11,7 @@ import { createSubtitleTrackWatcher, type SubtitleTrackWatcherDeps } from '../..
 
 function harness(overrides: Partial<SubtitleTrackWatcherDeps> = {}) {
   let enabled = true;
+  let auto = true;
   let lang = 'en';
   let busHas: string | null = null;
   const switches: string[] = [];
@@ -21,6 +22,8 @@ function harness(overrides: Partial<SubtitleTrackWatcherDeps> = {}) {
 
   const deps: SubtitleTrackWatcherDeps = {
     isEnabled: () => enabled,
+    autoEnabled: () => auto,
+    currentTrack: async () => ({ bcp47: 'en' }),
     learningLang: () => lang,
     hasTrackFor: (l) => busHas === l,
     switchTo: async (l) => {
@@ -59,6 +62,9 @@ function harness(overrides: Partial<SubtitleTrackWatcherDeps> = {}) {
     },
     setBusTrack(next: string | null) {
       busHas = next;
+    },
+    setAuto(next: boolean) {
+      auto = next;
     },
     fireTrack(language: string) {
       trackListeners.forEach((l) => l(language));
@@ -193,6 +199,59 @@ describe('subtitle track watcher — no retry loop', () => {
     h.tickAll();
     await new Promise((r) => setTimeout(r, 0));
     expect(h.switches.length).toBeGreaterThan(1);
+    watcher.stop();
+  });
+});
+
+/**
+ * Point 3 — the user is in charge.
+ *
+ * Two behaviours: the Preferences switch can turn the whole thing off, and a
+ * track the user picks by hand is not corrected back.
+ */
+describe('subtitle track watcher — the user is in charge', () => {
+  it('does nothing when the preference is off', async () => {
+    const h = harness();
+    h.setAuto(false);
+    const watcher = createSubtitleTrackWatcher(h.deps);
+    watcher.start();
+    h.tickAll();
+    h.fireTrack('es');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(h.switches).toEqual([]);
+    expect(h.running()).toBe(false);
+    watcher.stop();
+  });
+
+  it('leaves a track the user picked by hand', async () => {
+    const h = harness();
+    let current = 'en';
+    const deps = { ...h.deps, currentTrack: async () => ({ bcp47: current }) };
+    const watcher = createSubtitleTrackWatcher(deps);
+    watcher.start();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(h.switches).toEqual(['en']);
+
+    // The user switches to Spanish in the player's own menu.
+    current = 'es';
+    h.tickAll();
+    await new Promise((r) => setTimeout(r, 0));
+    h.tickAll();
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(h.switches).toHaveLength(1);
+    expect(h.running()).toBe(false);
+    watcher.stop();
+  });
+
+  it('keeps watching while the track is still the one it set', async () => {
+    const h = harness();
+    const watcher = createSubtitleTrackWatcher(h.deps);
+    watcher.start();
+    await new Promise((r) => setTimeout(r, 0));
+    h.tickAll();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(h.running()).toBe(true);
     watcher.stop();
   });
 });

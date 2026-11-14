@@ -82,6 +82,7 @@ export const DEFAULT_STUDY: StudySettings = {
   listenFirst: false,
   autoPauseCue: false,
   pauseOnLookup: true,
+  autoSubtitleTrack: true,
   sounds: true,
   newMarks: 'dotted',
 };
@@ -871,6 +872,9 @@ export function migrateStoreState(
       listenFirst: false,
       autoPauseCue: false,
       pauseOnLookup: true,
+      // The track auto-switch arrived later; a v2 snapshot predates it, and
+      // the default is what the user gets today.
+      autoSubtitleTrack: DEFAULT_STUDY.autoSubtitleTrack,
       sounds: true,
       newMarks: 'dotted',
     };

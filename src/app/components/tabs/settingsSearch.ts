@@ -12,7 +12,7 @@ import { tAll, keysWithPrefix } from '../../../shared/i18n';
 import { SHORTCUT_DEFS } from '../../../shared/shortcuts';
 
 export type SearchId =
-  | 'q-reading' | 'q-translation' | 'q-pause' | 'q-autopause' | 'q-listen' | 'q-sounds'
+  | 'q-reading' | 'q-translation' | 'q-pause' | 'q-autopause' | 'q-listen' | 'q-autotrack' | 'q-sounds'
   | 'lang' | 'translate' | 'translate-tokens' | 'dict' | 'vip' | 'ai' | 'tts'
   | 'capture' | 'perm' | 'cleanup' | 'keys' | 'about';
 
@@ -28,6 +28,7 @@ const INDEX: Record<SearchId, Entry> = {
   'q-pause': { keys: ['set.quickAccess', 'ovl.pauseOnHover', 'set.pauseOnLookupDesc'] },
   'q-autopause': { keys: ['set.quickAccess', 'rail.autoPause', 'rail.autoPauseHint'] },
   'q-listen': { keys: ['set.quickAccess', 'listen.title', 'listen.desc'], extra: ['escuchar', 'listening', 'comprensión auditiva'] },
+  'q-autotrack': { keys: ['set.quickAccess', 'set.autoSubtitle', 'set.autoSubtitleDesc'], extra: ['subtítulos', 'pista', 'idioma', 'subtitles', 'track'] },
   'q-sounds': { keys: ['set.quickAccess', 'set.sounds', 'set.soundsDesc'], extra: ['audio', 'sonido'] },
   lang: {
     keys: ['set.languageSection', 'set.langDesc', 'set.learningLang', 'set.myLang', 'set.learningAudioLabel', 'set.autoTrackDesc',

@@ -62,6 +62,12 @@ export interface StudySettings {
   autoPauseCue: boolean;
   /** Pause while the word card is open. */
   pauseOnLookup: boolean;
+  /**
+   * Point 3: Kivara switches the player's subtitle track to the language being
+   * learned. On by default; off means the user keeps whatever track the
+   * player has and Kivara only reads it.
+   */
+  autoSubtitleTrack: boolean;
   /** UI confirmation sounds. */
   sounds: boolean;
   /** How a never-seen word is underlined: dotted mark or nothing. */
