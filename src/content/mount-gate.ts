@@ -86,3 +86,21 @@ export function mountDenied(host: string, pathname: string): boolean {
   if (!gate) return false;
   return !gate.isPlayPath(pathname, host);
 }
+
+/** TRUE when the host has a gate and the path is its playback route. */
+export function isPlayRoute(host: string, pathname: string): boolean {
+  const gate = mountGateFor(host);
+  if (!gate) return false;
+  return gate.isPlayPath(pathname, host);
+}
+
+/**
+ * How long a SPA navigation may wait for the player DOM, per route. Play
+ * routes get the full budget — on real Netflix the player takes longer than
+ * the flat 3 s this used to be, and the handler then demounted and never
+ * retried. Off-route keeps 3 s: trailers appear fast and the demount should
+ * too.
+ */
+export function navWaitMs(host: string, pathname: string): number {
+  return isPlayRoute(host, pathname) ? 15_000 : 3_000;
+}
