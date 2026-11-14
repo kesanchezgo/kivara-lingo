@@ -3,7 +3,12 @@
  *
  * The countdown runs on PLAYBACK time: it only arms while the video plays,
  * it fires once ~5 s of that playback has passed with zero cues, and the
- * first cue kills it instantly. Pausing freezes (and disarms) the wait.
+ * first cue kills it instantly. Pausing before it fires disarms the wait.
+ *
+ * Once it HAS fired the notice is sticky: a pause (or a seek, or the platform
+ * buffering) is not "subtitles appeared", so hiding it there left the user
+ * looking at a blank caption with no explanation. It goes away on the first
+ * cue or when the episode changes.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
@@ -62,5 +67,48 @@ describe('useNoCueNotice', () => {
     rerender({ playing: false, cues: 0 });
     void act(() => vi.advanceTimersByTime(30_000));
     expect(result.current).toBe(false);
+  });
+});
+
+describe('useNoCueNotice: sticky once shown (QA finding)', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('keeps the notice on screen when the video pauses after it fired', () => {
+    const { result, rerender } = renderHook((p) => useNoCueNotice(p.playing, p.cues), {
+      initialProps: { playing: true, cues: 0 },
+    });
+    void act(() => vi.advanceTimersByTime(6_000));
+    expect(result.current).toBe(true);
+    rerender({ playing: false, cues: 0 });
+    void act(() => vi.advanceTimersByTime(20_000));
+    expect(result.current).toBe(true);
+    rerender({ playing: true, cues: 0 });
+    expect(result.current).toBe(true);
+  });
+
+  it('hides on the first cue even after the sticky state', () => {
+    const { result, rerender } = renderHook((p) => useNoCueNotice(p.playing, p.cues), {
+      initialProps: { playing: true, cues: 0 },
+    });
+    void act(() => vi.advanceTimersByTime(6_000));
+    rerender({ playing: false, cues: 0 });
+    expect(result.current).toBe(true);
+    rerender({ playing: true, cues: 1 });
+    expect(result.current).toBe(false);
+  });
+
+  it('resets when the episode changes', () => {
+    const { result, rerender } = renderHook(
+      (p) => useNoCueNotice(p.playing, p.cues, 5_000, p.episodeKey),
+      { initialProps: { playing: true, cues: 0, episodeKey: 'ep-1' } },
+    );
+    void act(() => vi.advanceTimersByTime(6_000));
+    expect(result.current).toBe(true);
+    rerender({ playing: true, cues: 0, episodeKey: 'ep-2' });
+    expect(result.current).toBe(false);
+    // ...and the new episode arms its own countdown.
+    void act(() => vi.advanceTimersByTime(5_500));
+    expect(result.current).toBe(true);
   });
 });

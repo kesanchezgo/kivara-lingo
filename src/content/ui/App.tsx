@@ -315,7 +315,9 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // platform's semantics); every jump below goes through `episode.controller`.
   const episode = useEpisode(adapter);
   // Point 2: with playback running and zero cues for ~5 s, say why it is blank.
-  const noCueNoticeRaw = useNoCueNotice(playing, episode.cues.length);
+  // The episode key is what makes a NEW empty episode re-arm the notice: same
+  // element, new source = new episode on most platforms.
+  const noCueNoticeRaw = useNoCueNotice(playing, episode.cues.length, 5_000, videoElement?.currentSrc ?? '');
   const noCuesNotice = enabled && noCueNoticeRaw;
   const studyPlayback = useStudyPlayback({
     controller: episode.controller,
