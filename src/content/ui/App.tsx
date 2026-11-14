@@ -37,6 +37,7 @@ import {
 } from './save-actions';
 import { useEpisode } from './useEpisode';
 import { useNoCueNotice } from './no-cues-notice';
+import { declaredTrackLanguage, detectTrackLanguage, isLanguageMismatch } from './cue-language';
 import { cueIndexAt, useStudyPlayback } from './useStudyPlayback';
 import { buildCueRequestFields } from './save-request';
 import { SLOW_REPLAY_RATE } from '../platform-adapters/playback';
@@ -319,6 +320,22 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // element, new source = new episode on most platforms.
   const noCueNoticeRaw = useNoCueNotice(playing, episode.cues.length, 5_000, videoElement?.currentSrc ?? '');
   const noCuesNotice = enabled && noCueNoticeRaw;
+
+  // ── Point 4: the track's language is not necessarily the learned one ────
+  // The adapter's declaration (TTML xml:lang / VTT header / bus track) wins;
+  // a detector over a long sample is the fallback; the learned language is
+  // never used as a guess. A mismatch explains itself and stops the lookups.
+  const learningLang = useKivaraStore((s) => s.translate.sourceLang || 'en');
+  const trackLanguage = useMemo(
+    () => detectTrackLanguage(episode.cues),
+    [episode.cues],
+  );
+  const languageMismatch = useMemo(
+    () => (isLanguageMismatch(trackLanguage, learningLang)
+      ? { track: trackLanguage, learning: learningLang }
+      : null),
+    [trackLanguage, learningLang],
+  );
   const studyPlayback = useStudyPlayback({
     controller: episode.controller,
     cues: episode.cues,
@@ -511,7 +528,10 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         return;
       }
       const first = cues[0];
-      cueLanguageRef.current = first.language || 'en';
+      // The TRACK's language, not the learned one: a Spanish track labelled
+      // `en` sends every card to an English dictionary.
+      const declared = declaredTrackLanguage(cues);
+      cueLanguageRef.current = first.language || declared || cueLanguageRef.current || '';
       setCueLanguage(cueLanguageRef.current);
       setActiveCue({
         id: first.id,
@@ -1649,6 +1669,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           <SubtitleOverlay
             noCuesNotice={noCuesNotice}
             noticePlatform={adapter?.platform}
+            languageMismatch={languageMismatch}
             subtitleStyles={subtitleStyles}
             cue={activeCue}
             altCue={altCue}
@@ -1714,6 +1735,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     // so the overlay kept an empty caption forever while the rail (rendered
     // outside the memo) showed the notice correctly.
     noCuesNotice,
+    languageMismatch,
     isDarkMode,
     mode,
     saveTick,
@@ -1818,6 +1840,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           <TranscriptRail
             noCuesNotice={noCuesNotice}
             noticePlatform={adapter?.platform}
+            languageMismatch={languageMismatch}
             cues={episode.cues}
             activeIndex={activeCueIndex}
             lang={cueLanguage}
