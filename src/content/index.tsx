@@ -485,7 +485,10 @@ async function handleNavigation() {
   // to paint the player after the SPA lands on /watch — the short wait made
   // the handler demount and never mount on the watch page at all.
   const found = await waitForVideo(navWaitMs(window.location.hostname, window.location.pathname));
-  const offRoute = mountDenied(window.location.hostname, window.location.pathname);
+  // `found` wins over the route table: Max and Disney+ may play on a path the
+  // table does not know yet, and `findVideoContainerIn` only answers there
+  // when the platform's OWN player container holds the video.
+  const offRoute = !found && mountDenied(window.location.hostname, window.location.pathname);
   if (!found || offRoute) {
     // Leaving the playback route (Netflix /watch → /browse) is a demount, and
     // the bus must drop the previous title's tracks with it. Mounting again

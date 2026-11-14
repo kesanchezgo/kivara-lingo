@@ -138,3 +138,80 @@ describe('findVideoContainerIn: the four owner scenarios', () => {
     expect(findVideoContainerIn(doc, 'www.netflix.com', '/watch/1')).toEqual({ video: null, container: null });
   });
 });
+
+/**
+ * Point 1 follow-up — the routes each platform actually uses.
+ *
+ * Evidence-driven corrections after the Netflix QA: Max plays under /video/
+ * (docs/SUBTITLE-INTERCEPTION.md documents play.max.com/video/... with a real
+ * session), Disney+ prefixes the locale and also plays under /play/, and Prime
+ * lives on eleven Amazon domains, not just .com.
+ */
+describe('mount gate: platform routes (evidence-driven)', () => {
+  it('HBO/Max: /video/ is playback (documented), plus the episode/movie routes', () => {
+    expect(mountGateFor('play.max.com')?.platform).toBe('hbo');
+    expect(mountDenied('play.max.com', '/video/watch/8f3a/2b1c')).toBe(false);
+    expect(mountDenied('play.max.com', '/video/abc')).toBe(false);
+    expect(mountDenied('play.max.com', '/episode/abc')).toBe(false);
+    expect(mountDenied('play.max.com', '/movie/xyz')).toBe(false);
+    expect(mountDenied('play.max.com', '/search')).toBe(true);
+    expect(mountDenied('play.max.com', '/')).toBe(true);
+  });
+
+  it('Disney+: optional locale prefix, and both /video/ and /play/', () => {
+    expect(mountDenied('www.disneyplus.com', '/video/2b3c')).toBe(false);
+    expect(mountDenied('www.disneyplus.com', '/play/2b3c')).toBe(false);
+    expect(mountDenied('www.disneyplus.com', '/es-es/video/2b3c')).toBe(false);
+    expect(mountDenied('www.disneyplus.com', '/es-ar/play/2b3c')).toBe(false);
+    expect(mountDenied('www.disneyplus.com', '/es/video/2b3c')).toBe(false);
+    // The home page, a series page and a locale-only URL are not playback.
+    expect(mountDenied('www.disneyplus.com', '/es-es')).toBe(true);
+    expect(mountDenied('www.disneyplus.com', '/es-es/series/abc')).toBe(true);
+  });
+
+  it('Prime: the eleven Amazon domains, not just .com', () => {
+    for (const host of [
+      'www.amazon.com', 'www.amazon.co.uk', 'www.amazon.de', 'www.amazon.es',
+      'www.amazon.fr', 'www.amazon.it', 'www.amazon.co.jp', 'www.amazon.ca',
+      'www.amazon.com.mx', 'www.amazon.com.br', 'www.amazon.in',
+    ]) {
+      expect(mountGateFor(host)?.platform, host).toBe('prime');
+      expect(mountDenied(host, '/gp/video/detail/B0X'), host).toBe(false);
+    }
+    // Amazon domains outside /gp/video/ stay out of scope.
+    expect(mountDenied('www.amazon.de', '/dp/B0X')).toBe(true);
+    expect(mountDenied('www.amazon.fr', '/gp/help')).toBe(true);
+    // primevideo.com sigue siendo Prime en cualquier ruta.
+    expect(mountDenied('www.primevideo.com', '/')).toBe(false);
+  });
+
+  it('amazon.de /gp/video mounts on the Prime player container', () => {
+    const doc = withDom('<div class="webPlayerSDKContainer"><video src="x"></video></div>');
+    const found = findVideoContainerIn(doc, 'www.amazon.de', '/gp/video/detail/B0X');
+    expect(found.container?.className).toBe('webPlayerSDKContainer');
+    expect(found.video?.tagName).toBe('VIDEO');
+    // Leaving the route demounts even though the page still has a <video>.
+    expect(findVideoContainerIn(doc, 'www.amazon.de', '/dp/B0X')).toEqual({ video: null, container: null });
+  });
+
+  it('HBO/Disney: an unrecognised path still mounts if the player container is there', () => {
+    const hbo = withDom('<div data-testid="player-container"><video src="x"></video></div>');
+    const disney = withDom('<div class="btm-media-player"><video src="x"></video></div>');
+    // The route table is not gospel: when the platform ships a new path, the
+    // player container IS the evidence, and staying idle would leave the user
+    // without Kivara. The route stays recorded as unrecognised for devLog.
+    expect(mountDenied('play.max.com', '/watch/unknown')).toBe(true);
+    const foundHbo = findVideoContainerIn(hbo, 'play.max.com', '/watch/unknown');
+    expect(foundHbo.container?.getAttribute('data-testid')).toBe('player-container');
+    expect(foundHbo.video?.tagName).toBe('VIDEO');
+
+    expect(mountDenied('www.disneyplus.com', '/somewhere/else')).toBe(true);
+    const foundDisney = findVideoContainerIn(disney, 'www.disneyplus.com', '/somewhere/else');
+    expect(foundDisney.container?.className).toBe('btm-media-player');
+  });
+
+  it('the override is HBO/Disney only: Netflix keeps its hard gate', () => {
+    const doc = withDom('<div class="watch-video"><video src="trailer"></video></div>');
+    expect(findVideoContainerIn(doc, 'www.netflix.com', '/browse')).toEqual({ video: null, container: null });
+  });
+});

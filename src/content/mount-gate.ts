@@ -10,17 +10,24 @@
  * Kept pure (no window/document reads) so the gating rules are unit-testable.
  */
 
-import { isPrimeRoute } from './platform-adapters/platform-hosts';
+import { isPrimeHost, isPrimeRoute } from './platform-adapters/platform-hosts';
 
 interface MountGate {
   /** Short name, for devLog lines. */
   platform: string;
-  /** Hostnames this gate owns — same `test(host)` semantics as before. */
-  hosts: RegExp;
+  /** TRUE for the hostnames this gate owns. */
+  hosts(host: string): boolean;
   /** Only these paths are playback: everything else on the host is not. */
   isPlayPath(pathname: string, host: string): boolean;
   /** Player containers in preference order, inside which the <video> must be. */
   selectors: readonly string[];
+  /**
+   * Mount on the player container even when the path is not in the table.
+   * Only for platforms whose route list is known to be incomplete (Max and
+   * Disney+ ship new paths without notice); Netflix and YouTube keep the hard
+   * route gate because their storefronts autoplay trailers on other paths.
+   */
+  containerOverride?: boolean;
 }
 
 const startsWith = (...prefixes: readonly string[]) => (pathname: string, _host = ''): boolean =>
@@ -29,7 +36,7 @@ const startsWith = (...prefixes: readonly string[]) => (pathname: string, _host 
 const MOUNT_GATES: readonly MountGate[] = [
   {
     platform: 'youtube',
-    hosts: /youtube\.com$/,
+    hosts: (host) => /youtube\.com$/.test(host),
     // Watch pages and Shorts. NOT the home-feed previews, NOT /embed (the
     // in-page player other sites embed), NOT /results or the channel pages.
     isPlayPath: startsWith('/watch', '/shorts/'),
@@ -37,7 +44,7 @@ const MOUNT_GATES: readonly MountGate[] = [
   },
   {
     platform: 'netflix',
-    hosts: /netflix\.com$/,
+    hosts: (host) => /netflix\.com$/.test(host),
     // Playback lives under /watch/<id>. Browse rows autoplay trailers on the
     // home page — mounting there put the overlay over the storefront.
     isPlayPath: startsWith('/watch/'),
@@ -45,20 +52,28 @@ const MOUNT_GATES: readonly MountGate[] = [
   },
   {
     platform: 'disney',
-    hosts: /disneyplus\.com$/,
-    isPlayPath: startsWith('/video/'),
+    hosts: (host) => /disneyplus\.com$/.test(host),
+    // Disney+ prefixes the locale (`/es-es/video/<id>`) and plays under both
+    // /video/ and /play/. The locale prefix is optional: the URL is rewritten
+    // without it once the session is established.
+    isPlayPath: (pathname) => /^\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?(?:video|play)\//.test(pathname),
     selectors: ['.btm-media-player', '.btm-media-overlays'],
+    containerOverride: true,
   },
   {
     platform: 'hbo',
-    hosts: /(hbomax|max)\.com$/,
-    // Max plays inside /episode/<id> and /movie/<id> (Fuse-Web-Play routes).
-    isPlayPath: startsWith('/episode/', '/movie/'),
+    hosts: (host) => /(hbomax|max)\.com$/.test(host),
+    // Max plays inside /video/... — documented with a real session in
+    // docs/SUBTITLE-INTERCEPTION.md — plus the /episode/<id> and /movie/<id>
+    // Fuse-Web-Play routes.
+    isPlayPath: startsWith('/video/', '/episode/', '/movie/'),
     selectors: ['[data-testid="player-container"]', '#root'],
+    containerOverride: true,
   },
   {
     platform: 'prime',
-    hosts: /(primevideo|amazon)\.com$/,
+    // The eleven Amazon storefronts, shared with `detectPlatform`.
+    hosts: isPrimeHost,
     // The owner's route table: all of primevideo.com, and the Amazon domains
     // only under /gp/video/ — the store pages share those hostnames.
     isPlayPath: (pathname, host) => isPrimeRoute(host, pathname),
@@ -69,7 +84,7 @@ const MOUNT_GATES: readonly MountGate[] = [
 /** The gate that owns this hostname, if the host has a known platform. */
 export function mountGateFor(host: string): MountGate | null {
   for (const gate of MOUNT_GATES) {
-    if (gate.hosts.test(host)) return gate;
+    if (gate.hosts(host)) return gate;
   }
   return null;
 }
