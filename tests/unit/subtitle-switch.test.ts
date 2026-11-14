@@ -89,3 +89,27 @@ describe('switchSubtitleToLanguage', () => {
     expect(result.reason).toMatch(/not offered/);
   });
 });
+
+describe('the menu button selector', () => {
+  beforeEach(() => {
+    player.current = player.tracks[0];
+    player.selects.length = 0;
+    player.apiIgnored = true;
+    document.body.innerHTML = '';
+  });
+
+  it('does not open a panel that only matches an aria-label', async () => {
+    // Anything else that announces itself as "Audio" is not Netflix's
+    // subtitle menu; the exact data-uia hook is the only one used.
+    document.body.innerHTML = `
+      <button aria-label="Audio">Audio</button>
+      <div><div data-uia="subtitle-item-Inglés">Inglés</div></div>`;
+    // A real row would select the track when clicked; with the wildcard
+    // selector the switcher would open THIS panel and click it.
+    document.querySelector<HTMLElement>('[data-uia="subtitle-item-Inglés"]')!
+      .addEventListener('click', () => { player.current = player.tracks[1]; });
+    const result = await switchSubtitleToLanguage('en');
+    expect(result.ok).toBe(false);
+    expect(player.current?.bcp47).toBe('es');
+  });
+});
