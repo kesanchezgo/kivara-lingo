@@ -87,3 +87,23 @@ describe('TranscriptRail: the no-subtitles notice', () => {
   });
 });
 
+
+describe('the transcript row exposes its cue start', () => {
+  it('carries data-kvl-start in milliseconds', () => {
+    // The QA measures a seek against the real cue boundary; the visible label
+    // is mm:ss and cannot answer ±0.5 s.
+    const { container } = render(
+      <TranscriptRail
+        {...baseProps}
+        cues={[
+          { id: 'a', start: 62_400, end: 65_000, text: 'Hola', language: 'es' },
+          { id: 'b', start: 65_500, end: 68_000, text: 'Adiós', language: 'es' },
+        ]}
+      />,
+    );
+    const rows = container.querySelectorAll('[data-kvl-cue]');
+    expect(rows.length).toBeGreaterThanOrEqual(2);
+    expect(rows[0].getAttribute('data-kvl-start')).toBe('62400');
+    expect(rows[1].getAttribute('data-kvl-start')).toBe('65500');
+  });
+});

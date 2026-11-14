@@ -822,6 +822,10 @@ const CueRow = memo(function CueRow({
     <div
       ref={(element) => registerRow(index, element)}
       data-kvl-cue={index}
+      // The cue's exact start, in ms. The visible label is only mm:ss, and a
+      // seek has to be checked against the real cue boundary, not a rounded
+      // label (QA: the ±0.5 s rule was unmeasurable without it).
+      data-kvl-start={cue.start}
       className="group/cue relative mx-3 [content-visibility:auto] [contain-intrinsic-size:auto_56px]"
     >
       <div
