@@ -52,6 +52,8 @@ const FORBIDDEN_TEXT = [
   'KIVARA_E2E_SEED_HEALTH',
   // The canned Anki ping/answers the wizard walk uses.
   'kivara-e2e-anki',
+  // The E2E mirror of the CREATE_CARD request the overlap case reads.
+  'kvl:e2e:last-create',
   // The shadow-root handle the e2e suite clicks through. Attributes are the
   // only channel that crosses the content script's isolated world.
   'data-kivara-e2e-hits',
