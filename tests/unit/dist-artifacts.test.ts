@@ -54,6 +54,10 @@ const FORBIDDEN_TEXT = [
   'kivara-e2e-anki',
   // The E2E mirror of the CREATE_CARD request the overlap case reads.
   'kvl:e2e:last-create',
+  // The fixture marker that arms the synthetic resolve-word batches.
+  'kivaraE2eBatches',
+  // The audio host the stability spec routes for the pronunciation click.
+  'e2e-audio.kivara',
   // The shadow-root handle the e2e suite clicks through. Attributes are the
   // only channel that crosses the content script's isolated world.
   'data-kivara-e2e-hits',

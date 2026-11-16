@@ -12,6 +12,7 @@
  * video (kivaraPausedRef: only resume what Kivara paused).
  */
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { t } from '../../shared/i18n';
 import { NoSubtitlesNotice } from './no-cues-notice';
 import { LanguageMismatchNotice } from './language-mismatch';
@@ -319,6 +320,11 @@ export function SubtitleOverlay({
   // passive, so the cancel is done by a native listener; the actual split/join
   // is the React handler below.
   const subsRef = useRef<HTMLDivElement>(null);
+  // The word card renders through a PORTAL into the popover boundary: the
+  // plate re-wraps while the card is open (dual caption, badges, marks) and a
+  // card anchored to its token would drift with it — the card's position must
+  // be decided once and never follow the plate.
+  const portalBoundary = subsRef.current?.closest('[data-popover-boundary]') as HTMLElement | null;
   useEffect(() => {
     const el = subsRef.current;
     if (!el) return;
@@ -1134,10 +1140,12 @@ export function SubtitleOverlay({
                         <Check size={9} className="inline-block ml-0.5 -mt-1 text-emerald-300" strokeWidth={3} />
                       )}
                     </span>
-                    {isTokHovered && !selection && (
+                    {isTokHovered && !selection && portalBoundary && createPortal(
                       <WordPopover
                         cardTheme={cardTheme}
                         visible
+                        anchorIndex={i}
+                        portalContainer={portalBoundary}
                         onMouseEnter={() => handleTokenEnter(tok.key, i)}
                         onMouseLeave={handleTokenLeave}
                         token={tok.text}
@@ -1188,7 +1196,8 @@ export function SubtitleOverlay({
                             onClear={() => study.setStatus(studyKey, null)}
                           />
                         ) : undefined}
-                      />
+                      />,
+                      portalBoundary,
                     )}
                   </span>
                 );
