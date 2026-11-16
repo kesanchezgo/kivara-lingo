@@ -1,0 +1,9 @@
+# QA run artifacts stay out of the repo: results, captures, consoles and the
+# two heavy directories (the open-root build copy and the browser profile).
+results.json
+b3-samples.json
+console-*.json
+*.png
+*.log
+dist-open/
+chrome-qa2/
