@@ -1,5 +1,5 @@
 import { chromium } from '@playwright/test';
-const QA = process.env.KIVARA_QA_DIR ?? 'C:/Users/Kiva/AppData/Local/Temp/kivara-qa';
+const QA = process.env.KIVARA_QA_DIR ?? path.join(os.tmpdir(), 'kivara-qa');
 const browser = await chromium.connectOverCDP('http://127.0.0.1:9222');
 const bcdp = await browser.newBrowserCDPSession();
 console.log('install', JSON.stringify(await bcdp.send('Extensions.loadUnpacked', { path: QA + '/dist-open' }).catch((e) => ({ error: String(e).slice(0, 80) }))));
