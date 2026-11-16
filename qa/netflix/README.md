@@ -49,12 +49,10 @@ Con acceso a fuentes de imágenes (para F2): añade los hosts de imágenes a
 | `qa-part2-rows3.mjs` | **B1** (subs off + recarga → aviso) y **B6** (al reactivar vuelve la frase), por el MENÚ del reproductor |
 | `qa-part2-b6.mjs` | **B6** solo (la fila del menú es «English (CC)») |
 | `qa-part2-v2.mjs` | **D4/E2/E3** con `seeked` + inicio exacto y **B3** en tiempo de vídeo |
-| `qa-rest-v6.mjs` | **E1** (mitad nativa) y **E9** (Limpieza visual): controles desmontados en reposo |
-| `qa-rest-v7.mjs` | siembra el mapeo de Anki de QA y **J4**/**F2** |
-| `qa-rest-v9.mjs` | **B4** (dos líneas/cursivas), **C2** (pronunciación), **D5** (búsqueda), **F2** con acceso de imágenes |
+| `qa-rest.mjs` | el resto de filas: **B4** (dos líneas/cursivas), **B6**, **C2** (pronunciación, clic de confianza), **C7** (portapapeles), **D5** (búsqueda), **E1/E9** (Limpieza visual), **F2** con acceso de imágenes, **H1**, **I1/I2**, **J4**, **AUTO-SETTING**; siembra el mapeo de Anki de QA |
 
 Cada script escribe en `results.json` del directorio de QA
-(`KIVARA_QA_DIR`, por defecto `C:/Users/Kiva/AppData/Local/Temp/kivara-qa`)
+(`KIVARA_QA_DIR`, por defecto `%TEMP%/kivara-qa`)
 y deja consola y captura junto a él.
 
 ## Reglas del registro

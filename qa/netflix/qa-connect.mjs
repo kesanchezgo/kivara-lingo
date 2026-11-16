@@ -9,9 +9,11 @@
 // EME state, and prints a verdict. If Widevine plays, the pending cases run
 // against the same session in the next script.
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { chromium } from '@playwright/test';
 
-const QA = process.env.KIVARA_QA_DIR ?? 'C:/Users/Kiva/AppData/Local/Temp/kivara-qa';
+const QA = process.env.KIVARA_QA_DIR ?? path.join(os.tmpdir(), 'kivara-qa');
 const browser = await chromium.connectOverCDP('http://127.0.0.1:9222');
 
 const ctx = browser.contexts()[0] ?? (await browser.newContext());

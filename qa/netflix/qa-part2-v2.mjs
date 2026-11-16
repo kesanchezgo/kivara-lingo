@@ -7,9 +7,11 @@
 // B3: per-change delta measured in VIDEO time, annotating whether the cue
 // overlaps the previous one.
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { chromium } from '@playwright/test';
 
-const QA = process.env.KIVARA_QA_DIR ?? 'C:/Users/Kiva/AppData/Local/Temp/kivara-qa';
+const QA = process.env.KIVARA_QA_DIR ?? path.join(os.tmpdir(), 'kivara-qa');
 const R = JSON.parse(fs.existsSync(QA + '/results.json') ? fs.readFileSync(QA + '/results.json', 'utf8') : '{}');
 const record = (id, status, evidence, note = '') => {
   R[id] = { status, evidence, note, at: new Date().toISOString() };

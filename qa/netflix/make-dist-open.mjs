@@ -6,9 +6,10 @@
 // `attachShadow({mode:"closed"})` occurrence to `"open"`, so the harness can
 // read inside the shadow roots. Everything else is the shipped bundle.
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
-const QA = process.env.KIVARA_QA_DIR ?? 'C:/Users/Kiva/AppData/Local/Temp/kivara-qa';
+const QA = process.env.KIVARA_QA_DIR ?? path.join(os.tmpdir(), 'kivara-qa');
 const repo = path.resolve(import.meta.dirname, '..', '..');
 const SRC = path.join(repo, 'dist');
 const DEST = path.join(QA, 'dist-open');
