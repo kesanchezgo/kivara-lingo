@@ -36,6 +36,7 @@ import { useKivaraStore } from '../../shared/use-kivara-store';
 import { aiConfigured } from '../../shared/ai-configured';
 import { WordPopover } from './WordPopover';
 import { CARD_UNDONE_EVENT, cardKindOf } from './save-actions';
+import { cueLineSpans, lineIndexOfOffset } from './save-request';
 import { markOf, markAttrs, markContainerAttrs } from './wordMarks';
 import { WordStatusSelector } from './WordStatusSelector';
 import type { StudyBinding } from './study';
@@ -77,13 +78,17 @@ export interface SubtitleOverlayProps {
   mode: Mode;
   saveRequestKey?: number | null;
   /** Save the given token + sentence as an Anki note. Resolves with the real
-   * envelope so the saved highlight only lands on a confirmed note. */
-  onSaveCard: (token: string | undefined, sentence: string) => Promise<CreateCardResponse>;
+   * envelope so the saved highlight only lands on a confirmed note.
+   *
+   * `lineIndex` names the member line of a combined (overlapping) cue that
+   * holds the token; omitted means "save the whole set" — a selection or the
+   * full plate. */
+  onSaveCard: (token: string | undefined, sentence: string, lineIndex?: number) => Promise<CreateCardResponse>;
   /** "See in Anki" for a saved token (F4). */
   onSeeInAnki?: (token: string) => void;
   /** "Add this scene" to the note a saved token already has (F4). `kind` is
    * the real card flavour (word / expression), never a default. */
-  onAddContext?: (token: string, sentence: string, kind: CreateCardKind) => void;
+  onAddContext?: (token: string, sentence: string, kind: CreateCardKind, lineIndex?: number) => void;
   /** True while a lookup/card is open; App decides whether to pause. */
   onTokenHoverChange?: (hovered: boolean) => void;
   /** Words already in Anki, pre-fetched at mount. */
@@ -442,6 +447,23 @@ export function SubtitleOverlay({
     () => tokenizeSentence(sourceText, effectiveExpanded, cueLanguage),
     [sourceText, effectiveExpanded, cueLanguage],
   );
+
+  // Which member line of an overlapping plate a token belongs to. The plate
+  // joins the lines (space, or a native break), so the line spans and the
+  // token offsets are computed over the same collapsed text; the save path
+  // then carries THAT line as the card's phrase instead of both.
+  const lineSpans = useMemo(() => cueLineSpans(targetSentence), [targetSentence]);
+  const tokenOffsets = useMemo(() => {
+    let at = 0;
+    return tokens.map((tok) => {
+      const offset = at;
+      at += tok.text.length;
+      return offset;
+    });
+  }, [tokens]);
+  const lineForToken = (index: number): number =>
+    lineIndexOfOffset(lineSpans, tokenOffsets[index] ?? 0);
+
   // The new words of this line, deduped by lemma: the toolbar's "know the
   // rest" button marks them in one click. Only vocabulary carries a status —
   // punctuation, proper nouns and speaker notes never do.
@@ -511,28 +533,42 @@ export function SubtitleOverlay({
 
   // ── Dual caption: platform alt cue first, then automatic MT (repo order).
   const nativeAltText = altCue?.text?.trim() || null;
-  const [translatedSentence, setTranslatedSentence] = useState<string | null>(null);
+  // One translation per member line, in the plate's order: translating the
+  // joined text as a single blob put a two-line translation under a two-line
+  // plate with no way to tell which line was which.
+  const memberLines = useMemo(
+    () => lineSpans.map((span) => span.text),
+    [lineSpans],
+  );
+  const [translatedLines, setTranslatedLines] = useState<string[] | null>(null);
   const translationVisible = translation !== 'hidden';
   useEffect(() => {
     const src = targetSentence.trim();
     const sameLanguage = (cueLanguage || 'en').slice(0, 2) === nativeLanguage.slice(0, 2);
     if (!translationVisible || !src || sameLanguage || nativeAltText) {
-      setTranslatedSentence(null);
+      setTranslatedLines(null);
       return;
     }
+    const lines = memberLines.length > 0 ? memberLines : [src];
     let cancelled = false;
-    setTranslatedSentence(null);
-    sendMessage(
-      'TRANSLATE',
-      { text: src, sourceLang: cueLanguage || 'en', targetLang: nativeLanguage },
-      'background',
+    setTranslatedLines(null);
+    Promise.all(
+      lines.map((line) =>
+        sendMessage(
+          'TRANSLATE',
+          { text: line, sourceLang: cueLanguage || 'en', targetLang: nativeLanguage },
+          'background',
+        ).catch(() => null),
+      ),
     )
-      .then((res) => {
+      .then((results) => {
         if (cancelled) return;
-        const r = res as TranslateResponse;
-        if (r?.ok && r.translatedText && r.translatedText.trim() !== src) {
-          setTranslatedSentence(r.translatedText);
-        }
+        const out = results.map((res, index) => {
+          const r = res as TranslateResponse | null;
+          const text = r?.ok ? (r.translatedText ?? '') : '';
+          return text.trim() && text.trim() !== lines[index] ? text : '';
+        });
+        setTranslatedLines(out.some(Boolean) ? out : null);
       })
       .catch(() => {
         /* network errors are non-fatal — the second line just stays empty */
@@ -540,9 +576,13 @@ export function SubtitleOverlay({
     return () => {
       cancelled = true;
     };
-  }, [targetSentence, cueLanguage, nativeLanguage, nativeAltText, translationVisible, cue?.id]);
+  }, [targetSentence, memberLines, cueLanguage, nativeLanguage, nativeAltText, translationVisible, cue?.id]);
 
-  const dualCaptionText = nativeAltText ?? translatedSentence;
+  /** The native-language caption line(s): the platform's alt cue or the MT. */
+  const dualCaptionLines = useMemo(() => {
+    if (nativeAltText) return [nativeAltText];
+    return (translatedLines ?? []).filter((line) => line.trim());
+  }, [nativeAltText, translatedLines]);
 
   // ── Hover / selection plumbing.
   const handleTokenEnter = (key: string, idx: number) => {
@@ -580,13 +620,13 @@ export function SubtitleOverlay({
     return null;
   };
 
-  const handleSaveToken = (token: string) => {
+  const handleSaveToken = (token: string, lineIndex?: number) => {
     if (capturing) return; // one card at a time
     // The frame must contain the video + its subtitle only: close the card
     // and the selection before the shutter fires.
     clearLookup();
     setIsHovered(false);
-    void onSaveCard(token, targetSentence).then((result) => {
+    void onSaveCard(token, targetSentence, lineIndex).then((result) => {
       if (result?.ok) setSavedTokens((prev) => new Set(prev).add(token.toLowerCase()));
     });
   };
@@ -638,7 +678,8 @@ export function SubtitleOverlay({
     const key = hoveredKeyRef.current;
     if (key) {
       const dictionary = lookupDictionary(key, cueLanguage);
-      handleSaveToken(dictionary?.token ?? key);
+      const idx = hoveredIdxRef.current;
+      handleSaveToken(dictionary?.token ?? key, idx == null ? undefined : lineForToken(idx));
       return;
     }
     // With a profile there IS something to judge: save the line only when it
@@ -647,14 +688,16 @@ export function SubtitleOverlay({
     // App explains instead of guessing.
     if (study) {
       if (newKeys.length === 1) {
-        const tok = tokens.find((tk) => (tk.lemma ?? tk.key) === newKeys[0]);
+        const index = tokens.findIndex((tk) => (tk.lemma ?? tk.key) === newKeys[0]);
+        const tok = index >= 0 ? tokens[index] : undefined;
         const dictionary = tok ? lookupDictionary(tok.key, cueLanguage) : undefined;
-        handleSaveToken(dictionary?.token ?? (tok ? tok.key : newKeys[0]));
+        handleSaveToken(dictionary?.token ?? (tok ? tok.key : newKeys[0]), index >= 0 ? lineForToken(index) : undefined);
         return;
       }
       onNothingToSave?.(newKeys.length > 1 ? 'several' : 'none');
       return;
     }
+    // No profile to judge from: the whole plate (the set of member lines).
     if (targetSentence.trim()) handleSaveToken(targetSentence);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveRequestKey]);
@@ -1124,7 +1167,7 @@ export function SubtitleOverlay({
                         }}
                         onSave={(e, value) => {
                           e.stopPropagation();
-                          handleSaveToken(value);
+                          handleSaveToken(value, lineForToken(i));
                         }}
                         onSeeInAnki={onSeeInAnki
                           ? (e) => { e.stopPropagation(); onSeeInAnki(tok.key); }
@@ -1132,7 +1175,7 @@ export function SubtitleOverlay({
                         onAddContext={onAddContext
                           ? (e) => {
                             e.stopPropagation();
-                            onAddContext(tok.key, targetSentence, cardKindOf(tok.text));
+                            onAddContext(tok.key, targetSentence, cardKindOf(tok.text), lineForToken(i));
                           }
                           : undefined}
                         statusSlot={study && tok.kind !== 'proper-noun-known' ? (
@@ -1157,7 +1200,7 @@ export function SubtitleOverlay({
               study setting as the transcript. Listen-first also waits for the pause.
               `data-kivara-dual` lets the e2e suite read this line through the
               host's published box map (the root is closed); inert in production. */}
-          {translationVisible && dualCaptionText && (
+          {translationVisible && dualCaptionLines.length > 0 && (
             <div
               data-kivara-dual=""
               className="mt-2 text-[0.65em] transition-all duration-300 overflow-hidden max-h-20 opacity-100"
@@ -1167,7 +1210,9 @@ export function SubtitleOverlay({
                 ...blurText(listenHide || (translation === 'blur' && !isHovered)),
               }}
             >
-              <span className="text-zinc-300">{dualCaptionText}</span>
+              {dualCaptionLines.map((line, index) => (
+                <span key={index} className="block text-zinc-300">{line}</span>
+              ))}
             </div>
           )}
         </div>

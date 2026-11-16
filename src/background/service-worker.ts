@@ -365,6 +365,17 @@ function asJson<T>(value: T): T {
 
 onMessage('CREATE_CARD', async ({ data }) => {
   const raw = data as unknown as CreateCardRequest;
+  // E2E-ONLY mirror of the request the content script actually sent. The card
+  // registry keeps the sentence but not the cue fields, and the overlap case
+  // asserts the phrase/cueStart/cueEnd/contextLines of the real message.
+  // Production compiles this branch out (and dist-artifacts forbids the key).
+  if (__E2E__) {
+    try {
+      await chrome.storage.local.set({ 'kvl:e2e:last-create': raw });
+    } catch {
+      /* the mirror must never break a save */
+    }
+  }
   const [mapping, capture] = await Promise.all([loadMapping(), loadCaptureSettings()]);
 
   // Per-language deck (H9): the request may name one, otherwise the language's

@@ -1436,7 +1436,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   }, [setPanelOpen]);
 
   const handleSaveCard = useCallback(
-    async (token: string | undefined, sentence: string): Promise<CreateCardResponse> => {
+    async (token: string | undefined, sentence: string, cueLine?: number): Promise<CreateCardResponse> => {
       if (!enabled) return { ok: false, error: 'disabled' };
       const tokenValue = token?.trim() || sentence.trim();
       if (!tokenValue) return { ok: false, error: 'no token' };
@@ -1501,23 +1501,25 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         const activeDeck = ankiMapping.decks?.[lang] ?? ankiMapping.deckName;
         const media = adapter?.getMediaInfo?.();
         const kind = cardKindOf(tokenValue);
-        // Neighbouring cues for the `context` field source. The active cue is
-        // located by id because the saved sentence may come from a selection
-        // inside the line, not from the cue object itself. Pure helper so the
-        // mapping is unit-tested without React.
-        const { contextLines, cueStart, cueEnd } = buildCueRequestFields(activeCue, episode.cues);
+        // Neighbouring cues for the `context` field source. Overlapping lines make
+        // the active cue id COMPOSITE (`netflix-2000-4000|3300-6000`), so the
+        // helper resolves the member lines by their spans (or by time) and, when
+        // the overlay knows where the word sits, returns THAT line as the
+        // phrase with its own bounds. A selection or the whole plate saves the
+        // set. Pure helper so the mapping is unit-tested without React.
+        const cueFields = buildCueRequestFields(activeCue, episode.cues, { lineIndex: cueLine });
         const request: CreateCardRequest = {
           token: tokenValue,
-          sentence,
+          sentence: cueFields.sentence ?? sentence,
           cardId: newCardId(),
           kind,
           lang,
           deck: activeDeck,
           media,
-          contextLines,
+          contextLines: cueFields.contextLines,
           frame: frameDataUrl ?? undefined,
-          cueStart,
-          cueEnd,
+          cueStart: cueFields.cueStart,
+          cueEnd: cueFields.cueEnd,
           videoTimeAtSave: audioAnchor.videoTimeAtSave,
           videoPausedAtSave: audioAnchor.videoPausedAtSave,
           language: lang,
@@ -1627,6 +1629,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     token: string,
     sentence: string,
     kind: CreateCardKind,
+    cueLine?: number,
   ) => {
     if (!enabled) return;
     // One capture at a time, same lock the save path holds.
@@ -1642,7 +1645,9 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       await addSceneToNote(
         {
           token,
-          sentence,
+          // Same rule as the save path: the line the word sits in, not the
+          // combined plate of two overlapping cues.
+          sentence: buildCueRequestFields(activeCue, episode.cues, { lineIndex: cueLine }).sentence ?? sentence,
           kind,
           deck,
           fieldName,
@@ -1654,7 +1659,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     } finally {
       captureBusyRef.current = false;
     }
-  }, [enabled, adapter, ankiMapping, captureSceneMedia]);
+  }, [enabled, adapter, ankiMapping, captureSceneMedia, activeCue, episode.cues]);
 
   const overlayPortal = useMemo(() => {
     if (!videoOverlayRoot || !enabled || !subtitlesVisible) return null;
