@@ -70,6 +70,11 @@ export interface E2EBoxes {
   bar: E2EBox | null;
   badges: E2EBox[];
   tokens: Array<E2EBox & { text: string; status?: string }>;
+  /** The word card's own box ([role="dialog"]), when it is open. */
+  card: E2EBox | null;
+  /** The card's computed transform and inline top (diagnostics). */
+  cardTransform: string | null;
+  cardTopStyle: string | null;
 }
 
 /** Raw hit as the publisher writes it (`x`/`y` are already the centre). */
@@ -447,6 +452,8 @@ export const LABEL = {
   saveSelection: 'Guardar la selección',
   /** Word card action. */
   save: 'Guardar',
+  /** Word card header: play the pronunciation. */
+  pronounce: 'Reproducir pronunciación',
   /** Status selector. */
   learning: 'Aprendiendo',
   panelTabCards: 'Tarjetas',

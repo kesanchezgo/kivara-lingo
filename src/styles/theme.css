@@ -468,6 +468,17 @@
   .kvl-pop-in {
     animation: kvl-pop-in 150ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
+  /* The word card's entry: opacity ONLY. A scale here would move the card's
+   * header while it fills (the card must not move while open — C2), and a
+   * pending transform keyframe keeps its measured rect off by the scale
+   * factor until the animation resolves. */
+  .kvl-fade-in {
+    animation: kvl-fade-in 150ms ease-out both;
+  }
+  @keyframes kvl-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
   @keyframes kvl-pop-in {
     from { opacity: 0; transform: scale(0.95) translateY(4px); }
     to   { opacity: 1; transform: scale(1)    translateY(0); }

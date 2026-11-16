@@ -299,9 +299,17 @@ function publishHost(host: HTMLElement): () => void {
       // The native-language line (the dual caption) rides along: the specs
       // assert the translated text, which lives in the same closed root as
       // the tokens.
+      // The word card's own box: the stability spec needs to know whether the
+      // card moved or the button moved INSIDE the card.
+      const cardEl = root.querySelector('[role="dialog"]');
+      const card = boxOf(cardEl);
+      // Why is the card's rect smaller than its offsetHeight? The computed
+      // transform answers it (a stuck entry animation scales the card).
+      const cardTransform = cardEl ? getComputedStyle(cardEl).transform : null;
+      const cardTopStyle = cardEl instanceof HTMLElement ? cardEl.style.top || null : null;
       const dual = root.querySelector<HTMLElement>('[data-kivara-dual]')
         ?.textContent?.trim() ?? '';
-      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({ bar, badges, tokens, dual }));
+      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({ bar, badges, tokens, dual, card, cardTransform, cardTopStyle }));
       host.setAttribute(E2E_STATE_ATTR, JSON.stringify(collectState(root)));
       watchToasts();
     } catch {

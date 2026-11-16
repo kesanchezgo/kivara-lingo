@@ -16,6 +16,7 @@
  * the selector there and nothing in this file changes.
  */
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { t } from '../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
 import {
@@ -28,6 +29,7 @@ import type {
   ResolveWordStreamRequest,
 } from '../../shared/types';
 import { pickFrequencyWinner } from '../../shared/frequency';
+import { computePopoverPlacement } from './popover-geometry';
 import { lookupDictionary } from '../nlp/dictionary';
 import { openResolveWordStream } from '../resolve-word-stream';
 import { FrequencyBadge, useWordRank } from './FrequencyBadge';
@@ -71,6 +73,14 @@ export interface WordPopoverProps {
   onAddContext?: (e: React.MouseEvent) => void;
   /** F5 hook point: the status selector mounts here. */
   statusSlot?: React.ReactNode;
+  /**
+   * Render the card through a portal into this element (the popover
+   * boundary): the plate re-wraps while the card is open and an anchored
+   * card would drift with it. Absent, the card renders in place.
+   */
+  portalContainer?: HTMLElement | null;
+  /** Index of the anchor token inside the same shadow root. */
+  anchorIndex?: number;
 }
 
 /* ── Resolve state (repo engine, unchanged) ─────────────────────────────── */
@@ -146,6 +156,59 @@ function useResolveWord(
         return { ...prev, entry: incoming, ...patch };
       });
     };
+    // E2E-ONLY: a synthetic enrichment that lands in BATCHES on fixed timers,
+    // so the stability spec can sample a card that fills while it is open
+    // (the fixture marks the page). The card starts from the LOCAL entry —
+    // short — and grows twice, the way the real chain grows it. Production
+    // compiles the branch out — dist-artifacts forbids the dataset marker.
+    if (__E2E__ && document.documentElement.dataset.kivaraE2eBatches === '1') {
+      const timers = [
+        window.setTimeout(() => {
+          if (closed) return;
+          adoptEntry({
+            ...(local ?? { token, type: 'word' as const, translation: 'marcos' }),
+            monolingual: 'A rigid structure that surrounds or holds something; one of the still images a video is built from.',
+            examples: ['The frames arrived this morning.', 'The video ships 24 frames per second.'],
+            synonyms: ['shell', 'framework', 'border', 'setting'],
+            phonetic: 'freɪmz',
+            audio: [{ url: 'https://e2e-audio.kivara/framez-us.mp3', accent: 'US', source: 'e2e-audio' }],
+            vip: {
+              definitions: [
+                { source: 'e2e-dict', text: 'A rigid structure that surrounds or holds something.' },
+                { source: 'e2e-dict', text: 'One of the still images a video is built from.' },
+              ],
+            },
+          });
+        }, 1200),
+        window.setTimeout(() => {
+          if (closed) return;
+          setState((prev) => ({
+            ...prev,
+            entry: prev.entry
+              ? {
+                  ...prev.entry,
+                  vip: {
+                    ...prev.entry.vip,
+                    examples: [
+                      { source: 'e2e-dict', text: 'The frames arrived this morning.' },
+                      { source: 'e2e-dict', text: 'The video ships 24 frames per second.' },
+                    ],
+                    collocations: undefined,
+                  },
+                }
+              : prev.entry,
+          }));
+        }, 1900),
+        window.setTimeout(() => {
+          if (closed) return;
+          setState((prev) => ({ ...prev, resolving: false, enriching: false, remoteLoading: false, aiLoading: false }));
+        }, 2600),
+      ];
+      return () => {
+        closed = true;
+        timers.forEach((t) => window.clearTimeout(t));
+      };
+    }
     const stream = openResolveWordStream(
       {
         kind: 'resolve-word',
@@ -454,6 +517,8 @@ export function WordPopover({
   onSeeInAnki,
   onAddContext,
   statusSlot,
+  portalContainer = null,
+  anchorIndex,
 }: WordPopoverProps) {
   const canonicalToken = lookupToken ?? token;
   const resolved = useResolveWord(canonicalToken, sentence, sourceLang, includeAi, !!languageMismatch);
@@ -464,16 +529,34 @@ export function WordPopover({
   const bodyRef = useRef<HTMLDivElement>(null);
   const pointerOverCard = usePointerOverCard();
   const [placement, setPlacement] = useState<'top' | 'bottom'>('top');
+  // The one decision, measured at open: chrome stays frozen for the card's
+  // whole life so the reservation never depends on what has arrived.
+  const geometryRef = useRef<{ chrome: number } | null>(null);
+  const sideRef = useRef<'top' | 'bottom'>('top');
+  // The entry animation runs ONCE at mount and then the class goes away: a
+  // content batch that re-rendered the card used to re-run it, and the scale
+  // flash moved the header while the card was open (C2).
+  const [entryAnim, setEntryAnim] = useState(true);
 
-  // Clamp inside the forced boundary (the video overlay root) and cap the
-  // scrollable body to the room above/below the token. The card is mid-entry
-  // (scale .95) when measured, so width comes from `offsetWidth`, not rects.
+  // The position is decided ONCE at open, from the frame alone, and never
+  // recomputed from the content: the card reserves the max height of its side
+  // from the first paint, so the enrichment filling in cannot move the header
+  // (C2's real cause). The card is mid-entry (scale .95) when measured, so
+  // width comes from `offsetWidth`, not rects.
   useLayoutEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      geometryRef.current = null;
+      return;
+    }
     const el = ref.current;
-    const parent = el?.parentElement;
+    if (!el) return;
+    // The anchor is the token span when the card renders through the portal.
+    const anchor = anchorIndex != null
+      ? (el.getRootNode() as ShadowRoot | null)?.querySelector<HTMLElement>(`[data-tok-idx="${anchorIndex}"]`) ?? null
+      : el.parentElement;
+    const parent = anchor ?? el.parentElement;
     if (!el || !parent) return;
-    const boundary = el.closest('[data-popover-boundary]') as HTMLElement | null;
+    const boundary = portalContainer ?? (el.closest('[data-popover-boundary]') as HTMLElement | null);
     if (!boundary) return;
 
     const place = () => {
@@ -484,38 +567,69 @@ export function WordPopover({
       // Ancestor scale (the subtitle plate can be scaled): rects are screen
       // units, offsetHeight is layout units.
       const scale = parent.offsetHeight > 0 && pr.height > 0 ? pr.height / parent.offsetHeight : 1;
-      const halfW = ((el.offsetWidth || 340) / 2) * scale;
-      const centerX = pr.left + pr.width / 2;
-      let dx = 0;
-      if (centerX + halfW > b.right - pad) dx = b.right - pad - (centerX + halfW);
-      else if (centerX - halfW < b.left + pad) dx = b.left + pad - (centerX - halfW);
-      el.style.marginLeft = `${dx / scale}px`;
-      if (arrowRef.current) arrowRef.current.style.marginLeft = `${-dx / scale}px`;
-
       const body = bodyRef.current;
       if (!body) return;
-      const above = (pr.top - b.top - pad) / scale - gap;
-      const below = (b.bottom - pr.bottom - pad) / scale - gap;
-      const chrome = el.offsetHeight - body.offsetHeight;
-      const natural = chrome + Math.min(body.scrollHeight, 420);
-      const next = natural <= above || above >= below ? 'top' : 'bottom';
-      setPlacement(next);
-      body.style.maxHeight = `${Math.max(120, Math.min(420, (next === 'top' ? above : below) - chrome))}px`;
+
+      // The chrome (header + footer) is measured once at open; the reservation
+      // then comes from the pure frame calculation, never from the content.
+      if (!geometryRef.current) {
+        geometryRef.current = { chrome: el.offsetHeight - body.offsetHeight };
+      }
+      const placement = computePopoverPlacement({
+        parent: {
+          top: pr.top,
+          bottom: pr.bottom,
+          left: pr.left,
+          width: pr.width,
+          height: pr.height,
+          offsetHeight: parent.offsetHeight,
+        },
+        boundary: { top: b.top, bottom: b.bottom, left: b.left, right: b.right },
+        cardWidth: el.offsetWidth || 340,
+        chrome: geometryRef.current.chrome,
+        scale,
+        pad,
+        gap,
+        maxBody: 420,
+      });
+
+      // PIN the card in the boundary's own coordinate space: explicit top and
+      // left (the boundary is unscaled, so screen px are local px), the CSS
+      // anchor classes overridden. Whatever re-wraps in the plate from now on
+      // cannot move the card.
+      el.style.top = `${placement.topOffset}px`;
+      el.style.bottom = 'auto';
+      const leftEdge = pr.left - b.left + pr.width / 2 - (el.offsetWidth || 340) / 2 + placement.marginLeft;
+      el.style.left = `${leftEdge}px`;
+      el.style.right = 'auto';
+      el.style.transform = 'none';
+      el.style.marginLeft = '0px';
+      if (arrowRef.current) arrowRef.current.style.marginLeft = `${-placement.marginLeft / scale}px`;
+      // Reserve the FULL height from the first paint: new content grows
+      // INSIDE the card (the body scrolls) and the header never moves.
+      el.style.height = `${geometryRef.current.chrome + placement.bodyMaxHeight}px`;
+      body.style.maxHeight = `${placement.bodyMaxHeight}px`;
+      if (sideRef.current !== placement.side) {
+        sideRef.current = placement.side;
+        setPlacement(placement.side);
+      }
     };
 
     place();
     let ro: ResizeObserver | null = null;
     if (typeof ResizeObserver === 'function') {
+      // The BOUNDARY may resize (the player changed size) — that re-clamps.
+      // The card's own content growth must NOT re-place it: the observer on
+      // `el` is what made the header jump while the enrichment filled in.
       ro = new ResizeObserver(place);
       ro.observe(boundary);
-      ro.observe(el);
     }
     window.addEventListener('resize', place);
     return () => {
       ro?.disconnect();
       window.removeEventListener('resize', place);
     };
-  }, [visible, token, canonicalToken]);
+  }, [visible, token, canonicalToken, anchorIndex, portalContainer]);
 
   // Escape in the card closes it; the overlay returns focus to the token.
   useEffect(() => {
@@ -582,7 +696,7 @@ export function WordPopover({
     speakSynthesized(cleanHeadword, sourceLang);
   };
 
-  return (
+  const card = (
     <div
       ref={ref}
       onMouseEnter={() => {
@@ -594,9 +708,10 @@ export function WordPopover({
         onMouseLeave();
       }}
       role="dialog"
+      onAnimationEnd={(e) => { if (e.target === e.currentTarget) setEntryAnim(false); }}
       aria-modal="false"
       aria-label={`${t('popover.dictionaryLabel')} — ${token}`}
-      className={`kvl-ui ${cardTheme === 'auto' ? '' : cardTheme + ' '}kvl-pop-in absolute left-1/2 -translate-x-1/2 w-[340px] z-30 ${
+      className={`kvl-ui ${entryAnim ? 'kvl-fade-in ' : ''}${cardTheme === 'auto' ? '' : cardTheme + ' '}pointer-events-auto absolute left-1/2 -translate-x-1/2 w-[340px] z-30 ${
         placement === 'top' ? 'bottom-full mb-3' : 'top-full mt-3'
       }`}
       style={{
@@ -946,6 +1061,10 @@ export function WordPopover({
       <div className={`absolute left-0 right-0 h-3 ${placement === 'top' ? 'top-full' : 'bottom-full'}`} aria-hidden="true" />
     </div>
   );
+  // Through the portal the card is a child of the popover boundary: its
+  // position is pinned in the boundary's own space and nothing that re-wraps
+  // in the plate (dual caption, badges, marks) can move it.
+  return portalContainer ? createPortal(card, portalContainer) : card;
 }
 
 function speakSynthesized(text: string, lang: string): void {
