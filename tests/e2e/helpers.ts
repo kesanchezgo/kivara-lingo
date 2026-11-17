@@ -72,11 +72,6 @@ export interface E2EBoxes {
   tokens: Array<E2EBox & { text: string; status?: string }>;
   /** The word card's own box ([role="dialog"]), when it is open. */
   card: E2EBox | null;
-  /** The card's computed transform and inline top (diagnostics). */
-  cardTransform: string | null;
-  cardTopStyle: string | null;
-  saveTarget: string | null;
-  layoutProbe: string | null;
 }
 
 /** Raw hit as the publisher writes it (`x`/`y` are already the centre). */

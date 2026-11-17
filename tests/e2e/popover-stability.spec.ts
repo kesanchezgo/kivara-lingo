@@ -87,7 +87,7 @@ test('the pronunciation button stays put while the card fills in batches', async
       const tok = boxes.tokens.find((t) => t.text === 'cue');
       const cardTop = boxes.card ? Math.round(boxes.card.y) : null;
       const cardH = boxes.card ? Math.round(boxes.card.height) : null;
-      if (btn) samples.push({ x: btn.cx, y: btn.cy, at: Date.now() - started, tokY: tok ? Math.round(tok.y) : undefined, cardTop, cardH, tr: boxes.cardTransform, topStyle: boxes.cardTopStyle });
+      if (btn) samples.push({ x: btn.cx, y: btn.cy, at: Date.now() - started, tokY: tok ? Math.round(tok.y) : undefined, cardTop, cardH });
       await page.waitForTimeout(100);
     }
     expect(samples.length).toBeGreaterThanOrEqual(20);
