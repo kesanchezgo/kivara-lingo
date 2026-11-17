@@ -24,6 +24,7 @@ import { devLog } from '../../shared/logger';
 import {
   installNetflixManifestHook,
   NETFLIX_MANIFEST_EVENT,
+  pickNetflixManifestTrack,
 } from './netflix-manifest-hook';
 import { parseAny, detectSubtitleKind, detectTrackLanguage } from './parsers';
 import { pickTimedTextTrack } from './timed-text';
@@ -762,10 +763,7 @@ declare global {
       const targetLang = (document.documentElement.getAttribute('data-kivara-target-lang') || 'es')
         .toLowerCase()
         .split(/[-_]/)[0];
-      const picked = tracks.find((t) => {
-        const primary = (t.bcp47 ?? '').split(/[-_]/)[0].toLowerCase();
-        return primary === targetLang && !!t.ttDownloadUrl;
-      });
+      const picked = pickNetflixManifestTrack(tracks, targetLang);
       if (picked?.ttDownloadUrl) {
         try {
           // No credentials: the CORS wildcard is refused with them, and the

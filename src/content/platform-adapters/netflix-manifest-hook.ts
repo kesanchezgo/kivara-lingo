@@ -15,6 +15,8 @@
  * the specs can simulate the manifest without a real MSL stack.
  */
 
+import { primarySubtag } from './timed-text';
+
 export const NETFLIX_MANIFEST_EVENT = 'kivara-lingo:netflix-manifest';
 
 export interface NetflixManifestTrack {
@@ -73,6 +75,27 @@ export function extractManifestTracks(value: unknown): NetflixManifestTrack[] | 
     });
   }
   return tracks.length > 0 ? tracks : null;
+}
+
+/**
+ * Pick the downloadable NATIVE track for `lang`, mirroring the player-track
+ * rule in `pickTimedTextTrack` (timed-text.ts). A forced-narrative track is
+ * NEVER native: it carries only on-screen foreign dialogue and is nearly
+ * empty for a dubbed episode, so it is excluded outright rather than merely
+ * ranked last — if only a forced track exists we return null and the bus
+ * keeps its automatic-translation fallback.
+ */
+export function pickNetflixManifestTrack(
+  tracks: readonly NetflixManifestTrack[],
+  lang: string,
+): NetflixManifestTrack | null {
+  const want = primarySubtag(lang);
+  if (!want) return null;
+  const candidates = tracks.filter((t) =>
+    !t.isNoneTrack && !t.isImageBased && !t.isForcedNarrative
+      && !!t.ttDownloadUrl && primarySubtag(t.bcp47) === want,
+  );
+  return candidates[0] ?? null;
 }
 
 /** Install the JSON.parse hook. Idempotent; the original parse is restored

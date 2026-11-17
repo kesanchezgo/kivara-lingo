@@ -28,7 +28,7 @@ export interface TimedTextTrackInfo {
   isImageBased?: boolean;
 }
 
-const primarySubtag = (value: string | undefined): string =>
+export const primarySubtag = (value: string | undefined): string =>
   (value ?? '').trim().toLowerCase().replace('_', '-').split('-')[0] ?? '';
 
 /**

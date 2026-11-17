@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   extractManifestTracks,
   installNetflixManifestHook,
+  pickNetflixManifestTrack,
 } from '../../src/content/platform-adapters/netflix-manifest-hook';
 
 const MANIFEST = {
@@ -56,6 +57,38 @@ describe('extractManifestTracks', () => {
     expect(extractManifestTracks({ timedtexttracks: [] })).toBeNull();
     expect(extractManifestTracks({ timedtexttracks: [{ noLang: true }] })).toBeNull();
     expect(extractManifestTracks('manifest')).toBeNull();
+  });
+});
+
+describe('pickNetflixManifestTrack', () => {
+  // The real episode lists the FORCED es track first. Taking it gives a
+  // near-empty "native" line, which is exactly the B8/D5 failure.
+  const REAL_MANIFEST = [
+    { bcp47: 'es', isForcedNarrative: true, ttDownloadUrl: 'https://tt/es-forced.ttml' },
+    { bcp47: 'es', ttDownloadUrl: 'https://tt/es-normal.ttml' },
+    { bcp47: 'en', ttDownloadUrl: 'https://tt/en-cc.ttml' },
+  ];
+
+  it('never picks the forced track — it prefers the normal one of the same language', () => {
+    expect(pickNetflixManifestTrack(REAL_MANIFEST, 'es')?.ttDownloadUrl)
+      .toBe('https://tt/es-normal.ttml');
+  });
+
+  it('returns null (keeping the MT fallback) when only a forced track is offered', () => {
+    expect(pickNetflixManifestTrack([REAL_MANIFEST[0]], 'es')).toBeNull();
+  });
+
+  it('excludes none / image-based / empty-url tracks', () => {
+    expect(pickNetflixManifestTrack([
+      { bcp47: 'es', isNoneTrack: true, ttDownloadUrl: 'https://tt/es.ttml' },
+      { bcp47: 'es', isImageBased: true, ttDownloadUrl: 'https://tt/es.ttml' },
+      { bcp47: 'es' },
+    ], 'es')).toBeNull();
+  });
+
+  it('matches the primary subtag and answers null for a missing language', () => {
+    expect(pickNetflixManifestTrack([{ bcp47: 'es-ES', ttDownloadUrl: 'u' }], 'es-MX')?.ttDownloadUrl).toBe('u');
+    expect(pickNetflixManifestTrack(REAL_MANIFEST, '')).toBeNull();
   });
 });
 
