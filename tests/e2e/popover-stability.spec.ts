@@ -14,7 +14,7 @@
  * real at ~1 s — content still arriving — and expects the handler to run.
  */
 import { test, expect } from './fixtures';
-import { LABEL, VIDEO_HOST, boxesOf, hitsOf, hoverToken, openPlayer, parkAt, readFixture, waitForLine } from './helpers';
+import { LABEL, VIDEO_HOST, boxesOf, hitsOf, hoverToken, humanClick, openPlayer, parkAt, readFixture, waitForLine } from './helpers';
 
 const FIXTURE = readFixture('player-dual.html');
 
@@ -111,9 +111,10 @@ test('the pronunciation button stays put while the card fills in batches', async
     expect(Math.min(...ys), 'the button never leaves the frame').toBeGreaterThanOrEqual(0);
 
     // A trusted click ~1 s in — content still arriving — must reach the
-    // handler: the pronunciation audio URL is requested.
+    // handler: the pronunciation audio URL is requested. The pointer walks
+    // to the button (humanClick), never teleports.
     const btn = (await hitsOf(page, VIDEO_HOST)).find((hit) => hit.label === LABEL.pronounce);
-    await page.mouse.click(btn!.cx, btn!.cy);
+    await humanClick(page, btn!.cx, btn!.cy);
     await expect
       .poll(() => audioRequests.length, { timeout: 8_000, message: 'the pronunciation handler ran (audio requested)' })
       .toBeGreaterThan(0);

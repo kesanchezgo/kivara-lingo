@@ -15,7 +15,7 @@
  * The word-status selector is F5. `statusSlot` is the hook point: F5 passes
  * the selector there and nothing in this file changes.
  */
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { t } from '../../shared/i18n';
 import { sendMessage } from 'webext-bridge/content-script';
@@ -523,6 +523,40 @@ export function WordPopover({
   const canonicalToken = lookupToken ?? token;
   const resolved = useResolveWord(canonicalToken, sentence, sourceLang, includeAi, !!languageMismatch);
   const rank = useWordRank(canonicalToken, sourceLang);
+  // The card's height is capped, but the header GROWS when the badges and the
+  // phonetic arrive — the body's scroll area absorbs that growth so the
+  // action row stays inside the card, visible and clickable. Without this the
+  // enrichment pushed the actions below the card's clip and the save click
+  // landed on nothing (C2). Runs after every content batch too: the body's
+  // box does not change when only its content grows, so a box observer would
+  // never fire.
+  const fitBodyToCap = useCallback(() => {
+    const el = ref.current;
+    const body = bodyRef.current;
+    if (!el || !body) return;
+    const cap = parseFloat(el.style.maxHeight || '') || el.offsetHeight;
+    const inner = body.parentElement;
+    if (!inner) return;
+    // The card's scrollable bodyRef is only PART of the card's content: the
+    // VIP/AI sections render between it and the action row, and they grow
+    // with the enrichment too. The body's box must shrink by everything the
+    // other rows occupy, measured LIVE from the layout (the actions' bottom
+    // edge minus the body's bottom edge), or the action row ends up below
+    // the card's clip and the save click lands on nothing.
+    const actions = inner.lastElementChild as HTMLElement | null;
+    void actions;
+    const wanted = Math.max(40, cap - (body.offsetTop + body.offsetHeight));
+    if (Math.abs((parseFloat(body.style.maxHeight || '0') || 0) - wanted) > 1) {
+      body.style.maxHeight = `${wanted}px`;
+    }
+  }, []);
+  useEffect(() => {
+    if (!visible) return;
+    fitBodyToCap();
+  }, [visible, resolved.entry, resolved.resolving, resolved.enriching, resolved.remoteLoading, resolved.aiLoading, fitBodyToCap]);
+
+
+
 
   const ref = useRef<HTMLDivElement>(null);
   const arrowRef = useRef<HTMLDivElement>(null);
@@ -532,6 +566,9 @@ export function WordPopover({
   // The one decision, measured at open: chrome stays frozen for the card's
   // whole life so the reservation never depends on what has arrived.
   const geometryRef = useRef<{ chrome: number } | null>(null);
+  // The hover bridge that spans the word↔card gap: hovering it counts as
+  // being inside the card for the close timer.
+  const bridgeRef = useRef<HTMLDivElement>(null);
   const sideRef = useRef<'top' | 'bottom'>('top');
   // The entry animation runs ONCE at mount and then the class goes away: a
   // content batch that re-rendered the card used to re-run it, and the scale
@@ -561,7 +598,8 @@ export function WordPopover({
 
     const place = () => {
       const pad = 8;
-      const gap = 12;
+      // The word↔card gap the owner asked for: at most 8 px, bridged.
+      const gap = 8;
       const pr = parent.getBoundingClientRect();
       const b = boundary.getBoundingClientRect();
       // Ancestor scale (the subtitle plate can be scaled): rects are screen
@@ -590,25 +628,51 @@ export function WordPopover({
         scale,
         pad,
         gap,
-        maxBody: 420,
+        cardCap: 380,
       });
 
       // PIN the card in the boundary's own coordinate space: explicit top and
       // left (the boundary is unscaled, so screen px are local px), the CSS
       // anchor classes overridden. Whatever re-wraps in the plate from now on
       // cannot move the card.
+      if (__E2E__) console.log('[kvl-e2e] place', JSON.stringify({
+        pr: { l: Math.round(pr.left), t: Math.round(pr.top), w: Math.round(pr.width) },
+        b: { l: Math.round(b.left), t: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height) },
+        cw: el.offsetWidth,
+        chrome: geometryRef.current.chrome,
+        left: Math.round(placement.leftEdge),
+        top: Math.round(placement.topOffset),
+        bodyMax: Math.round(placement.bodyMaxHeight),
+      }));
       el.style.top = `${placement.topOffset}px`;
       el.style.bottom = 'auto';
-      const leftEdge = pr.left - b.left + pr.width / 2 - (el.offsetWidth || 340) / 2 + placement.marginLeft;
-      el.style.left = `${leftEdge}px`;
+      el.style.left = `${placement.leftEdge}px`;
       el.style.right = 'auto';
       el.style.transform = 'none';
+      // Tailwind v4 moves translate-x utilities to the standalone 'translate'
+      // property — neutralise it too or the card stays shifted half its width
+      // (the owner's measured "right edge at the word's x").
+      el.style.translate = 'none';
       el.style.marginLeft = '0px';
-      if (arrowRef.current) arrowRef.current.style.marginLeft = `${-placement.marginLeft / scale}px`;
-      // Reserve the FULL height from the first paint: new content grows
-      // INSIDE the card (the body scrolls) and the header never moves.
-      el.style.height = `${geometryRef.current.chrome + placement.bodyMaxHeight}px`;
+      // The card's height FOLLOWS its content up to the reservation decided at
+      // open: a low-content word gets a short card, the enrichment grows it
+      // inside the cap, and when the stream is done and the content is smaller
+      // the card shrinks back — always with the top edge (the header) pinned.
+      el.style.height = 'auto';
+      el.style.maxHeight = `${geometryRef.current.chrome + placement.bodyMaxHeight}px`;
       body.style.maxHeight = `${placement.bodyMaxHeight}px`;
+      if (bridgeRef.current) {
+        if (placement.side === 'top') {
+          bridgeRef.current.style.top = '100%';
+          bridgeRef.current.style.bottom = 'auto';
+        } else {
+          bridgeRef.current.style.bottom = '100%';
+          bridgeRef.current.style.top = 'auto';
+        }
+        bridgeRef.current.style.left = `${placement.bridgeLeft}px`;
+        bridgeRef.current.style.width = `${placement.bridgeWidth}px`;
+        bridgeRef.current.style.height = `${placement.gapPx + 12}px`;
+      }
       if (sideRef.current !== placement.side) {
         sideRef.current = placement.side;
         setPlacement(placement.side);
@@ -617,6 +681,36 @@ export function WordPopover({
 
     place();
     let ro: ResizeObserver | null = null;
+    // The card's height is capped, but the header GROWS when the badges and
+    // the phonetic arrive — the body's scroll area absorbs that growth so the
+    // action row stays inside the card, visible and clickable. Without this
+    // the enrichment pushed the actions below the card's clip and the save
+    // click landed on nothing (C2).
+    const fitBody = () => {
+      const body = bodyRef.current;
+      const inner = body?.parentElement;
+      if (!body || !inner) return;
+      const cap = parseFloat(el.style.maxHeight || '') || el.offsetHeight;
+      const header = inner.firstElementChild as HTMLElement | null;
+      const actions = inner.lastElementChild as HTMLElement | null;
+      const actionsH = actions && actions !== body ? actions.offsetHeight : 0;
+      const chromeNow = (header?.offsetHeight ?? 0) + actionsH;
+      const wanted = Math.max(40, cap - chromeNow);
+      if (Math.abs((parseFloat(body.style.maxHeight || '0') || 0) - wanted) > 1) {
+        body.style.maxHeight = `${wanted}px`;
+      }
+    };
+    fitBody();
+    let bodyRo: ResizeObserver | null = null;
+    if (typeof ResizeObserver === 'function' && bodyRef.current) {
+      bodyRo = new ResizeObserver(fitBody);
+      const inner = bodyRef.current.parentElement;
+      const header = inner?.firstElementChild;
+      const actions = inner?.lastElementChild;
+      if (header && header !== bodyRef.current) bodyRo.observe(header);
+      if (actions && actions !== bodyRef.current) bodyRo.observe(actions);
+      bodyRo.observe(bodyRef.current);
+    }
     if (typeof ResizeObserver === 'function') {
       // The BOUNDARY may resize (the player changed size) — that re-clamps.
       // The card's own content growth must NOT re-place it: the observer on
@@ -627,6 +721,7 @@ export function WordPopover({
     window.addEventListener('resize', place);
     return () => {
       ro?.disconnect();
+      bodyRo?.disconnect();
       window.removeEventListener('resize', place);
     };
   }, [visible, token, canonicalToken, anchorIndex, portalContainer]);
@@ -711,7 +806,7 @@ export function WordPopover({
       onAnimationEnd={(e) => { if (e.target === e.currentTarget) setEntryAnim(false); }}
       aria-modal="false"
       aria-label={`${t('popover.dictionaryLabel')} — ${token}`}
-      className={`kvl-ui ${entryAnim ? 'kvl-fade-in ' : ''}${cardTheme === 'auto' ? '' : cardTheme + ' '}pointer-events-auto absolute left-1/2 -translate-x-1/2 w-[340px] z-30 ${
+      className={`kvl-ui ${entryAnim ? 'kvl-fade-in ' : ''}${cardTheme === 'auto' ? '' : cardTheme + ' '}pointer-events-auto absolute left-1/2 -translate-x-1/2 w-[340px] z-[40] ${
         placement === 'top' ? 'bottom-full mb-3' : 'top-full mt-3'
       }`}
       style={{
@@ -775,7 +870,7 @@ export function WordPopover({
         </div>
 
         {/* Body */}
-        <div ref={bodyRef} className="px-3.5 py-2.5 space-y-1.5 overflow-y-auto kvl-scroll max-h-[420px]">
+        <div ref={bodyRef} data-kvl-card-body className="px-3.5 py-2.5 space-y-1.5 overflow-y-auto kvl-scroll max-h-[420px]">
           {languageMismatch ? (
             <LanguageMismatchNotice
               track={languageMismatch.track}
@@ -891,7 +986,7 @@ export function WordPopover({
               )}
             </>
           )}
-        </div>
+
 
         {/* AI block (wave 3) */}
         {!isResolving && includeAi && (resolved.aiLoading || ai || resolved.aiError) && (
@@ -1001,7 +1096,11 @@ export function WordPopover({
           </div>
         )}
 
-        {/* Action row */}
+        </div>
+
+        {/* Action row — OUTSIDE the scrollable body: everything between the
+            header and this row scrolls INSIDE the body's box, so the actions
+            are always at the card's bottom edge, visible and clickable (C2). */}
         <div className="flex items-stretch border-t border-zinc-900/[0.06] dark:border-white/[0.06] bg-white/40 dark:bg-zinc-900/40">
           <PopoverAction
             icon={<BookOpen size={13} />}
@@ -1057,6 +1156,11 @@ export function WordPopover({
           placement === 'top' ? '-bottom-1.5 border-r border-b' : '-top-1.5 border-l border-t'
         }`}
       />
+      {/* The word↔card hover bridge: spanning this gap counts as being
+          inside the card for the close timer, so a hand that leaves the word
+          towards the card never lets it close. The geometry is written
+          imperatively in place() (no render race with the card's shrink). */}
+      <div ref={bridgeRef} aria-hidden="true" style={{ position: 'absolute', pointerEvents: 'none' }} />
       {/* Invisible bridge over the 12px gap so crossing it never closes the card */}
       <div className={`absolute left-0 right-0 h-3 ${placement === 'top' ? 'top-full' : 'bottom-full'}`} aria-hidden="true" />
     </div>

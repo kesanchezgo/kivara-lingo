@@ -597,10 +597,38 @@ export function SubtitleOverlay({
     setHoveredKey(key);
     setHoveredIdx(idx);
   };
+  // The pointer's last known position: the card's hover bridge is judged at
+  // the close timer's fire (not at the leave), so a hand travelling from the
+  // word to the card is inside the bridge the whole way.
+  const pointerRef = useRef({ x: -1, y: -1 });
+  useEffect(() => {
+    const onMove = (event: MouseEvent) => {
+      pointerRef.current = { x: event.clientX, y: event.clientY };
+    };
+    window.addEventListener('mousemove', onMove, true);
+    return () => window.removeEventListener('mousemove', onMove, true);
+  }, []);
+
   const handleTokenLeave = () => {
     if (wordHoverTimeout.current) clearTimeout(wordHoverTimeout.current);
     wordHoverTimeout.current = setTimeout(() => {
       wordHoverTimeout.current = null;
+      // The card's hover bridge: while the pointer is on the straight path
+      // between the word and the card (the card's box extended down to the
+      // word), the card counts as hovered and stays open. Without this the
+      // card closed before a hand reached it (C2).
+      const root = subsRef.current?.getRootNode() as ShadowRoot | null;
+      const card = root?.querySelector('[role="dialog"]');
+      const at = pointerRef.current;
+      if (card && at.x >= 0) {
+        const r = card.getBoundingClientRect();
+        const token = hoveredIdx != null ? root?.querySelector(`[data-tok-idx="${hoveredIdx}"]`) : null;
+        const tRect = token?.getBoundingClientRect();
+        const x1 = Math.min(r.left, tRect ? tRect.left : r.left) - 24;
+        const x2 = Math.max(r.right, tRect ? tRect.right : r.right) + 24;
+        const y2 = tRect ? tRect.bottom + 12 : r.bottom + 40;
+        if (at.x >= x1 && at.x <= x2 && at.y >= r.top - 8 && at.y <= y2) return;
+      }
       setHoveredKey(null);
     }, 80);
   };

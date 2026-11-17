@@ -75,6 +75,8 @@ export interface E2EBoxes {
   /** The card's computed transform and inline top (diagnostics). */
   cardTransform: string | null;
   cardTopStyle: string | null;
+  saveTarget: string | null;
+  layoutProbe: string | null;
 }
 
 /** Raw hit as the publisher writes it (`x`/`y` are already the centre). */
@@ -260,6 +262,30 @@ export async function hoverToken(page: Page, text: string): Promise<void> {
   const token = await tokenOf(page, text);
   const at = centre(token);
   await page.mouse.move(at.x, at.y);
+}
+
+/**
+ * Human mouse travel: the pointer WALKS to the target in short steps the way
+ * a hand moves, instead of teleporting. Every spec that clicks inside the
+ * word card must travel this way — a teleporting click skips the hover bridge
+ * between the word and the card and can land on a card that already closed
+ * (the C2 regression).
+ */
+export async function humanMove(page: Page, x: number, y: number, steps = 15, delay = 16): Promise<void> {
+  const from = humanMove.from ?? { x: 640, y: 360 };
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    await page.mouse.move(from.x + (x - from.x) * t, from.y + (y - from.y) * t);
+    await page.waitForTimeout(delay);
+  }
+  humanMove.from = { x, y };
+}
+humanMove.from = null as { x: number; y: number } | null;
+
+/** humanMove to the target, then a real click at its centre. */
+export async function humanClick(page: Page, x: number, y: number, steps = 15, delay = 16): Promise<void> {
+  await humanMove(page, x, y, steps, delay);
+  await page.mouse.click(x, y);
 }
 
 /** Click a token with the mouse. `shift` keeps a free-selection range. */
