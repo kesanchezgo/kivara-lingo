@@ -106,16 +106,20 @@ test('a word saved from the second overlapping line carries that line and its ne
         { timeout: 25_000, message: 'the word card opened on the second line with its save action' },
       )
       .toBe(true);
-    await clickInRoot(page, VIDEO_HOST, LABEL.save);
+    // The card's done-phase settle can move the action row between the hit
+    // read and the click — retry the click (the hit map is re-read on every
+    // attempt) until the mirror shows the request.
+    let mirror: MirroredRequest | null = null;
+    for (let attempt = 0; attempt < 3 && mirror === null; attempt++) {
+      await clickInRoot(page, VIDEO_HOST, LABEL.save);
+      const deadline = Date.now() + 8_000;
+      while (Date.now() < deadline && mirror === null) {
+        mirror = await readMirror(serviceWorker);
+        if (!mirror) await page.waitForTimeout(500);
+      }
+    }
 
-    await expect
-      .poll(
-        () => readMirror(serviceWorker),
-        { timeout: 30_000, message: 'the CREATE_CARD request reached the service worker' },
-      )
-      .not.toBeNull();
-
-    const sent: MirroredRequest | null = await readMirror(serviceWorker);
+    const sent: MirroredRequest | null = mirror;
     // The card's headword goes through the dictionary lookup, which lowercases.
     expect(sent?.token).toBe('second');
     // The LINE that holds the word — not the combined plate.

@@ -305,13 +305,30 @@ function publishHost(host: HTMLElement): () => void {
       const card = boxOf(cardEl);
       // Why is the card's rect smaller than its offsetHeight? The computed
       // transform answers it (a stuck entry animation scales the card).
+      // What is actually ON the save button's centre? The stability and the
+      // human-path specs click it through the hit map — a wrong target here
+      // eats the click.
+      const saveBtn = [...(root.querySelectorAll('button') ?? [])].find((b) => (b.getAttribute('aria-label') ?? '') === 'Guardar');
+      let saveTarget: string | null = null;
+      if (saveBtn) {
+        const r = saveBtn.getBoundingClientRect();
+        const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        saveTarget = top
+          ? `id=${(top as HTMLElement).id || '-'} class=${String(top.className).slice(0, 60)} btnRect=${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.width)}x${Math.round(r.height)} inside=${saveBtn.contains(top) || top === saveBtn}`
+          : null;
+      }
+      const inner = cardEl?.firstElementChild as HTMLElement | null;
+      const headerEl = inner?.firstElementChild as HTMLElement | null;
+      const bodyEl = inner?.querySelector('[data-kvl-card-body]') as HTMLElement | null;
+      const layoutProbe = headerEl && bodyEl ? `header=${Math.round(headerEl.offsetHeight)} bodyTop=${Math.round(bodyEl.offsetTop)} bodyMax=${bodyEl.style.maxHeight || '-'} bodyRect=${Math.round(bodyEl.getBoundingClientRect().y)}` : null;
       const cardTransform = cardEl ? getComputedStyle(cardEl).transform : null;
       const cardTopStyle = cardEl instanceof HTMLElement ? cardEl.style.top || null : null;
       const dual = root.querySelector<HTMLElement>('[data-kivara-dual]')
         ?.textContent?.trim() ?? '';
-      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({ bar, badges, tokens, dual, card, cardTransform, cardTopStyle }));
+      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({ bar, badges, tokens, dual, card, cardTransform, cardTopStyle, saveTarget, layoutProbe }));
       host.setAttribute(E2E_STATE_ATTR, JSON.stringify(collectState(root)));
       watchToasts();
+      watchDialog();
     } catch {
       /* a detached root: nothing to publish */
     }
@@ -324,6 +341,19 @@ function publishHost(host: HTMLElement): () => void {
    * on screen, publish on a short tick — the same honesty the rects demand,
    * bounded to the animation's lifetime.
    */
+  // The word card's content is DYNAMIC while it fills: the settle of the
+  // enrichment moves the action row. While a dialog is open, publish on a
+  // short tick — the same honesty the toasts demand.
+  let dialogTimer: number | null = null;
+  const watchDialog = () => {
+    const present = root.querySelector('[role="dialog"]') !== null;
+    if (present && dialogTimer === null) {
+      dialogTimer = window.setInterval(schedule, 150);
+    } else if (!present && dialogTimer !== null) {
+      window.clearInterval(dialogTimer);
+      dialogTimer = null;
+    }
+  };
   let toastTimer: number | null = null;
   const watchToasts = () => {
     const present = root.querySelector('[data-sonner-toast]') !== null;
@@ -368,6 +398,9 @@ function publishHost(host: HTMLElement): () => void {
     characterData: true,
     attributes: true,
     attributeFilter: [
+      // The card's pin writes inline styles (top/left/height) — the buttons
+      // move with them and the hit map must follow or clicks land stale.
+      'style',
       'aria-pressed', 'aria-checked', 'aria-label', 'data-tok-idx',
       // Word status (the "know the rest" marks) and the mobile blur filter
       // are attribute writes; the panel tab the user just opened flips
