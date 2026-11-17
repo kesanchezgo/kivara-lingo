@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Kivara e2e Netflix manifest fixture</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #000;
+      }
+      .watch-video {
+        position: relative;
+        width: 640px;
+        height: 360px;
+        margin: 0 auto;
+      }
+      video {
+        width: 100%;
+        height: 100%;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      A Netflix watch page that exercises the MANIFEST flow: the player's
+      own TTML request (the source track) plus a simulated playback manifest
+      parsed with JSON.parse — the only seam where Netflix's decrypted
+      manifest exists — carrying BOTH timedtexttracks and their download
+      URLs. The interceptor's JSON.parse hook posts them to the bus, which
+      downloads the NATIVE-language track from the manifest's URL (the
+      spec's route) the way the MPD flow does for HBO Max / Disney+.
+    -->
+    <div class="watch-video">
+      <video id="player" muted playsinline crossorigin="anonymous"></video>
+    </div>
+
+    <script>
+      window.__kivaraSubtitleSwitch = [];
+      window.__kivaraSubtitleTracks = [
+        { trackId: 'T:en', bcp47: 'en', displayName: 'Inglés', trackType: 'PRIMARY', rawTrackType: 'SUBTITLES', isNoneTrack: false, isForcedNarrative: false },
+        { trackId: 'T:es', bcp47: 'es', displayName: 'Español', trackType: 'PRIMARY', rawTrackType: 'SUBTITLES', isNoneTrack: false, isForcedNarrative: false },
+      ];
+      const session = {
+        seek: () => {},
+        setPlaybackRate: () => {},
+        isPlaying: () => true,
+        getTimedTextTrackList: () => window.__kivaraSubtitleTracks,
+        getTimedTextTrack: () => ({ trackId: 'T:en', bcp47: 'en' }),
+        setTimedTextTrack: (id) => { window.__kivaraSubtitleSwitch.push(id); },
+        getTimedTextVisibility: () => true,
+        setTimedTextVisible: () => {},
+      };
+      window.netflix = {
+        appContext: {
+          state: {
+            playerApp: {
+              getAPI: () => ({
+                videoPlayer: {
+                  getAllPlayerSessionIds: () => ['session-1'],
+                  getVideoPlayerBySessionId: () => session,
+                  getPlayingSessionId: () => 'session-1',
+                  getAllPlayerStates: () => [session],
+                  getPlayerByIndex: () => session,
+                },
+              }),
+            },
+          },
+        },
+      };
+
+      // The simulated playback manifest: the shape Netflix's DECRYPTED
+      // manifest carries — timedtexttracks with download URLs. The fixture
+      // parses it with JSON.parse so the MAIN world's hook sees it exactly
+      // the way it sees the real player's parse.
+      const MANIFEST = JSON.stringify({
+        timedtexttracks: [
+          {
+            ttId: 'tt-en',
+            bcp47: 'en',
+            trackType: 'PRIMARY',
+            rawTrackType: 'SUBTITLES',
+            isNoneTrack: false,
+            isForcedNarrative: false,
+            isImageBased: false,
+            ttDownload: [{ url: 'https://e2e-netflix-tt/download/en.ttml' }],
+          },
+          {
+            ttId: 'tt-es',
+            bcp47: 'es',
+            trackType: 'PRIMARY',
+            rawTrackType: 'SUBTITLES',
+            isNoneTrack: false,
+            isForcedNarrative: false,
+            isImageBased: false,
+            ttDownload: [{ url: 'https://e2e-netflix-tt/download/es.ttml' }],
+          },
+        ],
+      });
+      // The MAIN-world hook installs asynchronously (the content script's
+      // chunk loads after this script) — arm-wait for it, then parse the
+      // manifest through the HOOKED parse.
+      const armManifest = () => {
+        if (JSON.__kivaraManifestHook) {
+          try {
+            const parsed = JSON.parse(MANIFEST);
+            window.__kivaraManifestTracks = (parsed.timedtexttracks ?? []).length;
+          } catch (err) {
+            window.__kivaraManifestTracks = -1;
+          }
+        } else {
+          window.setTimeout(armManifest, 100);
+        }
+      };
+      armManifest();
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 640;
+      canvas.height = 360;
+      const ctx = canvas.getContext('2d');
+
+      let frame = 0;
+      let recorder = null;
+      function draw() {
+        const gradient = ctx.createLinearGradient(0, 0, 640, 360);
+        gradient.addColorStop(0, `hsl(${(frame * 4) % 360}, 80%, 50%)`);
+        gradient.addColorStop(1, `hsl(${(frame * 4 + 120) % 360}, 80%, 40%)`);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 640, 360);
+        ctx.fillStyle = '#fff';
+        ctx.font = '48px sans-serif';
+        ctx.fillText(`frame ${frame}`, 40, 200);
+        frame += 1;
+        if (!recorder || recorder.state === 'recording') requestAnimationFrame(draw);
+      }
+
+      const stream = canvas.captureStream(25);
+      draw();
+      const chunks = [];
+      recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) chunks.push(event.data);
+      };
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const video = document.getElementById('player');
+        video.src = URL.createObjectURL(blob);
+        video.load();
+        video.addEventListener('loadedmetadata', async () => {
+          window.__kivaraClipDuration = video.duration;
+          video.currentTime = 0.05;
+          try {
+            await video.play();
+          } catch {
+            window.__kivaraFixtureReady = 'play-rejected';
+            return;
+          }
+          // The SOURCE track's request: the player's own TTML fetch.
+          try {
+            const res = await fetch('https://ipv4-c001.nflxvideo.net/sub/en/seg.xml?o=12345');
+            const body = await res.text();
+            window.__kivaraTtmlBytes = body.length;
+          } catch (err) {
+            window.__kivaraTtmlError = String(err);
+          }
+          window.__kivaraFixtureReady = true;
+        });
+      };
+      recorder.start();
+      setTimeout(() => recorder.stop(), 9000);
+    </script>
+  </body>
+</html>
