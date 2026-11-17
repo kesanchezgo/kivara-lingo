@@ -24,6 +24,10 @@
  */
 import { parseAny, detectTrackLanguage, type RawCue } from './parsers';
 import {
+  NETFLIX_MANIFEST_EVENT,
+  type NetflixManifestTrack,
+} from './netflix-manifest-hook';
+import {
   parseDashSubtitleTracks,
   parseDashAudioTracks,
   downloadDashSubtitleTrack,
@@ -182,6 +186,23 @@ window.addEventListener('message', (event) => {
     }
     return;
   }
+  // Netflix manifest — the MAIN world's JSON.parse hook posts the parsed
+  // timedtexttracks (each with its downloadable TTML URL); the bus downloads
+  // the NATIVE-language track the way the MPD flow does for HBO Max /
+  // Disney+. Without this, Netflix's transcript has no per-row native line
+  // and the dual caption falls back to machine translation.
+  if (
+    data &&
+    typeof data === 'object' &&
+    (data as { source?: unknown }).source === NETFLIX_MANIFEST_EVENT
+  ) {
+    const m = data as { tracks?: unknown; nativeBody?: unknown; nonce?: unknown };
+    if (m.nonce !== BUS_NONCE) return;
+    if (Array.isArray(m.tracks)) {
+      void handleNetflixManifest(m.tracks as NetflixManifestTrack[], typeof m.nativeBody === 'string' ? m.nativeBody : null);
+    }
+    return;
+  }
   if (!isOurMessage(event.data)) return;
   const url = event.data.url;
   const cues = sanitizeCues(event.data.cues);
@@ -246,6 +267,7 @@ function rememberDashManifest(mpdUrl: string): void {
  * having to wait for the player to refresh its manifest.
  */
 let lastMpdBody: { url: string; body: string } | null = null;
+const netflixManifestsSeen = new Set<string>();
 
 /**
  * Handle a DASH manifest: parse, identify both the source-language and
@@ -320,6 +342,56 @@ async function handleDashManifest(mpdUrl: string, body: string): Promise<void> {
         applyAudioTrackSelection(sourcePrimary, audioTracks);
       }, 200);
     }
+  }
+}
+
+/**
+ * Netflix manifest: download the NATIVE-language track declared in the
+ * player's timedtexttracks (the MAIN world's JSON.parse hook posts them)
+ * and publish it on the bus, exactly like the MPD flow does for HBO Max /
+ * Disney+. No track, no downloadable URL, or a failed download keeps the
+ * current machine-translation fallback.
+ */
+async function handleNetflixManifest(tracks: NetflixManifestTrack[], nativeBody: string | null): Promise<void> {
+  const targetLang = (
+    document.documentElement.getAttribute('data-kivara-target-lang') || 'es'
+  ).toLowerCase();
+  const targetPrimary = targetLang.split(/[-_]/)[0];
+  if (!targetPrimary || tracksByLang.has(targetPrimary)) return;
+  const picked = tracks.find((t) => {
+    const primary = (t.bcp47 ?? '').split(/[-_]/)[0].toLowerCase();
+    return primary === targetPrimary && !t.isNoneTrack && !t.isForcedNarrative && !t.isImageBased && !!t.ttDownloadUrl;
+  });
+  if (!picked?.ttDownloadUrl) return;
+  const url = picked.ttDownloadUrl;
+  if (netflixManifestsSeen.has(url)) return;
+  netflixManifestsSeen.add(url);
+  let body: string | null = nativeBody;
+  try {
+    if (body === null) {
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) return;
+      body = await res.text();
+    }
+    const cues = parseAny(url, body);
+    if (cues.length === 0) return;
+    const tTrack: InterceptedTrack = {
+      url,
+      cues,
+      language: detectTrackLanguage(url, body) ?? targetLang,
+    };
+    lastTrack = tTrack;
+    tracksByLang.set(targetPrimary, tTrack);
+    seenUrls.add(url);
+    listeners.forEach((l) => {
+      try {
+        l(tTrack);
+      } catch (err) {
+        console.warn('[Kivara Lingo] track listener threw', err);
+      }
+    });
+  } catch {
+    // Network failed — non-fatal, the bilingual line falls back to MT.
   }
 }
 
@@ -519,7 +591,7 @@ async function maybeFetchTranslatedTrack(
         console.warn('[Kivara Lingo] track listener threw', err);
       }
     });
-  } catch {
+  } catch (err) {
     // Network failed — non-fatal, the bilingual line falls back to MT.
   }
 }

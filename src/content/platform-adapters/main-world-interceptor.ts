@@ -21,6 +21,10 @@
  *      WebVTT segments without a `.vtt` extension in the URL.
  */
 import { devLog } from '../../shared/logger';
+import {
+  installNetflixManifestHook,
+  NETFLIX_MANIFEST_EVENT,
+} from './netflix-manifest-hook';
 import { parseAny, detectSubtitleKind, detectTrackLanguage } from './parsers';
 import { pickTimedTextTrack } from './timed-text';
 
@@ -743,4 +747,43 @@ declare global {
   });
 
   devLog(TAG, 'fetch / XHR interception installed');
+
+  // Netflix's manifest arrives DECRYPTED only inside JSON.parse (the MSL
+  // envelope on the wire is opaque). The hook posts the parsed timedtexttracks
+  // to the ISOLATED bus, which parses the NATIVE-language track — the same
+  // manifest flow the MPD path already runs for HBO Max / Disney+. The
+  // native track's TTML is fetched HERE, in the MAIN world: the bus's own
+  // fetch is not reliably routed (the isolated world's requests can hang on
+  // an unmatched route), while the page's fetch is. The hook fires with the
+  // nonce waiters' mechanics so a parse before the bus is ready is queued.
+  const manifestUnhook = installNetflixManifestHook(window, (tracks) => {
+    void (async () => {
+      let nativeBody: string | null = null;
+      const targetLang = (document.documentElement.getAttribute('data-kivara-target-lang') || 'es')
+        .toLowerCase()
+        .split(/[-_]/)[0];
+      const picked = tracks.find((t) => {
+        const primary = (t.bcp47 ?? '').split(/[-_]/)[0].toLowerCase();
+        return primary === targetLang && !!t.ttDownloadUrl;
+      });
+      if (picked?.ttDownloadUrl) {
+        try {
+          // No credentials: the CORS wildcard is refused with them, and the
+          // TTML download is not cookie-gated.
+          const res = await window.fetch(picked.ttDownloadUrl);
+          if (res.ok) nativeBody = await res.text();
+        } catch {
+          nativeBody = null; // the bus keeps its machine-translation fallback
+        }
+      }
+      withNonce(() =>
+        window.postMessage(
+          { source: NETFLIX_MANIFEST_EVENT, tracks, nativeBody, nonce: currentNonce() },
+          '*',
+        ),
+      );
+    })();
+  });
+  devLog(TAG, 'Netflix manifest hook installed');
+  void manifestUnhook; // the interceptor lives for the page's whole life
 })();

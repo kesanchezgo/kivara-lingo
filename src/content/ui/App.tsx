@@ -525,6 +525,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     if (!adapter) return;
     adapter.onCueChange((cues) => {
       if (cues.length === 0) {
+        activeCueRef.current = null;
         setActiveCue(null);
         setAltCue(null);
         return;
@@ -537,13 +538,14 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       const declared = first.language || (cues.length > 0 ? detectTrackLanguage(cues) : '');
       cueLanguageRef.current = declared || cueLanguageRef.current || '';
       setCueLanguage(cueLanguageRef.current);
-      setActiveCue({
+      activeCueRef.current = {
         id: first.id,
         text: first.text,
         start: first.start,
         end: first.end,
         language: first.language,
-      });
+      };
+      setActiveCue(activeCueRef.current);
       // Resolve the matching native-language cue synchronously, in the
       // same React batch as the source cue, so both lines paint in the
       // same frame. The adapter's range-aware lookup picks the alt cue
@@ -749,9 +751,34 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           ? track.cues.map((cue) => ({ start: cue.start, end: cue.end, text: cue.text }))
           : null,
       );
+      // The native track's publish (the manifest flow) arrives AFTER the cue
+      // settled — re-resolve the alt cue for the current cue, or the dual
+      // caption would stay on machine translation until the next boundary.
+      const current = activeCueRef.current;
+      if (adapter?.getAltCueAt && current?.end != null) {
+        const lookupTime = Math.round(((current.start ?? 0) + (current.end ?? 0)) / 2);
+        const alt = adapter.getAltCueAt(lookupTime, targetLang || 'es', {
+          start: current.start ?? 0,
+          end: current.end ?? 0,
+        });
+        setAltCue(
+          alt
+            ? {
+                id: alt.id,
+                text: alt.text,
+                start: alt.start,
+                end: alt.end,
+                language: alt.language,
+              }
+            : null,
+        );
+      }
     };
     read();
     return onTrack(read);
+    // The subscription re-fires read() on every track publish; the adapter
+    // and the cues it serves are deliberately read live.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetLang, cueLanguage]);
 
   // Pause video while the user is reading a popover; resume on leave.
