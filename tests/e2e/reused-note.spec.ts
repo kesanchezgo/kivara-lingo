@@ -25,6 +25,7 @@ const TTML = `<?xml version="1.0" encoding="utf-8"?>
 
 interface AnkiLog {
   actions: string[];
+  queries: string[];
   added: number;
   deleted: number[];
 }
@@ -42,8 +43,13 @@ function startFakeAnki(port: number, log: AnkiLog): Promise<Server> {
       let result: unknown = null;
       if (action === 'version') result = '25.02.reuse';
       else if (action === 'findNotes') {
-        // Only the word-field query returns the pre-existing note.
-        result = String(params.query ?? '').includes('Front:steve') ? [EXISTING_NOTE_ID] : [];
+        const query = String(params.query ?? '');
+        log.queries.push(query);
+        // The word-field query carries "steve" (case-insensitive, escaped by
+        // buildExactNoteQuery). Match on the VALUE, not a hardcoded field name:
+        // CI can seed a different fieldSources label, and the deck/model/deck
+        // clauses are irrelevant to which note the mock stands in for.
+        result = /steve/i.test(query) ? [EXISTING_NOTE_ID] : [];
       } else if (action === 'notesInfo') {
         // The existing note has an OLD sentence → other-context.
         result = [{ noteId: EXISTING_NOTE_ID, fields: { Front: { value: 'steve' }, Sentence: { value: 'An old sentence.' }, 'Sentence audio': { value: '' } }, tags: ['kivara-lingo'], modelName: 'Basic', cards: [1] }];
@@ -108,7 +114,7 @@ async function openPage(context: import('@playwright/test').BrowserContext) {
 
 test('saving STEVE over an existing steve note: no Undo, add-scene offered, old note survives', async ({ context, serviceWorker }) => {
   test.setTimeout(120_000);
-  const log: AnkiLog = { actions: [], added: 0, deleted: [] };
+  const log: AnkiLog = { actions: [], queries: [], added: 0, deleted: [] };
   const PORT = 18766;
   const server = await startFakeAnki(PORT, log);
   try {
@@ -139,7 +145,7 @@ test('saving STEVE over an existing steve note: no Undo, add-scene offered, old 
       // the (lazy, possibly idle) background service worker, which can take a
       // beat on a loaded CI runner before it reaches the save handler.
       await expect.poll(async () => (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '',
-        { timeout: 20_000, message: `reused toast never appeared; Anki log: ${log.actions.join(',')}` })
+        { timeout: 20_000, message: `reused toast never appeared; Anki actions: ${log.actions.join(',')} | queries: ${log.queries.join(' ; ')}` })
         .toMatch(/ya está en tu mazo/);
       const toastText = (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '';
       expect(toastText).not.toContain('Deshacer');
