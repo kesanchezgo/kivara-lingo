@@ -465,6 +465,38 @@ function normalizeFieldForCompare(raw: string): string {
     .toLowerCase();
 }
 
+/**
+ * FIRST-save duplicate guard: the same word, in the same deck (already
+ * language-specific via `mapping.decks[lang]`), case-insensitive. Unlike the
+ * retry path this deliberately does NOT require the cue to match — saving
+ * the same word twice in different sessions / with different casing must
+ * yield ONE note. The local ledger can't catch a second browser session, so
+ * this asks Anki live. Any failure is non-blocking: proceed to addNote.
+ */
+async function findExistingByWord(
+  request: CreateCardRequest,
+  mapping: AnkiMapping,
+  deck: string,
+): Promise<CreateCardResponse | null> {
+  try {
+    const wordField = Object.entries(mapping.fieldSources ?? {}).find(
+      ([, s]) => s === 'selection',
+    )?.[0] ?? 'Front';
+    const query = buildExactNoteQuery({
+      deckName: deck,
+      modelName: mapping.modelName,
+      fieldName: wordField,
+      value: request.token.toLowerCase(),
+    });
+    if (!query) return null;
+    const found = await ankiConnect.findNotes(query, mapping.ankiUrl, mapping.apiKey);
+    if (found.length === 0) return null;
+    return { ok: true, noteId: found[0], warnings: [] };
+  } catch {
+    return null; // Anki unreachable for the check → proceed with the add
+  }
+}
+
 async function findExistingCard(
   request: CreateCardRequest,
   mapping: AnkiMapping,
@@ -622,6 +654,18 @@ export async function createCardFromRequest(
   }
 
   const warnings: string[] = [];
+
+  // FIRST-SAVE DEDUP — a word already in this deck (case-insensitive) reuses
+  // that note, even across browser sessions where the local ledger is empty.
+  // Retries keep their stricter sentence-verified path below. Non-blocking:
+  // an Anki failure here returns null and we add as before.
+  if (!options.fromRetry) {
+    const existingWord = await findExistingByWord(request, mapping, deck);
+    if (existingWord) {
+      await registryOutcome(existingWord);
+      return existingWord;
+    }
+  }
 
   // RETRY IDEMPOTENCY — first thing, before ANY work: no provider call,
   // no storeMediaFile, no frame download. A retry whose card already
