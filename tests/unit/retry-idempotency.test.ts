@@ -141,6 +141,67 @@ function setupMocks(opts: {
   return { addNote, findNotes, notesInfo, storeMediaFile, ledgerPut, translateCalls };
 }
 
+describe('case-insensitive duplicate on a FIRST save', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.unstubAllGlobals();
+    delete (globalThis as { chrome?: unknown }).chrome;
+  });
+
+  it(
+    'a second session saving STEVE when steve exists reuses the note, case-folded, scoped by deck',
+    { timeout: 20_000 },
+    async () => {
+      const m = setupMocks({ findNotesIds: [555] });
+      m.addNote.mockImplementation(async () => {
+        throw new Error('should not be called — the word already exists in Anki');
+      });
+
+      const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+      const mapping = {
+        deckName: 'Spanish vocab',
+        modelName: 'Basic',
+        fieldSources: { Front: 'selection', Sentence: 'cue' },
+      };
+      // Different session, different case, no fromRetry option at all.
+      const request = {
+        token: 'STEVE',
+        sentence: 'Steve shouts.',
+        language: 'es',
+        deck: 'Spanish vocab',
+      };
+      const res = await createCardFromRequest(request as never, mapping as never, undefined as never);
+
+      expect(res.ok).toBe(true);
+      expect(res.noteId).toBe(555);
+      expect(m.addNote).not.toHaveBeenCalled();
+      // The live query is case-folded and deck-scoped.
+      const queries = m.findNotes.mock.calls.map((c) => String(c[0]));
+      expect(queries.some((q) => /Front:steve/i.test(q) && /deck:"Spanish vocab"/.test(q))).toBe(true);
+    },
+  );
+
+  it(
+    'a genuinely different word is still added',
+    { timeout: 20_000 },
+    async () => {
+      const m = setupMocks({ findNotesIds: [] });
+      m.addNote.mockResolvedValue(777);
+      const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+      const mapping = {
+        deckName: 'Spanish vocab',
+        modelName: 'Basic',
+        fieldSources: { Front: 'selection', Sentence: 'cue' },
+      };
+      const res = await createCardFromRequest({
+        token: 'ghost', sentence: 'A ghost.', language: 'es', deck: 'Spanish vocab',
+      } as never, mapping as never, undefined as never);
+      expect(res.ok).toBe(true);
+      expect(m.addNote).toHaveBeenCalledTimes(1);
+    },
+  );
+});
+
 describe('retry idempotency', () => {
   beforeEach(() => {
     vi.resetModules();
