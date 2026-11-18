@@ -220,7 +220,7 @@ const ALLOWED: Record<string, string> = {
   // The DALL-E prompt built inline in the save orchestrator is model-facing
   // text — the same family as the ai-*.ts prompt builders (it must describe
   // the word to illustrate, so it stays in the learner's source language).
-  'src/background/capture-orchestrator.ts:898':
+  'src/background/capture-orchestrator.ts:909':
     'DALL-E prompt text — model-facing, same family as ai-*.ts',
 };
 

@@ -16,6 +16,45 @@ export interface ToastCard {
 }
 
 /**
+ * A neutral notice with an OPTIONAL action and NO undo. Used for a reused
+ * note: it was not created by this save, so there is nothing to delete. The
+ * action (when present) is "Add this scene" via the existing context flow.
+ */
+export function showNoticeToast(
+  title: string,
+  action?: { label: string; onClick: () => void },
+): void {
+  toast.custom((id) => (
+    <div className="kvl-ui w-[340px] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.08] rounded-xl shadow-[0_12px_32px_-8px_rgba(0,0,0,.35)] pl-3 pr-1.5 py-2.5">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 dark:bg-indigo-400/[0.12] text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
+          <CheckCircle2 size={16} />
+        </div>
+        <div className="flex-1 min-w-0 text-[13px] font-semibold text-zinc-900 dark:text-white leading-[18px]">
+          {title}
+        </div>
+        {action && (
+          <button
+            onClick={() => { toast.dismiss(id); action.onClick(); }}
+            className="h-7 px-2.5 inline-flex items-center gap-1.5 rounded-lg text-[12px] font-medium text-indigo-700 dark:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/15 transition-colors shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+          >
+            {action.label}
+          </button>
+        )}
+        <button
+          onClick={() => toast.dismiss(id)}
+          aria-label={t('common.close')}
+          title={t('common.close')}
+          className="w-7 h-7 inline-flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.06] transition-colors shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+        >
+          <X size={13} />
+        </button>
+      </div>
+    </div>
+  ), { duration: action ? 8000 : 5000 });
+}
+
+/**
  * "Card saved" with Undo (5 s, like the mail client's "Undo send").
  * `notes`: what is missing (frame, sentence audio or word audio); the card is
  * saved anyway, so the notice explains instead of blocking.

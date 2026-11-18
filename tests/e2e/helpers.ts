@@ -70,6 +70,8 @@ export interface E2EState {
   bodyRadios?: number;
   barRadios?: number;
   radiogroupInBar?: boolean;
+  /** Visible sonner toasts (card-saved / reused / error notices), P1. */
+  toasts?: string[];
 }
 
 export interface E2EBoxes {

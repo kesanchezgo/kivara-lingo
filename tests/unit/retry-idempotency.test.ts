@@ -109,8 +109,10 @@ function setupMocks(opts: {
     const actual = (await importOriginal()) as Record<string, unknown>;
     return {
       ...(actual as object),
-      translateToken: async (token: string) =>
-        opts.tokenResult ?? { token, type: 'word', translation: 'hola' },
+      translateToken: async (token: string) => {
+        translateCalls.n += 1;
+        return opts.tokenResult ?? { token, type: 'word', translation: 'hola' };
+      },
       translateText: async () => ({ ok: false, error: 'no network in test' }),
     };
   });
@@ -156,6 +158,8 @@ describe('case-insensitive duplicate on a FIRST save', () => {
       m.addNote.mockImplementation(async () => {
         throw new Error('should not be called — the word already exists in Anki');
       });
+      // notesInfo with NO cue match → the word exists but with another phrase.
+      m.notesInfo.mockResolvedValue([]);
 
       const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
       const mapping = {
@@ -174,10 +178,65 @@ describe('case-insensitive duplicate on a FIRST save', () => {
 
       expect(res.ok).toBe(true);
       expect(res.noteId).toBe(555);
+      expect(res.reused).toBe('other-context');
       expect(m.addNote).not.toHaveBeenCalled();
+      // No translation / AI / capture-registry write on a reuse: the ledger
+      // put spy stays empty and translate was never called.
+      expect(m.translateCalls.n).toBe(0);
       // The live query is case-folded and deck-scoped.
       const queries = m.findNotes.mock.calls.map((c) => String(c[0]));
       expect(queries.some((q) => /Front:steve/i.test(q) && /deck:"Spanish vocab"/.test(q))).toBe(true);
+    },
+  );
+
+  it(
+    'STEVE with steve AND the same phrase is reused as same-context, no add/translate/ledger',
+    { timeout: 20_000 },
+    async () => {
+      const m = setupMocks({ findNotesIds: [555] });
+      m.addNote.mockImplementation(async () => { throw new Error('should not be called'); });
+      m.notesInfo.mockResolvedValue([
+        { noteId: 555, fields: { Front: { value: 'steve' }, Sentence: { value: 'Steve shouts.' } } },
+      ]);
+      const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+      const mapping = {
+        deckName: 'Spanish vocab', modelName: 'Basic',
+        fieldSources: { Front: 'selection', Sentence: 'cue' },
+      };
+      const res = await createCardFromRequest({
+        token: 'STEVE', sentence: 'Steve shouts.', language: 'es', deck: 'Spanish vocab',
+      } as never, mapping as never, undefined as never);
+      expect(res.ok).toBe(true);
+      expect(res.noteId).toBe(555);
+      expect(res.reused).toBe('same-context');
+      expect(m.addNote).not.toHaveBeenCalled();
+      expect(m.translateCalls.n).toBe(0);
+    },
+  );
+
+  it(
+    'fromRetry idempotency returns the note with NO reused marker (Undo stays legitimate)',
+    { timeout: 20_000 },
+    async () => {
+      const m = setupMocks({ findNotesIds: [98765] });
+      m.addNote.mockImplementation(async () => { throw new Error('should not be called'); });
+      m.notesInfo.mockResolvedValue([
+        { noteId: 98765, fields: { Front: { value: 'hola' }, Sentence: { value: 'Hola mundo.' } } },
+      ]);
+      const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+      const mapping = {
+        deckName: 'Spanish vocab', modelName: 'Basic',
+        fieldSources: { Front: 'selection', Sentence: 'cue' },
+      };
+      const res = await createCardFromRequest({
+        token: 'hola', sentence: 'Hola mundo.', language: 'es', deck: 'Spanish vocab',
+      } as never, mapping as never, undefined as never, {
+        fromRetry: true, retryRowId: 1, carriedAudio: null,
+      });
+      expect(res.ok).toBe(true);
+      expect(res.noteId).toBe(98765);
+      expect(res.reused).toBeUndefined();
+      expect(m.addNote).not.toHaveBeenCalled();
     },
   );
 
