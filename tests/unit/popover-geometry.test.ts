@@ -38,6 +38,32 @@ describe('computePopoverPlacement - decided once, from the frame alone', () => {
     expect(p.gapPx).toBe(8);
   });
 
+  it('pins the word-near edge at <= 8 px in BOTH orientations', () => {
+    // Opens upward: the word-near edge is the card's BOTTOM. Pin its distance
+    // from the boundary bottom so growing content only moves the far (top) edge.
+    const up = computePopoverPlacement(frame());
+    expect(up.side).toBe('top');
+    expect(up.bottomOffset).toBeGreaterThanOrEqual(0);
+    // bottom edge = boundary.bottom - bottomOffset; word top is at 560.
+    expect(720 - up.bottomOffset!).toBeLessThanOrEqual(560);
+    expect(560 - (720 - up.bottomOffset!)).toBeLessThanOrEqual(8);
+
+    // Opens downward: the word-near edge is the card's TOP — already pinned.
+    const down = computePopoverPlacement(frame({
+      parent: { top: 60, bottom: 100, left: 400, width: 120, height: 40, offsetHeight: 40 },
+    }));
+    expect(down.side).toBe('bottom');
+    expect(down.topOffset).toBe(108); // 100 + 8 gap
+    expect(down.bottomOffset).toBeUndefined();
+  });
+
+  it('the near edge is content-independent: same frame → same pin', () => {
+    const a = computePopoverPlacement(frame({ chrome: 96 }));
+    const b = computePopoverPlacement(frame({ chrome: 240 }));
+    // A different chrome changes the reserved body, not the pinned near edge.
+    expect(720 - a.bottomOffset!).toBe(720 - b.bottomOffset!);
+  });
+
   it('returns the same placement no matter how much content arrived', () => {
     const a = computePopoverPlacement(frame());
     const b = computePopoverPlacement(frame());
