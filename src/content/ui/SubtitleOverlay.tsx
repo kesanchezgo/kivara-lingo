@@ -1220,6 +1220,7 @@ export function SubtitleOverlay({
                             status={mark.status ?? 'new'}
                             detail={study.detailOf(studyKey)}
                             isSaved={isSaved}
+                            readOnly
                             onChange={(status) => study.setStatus(studyKey, status)}
                             onClear={() => study.setStatus(studyKey, null)}
                           />

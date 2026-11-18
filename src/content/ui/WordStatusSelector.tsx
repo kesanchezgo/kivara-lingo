@@ -63,29 +63,39 @@ function statusCaption(d: StatusDetail, isSaved: boolean): string {
   ].filter(Boolean).join(' ');
 }
 
-export function WordStatusSelector({ token, status, detail, isSaved, onChange, onClear }: {
+export function WordStatusSelector({ token, status, detail, isSaved, onChange, onClear, readOnly = false }: {
   token: string;
   status: WordStatus;
   detail?: StatusDetail;
   isSaved: boolean;
   onChange: (status: WordStatus) => void;
   onClear: () => void;
+  /** The pinned bar owns status changes; here the block is informational only. */
+  readOnly?: boolean;
 }) {
   const source = detail?.source;
+  const statusLabel = status === 'new' ? t('ws.new') : status === 'learning' ? t('ws.learning') : t('ws.known');
   return (
     <div className="px-3 pt-2 pb-2 border-t border-zinc-900/[0.06] dark:border-white/[0.06] space-y-1.5" title={t('ws.label')}>
-      <SegmentedControl
-        size="sm"
-        className="w-full [&>button]:!px-1"
-        ariaLabel={t('ws.statusAria', { word: token })}
-        options={[
-          { v: 'new', l: t('ws.new'), icon: <StatusGlyph status="new" /> },
-          { v: 'learning', l: t('ws.learning'), icon: <StatusGlyph status="learning" /> },
-          { v: 'known', l: t('ws.known') },
-        ]}
-        value={status}
-        onChange={(v) => onChange(v as WordStatus)}
-      />
+      {readOnly ? (
+        <div className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-700 dark:text-zinc-200">
+          <StatusGlyph status={status} />
+          <span>{statusLabel}</span>
+        </div>
+      ) : (
+        <SegmentedControl
+          size="sm"
+          className="w-full [&>button]:!px-1"
+          ariaLabel={t('ws.statusAria', { word: token })}
+          options={[
+            { v: 'new', l: t('ws.new'), icon: <StatusGlyph status="new" /> },
+            { v: 'learning', l: t('ws.learning'), icon: <StatusGlyph status="learning" /> },
+            { v: 'known', l: t('ws.known') },
+          ]}
+          value={status}
+          onChange={(v) => onChange(v as WordStatus)}
+        />
+      )}
       <p
         className="text-[11px] leading-4 text-zinc-500 dark:text-zinc-400 normal-case"
         data-status-source={source}
@@ -93,7 +103,7 @@ export function WordStatusSelector({ token, status, detail, isSaved, onChange, o
       >
         {detail ? statusCaption(detail, isSaved) : t('ws.src.default')}
       </p>
-      {source === 'user' && (
+      {!readOnly && source === 'user' && (
         <div className="flex flex-wrap items-center gap-x-3 -ml-1">
           <button type="button" data-status-clear onClick={onClear} title={t('ws.src.useAutoTitle')} className={LINK}>
             <RotateCcw size={10} /> {t('ws.src.useAuto')}

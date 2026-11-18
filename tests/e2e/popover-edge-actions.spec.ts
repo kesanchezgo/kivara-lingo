@@ -16,8 +16,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from './fixtures';
 import {
-  LABEL, VIDEO_HOST, boxesOf, hitsOf, humanClick, humanMove,
-  openPlayer, parkAt, readFixture, waitForLine,
+  LABEL, VIDEO_HOST, boxesOf, clickInRoot, hitsOf, humanClick, humanMove,
+  openPlayer, parkAt, pressedInRoot, readFixture, stateOf, tokensOf, waitForLine,
 } from './helpers';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -173,6 +173,36 @@ for (const target of [LABEL.pronounce, LABEL.save] as const) {
     }
   });
 }
+
+// P3: the pinned bar owns the ONE status radiogroup. The body block is
+// informational (no radios, no click handlers), so clicking "Aprendiendo"
+// can only hit the bar control — and the token's status + aria-checked follow.
+test('one status radiogroup, inside the bar; body has no radios', async ({ context }) => {
+  test.setTimeout(120_000);
+  const page = await openPage(context, 85);
+  try {
+    await page.evaluate(() => document.fonts.ready);
+    await parkAt(page, 1);
+    await waitForLine(page, 'Hello this is a test cue');
+    await humanMove(page, ...await tokenCentre(page, 'test'));
+    await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).card !== null,
+      { timeout: 10_000 }).toBe(true);
+
+    const state = await stateOf(page, VIDEO_HOST);
+    expect(state.cardRadiogroups, 'exactly one radiogroup in the card').toBe(1);
+    expect(state.radiogroupInBar, 'the radiogroup lives in the pinned bar').toBe(true);
+    expect(state.bodyRadios, 'the body block is informational only').toBe(0);
+    expect(state.barRadios, 'the bar exposes the three status radios').toBe(3);
+    expect(state.cardRadios).toBe(3);
+
+    await clickInRoot(page, VIDEO_HOST, LABEL.learning);
+    await expect.poll(async () => (await tokensOf(page)).find((t) => t.text === 'test')?.status,
+      { timeout: 6_000 }).toBe('learning');
+    expect(await pressedInRoot(page, VIDEO_HOST, LABEL.learning)).toBe('true');
+  } finally {
+    await page.close();
+  }
+});
 
 async function tokenCentre(page: import('@playwright/test').Page, text: string): Promise<[number, number]> {
   const boxes = await boxesOf(page, VIDEO_HOST);

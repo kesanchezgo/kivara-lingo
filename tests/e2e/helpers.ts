@@ -64,6 +64,12 @@ export interface E2EState {
   caption: string;
   live: string[];
   text: string;
+  /** P3: status radiogroup diagnostics inside the open word card. */
+  cardRadiogroups?: number;
+  cardRadios?: number;
+  bodyRadios?: number;
+  barRadios?: number;
+  radiogroupInBar?: boolean;
 }
 
 export interface E2EBoxes {

@@ -34,6 +34,10 @@ import { lookupDictionary } from '../nlp/dictionary';
 import { openResolveWordStream } from '../resolve-word-stream';
 import { FrequencyBadge, useWordRank } from './FrequencyBadge';
 import { LanguageMismatchNotice } from './language-mismatch';
+import { onRadioKeyDown, radioTabIndex } from '../../ui/primitives/settings-primitives';
+
+const STATUS_VALUES = ['new', 'learning', 'known'] as const;
+type CompactStatus = typeof STATUS_VALUES[number];
 
 export interface WordPopoverProps {
   cardTheme?: 'dark' | 'light' | 'auto';
@@ -74,8 +78,8 @@ export interface WordPopoverProps {
   /** F5 hook point: the status selector mounts here (full detail block). */
   statusSlot?: React.ReactNode;
   /** Compact status state + setter for the pinned edge action bar. */
-  wordStatus?: 'new' | 'learning' | 'known';
-  onWordStatus?: (status: 'new' | 'learning' | 'known') => void;
+  wordStatus?: CompactStatus;
+  onWordStatus?: (status: CompactStatus) => void;
   /**
    * Render the card through a portal into this element (the popover
    * boundary): the plate re-wraps while the card is open and an anchored
@@ -1121,13 +1125,22 @@ export function WordPopover({
           </button>
           {onWordStatus && (
             <>
-              <div className="shrink-0 self-center flex items-center h-6 rounded-md bg-zinc-900/[0.05] dark:bg-white/[0.06] p-0.5">
-                {(['new', 'learning', 'known'] as const).map((s) => (
+              <div
+                role="radiogroup"
+                aria-label={t('ws.statusAria', { word: token })}
+                onKeyDown={(e) => onRadioKeyDown(
+                  e, STATUS_VALUES, wordStatus ?? null,
+                  (s) => onWordStatus(s),
+                )}
+                className="shrink-0 self-center flex items-center h-6 rounded-md bg-zinc-900/[0.05] dark:bg-white/[0.06] p-0.5"
+              >
+                {STATUS_VALUES.map((s, i) => (
                   <button
                     key={s}
                     type="button"
                     role="radio"
                     aria-checked={wordStatus === s}
+                    tabIndex={radioTabIndex(wordStatus === s, i, wordStatus != null)}
                     title={s === 'new' ? t('ws.new') : s === 'learning' ? t('ws.learning') : t('ws.known')}
                     onClick={(e) => { e.stopPropagation(); onWordStatus(s); }}
                     className={`h-5 px-1 text-[10px] rounded ${wordStatus === s ? 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-zinc-500 dark:text-zinc-400'}`}
