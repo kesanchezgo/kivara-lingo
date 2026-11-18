@@ -53,8 +53,10 @@ jobs:
     # every e2e job before a single test ran. 24.04 is the supported image.
     runs-on: ubuntu-24.04
     # The manual-verification suite waits for the service worker to be torn
-    # down (35s) before asking it for Anki again.
-    timeout-minutes: 15
+    # down (35s) before asking it for Anki again. The full suite (now with the
+    # word-card e2e cases) has been killed at 15 min on slower runners even
+    # when healthy — give it headroom so the job clock is not the gate.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
