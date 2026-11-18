@@ -84,6 +84,12 @@ export interface E2EState {
   noSubs: string | null;
   /** Diagnostic: the visible tab panels (id + text sample). */
   panels: Array<{ id: string; text: string }>;
+  /** P3: status radiogroup diagnostics inside the open word card (E2E only). */
+  cardRadiogroups: number;
+  cardRadios: number;
+  bodyRadios: number;
+  barRadios: number;
+  radiogroupInBar: boolean;
 }
 
 export interface E2EHit {
@@ -212,7 +218,20 @@ function collectState(root: ParentNode): E2EState {
   const panels = [...root.querySelectorAll<HTMLElement>('[role="tabpanel"]:not([hidden])')]
     .map((el) => ({ id: el.id || el.getAttribute('aria-labelledby') || '?', text: (el.textContent ?? '').slice(0, 60) }));
 
-  return { rows, translation, caption, live, text, noSubs, panels };
+  // P3: one status radiogroup, in the pinned bar; the body is informational.
+  const dialog = root.querySelector<HTMLElement>('[role="dialog"]');
+  const bar = dialog?.querySelector<HTMLElement>('[data-kvl-card-actions]') ?? null;
+  const body = dialog?.querySelector<HTMLElement>('[data-kvl-card-body]') ?? null;
+  const cardRadiogroups = dialog?.querySelectorAll('[role="radiogroup"]').length ?? 0;
+  const cardRadios = dialog?.querySelectorAll('[role="radio"]').length ?? 0;
+  const bodyRadios = body?.querySelectorAll('[role="radio"]').length ?? 0;
+  const barRadios = bar?.querySelectorAll('[role="radio"]').length ?? 0;
+  const radiogroupInBar = !!bar?.querySelector('[role="radiogroup"]');
+
+  return {
+    rows, translation, caption, live, text, noSubs, panels,
+    cardRadiogroups, cardRadios, bodyRadios, barRadios, radiogroupInBar,
+  };
 }
 
 function boxOf(el: Element | null): E2EBox | null {
