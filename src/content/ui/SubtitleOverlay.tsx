@@ -1224,6 +1224,10 @@ export function SubtitleOverlay({
                             onClear={() => study.setStatus(studyKey, null)}
                           />
                         ) : undefined}
+                        wordStatus={study && tok.kind !== 'proper-noun-known' ? (mark.status ?? 'new') : undefined}
+                        onWordStatus={study && tok.kind !== 'proper-noun-known'
+                          ? (status) => study.setStatus(studyKey, status)
+                          : undefined}
                       />,
                       portalBoundary,
                     )}

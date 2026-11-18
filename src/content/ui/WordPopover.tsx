@@ -71,8 +71,11 @@ export interface WordPopoverProps {
   onSeeInAnki?: (e: React.MouseEvent) => void;
   /** Saved token: attach this scene to the existing note (F4). */
   onAddContext?: (e: React.MouseEvent) => void;
-  /** F5 hook point: the status selector mounts here. */
+  /** F5 hook point: the status selector mounts here (full detail block). */
   statusSlot?: React.ReactNode;
+  /** Compact status state + setter for the pinned edge action bar. */
+  wordStatus?: 'new' | 'learning' | 'known';
+  onWordStatus?: (status: 'new' | 'learning' | 'known') => void;
   /**
    * Render the card through a portal into this element (the popover
    * boundary): the plate re-wraps while the card is open and an anchored
@@ -518,6 +521,8 @@ export function WordPopover({
   onSeeInAnki,
   onAddContext,
   statusSlot,
+  wordStatus,
+  onWordStatus,
   portalContainer = null,
   anchorIndex,
 }: WordPopoverProps) {
@@ -1089,6 +1094,11 @@ export function WordPopover({
           </button>
         )}
 
+        {/* The full status detail block (source/reason caption) lives in the
+            scroll body; the three tappable status buttons are in the pinned
+            edge bar above. */}
+        {statusSlot}
+
         </div>
 
         {/* Edge action bar — the WORD-NEAR edge. Carries EVERY clickable
@@ -1109,9 +1119,23 @@ export function WordPopover({
           >
             <Volume2 size={14} />
           </button>
-          {statusSlot && (
+          {onWordStatus && (
             <>
-              <div className="shrink-0 self-center max-w-[130px] overflow-hidden">{statusSlot}</div>
+              <div className="shrink-0 self-center flex items-center h-6 rounded-md bg-zinc-900/[0.05] dark:bg-white/[0.06] p-0.5">
+                {(['new', 'learning', 'known'] as const).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    role="radio"
+                    aria-checked={wordStatus === s}
+                    title={s === 'new' ? t('ws.new') : s === 'learning' ? t('ws.learning') : t('ws.known')}
+                    onClick={(e) => { e.stopPropagation(); onWordStatus(s); }}
+                    className={`h-5 px-1 text-[10px] rounded ${wordStatus === s ? 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-zinc-500 dark:text-zinc-400'}`}
+                  >
+                    {s === 'new' ? t('ws.new') : s === 'learning' ? t('ws.learning') : t('ws.known')}
+                  </button>
+                ))}
+              </div>
               <PopoverDivider />
             </>
           )}
