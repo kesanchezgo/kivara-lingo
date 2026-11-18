@@ -33,7 +33,7 @@ import { buildExactNoteQuery } from '../../shared/anki-search';
 import { recordCardSaved, useWordStudy, type StudyBinding } from './study';
 import {
   addSceneToNote, cardKindOf, OPEN_CARDS_EVENT, showCardSaved, showCardSaveError,
-  withAudioHint, type SceneMedia,
+  showCardReused, withAudioHint, type SceneMedia,
 } from './save-actions';
 import { useEpisode } from './useEpisode';
 import { useNoCueNotice } from './no-cues-notice';
@@ -274,6 +274,10 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     noteId: number;
     fieldName: string | null;
   } | null>(null);
+  // The reused-note toast's "Add this scene" calls the existing add-context
+  // handler. It is declared later in this component, so reach it via a ref to
+  // avoid a useCallback dependency cycle (and the render-time TDZ).
+  const addContextRef = useRef<((token: string, sentence: string, kind: CreateCardKind, cueLine?: number) => Promise<void>) | null>(null);
   // Native-language alt cue (e.g. native Spanish track running parallel to
   // the active English captions). Preferred as the dual-caption source over
   // a remote MT translation — see SubtitleOverlay for the priority chain.
@@ -1556,6 +1560,23 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         try {
           const response = (await sendMessage('CREATE_CARD', request, 'background')) as CreateCardResponse;
           if (response?.ok) {
+            // A REUSED note was not created by this save. Never attach Undo,
+            // never recapture its media; the word still paints as saved.
+            if (response.reused) {
+              toast.dismiss(saveToastId);
+              recordCardSaved(lang, tokenValue);
+              showCardReused(
+                response.reused,
+                tokenValue,
+                // "Add this scene" reuses the EXISTING add-context flow — no
+                // new note, no Undo, just this line on the note it already has.
+                response.reused === 'other-context'
+                  ? () => { void addContextRef.current?.(tokenValue, sentence, kind, cueLine); }
+                  : undefined,
+              );
+              if (studyNow.sounds) playSound('saved');
+              return { ok: true, noteId: response.noteId, warnings: response.warnings, reused: response.reused };
+            }
             // Remember the noteId + frame field so `recapture_frame` (Alt+V)
             // can update this specific note.
             if (response.noteId != null) {
@@ -1687,6 +1708,8 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       captureBusyRef.current = false;
     }
   }, [enabled, adapter, ankiMapping, captureSceneMedia, activeCue, episode.cues]);
+  // Expose the add-context flow to the earlier save handler without a dep cycle.
+  addContextRef.current = handleAddContext;
 
   const overlayPortal = useMemo(() => {
     if (!videoOverlayRoot || !enabled || !subtitlesVisible) return null;

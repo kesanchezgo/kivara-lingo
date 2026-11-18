@@ -1116,6 +1116,15 @@ export interface CreateCardResponse {
    * (transport-level failure). Absent/false for permanent failures.
    */
   queued?: boolean;
+  /**
+   * Set when an existing note was REUSED instead of created by this save.
+   * `same-context`: same word AND same sentence. `other-context`: same word,
+   * different sentence. A reused note was NOT created by this request, so the
+   * UI must never offer to delete it (no Undo) or recapture its media.
+   * Absent on a fresh save and on the retry-idempotency path — those notes
+   * WERE created by this save and their Undo is legitimate.
+   */
+  reused?: 'same-context' | 'other-context';
 }
 
 /* ── F4 Anki / card-registry messages (docs/REDESIGN-V2.md §4.6) ────────── */

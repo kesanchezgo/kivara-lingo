@@ -90,6 +90,8 @@ export interface E2EState {
   bodyRadios: number;
   barRadios: number;
   radiogroupInBar: boolean;
+  /** Visible sonner toasts (card-saved / reused / error notices), P1. */
+  toasts: string[];
 }
 
 export interface E2EHit {
@@ -231,6 +233,9 @@ function collectState(root: ParentNode): E2EState {
   return {
     rows, translation, caption, live, text, noSubs, panels,
     cardRadiogroups, cardRadios, bodyRadios, barRadios, radiogroupInBar,
+    toasts: [...root.querySelectorAll<HTMLElement>('[data-sonner-toast]')]
+      .map((el) => (el.textContent ?? '').replace(/\s+/g, ' ').trim())
+      .filter(Boolean),
   };
 }
 

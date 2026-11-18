@@ -657,13 +657,24 @@ export async function createCardFromRequest(
 
   // FIRST-SAVE DEDUP — a word already in this deck (case-insensitive) reuses
   // that note, even across browser sessions where the local ledger is empty.
+  // The note was NOT created by this request, so:
+  //   • it is classified as same-context / other-context for the UI (no Undo),
+  //   • NO capture-registry row is written (no new Recent entry to undo).
   // Retries keep their stricter sentence-verified path below. Non-blocking:
   // an Anki failure here returns null and we add as before.
   if (!options.fromRetry) {
     const existingWord = await findExistingByWord(request, mapping, deck);
     if (existingWord) {
-      await registryOutcome(existingWord);
-      return existingWord;
+      // Which context? Reuse the exact token+sentence+deck helper. A hit means
+      // the word already has a note for THIS sentence; a miss means the word
+      // exists but with a different sentence (the UI offers "add this scene").
+      const sameContext = await findExistingCard(request, mapping, deck);
+      return {
+        ok: true,
+        noteId: existingWord.noteId,
+        reused: sameContext ? 'same-context' : 'other-context',
+        warnings: [],
+      };
     }
   }
 

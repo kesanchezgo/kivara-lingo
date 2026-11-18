@@ -21,7 +21,7 @@ import type {
 } from '../../shared/types';
 import { CARD_ERROR_LABEL_KEYS } from '../../shared/card-errors';
 import { originLabel, type CardSource } from '../../shared/study/cardTags';
-import { showSavedToast } from './CardToasts';
+import { showNoticeToast, showSavedToast } from './CardToasts';
 
 /**
  * Fired after a successful undo. The overlay listens for it to drop its local
@@ -162,6 +162,24 @@ export function showCardSaved(card: SavedNote, notes: string[] = []): void {
     noteId != null ? () => void undoSavedNote(noteId, card.text) : undefined,
     notes,
   );
+}
+
+/**
+ * A word was saved but its note ALREADY existed — this request did not create
+ * it, so there is no Undo. `same-context` just informs; `other-context` offers
+ * the EXISTING add-context flow ("Add this scene") via `onAddScene`.
+ */
+export function showCardReused(
+  reused: 'same-context' | 'other-context',
+  word: string,
+  onAddScene?: () => void,
+): void {
+  const title = reused === 'same-context'
+    ? t('app.reusedSameContext', { word })
+    : t('app.reusedOtherContext', { word });
+  showNoticeToast(title, reused === 'other-context' && onAddScene
+    ? { label: t('popover.addScene'), onClick: onAddScene }
+    : undefined);
 }
 
 /**
