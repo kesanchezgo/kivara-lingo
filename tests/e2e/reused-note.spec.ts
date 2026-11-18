@@ -5,8 +5,9 @@
  * different sentence the toast offers "Añadir esta escena" (the existing
  * add-context flow) instead, and no new "saved" row appears in Recientes.
  *
- * Drive the save through the KEYBOARD shortcut (Ctrl+Shift+S) on a hovered
- * token, with a local fake AnkiConnect that answers the real wire actions.
+ * Drive the save through the KEYBOARD shortcut on a hovered token, with a
+ * local fake AnkiConnect that answers the real wire actions. The binding is
+ * seeded to Alt+Shift+S so the page owns it (no SW chrome.commands hop).
  */
 import fs from 'node:fs';
 import http from 'node:http';
@@ -85,6 +86,12 @@ async function seedAnki(context: import('@playwright/test').BrowserContext, port
       modelName: 'Basic',
       fieldSources: { Front: 'selection', Sentence: 'cue' },
     };
+    // Drive the save through a KEYBOARD shortcut the page owns, not the
+    // manifest Ctrl+Shift+S (which is delivered by the SW's chrome.commands
+    // and can be dropped on a loaded CI runner). Alt+Shift+S is not bound to
+    // any manifest command, so the in-page handler fires it deterministically
+    // through the SAME setSaveTick -> CREATE_CARD pipeline.
+    parsed.state.shortcuts = { ...(parsed.state.shortcuts ?? {}), save: 'Alt+Shift+S' };
     await chrome.storage.sync.set({ [KEY]: JSON.stringify(parsed) });
   }, port);
 }
@@ -137,13 +144,10 @@ test('saving STEVE over an existing steve note: no Undo, add-scene offered, old 
       await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).card !== null,
         { timeout: 10_000 }).toBe(true);
 
-      // The keyboard shortcut (Ctrl+Shift+S) is the save trigger.
-      await page.keyboard.press('Control+Shift+S');
+      // The keyboard shortcut (Alt+Shift+S, seeded above) is the save trigger.
+      await page.keyboard.press('Alt+Shift+S');
 
       // The reused notice appears WITHOUT "Deshacer" and WITH add-scene.
-      // Generous timeout: Ctrl+Shift+S is a manifest command delivered through
-      // the (lazy, possibly idle) background service worker, which can take a
-      // beat on a loaded CI runner before it reaches the save handler.
       await expect.poll(async () => (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '',
         { timeout: 20_000, message: `reused toast never appeared; Anki actions: ${log.actions.join(',')} | queries: ${log.queries.join(' ; ')}` })
         .toMatch(/ya está en tu mazo/);
