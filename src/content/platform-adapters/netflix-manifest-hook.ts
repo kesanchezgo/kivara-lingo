@@ -98,6 +98,23 @@ export function pickNetflixManifestTrack(
   return candidates[0] ?? null;
 }
 
+/**
+ * Install the manifest hook ONLY on a Netflix origin. The MAIN-world
+ * interceptor is injected on every supported platform (the same script also
+ * sniffs MPD/WebVTT), but wrapping JSON.parse is invasive: on YouTube or a
+ * player it must stay byte-for-byte the page's own parse. Exact host or a
+ * `*.netflix.com` subdomain; a look-alike like `netflix.com.evil.test` must
+ * not match.
+ */
+export function maybeInstallNetflixManifestHook(
+  win: Window & { JSON: JSON },
+  post: (tracks: NetflixManifestTrack[]) => void,
+): () => void {
+  const host = (win.location?.hostname ?? '').toLowerCase();
+  if (host !== 'netflix.com' && !host.endsWith('.netflix.com')) return () => {};
+  return installNetflixManifestHook(win, post);
+}
+
 /** Install the JSON.parse hook. Idempotent; the original parse is restored
  * by the returned cleanup (the interceptor's uninstall). */
 export function installNetflixManifestHook(

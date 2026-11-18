@@ -22,7 +22,7 @@
  */
 import { devLog } from '../../shared/logger';
 import {
-  installNetflixManifestHook,
+  maybeInstallNetflixManifestHook,
   NETFLIX_MANIFEST_EVENT,
   pickNetflixManifestTrack,
 } from './netflix-manifest-hook';
@@ -757,7 +757,7 @@ declare global {
   // fetch is not reliably routed (the isolated world's requests can hang on
   // an unmatched route), while the page's fetch is. The hook fires with the
   // nonce waiters' mechanics so a parse before the bus is ready is queued.
-  const manifestUnhook = installNetflixManifestHook(window, (tracks) => {
+  const manifestUnhook = maybeInstallNetflixManifestHook(window, (tracks) => {
     void (async () => {
       let nativeBody: string | null = null;
       const targetLang = (document.documentElement.getAttribute('data-kivara-target-lang') || 'es')
@@ -782,6 +782,6 @@ declare global {
       );
     })();
   });
-  devLog(TAG, 'Netflix manifest hook installed');
+  devLog(TAG, 'Netflix manifest hook guard evaluated');
   void manifestUnhook; // the interceptor lives for the page's whole life
 })();
