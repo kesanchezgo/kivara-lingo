@@ -117,7 +117,10 @@ test('saving STEVE over an existing steve note: no Undo, add-scene offered, old 
     const page = await openPage(context);
     try {
       // Hover the token so the shortcut has a target word (box map works
-      // through the closed shadow root).
+      // through the closed shadow root). Wait for the word card to actually
+      // OPEN — that is the proof hoveredKeyRef is set; on a loaded runner the
+      // mouse.move alone can land before the hover handler has fired, and the
+      // shortcut would then fall through to "nothing to save" (empty toast).
       await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).tokens.length, { timeout: 10_000 }).toBeGreaterThan(0);
       const tokBox = (await boxesOf(page, VIDEO_HOST)).tokens[0];
       const tok = { x: tokBox.x + tokBox.width / 2, y: tokBox.y + tokBox.height / 2 };
@@ -125,14 +128,19 @@ test('saving STEVE over an existing steve note: no Undo, add-scene offered, old 
         await page.mouse.move(640 + (tok.x - 640) * (i + 1) / 15, 360 + (tok.y - 360) * (i + 1) / 15);
         await page.waitForTimeout(16);
       }
-      await page.waitForTimeout(600);
+      await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).card !== null,
+        { timeout: 10_000 }).toBe(true);
 
       // The keyboard shortcut (Ctrl+Shift+S) is the save trigger.
       await page.keyboard.press('Control+Shift+S');
 
       // The reused notice appears WITHOUT "Deshacer" and WITH add-scene.
+      // Generous timeout: Ctrl+Shift+S is a manifest command delivered through
+      // the (lazy, possibly idle) background service worker, which can take a
+      // beat on a loaded CI runner before it reaches the save handler.
       await expect.poll(async () => (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '',
-        { timeout: 10_000 }).toMatch(/ya está en tu mazo/);
+        { timeout: 20_000, message: `reused toast never appeared; Anki log: ${log.actions.join(',')}` })
+        .toMatch(/ya está en tu mazo/);
       const toastText = (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '';
       expect(toastText).not.toContain('Deshacer');
       expect(toastText).toContain('Añadir esta escena');
