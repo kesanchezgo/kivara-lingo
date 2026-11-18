@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   extractManifestTracks,
   installNetflixManifestHook,
+  maybeInstallNetflixManifestHook,
   pickNetflixManifestTrack,
 } from '../../src/content/platform-adapters/netflix-manifest-hook';
 
@@ -89,6 +90,44 @@ describe('pickNetflixManifestTrack', () => {
   it('matches the primary subtag and answers null for a missing language', () => {
     expect(pickNetflixManifestTrack([{ bcp47: 'es-ES', ttDownloadUrl: 'u' }], 'es-MX')?.ttDownloadUrl).toBe('u');
     expect(pickNetflixManifestTrack(REAL_MANIFEST, '')).toBeNull();
+  });
+});
+
+describe('maybeInstallNetflixManifestHook', () => {
+  function fakeWin(host: string) {
+    return {
+      JSON: { parse: (text: string) => globalThis.JSON.parse(text) } as JSON,
+      location: { hostname: host },
+    } as unknown as Window & { JSON: JSON };
+  }
+
+  it('leaves JSON.parse untouched on a non-Netflix host', () => {
+    const win = fakeWin('youtube.com');
+    const original = win.JSON.parse;
+    const unhook = maybeInstallNetflixManifestHook(win, () => {});
+    expect(win.JSON.parse).toBe(original);
+    unhook();
+  });
+
+  it('patches and fires only on netflix.com (exact or subdomain)', () => {
+    for (const host of ['netflix.com', 'www.netflix.com']) {
+      const win = fakeWin(host);
+      const original = win.JSON.parse;
+      const seen: unknown[] = [];
+      const unhook = maybeInstallNetflixManifestHook(win, (tracks) => seen.push(tracks));
+      expect(win.JSON.parse).not.toBe(original);
+      win.JSON.parse(JSON.stringify(MANIFEST));
+      expect(seen).toHaveLength(1);
+      unhook();
+      expect(win.JSON.parse('{"hello":"world"}')).toEqual({ hello: 'world' });
+    }
+  });
+
+  it('does not patch a host that merely contains the word netflix', () => {
+    const win = fakeWin('netflix.com.evil.test');
+    const original = win.JSON.parse;
+    maybeInstallNetflixManifestHook(win, () => {})();
+    expect(win.JSON.parse).toBe(original);
   });
 });
 
