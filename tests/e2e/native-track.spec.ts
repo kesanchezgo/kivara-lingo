@@ -107,9 +107,9 @@ test('the transcript shows the native line and the overlay uses it over MT', asy
   let lastOverlay = '';
   const page = await openNetflixManifest(context);
   try {
-    // The fixture's manifest reached the hook.
+    // The fixture's manifest reached the hook (including the forced es row).
     const tracks = await page.evaluate(() => (window as Window & { __kivaraManifestTracks?: number }).__kivaraManifestTracks);
-    expect(tracks).toBe(2);
+    expect(tracks).toBe(3);
 
     // The rail's native lines need the rail OPEN: toggle it via the bar.
     await armBar(page);
@@ -126,6 +126,13 @@ test('the transcript shows the native line and the overlay uses it over MT', asy
         { timeout: 10_000, message: 'the native track was downloaded from the manifest URL' },
       )
       .toBeGreaterThan(0);
+
+    // The FORCED es track is listed first in the manifest and carries a
+    // near-empty TTML. It is NEVER the native track: its URL must not be
+    // downloaded, or the overlay would paint an empty "translation".
+    const downloads = (page as unknown as { nativeDownloads: string[] }).nativeDownloads;
+    expect(downloads.some((url) => url.includes('es-forced.ttml'))).toBe(false);
+    expect(downloads.some((url) => url.includes('/es.ttml'))).toBe(true);
 
     // The overlay's dual caption paints the NATIVE text (the alt cue wins
     // over the MT chain). The current cue varies with the clip's clock, so

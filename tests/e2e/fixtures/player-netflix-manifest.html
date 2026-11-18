@@ -77,6 +77,16 @@
       const MANIFEST = JSON.stringify({
         timedtexttracks: [
           {
+            ttId: 'tt-es-forced',
+            bcp47: 'es',
+            trackType: 'PRIMARY',
+            rawTrackType: 'SUBTITLES',
+            isNoneTrack: false,
+            isForcedNarrative: true,
+            isImageBased: false,
+            ttDownload: [{ url: 'https://e2e-netflix-tt/download/es-forced.ttml' }],
+          },
+          {
             ttId: 'tt-en',
             bcp47: 'en',
             trackType: 'PRIMARY',
