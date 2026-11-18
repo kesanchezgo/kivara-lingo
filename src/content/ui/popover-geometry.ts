@@ -41,8 +41,15 @@ interface PopoverPlacement {
    * fills: the body scrolls inside it, the header never moves.
    */
   bodyMaxHeight: number;
-  /** The card's top edge from the boundary's top, screen px — never negative. */
+  /** The card's top edge from the boundary's top, screen px (bottom-side pin). */
   topOffset: number;
+  /**
+   * The card's bottom edge from the boundary's BOTTOM, screen px (top-side
+   * pin). The word is below the card in that orientation, so pinning the
+   * bottom edge keeps the action row (the word-near edge) still while the
+   * card grows/shrinks upward from the far edge. Undefined on the bottom side.
+   */
+  bottomOffset?: number;
   /** The word↔card gap the hover bridge must span, screen px. */
   gapPx: number;
   /** Hover-bridge geometry, relative to the card's own box (layout px). */
@@ -100,5 +107,13 @@ export function computePopoverPlacement(frame: PopoverFrame): PopoverPlacement {
     ? Math.max(0, parent.top - (cardTopScreen + cardHeight * scale))
     : Math.max(0, cardTopScreen - parent.bottom);
 
-  return { side, leftEdge, bodyMaxHeight: Math.max(0, cardHeight - chrome), topOffset, gapPx, bridgeLeft, bridgeWidth };
+  // The word-near edge: for a top-side card the bottom edge is gap px above
+  // the word's top, expressed as a distance UP from the boundary bottom. This
+  // is a function of the token alone, NOT of cardHeight/content — so the
+  // action row pinned there never drifts as enrichment arrives.
+  const bottomOffset = side === 'top'
+    ? Math.max(0, boundary.bottom - (parent.top - gapScreen))
+    : undefined;
+
+  return { side, leftEdge, bodyMaxHeight: Math.max(0, cardHeight - chrome), topOffset, bottomOffset, gapPx, bridgeLeft, bridgeWidth };
 }

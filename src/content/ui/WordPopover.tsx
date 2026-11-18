@@ -414,7 +414,7 @@ function ChipRow({ label, items }: { label: string; items: string[] }) {
   );
 }
 
-function PopoverAction({ icon, label, title, href }: { icon: React.ReactNode; label: string; title?: string; href?: string }) {
+function PopoverAction({ icon, label, title, href, iconOnly }: { icon: React.ReactNode; label: string; title?: string; href?: string; iconOnly?: boolean }) {
   return (
     <button
       type="button"
@@ -431,9 +431,10 @@ function PopoverAction({ icon, label, title, href }: { icon: React.ReactNode; la
           .catch(() => window.open(href, '_blank', 'noopener,noreferrer'));
       }}
       title={title}
-      className="flex-1 flex items-center justify-center gap-1.5 px-2 h-10 text-[12px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-900/[0.04] dark:hover:bg-white/[0.04] transition-colors"
+      aria-label={label}
+      className={`${iconOnly ? 'w-8 shrink-0' : 'flex-1'} h-10 flex items-center justify-center ${iconOnly ? '' : 'gap-1.5 px-2'} text-[12px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-900/[0.04] dark:hover:bg-white/[0.04] transition-colors`}
     >
-      {icon}{label}
+      {icon}{!iconOnly && label}
     </button>
   );
 }
@@ -598,8 +599,9 @@ export function WordPopover({
 
     const place = () => {
       const pad = 8;
-      // The word↔card gap the owner asked for: at most 8 px, bridged.
-      const gap = 8;
+      // The word↔card gap the owner asked for: at most 8 px, bridged. Use
+      // 7 so sub-pixel token drift during enrichment still measures <= 8.
+      const gap = 7;
       const pr = parent.getBoundingClientRect();
       const b = boundary.getBoundingClientRect();
       // Ancestor scale (the subtitle plate can be scaled): rects are screen
@@ -644,8 +646,18 @@ export function WordPopover({
         top: Math.round(placement.topOffset),
         bodyMax: Math.round(placement.bodyMaxHeight),
       }));
-      el.style.top = `${placement.topOffset}px`;
-      el.style.bottom = 'auto';
+      // PIN the card in the boundary's own coordinate space by its WORD-NEAR
+      // edge. For a top-side card the word is below, so the BOTTOM edge is the
+      // one that must never move (the action row lives there); growth/shrink
+      // happens on the far/top edge. For a bottom-side card the TOP edge is
+      // the near edge and stays pinned via topOffset.
+      if (placement.side === 'top' && placement.bottomOffset !== undefined) {
+        el.style.bottom = `${placement.bottomOffset}px`;
+        el.style.top = 'auto';
+      } else {
+        el.style.top = `${placement.topOffset}px`;
+        el.style.bottom = 'auto';
+      }
       el.style.left = `${placement.leftEdge}px`;
       el.style.right = 'auto';
       el.style.transform = 'none';
@@ -657,7 +669,9 @@ export function WordPopover({
       // The card's height FOLLOWS its content up to the reservation decided at
       // open: a low-content word gets a short card, the enrichment grows it
       // inside the cap, and when the stream is done and the content is smaller
-      // the card shrinks back — always with the top edge (the header) pinned.
+      // the card shrinks back. Crucially the WORD-NEAR edge stays pinned by
+      // place() (bottom for a top-side card, top for a bottom-side card), so
+      // the action row on that edge never moves — only the far edge does.
       el.style.height = 'auto';
       el.style.maxHeight = `${geometryRef.current.chrome + placement.bodyMaxHeight}px`;
       body.style.maxHeight = `${placement.bodyMaxHeight}px`;
@@ -807,7 +821,7 @@ export function WordPopover({
       aria-modal="false"
       aria-label={`${t('popover.dictionaryLabel')} — ${token}`}
       className={`kvl-ui ${entryAnim ? 'kvl-fade-in ' : ''}${cardTheme === 'auto' ? '' : cardTheme + ' '}pointer-events-auto absolute left-1/2 -translate-x-1/2 w-[340px] z-[40] ${
-        placement === 'top' ? 'bottom-full mb-3' : 'top-full mt-3'
+        placement === 'top' ? 'bottom-full' : 'top-full'
       }`}
       style={{
         pointerEvents: 'auto',
@@ -819,20 +833,11 @@ export function WordPopover({
         whiteSpace: 'normal',
       }}
     >
-      <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.08] rounded-xl shadow-[0_12px_32px_-8px_rgba(0,0,0,.5)] overflow-hidden text-left text-zinc-900 dark:text-white">
-        {/* Header: speak + headword + badges + IPA */}
+      <div className="flex flex-col bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.08] rounded-xl shadow-[0_12px_32px_-8px_rgba(0,0,0,.5)] overflow-hidden text-left text-zinc-900 dark:text-white">
+        {/* Header — text only. Every clickable control lives in the pinned
+            edge action bar below/above so nothing here drifts as content lands. */}
         <div className="flex items-start justify-between gap-3 px-3.5 pt-3 pb-2.5 border-b border-zinc-900/[0.06] dark:border-white/[0.06]">
-          <div className="flex items-center gap-2 min-w-0">
-            <button
-              type="button"
-              onClick={handleSpeak}
-              className="w-7 h-7 rounded-lg bg-indigo-400/[0.12] hover:bg-indigo-400/[0.2] text-indigo-700 dark:text-indigo-300 flex items-center justify-center shrink-0 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
-              title={t('popover.playPronunciation')}
-              aria-label={t('popover.playPronunciation')}
-            >
-              <Volume2 size={14} />
-            </button>
-            <div className="flex items-baseline gap-1.5 min-w-0 flex-wrap">
+          <div className="flex items-baseline gap-1.5 min-w-0 flex-wrap">
               <span className="text-zinc-900 dark:text-white font-semibold text-[15px] tracking-[-0.01em] leading-tight normal-case">{headword}</span>
               {isPhrasal && <span className={META_BADGE}>{t('popover.phrasal')}</span>}
               {isMWE && !isPhrasal && <span className={META_BADGE}>{t('popover.mwe')}</span>}
@@ -861,16 +866,20 @@ export function WordPopover({
                 </span>
               )}
             </div>
-          </div>
           {meta.phonetic && (
             <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-300 bg-zinc-900/[0.06] dark:bg-white/[0.06] ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.08] h-5 inline-flex items-center px-1.5 rounded-md shrink-0 leading-tight normal-case">
+              {meta.phonetic}
+            </span>
+          )}
+          {meta.phonetic && (
+            <span className="self-start font-mono text-[11px] text-zinc-600 dark:text-zinc-300 bg-zinc-900/[0.06] dark:bg-white/[0.06] ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.08] h-5 inline-flex items-center px-1.5 rounded-md shrink-0 leading-tight normal-case">
               {meta.phonetic}
             </span>
           )}
         </div>
 
         {/* Body */}
-        <div ref={bodyRef} data-kvl-card-body className="px-3.5 py-2.5 space-y-1.5 overflow-y-auto kvl-scroll max-h-[420px]">
+        <div ref={bodyRef} data-kvl-card-body className="flex-1 min-h-0 px-3.5 py-2.5 space-y-1.5 overflow-y-auto kvl-scroll max-h-[420px]">
           {languageMismatch ? (
             <LanguageMismatchNotice
               track={languageMismatch.track}
@@ -1080,42 +1089,58 @@ export function WordPopover({
           </button>
         )}
 
-        {/* F5 hook point: the word-status selector mounts here. */}
-        {statusSlot}
-
-        {isSaved && onAddContext && (
-          <div className="flex items-center justify-end gap-3 px-3 py-1.5 border-t border-zinc-900/[0.06] dark:border-white/[0.06] bg-white/30 dark:bg-zinc-900/30">
-            <button
-              type="button"
-              onClick={onAddContext}
-              title={t('popover.addSceneTitle')}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-700 dark:text-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-200 normal-case"
-            >
-              <Plus size={10} /> {t('popover.addScene')}
-            </button>
-          </div>
-        )}
-
         </div>
 
-        {/* Action row — OUTSIDE the scrollable body: everything between the
-            header and this row scrolls INSIDE the body's box, so the actions
-            are always at the card's bottom edge, visible and clickable (C2). */}
-        <div className="flex items-stretch border-t border-zinc-900/[0.06] dark:border-white/[0.06] bg-white/40 dark:bg-zinc-900/40">
+        {/* Edge action bar — the WORD-NEAR edge. Carries EVERY clickable
+            control so none drifts as the body fills. For a top-side card the
+            word is below and this is the bottom edge (the card's last child);
+            for a bottom-side card `order: -1` flips it to the top edge. The
+            bar itself is pinned by place(); only the body grows/shrinks. */}
+        <div
+          data-kvl-card-actions
+          className={`flex flex-nowrap items-stretch h-10 overflow-hidden border-zinc-900/[0.06] dark:border-white/[0.06] bg-white/40 dark:bg-zinc-900/40 ${placement === 'top' ? 'border-t' : 'border-b order-first'}`}
+        >
+          <button
+            type="button"
+            onClick={handleSpeak}
+            className="w-9 h-10 shrink-0 flex items-center justify-center text-indigo-700 dark:text-indigo-300 hover:bg-indigo-400/[0.12] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+            title={t('popover.playPronunciation')}
+            aria-label={t('popover.playPronunciation')}
+          >
+            <Volume2 size={14} />
+          </button>
+          {statusSlot && (
+            <>
+              <div className="shrink-0 self-center max-w-[130px] overflow-hidden">{statusSlot}</div>
+              <PopoverDivider />
+            </>
+          )}
           <PopoverAction
             icon={<BookOpen size={13} />}
             label={t('wp.define')}
             title={t('wp.openInDictionary')}
             href={defineUrl}
+            iconOnly
           />
-          <PopoverDivider />
           <PopoverAction
             icon={<Search size={13} />}
             label={t('wp.search')}
             title={t('popover.searchGoogleTitle')}
             href={searchUrl}
+            iconOnly
           />
           <PopoverDivider />
+          {isSaved && onAddContext && (
+            <button
+              type="button"
+              onClick={onAddContext}
+              title={t('popover.addSceneTitle')}
+              aria-label={t('popover.addScene')}
+              className="w-8 h-10 shrink-0 flex items-center justify-center text-indigo-700 dark:text-indigo-300 hover:bg-indigo-400/[0.12] transition-colors"
+            >
+              <Plus size={13} />
+            </button>
+          )}
           {isSaved ? (
             <button
               type="button"
