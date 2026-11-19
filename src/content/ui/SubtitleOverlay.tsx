@@ -32,6 +32,7 @@ import type {
 } from '../../shared/types';
 import { tokenizeSentence } from '../nlp/tokenize';
 import { lookupDictionary } from '../nlp/dictionary';
+import { resolveContextGloss } from '../resolve-context-gloss';
 import { eventPathIsEditable } from '../utils/keyboard';
 import { useKivaraStore } from '../../shared/use-kivara-store';
 import { aiConfigured } from '../../shared/ai-configured';
@@ -654,13 +655,18 @@ export function SubtitleOverlay({
     return null;
   };
 
-  const handleSaveToken = (token: string, lineIndex?: number, contextGloss?: string) => {
+  const handleSaveToken = async (token: string, lineIndex?: number, contextGloss?: string) => {
     if (capturing) return; // one card at a time
     // The frame must contain the video + its subtitle only: close the card
     // and the selection before the shutter fires.
     clearLookup();
     setIsHovered(false);
-    void onSaveCard(token, targetSentence, lineIndex, contextGloss).then((result) => {
+    // Every path (shortcut, selection, panel, popover) carries the SAME
+    // contextual gloss: the popover passes the one it already resolved, all
+    // other paths resolve from the cue sentence here.
+    const gloss = contextGloss
+      ?? (await resolveContextGloss(token, targetSentence, cueLanguage)).gloss;
+    void onSaveCard(token, targetSentence, lineIndex, gloss).then((result) => {
       if (result?.ok) {
         // The saved-word cache is lemma-keyed — an inflected surface must
         // paint as saved under its dictionary form ("running" -> "run").
@@ -712,14 +718,14 @@ export function SubtitleOverlay({
     lastSaveKeyRef.current = saveRequestKey;
     if (capturing) return;
     if (selection && selectionText) {
-      handleSaveToken(selectionText);
+      void handleSaveToken(selectionText);
       return;
     }
     const key = hoveredKeyRef.current;
     if (key) {
       const dictionary = lookupDictionary(key, cueLanguage);
       const idx = hoveredIdxRef.current;
-      handleSaveToken(dictionary?.token ?? key, idx == null ? undefined : lineForToken(idx));
+      void handleSaveToken(dictionary?.token ?? key, idx == null ? undefined : lineForToken(idx));
       return;
     }
     // With a profile there IS something to judge: save the line only when it
@@ -731,14 +737,14 @@ export function SubtitleOverlay({
         const index = tokens.findIndex((tk) => (tk.lemma ?? tk.key) === newKeys[0]);
         const tok = index >= 0 ? tokens[index] : undefined;
         const dictionary = tok ? lookupDictionary(tok.key, cueLanguage) : undefined;
-        handleSaveToken(dictionary?.token ?? (tok ? tok.key : newKeys[0]), index >= 0 ? lineForToken(index) : undefined);
+        void handleSaveToken(dictionary?.token ?? (tok ? tok.key : newKeys[0]), index >= 0 ? lineForToken(index) : undefined);
         return;
       }
       onNothingToSave?.(newKeys.length > 1 ? 'several' : 'none');
       return;
     }
     // No profile to judge from: the whole plate (the set of member lines).
-    if (targetSentence.trim()) handleSaveToken(targetSentence);
+    if (targetSentence.trim()) void handleSaveToken(targetSentence);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveRequestKey]);
 
@@ -947,7 +953,7 @@ export function SubtitleOverlay({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                handleSaveToken(selectionText);
+                void handleSaveToken(selectionText);
               }}
               className="flex items-center gap-1 bg-indigo-500 hover:bg-indigo-400 text-white text-[12px] font-medium px-2.5 h-7 rounded-lg kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80"
               title={t('overlay.saveSelection')}
@@ -1212,7 +1218,7 @@ export function SubtitleOverlay({
                         }}
                         onSave={(e, value, gloss) => {
                           e.stopPropagation();
-                          handleSaveToken(value, lineForToken(i), gloss);
+                          void handleSaveToken(value, lineForToken(i), gloss);
                         }}
                         onSeeInAnki={onSeeInAnki
                           ? (e) => { e.stopPropagation(); onSeeInAnki(tok.key); }

@@ -436,11 +436,13 @@ onMessage('CREATE_CARD', async ({ data }) => {
  * word from the F5 interval cache so it flips back to «new/estimate» at once.
  */
 onMessage('ANKI_DELETE_NOTE', async ({ data }) => {
-  const request = data as { noteId?: number };
+  const request = data as { noteId?: number; origin?: 'undo'; cardId?: string };
   if (request?.noteId == null) return asJson({ ok: false, error: 'noteId missing' } satisfies AnkiDeleteNoteResponse);
   const mapping = await loadMapping();
   await refreshAnkiOriginRules(mapping.ankiUrl);
-  const result = await undoDeleteNote(request.noteId, mapping);
+  const result = await undoDeleteNote(request.noteId, mapping, {
+    origin: request.origin, cardId: request.cardId,
+  });
   return asJson(result);
 });
 

@@ -195,7 +195,11 @@ function RecentRow({
 
   const undo = () => run(async () => {
     if (card.noteId == null) return false;
-    const res = (await sendMessage('ANKI_DELETE_NOTE', { noteId: card.noteId }, 'background')) as AnkiDeleteNoteResponse;
+    const res = (await sendMessage(
+      'ANKI_DELETE_NOTE',
+      { noteId: card.noteId, origin: 'undo', cardId: card.id },
+      'background',
+    )) as AnkiDeleteNoteResponse;
     return !!res?.ok;
   }, t('queue.undone'), t('queue.undoFailed'));
 

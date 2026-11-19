@@ -73,6 +73,8 @@ export interface SavedNote {
   noteId?: number;
   text: string;
   deck: string;
+  /** cardId of the save that created the note, for the Undo ownership check. */
+  cardId?: string;
 }
 
 /**
@@ -130,12 +132,16 @@ function sceneMediaNotes(media: SceneMedia): string[] {
  * removes the registry row and the interval-cache entry. A failed delete is
  * surfaced with its reason; a successful one drops the overlay's saved mark.
  */
-export async function undoSavedNote(noteId: number, text: string): Promise<boolean> {
+export async function undoSavedNote(
+  noteId: number,
+  text: string,
+  cardId?: string,
+): Promise<boolean> {
   let res: AnkiDeleteNoteResponse | undefined;
   try {
     res = (await sendMessage(
       'ANKI_DELETE_NOTE',
-      { noteId },
+      { noteId, origin: 'undo', ...(cardId ? { cardId } : {}) },
       'background',
     )) as AnkiDeleteNoteResponse;
   } catch (err) {
@@ -163,7 +169,9 @@ export function showCardSaved(card: SavedNote, notes: string[] = []): void {
   const noteId = card.noteId;
   showSavedToast(
     { id: noteId != null ? String(noteId) : card.text, text: card.text, deck: card.deck },
-    noteId != null ? () => void undoSavedNote(noteId, card.text) : undefined,
+    noteId != null
+      ? () => void undoSavedNote(noteId, card.text, card.cardId)
+      : undefined,
     notes,
   );
 }
@@ -181,33 +189,45 @@ export function showCardReused(
   storedGloss?: string,
   contextGloss?: string,
   onCreateSense?: () => void,
+  canAddScene?: boolean,
+  toastId?: string,
 ): void {
-  const addScene = onAddScene
+  // No mapped cue field means "add this scene" cannot be verified — offer
+  // ONLY the explicit create action, with copy that makes no sentence claim.
+  const sceneAllowed = canAddScene !== false;
+  const addScene = sceneAllowed && onAddScene
     ? { label: t('popover.addScene'), onClick: onAddScene }
     : undefined;
+  // One shot, here at the toast boundary too: a second click does nothing.
+  let createFired = false;
   const createSense = onCreateSense
-    ? { label: t('app.createThisSense'), onClick: onCreateSense }
+    ? {
+        label: t('app.createThisSense'),
+        onClick: () => {
+          if (createFired) return;
+          createFired = true;
+          onCreateSense();
+        },
+      }
     : undefined;
 
   if (reused === 'other-context' && sense === 'new-sense' && createSense) {
-    // Distinct meaning: creating that meaning is the PRIMARY action; adding
-    // this line as another scene of the old note is secondary.
     const title = t('app.reusedNewSense', {
       word,
       storedGloss: storedGloss ?? '—',
       contextGloss: contextGloss ?? '—',
     });
-    showNoticeToast(title, createSense, addScene);
+    showNoticeToast(title, createSense, addScene, toastId);
     return;
   }
 
   const title = reused === 'same-context'
     ? t('app.reusedSameContext', { word })
-    : t('app.reusedOtherContext', { word });
-  // same-sense / unknown: add-scene is primary; forcing a new card for this
-  // meaning stays available as a secondary action (explicit user click).
+    : !sceneAllowed && reused === 'other-context'
+      ? t('app.reusedNoCue', { word })
+      : t('app.reusedOtherContext', { word });
   showNoticeToast(title, reused === 'other-context' ? addScene : undefined,
-    reused === 'other-context' ? createSense : undefined);
+    reused === 'other-context' ? createSense : undefined, toastId);
 }
 
 /**

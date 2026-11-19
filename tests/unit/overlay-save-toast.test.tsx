@@ -51,7 +51,7 @@ beforeEach(() => {
 
 /** Render the saved notice App shows and return the rendered view. */
 function renderSavedToast(noteId: number | undefined) {
-  showCardSaved({ noteId, text: 'hello', deck: 'English' });
+  showCardSaved({ noteId, text: 'hello', deck: 'English', cardId: 'card-42' });
   const calls = vi.mocked(toast.custom).mock.calls;
   expect(calls.length).toBeGreaterThan(0);
   const renderFn = calls[calls.length - 1][0] as (id: string) => React.ReactElement;
@@ -91,7 +91,7 @@ describe('saved toast undo', () => {
     await vi.waitFor(() => {
       expect(sendMessage).toHaveBeenCalledWith(
         'ANKI_DELETE_NOTE',
-        { noteId: 42 },
+        { noteId: 42, origin: 'undo', cardId: 'card-42' },
         'background',
       );
     });
