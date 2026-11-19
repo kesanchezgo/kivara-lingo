@@ -1091,6 +1091,15 @@ export interface CreateCardRequest {
   identityKey?: string;
   /** Normalized surface form; only used for the OR query against old notes. */
   surface?: string;
+  /** Contextual meaning chosen by the popover's resolver for THIS cue. */
+  contextGloss?: string;
+  /** Part of speech from the contextual resolver, when available. */
+  pos?: string;
+  /**
+   * Explicit user click on "create a card for THIS meaning". Skips lemma
+   * reuse, but reuses a note already carrying the SAME lemma + sense tags.
+   */
+  forceNewSense?: boolean;
 }
 
 /**
@@ -1134,6 +1143,16 @@ export interface CreateCardResponse {
    * WERE created by this save and their Undo is legitimate.
    */
   reused?: 'same-context' | 'other-context';
+  /**
+   * Sense classification for an `other-context` reuse, from the existing
+   * note's stored gloss vs the popover's contextual gloss. Absent on new
+   * notes and on `same-context`.
+   */
+  sense?: 'new-sense' | 'same-sense' | 'unknown';
+  /** Gloss stored on the reused note (read from the mapped bilingual field). */
+  storedGloss?: string;
+  /** The contextual gloss this save would attach, when known. */
+  contextGloss?: string;
 }
 
 /* ── F4 Anki / card-registry messages (docs/REDESIGN-V2.md §4.6) ────────── */

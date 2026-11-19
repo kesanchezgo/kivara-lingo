@@ -70,7 +70,7 @@ export interface WordPopoverProps {
   onClose?: () => void;
   onToggleExpand: () => void;
   onRejoinParent: (parent: string) => void;
-  onSave: (e: React.MouseEvent, token: string) => void;
+  onSave: (e: React.MouseEvent, token: string, contextGloss?: string) => void;
   /** Saved token: open the Anki browser on its note (F4). */
   onSeeInAnki?: (e: React.MouseEvent) => void;
   /** Saved token: attach this scene to the existing note (F4). */
@@ -1201,7 +1201,7 @@ export function WordPopover({
             <button
               type="button"
               aria-label={t('wp.save')}
-              onClick={(e) => onSave(e, canonicalToken)}
+              onClick={(e) => onSave(e, canonicalToken, meta.translation || undefined)}
               className="flex-1 flex items-center justify-center gap-1.5 px-2 h-10 text-[12px] font-semibold text-white bg-indigo-500 hover:bg-indigo-400 transition-colors normal-case"
             >
               <Plus size={12} /> {t('wp.save')}

@@ -23,6 +23,7 @@ export interface ToastCard {
 export function showNoticeToast(
   title: string,
   action?: { label: string; onClick: () => void },
+  secondary?: { label: string; onClick: () => void },
 ): void {
   toast.custom((id) => (
     <div className="kvl-ui w-[340px] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.08] rounded-xl shadow-[0_12px_32px_-8px_rgba(0,0,0,.35)] pl-3 pr-1.5 py-2.5">
@@ -50,8 +51,18 @@ export function showNoticeToast(
           <X size={13} />
         </button>
       </div>
+      {secondary && (
+        <div className="flex justify-end pt-2 pr-1">
+          <button
+            onClick={() => { toast.dismiss(id); secondary.onClick(); }}
+            className="h-6 px-2 rounded-md text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.06] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+          >
+            {secondary.label}
+          </button>
+        </div>
+      )}
     </div>
-  ), { duration: action ? 8000 : 5000 });
+  ), { duration: action || secondary ? 8000 : 5000 });
 }
 
 /**

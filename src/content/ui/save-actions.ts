@@ -177,13 +177,37 @@ export function showCardReused(
   reused: 'same-context' | 'other-context',
   word: string,
   onAddScene?: () => void,
+  sense?: 'new-sense' | 'same-sense' | 'unknown',
+  storedGloss?: string,
+  contextGloss?: string,
+  onCreateSense?: () => void,
 ): void {
+  const addScene = onAddScene
+    ? { label: t('popover.addScene'), onClick: onAddScene }
+    : undefined;
+  const createSense = onCreateSense
+    ? { label: t('app.createThisSense'), onClick: onCreateSense }
+    : undefined;
+
+  if (reused === 'other-context' && sense === 'new-sense' && createSense) {
+    // Distinct meaning: creating that meaning is the PRIMARY action; adding
+    // this line as another scene of the old note is secondary.
+    const title = t('app.reusedNewSense', {
+      word,
+      storedGloss: storedGloss ?? '—',
+      contextGloss: contextGloss ?? '—',
+    });
+    showNoticeToast(title, createSense, addScene);
+    return;
+  }
+
   const title = reused === 'same-context'
     ? t('app.reusedSameContext', { word })
     : t('app.reusedOtherContext', { word });
-  showNoticeToast(title, reused === 'other-context' && onAddScene
-    ? { label: t('popover.addScene'), onClick: onAddScene }
-    : undefined);
+  // same-sense / unknown: add-scene is primary; forcing a new card for this
+  // meaning stays available as a secondary action (explicit user click).
+  showNoticeToast(title, reused === 'other-context' ? addScene : undefined,
+    reused === 'other-context' ? createSense : undefined);
 }
 
 /**
