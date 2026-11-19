@@ -29,7 +29,11 @@ import type { SubtitleSource } from '../platform-adapters/types';
 import { getActiveTrackCues, getTrackByLanguage, onTrack } from '../platform-adapters/intercepted-bus';
 import { buildPreviewData } from '../../shared/preview-data';
 import { buildCardTags, cardSourceFromMedia, newCardId } from '../../shared/cards';
-import { buildExactNoteQuery } from '../../shared/anki-search';
+import { buildIdentityNoteQuery } from '../../shared/anki-search';
+import { wordIdentity } from '../../shared/word-identity';
+import { lemmaCandidates } from '../nlp/lemma';
+import { mweLemmaCandidates } from '../nlp/mwe-lemma';
+import { lookupDictionary } from '../nlp/dictionary';
 import { recordCardSaved, useWordStudy, type StudyBinding } from './study';
 import {
   addSceneToNote, cardKindOf, OPEN_CARDS_EVENT, showCardSaved, showCardSaveError,
@@ -128,6 +132,26 @@ const RUN_COMMAND_GATE: ReadonlySet<string> = new Set([
   'toggle_subtitles', 'repeat_cue', 'repeat_phrase',
   'recapture_frame', 'show_translation',
 ]);
+
+/**
+ * One identity computation for every surface in the content script — save,
+ * "see in Anki", "add this scene". Reuses the dictionary/lemmatizer/MWE data
+ * this side already owns; the result is passed to the background as
+ * `identityKey` + `surface`.
+ */
+function identityFor(token: string, lang: string, kind?: CreateCardKind) {
+  const cardKind = kind ?? cardKindOf(token);
+  const entry = lookupDictionary(token, lang);
+  return wordIdentity({
+    token,
+    lang,
+    kind: cardKind,
+    dictionaryLemma: entry?.lemmaOf,
+    lemmaCandidates: cardKind === 'expression'
+      ? mweLemmaCandidates(token)
+      : lemmaCandidates(token),
+  });
+}
 
 /**
  * Build the initial SET of manifest-command combos that the in-page handler
@@ -1539,12 +1563,19 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         // phrase with its own bounds. A selection or the whole plate saves the
         // set. Pure helper so the mapping is unit-tested without React.
         const cueFields = buildCueRequestFields(activeCue, episode.cues, { lineIndex: cueLine });
+        // Identity is computed HERE, in the content script: it owns the
+        // dictionary, lemmatizer and MWE data. The background only consumes
+        // identityKey/surface — one key per lemma across every layer.
+        const identitySentence = cueFields.sentence ?? sentence;
+        const identity = identityFor(tokenValue, lang, kind);
         const request: CreateCardRequest = {
           token: tokenValue,
-          sentence: cueFields.sentence ?? sentence,
+          sentence: identitySentence,
           cardId: newCardId(),
           kind,
           lang,
+          identityKey: identity.key,
+          surface: identity.surface,
           deck: activeDeck,
           media,
           contextLines: cueFields.contextLines,
@@ -1564,7 +1595,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             // never recapture its media; the word still paints as saved.
             if (response.reused) {
               toast.dismiss(saveToastId);
-              recordCardSaved(lang, tokenValue);
+              recordCardSaved(lang, identity.key);
               showCardReused(
                 response.reused,
                 tokenValue,
@@ -1600,7 +1631,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             // F5: the word now has a card. A «known» hand mark gives way to
             // it (the word becomes learning), the interval is cached at 0 and
             // a background refresh reads the real one from Anki.
-            recordCardSaved(lang, tokenValue);
+            recordCardSaved(lang, identity.key);
             // The success path must RETURN its own envelope: falling through
             // used to report every created card as a failure, so the green
             // "saved" highlight never painted.
@@ -1652,11 +1683,13 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     const fieldName = Object.entries(ankiMapping.fieldSources ?? {}).find(
       ([, source]) => source === 'selection',
     )?.[0] ?? 'Front';
-    const query = buildExactNoteQuery({
+    const identity = identityFor(token, lang);
+    const query = buildIdentityNoteQuery({
       deckName: deck,
       modelName: ankiMapping.modelName,
       fieldName,
-      value: token,
+      identityKey: identity.key,
+      surface: identity.surface,
     });
     if (!query) {
       toast.error(t('wp.openInAnkiFailed'));
@@ -1690,9 +1723,12 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       const fieldName = Object.entries(ankiMapping.fieldSources ?? {}).find(
         ([, source]) => source === 'selection',
       )?.[0] ?? 'Front';
+      const identity = identityFor(token, lang, kind);
       await addSceneToNote(
         {
           token,
+          identityKey: identity.key,
+          surface: identity.surface,
           // Same rule as the save path: the line the word sits in, not the
           // combined plate of two overlapping cues.
           sentence: buildCueRequestFields(activeCue, episode.cues, { lineIndex: cueLine }).sentence ?? sentence,

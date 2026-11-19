@@ -1082,6 +1082,15 @@ export interface CreateCardRequest {
   /** Legacy BCP-47 spelling; read only when `lang` is absent. */
   language?: string;
   platform?: string;
+  /**
+   * Canonical lemma key computed by the CONTENT script (it owns the
+   * dictionary / lemmatizer / Yomitan / MWE data). The background uses this
+   * for dedup, tags and saved-word lookups; legacy callers omit it and get
+   * the lowercased token as key.
+   */
+  identityKey?: string;
+  /** Normalized surface form; only used for the OR query against old notes. */
+  surface?: string;
 }
 
 /**
@@ -1152,6 +1161,10 @@ export interface AnkiAddContextRequest {
   deck?: string;
   /** Field that holds the headword, used to narrow the lookup. */
   fieldName?: string;
+  /** Canonical lemma key; takes precedence over `token` when resolving. */
+  identityKey?: string;
+  /** Normalized surface form for the identity OR query. */
+  surface?: string;
 }
 export interface AnkiAddContextResponse {
   ok: boolean;

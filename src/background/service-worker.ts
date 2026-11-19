@@ -734,6 +734,11 @@ onMessage('ANKI_SAVED_WORDS', async ({ data }) => {
     const infos = await ankiConnect.notesInfo(subset, url, apiKey);
     const words = infos
       .map((n) => {
+        // New notes carry kivara::lemma::<key>: use it as the identity key so
+        // "running" and "run" resolve to the same saved word. Older notes
+        // without the tag fall back to the (lowercased) surface field.
+        const lemmaTag = (n.tags ?? []).find((tag) => tag.startsWith('kivara::lemma::'));
+        if (lemmaTag) return lemmaTag.slice('kivara::lemma::'.length).replace(/-/g, ' ');
         const field = n.fields[fieldName] ?? Object.values(n.fields)[0];
         // Strip HTML (<img>, <b>, [sound:]) — Anki fields carry markup and
         // the overlay compares plain lowercase tokens.

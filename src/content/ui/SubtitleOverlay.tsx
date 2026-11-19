@@ -661,7 +661,13 @@ export function SubtitleOverlay({
     clearLookup();
     setIsHovered(false);
     void onSaveCard(token, targetSentence, lineIndex).then((result) => {
-      if (result?.ok) setSavedTokens((prev) => new Set(prev).add(token.toLowerCase()));
+      if (result?.ok) {
+        // The saved-word cache is lemma-keyed — an inflected surface must
+        // paint as saved under its dictionary form ("running" -> "run").
+        const lemma = lookupDictionary(token, cueLanguage)?.lemmaOf
+          ?? token.trim().toLowerCase();
+        setSavedTokens((prev) => new Set(prev).add(lemma.toLowerCase()));
+      }
     });
   };
 
@@ -1075,7 +1081,10 @@ export function SubtitleOverlay({
                 // The Anki cache of the profile (F5) adds to the pre-fetched
                 // saved words: either way, an Anki word is not saved twice.
                 const studyKey = tok.lemma ?? tok.key;
-                const isSaved = savedTokens.has(tok.key.toLowerCase()) || !!study?.inAnki(studyKey);
+                // Both caches are lemma-keyed now (ANKI_SAVED_WORDS reads the
+                // kivara::lemma tag; recordCardSaved stores the identity key),
+                // so an inflected form inherits the lemma's saved state.
+                const isSaved = savedTokens.has(studyKey.toLowerCase()) || !!study?.inAnki(studyKey);
                 const mark = markOf(tok, study?.statusOf);
                 // The status mark draws the underline; here only hover,
                 // selection and the saved/learned accents.

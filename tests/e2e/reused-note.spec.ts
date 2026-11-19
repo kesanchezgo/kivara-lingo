@@ -15,7 +15,7 @@ import type { Server } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect, type Page } from './fixtures';
-import { boxesOf, PANEL_HOST, readFixture, stateOf, VIDEO_HOST } from './helpers';
+import { boxesOf, hitsOf, PANEL_HOST, readFixture, stateOf, VIDEO_HOST } from './helpers';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE = readFixture('player-netflix.html');
@@ -29,10 +29,20 @@ interface AnkiLog {
   queries: string[];
   added: number;
   deleted: number[];
+  updated: number[];
 }
 const EXISTING_NOTE_ID = 424242;
 
-function startFakeAnki(port: number, log: AnkiLog): Promise<Server> {
+interface FakeAnkiOptions {
+  /** Surface stored on the pre-existing note (lowercase). */
+  word: string;
+  /** Lemma tag on the note; when present, the identity query matches it. */
+  lemmaTag?: string;
+  /** Stored cue — different from the saved cue → other-context. */
+  storedSentence?: string;
+}
+
+function startFakeAnki(port: number, log: AnkiLog, opts: FakeAnkiOptions): Promise<Server> {
   const server = http.createServer((req, res) => {
     let body = '';
     req.on('data', (c) => { body += c; });
@@ -46,18 +56,38 @@ function startFakeAnki(port: number, log: AnkiLog): Promise<Server> {
       else if (action === 'findNotes') {
         const query = String(params.query ?? '');
         log.queries.push(query);
-        // The word-field query carries "steve" (case-insensitive, escaped by
-        // buildExactNoteQuery). Match on the VALUE, not a hardcoded field name:
-        // CI can seed a different fieldSources label, and the deck/model/deck
+        // Match the identity query on the lemma tag OR either surface/key
+        // field clause. CI can seed different fieldSources labels; deck/model
         // clauses are irrelevant to which note the mock stands in for.
-        result = /steve/i.test(query) ? [EXISTING_NOTE_ID] : [];
+        const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const wanted = [opts.word, ...(opts.lemmaTag ? [opts.lemmaTag.split('::').pop() ?? ''] : [])]
+          .filter(Boolean).map(esc);
+        result = wanted.some((w) => new RegExp(w, 'i').test(query)) ? [EXISTING_NOTE_ID] : [];
       } else if (action === 'notesInfo') {
-        // The existing note has an OLD sentence → other-context.
-        result = [{ noteId: EXISTING_NOTE_ID, fields: { Front: { value: 'steve' }, Sentence: { value: 'An old sentence.' }, 'Sentence audio': { value: '' } }, tags: ['kivara-lingo'], modelName: 'Basic', cards: [1] }];
+        result = [{
+          noteId: EXISTING_NOTE_ID,
+          fields: {
+            Front: { value: opts.word },
+            Sentence: { value: opts.storedSentence ?? 'An old sentence.' },
+            'Sentence audio': { value: '' },
+          },
+          tags: ['kivara-lingo', ...(opts.lemmaTag ? [opts.lemmaTag] : [])],
+          modelName: 'Basic', cards: [1],
+        }];
       } else if (action === 'canAddNotes') result = [false];
+      else if (action === 'findCards') {
+        const query = String(params.query ?? '');
+        log.queries.push(query);
+        const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const wanted = [opts.word, ...(opts.lemmaTag ? [opts.lemmaTag.split('::').pop() ?? ''] : [])]
+          .filter(Boolean).map(esc);
+        result = wanted.some((w) => new RegExp(w, 'i').test(query)) ? [99] : [];
+      }
+      else if (action === 'cardsInfo') result = [{ cardId: 99, noteId: EXISTING_NOTE_ID }];
       else if (action === 'addNote') { log.added += 1; result = 999999; }
       else if (action === 'deleteNotes') { log.deleted.push(...((params.notes as number[]) ?? [])); result = null; }
-      else if (action === 'addTags' || action === 'updateNoteFields' || action === 'storeMediaFile') result = null;
+      else if (action === 'updateNoteFields') { log.updated.push(EXISTING_NOTE_ID); result = null; }
+      else if (action === 'addTags' || action === 'storeMediaFile') result = null;
       res.writeHead(200, {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
@@ -96,11 +126,11 @@ async function seedAnki(context: import('@playwright/test').BrowserContext, port
   }, port);
 }
 
-async function openPage(context: import('@playwright/test').BrowserContext) {
+async function openPage(context: import('@playwright/test').BrowserContext, ttml: string = TTML) {
   const page = await context.newPage();
   await page.route('*://*.nflxvideo.net/**', (route) => route.fulfill({
     status: 200, contentType: 'application/xml',
-    headers: { 'access-control-allow-origin': '*' }, body: TTML,
+    headers: { 'access-control-allow-origin': '*' }, body: ttml,
   }));
   await page.route('*://*.netflix.com/**', (route) => {
     if (route.request().url().includes('/watch/')) {
@@ -121,9 +151,9 @@ async function openPage(context: import('@playwright/test').BrowserContext) {
 
 test('saving STEVE over an existing steve note: no Undo, add-scene offered, old note survives', async ({ context, serviceWorker }) => {
   test.setTimeout(120_000);
-  const log: AnkiLog = { actions: [], queries: [], added: 0, deleted: [] };
+  const log: AnkiLog = { actions: [], queries: [], added: 0, deleted: [], updated: [] };
   const PORT = 18766;
-  const server = await startFakeAnki(PORT, log);
+  const server = await startFakeAnki(PORT, log, { word: 'steve' });
   try {
     await seedAnki(context, PORT);
     void serviceWorker;
@@ -167,6 +197,71 @@ test('saving STEVE over an existing steve note: no Undo, add-scene offered, old 
         return (got['kvl:cards.recent'] ?? []) as Array<{ noteId?: number; word: string }>;
       });
       expect(recent.some((r) => r.noteId === EXISTING_NOTE_ID)).toBe(false);
+    } finally {
+      await page.close();
+    }
+  } finally {
+    await new Promise<void>((r) => server.close(() => r()));
+  }
+});
+
+test('saving "running" over a pre-existing lemma "run" note reuses it and add-scene attaches to that SAME note', async ({ context, serviceWorker }) => {
+  test.setTimeout(120_000);
+  const log: AnkiLog = { actions: [], queries: [], added: 0, deleted: [], updated: [] };
+  const PORT = 18767;
+  const RUN_TTML = `<?xml version="1.0" encoding="utf-8"?>
+<tt xmlns="http://www.w3.org/ns/ttml"><body><div>
+<p begin="0s" end="9s">RUNNING is hard work</p>
+</div></body></tt>`;
+  const server = await startFakeAnki(PORT, log, {
+    word: 'run', lemmaTag: 'kivara::lemma::run', storedSentence: 'He runs every day.',
+  });
+  try {
+    await seedAnki(context, PORT);
+    void serviceWorker;
+    const page = await openPage(context, RUN_TTML);
+    try {
+      await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).tokens.length, { timeout: 10_000 }).toBeGreaterThan(0);
+      const tokBox = (await boxesOf(page, VIDEO_HOST)).tokens[0];
+      const tok = { x: tokBox.x + tokBox.width / 2, y: tokBox.y + tokBox.height / 2 };
+      for (let i = 0; i < 15; i++) {
+        await page.mouse.move(640 + (tok.x - 640) * (i + 1) / 15, 360 + (tok.y - 360) * (i + 1) / 15);
+        await page.waitForTimeout(16);
+      }
+      await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).card !== null,
+        { timeout: 10_000 }).toBe(true);
+      await page.keyboard.press('Alt+Shift+S');
+
+      await expect.poll(async () => (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '',
+        { timeout: 20_000, message: `queries: ${log.queries.join(' ; ')}` })
+        .toMatch(/ya está en tu mazo/);
+      const toastText = (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '';
+      expect(toastText).not.toContain('Deshacer');
+      expect(toastText).toContain('Añadir esta escena');
+      // The identity query targeted the lemma, not just the surface.
+      expect(log.queries.some((q) => q.includes('tag:kivara::lemma::run'))).toBe(true);
+      expect(log.added).toBe(0);
+      expect(log.deleted).toEqual([]);
+
+      // Click the existing add-scene action: it must update the SAME note.
+      // Fresh coordinates on each attempt: sonner animates the toast in, so
+      // a hit captured before the settle can be stale by a few pixels.
+      for (let attempt = 0; attempt < 6; attempt++) {
+        const hits = (await hitsOf(page, PANEL_HOST)).filter((h) => h.label === 'Añadir esta escena');
+        if (!hits.length) break;
+        await page.mouse.click(hits[0].cx, hits[0].cy);
+        await page.waitForTimeout(250);
+        const text = (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '';
+        if (!text.includes('Añadir esta escena')) break;
+      }
+      await expect.poll(async () => (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '',
+        { timeout: 5_000 }).not.toContain('Añadir esta escena');
+      await expect.poll(async () => log.updated.length,
+        { timeout: 10_000, message: `actions: ${log.actions.join(',')} | queries: ${log.queries.join(' ; ')}` })
+        .toBeGreaterThan(0);
+      expect(log.added).toBe(0);
+      expect(log.deleted).toEqual([]);
+      expect(log.updated).toContain(EXISTING_NOTE_ID);
     } finally {
       await page.close();
     }

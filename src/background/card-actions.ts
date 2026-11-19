@@ -15,7 +15,7 @@ import type {
   AnkiWordIntervalsResponse,
   AnkiMapping,
 } from '../shared/types';
-import { buildExactNoteQuery, escapeAnkiSearchTerm } from '../shared/anki-search';
+import { buildIdentityNoteQuery, escapeAnkiSearchTerm } from '../shared/anki-search';
 import { LEGACY_CARD_TAG } from '../shared/cards';
 import { TAG_ROOT } from '../shared/study/cardTags';
 import { ankiConnect, AnkiConnectError, dataUrlToBase64, type AnkiNoteInfo } from './anki-connect';
@@ -115,13 +115,16 @@ async function resolveNoteId(
   mapping: AnkiMapping,
 ): Promise<number | null> {
   if (request.noteId != null) return request.noteId;
-  if (!request.token?.trim()) return null;
+  if (!request.token?.trim() && !request.identityKey?.trim()) return null;
   const fieldName = request.fieldName ?? mappedField(mapping, 'selection', 'Front') ?? 'Front';
-  const query = buildExactNoteQuery({
+  const identityKey = (request.identityKey ?? '').trim().toLowerCase()
+    || (request.token ?? '').trim().toLowerCase();
+  const query = buildIdentityNoteQuery({
     deckName: request.deck?.trim() || mapping.deckName,
     modelName: mapping.modelName,
     fieldName,
-    value: request.token,
+    identityKey,
+    surface: (request.surface ?? request.token ?? '').trim(),
   });
   if (!query) return null;
   const cards = await ankiConnect.findCards(query, mapping.ankiUrl, mapping.apiKey);
@@ -352,7 +355,12 @@ export async function wordIntervals(
     const mature = new Set(matureCards);
     const words: Record<string, number> = {};
     for (const note of notes) {
-      const word = headwordOf(note?.fields, fieldName);
+      // Lemma tag is the identity key on notes written with this scheme;
+      // older notes fall back to the headword field.
+      const lemma = (note.tags ?? []).find((tag) => tag.startsWith('kivara::lemma::'));
+      const word = lemma
+        ? lemma.slice('kivara::lemma::'.length).replace(/-/g, ' ')
+        : headwordOf(note.fields, fieldName);
       if (!word) continue;
       const cards = Array.isArray(note?.cards) ? note.cards : [];
       // EVERY note in the deck enters the map: a word the deck holds is in
