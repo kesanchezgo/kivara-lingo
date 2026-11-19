@@ -12,7 +12,7 @@ import type {
 import { DEFAULT_CAPTURE } from '../shared/store';
 import { ankiConnect, dataUrlToBase64, AnkiConnectError } from './anki-connect';
 import { buildExactNoteQuery, buildIdentityNoteQuery } from '../shared/anki-search';
-import { lemmaTag } from '../shared/word-identity';
+import { lemmaTag, senseTag, classifySense } from '../shared/word-identity';
 import {
   buildCardTags,
   cardSourceFromMedia,
@@ -478,6 +478,8 @@ async function findExistingByWord(
   request: CreateCardRequest,
   mapping: AnkiMapping,
   deck: string,
+  /** When set, only notes carrying this sense tag may be reused. */
+  requireSenseTag?: string,
 ): Promise<CreateCardResponse | null> {
   try {
     const wordField = Object.entries(mapping.fieldSources ?? {}).find(
@@ -499,8 +501,9 @@ async function findExistingByWord(
     // Old notes predate the lemma tag but carry a kivara tag. Backfill the
     // lemma tag (idempotent, only on OUR notes) so future searches unify.
     const tag = lemmaTag(key);
+    let senseMatchId: number | null = null;
     try {
-      const infos = await ankiConnect.notesInfo(found.slice(0, 5), mapping.ankiUrl, mapping.apiKey);
+      const infos = await ankiConnect.notesInfo(found.slice(0, 20), mapping.ankiUrl, mapping.apiKey);
       for (const info of infos) {
         const ourTags = (info.tags ?? []).some(
           (x) => x === 'kivara-lingo' || x.startsWith('kivara::'),
@@ -508,8 +511,17 @@ async function findExistingByWord(
         if (info.noteId != null && ourTags && !(info.tags ?? []).includes(tag)) {
           await ankiConnect.addTags([tag], [info.noteId], mapping.ankiUrl, mapping.apiKey);
         }
+        if (requireSenseTag && info.noteId != null
+          && (info.tags ?? []).includes(requireSenseTag) && senseMatchId === null) {
+          senseMatchId = info.noteId;
+        }
       }
     } catch { /* backfill is best-effort; the note is still reused */ }
+    if (requireSenseTag) {
+      // forceNewSense: only a note already carrying THIS meaning is reused;
+      // otherwise fall through to addNote (which writes the lemma+sense tags).
+      return senseMatchId != null ? { ok: true, noteId: senseMatchId, warnings: [] } : null;
+    }
     return { ok: true, noteId: found[0], warnings: [] };
   } catch {
     return null; // Anki unreachable for the check → proceed with the add
@@ -612,6 +624,37 @@ async function hasSameContext(
   }
 }
 
+/**
+ * Read the stored meaning of an existing note: the mapped bilingual /
+ * translation field (plain text) and any kivara::sense tags. Used to decide
+ * whether the popover's contextual gloss is a NEW sense of the same lemma.
+ */
+async function readStoredSense(
+  noteId: number,
+  mapping: AnkiMapping,
+): Promise<{ storedGloss: string; senseTags: string[]; posTags: string[] }> {
+  const empty = { storedGloss: '', senseTags: [], posTags: [] };
+  try {
+    const infos = await ankiConnect.notesInfo([noteId], mapping.ankiUrl, mapping.apiKey);
+    const info = infos[0];
+    if (!info) return empty;
+    const glossField = Object.entries(mapping.fieldSources ?? {}).find(
+      ([, s]) => s === 'bilingual' || s === 'translation' || s === 'translate',
+    )?.[0] ?? Object.keys(info.fields)[0];
+    const raw = glossField ? (info.fields[glossField]?.value ?? '') : '';
+    const storedGloss = raw.replace(/<[^>]*>/g, ' ').replace(/\[sound:[^\]]*\]/gi, ' ')
+      .replace(/\s+/g, ' ').trim();
+    const tags = info.tags ?? [];
+    return {
+      storedGloss,
+      senseTags: tags.filter((t) => t.startsWith('kivara::sense::')),
+      posTags: tags.filter((t) => t.startsWith('kivara::pos::')),
+    };
+  } catch {
+    return empty;
+  }
+}
+
 export async function createCardFromRequest(
   request: CreateCardRequest,
   mapping: AnkiMapping,
@@ -638,8 +681,13 @@ export async function createCardFromRequest(
   const identityKeyValue = (request.identityKey ?? '').trim().toLowerCase();
   // New notes carry the lemma tag. A note's identity is the lemma, not the
   // surface, so "ran" and "run" share this tag and future lookups unify.
-  const tags = identityKeyValue
-    ? [...new Set([...baseTags, lemmaTag(identityKeyValue)])]
+  const extraTags = [
+    ...(identityKeyValue ? [lemmaTag(identityKeyValue)] : []),
+    ...(request.contextGloss ? [senseTag(request.contextGloss)] : []),
+    ...(request.pos ? [`kivara::pos::${request.pos.trim().toLowerCase().replace(/\s+/g, '-')}`] : []),
+  ];
+  const tags = extraTags.length
+    ? [...new Set([...baseTags, ...extraTags])]
     : baseTags;
   const deck = (request.deck ?? '').trim() || mapping.deckName;
 
@@ -711,7 +759,10 @@ export async function createCardFromRequest(
   // Retries keep their stricter sentence-verified path below. Non-blocking:
   // an Anki failure here returns null and we add as before.
   if (!options.fromRetry) {
-    const existingWord = await findExistingByWord(request, mapping, deck);
+    const forceSense = request.forceNewSense === true;
+    const wantSenseTag = forceSense && request.contextGloss
+      ? senseTag(request.contextGloss) : undefined;
+    const existingWord = await findExistingByWord(request, mapping, deck, wantSenseTag);
     if (existingWord) {
       // Which context? The note is already resolved by identity; just read
       // its cue field. A hit means the word already has a note for THIS
@@ -720,10 +771,22 @@ export async function createCardFromRequest(
       const sameContext = existingWord.noteId != null
         ? await hasSameContext(existingWord.noteId, request, mapping)
         : false;
+      let sense: 'new-sense' | 'same-sense' | 'unknown' | undefined;
+      let storedGloss: string | undefined;
+      if (!sameContext && existingWord.noteId != null && request.contextGloss) {
+        const stored = await readStoredSense(existingWord.noteId, mapping);
+        storedGloss = stored.storedGloss || undefined;
+        sense = classifySense(request.contextGloss, stored.storedGloss);
+        // A forceNewSense hit already carries the SAME sense tag.
+        if (forceSense) sense = 'same-sense';
+      }
       return {
         ok: true,
         noteId: existingWord.noteId,
         reused: sameContext ? 'same-context' : 'other-context',
+        ...(sense ? { sense } : {}),
+        ...(storedGloss ? { storedGloss } : {}),
+        ...(request.contextGloss ? { contextGloss: request.contextGloss } : {}),
         warnings: [],
       };
     }

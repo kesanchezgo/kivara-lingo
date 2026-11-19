@@ -319,6 +319,87 @@ describe('case-insensitive duplicate on a FIRST save', () => {
   );
 
   it(
+    'an other-context reuse classifies the stored gloss vs the contextual gloss',
+    { timeout: 20_000 },
+    async () => {
+      const m = setupMocks({
+        findNotesIds: [4242],
+        notesInfos: [{
+          noteId: 4242,
+          fields: { Front: { value: 'run' }, Translation: { value: 'correr' }, Sentence: { value: 'He runs.' } },
+          tags: ['kivara-lingo', 'kivara::lemma::run', 'kivara::sense::correr'],
+        }],
+      });
+      const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+      const mapping = {
+        deckName: 'English vocab', modelName: 'Basic',
+        fieldSources: { Front: 'selection', Translation: 'bilingual', Sentence: 'cue' },
+      };
+      const base = {
+        token: 'run', sentence: 'She runs the company.', language: 'en', deck: 'English vocab',
+        identityKey: 'run', surface: 'run',
+      };
+      const different = await createCardFromRequest({
+        ...base, contextGloss: 'dirigir', pos: 'verb',
+      } as never, mapping as never, undefined as never);
+      expect(different.reused).toBe('other-context');
+      expect(different.sense).toBe('new-sense');
+      expect(different.storedGloss).toBe('correr');
+      expect(different.contextGloss).toBe('dirigir');
+
+      const same = await createCardFromRequest({
+        ...base, contextGloss: 'correr',
+      } as never, mapping as never, undefined as never);
+      expect(same.sense).toBe('same-sense');
+    },
+  );
+
+  it(
+    'forceNewSense reuses a note with the SAME lemma+sense tag, or creates a tagged one',
+    { timeout: 20_000 },
+    async () => {
+      // A note with the requested sense tag is reused (Undo NOT offered by UI).
+      const reuse = setupMocks({
+        findNotesIds: [555],
+        notesInfos: [{
+          noteId: 555,
+          fields: { Front: { value: 'run' }, Translation: { value: 'dirigir' }, Sentence: { value: 'Dirige.' } },
+          tags: ['kivara-lingo', 'kivara::lemma::run', 'kivara::sense::dirigir'],
+        }],
+      });
+      const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+      const mapping = {
+        deckName: 'English vocab', modelName: 'Basic',
+        fieldSources: { Front: 'selection', Translation: 'bilingual', Sentence: 'cue' },
+      };
+      const request = {
+        token: 'run', sentence: 'She runs it.', language: 'en', deck: 'English vocab',
+        identityKey: 'run', surface: 'run', contextGloss: 'dirigir', pos: 'verb', forceNewSense: true,
+      };
+      const hit = await createCardFromRequest(request as never, mapping as never, undefined as never);
+      expect(hit.noteId).toBe(555);
+      expect(hit.sense).toBe('same-sense');
+      expect(reuse.addNote).not.toHaveBeenCalled();
+
+      // Without a matching sense tag, a NEW note is created with both tags.
+      vi.resetModules();
+      const fresh = setupMocks({ findNotesIds: [] });
+      fresh.addNote.mockResolvedValue(777);
+      const freshMod = await import('../../src/background/capture-orchestrator');
+      const made = await freshMod.createCardFromRequest(
+        request as never, mapping as never, undefined as never,
+      );
+      expect(made.ok).toBe(true);
+      expect(made.reused).toBeUndefined();
+      expect(fresh.addNote).toHaveBeenCalledTimes(1);
+      const tags = fresh.addNote.mock.calls[0][0].tags ?? [];
+      expect(tags).toContain('kivara::lemma::run');
+      expect(tags).toContain('kivara::sense::dirigir');
+      expect(tags).toContain('kivara::pos::verb');
+    },
+  );
+
+  it(
     'fromRetry idempotency returns the note with NO reused marker (Undo stays legitimate)',
     { timeout: 20_000 },
     async () => {

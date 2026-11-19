@@ -302,6 +302,9 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // handler. It is declared later in this component, so reach it via a ref to
   // avoid a useCallback dependency cycle (and the render-time TDZ).
   const addContextRef = useRef<((token: string, sentence: string, kind: CreateCardKind, cueLine?: number) => Promise<void>) | null>(null);
+  // "Create a card for THIS meaning" re-enters the save handler with
+  // forceNewSense (a user click, so the new note's Undo is legitimate).
+  const createSenseRef = useRef<((token: string, sentence: string, cueLine: number | undefined, gloss: string | undefined) => Promise<CreateCardResponse>) | null>(null);
   // Native-language alt cue (e.g. native Spanish track running parallel to
   // the active English captions). Preferred as the dual-caption source over
   // a remote MT translation — see SubtitleOverlay for the priority chain.
@@ -1491,7 +1494,13 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   }, [setPanelOpen]);
 
   const handleSaveCard = useCallback(
-    async (token: string | undefined, sentence: string, cueLine?: number): Promise<CreateCardResponse> => {
+    async (
+      token: string | undefined,
+      sentence: string,
+      cueLine?: number,
+      contextGloss?: string,
+      forceNewSense?: boolean,
+    ): Promise<CreateCardResponse> => {
       if (!enabled) return { ok: false, error: 'disabled' };
       const tokenValue = token?.trim() || sentence.trim();
       if (!tokenValue) return { ok: false, error: 'no token' };
@@ -1576,6 +1585,8 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           lang,
           identityKey: identity.key,
           surface: identity.surface,
+          contextGloss: contextGloss || undefined,
+          forceNewSense: forceNewSense || undefined,
           deck: activeDeck,
           media,
           contextLines: cueFields.contextLines,
@@ -1599,14 +1610,24 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
               showCardReused(
                 response.reused,
                 tokenValue,
-                // "Add this scene" reuses the EXISTING add-context flow — no
-                // new note, no Undo, just this line on the note it already has.
                 response.reused === 'other-context'
                   ? () => { void addContextRef.current?.(tokenValue, sentence, kind, cueLine); }
                   : undefined,
+                response.sense,
+                response.storedGloss,
+                response.contextGloss,
+                response.reused === 'other-context'
+                  ? () => {
+                      void createSenseRef.current?.(tokenValue, sentence, cueLine, contextGloss);
+                    }
+                  : undefined,
               );
               if (studyNow.sounds) playSound('saved');
-              return { ok: true, noteId: response.noteId, warnings: response.warnings, reused: response.reused };
+              return {
+                ok: true, noteId: response.noteId, warnings: response.warnings,
+                reused: response.reused, sense: response.sense,
+                storedGloss: response.storedGloss, contextGloss: response.contextGloss,
+              };
             }
             // Remember the noteId + frame field so `recapture_frame` (Alt+V)
             // can update this specific note.
@@ -1746,6 +1767,9 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   }, [enabled, adapter, ankiMapping, captureSceneMedia, activeCue, episode.cues]);
   // Expose the add-context flow to the earlier save handler without a dep cycle.
   addContextRef.current = handleAddContext;
+  // Re-enter the save handler with forceNewSense on an explicit user click.
+  createSenseRef.current = (token, sentence, cueLine, gloss) =>
+    handleSaveCard(token, sentence, cueLine, gloss, true);
 
   const overlayPortal = useMemo(() => {
     if (!videoOverlayRoot || !enabled || !subtitlesVisible) return null;

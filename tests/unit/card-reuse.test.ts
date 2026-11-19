@@ -81,4 +81,40 @@ describe('showCardReused', () => {
     expect(ALL_MESSAGES.en['app.reusedOtherContext']).toContain('already in your deck');
     expect(ALL_MESSAGES.en['popover.addScene']).toBe('Add this scene');
   });
+
+  it('new-sense: create-card is PRIMARY, add-scene secondary, no Undo', () => {
+    const onAdd = vi.fn();
+    const onCreate = vi.fn();
+    showCardReused('other-context', 'run', onAdd, 'new-sense', 'correr', 'dirigir', onCreate);
+    const { texts, buttons } = renderNotice();
+    const body = texts.join(' ');
+    expect(body).toContain('correr');
+    expect(body).toContain('dirigir');
+    expect(buttons.some((b) => b.text.includes('Deshacer'))).toBe(false);
+    const create = buttons.find((b) => b.text.includes('Crear tarjeta'));
+    const add = buttons.find((b) => b.text.includes('Añadir esta escena'));
+    expect(create).toBeDefined();
+    expect(add).toBeDefined();
+    expect(buttons.indexOf(create!)).toBeLessThan(buttons.indexOf(add!));
+    create?.onClick?.();
+    expect(onCreate).toHaveBeenCalledTimes(1);
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
+  it('same-sense/unknown: add-scene is PRIMARY, create-card secondary', () => {
+    for (const sense of ['same-sense', 'unknown'] as const) {
+      vi.clearAllMocks();
+      const onAdd = vi.fn();
+      const onCreate = vi.fn();
+      showCardReused('other-context', 'run', onAdd, sense, 'correr', 'correr', onCreate);
+      const { buttons } = renderNotice();
+      const add = buttons.find((b) => b.text.includes('Añadir esta escena'));
+      const create = buttons.find((b) => b.text.includes('Crear tarjeta'));
+      expect(add).toBeDefined();
+      expect(create).toBeDefined();
+      expect(buttons.indexOf(add!)).toBeLessThan(buttons.indexOf(create!));
+      add?.onClick?.();
+      expect(onAdd).toHaveBeenCalledTimes(1);
+    }
+  });
 });

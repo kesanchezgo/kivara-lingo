@@ -84,7 +84,7 @@ export interface SubtitleOverlayProps {
    * `lineIndex` names the member line of a combined (overlapping) cue that
    * holds the token; omitted means "save the whole set" — a selection or the
    * full plate. */
-  onSaveCard: (token: string | undefined, sentence: string, lineIndex?: number) => Promise<CreateCardResponse>;
+  onSaveCard: (token: string | undefined, sentence: string, lineIndex?: number, contextGloss?: string) => Promise<CreateCardResponse>;
   /** "See in Anki" for a saved token (F4). */
   onSeeInAnki?: (token: string) => void;
   /** "Add this scene" to the note a saved token already has (F4). `kind` is
@@ -654,13 +654,13 @@ export function SubtitleOverlay({
     return null;
   };
 
-  const handleSaveToken = (token: string, lineIndex?: number) => {
+  const handleSaveToken = (token: string, lineIndex?: number, contextGloss?: string) => {
     if (capturing) return; // one card at a time
     // The frame must contain the video + its subtitle only: close the card
     // and the selection before the shutter fires.
     clearLookup();
     setIsHovered(false);
-    void onSaveCard(token, targetSentence, lineIndex).then((result) => {
+    void onSaveCard(token, targetSentence, lineIndex, contextGloss).then((result) => {
       if (result?.ok) {
         // The saved-word cache is lemma-keyed — an inflected surface must
         // paint as saved under its dictionary form ("running" -> "run").
@@ -1210,9 +1210,9 @@ export function SubtitleOverlay({
                           });
                           setHoveredKey(null);
                         }}
-                        onSave={(e, value) => {
+                        onSave={(e, value, gloss) => {
                           e.stopPropagation();
-                          handleSaveToken(value, lineForToken(i));
+                          handleSaveToken(value, lineForToken(i), gloss);
                         }}
                         onSeeInAnki={onSeeInAnki
                           ? (e) => { e.stopPropagation(); onSeeInAnki(tok.key); }

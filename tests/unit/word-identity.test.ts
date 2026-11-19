@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-  lemmaTag, lemmaTagFragment, normalizeIdentityKey, wordIdentity,
+  classifySense, lemmaTag, lemmaTagFragment, normalizeIdentityKey, senseTag, wordIdentity,
 } from '../../src/shared/word-identity';
 
 describe('normalizeIdentityKey', () => {
@@ -69,5 +69,23 @@ describe('lemmaTag', () => {
     expect(lemmaTagFragment("give up")).toBe('give-up');
     expect(lemmaTag("rock'n'roll")).toBe("kivara::lemma::rock'n'roll");
     expect(lemmaTag('a_b*')).toBe('kivara::lemma::a_b*');
+  });
+});
+
+describe('sense classification', () => {
+  it('shared gloss -> same-sense, disjoint glosses -> new-sense', () => {
+    expect(classifySense('correr', 'correr')).toBe('same-sense');
+    expect(classifySense('dirigir', 'correr')).toBe('new-sense');
+    expect(classifySense('to run; correr', 'correr')).toBe('same-sense');
+  });
+
+  it('missing information -> unknown', () => {
+    expect(classifySense(undefined, 'correr')).toBe('unknown');
+    expect(classifySense('dirigir', '')).toBe('unknown');
+  });
+
+  it('sense tags encode the normalized gloss', () => {
+    expect(senseTag('to run')).toBe('kivara::sense::to-run');
+    expect(senseTag('Dirigir')).toBe('kivara::sense::dirigir');
   });
 });

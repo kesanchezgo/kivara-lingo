@@ -80,6 +80,41 @@ export function lemmaTag(key: string): string {
 }
 
 /**
+ * Normalized sense/gloss used for comparison AND as the Anki tag fragment.
+ * Glosses that differ only by case/apostrophes/whitespace collapse to one
+ * sense; the tag keeps the normalized text with spaces -> '-'.
+ */
+function normalizeSenseGloss(gloss: string): string {
+  return normalizeIdentityKey(gloss).replace(/\s+/g, '-');
+}
+
+/** Full sense tag: kivara::sense::<normalized gloss>. */
+export function senseTag(gloss: string): string {
+  return `kivara::sense::${normalizeSenseGloss(gloss)}`;
+}
+
+/**
+ * Sense classification from two glosses (already normalized for comparison).
+ * Two senses are the SAME when they share at least one normalized gloss;
+ * DIFFERENT when both are known and disjoint; UNKNOWN when either is missing.
+ */
+export function classifySense(
+  contextGloss: string | undefined,
+  storedGloss: string | undefined,
+): 'new-sense' | 'same-sense' | 'unknown' {
+  const ctx = (contextGloss ?? '').trim().toLowerCase();
+  const stored = (storedGloss ?? '').trim().toLowerCase();
+  if (!ctx || !stored) return 'unknown';
+  if (ctx === stored) return 'same-sense';
+  // A gloss can list several meanings separated by ';' or '/' — any shared
+  // meaning makes them the same sense.
+  const parts = (s: string) => s.split(/[;,/]/).map((x) => x.trim()).filter(Boolean);
+  const ctxParts = parts(ctx);
+  const storedParts = parts(stored);
+  return ctxParts.some((p) => storedParts.includes(p)) ? 'same-sense' : 'new-sense';
+}
+
+/**
  * Derive the identity. Priority:
  *   1. explicit dictionary lemma (authoritative citation form)
  *   2. Yomitan-flagged candidate (pack headword)
