@@ -80,6 +80,8 @@ export interface E2EBoxes {
   tokens: Array<E2EBox & { text: string; status?: string }>;
   /** The word card's own box ([role="dialog"]), when it is open. */
   card: E2EBox | null;
+  /** The word card's full text — lets specs wait for the gloss to resolve. */
+  cardText?: string;
 }
 
 /** Raw hit as the publisher writes it (`x`/`y` are already the centre). */

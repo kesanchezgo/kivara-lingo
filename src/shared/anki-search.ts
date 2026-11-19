@@ -74,7 +74,7 @@ export function buildIdentityNoteQuery(opts: {
   const surface = (opts.surface ?? '').trim() || key;
   const tag = lemmaTag(key);
   const clauses = [
-    `tag:${escapeAnkiSearchTerm(tag)}`,
+    `"tag:${escapeAnkiSearchTerm(tag)}"`,
     `"${escapeAnkiSearchTerm(field)}:${escapeAnkiSearchTerm(surface)}"`,
   ];
   if (surface !== key) {

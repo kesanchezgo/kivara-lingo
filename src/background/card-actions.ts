@@ -16,6 +16,8 @@ import type {
   AnkiMapping,
 } from '../shared/types';
 import { buildIdentityNoteQuery, escapeAnkiSearchTerm } from '../shared/anki-search';
+import { htmlToPlain } from '../shared/anki-text';
+import { lemmaFromTags, lemmaTagVariants } from '../shared/word-identity';
 import { LEGACY_CARD_TAG } from '../shared/cards';
 import { TAG_ROOT } from '../shared/study/cardTags';
 import { ankiConnect, AnkiConnectError, dataUrlToBase64, type AnkiNoteInfo } from './anki-connect';
@@ -32,17 +34,8 @@ function escapeHtml(text: string): string {
 
 /** Strip Anki's HTML before comparing note text with a plain sentence. */
 function plainText(raw: string): string {
-  return raw
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&#\d+;/g, ' ')
-    .replace(/\[sound:[^\]]*\]/gi, ' ')
+  return htmlToPlain(raw)
     .replace(/\s+([.,;:!?])/g, '$1')
-    .replace(/\s+/g, ' ')
-    .trim()
     .toLowerCase();
 }
 
@@ -356,11 +349,19 @@ export async function wordIntervals(
     const words: Record<string, number> = {};
     for (const note of notes) {
       // Lemma tag is the identity key on notes written with this scheme;
-      // older notes fall back to the headword field.
-      const lemma = (note.tags ?? []).find((tag) => tag.startsWith('kivara::lemma::'));
-      const word = lemma
-        ? lemma.slice('kivara::lemma::'.length).replace(/-/g, ' ')
-        : headwordOf(note.fields, fieldName);
+      // older notes fall back to the headword field. BOTH variants (spaced
+      // and hyphenated) are registered so either spelling finds the word.
+      const lemmaKey = lemmaFromTags(note.tags);
+      if (lemmaKey) {
+        const cards = Array.isArray(note?.cards) ? note.cards : [];
+        const days = cards.some((id) => mature.has(id)) ? MATURE_DAYS : SEEN_DAYS;
+        for (const variant of lemmaTagVariants(lemmaKey)) {
+          const previous = words[variant];
+          if (previous === undefined || days > previous) words[variant] = days;
+        }
+        continue;
+      }
+      const word = headwordOf(note.fields, fieldName);
       if (!word) continue;
       const cards = Array.isArray(note?.cards) ? note.cards : [];
       // EVERY note in the deck enters the map: a word the deck holds is in

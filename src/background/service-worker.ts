@@ -66,7 +66,10 @@ import {
 import { translateText } from './translate';
 import { speak } from './tts';
 import { enrichWithAi } from './ai-enrich';
-import { resolveWordStreaming } from './resolve-word';
+import { resolveLocalEntry, resolveWordStreaming } from './resolve-word';
+import { lemmaFromTags, lemmaTagVariants } from '../shared/word-identity';
+import { htmlToPlain } from '../shared/anki-text';
+import type { ResolveWordLocalResponse } from '../shared/types';
 import { installResolveWordPort } from './enrichment/stream';
 import { getVipSettings, loadTranslateTargetLang } from './vip-settings';
 import { clearEnrichmentCache, clearMemEnrichmentCache, getEnrichmentSourceHealth, probeEnrichmentSource, seedEnrichmentSourceHealth } from './enrichment/orchestrator';
@@ -739,15 +742,15 @@ onMessage('ANKI_SAVED_WORDS', async ({ data }) => {
         // New notes carry kivara::lemma::<key>: use it as the identity key so
         // "running" and "run" resolve to the same saved word. Older notes
         // without the tag fall back to the (lowercased) surface field.
-        const lemmaTag = (n.tags ?? []).find((tag) => tag.startsWith('kivara::lemma::'));
-        if (lemmaTag) return lemmaTag.slice('kivara::lemma::'.length).replace(/-/g, ' ');
+        // BOTH variants (spaced and hyphenated) are published so either
+        // spelling of a hyphenated lemma matches the overlay's token keys.
+        const lemmaKey = lemmaFromTags(n.tags);
+        if (lemmaKey) return lemmaTagVariants(lemmaKey);
         const field = n.fields[fieldName] ?? Object.values(n.fields)[0];
-        // Strip HTML (<img>, <b>, [sound:]) — Anki fields carry markup and
-        // the overlay compares plain lowercase tokens.
-        const raw = field?.value ?? '';
-        const text = raw.replace(/<[^>]*>/g, ' ').replace(/\[sound:[^\]]*\]/gi, ' ');
+        const text = htmlToPlain(field?.value ?? '');
         return text.toLowerCase().trim();
       })
+      .flat()
       .filter(Boolean);
     savedWordsCache.set(cacheKey, { words, at: Date.now() });
     return asJson({ words });
@@ -948,6 +951,17 @@ onMessage(
 // Reuses the SAME phased resolver as the stream so quality never diverges — it
 // just collects every emit into a waves[] array and maps the stream phases back
 // onto the legacy wave shape.
+// Light local-only resolution: Yomitan packs + bundled dictionary, no
+// remote chain — the save-time gloss must never wait on the network.
+onMessage('RESOLVE_WORD_LOCAL', async ({ data }) => {
+  const req = data as { token?: string; sourceLang?: string };
+  const { entry } = await resolveLocalEntry(
+    String(req?.token ?? ''),
+    String(req?.sourceLang ?? 'en'),
+  );
+  return asJson({ ok: true, entry } satisfies ResolveWordLocalResponse);
+});
+
 onMessage('RESOLVE_WORD', async ({ data }) => {
   const req = data as unknown as ResolveWordRequest;
   const waves: ResolveWordWave[] = [];

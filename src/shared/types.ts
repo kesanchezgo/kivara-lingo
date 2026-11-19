@@ -704,6 +704,16 @@ export type AiExplainResponse =
   | { ok: true; data: SentenceExplanation; cached?: boolean }
   | { ok: false; error: string; cached?: boolean };
 
+/** Light local-only resolution: packs + bundled dictionary, nothing remote. */
+export interface ResolveWordLocalRequest {
+  token: string;
+  sourceLang: string;
+}
+export interface ResolveWordLocalResponse {
+  ok: true;
+  entry: DictionaryEntry | null;
+}
+
 /** Streaming-style resolution for the WordPopover */
 export interface ResolveWordRequest {
   token: string;

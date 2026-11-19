@@ -85,12 +85,36 @@ export function lemmaTag(key: string): string {
  * sense; the tag keeps the normalized text with spaces -> '-'.
  */
 function normalizeSenseGloss(gloss: string): string {
-  return normalizeIdentityKey(gloss).replace(/\s+/g, '-');
+  // Double quotes (straight or curly) never carry meaning in a gloss.
+  return normalizeIdentityKey(String(gloss ?? '').replace(/["“”]/g, ''))
+    .replace(/\s+/g, '-');
 }
 
 /** Full sense tag: kivara::sense::<normalized gloss>. */
 export function senseTag(gloss: string): string {
   return `kivara::sense::${normalizeSenseGloss(gloss)}`;
+}
+
+/**
+ * Boundary cleaning for a contextual gloss: blank, "-" and the "—" placeholder
+ * mean NO gloss — never a sense tag shaped `kivara::sense::-`.
+ */
+export function normalizeContextGloss(value: string | undefined | null): string | undefined {
+  const t = String(value ?? '').trim();
+  return t && t !== '—' && t !== '-' ? t : undefined;
+}
+
+/** Decode the lemma key carried by a note's kivara::lemma:: tag (spaced). */
+export function lemmaFromTags(tags: readonly string[] | undefined | null): string | null {
+  const tag = (tags ?? []).find((t) => t.startsWith('kivara::lemma::'));
+  return tag ? tag.slice('kivara::lemma::'.length).replace(/-/g, ' ') : null;
+}
+
+/** BOTH forms of a lemma key: spaced AND hyphenated (tags cannot hold spaces). */
+export function lemmaTagVariants(key: string): string[] {
+  const k = normalizeIdentityKey(key);
+  if (!k) return [];
+  return [...new Set([k, k.replace(/\s+/g, '-'), k.replace(/-/g, ' ')])];
 }
 
 /** The save path a card came from — it decides phrase-level treatment. */

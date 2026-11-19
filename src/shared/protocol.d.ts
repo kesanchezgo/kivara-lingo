@@ -16,6 +16,8 @@ import type {
   AiEnrichResponse,
   AiExplainRequest,
   AiExplainResponse,
+  ResolveWordLocalRequest,
+  ResolveWordLocalResponse,
   ResolveWordRequest,
   ResolveWordResponse,
   EnrichSourceHealthMap,
@@ -95,5 +97,6 @@ declare module 'webext-bridge' {
     ENRICH_SOURCE_HEALTH: ProtocolWithReturn<Record<string, never>, EnrichSourceHealthMap>;
     OPEN_SETTINGS: ProtocolWithReturn<{ section?: string }, { ok: boolean }>;
     RESOLVE_WORD: ProtocolWithReturn<ResolveWordRequest, ResolveWordResponse>;
+    RESOLVE_WORD_LOCAL: ProtocolWithReturn<ResolveWordLocalRequest, ResolveWordLocalResponse>;
   }
 }
