@@ -11,7 +11,8 @@ import type {
 } from '../shared/types';
 import { DEFAULT_CAPTURE } from '../shared/store';
 import { ankiConnect, dataUrlToBase64, AnkiConnectError } from './anki-connect';
-import { buildExactNoteQuery } from '../shared/anki-search';
+import { buildExactNoteQuery, buildIdentityNoteQuery } from '../shared/anki-search';
+import { lemmaTag } from '../shared/word-identity';
 import {
   buildCardTags,
   cardSourceFromMedia,
@@ -482,15 +483,33 @@ async function findExistingByWord(
     const wordField = Object.entries(mapping.fieldSources ?? {}).find(
       ([, s]) => s === 'selection',
     )?.[0] ?? 'Front';
-    const query = buildExactNoteQuery({
+    const key = (request.identityKey ?? '').trim().toLowerCase()
+      || request.token.trim().toLowerCase();
+    const query = buildIdentityNoteQuery({
       deckName: deck,
       modelName: mapping.modelName,
       fieldName: wordField,
-      value: request.token.toLowerCase(),
+      identityKey: key,
+      surface: (request.surface ?? request.token).trim().toLowerCase(),
     });
     if (!query) return null;
     const found = await ankiConnect.findNotes(query, mapping.ankiUrl, mapping.apiKey);
     if (found.length === 0) return null;
+
+    // Old notes predate the lemma tag but carry a kivara tag. Backfill the
+    // lemma tag (idempotent, only on OUR notes) so future searches unify.
+    const tag = lemmaTag(key);
+    try {
+      const infos = await ankiConnect.notesInfo(found.slice(0, 5), mapping.ankiUrl, mapping.apiKey);
+      for (const info of infos) {
+        const ourTags = (info.tags ?? []).some(
+          (x) => x === 'kivara-lingo' || x.startsWith('kivara::'),
+        );
+        if (info.noteId != null && ourTags && !(info.tags ?? []).includes(tag)) {
+          await ankiConnect.addTags([tag], [info.noteId], mapping.ankiUrl, mapping.apiKey);
+        }
+      }
+    } catch { /* backfill is best-effort; the note is still reused */ }
     return { ok: true, noteId: found[0], warnings: [] };
   } catch {
     return null; // Anki unreachable for the check → proceed with the add
@@ -570,6 +589,29 @@ async function findExistingCard(
   return null;
 }
 
+/**
+ * Reuse classification only: does an ALREADY-FOUND note carry this sentence?
+ * No search, no ledger write — findExistingByWord already resolved the note
+ * by identity, so we just read its cue field. Used before any translation/AI.
+ */
+async function hasSameContext(
+  noteId: number,
+  request: CreateCardRequest,
+  mapping: AnkiMapping,
+): Promise<boolean> {
+  const cueField = Object.entries(mapping.fieldSources ?? {}).find(
+    ([, s]) => s === 'cue',
+  )?.[0];
+  if (!cueField) return true; // no mapped cue — nothing to compare
+  try {
+    const infos = await ankiConnect.notesInfo([noteId], mapping.ankiUrl, mapping.apiKey);
+    const want = normalizeFieldForCompare(request.sentence);
+    return infos.some((n) => normalizeFieldForCompare(n.fields[cueField]?.value ?? '') === want);
+  } catch {
+    return false; // can't verify → treat as a different scene (offer add-scene)
+  }
+}
+
 export async function createCardFromRequest(
   request: CreateCardRequest,
   mapping: AnkiMapping,
@@ -592,7 +634,13 @@ export async function createCardFromRequest(
   const lang = requestLang(request);
   const kind = requestKind(request);
   const source = cardSourceFromMedia(request.media);
-  const tags = buildCardTags(kind, request.media, lang);
+  const baseTags = buildCardTags(kind, request.media, lang);
+  const identityKeyValue = (request.identityKey ?? '').trim().toLowerCase();
+  // New notes carry the lemma tag. A note's identity is the lemma, not the
+  // surface, so "ran" and "run" share this tag and future lookups unify.
+  const tags = identityKeyValue
+    ? [...new Set([...baseTags, lemmaTag(identityKeyValue)])]
+    : baseTags;
   const deck = (request.deck ?? '').trim() || mapping.deckName;
 
   /** What the note actually carries, filled while the media sections run. */
@@ -665,10 +713,13 @@ export async function createCardFromRequest(
   if (!options.fromRetry) {
     const existingWord = await findExistingByWord(request, mapping, deck);
     if (existingWord) {
-      // Which context? Reuse the exact token+sentence+deck helper. A hit means
-      // the word already has a note for THIS sentence; a miss means the word
-      // exists but with a different sentence (the UI offers "add this scene").
-      const sameContext = await findExistingCard(request, mapping, deck);
+      // Which context? The note is already resolved by identity; just read
+      // its cue field. A hit means the word already has a note for THIS
+      // sentence; a miss means another form/sense of the same lemma in a
+      // different sentence (the UI offers "add this scene").
+      const sameContext = existingWord.noteId != null
+        ? await hasSameContext(existingWord.noteId, request, mapping)
+        : false;
       return {
         ok: true,
         noteId: existingWord.noteId,

@@ -10,7 +10,7 @@
  *  - a retry that cannot recover the blobs saves an HONEST registry row.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { escapeAnkiSearchTerm, buildExactNoteQuery } from '../../src/shared/anki-search';
+import { escapeAnkiSearchTerm, buildExactNoteQuery, buildIdentityNoteQuery } from '../../src/shared/anki-search';
 import { RECENT_CARDS_KEY, hasAudio, hasFrame, type RecentCard } from '../../src/shared/cards';
 
 /** chrome.storage.local over a plain map, so the SW registry can be asserted. */
@@ -57,29 +57,54 @@ describe('shared anki-search helpers', () => {
     expect(buildExactNoteQuery({ deckName: 'D', value: '' })).toBeNull();
     expect(buildExactNoteQuery({})).toBeNull();
   });
+
+  it('builds a lemma-tag OR surface OR key query, escaping every term', () => {
+    const q = buildIdentityNoteQuery({
+      deckName: 'My "Deck"', modelName: 'Basic', fieldName: 'Front',
+      identityKey: "rock'n'roll", surface: "Rock’n’Roll",
+    });
+    expect(q).toContain('deck:"My \\"Deck\\""');
+    expect(q).toContain('note:"Basic"');
+    expect(q).toContain('tag:kivara::lemma::rock\'n\'roll');
+    expect(q).toContain('"Front:Rock’n’Roll"');
+    expect(q).not.toBeNull();
+  });
+
+  it('skips the duplicate key clause when surface equals key', () => {
+    const q = buildIdentityNoteQuery({ deckName: 'D', identityKey: 'run', surface: 'run' });
+    expect(q).toContain('tag:kivara::lemma::run');
+    expect(q).toMatch(/"Front:run"/g);
+    expect(q?.match(/"Front:run"/g)).toHaveLength(1);
+  });
+
+  it('returns null without a deck or identity key', () => {
+    expect(buildIdentityNoteQuery({ identityKey: 'run' })).toBeNull();
+    expect(buildIdentityNoteQuery({ deckName: 'D' })).toBeNull();
+  });
 });
 
 /** Wire all module mocks the orchestrator pulls in. Returns the spies. */
 function setupMocks(opts: {
   findNotesIds?: number[];
-  notesInfos?: Array<{ noteId: number; fields: Record<string, { value: string }> }>;
+  notesInfos?: Array<{ noteId: number; fields: Record<string, { value: string }>; tags?: string[] }>;
   addNoteImpl?: () => Promise<number>;
   /** What `translateToken` resolves to (dictionary bucket, examples, …). */
   tokenResult?: Record<string, unknown>;
   /** What `runEnrichment` resolves to (VIP media, video links, …). */
   enriched?: { entry?: unknown; vip?: Record<string, unknown> };
 } = {}) {
-  const addNote = vi.fn<(note: { deckName: string; modelName: string; fields?: Record<string, string> }) => Promise<number>>(
+  const addNote = vi.fn<(note: { deckName: string; modelName: string; fields?: Record<string, string>; tags?: string[] }) => Promise<number>>(
     opts.addNoteImpl ?? (async () => 123),
   );
   const findNotes = vi.fn<(query: string) => Promise<number[]>>(async () => opts.findNotesIds ?? []);
   const notesInfo = vi.fn(async () => opts.notesInfos ?? []);
+  const addTags = vi.fn(async () => null);
   const storeMediaFile = vi.fn(async (filename: string) => filename);
   const ledgerPut: unknown[][] = [];
   const translateCalls = { n: 0 };
 
   vi.doMock('../../src/background/anki-connect', () => ({
-    ankiConnect: { addNote, findNotes, notesInfo, storeMediaFile },
+    ankiConnect: { addNote, findNotes, notesInfo, addTags, storeMediaFile },
     dataUrlToBase64: (s: string) => s,
     AnkiConnectError: class extends Error {},
   }));
@@ -140,7 +165,7 @@ function setupMocks(opts: {
     loadTranslateTargetLang: async () => 'es',
   }));
 
-  return { addNote, findNotes, notesInfo, storeMediaFile, ledgerPut, translateCalls };
+  return { addNote, findNotes, notesInfo, addTags, storeMediaFile, ledgerPut, translateCalls };
 }
 
 describe('case-insensitive duplicate on a FIRST save', () => {
@@ -211,6 +236,85 @@ describe('case-insensitive duplicate on a FIRST save', () => {
       expect(res.reused).toBe('same-context');
       expect(m.addNote).not.toHaveBeenCalled();
       expect(m.translateCalls.n).toBe(0);
+    },
+  );
+
+  it(
+    'saving "ran" with identityKey=run reuses a pre-existing "run" note, no add/translation/ledger',
+    { timeout: 20_000 },
+    async () => {
+      const m = setupMocks({
+        findNotesIds: [4242],
+        notesInfos: [{ noteId: 4242, fields: { Front: { value: 'run' }, Sentence: { value: 'He runs.' } }, tags: ['kivara-lingo'] }],
+      });
+      m.addNote.mockImplementation(async () => { throw new Error('should not add a note'); });
+      const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+      const mapping = {
+        deckName: 'English vocab', modelName: 'Basic',
+        fieldSources: { Front: 'selection', Sentence: 'cue' },
+      };
+      const res = await createCardFromRequest({
+        token: 'ran', sentence: 'He ran fast.', language: 'en', deck: 'English vocab',
+        identityKey: 'run', surface: 'ran',
+      } as never, mapping as never, undefined as never);
+      expect(res.ok).toBe(true);
+      expect(res.noteId).toBe(4242);
+      expect(res.reused).toBe('other-context');
+      expect(m.addNote).not.toHaveBeenCalled();
+      expect(m.translateCalls.n).toBe(0);
+      expect(m.ledgerPut).toHaveLength(0);
+      // The query targets the lemma, and the old kivara note gets the lemma
+      // tag backfilled (idempotently, only on our note).
+      const queries = m.findNotes.mock.calls.map((c) => String(c[0]));
+      expect(queries.some((q) => q.includes('tag:kivara::lemma::run'))).toBe(true);
+      expect(m.addTags.mock.calls[0].slice(0, 2)).toEqual([['kivara::lemma::run'], [4242]]);
+    },
+  );
+
+  it(
+    'the lemma tag is backfilled ONLY on kivara notes, never on a foreign note',
+    { timeout: 20_000 },
+    async () => {
+      const m = setupMocks({
+        findNotesIds: [900, 901],
+        notesInfos: [
+          { noteId: 900, fields: { Front: { value: 'run' } }, tags: ['foreign'] },
+          { noteId: 901, fields: { Front: { value: 'run' } }, tags: ['kivara::lang::en'] },
+        ],
+      });
+      const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+      const mapping = {
+        deckName: 'English vocab', modelName: 'Basic',
+        fieldSources: { Front: 'selection', Sentence: 'cue' },
+      };
+      await createCardFromRequest({
+        token: 'ran', sentence: 'He ran.', language: 'en', deck: 'English vocab',
+        identityKey: 'run', surface: 'ran',
+      } as never, mapping as never, undefined as never);
+      expect(m.addTags).toHaveBeenCalledTimes(1);
+      expect(m.addTags.mock.calls[0].slice(0, 2)).toEqual([['kivara::lemma::run'], [901]]);
+    },
+  );
+
+  it(
+    'a new note with identityKey carries the kivara::lemma tag',
+    { timeout: 20_000 },
+    async () => {
+      const m = setupMocks({ findNotesIds: [] });
+      m.addNote.mockResolvedValue(123);
+      const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+      const mapping = {
+        deckName: 'English vocab', modelName: 'Basic',
+        fieldSources: { Front: 'selection', Sentence: 'cue' },
+      };
+      await createCardFromRequest({
+        token: 'running', sentence: 'He is running.', language: 'en', deck: 'English vocab',
+        identityKey: 'run', surface: 'running',
+      } as never, mapping as never, undefined as never);
+      expect(m.addNote).toHaveBeenCalledTimes(1);
+      const note = m.addNote.mock.calls[0][0];
+      expect(note.tags).toContain('kivara::lemma::run');
+      expect(note.tags).toContain('kivara-lingo');
     },
   );
 

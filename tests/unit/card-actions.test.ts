@@ -231,11 +231,25 @@ describe('addContextToNote (Add this scene)', () => {
     const res = await addContextToNote({ token: 'sane', sentence: 'Another line.', tags: [] }, MAPPING as never);
     expect(res).toMatchObject({ ok: true, noteId: 77 });
     expect(spies.findCards).toHaveBeenCalledWith(
-      'deck:"English vocabulary" note:"KivaraLingo" "word:sane"',
+      'deck:"English vocabulary" note:"KivaraLingo" (tag:kivara::lemma::sane OR "word:sane")',
       MAPPING.ankiUrl,
       undefined,
     );
     expect(spies.cardsInfo).toHaveBeenCalledWith([55], MAPPING.ankiUrl, undefined);
+  });
+
+  it('resolves the SAME note for an inflected form via identityKey', async () => {
+    const spies = setup();
+    const { addContextToNote } = await import('../../src/background/card-actions');
+    const res = await addContextToNote({
+      token: 'running', identityKey: 'run', surface: 'running',
+      sentence: 'He is running.', tags: [],
+    }, MAPPING as never);
+    expect(res).toMatchObject({ ok: true, noteId: 77 });
+    const query = String(spies.findCards.mock.calls[0][0]);
+    expect(query).toContain('tag:kivara::lemma::run');
+    expect(query).toContain('"word:running"');
+    expect(query).toContain('"word:run"');
   });
 
   it('writes the fields before the tags', async () => {

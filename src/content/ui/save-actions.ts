@@ -56,6 +56,10 @@ export interface SceneContext {
   tags: string[];
   /** Where the scene comes from, for the "already in your deck" copy. */
   origin?: CardSource;
+  /** Canonical lemma key (takes precedence over `token` for note lookup). */
+  identityKey?: string;
+  /** Normalized surface form for the identity OR query. */
+  surface?: string;
 }
 
 /** Frame + sentence audio captured for a scene. Both are optional by design. */
@@ -238,6 +242,8 @@ export async function addSceneToNote(
     deck: ctx.deck,
     fieldName: ctx.fieldName,
     tags: ctx.tags,
+    identityKey: ctx.identityKey,
+    surface: ctx.surface,
     frame: media.frame,
     audio: media.audio,
   };
