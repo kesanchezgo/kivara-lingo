@@ -43,6 +43,11 @@ export interface RecentCard {
   source?: CardSource;
   /** What media the note carries — booleans only, never the blobs (H4). */
   media?: { frame: boolean; audio: boolean; word?: boolean };
+  /** Identity fields carried for the retry's minimal request rebuild. */
+  identityKey?: string;
+  surface?: string;
+  contextGloss?: string;
+  phraseLevel?: boolean;
 }
 
 export const RECENT_CARDS_KEY = 'kvl:cards.recent';
@@ -125,6 +130,10 @@ export interface NewRecentCard {
   source?: CardSource;
   media?: RecentCard['media'];
   createdAt?: number;
+  identityKey?: string;
+  surface?: string;
+  contextGloss?: string;
+  phraseLevel?: boolean;
 }
 
 /** A fresh registry record, already in the `sending` state. */
@@ -142,6 +151,10 @@ export function newRecentCard(input: NewRecentCard): RecentCard {
     tags: input.tags,
     source: input.source,
     media: input.media,
+    identityKey: input.identityKey,
+    surface: input.surface,
+    contextGloss: input.contextGloss,
+    phraseLevel: input.phraseLevel,
   };
 }
 

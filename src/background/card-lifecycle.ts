@@ -23,7 +23,7 @@ import { getDB } from '../shared/db';
 import { profileLangOf, removeAnkiWord } from '../shared/study/wordStatus';
 import { cardRegistry } from './card-registry';
 import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator';
-import { deleteNote, noteOwnership } from './card-actions';
+import { deleteNote } from './card-actions';
 
 function mappingForCard(mapping: AnkiMapping, card: RecentCard): AnkiMapping {
   return {
@@ -104,6 +104,10 @@ export async function retryCard(
     language: card.lang,
     deck: card.deck,
     media: mediaForCard(card),
+    identityKey: card.identityKey,
+    surface: card.surface,
+    contextGloss: card.contextGloss,
+    phraseLevel: card.phraseLevel,
   };
   const mediaLost = card.media?.frame === true || card.media?.audio === true;
   const result = await createCardFromRequest(request, effective, capture, { fromRetry: true });
@@ -192,36 +196,27 @@ export async function undoDeleteNote(
   mapping: AnkiMapping,
   options: { origin?: 'undo'; cardId?: string } = {},
 ): Promise<AnkiDeleteNoteResponse> {
+  // STRICT, ALWAYS (not opt-in): only a saved registry row proves the note
+  // was created — not reused, not merely tagged — by this installation. The
+  // row must own the noteId, and the noteId must be fresh relative to the
+  // row: Anki note ids are creation timestamps, so a noteId far older than
+  // the row means the note existed long before this save claimed it.
   const known = await cardRegistry.findByNoteId(noteId);
-  if (options.origin === 'undo') {
-    // Defense in depth: every UI Undo names the save that created the note.
-    // Only a registry row with THAT id, that noteId and status 'saved' proves
-    // the note was created (not reused) by this request. A kivara tag alone
-    // is NOT enough here — reused notes carry our tags too.
-    const created = options.cardId
-      ? await cardRegistry.get(options.cardId)
-      : undefined;
-    if (!created || created.noteId !== noteId || created.status !== 'saved') {
-      return { ok: false, error: t('cards.undoNotCreated') };
-    }
+  const row = known
+    ?? (options.cardId ? await cardRegistry.get(options.cardId) : undefined);
+  if (!row || row.noteId !== noteId || row.status !== 'saved') {
+    return { ok: false, error: t('cards.undoNotCreated') };
   }
-  if (!known) {
-    const ownership = await noteOwnership(noteId, mapping);
-    if (ownership === 'foreign') {
-      return { ok: false, error: t('cards.noteForeign') };
-    }
-    if (ownership === 'unreadable') {
-      return { ok: false, error: t('cards.noteOwnershipUnreadable') };
-    }
-    if (ownership === 'gone') {
-      // Nothing left to delete. No registry row and no word to clear either.
-      return { ok: true, gone: true };
-    }
+  if (options.cardId && row.id !== options.cardId) {
+    return { ok: false, error: t('cards.undoNotCreated') };
+  }
+  if (noteId < row.createdAt - 5 * 60_000) {
+    return { ok: false, error: t('cards.undoNotCreated') };
   }
   const result = await deleteNote(noteId, mapping);
   if (result.ok) {
     await cardRegistry.removeByNoteId(noteId);
-    if (known) removeAnkiWord(profileLangOf(known.lang), known.word);
+    removeAnkiWord(profileLangOf(row.lang), row.word);
   }
   return result;
 }

@@ -91,7 +91,12 @@ function startFakeAnki(port: number, log: AnkiLog, opts: FakeAnkiOptions): Promi
         result = wanted.some((w) => new RegExp(w, 'i').test(query)) ? [99] : [];
       }
       else if (action === 'cardsInfo') result = [{ cardId: 99, noteId: EXISTING_NOTE_ID }];
-      else if (action === 'addNote') { log.added += 1; result = 999999; }
+      else if (action === 'addNote') {
+        // Anki note ids are creation timestamps: mimic that so the Undo
+        // freshness guard accepts the freshly created note.
+        log.added += 1;
+        result = Date.now();
+      }
       else if (action === 'deleteNotes') { log.deleted.push(...((params.notes as number[]) ?? [])); result = null; }
       else if (action === 'updateNoteFields') { log.updated.push(EXISTING_NOTE_ID); result = null; }
       else if (action === 'addTags' || action === 'storeMediaFile') result = null;
@@ -538,7 +543,7 @@ test('fresh save then Deshacer: deleteNotes [id] and the saved notice closes', a
         const text = (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '';
         if (!text.includes('Tarjeta guardada')) break;
       }
-      await expect.poll(() => log.deleted, { timeout: 15_000 }).toEqual([999999]);
+      await expect.poll(() => log.deleted, { timeout: 15_000 }).toHaveLength(1);
       expect((await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '').not.toContain('Tarjeta guardada');
     } finally {
       await page.close();

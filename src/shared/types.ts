@@ -1102,6 +1102,11 @@ export interface CreateCardRequest {
   /** Part of speech from the contextual resolver, when available. */
   pos?: string;
   /**
+   * Set with forceNewSense: the sense-tag dedup already ran, so no further
+   * duplicate veto (exact-note retry check) may block the explicit create.
+   */
+  allowDuplicate?: boolean;
+  /**
    * Explicit user click on "create a card for THIS meaning". Skips lemma
    * reuse, but reuses a note already carrying the SAME lemma + sense tags.
    */
