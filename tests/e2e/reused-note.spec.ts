@@ -28,6 +28,8 @@ interface AnkiLog {
   actions: string[];
   queries: string[];
   added: number;
+  addedIds: number[];
+  addedNotes: Array<{ fields: Record<string, string>; tags?: string[] }>;
   deleted: number[];
   updated: number[];
 }
@@ -95,7 +97,10 @@ function startFakeAnki(port: number, log: AnkiLog, opts: FakeAnkiOptions): Promi
         // Anki note ids are creation timestamps: mimic that so the Undo
         // freshness guard accepts the freshly created note.
         log.added += 1;
-        result = Date.now();
+        const note = (params.note as { fields?: Record<string, string>; tags?: string[] }) ?? {};
+        log.addedIds.push(Date.now());
+        log.addedNotes.push({ fields: note.fields ?? {}, tags: note.tags });
+        result = log.addedIds[log.addedIds.length - 1];
       }
       else if (action === 'deleteNotes') { log.deleted.push(...((params.notes as number[]) ?? [])); result = null; }
       else if (action === 'updateNoteFields') { log.updated.push(EXISTING_NOTE_ID); result = null; }
@@ -211,7 +216,7 @@ async function openPage(context: import('@playwright/test').BrowserContext, ttml
 
 test('saving STEVE over an existing steve note: no Undo, add-scene offered, old note survives', async ({ context, serviceWorker }) => {
   test.setTimeout(120_000);
-  const log: AnkiLog = { actions: [], queries: [], added: 0, deleted: [], updated: [] };
+  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [] };
   const PORT = 18766;
   const server = await startFakeAnki(PORT, log, { word: 'steve' });
   try {
@@ -267,7 +272,7 @@ test('saving STEVE over an existing steve note: no Undo, add-scene offered, old 
 
 test('saving "running" over a pre-existing lemma "run" note reuses it and add-scene attaches to that SAME note', async ({ context, serviceWorker }) => {
   test.setTimeout(120_000);
-  const log: AnkiLog = { actions: [], queries: [], added: 0, deleted: [], updated: [] };
+  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [] };
   const PORT = 18767;
   const RUN_TTML = `<?xml version="1.0" encoding="utf-8"?>
 <tt xmlns="http://www.w3.org/ns/ttml"><body><div>
@@ -332,7 +337,7 @@ test('saving "running" over a pre-existing lemma "run" note reuses it and add-sc
 
 test('other meaning: the new-sense toast shows both actions, create-first, no Undo', async ({ context, serviceWorker }) => {
   test.setTimeout(120_000);
-  const log: AnkiLog = { actions: [], queries: [], added: 0, deleted: [], updated: [] };
+  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [] };
   const PORT = 18768;
   const RUN_TTML = `<?xml version="1.0" encoding="utf-8"?>
 <tt xmlns="http://www.w3.org/ns/ttml" xml:lang="en"><body><div>
@@ -372,8 +377,6 @@ test('other meaning: the new-sense toast shows both actions, create-first, no Un
         { timeout: 20_000, message: `actions: ${log.actions.join(',')} | queries: ${log.queries.join(' ; ')}` })
         .toMatch(/ya está en tu mazo/);
       const text = (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '';
-      console.log('QUERIES:', JSON.stringify(log.queries));
-      console.log('TOASTS:', text);
       expect(text).toContain('dirigir');
       expect(text).not.toContain('Deshacer');
       const hits = (await hitsOf(page, PANEL_HOST)).map((h) => h.label);
@@ -394,7 +397,7 @@ test('other meaning: the new-sense toast shows both actions, create-first, no Un
 
 test('shortcut save then "Crear tarjeta para este significado": one addNote, old note intact, no repeated toast', async ({ context, serviceWorker }) => {
   test.setTimeout(120_000);
-  const log: AnkiLog = { actions: [], queries: [], added: 0, deleted: [], updated: [] };
+  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [] };
   const PORT = 18769;
   const RUN_TTML = `<?xml version="1.0" encoding="utf-8"?>
 <tt xmlns="http://www.w3.org/ns/ttml"><body><div>
@@ -442,6 +445,13 @@ test('shortcut save then "Crear tarjeta para este significado": one addNote, old
       // No reused toast comes back after the create (the notice is one-shot).
       await page.waitForTimeout(800);
       expect((await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '').not.toMatch(/ya está en tu mazo/);
+      // The created note rides the SAVED scene: no fresh sentence-audio
+      // capture and no re-derivation of the line on this path.
+      const created = log.addedNotes[0];
+      const audioValue = Object.entries(created?.fields ?? {})
+        .find(([k]) => /audio/i.test(k))?.[1] ?? '';
+      expect(audioValue).not.toContain('[sound:');
+      expect(Object.values(created?.fields ?? {}).join(' ')).toContain('RUN is hard work');
     } finally {
       await page.close();
     }
@@ -453,7 +463,7 @@ test('shortcut save then "Crear tarjeta para este significado": one addNote, old
 
 test('forced create on the SAME meaning: final notice has NO Crear, old note intact', async ({ context, serviceWorker }) => {
   test.setTimeout(180_000);
-  const log: AnkiLog = { actions: [], queries: [], added: 0, deleted: [], updated: [] };
+  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [] };
   const PORT = 18770;
   const RUN_TTML = `<?xml version="1.0" encoding="utf-8"?>
 <tt xmlns="http://www.w3.org/ns/ttml" xml:lang="en"><body><div>
@@ -514,7 +524,7 @@ test('forced create on the SAME meaning: final notice has NO Crear, old note int
 
 test('fresh save then Deshacer: deleteNotes [id] and the saved notice closes', async ({ context, serviceWorker }) => {
   test.setTimeout(180_000);
-  const log: AnkiLog = { actions: [], queries: [], added: 0, deleted: [], updated: [] };
+  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [] };
   const PORT = 18771;
   const RUN_TTML = `<?xml version="1.0" encoding="utf-8"?>
 <tt xmlns="http://www.w3.org/ns/ttml" xml:lang="en"><body><div>
@@ -552,7 +562,8 @@ test('fresh save then Deshacer: deleteNotes [id] and the saved notice closes', a
         const text = (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '';
         if (!text.includes('Tarjeta guardada')) break;
       }
-      await expect.poll(() => log.deleted, { timeout: 15_000 }).toHaveLength(1);
+      // deleteNotes hits EXACTLY the id addNote returned — never another note.
+      await expect.poll(() => log.deleted, { timeout: 15_000 }).toEqual([log.addedIds[0]]);
       expect((await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '').not.toContain('Tarjeta guardada');
     } finally {
       await page.close();

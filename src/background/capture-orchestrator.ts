@@ -849,7 +849,7 @@ export async function createCardFromRequest(
   // cardId?". Owned → mark saved (timeout-after-create). Anything else —
   // including a match the ledger cannot attribute — is a REUSED note: the
   // registry row dies, nothing is marked saved, no Undo is offered.
-  if (options.fromRetry && request.forceNewSense !== true && request.allowDuplicate !== true) {
+  if (options.fromRetry && request.forceNewSense !== true) {
     const existing = await findExistingCard(request, mapping, deck);
     if (existing) {
       if (existing.createdByCardId) {
@@ -1455,7 +1455,8 @@ export async function createCardFromRequest(
         // Single-upload rule: media already lives on the Anki side via
         // storeMediaFile + [sound:]/<img> field references above. Passing
         // picture[]/audio[] here would re-upload every blob.
-        options: { allowDuplicate: false, duplicateScope: 'deck' },
+        // The background decides: an explicit create may duplicate on purpose.
+        options: { allowDuplicate: request.forceNewSense === true, duplicateScope: 'deck' },
       },
       mapping.ankiUrl,
       mapping.apiKey,
@@ -1468,6 +1469,7 @@ export async function createCardFromRequest(
         sentence: request.sentence,
         deckName: deck,
         ankiNoteId: noteId,
+        cardId: request.cardId,
         createdAt: Date.now(),
       });
     } catch {

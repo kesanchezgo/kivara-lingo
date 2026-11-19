@@ -67,7 +67,7 @@ import { translateText } from './translate';
 import { speak } from './tts';
 import { enrichWithAi } from './ai-enrich';
 import { resolveLocalEntry, resolveWordStreaming } from './resolve-word';
-import { lemmaFromTags, lemmaTagVariants } from '../shared/word-identity';
+import { lemmaFromTags } from '../shared/word-identity';
 import { htmlToPlain } from '../shared/anki-text';
 import type { ResolveWordLocalResponse } from '../shared/types';
 import { installResolveWordPort } from './enrichment/stream';
@@ -742,15 +742,14 @@ onMessage('ANKI_SAVED_WORDS', async ({ data }) => {
         // New notes carry kivara::lemma::<key>: use it as the identity key so
         // "running" and "run" resolve to the same saved word. Older notes
         // without the tag fall back to the (lowercased) surface field.
-        // BOTH variants (spaced and hyphenated) are published so either
-        // spelling of a hyphenated lemma matches the overlay's token keys.
+        // ONE canonical key per note — hyphen/space variants resolve at
+        // LOOKUP time (isInAnki), never inflate the saved-words list.
         const lemmaKey = lemmaFromTags(n.tags);
-        if (lemmaKey) return lemmaTagVariants(lemmaKey);
+        if (lemmaKey) return lemmaKey;
         const field = n.fields[fieldName] ?? Object.values(n.fields)[0];
         const text = htmlToPlain(field?.value ?? '');
         return text.toLowerCase().trim();
       })
-      .flat()
       .filter(Boolean);
     savedWordsCache.set(cacheKey, { words, at: Date.now() });
     return asJson({ words });
@@ -958,6 +957,7 @@ onMessage('RESOLVE_WORD_LOCAL', async ({ data }) => {
   const { entry } = await resolveLocalEntry(
     String(req?.token ?? ''),
     String(req?.sourceLang ?? 'en'),
+    { augmentIpa: false },
   );
   return asJson({ ok: true, entry } satisfies ResolveWordLocalResponse);
 });

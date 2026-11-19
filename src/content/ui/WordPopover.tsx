@@ -93,6 +93,8 @@ export interface WordPopoverProps {
 /* ── Resolve state (repo engine, unchanged) ─────────────────────────────── */
 
 interface ResolveState {
+  /** The LOCAL entry (packs + bundle) — the save's gloss source. */
+  localEntry?: DictionaryEntry | null;
   entry: DictionaryEntry | null;
   resolving: boolean;
   enriching: boolean;
@@ -107,6 +109,7 @@ interface ResolveState {
 
 const INITIAL_STATE: ResolveState = {
   entry: null,
+  localEntry: null,
   resolving: false,
   enriching: false,
   remoteLoading: false,
@@ -146,6 +149,7 @@ function useResolveWord(
     setState({
       ...INITIAL_STATE,
       entry: local,
+      localEntry: local,
       resolving: !!token.trim() && !localHasRealTranslation,
       enriching: !!token.trim(),
       remoteLoading: !localHasRealTranslation,
@@ -229,6 +233,7 @@ function useResolveWord(
           if (closed) return;
           switch (msg.phase) {
             case 'local':
+              setState((prev) => ({ ...prev, localEntry: msg.entry }));
               adoptEntry(msg.entry, {
                 resolving:
                   !!(msg.entry && (msg.entry.translation ?? '').trim() &&
@@ -299,10 +304,12 @@ function useResolveWord(
         )) as ResolveWordResponse;
         if (closed) return;
         const localWave = resp.waves.find((w) => w.stage === 'local');
+        const localEntry = localWave && localWave.stage === 'local' ? localWave.entry : null;
         const aiWave = resp.waves.find((w) => w.stage === 'ai');
         setState((prev) => ({
           ...prev,
-          entry: (localWave && localWave.stage === 'local' ? localWave.entry : null) ?? prev.entry,
+          localEntry: localEntry ?? prev.localEntry ?? null,
+          entry: localEntry ?? prev.entry,
           resolving: false,
           enriching: false,
           remoteLoading: false,
@@ -352,6 +359,21 @@ const SOURCE_LABEL: Record<string, string> = {
   merriamWebster: 'Merriam-Webster', ozdic: 'Oxford Coll.', reverso: 'Reverso', linguee: 'Linguee',
   wordReference: 'WordReference', spanishDict: 'SpanishDict', tatoeba: 'Tatoeba', wordfreq: 'wordfreq',
 };
+
+/**
+ * The SAVE gloss: the LOCAL entry's translation (packs + bundled dictionary —
+ * the same source resolveContextGloss tags with), falling back to what the
+ * popover displays. Placeholders never travel.
+ */
+export function saveGloss(
+  localEntry: DictionaryEntry | null | undefined,
+  displayed: string | undefined,
+): string | undefined {
+  const local = String(localEntry?.translation ?? '').trim();
+  if (local && local !== '—') return local;
+  const shown = String(displayed ?? '').trim();
+  return shown && shown !== '—' ? shown : undefined;
+}
 
 /** Provider attribution. No secret ever reaches this string. */
 function formatSource(source: string | null | undefined): string {
@@ -1201,7 +1223,7 @@ export function WordPopover({
             <button
               type="button"
               aria-label={t('wp.save')}
-              onClick={(e) => onSave(e, canonicalToken, meta.translation || undefined)}
+              onClick={(e) => onSave(e, canonicalToken, saveGloss(resolved.localEntry, meta.translation))}
               className="flex-1 flex items-center justify-center gap-1.5 px-2 h-10 text-[12px] font-semibold text-white bg-indigo-500 hover:bg-indigo-400 transition-colors normal-case"
             >
               <Plus size={12} /> {t('wp.save')}

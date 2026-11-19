@@ -27,6 +27,7 @@
  * it estimates over is injected as `StudyWords`, so every function here is
  * pure or storage-only and unit-testable without React or a dictionary.
  */
+import { lemmaTagVariants } from '../word-identity';
 import { createChromeLocalStore, type ChromeLocalStore } from '../chrome-local-store';
 import {
   LEVEL_RANK, LEVEL_VOCAB, MODEL, STUDY_LEVELS, difficulty, estimateTheta,
@@ -297,7 +298,10 @@ export function noteCardSaved(lang: string, tokenKey: string): void {
 
 /** Does the word have a card in Anki (cached intervals)? An Anki word is never saved twice. */
 export function isInAnki(lang: string, tokenKey: string): boolean {
-  return normalizeStatusKey(tokenKey) in studyStores(lang).anki.get();
+  const anki = studyStores(lang).anki.get();
+  // The cache holds ONE canonical key per note; hyphen/space variants of the
+  // lemma resolve here, at lookup time.
+  return lemmaTagVariants(tokenKey).some((v) => normalizeStatusKey(v) in anki);
 }
 
 /** How many cards the profile has, and how many of them are mature. */

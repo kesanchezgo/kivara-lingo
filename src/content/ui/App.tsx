@@ -308,7 +308,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // forceNewSense (a user click, so the new note's Undo is legitimate).
   // A click landing while another save runs is QUEUED, never lost.
   const senseGateRef = useRef(createSaveGate());
-  const createSenseRef = useRef<((token: string, sentence: string, cueLine: number | undefined, gloss: string | undefined) => Promise<CreateCardResponse>) | null>(null);
+  const createSenseRef = useRef<((token: string, sentence: string, cueLine: number | undefined, gloss: string | undefined, pre?: { frame?: string; cueStart?: number; cueEnd?: number; sentence?: string; contextLines?: { prev?: string; next?: string } }) => Promise<CreateCardResponse>) | null>(null);
   // Native-language alt cue (e.g. native Spanish track running parallel to
   // the active English captions). Preferred as the dual-caption source over
   // a remote MT translation — see SubtitleOverlay for the priority chain.
@@ -1513,6 +1513,8 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       contextGloss?: string,
       forceNewSense?: boolean,
       phraseLevel?: boolean,
+      /** The scene captured by the save that produced the reused notice. */
+      pre?: { frame?: string; cueStart?: number; cueEnd?: number; sentence?: string; contextLines?: { prev?: string; next?: string } },
     ): Promise<CreateCardResponse> => {
       if (!enabled) return { ok: false, error: 'disabled' };
       const tokenValue = token?.trim() || sentence.trim();
@@ -1565,14 +1567,20 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         const remainingMs = videoElement && activeCue?.end != null
           ? activeCue.end - videoElement.currentTime * 1000
           : 0;
-        const audio: CaptureAudio = !videoElement
+        // A saved scene rides along on the explicit-create re-entry: the
+        // line is NOT replayed and no fresh audio is captured.
+        const audio: CaptureAudio = pre
           ? 'off'
-          : videoElement.paused
-            ? (remainingMs > 120 ? 'replay' : 'off')
-            : 'live';
+          : !videoElement
+            ? 'off'
+            : videoElement.paused
+              ? (remainingMs > 120 ? 'replay' : 'off')
+              : 'live';
         setCaptureView((v) => (v ? { ...v, audio } : v));
 
-        const audioAnchor = await ensureSubtitleAudioReady();
+        const audioAnchor = pre
+          ? { videoTimeAtSave: pre.cueEnd ?? 0, videoPausedAtSave: true }
+          : await ensureSubtitleAudioReady();
 
         const lang = cueLanguageRef.current;
         const activeDeck = ankiMapping.decks?.[lang] ?? ankiMapping.deckName;
@@ -1588,7 +1596,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         // Identity is computed HERE, in the content script: it owns the
         // dictionary, lemmatizer and MWE data. The background only consumes
         // identityKey/surface — one key per lemma across every layer.
-        const identitySentence = cueFields.sentence ?? sentence;
+        const identitySentence = pre?.sentence ?? cueFields.sentence ?? sentence;
         const identity = identityFor(tokenValue, lang, kind);
         const request: CreateCardRequest = {
           token: tokenValue,
@@ -1600,11 +1608,10 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           surface: identity.surface,
           contextGloss: normalizeContextGloss(contextGloss),
           forceNewSense: forceNewSense || undefined,
-          allowDuplicate: forceNewSense || undefined,
           phraseLevel: phraseLevel || undefined,
           deck: activeDeck,
           media,
-          contextLines: cueFields.contextLines,
+          contextLines: pre?.contextLines ?? cueFields.contextLines,
           frame: frameDataUrl ?? undefined,
           cueStart: cueFields.cueStart,
           cueEnd: cueFields.cueEnd,
@@ -1629,6 +1636,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                 frame: frameDataUrl ?? undefined,
                 cueStart: cueFields.cueStart,
                 cueEnd: cueFields.cueEnd,
+                contextLines: cueFields.contextLines,
               };
               // The create action is one-shot: a rapid double click must not
               // send two CREATE_CARD requests for the same meaning.
@@ -1651,7 +1659,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                       if (createFired) return;
                       createFired = true;
                       const runCreate = () =>
-                        createSenseRef.current?.(tokenValue, sentence, cueLine, contextGloss)
+                        createSenseRef.current?.(tokenValue, sentence, cueLine, contextGloss, savedScene)
                         ?? Promise.resolve({ ok: false } as CreateCardResponse);
                       if (captureBusyRef.current) {
                         // Never lose the click: queue it behind the running
@@ -1828,13 +1836,15 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       );
     } finally {
       captureBusyRef.current = false;
+      // A queued "create this meaning" click runs when the scene update ends.
+      senseGateRef.current.open();
     }
   }, [enabled, adapter, ankiMapping, captureSceneMedia, activeCue, episode.cues]);
   // Expose the add-context flow to the earlier save handler without a dep cycle.
   addContextRef.current = handleAddContext;
   // Re-enter the save handler with forceNewSense on an explicit user click.
-  createSenseRef.current = (token, sentence, cueLine, gloss) =>
-    handleSaveCard(token, sentence, cueLine, gloss, true);
+  createSenseRef.current = (token, sentence, cueLine, gloss, pre) =>
+    handleSaveCard(token, sentence, cueLine, gloss, true, undefined, pre);
 
   const overlayPortal = useMemo(() => {
     if (!videoOverlayRoot || !enabled || !subtitlesVisible) return null;

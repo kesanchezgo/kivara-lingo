@@ -18,7 +18,7 @@ import type {
   MediaInfo,
 } from '../shared/types';
 import { t } from '../shared/i18n/sw';
-import { beginRetry, isPending, mediaFromSource, type RecentCard } from '../shared/cards';
+import { beginRetry, isPending, mediaFromSource, registryRowFromRequest, type RecentCard } from '../shared/cards';
 import { getDB } from '../shared/db';
 import { profileLangOf, removeAnkiWord } from '../shared/study/wordStatus';
 import { cardRegistry } from './card-registry';
@@ -104,10 +104,7 @@ export async function retryCard(
     language: card.lang,
     deck: card.deck,
     media: mediaForCard(card),
-    identityKey: card.identityKey,
-    surface: card.surface,
-    contextGloss: card.contextGloss,
-    phraseLevel: card.phraseLevel,
+    ...registryRowFromRequest(card),
   };
   const mediaLost = card.media?.frame === true || card.media?.audio === true;
   const result = await createCardFromRequest(request, effective, capture, { fromRetry: true });
@@ -133,6 +130,7 @@ export async function retryCard(
     noteId: result.noteId,
     error: result.error,
     warnings: result.warnings,
+    reused: result.reused,
     // The retry saved a card, but not the one the first attempt intended: the
     // caller must be able to tell the user instead of letting the row lie.
     mediaLost: result.ok && mediaLost ? true : undefined,

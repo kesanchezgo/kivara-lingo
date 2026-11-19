@@ -208,6 +208,12 @@ function RecentRow({
     // A permanent failure left no pending row to restore the blobs from: the
     // retry saved the card, but without the scene/original audio. Say so.
     if (res?.mediaLost) toast.warning(t('recent.mediaLost'));
+    // The retry REUSED an existing note: nothing was sent — say "already".
+    if (res?.ok && res.reused) {
+      toast.success(t('queue.alreadyInDeck'), { description: card.word });
+      onChanged();
+      return false; // run() must not stack the "sent" toast on top
+    }
     if (!res?.ok) toast.error(t('queue.willRetry'), { description: res?.error });
     return !!res?.ok;
   }, t('queue.autoSentOne'), t('recent.failed'));
