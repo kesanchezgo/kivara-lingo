@@ -60,6 +60,8 @@ export interface SceneContext {
   identityKey?: string;
   /** Normalized surface form for the identity OR query. */
   surface?: string;
+  /** The note this scene belongs to, when the save already resolved it. */
+  noteId?: number;
 }
 
 /** Frame + sentence audio captured for a scene. Both are optional by design. */
@@ -311,6 +313,8 @@ export async function addSceneToNote(
     tags: ctx.tags,
     identityKey: ctx.identityKey,
     surface: ctx.surface,
+    // The save already resolved the reused note — never look it up again.
+    ...(ctx.noteId != null ? { noteId: ctx.noteId } : {}),
     frame: media.frame,
     audio: media.audio,
   };

@@ -10,9 +10,10 @@ import type {
   FieldSource,
 } from '../shared/types';
 import { DEFAULT_CAPTURE } from '../shared/store';
-import { ankiConnect, dataUrlToBase64, AnkiConnectError } from './anki-connect';
+import { ankiConnect, dataUrlToBase64, AnkiConnectError, type AnkiNoteInfo } from './anki-connect';
 import { buildExactNoteQuery, buildIdentityNoteQuery } from '../shared/anki-search';
-import { lemmaTag, senseTag, classifySense, isPhraseLevelSave } from '../shared/word-identity';
+import { lemmaTag, senseTag, classifySense, isPhraseLevelSave, normalizeContextGloss } from '../shared/word-identity';
+import { htmlToPlain } from '../shared/anki-text';
 import {
   buildCardTags,
   cardSourceFromMedia,
@@ -454,16 +455,7 @@ async function resolveAudio(
  * plain cue the content script sent. Strip tags/entities, collapse
  * whitespace, case-fold. */
 function normalizeFieldForCompare(raw: string): string {
-  return String(raw ?? '')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&#\d+;/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
+  return htmlToPlain(raw).toLowerCase();
 }
 
 /**
@@ -504,8 +496,9 @@ async function findExistingByWord(
     // lemma tag (idempotent, only on OUR notes) so future searches unify.
     const tag = lemmaTag(key);
     let senseMatchId: number | null = null;
+    let infos: AnkiNoteInfo[] = [];
     try {
-      const infos = await ankiConnect.notesInfo(found.slice(0, 20), mapping.ankiUrl, mapping.apiKey);
+      infos = await ankiConnect.notesInfo(found.slice(0, 20), mapping.ankiUrl, mapping.apiKey);
       for (const info of infos) {
         const ourTags = (info.tags ?? []).some(
           (x) => x === 'kivara-lingo' || x.startsWith('kivara::'),
@@ -530,6 +523,26 @@ async function findExistingByWord(
       // forceNewSense: only a note already carrying THIS meaning is reused;
       // otherwise fall through to addNote (which writes the lemma+sense tags).
       return senseMatchId != null ? { ok: true, noteId: senseMatchId, warnings: [] } : null;
+    }
+    // MULTIPLE MATCHES: prefer the note whose own sense tag equals the
+    // contextual gloss, then the one carrying this exact sentence, and only
+    // then Anki's own ordering (found[0]).
+    const wantedSense = request.contextGloss
+      ? senseTag(request.contextGloss) : null;
+    if (wantedSense) {
+      const senseHit = infos.find((n) => n.noteId != null
+        && (n.tags ?? []).includes(wantedSense));
+      if (senseHit?.noteId != null) return { ok: true, noteId: senseHit.noteId, warnings: [] };
+    }
+    const cueField = Object.entries(mapping.fieldSources ?? {}).find(
+      ([, s]) => s === 'cue',
+    )?.[0];
+    if (cueField) {
+      const want = normalizeFieldForCompare(request.sentence);
+      const sentenceHit = infos.find(
+        (n) => normalizeFieldForCompare(n.fields?.[cueField]?.value ?? '') === want,
+      );
+      if (sentenceHit?.noteId != null) return { ok: true, noteId: sentenceHit.noteId, warnings: [] };
     }
     return { ok: true, noteId: found[0], warnings: [] };
   } catch {
@@ -751,7 +764,7 @@ export async function createCardFromRequest(
   const phraseSave = request.phraseLevel ?? isPhraseLevelSave(request.token);
   const extraTags = phraseSave ? [] : [
     ...(identityKeyValue ? [lemmaTag(identityKeyValue)] : []),
-    ...(request.contextGloss ? [senseTag(request.contextGloss)] : []),
+    ...(normalizeContextGloss(request.contextGloss) ? [senseTag(normalizeContextGloss(request.contextGloss)!)] : []),
     ...(request.pos ? [`kivara::pos::${request.pos.trim().toLowerCase().replace(/\s+/g, '-')}`] : []),
   ];
   const tags = extraTags.length
@@ -872,8 +885,9 @@ export async function createCardFromRequest(
     if (forceSense && !request.contextGloss) {
       // fall through to addNote below
     } else {
-    const wantSenseTag = forceSense
-      ? senseTag(request.contextGloss!) : undefined;
+    const contextGloss = normalizeContextGloss(request.contextGloss);
+    const wantSenseTag = forceSense && contextGloss
+      ? senseTag(contextGloss) : undefined;
     const existingWord = await findExistingByWord(
       request, mapping, deck, wantSenseTag, phraseSave,
     );
@@ -885,14 +899,14 @@ export async function createCardFromRequest(
         : false;
       let sense: 'new-sense' | 'same-sense' | 'unknown' | undefined;
       let storedGloss: string | undefined;
-      if (!sameContext && existingWord.noteId != null && request.contextGloss) {
+      if (!sameContext && existingWord.noteId != null && contextGloss) {
         const stored = await readStoredSense(existingWord.noteId, mapping);
         storedGloss = stored.storedGloss || undefined;
         // The note's own sense tags outrank any field value. Without either
         // a tag or a mapped gloss field the sense stays UNKNOWN — never the
         // first field, never an invented "new-sense".
-        sense = senseFromTags(stored.senseTags, request.contextGloss)
-          ?? classifySense(request.contextGloss, stored.storedGloss);
+        sense = senseFromTags(stored.senseTags, contextGloss)
+          ?? classifySense(contextGloss, stored.storedGloss);
       }
       const canAddScene = Object.values(mapping.fieldSources ?? {}).includes('cue');
       return {
@@ -905,7 +919,7 @@ export async function createCardFromRequest(
         ...(forceSense ? { forcedMatch: true } : {}),
         ...(sense ? { sense } : {}),
         ...(storedGloss ? { storedGloss } : {}),
-        ...(request.contextGloss ? { contextGloss: request.contextGloss } : {}),
+        ...(contextGloss ? { contextGloss } : {}),
         warnings: [],
       };
     }

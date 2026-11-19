@@ -327,9 +327,12 @@ function publishHost(host: HTMLElement): () => void {
       // card moved or the button moved INSIDE the card.
       const cardEl = root.querySelector('[role="dialog"]');
       const card = boxOf(cardEl);
+      // The word card's full text rides along so the suite can wait for the
+      // gloss to resolve before clicking a save action.
+      const cardText = cardEl?.textContent?.trim() ?? '';
       const dual = root.querySelector<HTMLElement>('[data-kivara-dual]')
         ?.textContent?.trim() ?? '';
-      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({ bar, badges, tokens, dual, card }));
+      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({ bar, badges, tokens, dual, card, cardText }));
       host.setAttribute(E2E_STATE_ATTR, JSON.stringify(collectState(root)));
       watchToasts();
       watchDialog();

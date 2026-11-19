@@ -67,33 +67,30 @@ function hasRealTranslation(entry: DictionaryEntry | null | undefined): boolean 
  * failure is funnelled into an `error` phase so the popover degrades
  * gracefully.
  */
-export async function resolveWordStreaming(
-  params: ResolveWordParams,
-  emit: Emit,
-): Promise<void> {
-  const sourceLang = params.sourceLang || 'en';
-  const token = (params.token ?? '').trim();
-  const sentence = params.sentence ?? '';
-  // Sources the enrichment chain skipped for lack of optional host access.
-  // Collected on the way and reported on the terminal phase, so both the port
-  // stream and the legacy one-shot response can offer the grant CTA.
-  let needsAccess: Array<{ source: string; group: string }> = [];
+export interface LocalResolution {
+  entry: DictionaryEntry | null;
+  packId: string | null;
+  packTitle: string | null;
+}
 
-  if (!token) {
-    emit({ phase: 'local', entry: null });
-    emit({ phase: 'done' });
-    return;
-  }
-
-  /* ── Phase 1: local dictionary (Yomitan packs → bundled) ──────────── */
+/**
+ * LOCAL-ONLY resolution (Yomitan packs, then the bundled dictionary, plus the
+ * cheap IPA augment). No remote translation, no enrichment chain, no AI — the
+ * light path the save-time gloss uses, so tags never wait on the network.
+ */
+export async function resolveLocalEntry(
+  token: string,
+  sourceLang: string,
+): Promise<LocalResolution> {
   let local: DictionaryEntry | null = null;
   let resolvedPackId: string | null = null;
-  let yomitanPackTitle: string | null = null;
+  let packTitle: string | null = null;
+  if (!token) return { entry: null, packId: null, packTitle: null };
   try {
     const hit = await lookupYomitanTerm(token, sourceLang);
     if (hit) {
       local = hit.entry;
-      yomitanPackTitle = hit.pack.title;
+      packTitle = hit.pack.title;
       resolvedPackId = hit.pack.id;
     }
   } catch (err) {
@@ -119,7 +116,6 @@ export async function resolveWordStreaming(
     }
   }
 
-  // IPA augment (cheap + cached). Only when we already have a local hit.
   if (local && !local.phonetic) {
     try {
       const augmented = await getMissingPhonetic(token, sourceLang);
@@ -128,6 +124,32 @@ export async function resolveWordStreaming(
       /* best-effort */
     }
   }
+  return { entry: local, packId: resolvedPackId, packTitle };
+}
+
+export async function resolveWordStreaming(
+  params: ResolveWordParams,
+  emit: Emit,
+): Promise<void> {
+  const sourceLang = params.sourceLang || 'en';
+  const token = (params.token ?? '').trim();
+  const sentence = params.sentence ?? '';
+  // Sources the enrichment chain skipped for lack of optional host access.
+  // Collected on the way and reported on the terminal phase, so both the port
+  // stream and the legacy one-shot response can offer the grant CTA.
+  let needsAccess: Array<{ source: string; group: string }> = [];
+
+  if (!token) {
+    emit({ phase: 'local', entry: null });
+    emit({ phase: 'done' });
+    return;
+  }
+
+  /* ── Phase 1: local dictionary (Yomitan packs → bundled) ──────────── */
+  const localResolution = await resolveLocalEntry(token, sourceLang);
+  let local = localResolution.entry;
+  const resolvedPackId = localResolution.packId;
+  const yomitanPackTitle = localResolution.packTitle;
 
   // Emit the local entry immediately — this paints the header + (for known
   // words) the translation/definition/IPA essential fold.

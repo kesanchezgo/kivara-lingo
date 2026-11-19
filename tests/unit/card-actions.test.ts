@@ -231,7 +231,7 @@ describe('addContextToNote (Add this scene)', () => {
     const res = await addContextToNote({ token: 'sane', sentence: 'Another line.', tags: [] }, MAPPING as never);
     expect(res).toMatchObject({ ok: true, noteId: 77 });
     expect(spies.findCards).toHaveBeenCalledWith(
-      'deck:"English vocabulary" note:"KivaraLingo" (tag:kivara::lemma::sane OR "word:sane")',
+      'deck:"English vocabulary" note:"KivaraLingo" ("tag:kivara::lemma::sane" OR "word:sane")',
       MAPPING.ankiUrl,
       undefined,
     );

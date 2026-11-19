@@ -335,7 +335,7 @@ test('other meaning: the new-sense toast shows both actions, create-first, no Un
   const log: AnkiLog = { actions: [], queries: [], added: 0, deleted: [], updated: [] };
   const PORT = 18768;
   const RUN_TTML = `<?xml version="1.0" encoding="utf-8"?>
-<tt xmlns="http://www.w3.org/ns/ttml"><body><div>
+<tt xmlns="http://www.w3.org/ns/ttml" xml:lang="en"><body><div>
 <p begin="0s" end="9s">RUN is hard work</p>
 </div></body></tt>`;
   const server = await startFakeAnki(PORT, log, {
@@ -343,6 +343,9 @@ test('other meaning: the new-sense toast shows both actions, create-first, no Un
     storedSentence: 'He runs every day.', storedGloss: 'dirigir',
   });
   try {
+    // A deterministic gloss: the pack beats bundle AND any live chain, so the
+    // popover's gloss is 'correr' (≠ the stored 'dirigir') without network.
+    await seedDictPack(context);
     await seedAnki(context, PORT);
     void serviceWorker;
     const page = await openPage(context, RUN_TTML);
@@ -358,6 +361,10 @@ test('other meaning: the new-sense toast shows both actions, create-first, no Un
       }
       await expect.poll(async () => (await hitsOf(page, VIDEO_HOST)).some((h) => h.label === 'Guardar'),
         { timeout: 10_000 }).toBe(true);
+      // The popover resolves its gloss asynchronously — wait until the card
+      // actually shows it, so the click carries a real gloss, never the '—'.
+      await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).cardText ?? '',
+        { timeout: 15_000 }).toContain('correr');
       const save = (await hitsOf(page, VIDEO_HOST)).find((h) => h.label === 'Guardar')!;
       await page.mouse.click(save.cx, save.cy);
 
@@ -365,6 +372,8 @@ test('other meaning: the new-sense toast shows both actions, create-first, no Un
         { timeout: 20_000, message: `actions: ${log.actions.join(',')} | queries: ${log.queries.join(' ; ')}` })
         .toMatch(/ya está en tu mazo/);
       const text = (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '';
+      console.log('QUERIES:', JSON.stringify(log.queries));
+      console.log('TOASTS:', text);
       expect(text).toContain('dirigir');
       expect(text).not.toContain('Deshacer');
       const hits = (await hitsOf(page, PANEL_HOST)).map((h) => h.label);

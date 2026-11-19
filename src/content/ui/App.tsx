@@ -30,7 +30,8 @@ import { getActiveTrackCues, getTrackByLanguage, onTrack } from '../platform-ada
 import { buildPreviewData } from '../../shared/preview-data';
 import { buildCardTags, cardSourceFromMedia, newCardId } from '../../shared/cards';
 import { buildIdentityNoteQuery } from '../../shared/anki-search';
-import { wordIdentity, isPhraseLevelSave } from '../../shared/word-identity';
+import { wordIdentity, isPhraseLevelSave, normalizeContextGloss } from '../../shared/word-identity';
+import { createSaveGate } from './save-gate';
 import { lemmaCandidates } from '../nlp/lemma';
 import { mweLemmaCandidates } from '../nlp/mwe-lemma';
 import { lookupDictionary } from '../nlp/dictionary';
@@ -302,9 +303,11 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // The reused-note toast's "Add this scene" calls the existing add-context
   // handler. It is declared later in this component, so reach it via a ref to
   // avoid a useCallback dependency cycle (and the render-time TDZ).
-  const addContextRef = useRef<((token: string, sentence: string, kind: CreateCardKind, cueLine?: number) => Promise<void>) | null>(null);
+  const addContextRef = useRef<((token: string, sentence: string, kind: CreateCardKind, cueLine?: number, pre?: { noteId?: number; sentence?: string; frame?: string; cueStart?: number; cueEnd?: number }) => Promise<void>) | null>(null);
   // "Create a card for THIS meaning" re-enters the save handler with
   // forceNewSense (a user click, so the new note's Undo is legitimate).
+  // A click landing while another save runs is QUEUED, never lost.
+  const senseGateRef = useRef(createSaveGate());
   const createSenseRef = useRef<((token: string, sentence: string, cueLine: number | undefined, gloss: string | undefined) => Promise<CreateCardResponse>) | null>(null);
   // Native-language alt cue (e.g. native Spanish track running parallel to
   // the active English captions). Preferred as the dual-caption source over
@@ -1426,9 +1429,16 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
    * note update. A failed frame or an inactive tab-capture session simply
    * leaves that half missing and `addSceneToNote` reports it as a soft note.
    */
-  const captureSceneMedia = useCallback(async (): Promise<SceneMedia> => {
+  const captureSceneMedia = useCallback(async (pre?: {
+    frame?: string;
+    cueStart?: number;
+    cueEnd?: number;
+  }): Promise<SceneMedia> => {
     const scene: SceneMedia = {};
-    if (videoElement) {
+    if (pre?.frame) {
+      // The frame was already captured at save time — reuse it verbatim.
+      scene.frame = pre.frame;
+    } else if (videoElement) {
       try {
         const frame = await captureBestFrame(
           videoElement,
@@ -1450,8 +1460,9 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       // Play the line to its end (or record it live) exactly as a save does,
       // then slice the clip the tab-capture buffer now holds.
       const anchor = await ensureSubtitleAudioReady();
-      const startMs = activeCue?.start;
-      const endMs = anchor.videoTimeAtSave;
+      // The saved cue's range, not wherever the video is now.
+      const startMs = pre?.cueStart ?? activeCue?.start;
+      const endMs = pre?.cueEnd ?? anchor.videoTimeAtSave;
       if (startMs != null && endMs != null && endMs > startMs) {
         const clip = (await sendMessage(
           'EXTRACT_AUDIO_CLIP',
@@ -1587,7 +1598,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           lang,
           identityKey: identity.key,
           surface: identity.surface,
-          contextGloss: contextGloss || undefined,
+          contextGloss: normalizeContextGloss(contextGloss),
           forceNewSense: forceNewSense || undefined,
           allowDuplicate: forceNewSense || undefined,
           phraseLevel: phraseLevel || undefined,
@@ -1610,6 +1621,15 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             // never recapture its media; the word still paints as saved.
             if (response.reused) {
               toast.dismiss(saveToastId);
+              // The scene the SAVE captured travels to the notice's actions
+              // verbatim: same cue fields, same frame, same note.
+              const savedScene = {
+                noteId: response.noteId,
+                sentence: cueFields.sentence ?? sentence,
+                frame: frameDataUrl ?? undefined,
+                cueStart: cueFields.cueStart,
+                cueEnd: cueFields.cueEnd,
+              };
               // The create action is one-shot: a rapid double click must not
               // send two CREATE_CARD requests for the same meaning.
               let createFired = false;
@@ -1618,7 +1638,9 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                 tokenValue,
                 response.canAddScene === false
                   ? undefined
-                  : () => { void addContextRef.current?.(tokenValue, sentence, kind, cueLine); },
+                  : () => {
+                      void addContextRef.current?.(tokenValue, sentence, kind, cueLine, savedScene);
+                    },
                 response.sense,
                 response.storedGloss,
                 response.contextGloss,
@@ -1628,7 +1650,20 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                   ? () => {
                       if (createFired) return;
                       createFired = true;
-                      void createSenseRef.current?.(tokenValue, sentence, cueLine, contextGloss);
+                      const runCreate = () =>
+                        createSenseRef.current?.(tokenValue, sentence, cueLine, contextGloss)
+                        ?? Promise.resolve({ ok: false } as CreateCardResponse);
+                      if (captureBusyRef.current) {
+                        // Never lose the click: queue it behind the running
+                        // save and say so.
+                        senseGateRef.current.push(runCreate);
+                        toast.message(t('app.createQueued'), {
+                          description: tokenValue,
+                          duration: 3000,
+                        });
+                        return;
+                      }
+                      void runCreate();
                     }
                   : undefined,
                 response.canAddScene,
@@ -1700,6 +1735,8 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         return { ok: false, error: reason };
       } finally {
         captureBusyRef.current = false;
+        // A "create this meaning" click queued behind this save runs now.
+        senseGateRef.current.open();
         captureClearTimer.current = window.setTimeout(() => {
           setCaptureView(null);
           captureClearTimer.current = null;
@@ -1752,6 +1789,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     sentence: string,
     kind: CreateCardKind,
     cueLine?: number,
+    pre?: { noteId?: number; sentence?: string; frame?: string; cueStart?: number; cueEnd?: number },
   ) => {
     if (!enabled) return;
     // One capture at a time, same lock the save path holds.
@@ -1770,16 +1808,23 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           token,
           identityKey: identity.key,
           surface: identity.surface,
-          // Same rule as the save path: the line the word sits in, not the
-          // combined plate of two overlapping cues.
-          sentence: buildCueRequestFields(activeCue, episode.cues, { lineIndex: cueLine }).sentence ?? sentence,
+          // The save already captured THIS scene: its cue fields travel
+          // verbatim, so the notice's action never re-derives the line.
+          sentence: pre?.sentence
+            ?? buildCueRequestFields(activeCue, episode.cues, { lineIndex: cueLine }).sentence
+            ?? sentence,
           kind,
           deck,
           fieldName,
           tags: buildCardTags(kind, media, lang),
           origin: cardSourceFromMedia(media),
+          ...(pre?.noteId != null ? { noteId: pre.noteId } : {}),
         },
-        captureSceneMedia,
+        () => captureSceneMedia({
+          frame: pre?.frame,
+          cueStart: pre?.cueStart,
+          cueEnd: pre?.cueEnd,
+        }),
       );
     } finally {
       captureBusyRef.current = false;

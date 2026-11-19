@@ -10,9 +10,10 @@ beforeEach(() => {
 });
 
 describe('resolveContextGloss (shared by every save path)', () => {
-  it('uses the RESOLVE_WORD local entry translation', async () => {
-    let waves: unknown[] = [{ stage: 'local', entry: { token: 'run', type: 'word', translation: 'dirigir' } }];
-    const sendMessage = vi.fn(async () => ({ ok: true, waves }));
+  it('uses the LIGHT RESOLVE_WORD_LOCAL entry (no remote chain)', async () => {
+    let entry: { token: string; type: string; translation: string } | null =
+      { token: 'run', type: 'word', translation: 'dirigir' };
+    const sendMessage = vi.fn(async () => ({ ok: true, entry }));
     vi.doMock('webext-bridge/content-script', () => ({ sendMessage }));
     vi.doMock('../../src/content/nlp/dictionary', () => ({
       lookupDictionary: vi.fn(() => ({ token: 'run', type: 'word', translation: 'correr' })),
@@ -20,11 +21,11 @@ describe('resolveContextGloss (shared by every save path)', () => {
     const { resolveContextGloss } = await import('../../src/content/resolve-context-gloss');
     await expect(resolveContextGloss('run', 'She runs the company.', 'en')).resolves.toEqual({ gloss: 'dirigir' });
     expect(sendMessage).toHaveBeenCalledWith(
-      'RESOLVE_WORD',
-      { token: 'run', sentence: 'She runs the company.', sourceLang: 'en' },
+      'RESOLVE_WORD_LOCAL',
+      { token: 'run', sourceLang: 'en' },
       'background',
     );
-    waves = [{ stage: 'local', entry: { token: 'run', type: 'word', translation: '—' } }];
+    entry = { token: 'run', type: 'word', translation: '—' };
     await expect(resolveContextGloss('run', 'She runs.', 'en')).resolves.toEqual({ gloss: 'correr' });
   });
 });
