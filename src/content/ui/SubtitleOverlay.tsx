@@ -33,7 +33,7 @@ import type {
 import { tokenizeSentence } from '../nlp/tokenize';
 import { lookupDictionary } from '../nlp/dictionary';
 import { resolveContextGloss } from '../resolve-context-gloss';
-import { isPhraseLevelSave } from '../../shared/word-identity';
+import { isPhraseLevelSave, type PhraseSavePath } from '../../shared/word-identity';
 import { eventPathIsEditable } from '../utils/keyboard';
 import { useKivaraStore } from '../../shared/use-kivara-store';
 import { aiConfigured } from '../../shared/ai-configured';
@@ -86,7 +86,7 @@ export interface SubtitleOverlayProps {
    * `lineIndex` names the member line of a combined (overlapping) cue that
    * holds the token; omitted means "save the whole set" — a selection or the
    * full plate. */
-  onSaveCard: (token: string | undefined, sentence: string, lineIndex?: number, contextGloss?: string) => Promise<CreateCardResponse>;
+  onSaveCard: (token: string | undefined, sentence: string, lineIndex?: number, contextGloss?: string, phraseLevel?: boolean) => Promise<CreateCardResponse>;
   /** "See in Anki" for a saved token (F4). */
   onSeeInAnki?: (token: string) => void;
   /** "Add this scene" to the note a saved token already has (F4). `kind` is
@@ -656,7 +656,12 @@ export function SubtitleOverlay({
     return null;
   };
 
-  const handleSaveToken = async (token: string, lineIndex?: number, contextGloss?: string) => {
+  const handleSaveToken = async (
+    token: string,
+    lineIndex?: number,
+    contextGloss?: string,
+    savePath: PhraseSavePath = 'word',
+  ) => {
     if (capturing) return; // one card at a time
     // The frame must contain the video + its subtitle only: close the card
     // and the selection before the shutter fires.
@@ -664,14 +669,15 @@ export function SubtitleOverlay({
     setIsHovered(false);
     // Every path (shortcut, selection, panel, popover) carries the SAME
     // contextual gloss: the popover passes the one it already resolved, all
-    // other paths resolve from the cue sentence here. PHRASE-LEVEL saves
-    // (the whole line / >4 words) are scene captures, not vocabulary — no
-    // gloss, so no sense identity is claimed for them.
+    // other paths resolve from the cue sentence here. Whether THIS save is
+    // phrase-level is decided by the PATH — the whole-line shortcut save
+    // always is; a selection of 2+ words covering the line (or >4 words) is;
+    // a word path only above four words ("Running" on its own line is
+    // vocabulary).
+    const phrase = isPhraseLevelSave(token, targetSentence, savePath);
     const gloss = contextGloss
-      ?? (isPhraseLevelSave(token, targetSentence)
-        ? undefined
-        : (await resolveContextGloss(token, targetSentence, cueLanguage)).gloss);
-    void onSaveCard(token, targetSentence, lineIndex, gloss).then((result) => {
+      ?? (phrase ? undefined : (await resolveContextGloss(token, targetSentence, cueLanguage)).gloss);
+    void onSaveCard(token, targetSentence, lineIndex, gloss, phrase).then((result) => {
       if (result?.ok) {
         // The saved-word cache is lemma-keyed — an inflected surface must
         // paint as saved under its dictionary form ("running" -> "run").
@@ -723,14 +729,14 @@ export function SubtitleOverlay({
     lastSaveKeyRef.current = saveRequestKey;
     if (capturing) return;
     if (selection && selectionText) {
-      void handleSaveToken(selectionText);
+      void handleSaveToken(selectionText, undefined, undefined, 'selection');
       return;
     }
     const key = hoveredKeyRef.current;
     if (key) {
       const dictionary = lookupDictionary(key, cueLanguage);
       const idx = hoveredIdxRef.current;
-      void handleSaveToken(dictionary?.token ?? key, idx == null ? undefined : lineForToken(idx));
+      void handleSaveToken(dictionary?.token ?? key, idx == null ? undefined : lineForToken(idx), undefined, 'word');
       return;
     }
     // With a profile there IS something to judge: save the line only when it
@@ -742,14 +748,14 @@ export function SubtitleOverlay({
         const index = tokens.findIndex((tk) => (tk.lemma ?? tk.key) === newKeys[0]);
         const tok = index >= 0 ? tokens[index] : undefined;
         const dictionary = tok ? lookupDictionary(tok.key, cueLanguage) : undefined;
-        void handleSaveToken(dictionary?.token ?? (tok ? tok.key : newKeys[0]), index >= 0 ? lineForToken(index) : undefined);
+        void handleSaveToken(dictionary?.token ?? (tok ? tok.key : newKeys[0]), index >= 0 ? lineForToken(index) : undefined, undefined, 'word');
         return;
       }
       onNothingToSave?.(newKeys.length > 1 ? 'several' : 'none');
       return;
     }
     // No profile to judge from: the whole plate (the set of member lines).
-    if (targetSentence.trim()) void handleSaveToken(targetSentence);
+    if (targetSentence.trim()) void handleSaveToken(targetSentence, undefined, undefined, 'line');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveRequestKey]);
 
@@ -958,7 +964,7 @@ export function SubtitleOverlay({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                void handleSaveToken(selectionText);
+                void handleSaveToken(selectionText, undefined, undefined, 'selection');
               }}
               className="flex items-center gap-1 bg-indigo-500 hover:bg-indigo-400 text-white text-[12px] font-medium px-2.5 h-7 rounded-lg kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80"
               title={t('overlay.saveSelection')}
@@ -1223,7 +1229,7 @@ export function SubtitleOverlay({
                         }}
                         onSave={(e, value, gloss) => {
                           e.stopPropagation();
-                          void handleSaveToken(value, lineForToken(i), gloss);
+                          void handleSaveToken(value, lineForToken(i), gloss, 'word');
                         }}
                         onSeeInAnki={onSeeInAnki
                           ? (e) => { e.stopPropagation(); onSeeInAnki(tok.key); }

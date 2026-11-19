@@ -721,10 +721,11 @@ export async function createCardFromRequest(
   const identityKeyValue = (request.identityKey ?? '').trim().toLowerCase();
   // New notes carry the lemma tag. A note's identity is the lemma, not the
   // surface, so "ran" and "run" share this tag and future lookups unify.
-  // PHRASE-LEVEL saves (whole line / >4 words) are scene captures, not
-  // vocabulary: no lemma, sense or pos tags — their dedup stays by the exact
-  // selection field.
-  const phraseSave = isPhraseLevelSave(request.token, request.sentence);
+  // PHRASE-LEVEL saves are scene captures, not vocabulary: no lemma, sense
+  // or pos tags — their dedup stays by the exact selection field. The flag
+  // comes from the UI's save path; legacy callers (field absent) fall back
+  // to the >4-words rule only.
+  const phraseSave = request.phraseLevel ?? isPhraseLevelSave(request.token);
   const extraTags = phraseSave ? [] : [
     ...(identityKeyValue ? [lemmaTag(identityKeyValue)] : []),
     ...(request.contextGloss ? [senseTag(request.contextGloss)] : []),
@@ -804,7 +805,7 @@ export async function createCardFromRequest(
   // an Anki failure here returns null and we add as before.
   if (!options.fromRetry) {
     const forceSense = request.forceNewSense === true;
-    const phraseSave = isPhraseLevelSave(request.token, request.sentence);
+    const phraseSave = request.phraseLevel ?? isPhraseLevelSave(request.token);
     // Explicit create: without a gloss there is no meaning to look up — the
     // user asked for a NEW note, so skip dedup entirely (created with the
     // lemma tag only). Never fall through to the generic lemma note.

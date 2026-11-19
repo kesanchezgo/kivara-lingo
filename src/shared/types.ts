@@ -1093,6 +1093,12 @@ export interface CreateCardRequest {
   surface?: string;
   /** Contextual meaning chosen by the popover's resolver for THIS cue. */
   contextGloss?: string;
+  /**
+   * Decided by the SAVE PATH (word / selection / whole line), not by text:
+   * true means scene capture — no lemma/sense/pos tags, no gloss, dedup by
+   * exact selection field. Absent (legacy callers) = only the >4-words rule.
+   */
+  phraseLevel?: boolean;
   /** Part of speech from the contextual resolver, when available. */
   pos?: string;
   /**
@@ -1153,6 +1159,12 @@ export interface CreateCardResponse {
   storedGloss?: string;
   /** The contextual gloss this save would attach, when known. */
   contextGloss?: string;
+  /**
+   * Decided by the SAVE PATH (word / selection / whole line), not by text:
+   * true means scene capture — no lemma/sense/pos tags, no gloss, dedup by
+   * exact selection field. Absent (legacy callers) = only the >4-words rule.
+   */
+  phraseLevel?: boolean;
   /**
    * False when the Anki model has no field mapped to `cue`: the note's
    * sentence cannot be verified, so "Add this scene" must not be offered.

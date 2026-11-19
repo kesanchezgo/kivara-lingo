@@ -1501,6 +1501,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       cueLine?: number,
       contextGloss?: string,
       forceNewSense?: boolean,
+      phraseLevel?: boolean,
     ): Promise<CreateCardResponse> => {
       if (!enabled) return { ok: false, error: 'disabled' };
       const tokenValue = token?.trim() || sentence.trim();
@@ -1588,6 +1589,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           surface: identity.surface,
           contextGloss: contextGloss || undefined,
           forceNewSense: forceNewSense || undefined,
+          phraseLevel: phraseLevel || undefined,
           deck: activeDeck,
           media,
           contextLines: cueFields.contextLines,
@@ -2010,13 +2012,15 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             onTranslationChange={(next) => setStudy((prev) => ({ ...prev, translation: next }))}
             listenFirst={study.listenFirst}
             onSaveWord={(word, sentence) => {
-              // Phrase-level saves carry no gloss: no sense identity.
-              const gloss = isPhraseLevelSave(word, sentence)
+              // Word path: phrase-level only above four words. Phrase-level
+              // saves carry no gloss — no sense identity.
+              const phrase = isPhraseLevelSave(word, sentence, 'word');
+              const gloss = phrase
                 ? undefined
                 : resolveContextGloss(word, sentence, cueLanguageRef.current)
                   .then(({ gloss: g }) => g);
               void Promise.resolve(gloss).then((g) =>
-                handleSaveCard(word, sentence, undefined, g));
+                handleSaveCard(word, sentence, undefined, g, undefined, phrase));
             }}
             onFocusPanel={panelDocked ? focusPanel : undefined}
             uiLang={currentLocale()}
