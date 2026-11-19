@@ -17,9 +17,7 @@ import type {
 } from '../shared/types';
 import { buildIdentityNoteQuery, escapeAnkiSearchTerm } from '../shared/anki-search';
 import { htmlToPlain } from '../shared/anki-text';
-import { lemmaFromTags, lemmaTagVariants } from '../shared/word-identity';
-import { LEGACY_CARD_TAG } from '../shared/cards';
-import { TAG_ROOT } from '../shared/study/cardTags';
+import { lemmaFromTags } from '../shared/word-identity';
 import { ankiConnect, AnkiConnectError, dataUrlToBase64, type AnkiNoteInfo } from './anki-connect';
 import { t } from '../shared/i18n/sw';
 
@@ -68,38 +66,6 @@ export async function deleteNote(
     }
     return { ok: false, error: err instanceof Error ? err.message : 'deleteNotes failed' };
   }
-}
-
-/** Result of checking whether a note was written by this extension. */
-export type NoteOwnership = 'owned' | 'foreign' | 'gone' | 'unreadable';
-
-/**
- * Ownership check for Undo (issue #39): `ANKI_DELETE_NOTE` used to delete any
- * `noteId` it was handed. A note is ours when it carries one of our tags —
- * `kivara-lingo` (the pre-registry flat tag every create has always added) or
- * any `kivara::…` hierarchical tag. The tag path is what keeps Undo working
- * for cards saved before the card registry existed.
- *
- * `gone` means Anki does not know the id: the undo goal is already met, and
- * nothing must be deleted. `unreadable` means the check itself failed (Anki
- * closed, notesInfo error) — the caller must refuse rather than assume.
- */
-export async function noteOwnership(
-  noteId: number,
-  mapping: AnkiMapping,
-): Promise<NoteOwnership> {
-  let info: AnkiNoteInfo | undefined;
-  try {
-    const infos = await ankiConnect.notesInfo([noteId], mapping.ankiUrl, mapping.apiKey);
-    info = infos[0];
-  } catch {
-    return 'unreadable';
-  }
-  if (!info || info.noteId == null) return 'gone';
-  const tags = info.tags ?? [];
-  return tags.some((tag) => tag === LEGACY_CARD_TAG || tag.startsWith(`${TAG_ROOT}::`))
-    ? 'owned'
-    : 'foreign';
 }
 
 /** Resolve the note a headword belongs to when the caller has no id yet. */
@@ -349,16 +315,14 @@ export async function wordIntervals(
     const words: Record<string, number> = {};
     for (const note of notes) {
       // Lemma tag is the identity key on notes written with this scheme;
-      // older notes fall back to the headword field. BOTH variants (spaced
-      // and hyphenated) are registered so either spelling finds the word.
+      // older notes fall back to the headword field. ONE canonical key per
+      // note — hyphen/space variants resolve at LOOKUP time (isInAnki).
       const lemmaKey = lemmaFromTags(note.tags);
       if (lemmaKey) {
         const cards = Array.isArray(note?.cards) ? note.cards : [];
         const days = cards.some((id) => mature.has(id)) ? MATURE_DAYS : SEEN_DAYS;
-        for (const variant of lemmaTagVariants(lemmaKey)) {
-          const previous = words[variant];
-          if (previous === undefined || days > previous) words[variant] = days;
-        }
+        const previous = words[lemmaKey];
+        if (previous === undefined || days > previous) words[lemmaKey] = days;
         continue;
       }
       const word = headwordOf(note.fields, fieldName);

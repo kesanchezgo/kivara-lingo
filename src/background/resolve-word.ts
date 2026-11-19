@@ -81,6 +81,8 @@ export interface LocalResolution {
 export async function resolveLocalEntry(
   token: string,
   sourceLang: string,
+  /** The gloss path skips the IPA augment: it needs the meaning only. */
+  options: { augmentIpa?: boolean } = {},
 ): Promise<LocalResolution> {
   let local: DictionaryEntry | null = null;
   let resolvedPackId: string | null = null;
@@ -116,7 +118,7 @@ export async function resolveLocalEntry(
     }
   }
 
-  if (local && !local.phonetic) {
+  if (options.augmentIpa !== false && local && !local.phonetic) {
     try {
       const augmented = await getMissingPhonetic(token, sourceLang);
       if (augmented) local = { ...local, phonetic: augmented };

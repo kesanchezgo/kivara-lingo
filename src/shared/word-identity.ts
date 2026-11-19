@@ -1,3 +1,5 @@
+import { htmlToPlain } from './anki-text';
+
 /**
  * Shared word identity — ONE key per lemma+meaning across every layer.
  *
@@ -149,17 +151,9 @@ export function isPhraseLevelSave(
  * Two senses are the SAME when they share at least one normalized gloss;
  * DIFFERENT when both are known and disjoint; UNKNOWN when either is missing.
  */
-/** Strip HTML, entities, sound tags and grammatical parentheses "(v.)" from a gloss. */
+/** Strip HTML/entities via the SHARED normalizer, then grammatical "(v.)" parentheses. */
 function cleanGloss(value: string): string {
-  return String(value ?? '')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&#\d+;/g, ' ')
-    .replace(/&#x[0-9a-f]+;/gi, ' ')
-    .replace(/\[[^\]]*\]/g, ' ')
+  return htmlToPlain(value)
     .replace(/\([^)]*\)/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()

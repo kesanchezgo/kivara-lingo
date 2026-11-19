@@ -225,7 +225,7 @@ describe('B12 — lemma tags: one helper, both variants, quoted clause', () => {
     expect(q).toContain('"tag:kivara::lemma::run"');
   });
 
-  it('wordIntervals registers BOTH tag variants for hyphenated lemmas', async () => {
+  it('wordIntervals registers ONE canonical key per hyphenated lemma (round 6 P7)', async () => {
     vi.doMock('../../src/background/anki-connect', () => ({
       ankiConnect: {
         findNotes: vi.fn(async () => [1]),
@@ -254,8 +254,9 @@ describe('B12 — lemma tags: one helper, both variants, quoted clause', () => {
     const { wordIntervals } = await import('../../src/background/card-actions');
     const res = await wordIntervals('English vocab', 'Front', MAPPING as never);
     const words = (res as { words?: Record<string, number> }).words ?? {};
-    expect(Object.keys(words)).toContain('thank you');
-    expect(Object.keys(words)).toContain('thank-you');
+    // Round 6 P7: ONE canonical key — the variants resolve at LOOKUP time.
+    expect(Object.keys(words)).toEqual(['thank you']);
+    expect(Object.keys(words)).not.toContain('thank-you');
   });
 });
 

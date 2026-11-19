@@ -11,6 +11,7 @@
  * can be unit-tested and imported from the SW without dragging in `chrome.*`.
  */
 
+import { normalizeContextGloss } from './word-identity';
 import type { CreateCardErrorCode, CreateCardKind, MediaInfo } from './types';
 import type { CardSource, Platform } from './study/cardTags';
 import { cardTags } from './study/cardTags';
@@ -48,6 +49,7 @@ export interface RecentCard {
   surface?: string;
   contextGloss?: string;
   phraseLevel?: boolean;
+  forceNewSense?: boolean;
 }
 
 export const RECENT_CARDS_KEY = 'kvl:cards.recent';
@@ -134,6 +136,7 @@ export interface NewRecentCard {
   surface?: string;
   contextGloss?: string;
   phraseLevel?: boolean;
+  forceNewSense?: boolean;
 }
 
 /** A fresh registry record, already in the `sending` state. */
@@ -155,6 +158,29 @@ export function newRecentCard(input: NewRecentCard): RecentCard {
     surface: input.surface,
     contextGloss: input.contextGloss,
     phraseLevel: input.phraseLevel,
+    forceNewSense: input.forceNewSense,
+  };
+}
+
+/**
+ * The identity slice of a registry row, taken verbatim from the save
+ * request: ONE construction for the SW's CREATE_CARD row and the retry
+ * rebuild, so both always agree. The gloss is normalized here — a row
+ * never carries the '-' / '—' placeholder as a meaning.
+ */
+export function registryRowFromRequest(request: {
+  identityKey?: string;
+  surface?: string;
+  contextGloss?: string;
+  phraseLevel?: boolean;
+  forceNewSense?: boolean;
+}): Pick<RecentCard, 'identityKey' | 'surface' | 'contextGloss' | 'phraseLevel' | 'forceNewSense'> {
+  return {
+    identityKey: request.identityKey,
+    surface: request.surface,
+    contextGloss: normalizeContextGloss(request.contextGloss),
+    phraseLevel: request.phraseLevel,
+    forceNewSense: request.forceNewSense,
   };
 }
 

@@ -28,8 +28,6 @@ const SW_KEYS = [
   'capture.inactiveTab',
   'capture.offscreenNoResponse',
   'capture.offscreenNoRpc',
-  'cards.noteForeign',
-  'cards.noteOwnershipUnreadable',
   'dictpack.termsNotArray',
   'dictpack.tooManyTerms',
   'dictpack.noRowsWritten',
