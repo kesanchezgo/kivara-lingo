@@ -541,14 +541,21 @@ async function findExistingCard(
   request: CreateCardRequest,
   mapping: AnkiMapping,
   deck: string,
-): Promise<CreateCardResponse | null> {
+): Promise<(CreateCardResponse & { createdByCardId?: boolean }) | null> {
   const language = requestLang(request);
   try {
     const existing = await getDB().saved_notes
       .where('[token+language+sentence+deckName]')
       .equals([request.token, language, request.sentence, deck])
       .first();
-    if (existing) return { ok: true, noteId: existing.ankiNoteId, warnings: [] };
+    if (existing) {
+      // Only the ledger row carrying THIS cardId proves the note was created
+      // by this save; anything else is a note this save merely found.
+      return {
+        ok: true, noteId: existing.ankiNoteId, warnings: [],
+        createdByCardId: !!request.cardId && existing.cardId === request.cardId,
+      };
+    }
   } catch {
     // ledger unreadable — fall through to the live check
   }
@@ -591,19 +598,32 @@ async function findExistingCard(
       matchedId = found[0];
     }
 
+    // Ownership: the note counts as THIS save's only when the ledger row
+    // for it was written by this very cardId. Reused saves never write.
+    let createdByCardId = false;
     try {
-      await getDB().saved_notes.put({
-        token: request.token,
-        language,
-        sentence: request.sentence,
-        deckName: deck,
-        ankiNoteId: matchedId,
-        createdAt: Date.now(),
-      });
+      const prior = await getDB().saved_notes
+        .where('ankiNoteId').equals(matchedId).first() as { cardId?: string } | undefined;
+      createdByCardId = !!request.cardId && !!prior && prior.cardId === request.cardId;
     } catch {
       // best-effort
     }
-    return { ok: true, noteId: matchedId, warnings: [] };
+    if (createdByCardId) {
+      try {
+        await getDB().saved_notes.put({
+          token: request.token,
+          language,
+          sentence: request.sentence,
+          deckName: deck,
+          ankiNoteId: matchedId,
+          cardId: request.cardId,
+          createdAt: Date.now(),
+        });
+      } catch {
+        // best-effort
+      }
+    }
+    return { ok: true, noteId: matchedId, warnings: [], createdByCardId };
   } catch {
     // Anki unreachable for the check — proceed with the add
   }
@@ -656,8 +676,11 @@ async function readStoredSense(
     const senseTags = tags.filter((t) => t.startsWith('kivara::sense::'));
     const posTags = tags.filter((t) => t.startsWith('kivara::pos::'));
     let storedGloss = '';
+    // ONLY the bilingual field carries meanings. translation/translate hold
+    // the SENTENCE translation — reading them as the sense once turned "to
+    // run the company" into a fake "new sense" of run.
     const glossField = Object.entries(mapping.fieldSources ?? {}).find(
-      ([, s]) => s === 'bilingual' || s === 'translation' || s === 'translate',
+      ([, s]) => s === 'bilingual',
     )?.[0];
     if (glossField) {
       storedGloss = String(info.fields[glossField]?.value ?? '')
@@ -803,7 +826,44 @@ export async function createCardFromRequest(
   //   • NO capture-registry row is written (no new Recent entry to undo).
   // Retries keep their stricter sentence-verified path below. Non-blocking:
   // an Anki failure here returns null and we add as before.
-  if (!options.fromRetry) {
+  // RETRY IDEMPOTENCY — first thing, before ANY work: no provider call,
+  // no storeMediaFile, no frame download. A retry whose card already
+  // exists (timeout-after-create) returns here, so it can't leave orphaned
+  // media in Anki. First attempts skip this: the ledger can't contain the
+  // card yet, and a stale row must never veto a fresh add after the user
+  // deleted the note in Anki.
+  // RETRY: the exact/ledger check answers "was the note created by THIS
+  // cardId?". Owned → mark saved (timeout-after-create). Anything else —
+  // including a match the ledger cannot attribute — is a REUSED note: the
+  // registry row dies, nothing is marked saved, no Undo is offered.
+  if (options.fromRetry && request.forceNewSense !== true && request.allowDuplicate !== true) {
+    const existing = await findExistingCard(request, mapping, deck);
+    if (existing) {
+      if (existing.createdByCardId) {
+        await registryOutcome(existing);
+        return existing;
+      }
+      if (request.cardId) await cardRegistry.remove(request.cardId);
+      const sameContext = existing.noteId != null
+        ? await hasSameContext(existing.noteId, request, mapping)
+        : false;
+      return {
+        ok: true,
+        noteId: existing.noteId,
+        reused: sameContext ? 'same-context' : 'other-context',
+        canAddScene: Object.values(mapping.fieldSources ?? {}).includes('cue'),
+        warnings: [],
+      };
+    }
+  }
+
+  // IDENTITY DEDUP — the same-word/lemma lookup runs on FIRST saves AND on
+  // retries (a queued retry of an already-saved word must reuse, not add a
+  // duplicate). A hit means the note was NOT created by this request:
+  //   • the registry row dies (no Recent entry to undo),
+  //   • nothing is marked saved,
+  //   • the response carries the reused envelope for the UI.
+  {
     const forceSense = request.forceNewSense === true;
     const phraseSave = request.phraseLevel ?? isPhraseLevelSave(request.token);
     // Explicit create: without a gloss there is no meaning to look up — the
@@ -818,6 +878,8 @@ export async function createCardFromRequest(
       request, mapping, deck, wantSenseTag, phraseSave,
     );
     if (existingWord) {
+      // A reused note leaves NO registry row behind — not pending, not saved.
+      if (request.cardId) await cardRegistry.remove(request.cardId);
       const sameContext = existingWord.noteId != null
         ? await hasSameContext(existingWord.noteId, request, mapping)
         : false;
@@ -847,20 +909,6 @@ export async function createCardFromRequest(
         warnings: [],
       };
     }
-    }
-  }
-
-  // RETRY IDEMPOTENCY — first thing, before ANY work: no provider call,
-  // no storeMediaFile, no frame download. A retry whose card already
-  // exists (timeout-after-create) returns here, so it can't leave orphaned
-  // media in Anki. First attempts skip this: the ledger can't contain the
-  // card yet, and a stale row must never veto a fresh add after the user
-  // deleted the note in Anki.
-  if (options.fromRetry) {
-    const existing = await findExistingCard(request, mapping, deck);
-    if (existing) {
-      await registryOutcome(existing);
-      return existing;
     }
   }
 

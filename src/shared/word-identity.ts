@@ -125,17 +125,34 @@ export function isPhraseLevelSave(
  * Two senses are the SAME when they share at least one normalized gloss;
  * DIFFERENT when both are known and disjoint; UNKNOWN when either is missing.
  */
+/** Strip HTML, entities, sound tags and grammatical parentheses "(v.)" from a gloss. */
+function cleanGloss(value: string): string {
+  return String(value ?? '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&#\d+;/g, ' ')
+    .replace(/&#x[0-9a-f]+;/gi, ' ')
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 export function classifySense(
   contextGloss: string | undefined,
   storedGloss: string | undefined,
 ): 'new-sense' | 'same-sense' | 'unknown' {
-  const ctx = (contextGloss ?? '').trim().toLowerCase();
-  const stored = (storedGloss ?? '').trim().toLowerCase();
+  const ctx = cleanGloss(contextGloss ?? '');
+  const stored = cleanGloss(storedGloss ?? '');
   if (!ctx || !stored) return 'unknown';
   if (ctx === stored) return 'same-sense';
-  // A gloss can list several meanings separated by ';' or '/' — any shared
-  // meaning makes them the same sense.
-  const parts = (s: string) => s.split(/[;,/]/).map((x) => x.trim()).filter(Boolean);
+  // A gloss can list several meanings separated by ';', '/', '&' or ',' —
+  // any shared meaning makes them the same sense.
+  const parts = (s: string) => s.split(/[;,/&]/).map((x) => x.trim()).filter(Boolean);
   const ctxParts = parts(ctx);
   const storedParts = parts(stored);
   return ctxParts.some((p) => storedParts.includes(p)) ? 'same-sense' : 'new-sense';

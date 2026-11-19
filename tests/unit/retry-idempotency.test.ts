@@ -87,6 +87,7 @@ describe('shared anki-search helpers', () => {
 function setupMocks(opts: {
   findNotesIds?: number[];
   notesInfos?: Array<{ noteId: number; fields: Record<string, { value: string }>; tags?: string[] }>;
+  ledgerRow?: { ankiNoteId: number; cardId?: string; token?: string; sentence?: string; deckName?: string };
   addNoteImpl?: () => Promise<number>;
   /** What `translateToken` resolves to (dictionary bucket, examples, …). */
   tokenResult?: Record<string, unknown>;
@@ -120,7 +121,19 @@ function setupMocks(opts: {
       ...(actual as object),
       getDB: () => ({
         saved_notes: {
-          where: () => ({ equals: () => ({ first: async () => null }) }),
+          where: (idx: string) => ({
+            equals: (v: unknown) => ({
+              first: async () => {
+                const lr = opts.ledgerRow;
+                if (!lr) return null;
+                if (idx === 'ankiNoteId') return lr.ankiNoteId === v ? lr : null;
+                if (Array.isArray(v)) {
+                  return (lr.token === v[0] && lr.sentence === v[2] && lr.deckName === v[3]) ? lr : null;
+                }
+                return null;
+              },
+            }),
+          }),
           put: async (row: unknown) => ledgerPut.push(row as never),
         },
         pending_notes: { add: async () => {}, update: async () => {}, delete: async () => {} },
@@ -403,7 +416,10 @@ describe('case-insensitive duplicate on a FIRST save', () => {
     'fromRetry idempotency returns the note with NO reused marker (Undo stays legitimate)',
     { timeout: 20_000 },
     async () => {
-      const m = setupMocks({ findNotesIds: [98765] });
+      const m = setupMocks({
+        findNotesIds: [98765],
+        ledgerRow: { ankiNoteId: 98765, cardId: 'card-undo', token: 'hola', sentence: 'Hola mundo.', deckName: 'Spanish vocab' },
+      });
       m.addNote.mockImplementation(async () => { throw new Error('should not be called'); });
       m.notesInfo.mockResolvedValue([
         { noteId: 98765, fields: { Front: { value: 'hola' }, Sentence: { value: 'Hola mundo.' } } },
@@ -414,7 +430,7 @@ describe('case-insensitive duplicate on a FIRST save', () => {
         fieldSources: { Front: 'selection', Sentence: 'cue' },
       };
       const res = await createCardFromRequest({
-        token: 'hola', sentence: 'Hola mundo.', language: 'es', deck: 'Spanish vocab',
+        token: 'hola', sentence: 'Hola mundo.', language: 'es', deck: 'Spanish vocab', cardId: 'card-undo',
       } as never, mapping as never, undefined as never, {
         fromRetry: true, retryRowId: 1, carriedAudio: null,
       });
@@ -496,14 +512,21 @@ describe('retry idempotency', () => {
     expect(q ?? '').toContain('"Front:hola"');
     // No provider hit either.
     expect(m.translateCalls.n).toBe(0);
-    // The verified match IS written to the ledger for the next retry.
-    expect(m.ledgerPut).toHaveLength(1);
+    // WITHOUT ledger ownership (no cardId) the match is a REUSED note: the
+    // request cannot prove it created it, so nothing is marked saved and
+    // the ledger is NOT written with a lying cardId.
+    expect(res.reused).toBe('same-context');
+    expect(m.ledgerPut).toHaveLength(0);
   });
 
   it('same word + DIFFERENT sentence → creates a NEW card (no false dedup)', async () => {
     const m = setupMocks({ findNotesIds: [555] });
     // Anki finds the word, but the note's cue is a different sentence —
     // and the field carries HTML, so only the normalized compare works.
+    // The identity (tag) clause does NOT match: the note predates the lemma
+    // scheme and carries no lemma tag.
+    m.findNotes.mockImplementation(async (query: string) =>
+      String(query).includes('tag:') ? [] : [555]);
     m.notesInfo.mockResolvedValue([
       {
         noteId: 555,

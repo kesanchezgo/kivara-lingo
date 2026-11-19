@@ -1589,6 +1589,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           surface: identity.surface,
           contextGloss: contextGloss || undefined,
           forceNewSense: forceNewSense || undefined,
+          allowDuplicate: forceNewSense || undefined,
           phraseLevel: phraseLevel || undefined,
           deck: activeDeck,
           media,

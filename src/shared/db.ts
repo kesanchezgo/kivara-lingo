@@ -30,6 +30,8 @@ export interface SavedNoteRow {
   deckName: string;
   /** AnkiConnect-assigned note id */
   ankiNoteId: number;
+  /** cardId of the save that CREATED the note (reused saves never write). */
+  cardId?: string;
   createdAt: number;
 }
 

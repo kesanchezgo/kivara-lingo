@@ -358,14 +358,18 @@ describe('undoDeleteNote (Undo)', () => {
    * Ownership guard (issue #39): no registry row means the tag must vouch for
    * the note. A foreign note is refused before any network write.
    */
-  it('deletes a note with no registry row when the tag says it is ours', async () => {
+  it('refuses a kivara-tagged note with no saved registry row (strict, always)', async () => {
     installStorage();
     const f = setup({ cards: [], ownership: 'owned' });
     const { undoDeleteNote } = await import('../../src/background/card-lifecycle');
 
-    await expect(undoDeleteNote(77, MAPPING as never)).resolves.toEqual({ ok: true });
-    expect(f.noteOwnership).toHaveBeenCalledWith(77, MAPPING);
-    expect(f.deleteNote).toHaveBeenCalledWith(77, MAPPING);
+    // The tag alone is NOT proof of creation: reused notes carry our tags.
+    const res = await undoDeleteNote(77, MAPPING as never);
+    expect(res).toMatchObject({ ok: false });
+    expect(res.error).toMatch(/not created by this save/);
+    expect(f.noteOwnership).not.toHaveBeenCalled();
+    expect(f.deleteNote).not.toHaveBeenCalled();
+    expect(f.registry.removeByNoteId).not.toHaveBeenCalled();
   });
 
   it('refuses a note that is neither in the registry nor tagged as ours', async () => {
@@ -375,28 +379,30 @@ describe('undoDeleteNote (Undo)', () => {
 
     const res = await undoDeleteNote(77, MAPPING as never);
     expect(res).toMatchObject({ ok: false });
-    expect(res.error).toMatch(/not created by Kivara Lingo/);
+    expect(res.error).toMatch(/not created by this save/);
     expect(f.deleteNote).not.toHaveBeenCalled();
     expect(f.registry.removeByNoteId).not.toHaveBeenCalled();
   });
 
-  it('refuses when the ownership check itself cannot read Anki', async () => {
+  it('refuses without ever consulting the tag-ownership fallback', async () => {
     installStorage();
     const f = setup({ cards: [], ownership: 'unreadable' });
     const { undoDeleteNote } = await import('../../src/background/card-lifecycle');
 
     const res = await undoDeleteNote(77, MAPPING as never);
     expect(res).toMatchObject({ ok: false });
-    expect(res.error).toMatch(/could not verify/);
+    expect(res.error).toMatch(/not created by this save/);
+    expect(f.noteOwnership).not.toHaveBeenCalled();
     expect(f.deleteNote).not.toHaveBeenCalled();
   });
 
-  it('treats an unknown, already-gone id as a complete undo with no delete call', async () => {
+  it('an unknown id is refused without touching Anki', async () => {
     installStorage();
     const f = setup({ cards: [], ownership: 'gone' });
     const { undoDeleteNote } = await import('../../src/background/card-lifecycle');
 
-    await expect(undoDeleteNote(77, MAPPING as never)).resolves.toEqual({ ok: true, gone: true });
+    const res = await undoDeleteNote(77, MAPPING as never);
+    expect(res).toMatchObject({ ok: false });
     expect(f.deleteNote).not.toHaveBeenCalled();
   });
 });
