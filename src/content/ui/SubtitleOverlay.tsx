@@ -33,6 +33,7 @@ import type {
 import { tokenizeSentence } from '../nlp/tokenize';
 import { lookupDictionary } from '../nlp/dictionary';
 import { resolveContextGloss } from '../resolve-context-gloss';
+import { isPhraseLevelSave } from '../../shared/word-identity';
 import { eventPathIsEditable } from '../utils/keyboard';
 import { useKivaraStore } from '../../shared/use-kivara-store';
 import { aiConfigured } from '../../shared/ai-configured';
@@ -663,9 +664,13 @@ export function SubtitleOverlay({
     setIsHovered(false);
     // Every path (shortcut, selection, panel, popover) carries the SAME
     // contextual gloss: the popover passes the one it already resolved, all
-    // other paths resolve from the cue sentence here.
+    // other paths resolve from the cue sentence here. PHRASE-LEVEL saves
+    // (the whole line / >4 words) are scene captures, not vocabulary — no
+    // gloss, so no sense identity is claimed for them.
     const gloss = contextGloss
-      ?? (await resolveContextGloss(token, targetSentence, cueLanguage)).gloss;
+      ?? (isPhraseLevelSave(token, targetSentence)
+        ? undefined
+        : (await resolveContextGloss(token, targetSentence, cueLanguage)).gloss);
     void onSaveCard(token, targetSentence, lineIndex, gloss).then((result) => {
       if (result?.ok) {
         // The saved-word cache is lemma-keyed — an inflected surface must

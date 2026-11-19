@@ -30,7 +30,7 @@ import { getActiveTrackCues, getTrackByLanguage, onTrack } from '../platform-ada
 import { buildPreviewData } from '../../shared/preview-data';
 import { buildCardTags, cardSourceFromMedia, newCardId } from '../../shared/cards';
 import { buildIdentityNoteQuery } from '../../shared/anki-search';
-import { wordIdentity } from '../../shared/word-identity';
+import { wordIdentity, isPhraseLevelSave } from '../../shared/word-identity';
 import { lemmaCandidates } from '../nlp/lemma';
 import { mweLemmaCandidates } from '../nlp/mwe-lemma';
 import { lookupDictionary } from '../nlp/dictionary';
@@ -1619,7 +1619,9 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                 response.sense,
                 response.storedGloss,
                 response.contextGloss,
-                response.reused === 'other-context'
+                // A forced response NEVER re-offers "Create": the user just
+                // clicked it, and the meaning already exists on the note.
+                response.reused === 'other-context' && !response.forcedMatch
                   ? () => {
                       if (createFired) return;
                       createFired = true;
@@ -1628,6 +1630,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                   : undefined,
                 response.canAddScene,
                 `kivara-reused-${request.cardId ?? ''}`,
+                response.forcedMatch,
               );
               recordCardSaved(lang, identity.key);
               if (studyNow.sounds) playSound('saved');
@@ -1635,7 +1638,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                 ok: true, noteId: response.noteId, warnings: response.warnings,
                 reused: response.reused, sense: response.sense,
                 storedGloss: response.storedGloss, contextGloss: response.contextGloss,
-                canAddScene: response.canAddScene,
+                canAddScene: response.canAddScene, forcedMatch: response.forcedMatch,
               };
             }
             // Remember the noteId + frame field so `recapture_frame` (Alt+V)
@@ -2007,8 +2010,13 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             onTranslationChange={(next) => setStudy((prev) => ({ ...prev, translation: next }))}
             listenFirst={study.listenFirst}
             onSaveWord={(word, sentence) => {
-              void resolveContextGloss(word, sentence, cueLanguageRef.current).then(({ gloss }) =>
-                handleSaveCard(word, sentence, undefined, gloss));
+              // Phrase-level saves carry no gloss: no sense identity.
+              const gloss = isPhraseLevelSave(word, sentence)
+                ? undefined
+                : resolveContextGloss(word, sentence, cueLanguageRef.current)
+                  .then(({ gloss: g }) => g);
+              void Promise.resolve(gloss).then((g) =>
+                handleSaveCard(word, sentence, undefined, g));
             }}
             onFocusPanel={panelDocked ? focusPanel : undefined}
             uiLang={currentLocale()}

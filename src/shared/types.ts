@@ -1158,6 +1158,12 @@ export interface CreateCardResponse {
    * sentence cannot be verified, so "Add this scene" must not be offered.
    */
   canAddScene?: boolean;
+  /**
+   * True when THIS response answers a forced (explicit "create this sense"
+   * click) request: the UI must never offer "Create" again on it — the user
+   * already decided, and re-offering loops the notice.
+   */
+  forcedMatch?: boolean;
 }
 
 /* ── F4 Anki / card-registry messages (docs/REDESIGN-V2.md §4.6) ────────── */

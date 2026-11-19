@@ -74,6 +74,11 @@ export function showNoticeToast(
  * `onUndo` is optional: a card whose note id is unknown has nothing to delete,
  * so the Undo action does not render at all.
  */
+/** Stable id for a "card saved" notice, so Undo can close it by name. */
+export function savedToastId(card: ToastCard): string {
+  return `kivara-saved-${card.id}`;
+}
+
 export function showSavedToast(
   card: ToastCard,
   onUndo?: (card: ToastCard) => void,
@@ -95,7 +100,7 @@ export function showSavedToast(
         </div>
         {onUndo && (
           <button
-            onClick={() => { toast.dismiss(id); onUndo(card); }}
+            onClick={() => onUndo(card)}
             className="h-7 px-2.5 inline-flex items-center gap-1.5 rounded-lg text-[12px] font-medium text-zinc-700 dark:text-zinc-200 bg-zinc-900/[0.05] dark:bg-white/[0.07] hover:bg-zinc-900/[0.08] dark:hover:bg-white/[0.1] transition-colors shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
           >
             <Undo2 size={13} /> {t('recent.undo')}
@@ -117,5 +122,5 @@ export function showSavedToast(
         </p>
       ))}
     </div>
-  ), { duration: notes.length ? 7000 : 5000 });
+  ), { duration: notes.length ? 7000 : 5000, id: savedToastId(card) });
 }
