@@ -146,13 +146,14 @@ describe('phrase-level saves carry no lemma/sense identity', () => {
     expect(tags).toContain('kivara-lingo');
   });
 
-  it('a whole-line save (token === sentence) adds a note WITHOUT lemma or sense tags', async () => {
+  it('a whole-line save flagged phraseLevel adds a note WITHOUT lemma or sense tags', async () => {
     const m = setupMocks({ findNotesIds: [] });
     const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
     await createCardFromRequest({
       token: 'RUN is hard work',
       sentence: 'RUN is hard work',
       identityKey: 'run is hard work',
+      phraseLevel: true,
       language: 'en', deck: 'English vocab',
     } as never, MAPPING as never, undefined as never);
     expect(m.addNote).toHaveBeenCalledTimes(1);

@@ -93,18 +93,31 @@ export function senseTag(gloss: string): string {
   return `kivara::sense::${normalizeSenseGloss(gloss)}`;
 }
 
+/** The save path a card came from — it decides phrase-level treatment. */
+export type PhraseSavePath = 'word' | 'selection' | 'line';
+
 /**
- * A PHRASE-LEVEL save: the whole subtitle line, or anything longer than four
- * words. These are scene captures, not vocabulary — no lemma identity, no
- * sense tag, no contextual gloss. Their dedup stays by the exact selection
- * field, which the identity query's field clause already provides.
+ * A PHRASE-LEVEL save is decided by the PATH, not by text equality: the
+ * whole-line shortcut save is always one; a selection of 2+ words covering
+ * the line (or anything >4 words) is one; every WORD path (hover, popover,
+ * single new word, detected expression) is one only above four words — a
+ * one-word line ("Running") or a two-word expression on its own line
+ * ("Thank you") is vocabulary and keeps its lemma/sense identity.
  */
-export function isPhraseLevelSave(text: string, sentence?: string): boolean {
+export function isPhraseLevelSave(
+  text: string,
+  sentence?: string,
+  path: PhraseSavePath = 'word',
+): boolean {
   const words = String(text ?? '').trim().split(/\s+/).filter(Boolean);
+  if (path === 'line') return true;
   if (words.length > 4) return true;
-  const saved = normalizeIdentityKey(text);
-  const line = normalizeIdentityKey(sentence ?? '');
-  return saved !== '' && line !== '' && saved === line;
+  if (path === 'selection' && words.length >= 2) {
+    const saved = normalizeIdentityKey(text);
+    const line = normalizeIdentityKey(sentence ?? '');
+    return saved !== '' && saved === line;
+  }
+  return false;
 }
 
 /**
