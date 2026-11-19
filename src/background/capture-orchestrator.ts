@@ -12,7 +12,7 @@ import type {
 import { DEFAULT_CAPTURE } from '../shared/store';
 import { ankiConnect, dataUrlToBase64, AnkiConnectError } from './anki-connect';
 import { buildExactNoteQuery, buildIdentityNoteQuery } from '../shared/anki-search';
-import { lemmaTag, senseTag, classifySense } from '../shared/word-identity';
+import { lemmaTag, senseTag, classifySense, isPhraseLevelSave } from '../shared/word-identity';
 import {
   buildCardTags,
   cardSourceFromMedia,
@@ -480,6 +480,8 @@ async function findExistingByWord(
   deck: string,
   /** When set, only notes carrying this sense tag may be reused. */
   requireSenseTag?: string,
+  /** Phrase-level saves never claim the lemma identity — skip the backfill. */
+  skipBackfill?: boolean,
 ): Promise<CreateCardResponse | null> {
   try {
     const wordField = Object.entries(mapping.fieldSources ?? {}).find(
@@ -511,9 +513,10 @@ async function findExistingByWord(
         // Backfill only when the note's OWN selection field carries the
         // lemma. A hit by surface form alone (e.g. "saw" for lemma "see")
         // reuses the note but must NOT claim it is the "see" note — that tag
-        // would quietly change future lookups.
+        // would quietly change future lookups. Phrase-level saves never
+        // claim it either: their dedup is the exact selection field.
         const selectionValue = normalizeFieldForCompare(info.fields[wordField]?.value ?? '');
-        if (info.noteId != null && ourTags && selectionValue === key
+        if (!skipBackfill && info.noteId != null && ourTags && selectionValue === key
           && !(info.tags ?? []).includes(tag)) {
           await ankiConnect.addTags([tag], [info.noteId], mapping.ankiUrl, mapping.apiKey);
         }
@@ -718,7 +721,11 @@ export async function createCardFromRequest(
   const identityKeyValue = (request.identityKey ?? '').trim().toLowerCase();
   // New notes carry the lemma tag. A note's identity is the lemma, not the
   // surface, so "ran" and "run" share this tag and future lookups unify.
-  const extraTags = [
+  // PHRASE-LEVEL saves (whole line / >4 words) are scene captures, not
+  // vocabulary: no lemma, sense or pos tags — their dedup stays by the exact
+  // selection field.
+  const phraseSave = isPhraseLevelSave(request.token, request.sentence);
+  const extraTags = phraseSave ? [] : [
     ...(identityKeyValue ? [lemmaTag(identityKeyValue)] : []),
     ...(request.contextGloss ? [senseTag(request.contextGloss)] : []),
     ...(request.pos ? [`kivara::pos::${request.pos.trim().toLowerCase().replace(/\s+/g, '-')}`] : []),
@@ -797,6 +804,7 @@ export async function createCardFromRequest(
   // an Anki failure here returns null and we add as before.
   if (!options.fromRetry) {
     const forceSense = request.forceNewSense === true;
+    const phraseSave = isPhraseLevelSave(request.token, request.sentence);
     // Explicit create: without a gloss there is no meaning to look up — the
     // user asked for a NEW note, so skip dedup entirely (created with the
     // lemma tag only). Never fall through to the generic lemma note.
@@ -805,7 +813,9 @@ export async function createCardFromRequest(
     } else {
     const wantSenseTag = forceSense
       ? senseTag(request.contextGloss!) : undefined;
-    const existingWord = await findExistingByWord(request, mapping, deck, wantSenseTag);
+    const existingWord = await findExistingByWord(
+      request, mapping, deck, wantSenseTag, phraseSave,
+    );
     if (existingWord) {
       const sameContext = existingWord.noteId != null
         ? await hasSameContext(existingWord.noteId, request, mapping)
@@ -827,6 +837,9 @@ export async function createCardFromRequest(
         noteId: existingWord.noteId,
         reused: sameContext ? 'same-context' : 'other-context',
         canAddScene,
+        // A forced request NEVER re-offers "Create" — the user already
+        // clicked it; re-offering loops the notice.
+        ...(forceSense ? { forcedMatch: true } : {}),
         ...(sense ? { sense } : {}),
         ...(storedGloss ? { storedGloss } : {}),
         ...(request.contextGloss ? { contextGloss: request.contextGloss } : {}),

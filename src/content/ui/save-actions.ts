@@ -21,7 +21,7 @@ import type {
 } from '../../shared/types';
 import { CARD_ERROR_LABEL_KEYS } from '../../shared/card-errors';
 import { originLabel, type CardSource } from '../../shared/study/cardTags';
-import { showNoticeToast, showSavedToast } from './CardToasts';
+import { savedToastId, showNoticeToast, showSavedToast } from './CardToasts';
 
 /**
  * Fired after a successful undo. The overlay listens for it to drop its local
@@ -170,7 +170,14 @@ export function showCardSaved(card: SavedNote, notes: string[] = []): void {
   showSavedToast(
     { id: noteId != null ? String(noteId) : card.text, text: card.text, deck: card.deck },
     noteId != null
-      ? () => void undoSavedNote(noteId, card.text, card.cardId)
+      ? () => {
+          // The notice stays while the delete runs and closes ONLY when the
+          // note really went away — a failed undo keeps its retry button.
+          void (async () => {
+            const ok = await undoSavedNote(noteId, card.text, card.cardId);
+            if (ok) toast.dismiss(savedToastId({ id: String(noteId), text: card.text, deck: card.deck }));
+          })();
+        }
       : undefined,
     notes,
   );
@@ -191,6 +198,7 @@ export function showCardReused(
   onCreateSense?: () => void,
   canAddScene?: boolean,
   toastId?: string,
+  forcedMatch?: boolean,
 ): void {
   // No mapped cue field means "add this scene" cannot be verified — offer
   // ONLY the explicit create action, with copy that makes no sentence claim.
@@ -200,7 +208,7 @@ export function showCardReused(
     : undefined;
   // One shot, here at the toast boundary too: a second click does nothing.
   let createFired = false;
-  const createSense = onCreateSense
+  const createSense = onCreateSense && !forcedMatch
     ? {
         label: t('app.createThisSense'),
         onClick: () => {
@@ -218,6 +226,21 @@ export function showCardReused(
       contextGloss: contextGloss ?? '—',
     });
     showNoticeToast(title, createSense, addScene, toastId);
+    return;
+  }
+
+  // A forced request landed on a note that already carries THIS meaning:
+  // say so plainly, offer only the scene, never "Create" again.
+  if (forcedMatch && reused === 'other-context') {
+    showNoticeToast(
+      t('app.reusedForcedMatch', {
+        word,
+        gloss: storedGloss ?? contextGloss ?? '—',
+      }),
+      addScene,
+      undefined,
+      toastId,
+    );
     return;
   }
 

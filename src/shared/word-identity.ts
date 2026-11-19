@@ -94,6 +94,20 @@ export function senseTag(gloss: string): string {
 }
 
 /**
+ * A PHRASE-LEVEL save: the whole subtitle line, or anything longer than four
+ * words. These are scene captures, not vocabulary — no lemma identity, no
+ * sense tag, no contextual gloss. Their dedup stays by the exact selection
+ * field, which the identity query's field clause already provides.
+ */
+export function isPhraseLevelSave(text: string, sentence?: string): boolean {
+  const words = String(text ?? '').trim().split(/\s+/).filter(Boolean);
+  if (words.length > 4) return true;
+  const saved = normalizeIdentityKey(text);
+  const line = normalizeIdentityKey(sentence ?? '');
+  return saved !== '' && line !== '' && saved === line;
+}
+
+/**
  * Sense classification from two glosses (already normalized for comparison).
  * Two senses are the SAME when they share at least one normalized gloss;
  * DIFFERENT when both are known and disjoint; UNKNOWN when either is missing.
