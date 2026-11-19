@@ -34,6 +34,7 @@ import { wordIdentity } from '../../shared/word-identity';
 import { lemmaCandidates } from '../nlp/lemma';
 import { mweLemmaCandidates } from '../nlp/mwe-lemma';
 import { lookupDictionary } from '../nlp/dictionary';
+import { resolveContextGloss } from '../resolve-context-gloss';
 import { recordCardSaved, useWordStudy, type StudyBinding } from './study';
 import {
   addSceneToNote, cardKindOf, OPEN_CARDS_EVENT, showCardSaved, showCardSaveError,
@@ -1606,27 +1607,35 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             // never recapture its media; the word still paints as saved.
             if (response.reused) {
               toast.dismiss(saveToastId);
-              recordCardSaved(lang, identity.key);
+              // The create action is one-shot: a rapid double click must not
+              // send two CREATE_CARD requests for the same meaning.
+              let createFired = false;
               showCardReused(
                 response.reused,
                 tokenValue,
-                response.reused === 'other-context'
-                  ? () => { void addContextRef.current?.(tokenValue, sentence, kind, cueLine); }
-                  : undefined,
+                response.canAddScene === false
+                  ? undefined
+                  : () => { void addContextRef.current?.(tokenValue, sentence, kind, cueLine); },
                 response.sense,
                 response.storedGloss,
                 response.contextGloss,
                 response.reused === 'other-context'
                   ? () => {
+                      if (createFired) return;
+                      createFired = true;
                       void createSenseRef.current?.(tokenValue, sentence, cueLine, contextGloss);
                     }
                   : undefined,
+                response.canAddScene,
+                `kivara-reused-${request.cardId ?? ''}`,
               );
+              recordCardSaved(lang, identity.key);
               if (studyNow.sounds) playSound('saved');
               return {
                 ok: true, noteId: response.noteId, warnings: response.warnings,
                 reused: response.reused, sense: response.sense,
                 storedGloss: response.storedGloss, contextGloss: response.contextGloss,
+                canAddScene: response.canAddScene,
               };
             }
             // Remember the noteId + frame field so `recapture_frame` (Alt+V)
@@ -1642,7 +1651,12 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             // saved either way, so the toast explains instead of blocking.
             toast.dismiss(saveToastId);
             showCardSaved(
-              { noteId: response.noteId, text: tokenValue, deck: activeDeck ?? '' },
+              {
+                noteId: response.noteId,
+                text: tokenValue,
+                deck: activeDeck ?? '',
+                cardId: request.cardId,
+              },
               withAudioHint(response.warnings ?? [], {
                 audioCaptureActive: useKivaraStore.getState().audioCaptureActive,
                 combo: useKivaraStore.getState().shortcuts.save || undefined,
@@ -1992,7 +2006,10 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             translation={study.translation}
             onTranslationChange={(next) => setStudy((prev) => ({ ...prev, translation: next }))}
             listenFirst={study.listenFirst}
-            onSaveWord={(word, sentence) => { void handleSaveCard(word, sentence); }}
+            onSaveWord={(word, sentence) => {
+              void resolveContextGloss(word, sentence, cueLanguageRef.current).then(({ gloss }) =>
+                handleSaveCard(word, sentence, undefined, gloss));
+            }}
             onFocusPanel={panelDocked ? focusPanel : undefined}
             uiLang={currentLocale()}
             nativeLang={useKivaraStore.getState().translate.targetLanguage}

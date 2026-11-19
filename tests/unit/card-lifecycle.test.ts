@@ -295,6 +295,26 @@ describe('undoDeleteNote (Undo)', () => {
     expect(studyStores('en').anki.get()).toEqual({ time: { interval: 30 } });
   });
 
+  it("origin:'undo' refuses a kivara-tagged note with no saved row for that request", async () => {
+    installStorage();
+    const f = setup({ cards: [], ownership: 'owned' });
+    const { undoDeleteNote } = await import('../../src/background/card-lifecycle');
+    const res = await undoDeleteNote(77, MAPPING as never, { origin: 'undo', cardId: 'req-missing' });
+    expect(res).toMatchObject({ ok: false });
+    expect(f.deleteNote).not.toHaveBeenCalled();
+    expect(f.registry.removeByNoteId).not.toHaveBeenCalled();
+  });
+
+  it("origin:'undo' with a saved row for that exact request still deletes", async () => {
+    installStorage();
+    const f = setup({ cards: [card({ id: 'req-ok', status: 'saved', noteId: 77 })] });
+    const { undoDeleteNote } = await import('../../src/background/card-lifecycle');
+    const res = await undoDeleteNote(77, MAPPING as never, { origin: 'undo', cardId: 'req-ok' });
+    expect(res).toEqual({ ok: true });
+    expect(f.deleteNote).toHaveBeenCalledWith(77, MAPPING);
+    expect(f.registry.removeByNoteId).toHaveBeenCalledWith(77);
+  });
+
   it('reads the language from the registry row (en-US folds to the en profile)', async () => {
     installStorage();
     const f = setup({ cards: [card({ status: 'saved', noteId: 77, lang: 'en-US', word: 'Sane' })] });

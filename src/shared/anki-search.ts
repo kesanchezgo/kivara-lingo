@@ -12,6 +12,7 @@
  * spaces still matches exactly. `note:"<model>"` pins the note type so
  * the same token in a different model doesn't count as the same card.
  */
+import { lemmaTag } from './word-identity';
 
 /** Escape a single Anki search term (deck name, field value, …). */
 export function escapeAnkiSearchTerm(term: string): string {
@@ -71,7 +72,7 @@ export function buildIdentityNoteQuery(opts: {
   const field = (opts.fieldName ?? '').trim() || 'Front';
   const model = (opts.modelName ?? '').trim();
   const surface = (opts.surface ?? '').trim() || key;
-  const tag = `kivara::lemma::${key.replace(/\s+/g, '-')}`;
+  const tag = lemmaTag(key);
   const clauses = [
     `tag:${escapeAnkiSearchTerm(tag)}`,
     `"${escapeAnkiSearchTerm(field)}:${escapeAnkiSearchTerm(surface)}"`,

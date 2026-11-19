@@ -328,3 +328,62 @@ test('other meaning: the new-sense toast shows both actions, create-first, no Un
     await new Promise<void>((r) => server.close(() => r()));
   }
 });
+
+
+test('shortcut save then "Crear tarjeta para este significado": one addNote, old note intact, no repeated toast', async ({ context, serviceWorker }) => {
+  test.setTimeout(120_000);
+  const log: AnkiLog = { actions: [], queries: [], added: 0, deleted: [], updated: [] };
+  const PORT = 18769;
+  const RUN_TTML = `<?xml version="1.0" encoding="utf-8"?>
+<tt xmlns="http://www.w3.org/ns/ttml"><body><div>
+<p begin="0s" end="9s">RUN is hard work</p>
+</div></body></tt>`;
+  const server = await startFakeAnki(PORT, log, {
+    word: 'run', lemmaTag: 'kivara::lemma::run',
+    storedSentence: 'He runs every day.', storedGloss: 'correr',
+  });
+  try {
+    await seedAnki(context, PORT);
+    void serviceWorker;
+    const page = await openPage(context, RUN_TTML);
+    try {
+      await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).tokens.length, { timeout: 10_000 }).toBeGreaterThan(0);
+      const tokBox = (await boxesOf(page, VIDEO_HOST)).tokens[0];
+      for (let i = 0; i < 15; i++) {
+        await page.mouse.move(
+          640 + (tokBox.x + tokBox.width / 2 - 640) * (i + 1) / 15,
+          360 + (tokBox.y + tokBox.height / 2 - 360) * (i + 1) / 15,
+        );
+        await page.waitForTimeout(16);
+      }
+      await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).card !== null, { timeout: 10_000 }).toBe(true);
+      await page.keyboard.press('Alt+Shift+S');
+      await expect.poll(async () => (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '',
+        { timeout: 20_000, message: `actions: ${log.actions.join(',')}` })
+        .toMatch(/ya está en tu mazo/);
+      expect(log.added).toBe(0);
+      expect(log.deleted).toEqual([]);
+
+      // Click the create action with FRESH coordinates (sonner animates).
+      for (let attempt = 0; attempt < 6; attempt++) {
+        const hits = (await hitsOf(page, PANEL_HOST)).filter((h) => h.label === 'Crear tarjeta para este significado');
+        if (!hits.length) break;
+        await page.mouse.click(hits[0].cx, hits[0].cy);
+        await page.waitForTimeout(250);
+        const text = (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '';
+        if (!text.includes('ya está en tu mazo')) break;
+      }
+      await expect.poll(() => log.added, { timeout: 20_000 }).toBe(1);
+      expect(log.deleted).toEqual([]);
+      // The pre-existing note was never deleted or overwritten.
+      expect(log.updated).toEqual([]);
+      // No reused toast comes back after the create (the notice is one-shot).
+      await page.waitForTimeout(800);
+      expect((await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '').not.toMatch(/ya está en tu mazo/);
+    } finally {
+      await page.close();
+    }
+  } finally {
+    await new Promise<void>((r) => server.close(() => r()));
+  }
+});

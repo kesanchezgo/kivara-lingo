@@ -1153,12 +1153,24 @@ export interface CreateCardResponse {
   storedGloss?: string;
   /** The contextual gloss this save would attach, when known. */
   contextGloss?: string;
+  /**
+   * False when the Anki model has no field mapped to `cue`: the note's
+   * sentence cannot be verified, so "Add this scene" must not be offered.
+   */
+  canAddScene?: boolean;
 }
 
 /* ── F4 Anki / card-registry messages (docs/REDESIGN-V2.md §4.6) ────────── */
 
 /** Undo: delete one note by id. */
-export interface AnkiDeleteNoteRequest { noteId: number; }
+export interface AnkiDeleteNoteRequest {
+  noteId: number;
+  /** Set by every UI Undo path so the worker can require proof this exact
+   * save created the note before deleting anything. */
+  origin?: 'undo';
+  /** cardId of the save that created the note. */
+  cardId?: string;
+}
 export interface AnkiDeleteNoteResponse {
   ok: boolean;
   error?: string;

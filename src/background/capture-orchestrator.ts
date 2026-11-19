@@ -508,7 +508,13 @@ async function findExistingByWord(
         const ourTags = (info.tags ?? []).some(
           (x) => x === 'kivara-lingo' || x.startsWith('kivara::'),
         );
-        if (info.noteId != null && ourTags && !(info.tags ?? []).includes(tag)) {
+        // Backfill only when the note's OWN selection field carries the
+        // lemma. A hit by surface form alone (e.g. "saw" for lemma "see")
+        // reuses the note but must NOT claim it is the "see" note — that tag
+        // would quietly change future lookups.
+        const selectionValue = normalizeFieldForCompare(info.fields[wordField]?.value ?? '');
+        if (info.noteId != null && ourTags && selectionValue === key
+          && !(info.tags ?? []).includes(tag)) {
           await ankiConnect.addTags([tag], [info.noteId], mapping.ankiUrl, mapping.apiKey);
         }
         if (requireSenseTag && info.noteId != null
@@ -614,7 +620,9 @@ async function hasSameContext(
   const cueField = Object.entries(mapping.fieldSources ?? {}).find(
     ([, s]) => s === 'cue',
   )?.[0];
-  if (!cueField) return true; // no mapped cue — nothing to compare
+  // No mapped cue field: this model cannot prove the sentence is the same,
+  // so it is another context — never claim "same-context" (and no add-scene).
+  if (!cueField) return false;
   try {
     const infos = await ankiConnect.notesInfo([noteId], mapping.ankiUrl, mapping.apiKey);
     const want = normalizeFieldForCompare(request.sentence);
@@ -625,34 +633,63 @@ async function hasSameContext(
 }
 
 /**
- * Read the stored meaning of an existing note: the mapped bilingual /
- * translation field (plain text) and any kivara::sense tags. Used to decide
- * whether the popover's contextual gloss is a NEW sense of the same lemma.
+ * Read the stored meaning of an existing note. Priority 1: the note's own
+ * `kivara::sense::…` tags — they are the authoritative record of the meanings
+ * this note was created for. Priority 2: the field mapped to bilingual /
+ * translation / translate, with HTML lists split into ';' BEFORE tags are
+ * stripped. NO first-field fallback: a note without a sense tag and without a
+ * mapped gloss field has an UNKNOWN meaning, never an invented one.
  */
 async function readStoredSense(
   noteId: number,
   mapping: AnkiMapping,
-): Promise<{ storedGloss: string; senseTags: string[]; posTags: string[] }> {
+): Promise<{ storedGloss: string; senseTags: string[]; posTags: string[]; sense?: 'same-sense' | 'new-sense' }> {
   const empty = { storedGloss: '', senseTags: [], posTags: [] };
   try {
     const infos = await ankiConnect.notesInfo([noteId], mapping.ankiUrl, mapping.apiKey);
     const info = infos[0];
     if (!info) return empty;
+    const tags = info.tags ?? [];
+    const senseTags = tags.filter((t) => t.startsWith('kivara::sense::'));
+    const posTags = tags.filter((t) => t.startsWith('kivara::pos::'));
+    let storedGloss = '';
     const glossField = Object.entries(mapping.fieldSources ?? {}).find(
       ([, s]) => s === 'bilingual' || s === 'translation' || s === 'translate',
-    )?.[0] ?? Object.keys(info.fields)[0];
-    const raw = glossField ? (info.fields[glossField]?.value ?? '') : '';
-    const storedGloss = raw.replace(/<[^>]*>/g, ' ').replace(/\[sound:[^\]]*\]/gi, ' ')
-      .replace(/\s+/g, ' ').trim();
-    const tags = info.tags ?? [];
-    return {
-      storedGloss,
-      senseTags: tags.filter((t) => t.startsWith('kivara::sense::')),
-      posTags: tags.filter((t) => t.startsWith('kivara::pos::')),
-    };
+    )?.[0];
+    if (glossField) {
+      storedGloss = String(info.fields[glossField]?.value ?? '')
+        // Lists must become SEPARATE meanings before the tags disappear —
+        // otherwise <li>correr</li><li>dirigir</li> reads as one "correr dirigir".
+        .replace(/<\s*\/\s*(?:li|p|div|ul|ol)\s*>/gi, ';')
+        .replace(/<\s*br\s*\/?\s*>/gi, ';')
+        .replace(/[\r\n]+/g, ';')
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\[sound:[^\]]*\]/gi, ' ')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/\s*;\s*/g, ';')
+        .replace(/;+/g, ';')
+        .replace(/^;|;$/g, '')
+        .trim();
+    }
+    // The note's own sense tags are authoritative — when present they also
+    // name the meaning shown in the notice, ahead of any mapped field text.
+    const tagGloss = senseTags.length
+      ? senseTags.map((t) => t.slice('kivara::sense::'.length).replace(/-/g, ' ')).join(';')
+      : '';
+    return { storedGloss: tagGloss || storedGloss, senseTags, posTags };
   } catch {
     return empty;
   }
+}
+
+/** Sense from a note's own tags, when it has any — authoritative over fields. */
+function senseFromTags(
+  senseTags: string[],
+  contextGloss: string,
+): 'same-sense' | 'new-sense' | undefined {
+  if (senseTags.length === 0) return undefined;
+  const wanted = senseTag(contextGloss);
+  return senseTags.includes(wanted) ? 'same-sense' : 'new-sense';
 }
 
 export async function createCardFromRequest(
@@ -760,14 +797,16 @@ export async function createCardFromRequest(
   // an Anki failure here returns null and we add as before.
   if (!options.fromRetry) {
     const forceSense = request.forceNewSense === true;
-    const wantSenseTag = forceSense && request.contextGloss
-      ? senseTag(request.contextGloss) : undefined;
+    // Explicit create: without a gloss there is no meaning to look up — the
+    // user asked for a NEW note, so skip dedup entirely (created with the
+    // lemma tag only). Never fall through to the generic lemma note.
+    if (forceSense && !request.contextGloss) {
+      // fall through to addNote below
+    } else {
+    const wantSenseTag = forceSense
+      ? senseTag(request.contextGloss!) : undefined;
     const existingWord = await findExistingByWord(request, mapping, deck, wantSenseTag);
     if (existingWord) {
-      // Which context? The note is already resolved by identity; just read
-      // its cue field. A hit means the word already has a note for THIS
-      // sentence; a miss means another form/sense of the same lemma in a
-      // different sentence (the UI offers "add this scene").
       const sameContext = existingWord.noteId != null
         ? await hasSameContext(existingWord.noteId, request, mapping)
         : false;
@@ -776,19 +815,24 @@ export async function createCardFromRequest(
       if (!sameContext && existingWord.noteId != null && request.contextGloss) {
         const stored = await readStoredSense(existingWord.noteId, mapping);
         storedGloss = stored.storedGloss || undefined;
-        sense = classifySense(request.contextGloss, stored.storedGloss);
-        // A forceNewSense hit already carries the SAME sense tag.
-        if (forceSense) sense = 'same-sense';
+        // The note's own sense tags outrank any field value. Without either
+        // a tag or a mapped gloss field the sense stays UNKNOWN — never the
+        // first field, never an invented "new-sense".
+        sense = senseFromTags(stored.senseTags, request.contextGloss)
+          ?? classifySense(request.contextGloss, stored.storedGloss);
       }
+      const canAddScene = Object.values(mapping.fieldSources ?? {}).includes('cue');
       return {
         ok: true,
         noteId: existingWord.noteId,
         reused: sameContext ? 'same-context' : 'other-context',
+        canAddScene,
         ...(sense ? { sense } : {}),
         ...(storedGloss ? { storedGloss } : {}),
         ...(request.contextGloss ? { contextGloss: request.contextGloss } : {}),
         warnings: [],
       };
+    }
     }
   }
 

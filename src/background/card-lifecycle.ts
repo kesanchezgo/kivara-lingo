@@ -190,8 +190,21 @@ export async function dismissCard(id: string): Promise<CardDismissResponse> {
 export async function undoDeleteNote(
   noteId: number,
   mapping: AnkiMapping,
+  options: { origin?: 'undo'; cardId?: string } = {},
 ): Promise<AnkiDeleteNoteResponse> {
   const known = await cardRegistry.findByNoteId(noteId);
+  if (options.origin === 'undo') {
+    // Defense in depth: every UI Undo names the save that created the note.
+    // Only a registry row with THAT id, that noteId and status 'saved' proves
+    // the note was created (not reused) by this request. A kivara tag alone
+    // is NOT enough here — reused notes carry our tags too.
+    const created = options.cardId
+      ? await cardRegistry.get(options.cardId)
+      : undefined;
+    if (!created || created.noteId !== noteId || created.status !== 'saved') {
+      return { ok: false, error: t('cards.undoNotCreated') };
+    }
+  }
   if (!known) {
     const ownership = await noteOwnership(noteId, mapping);
     if (ownership === 'foreign') {

@@ -101,6 +101,28 @@ describe('showCardReused', () => {
     expect(onAdd).not.toHaveBeenCalled();
   });
 
+  it('no cue field: hides add-scene, keeps create-card, no "con esta frase"', () => {
+    const onCreate = vi.fn();
+    showCardReused('other-context', 'run', undefined, 'new-sense', 'correr', 'dirigir', onCreate, false);
+    const { texts, buttons } = renderNotice();
+    expect(buttons.some((b) => b.text.includes('Añadir esta escena'))).toBe(false);
+    expect(texts.join(' ')).not.toContain('con esta frase');
+    const create = buttons.find((b) => b.text.includes('Crear tarjeta'));
+    expect(create).toBeDefined();
+    create?.onClick?.();
+    expect(onCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('a rapid second click of Create fires it only once', () => {
+    const onCreate = vi.fn();
+    showCardReused('other-context', 'run', vi.fn(), 'new-sense', 'correr', 'dirigir', onCreate, true);
+    const { buttons } = renderNotice();
+    const create = buttons.find((b) => b.text.includes('Crear tarjeta'))!;
+    create.onClick?.();
+    create.onClick?.();
+    expect(onCreate).toHaveBeenCalledTimes(1);
+  });
+
   it('same-sense/unknown: add-scene is PRIMARY, create-card secondary', () => {
     for (const sense of ['same-sense', 'unknown'] as const) {
       vi.clearAllMocks();
