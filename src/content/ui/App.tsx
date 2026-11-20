@@ -1393,13 +1393,11 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       await videoElement.play();
       await waitForVideoTime(videoElement, targetSeconds, timeoutMs);
       const audioAnchor = videoElement.currentTime * 1000;
+      const wallClockAtSave = Date.now();
       videoElement.pause();
       await restore();
       kivaraPausedRef.current = originalKivaraPaused;
-      return {
-        videoTimeAtSave: audioAnchor,
-        videoPausedAtSave: false,
-      };
+      return captureAnchor(audioAnchor, false, wallClockAtSave);
     } catch (err) {
       try {
         if (!videoElement.paused) videoElement.pause();
@@ -1410,10 +1408,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       kivaraPausedRef.current = originalKivaraPaused;
       const reason = err instanceof Error ? err.message : 'no se pudo reproducir temporalmente';
       console.warn('[Kivara Lingo] subtitle audio completion failed; using TTS fallback', reason);
-      return {
-        videoTimeAtSave: originalMs,
-        videoPausedAtSave: true,
-      };
+      return captureAnchor(originalMs, true, Date.now());
     }
   }, [activeCue?.end, adapter, videoElement, episode.controller]);
 

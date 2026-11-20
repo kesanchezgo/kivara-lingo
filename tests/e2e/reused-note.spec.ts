@@ -492,16 +492,12 @@ test('shortcut save then "Crear tarjeta para este significado": one addNote, old
         );
         await page.waitForTimeout(16);
       }
-      // Drive the save through the popover's Guardar button (same CREATE_CARD
-      // path): on a loaded runner the hover can drift to a neighbouring token
-      // ("the"), so the shortcut is not a stable target here.
-      await expect.poll(async () => (await hitsOf(page, VIDEO_HOST)).some((h) => h.label === 'Guardar'),
+      // Wait for the card to actually OPEN before the shortcut — a mouse.move
+      // alone can land before the hover handler fires, and the shortcut would
+      // then fall through with nothing to save.
+      await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).card !== null,
         { timeout: 10_000 }).toBe(true);
-      await page.waitForTimeout(1200);
-      {
-        const save = (await hitsOf(page, VIDEO_HOST)).find((h) => h.label === 'Guardar')!;
-        await page.mouse.click(save.cx, save.cy);
-      }
+      await page.keyboard.press('Alt+Shift+S');
       await expect.poll(async () => (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '',
         { timeout: 45_000, message: `actions: ${log.actions.join(',')} queries: ${log.queries.join(';')}` })
         .toMatch(/ya está en tu mazo/);

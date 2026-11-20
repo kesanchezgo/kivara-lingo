@@ -151,6 +151,19 @@ describe('P3 — one anchor instant: 1.5 s of SW work barely shifts the clip', (
     const a = captureAnchor(2500, true, 1234567890);
     expect(a).toEqual({ videoTimeAtSave: 2500, videoPausedAtSave: true, wallClockAtSave: 1234567890 });
   });
+
+  it('every ensureSubtitleAudioReady exit goes through captureAnchor — never a 2-field anchor', async () => {
+    // The paused-replay exits only run when the video is paused. The synthetic
+    // E2E stream leaves it playing, so a unit guard is the only thing that
+    // catches a return that forgets wallClockAtSave.
+    const fs = await import('node:fs');
+    const src = fs.readFileSync('src/content/ui/App.tsx', 'utf-8');
+    const start = src.indexOf('const ensureSubtitleAudioReady');
+    const end = src.indexOf('/**', start);
+    const body = src.slice(start, end);
+    expect(body).not.toContain('videoPausedAtSave:');
+    expect(body.match(/captureAnchor\(/g)?.length).toBeGreaterThanOrEqual(4);
+  });
 });
 
 describe('P4 — mediaLost only when the note was CREATED', () => {
