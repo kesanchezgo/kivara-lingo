@@ -77,6 +77,8 @@ function setup(options: {
   result?: { ok: boolean; noteId?: number; error?: string; warnings?: string[] };
   deleteResult?: { ok: boolean; error?: string; gone?: boolean };
   ownership?: 'owned' | 'foreign' | 'gone' | 'unreadable';
+  /** Notes Anki still holds after the delete — the "another live note" probe. */
+  remainingNotes?: string[];
 } = {}) {
   const cards = options.cards ?? [card()];
   const rows = options.rows ?? [{ id: 10, request: { cardId: 'card-1', token: 'sane', deck: 'English vocabulary', lang: 'en' }, retries: 1 }];
@@ -94,8 +96,10 @@ function setup(options: {
   const noteOwnership = vi.fn(async () => options.ownership ?? 'owned');
   const pendingDelete = vi.fn(async () => undefined);
   const pendingUpdate = vi.fn(async () => undefined);
+  const findNotes = vi.fn(async (_query: string, _url?: string, _key?: string) => options.remainingNotes ?? []);
   vi.doMock('../../src/background/card-registry', () => ({ cardRegistry: registry }));
   vi.doMock('../../src/background/capture-orchestrator', () => ({ createCardFromRequest, retryPendingNotes }));
+  vi.doMock('../../src/background/anki-connect', () => ({ ankiConnect: { findNotes } }));
   vi.doMock('../../src/background/card-actions', () => ({
     deleteNote,
     noteOwnership,
@@ -115,7 +119,7 @@ function setup(options: {
 
   return {
     registry, createCardFromRequest, retryPendingNotes, deleteNote, noteOwnership,
-    pendingDelete, pendingUpdate, rows, cards,
+    pendingDelete, pendingUpdate, rows, cards, findNotes,
   };
 }
 
@@ -352,6 +356,49 @@ describe('undoDeleteNote (Undo)', () => {
     await expect(undoDeleteNote(77, MAPPING as never)).resolves.toEqual({ ok: true, gone: true });
     expect(f.registry.removeByNoteId).toHaveBeenCalledWith(77);
     expect(studyStores('en').anki.get()).toEqual({});
+  });
+
+  // P1 (round 9): the cleanup key is the LEMMA. Saving "running" stores the
+  // lemma "run" in the interval cache; undoing "running" must clear "run",
+  // and only when NO other note of that lemma survives.
+  it('undoing "running" (lemma run) flips isInAnki("en","run") to false via the lemma key', async () => {
+    installStorage();
+    const f = setup({
+      cards: [card({ status: 'saved', noteId: 77, word: 'running', identityKey: 'run' })],
+      remainingNotes: [],
+    });
+    const { replaceAnkiIntervals, isInAnki } = await import('../../src/shared/study/wordStatus');
+    replaceAnkiIntervals('en', { run: 12, time: 30 });
+
+    const { undoDeleteNote } = await import('../../src/background/card-lifecycle');
+    const res = await undoDeleteNote(77, MAPPING as never);
+
+    expect(res).toEqual({ ok: true });
+    const queries = f.findNotes.mock.calls.map((call) => String(call[0]));
+    expect(queries.some((q) => q.includes('kivara::lemma::run'))).toBe(true);
+    expect(isInAnki('en', 'run')).toBe(false);
+    expect(isInAnki('en', 'running')).toBe(false);
+    // An unrelated word keeps its interval.
+    expect(isInAnki('en', 'time')).toBe(true);
+  });
+
+  it('another live note of the lemma keeps the word saved (stillInDeck, cache intact)', async () => {
+    installStorage();
+    const f = setup({
+      cards: [card({ status: 'saved', noteId: 77, word: 'running', identityKey: 'run' })],
+      remainingNotes: ['333'],
+    });
+    const { replaceAnkiIntervals, isInAnki } = await import('../../src/shared/study/wordStatus');
+    replaceAnkiIntervals('en', { run: 12, time: 30 });
+
+    const { undoDeleteNote } = await import('../../src/background/card-lifecycle');
+    const res = await undoDeleteNote(77, MAPPING as never);
+
+    expect(res).toEqual({ ok: true, stillInDeck: true });
+    expect(f.deleteNote).toHaveBeenCalledWith(77, MAPPING);
+    expect(f.registry.removeByNoteId).toHaveBeenCalledWith(77);
+    // The lemma still has a note in the deck: the interval cache keeps it.
+    expect(isInAnki('en', 'run')).toBe(true);
   });
 
   /**

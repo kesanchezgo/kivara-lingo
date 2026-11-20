@@ -91,8 +91,19 @@ describe('P2 — a saved frame skips capture and a saved scene keeps cue 1', () 
 });
 
 describe('P3 — one anchor instant: 1.5 s of SW work barely shifts the clip', () => {
-  it('resolveAudio uses the persisted anchor, not the wall clock after an await', async () => {
-    const extract = vi.fn(async () => ({ ok: true, dataUrl: 'data:audio/mpeg;base64,AA', mimeType: 'audio/mpeg' }));
+  // The extract spy travels through a describe-scoped variable: doMock
+  // registrations persist across tests in this file, so BOTH tests share ONE
+  // factory that forwards to whichever spy the CURRENT test installed.
+  let extract: ReturnType<typeof vi.fn<(start: number, end: number, opts?: unknown) => Promise<{ ok: boolean; dataUrl: string; mimeType: string }>>>;
+
+  /** The full production mock harness around resolveAudio. */
+  function wireAudioMocks(): void {
+    // Earlier describes in this file doMock capture-orchestrator/registry;
+    // registrations persist for the whole file, so pin the REAL modules back
+    // — the harness exercises the production orchestrator, not their stubs.
+    vi.doMock('../../src/background/capture-orchestrator', async (importOriginal: () => Promise<unknown>) => await importOriginal());
+    vi.doMock('../../src/background/card-registry', async (importOriginal: () => Promise<unknown>) => await importOriginal());
+    vi.doMock('../../src/background/card-actions', async (importOriginal: () => Promise<unknown>) => await importOriginal());
     vi.doMock('../../src/background/anki-connect', () => ({
       ankiConnect: { addNote: vi.fn(async () => 1), findNotes: vi.fn(async () => []), notesInfo: vi.fn(async () => []), addTags: vi.fn(async () => null), storeMediaFile: vi.fn(async (f: string) => f) },
       dataUrlToBase64: (s: string) => s,
@@ -100,7 +111,7 @@ describe('P3 — one anchor instant: 1.5 s of SW work barely shifts the clip', (
     }));
     vi.doMock('../../src/background/audio-capture-manager', () => ({
       getAudioCaptureStatus: async () => ({ active: true }),
-      extractAudioClip: extract,
+      extractAudioClip: (...args: unknown[]) => extract(...(args as [number, number])),
     }));
     vi.doMock('../../src/shared/db', async (importOriginal: () => Promise<unknown>) => {
       const actual = (await importOriginal()) as Record<string, unknown>;
@@ -128,6 +139,14 @@ describe('P3 — one anchor instant: 1.5 s of SW work barely shifts the clip', (
       getVipSettings: async () => ({ enabled: false }),
       loadTranslateTargetLang: async () => 'es',
     }));
+  }
+
+  const MAPPING = { deckName: 'English vocab', modelName: 'Basic', fieldSources: { Front: 'selection', Sentence: 'cue', 'Sentence audio': 'sentence-audio' } };
+  const CAPTURE = { endDetect: 'vad', bufferSize: 30, preRoll: 0, postRoll: 0, cueMerge: 300 };
+
+  it('resolveAudio uses the persisted anchor, not the wall clock after an await', async () => {
+    extract = vi.fn(async () => ({ ok: true, dataUrl: 'data:audio/mpeg;base64,AA', mimeType: 'audio/mpeg' }));
+    wireAudioMocks();
     const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
     const anchor = Date.now() - 10_000;
     await new Promise((r) => setTimeout(r, 10));
@@ -135,8 +154,7 @@ describe('P3 — one anchor instant: 1.5 s of SW work barely shifts the clip', (
       token: 'run', sentence: 'She runs it.', language: 'en', deck: 'English vocab',
       cueStart: 1000, cueEnd: 3000, videoTimeAtSave: 2500, videoPausedAtSave: true,
       anchorWallClock: anchor,
-    } as never, { deckName: 'English vocab', modelName: 'Basic', fieldSources: { Front: 'selection', Sentence: 'cue', 'Sentence audio': 'sentence-audio' } } as never,
-    { endDetect: 'vad', bufferSize: 30, preRoll: 0, postRoll: 0, cueMerge: 300 } as never);
+    } as never, MAPPING as never, CAPTURE as never);
     // Anchor pinned 10 s in the past: the offscreen rejects the stale window
     // (no clip) — but crucially no clip from "now" may be substituted.
     expect(extract.mock.calls.length <= 1).toBe(true);
@@ -144,6 +162,29 @@ describe('P3 — one anchor instant: 1.5 s of SW work barely shifts the clip', (
       const [startMs] = extract.mock.calls[0] as unknown as [number, number];
       expect(Math.abs(startMs - (anchor - 1500))).toBeLessThan(100);
     }
+  });
+
+  it('a PLAYING save past the cue end: >= 1 s of SW work shifts the clip <100 ms', async () => {
+    extract = vi.fn(async () => ({ ok: true, dataUrl: 'data:audio/mpeg;base64,AA', mimeType: 'audio/mpeg' }));
+    wireAudioMocks();
+    const { createCardFromRequest } = await import('../../src/background/capture-orchestrator');
+    // The anchor is taken NOW; the orchestrator only reaches resolveAudio
+    // after >= 1 s of real work (translations, AI fan-out, Anki I/O). The
+    // window must still be sliced at the SAVE instant, not at "now".
+    const anchor = Date.now();
+    await new Promise((r) => setTimeout(r, 1100));
+    await createCardFromRequest({
+      token: 'run', sentence: 'She runs it.', language: 'en', deck: 'English vocab',
+      cueStart: 1000, cueEnd: 3000,
+      // Playing and PAST the cue end: no TTS fallback, no tail wait — exactly
+      // one extract call with the wall-clock window of the SAVED cue.
+      videoTimeAtSave: 3500, videoPausedAtSave: false,
+      anchorWallClock: anchor,
+    } as never, MAPPING as never, CAPTURE as never);
+    expect(extract.mock.calls.length).toBe(1);
+    const [startMs] = extract.mock.calls[0] as unknown as [number, number];
+    // start = cueStart − preRoll → wallClock(anchor − (3500 − 1000)).
+    expect(Math.abs(startMs - (anchor - 2500))).toBeLessThan(100);
   });
 
   it('SubtitleAudioAnchor carries wallClockAtSave from the SAME instant', async () => {
@@ -195,11 +236,21 @@ describe('P4 — mediaLost only when the note was CREATED', () => {
   });
 });
 
-describe('P5 — add-scene with a saved phrase keeps its identity', () => {
-  it('pre ? pre.identityKey : identity.key', async () => {
+describe('P5 — add-scene identity: pre WINS AS-IS, never a ?? fallback to the live cue', () => {
+  it('a phrase save keeps identityKey undefined — even when a word is playing now', async () => {
     const { sceneIdentity } = await import('../../src/content/ui/save-scene');
-    expect(sceneIdentity({ identityKey: undefined }, { key: 'run' })).toBe('run');
+    // pre IS defined: its identityKey travels verbatim, undefined included —
+    // re-deriving "run" would attach a phrase scene to a word lemma.
+    expect(sceneIdentity({ identityKey: undefined }, { key: 'run' })).toBeUndefined();
     expect(sceneIdentity({ identityKey: 'thank you' }, { key: 'thank' })).toBe('thank you');
+    expect(sceneIdentity(undefined, { key: 'run' })).toBe('run');
+  });
+
+  it('sceneSurface follows the same rule for the surface form', async () => {
+    const { sceneSurface } = await import('../../src/content/ui/save-scene');
+    expect(sceneSurface({ surface: undefined }, { surface: 'run' })).toBeUndefined();
+    expect(sceneSurface({ surface: 'thank you' }, { surface: 'thank' })).toBe('thank you');
+    expect(sceneSurface(undefined, { surface: 'running' })).toBe('running');
   });
 });
 

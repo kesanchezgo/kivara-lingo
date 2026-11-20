@@ -424,13 +424,17 @@ export function SubtitleOverlay({
   // user just undid keeps reading as saved until the next mount.
   useEffect(() => {
     const onCardUndone = (event: Event) => {
-      const token = (event as CustomEvent<{ token?: string }>).detail?.token;
-      if (!token) return;
-      const key = token.toLowerCase();
+      const detail = (event as CustomEvent<{ token?: string; identityKey?: string }>).detail;
+      if (!detail?.token && !detail?.identityKey) return;
+      // The saved set is LEMMA-keyed (a save of "running" stores "run"), so
+      // the event's identityKey is the precise key — but older senders and
+      // single-form words only carry the surface: drop both, normalized.
+      const keys = [detail.identityKey?.toLowerCase(), detail.token?.toLowerCase()]
+        .filter((k): k is string => !!k);
       setSavedTokens((prev) => {
-        if (!prev.has(key)) return prev;
+        if (!keys.some((k) => prev.has(k))) return prev;
         const next = new Set(prev);
-        next.delete(key);
+        for (const k of keys) next.delete(k);
         return next;
       });
     };

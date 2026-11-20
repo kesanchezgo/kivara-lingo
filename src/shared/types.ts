@@ -1208,6 +1208,9 @@ export interface AnkiDeleteNoteResponse {
   error?: string;
   /** True when the note was already gone — the undo goal is still met. */
   gone?: boolean;
+  /** The note went away but ANOTHER note of the same lemma survives: the
+   * word is still saved, so the UI must not unpaint it. */
+  stillInDeck?: boolean;
 }
 
 /** Add this scene: attach another sentence/context to an existing note. */

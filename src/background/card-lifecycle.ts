@@ -19,8 +19,10 @@ import type {
 } from '../shared/types';
 import { t } from '../shared/i18n/sw';
 import { beginRetry, isPending, mediaFromSource, registryRowFromRequest, type RecentCard } from '../shared/cards';
+import { buildIdentityNoteQuery } from '../shared/anki-search';
 import { getDB } from '../shared/db';
 import { profileLangOf, removeAnkiWord } from '../shared/study/wordStatus';
+import { ankiConnect } from './anki-connect';
 import { cardRegistry } from './card-registry';
 import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator';
 import { deleteNote } from './card-actions';
@@ -222,7 +224,33 @@ export async function undoDeleteNote(
   const result = await deleteNote(noteId, mapping);
   if (result.ok) {
     await cardRegistry.removeByNoteId(noteId);
-    removeAnkiWord(profileLangOf(row.lang), row.word);
+    // The saved-state caches are keyed by LEMMA, not surface: the row that
+    // saved "running" stored "run". Clearing the raw word would leave the
+    // word painted as saved forever.
+    const key = row.identityKey || row.word;
+    // A lemma can own SEVERAL notes (distinct meanings). Another live note
+    // keeps the word "saved": leave the interval cache alone and tell the
+    // caller, so the UI does not unpaint a word the deck still teaches.
+    try {
+      const wordField = Object.entries(mapping.fieldSources ?? {}).find(
+        ([, s]) => s === 'selection',
+      )?.[0] ?? 'Front';
+      const query = buildIdentityNoteQuery({
+        deckName: row.deck || mapping.deckName,
+        fieldName: wordField,
+        identityKey: key,
+      });
+      const remaining = query
+        ? await ankiConnect.findNotes(query, mapping.ankiUrl, mapping.apiKey)
+        : [];
+      if (remaining.length > 0) {
+        return { ...result, stillInDeck: true };
+      }
+    } catch {
+      // The probe must never turn a completed undo into a failure: when Anki
+      // is unreadable, clearing the cache is the safe default.
+    }
+    removeAnkiWord(profileLangOf(row.lang), key);
   }
   return result;
 }

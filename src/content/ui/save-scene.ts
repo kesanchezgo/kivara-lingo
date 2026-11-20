@@ -49,12 +49,25 @@ export function applySavedScene(
   };
 }
 
-/** The note a scene belongs to: the SAVED identity, never a re-derived lemma. */
+/**
+ * The note a scene belongs to: the SAVED identity, never a re-derived lemma.
+ * When `pre` is DEFINED its identityKey travels AS-IS — a phrase-level save
+ * sent none, and `??` would wrongly re-derive a word identity from whatever
+ * happens to be playing at click time.
+ */
 export function sceneIdentity(
   pre: { identityKey?: string } | undefined,
   identity: { key: string },
 ): string | undefined {
-  return pre?.identityKey ?? identity.key;
+  return pre ? pre.identityKey : identity.key;
+}
+
+/** The saved surface follows the same rule as the identity key. */
+export function sceneSurface(
+  pre: { surface?: string } | undefined,
+  identity: { surface?: string },
+): string | undefined {
+  return pre ? pre.surface : identity.surface;
 }
 
 /** One anchor instant: video time, paused state and wall clock taken together. */

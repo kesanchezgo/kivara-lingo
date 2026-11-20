@@ -14,6 +14,7 @@ import type {
 } from '../../../shared/types';
 import { MAX_CARD_RETRIES, hasAudio, hasFrame, isPending, type CardStatus, type RecentCard } from '../../../shared/cards';
 import { CARD_ERROR_LABEL_KEYS, classifyCardError } from '../../../shared/card-errors';
+import { CARD_UNDONE_EVENT } from '../../../content/ui/save-actions';
 import { originLabel, tagsOf } from '../../../shared/study/cardTags';
 import {
   Badge, Button, FilterChips, IconButton, IconTile, SectionLabel, ui, FOCUS,
@@ -207,6 +208,16 @@ function RecentRow({
       { noteId: card.noteId, origin: 'undo', cardId: card.id },
       'background',
     )) as AnkiDeleteNoteResponse;
+    // Same seam the saved-notice undo uses: the overlay unpaints the lemma —
+    // except when ANOTHER note of the lemma survives (stillInDeck): the word
+    // is still saved, so the mark stays.
+    if (res?.ok && !res.stillInDeck) {
+      window.dispatchEvent(
+        new CustomEvent(CARD_UNDONE_EVENT, {
+          detail: { token: card.word, identityKey: card.identityKey },
+        }),
+      );
+    }
     return !!res?.ok;
   }, t('queue.undone'), t('queue.undoFailed'));
 
