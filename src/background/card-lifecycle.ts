@@ -88,7 +88,13 @@ export async function retryCard(
     } catch {
       // best-effort: the registry already reflects the outcome
     }
-    return { ok: result.ok, noteId: result.noteId, error: result.error, warnings: result.warnings };
+    return {
+      ok: result.ok,
+      noteId: result.noteId,
+      error: result.error,
+      warnings: result.warnings,
+      reused: result.reused,
+    };
   }
 
   // No queued row (permanent failure): the registry only holds flags, never

@@ -11,6 +11,7 @@
  */
 import fs from 'node:fs';
 import http from 'node:http';
+import { existsSync } from 'node:fs';
 import type { Server } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -32,8 +33,11 @@ interface AnkiLog {
   addedNotes: Array<{ fields: Record<string, string>; tags?: string[] }>;
   deleted: number[];
   updated: number[];
+  updatedFields: Array<Record<string, string>>;
 }
 const EXISTING_NOTE_ID = 424242;
+/** The synthetic-capture tests need the KIVARA_E2E bridge page in dist. */
+const hasE2EBridge = existsSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../../dist/src/e2e/index.html'));
 
 interface FakeAnkiOptions {
   /** Surface stored on the pre-existing note (lowercase). */
@@ -103,7 +107,11 @@ function startFakeAnki(port: number, log: AnkiLog, opts: FakeAnkiOptions): Promi
         result = log.addedIds[log.addedIds.length - 1];
       }
       else if (action === 'deleteNotes') { log.deleted.push(...((params.notes as number[]) ?? [])); result = null; }
-      else if (action === 'updateNoteFields') { log.updated.push(EXISTING_NOTE_ID); result = null; }
+      else if (action === 'updateNoteFields') {
+        log.updated.push(EXISTING_NOTE_ID);
+        log.updatedFields.push((((params.note as { fields?: Record<string, string> })?.fields) ?? (params.fields as Record<string, string>) ?? {}));
+        result = null;
+      }
       else if (action === 'addTags' || action === 'storeMediaFile') result = null;
       res.writeHead(200, {
         'Content-Type': 'application/json',
@@ -131,7 +139,7 @@ async function seedAnki(context: import('@playwright/test').BrowserContext, port
       ankiUrl: `http://127.0.0.1:${p}`,
       deckName: 'Kivara QA',
       modelName: 'Basic',
-      fieldSources: { Front: 'selection', Translation: 'bilingual', Sentence: 'cue' },
+      fieldSources: { Front: 'selection', Translation: 'bilingual', Sentence: 'cue', 'Sentence audio': 'sentence-audio' },
     };
     // Drive the save through a KEYBOARD shortcut the page owns, not the
     // manifest Ctrl+Shift+S (which is delivered by the SW's chrome.commands
@@ -150,6 +158,39 @@ async function seedAnki(context: import('@playwright/test').BrowserContext, port
  * outranks BOTH the bundled dictionary and any live enrichment chain, so the
  * contextual gloss is deterministic in CI regardless of network.
  */
+const E2E_BRIDGE = (extensionId: string) => `chrome-extension://${extensionId}/src/e2e/index.html`;
+
+/** Open the extension's E2E bridge page (the offscreen control surface). */
+async function openCapture(
+  context: import('@playwright/test').BrowserContext,
+  extensionId: string,
+): Promise<import('@playwright/test').Page> {
+  const page = await context.newPage();
+  await page.goto(E2E_BRIDGE(extensionId));
+  await page.waitForFunction(() => document.readyState === 'complete', undefined, { timeout: 20_000 });
+  return page;
+}
+
+/** Send one bridge message and return its response. */
+async function bridge(page: import('@playwright/test').Page, message: unknown): Promise<{ ok: boolean; error?: string; [k: string]: unknown }> {
+  return page.evaluate(async (msg) => {
+    const res = await chrome.runtime.sendMessage(msg);
+    return res as { ok: boolean; error?: string };
+  }, message);
+}
+
+/** Start the offscreen SYNTHETIC audio stream (E2E-gated production code). */
+async function startSyntheticCapture(
+  bridgePage: import('@playwright/test').Page,
+  tabId: number,
+): Promise<void> {
+  const started = await bridge(bridgePage, {
+    type: 'KIVARA_E2E_START_AUDIO_CAPTURE',
+    data: { tabId, synthetic: true },
+  });
+  if (!started.ok) throw new Error(`capture refused: ${started.error ?? 'unknown'}`);
+}
+
 async function seedDictPack(context: import('@playwright/test').BrowserContext) {
   const sw = (await context.serviceWorkers())[0];
   if (!sw) return;
@@ -214,15 +255,21 @@ async function openPage(context: import('@playwright/test').BrowserContext, ttml
   return page as Page & Record<string, unknown>;
 }
 
-test('saving STEVE over an existing steve note: no Undo, add-scene offered, old note survives', async ({ context, serviceWorker }) => {
-  test.setTimeout(120_000);
-  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [] };
+test('saving STEVE over an existing steve note: no Undo, add-scene offered, old note survives', async ({ context, serviceWorker, extensionId }) => {
+  test.setTimeout(180_000);
+  test.skip(!hasE2EBridge, 'skipped: needs a KIVARA_E2E=1 build (the e2e bridge page is absent from a production dist)');
+  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [], updatedFields: [] };
   const PORT = 18766;
   const server = await startFakeAnki(PORT, log, { word: 'steve' });
   try {
     await seedAnki(context, PORT);
     void serviceWorker;
     const page = await openPage(context);
+    // P3: the synthetic tab-capture stream fills the offscreen buffer with
+    // real (production) audio, so "Add this scene" can slice the SAVED cue.
+    const bridgePage = await openCapture(context, extensionId);
+    // tabId is irrelevant on the synthetic path (the offscreen streams itself).
+    await startSyntheticCapture(bridgePage, 0);
     try {
       // Hover the token so the shortcut has a target word (box map works
       // through the closed shadow root). Wait for the word card to actually
@@ -256,13 +303,32 @@ test('saving STEVE over an existing steve note: no Undo, add-scene offered, old 
       expect(log.actions).toContain('findNotes');
       expect(log.actions).toContain('notesInfo');
 
-      // Recientes has no row carrying the reused noteId (no Undo there).
+      // P3: with the synthetic capture running, "Add this scene" converts the
+      // SAVED cue window (video time → wall clock) and the note receives the
+      // sentence audio — [sound:...] lands on the existing note.
+      const beforeUpdates = log.updatedFields.length;
+      await expect.poll(async () => (await hitsOf(page, PANEL_HOST)).some((h) => h.label === 'Añadir esta escena'),
+        { timeout: 15_000, message: 'add-scene action never rendered' }).toBe(true);
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const hits = (await hitsOf(page, PANEL_HOST)).filter((h) => h.label === 'Añadir esta escena');
+        if (hits.length) await page.mouse.click(hits[0].cx, hits[0].cy);
+        await page.waitForTimeout(500);
+        if (log.updatedFields.length > beforeUpdates) break;
+        if (attempt === 7) break;
+      }
+      await expect.poll(() => log.updatedFields.length, { timeout: 30_000 }).toBeGreaterThan(beforeUpdates);
+      const sceneFields = log.updatedFields[log.updatedFields.length - 1];
+      expect(Object.values(sceneFields).join(' ')).toContain('[sound:');
+
+      // Recientes has NO row for the reused word — not by noteId, not by word.
       const recent = await serviceWorker.evaluate(async () => {
         const got = await chrome.storage.local.get('kvl:cards.recent');
         return (got['kvl:cards.recent'] ?? []) as Array<{ noteId?: number; word: string }>;
       });
+      expect(recent.filter((r) => r.word.toLowerCase() === 'steve')).toHaveLength(0);
       expect(recent.some((r) => r.noteId === EXISTING_NOTE_ID)).toBe(false);
     } finally {
+      await bridgePage.close();
       await page.close();
     }
   } finally {
@@ -272,7 +338,7 @@ test('saving STEVE over an existing steve note: no Undo, add-scene offered, old 
 
 test('saving "running" over a pre-existing lemma "run" note reuses it and add-scene attaches to that SAME note', async ({ context, serviceWorker }) => {
   test.setTimeout(120_000);
-  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [] };
+  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [], updatedFields: [] };
   const PORT = 18767;
   const RUN_TTML = `<?xml version="1.0" encoding="utf-8"?>
 <tt xmlns="http://www.w3.org/ns/ttml"><body><div>
@@ -337,7 +403,7 @@ test('saving "running" over a pre-existing lemma "run" note reuses it and add-sc
 
 test('other meaning: the new-sense toast shows both actions, create-first, no Undo', async ({ context, serviceWorker }) => {
   test.setTimeout(120_000);
-  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [] };
+  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [], updatedFields: [] };
   const PORT = 18768;
   const RUN_TTML = `<?xml version="1.0" encoding="utf-8"?>
 <tt xmlns="http://www.w3.org/ns/ttml" xml:lang="en"><body><div>
@@ -395,9 +461,10 @@ test('other meaning: the new-sense toast shows both actions, create-first, no Un
 });
 
 
-test('shortcut save then "Crear tarjeta para este significado": one addNote, old note intact, no repeated toast', async ({ context, serviceWorker }) => {
-  test.setTimeout(120_000);
-  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [] };
+test('shortcut save then "Crear tarjeta para este significado": one addNote, old note intact, no repeated toast', async ({ context, serviceWorker, extensionId }) => {
+  test.setTimeout(180_000);
+  test.skip(!hasE2EBridge, 'skipped: needs a KIVARA_E2E=1 build (the e2e bridge page is absent from a production dist)');
+  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [], updatedFields: [] };
   const PORT = 18769;
   const RUN_TTML = `<?xml version="1.0" encoding="utf-8"?>
 <tt xmlns="http://www.w3.org/ns/ttml"><body><div>
@@ -411,6 +478,8 @@ test('shortcut save then "Crear tarjeta para este significado": one addNote, old
     await seedAnki(context, PORT);
     void serviceWorker;
     const page = await openPage(context, RUN_TTML);
+    const bridgePage = await openCapture(context, extensionId);
+    await startSyntheticCapture(bridgePage, 0);
     try {
       await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).tokens.length, { timeout: 10_000 }).toBeGreaterThan(0);
       const tokBox = (await boxesOf(page, VIDEO_HOST)).tokens[0];
@@ -445,14 +514,17 @@ test('shortcut save then "Crear tarjeta para este significado": one addNote, old
       // No reused toast comes back after the create (the notice is one-shot).
       await page.waitForTimeout(800);
       expect((await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '').not.toMatch(/ya está en tu mazo/);
-      // The created note rides the SAVED scene: no fresh sentence-audio
-      // capture and no re-derivation of the line on this path.
+      // P2: the create rides the SAVED scene — the anchor wall-clock lets the
+      // background slice the SAVED cue window (or label TTS), so the note
+      // carries sentence audio again.
+      await expect.poll(() => log.addedNotes.length, { timeout: 20_000 }).toBe(1);
       const created = log.addedNotes[0];
       const audioValue = Object.entries(created?.fields ?? {})
         .find(([k]) => /audio/i.test(k))?.[1] ?? '';
-      expect(audioValue).not.toContain('[sound:');
+      expect(audioValue).toContain('[sound:');
       expect(Object.values(created?.fields ?? {}).join(' ')).toContain('RUN is hard work');
     } finally {
+      await bridgePage.close();
       await page.close();
     }
   } finally {
@@ -461,9 +533,10 @@ test('shortcut save then "Crear tarjeta para este significado": one addNote, old
 });
 
 
-test('forced create on the SAME meaning: final notice has NO Crear, old note intact', async ({ context, serviceWorker }) => {
+test('forced create on the SAME meaning: final notice has NO Crear, old note intact', async ({ context, serviceWorker, extensionId }) => {
   test.setTimeout(180_000);
-  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [] };
+  test.skip(!hasE2EBridge, 'skipped: needs a KIVARA_E2E=1 build (the e2e bridge page is absent from a production dist)');
+  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [], updatedFields: [] };
   const PORT = 18770;
   const RUN_TTML = `<?xml version="1.0" encoding="utf-8"?>
 <tt xmlns="http://www.w3.org/ns/ttml" xml:lang="en"><body><div>
@@ -477,6 +550,8 @@ test('forced create on the SAME meaning: final notice has NO Crear, old note int
     await seedAnki(context, PORT);
     void serviceWorker;
     const page = await openPage(context, RUN_TTML);
+    const bridgePage = await openCapture(context, extensionId);
+    await startSyntheticCapture(bridgePage, 0);
     try {
       await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).tokens.length, { timeout: 10_000 }).toBeGreaterThan(0);
       // Seed AFTER the overlay is live: the SW's one-shot orphan sweep has
@@ -498,19 +573,19 @@ test('forced create on the SAME meaning: final notice has NO Crear, old note int
       expect(log.added).toBe(0);
 
       // One-shot click on the create action with fresh coordinates.
-      for (let attempt = 0; attempt < 6; attempt++) {
-        const hits = (await hitsOf(page, PANEL_HOST)).filter((h) => h.label === 'Crear tarjeta para este significado');
-        if (!hits.length) break;
-        await page.mouse.click(hits[0].cx, hits[0].cy);
-        await page.waitForTimeout(250);
-        const text = (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '';
-        if (!text.includes('ya está en tu mazo')) break;
-      }
+      await expect.poll(async () => (await hitsOf(page, PANEL_HOST)).some((h) => h.label === 'Crear tarjeta para este significado'),
+        { timeout: 15_000, message: 'create action never rendered' }).toBe(true);
+      const hits = (await hitsOf(page, PANEL_HOST)).filter((h) => h.label === 'Crear tarjeta para este significado');
+      await page.mouse.click(hits[0].cx, hits[0].cy);
       // The final notice says the meaning is ALREADY on file — no Crear again.
       await expect.poll(async () => (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '',
-        { timeout: 15_000 }).toContain('Ya tienes');
+        { timeout: 30_000 }).toContain('Ya tienes');
+      // Let the exit animations finish before reading the button surface.
+      await page.waitForTimeout(1500);
       const labels = (await hitsOf(page, PANEL_HOST)).map((h) => h.label);
-      expect(labels).not.toContain('Crear tarjeta para este significado');
+      const toastDump = (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '';
+      expect(`labels=${labels.join(',')} toasts=${toastDump} added=${log.added} notes=${JSON.stringify(log.addedNotes)}`)
+        .not.toContain('Crear tarjeta para este significado');
       expect(log.added).toBe(0);
       expect(log.deleted).toEqual([]);
       expect(log.updated).toEqual([]);
@@ -524,7 +599,7 @@ test('forced create on the SAME meaning: final notice has NO Crear, old note int
 
 test('fresh save then Deshacer: deleteNotes [id] and the saved notice closes', async ({ context, serviceWorker }) => {
   test.setTimeout(180_000);
-  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [] };
+  const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [], updatedFields: [] };
   const PORT = 18771;
   const RUN_TTML = `<?xml version="1.0" encoding="utf-8"?>
 <tt xmlns="http://www.w3.org/ns/ttml" xml:lang="en"><body><div>

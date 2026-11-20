@@ -67,6 +67,7 @@ import { translateText } from './translate';
 import { speak } from './tts';
 import { enrichWithAi } from './ai-enrich';
 import { resolveLocalEntry, resolveWordStreaming } from './resolve-word';
+import { extractCueClip } from './cue-clip';
 import { lemmaFromTags } from '../shared/word-identity';
 import { htmlToPlain } from '../shared/anki-text';
 import type { ResolveWordLocalResponse } from '../shared/types';
@@ -842,6 +843,32 @@ onMessage('AUDIO_CAPTURE_STATUS', async () => {
 });
 
 onMessage('EXTRACT_AUDIO_CLIP', async ({ data }) => asJson(await extractAudioClipHandler(data)));
+
+/** EXTRACT_CUE_CLIP: a SAVED cue window (video time) → wall-clock buffer slice. */
+onMessage('EXTRACT_CUE_CLIP', async ({ data }) => {
+  const req = (data as {
+    cueStartMs?: number; cueEndMs?: number; videoTimeAtSave?: number; requestedAt?: number;
+  }) ?? {};
+  if (typeof req.cueStartMs !== 'number' || typeof req.cueEndMs !== 'number'
+    || typeof req.videoTimeAtSave !== 'number') {
+    return asJson({ ok: false, error: 'cueStartMs/cueEndMs/videoTimeAtSave required' } satisfies AudioClipResponse);
+  }
+  const capture = await loadCaptureSettings();
+  return asJson(await extractCueClip(
+    {
+      cueStartMs: req.cueStartMs,
+      cueEndMs: req.cueEndMs,
+      videoTimeAtSave: req.videoTimeAtSave,
+      requestedAt: req.requestedAt,
+    },
+    {
+      extractAudioClip,
+      preRollMs: capture.preRoll,
+      postRollMs: capture.postRoll,
+      useVad: capture.endDetect === 'vad',
+    },
+  ) as AudioClipResponse);
+});
 
 onMessage('TRANSLATE', async ({ data }) => {
   const request = data as unknown as TranslateRequest;

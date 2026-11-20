@@ -1089,6 +1089,10 @@ export interface CreateCardRequest {
   videoTimeAtSave?: number;
   /** Whether the media element was paused when the user triggered save. */
   videoPausedAtSave?: boolean;
+  /** Wall-clock ms of the save instant when the request rides a SAVED scene
+   * ("create this meaning" re-entry): resolveAudio slices the ring buffer at
+   * the SAVED cue window; the offscreen rejects windows outside the buffer. */
+  anchorWallClock?: number;
   /** Legacy BCP-47 spelling; read only when `lang` is absent. */
   language?: string;
   platform?: string;

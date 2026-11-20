@@ -303,12 +303,12 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // The reused-note toast's "Add this scene" calls the existing add-context
   // handler. It is declared later in this component, so reach it via a ref to
   // avoid a useCallback dependency cycle (and the render-time TDZ).
-  const addContextRef = useRef<((token: string, sentence: string, kind: CreateCardKind, cueLine?: number, pre?: { noteId?: number; sentence?: string; frame?: string; cueStart?: number; cueEnd?: number }) => Promise<void>) | null>(null);
+  const addContextRef = useRef<((token: string, sentence: string, kind: CreateCardKind, cueLine?: number, pre?: { noteId?: number; sentence?: string; frame?: string; cueStart?: number; cueEnd?: number; videoTimeAtSave?: number; videoPausedAtSave?: boolean; savedAtWallClock?: number; identityKey?: string; surface?: string }) => Promise<void>) | null>(null);
   // "Create a card for THIS meaning" re-enters the save handler with
   // forceNewSense (a user click, so the new note's Undo is legitimate).
   // A click landing while another save runs is QUEUED, never lost.
   const senseGateRef = useRef(createSaveGate());
-  const createSenseRef = useRef<((token: string, sentence: string, cueLine: number | undefined, gloss: string | undefined, pre?: { frame?: string; cueStart?: number; cueEnd?: number; sentence?: string; contextLines?: { prev?: string; next?: string } }) => Promise<CreateCardResponse>) | null>(null);
+  const createSenseRef = useRef<((token: string, sentence: string, cueLine: number | undefined, gloss: string | undefined, pre?: { frame?: string; cueStart?: number; cueEnd?: number; sentence?: string; contextLines?: { prev?: string; next?: string }; videoTimeAtSave?: number; videoPausedAtSave?: boolean; savedAtWallClock?: number }) => Promise<CreateCardResponse>) | null>(null);
   // Native-language alt cue (e.g. native Spanish track running parallel to
   // the active English captions). Preferred as the dual-caption source over
   // a remote MT translation — see SubtitleOverlay for the priority chain.
@@ -1433,6 +1433,8 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     frame?: string;
     cueStart?: number;
     cueEnd?: number;
+    videoTimeAtSave?: number;
+    savedAtWallClock?: number;
   }): Promise<SceneMedia> => {
     const scene: SceneMedia = {};
     if (pre?.frame) {
@@ -1457,19 +1459,34 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       }
     }
     try {
-      // Play the line to its end (or record it live) exactly as a save does,
-      // then slice the clip the tab-capture buffer now holds.
-      const anchor = await ensureSubtitleAudioReady();
-      // The saved cue's range, not wherever the video is now.
-      const startMs = pre?.cueStart ?? activeCue?.start;
-      const endMs = pre?.cueEnd ?? anchor.videoTimeAtSave;
-      if (startMs != null && endMs != null && endMs > startMs) {
+      if (pre?.cueStart != null && pre.cueEnd != null && pre.videoTimeAtSave != null) {
+        // SAVED scene: the wall-clock window is computed from the saved
+        // anchor by the background (EXTRACT_CUE_CLIP), not from "now".
         const clip = (await sendMessage(
-          'EXTRACT_AUDIO_CLIP',
-          { startMs, endMs },
+          'EXTRACT_CUE_CLIP',
+          {
+            cueStartMs: pre.cueStart,
+            cueEndMs: pre.cueEnd,
+            videoTimeAtSave: pre.videoTimeAtSave,
+            requestedAt: pre.savedAtWallClock,
+          },
           'background',
         )) as AudioClipResponse;
         if (clip?.ok && clip.dataUrl) scene.audio = clip.dataUrl;
+      } else {
+        // Live scene: play the line to its end (or record it live) exactly as
+        // a save does, then slice the clip the tab-capture buffer now holds.
+        const anchor = await ensureSubtitleAudioReady();
+        const startMs = activeCue?.start;
+        const endMs = anchor.videoTimeAtSave;
+        if (startMs != null && endMs != null && endMs > startMs) {
+          const clip = (await sendMessage(
+            'EXTRACT_AUDIO_CLIP',
+            { startMs, endMs },
+            'background',
+          )) as AudioClipResponse;
+          if (clip?.ok && clip.dataUrl) scene.audio = clip.dataUrl;
+        }
       }
     } catch {
       // Best-effort: the sentence and tags still go through.
@@ -1514,7 +1531,16 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       forceNewSense?: boolean,
       phraseLevel?: boolean,
       /** The scene captured by the save that produced the reused notice. */
-      pre?: { frame?: string; cueStart?: number; cueEnd?: number; sentence?: string; contextLines?: { prev?: string; next?: string } },
+      pre?: {
+        frame?: string;
+        cueStart?: number;
+        cueEnd?: number;
+        sentence?: string;
+        contextLines?: { prev?: string; next?: string };
+        videoTimeAtSave?: number;
+        videoPausedAtSave?: boolean;
+        savedAtWallClock?: number;
+      },
     ): Promise<CreateCardResponse> => {
       if (!enabled) return { ok: false, error: 'disabled' };
       const tokenValue = token?.trim() || sentence.trim();
@@ -1568,18 +1594,17 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           ? activeCue.end - videoElement.currentTime * 1000
           : 0;
         // A saved scene rides along on the explicit-create re-entry: the
-        // line is NOT replayed and no fresh audio is captured.
-        const audio: CaptureAudio = pre
+        // frame is the SAVED one and the cue window is the SAVED one — the
+        // background slices the ring buffer at the saved anchor.
+        const audio: CaptureAudio = !videoElement
           ? 'off'
-          : !videoElement
-            ? 'off'
-            : videoElement.paused
-              ? (remainingMs > 120 ? 'replay' : 'off')
-              : 'live';
+          : videoElement.paused
+            ? (remainingMs > 120 ? 'replay' : 'off')
+            : 'live';
         setCaptureView((v) => (v ? { ...v, audio } : v));
 
         const audioAnchor = pre
-          ? { videoTimeAtSave: pre.cueEnd ?? 0, videoPausedAtSave: true }
+          ? { videoTimeAtSave: pre.videoTimeAtSave ?? 0, videoPausedAtSave: pre.videoPausedAtSave ?? true }
           : await ensureSubtitleAudioReady();
 
         const lang = cueLanguageRef.current;
@@ -1604,8 +1629,9 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           cardId: newCardId(),
           kind,
           lang,
-          identityKey: identity.key,
-          surface: identity.surface,
+          // PHRASE-LEVEL saves own their note: no word identity travels.
+          identityKey: phraseLevel ? undefined : identity.key,
+          surface: phraseLevel ? undefined : identity.surface,
           contextGloss: normalizeContextGloss(contextGloss),
           forceNewSense: forceNewSense || undefined,
           phraseLevel: phraseLevel || undefined,
@@ -1613,10 +1639,14 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           media,
           contextLines: pre?.contextLines ?? cueFields.contextLines,
           frame: frameDataUrl ?? undefined,
-          cueStart: cueFields.cueStart,
-          cueEnd: cueFields.cueEnd,
-          videoTimeAtSave: audioAnchor.videoTimeAtSave,
-          videoPausedAtSave: audioAnchor.videoPausedAtSave,
+          // The SAVED scene's cue window rides the explicit create.
+          cueStart: pre?.cueStart ?? cueFields.cueStart,
+          cueEnd: pre?.cueEnd ?? cueFields.cueEnd,
+          videoTimeAtSave: pre?.videoTimeAtSave ?? audioAnchor.videoTimeAtSave,
+          // The anchor path slices the PAST — the video must not be treated
+          // as paused-with-missing-tail (that would fall back to TTS).
+          videoPausedAtSave: pre != null ? false : audioAnchor.videoPausedAtSave,
+          anchorWallClock: pre?.savedAtWallClock,
           language: lang,
           platform: adapter?.platform,
         };
@@ -1637,6 +1667,11 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                 cueStart: cueFields.cueStart,
                 cueEnd: cueFields.cueEnd,
                 contextLines: cueFields.contextLines,
+                videoTimeAtSave: audioAnchor.videoTimeAtSave,
+                videoPausedAtSave: audioAnchor.videoPausedAtSave,
+                savedAtWallClock: Date.now(),
+                identityKey: request.identityKey,
+                surface: request.surface,
               };
               // The create action is one-shot: a rapid double click must not
               // send two CREATE_CARD requests for the same meaning.
@@ -1797,7 +1832,18 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     sentence: string,
     kind: CreateCardKind,
     cueLine?: number,
-    pre?: { noteId?: number; sentence?: string; frame?: string; cueStart?: number; cueEnd?: number },
+    pre?: {
+      noteId?: number;
+      sentence?: string;
+      frame?: string;
+      cueStart?: number;
+      cueEnd?: number;
+      videoTimeAtSave?: number;
+      videoPausedAtSave?: boolean;
+      savedAtWallClock?: number;
+      identityKey?: string;
+      surface?: string;
+    },
   ) => {
     if (!enabled) return;
     // One capture at a time, same lock the save path holds.
@@ -1814,8 +1860,10 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       await addSceneToNote(
         {
           token,
-          identityKey: identity.key,
-          surface: identity.surface,
+          // The identity the SAVE sent travels verbatim — a phrase-level save
+          // sent none, so the scene lookup falls to the exact selection field.
+          identityKey: pre?.identityKey ?? identity.key,
+          surface: pre?.surface ?? identity.surface,
           // The save already captured THIS scene: its cue fields travel
           // verbatim, so the notice's action never re-derives the line.
           sentence: pre?.sentence
@@ -1832,6 +1880,8 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           frame: pre?.frame,
           cueStart: pre?.cueStart,
           cueEnd: pre?.cueEnd,
+          videoTimeAtSave: pre?.videoTimeAtSave,
+          savedAtWallClock: pre?.savedAtWallClock,
         }),
       );
     } finally {

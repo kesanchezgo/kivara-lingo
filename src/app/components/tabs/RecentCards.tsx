@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   AlertCircle, Check, ChevronDown, Clock, Eye, FilmSlate, History, Loader2, RefreshCw, Undo2, Volume2, X,
@@ -173,11 +173,18 @@ function RecentRow({
   onChanged: () => void;
 }) {
   const [busy, setBusy] = useState(false);
-  const run = useCallback(async (action: () => Promise<boolean>, success: string, failure: string) => {
+  const reusedToast = useRef(false);
+  const run = useCallback(async (
+    action: () => Promise<boolean>,
+    success: string | (() => string),
+    failure: string,
+  ) => {
     setBusy(true);
     try {
       if (await action()) {
-        toast.success(success);
+        // The success line can be resolved AFTER the action ran (a retry that
+        // reused an existing note says "already", not "sent").
+        toast.success(typeof success === 'function' ? success() : success);
         onChanged();
       } else {
         toast.error(failure);
@@ -209,14 +216,11 @@ function RecentRow({
     // retry saved the card, but without the scene/original audio. Say so.
     if (res?.mediaLost) toast.warning(t('recent.mediaLost'));
     // The retry REUSED an existing note: nothing was sent — say "already".
-    if (res?.ok && res.reused) {
-      toast.success(t('queue.alreadyInDeck'), { description: card.word });
-      onChanged();
-      return false; // run() must not stack the "sent" toast on top
-    }
+    // A reused note was NEVER sent: the success line resolves to "already".
+    reusedToast.current = !!res?.ok && !!res.reused;
     if (!res?.ok) toast.error(t('queue.willRetry'), { description: res?.error });
     return !!res?.ok;
-  }, t('queue.autoSentOne'), t('recent.failed'));
+  }, () => (reusedToast.current ? t('queue.alreadyInDeck') : t('queue.autoSentOne')), t('recent.failed'));
 
   const dismiss = () => run(async () => {
     const res = (await sendMessage('CARD_DISMISS', { id: card.id }, 'background')) as CardDismissResponse;
