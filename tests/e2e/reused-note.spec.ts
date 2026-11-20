@@ -486,13 +486,35 @@ test('shortcut save then "Crear tarjeta para este significado": one addNote, old
       // Seed AFTER the overlay is live: the SW's one-shot orphan sweep has
       // settled by now, so the deterministic gloss cannot be swept away.
       await seedDictPack(context);
-      const tokBox = (await boxesOf(page, VIDEO_HOST)).tokens[0];
+      // Freeze playback inside cue 1 before hovering. Setup (dict seeding,
+      // capture bridge) can otherwise run past 3 s on a loaded runner, and
+      // RUN would render with the cue-2 card — the exact bug P2 must catch.
+      await page.evaluate(() => {
+        const v = document.querySelector('video') as HTMLVideoElement | null;
+        if (v) { v.currentTime = 1; v.pause(); }
+      });
+      // The pointer must land on RUN, not a neighbour from the second cue:
+      // poll the box map until the RUN token exists, then walk to ITS centre.
+      await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).tokens
+        .some((t) => /^run$/i.test(t.text.trim())), { timeout: 10_000 }).toBe(true);
+      const runBox = (await boxesOf(page, VIDEO_HOST)).tokens
+        .find((t) => /^run$/i.test(t.text.trim()))!;
       for (let i = 0; i < 15; i++) {
         await page.mouse.move(
-          640 + (tokBox.x + tokBox.width / 2 - 640) * (i + 1) / 15,
-          360 + (tokBox.y + tokBox.height / 2 - 360) * (i + 1) / 15,
+          640 + (runBox.x + runBox.width / 2 - 640) * (i + 1) / 15,
+          360 + (runBox.y + runBox.height / 2 - 360) * (i + 1) / 15,
         );
         await page.waitForTimeout(16);
+      }
+      // The noun "the" can still steal the hover during the walk: re-read the
+      // box map and re-hover RUN until the card shows the deterministic gloss.
+      for (let i = 0; i < 8; i++) {
+        const box = (await boxesOf(page, VIDEO_HOST)).tokens
+          .find((t) => /^run$/i.test(t.text.trim()));
+        if (!box) break;
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page.waitForTimeout(200);
+        if ((await boxesOf(page, VIDEO_HOST)).cardText?.includes('correr')) break;
       }
       // Drive the save through the popover's Guardar action, the same path
       // the neighbouring new-sense test uses. Wait for the card's gloss to
