@@ -32,14 +32,14 @@ import { buildCardTags, cardSourceFromMedia, newCardId } from '../../shared/card
 import { buildIdentityNoteQuery } from '../../shared/anki-search';
 import { wordIdentity, isPhraseLevelSave, normalizeContextGloss } from '../../shared/word-identity';
 import { createSaveGate } from './save-gate';
-import { applySavedScene, captureAnchor, sceneIdentity, type SubtitleAudioAnchor } from './save-scene';
+import { applySavedScene, captureAnchor, sceneIdentity, sceneSurface, type SubtitleAudioAnchor } from './save-scene';
 import { lemmaCandidates } from '../nlp/lemma';
 import { mweLemmaCandidates } from '../nlp/mwe-lemma';
 import { lookupDictionary } from '../nlp/dictionary';
 import { resolveContextGloss } from '../resolve-context-gloss';
 import { recordCardSaved, useWordStudy, type StudyBinding } from './study';
 import {
-  addSceneToNote, cardKindOf, OPEN_CARDS_EVENT, showCardSaved, showCardSaveError,
+  addSceneToNote, CARD_UNDONE_EVENT, cardKindOf, OPEN_CARDS_EVENT, showCardSaved, showCardSaveError,
   showCardReused, withAudioHint, type SceneMedia,
 } from './save-actions';
 import { useEpisode } from './useEpisode';
@@ -290,6 +290,17 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       cancelled = true;
     };
   }, [videoElement]);
+  // An undo took the word out of the deck: the per-deck cache must NOT serve
+  // the stale Set on a remount, or the overlay would repaint the word as
+  // saved. The overlay drops its own mark via the same event; this only
+  // invalidates the fetch cache.
+  useEffect(() => {
+    const onCardUndone = () => {
+      savedWordsCacheRef.current.clear();
+    };
+    window.addEventListener(CARD_UNDONE_EVENT, onCardUndone);
+    return () => window.removeEventListener(CARD_UNDONE_EVENT, onCardUndone);
+  }, []);
   // Tier 1.2: tracks the most recently saved Anki note so the
   // `recapture_frame` hotkey can patch its frame field in-place.
   const lastSavedNoteRef = useRef<{
@@ -650,14 +661,19 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // The prefetch is gated on `!getTrackByLanguage(targetLang)` so it
   // doesn't fire when we already have the translated track in memory.
   const showDualSubtitlePref = useKivaraStore((s) => s.study.translation !== 'hidden');
+  // Primitive cues fields, not the whole object: the effect re-fires per cue
+  // exactly as before (start is the cue discriminator) without depending on
+  // the object identity, which churns every frame on some adapters.
+  const activeCueStart = activeCue?.start;
+  const activeCueLanguage = activeCue?.language;
   useEffect(() => {
     if (!showDualSubtitlePref) return;
-    if (!activeCue || activeCue.start == null) return;
-    const activeStart = activeCue.start;
+    if (activeCueStart == null) return;
+    const activeStart = activeCueStart;
     const allCues = getActiveTrackCues();
     if (!allCues || allCues.length === 0) return;
     const nativeLang = (useKivaraStore.getState().translate.targetLanguage || 'es').slice(0, 2);
-    const sourceLang = (cueLanguageRef.current || activeCue.language || 'en').slice(0, 2);
+    const sourceLang = (cueLanguageRef.current || activeCueLanguage || 'en').slice(0, 2);
     if (sourceLang === nativeLang) return;
     // Skip MT prefetch when YouTube's translated track is already loaded —
     // the bilingual line will use it directly via `getAltCueAt`.
@@ -702,7 +718,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     return () => {
       cancelled = true;
     };
-  }, [activeCue?.id, showDualSubtitlePref]);
+  }, [activeCueStart, activeCueLanguage, showDualSubtitlePref]);
 
   // Native-language alt cue poll. Runs at 20 Hz — fast enough that the
   // dual caption snaps in within the same frame as the source for most
@@ -1355,7 +1371,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       window.removeEventListener('kivara-recapture-frame', onRecaptureEvent);
       window.removeEventListener('kivara-repeat-cue', onRepeatCueEvent);
     };
-  }, [activeCue, setPanelOpen, videoElement, seekAndPlay]);
+  }, [activeCue, setPanelOpen, setSubtitlesVisible, videoElement, seekAndPlay]);
 
   const ensureSubtitleAudioReady = useCallback(async (): Promise<SubtitleAudioAnchor> => {
     if (!videoElement || !activeCue?.end) {
@@ -1741,6 +1757,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                 text: tokenValue,
                 deck: activeDeck ?? '',
                 cardId: request.cardId,
+                identityKey: request.identityKey,
               },
               withAudioHint(response.warnings ?? [], {
                 audioCaptureActive: useKivaraStore.getState().audioCaptureActive,
@@ -1864,7 +1881,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           // The identity the SAVE sent travels verbatim — a phrase-level save
           // sent none, so the scene lookup falls to the exact selection field.
           identityKey: sceneIdentity(pre, identity),
-          surface: pre?.surface ?? identity.surface,
+          surface: sceneSurface(pre, identity),
           // The save already captured THIS scene: its cue fields travel
           // verbatim, so the notice's action never re-derives the line.
           sentence: pre?.sentence
@@ -1964,15 +1981,20 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     // exactly this deps list AND the functions it closes over, so
     // including it here is a no-op when nothing changes and a refresh
     // when deck or adapter change.
+    //
+    // ankiMapping / videoElement / ensureSubtitleAudioReady are listed ONCE
+    // through their consumers, all present below: ankiMapping flows through
+    // handleSaveCard, handleAddContext and handleSeeInAnki; videoElement and
+    // ensureSubtitleAudioReady flow through handleSaveCard and
+    // handleAddContext (via captureSceneMedia). A change in any of the three
+    // still recomputes the portal — the redundant copies the linter flagged
+    // are gone without weakening the refresh guarantee.
     initialSavedWords,
-    ankiMapping,
     handleSaveCard,
     handleSeeInAnki,
     handleAddContext,
-    videoElement,
     adapter,
     videoPortalContainer,
-    ensureSubtitleAudioReady,
     enabled,
     subtitlesVisible,
     // QA finding (real Netflix): a memoized portal freezes its subtree — a

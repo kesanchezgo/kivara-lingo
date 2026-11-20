@@ -401,6 +401,10 @@ onMessage('ANKI_DELETE_NOTE', async ({ data }) => {
   const result = await undoDeleteNote(request.noteId, mapping, {
     origin: request.origin, cardId: request.cardId,
   });
+  // The deck's word set changed (one note fewer): drop the ANKI_SAVED_WORDS
+  // cache so the next refresh re-queries Anki instead of serving the stale
+  // Set that still holds the undone word.
+  if (result.ok) invalidateSavedWordsCache();
   return asJson(result);
 });
 

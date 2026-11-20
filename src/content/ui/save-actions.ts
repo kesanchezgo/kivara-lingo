@@ -77,6 +77,9 @@ export interface SavedNote {
   deck: string;
   /** cardId of the save that created the note, for the Undo ownership check. */
   cardId?: string;
+  /** The lemma key the save stored — travels back on the undo event so the
+   * overlay unpaints the LEMMA, not just the raw surface. */
+  identityKey?: string;
 }
 
 /**
@@ -138,6 +141,7 @@ export async function undoSavedNote(
   noteId: number,
   text: string,
   cardId?: string,
+  identityKey?: string,
 ): Promise<boolean> {
   let res: AnkiDeleteNoteResponse | undefined;
   try {
@@ -151,9 +155,13 @@ export async function undoSavedNote(
   }
   if (res?.ok) {
     toast(t('queue.undone'), { description: text, duration: 2400 });
-    window.dispatchEvent(
-      new CustomEvent(CARD_UNDONE_EVENT, { detail: { token: text } }),
-    );
+    // A lemma can own several notes: when ANOTHER one survives, the word is
+    // still saved — the overlay must KEEP its mark, so no event is sent.
+    if (!res.stillInDeck) {
+      window.dispatchEvent(
+        new CustomEvent(CARD_UNDONE_EVENT, { detail: { token: text, identityKey } }),
+      );
+    }
     return true;
   }
   toast.error(t('queue.undoFailed'), {
@@ -176,7 +184,7 @@ export function showCardSaved(card: SavedNote, notes: string[] = []): void {
           // The notice stays while the delete runs and closes ONLY when the
           // note really went away — a failed undo keeps its retry button.
           void (async () => {
-            const ok = await undoSavedNote(noteId, card.text, card.cardId);
+            const ok = await undoSavedNote(noteId, card.text, card.cardId, card.identityKey);
             if (ok) toast.dismiss(savedToastId({ id: String(noteId), text: card.text, deck: card.deck }));
           })();
         }
