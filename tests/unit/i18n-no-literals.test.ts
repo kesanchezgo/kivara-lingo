@@ -216,14 +216,15 @@ export function objectPropCopy(prop: string, value: string): boolean {
 }
 
 /** Copy legitimately not localized yet, with a reason. Keep this SHORT. */
-const ALLOWED: Record<string, string> = {
-  // The DALL-E prompt built inline in the save orchestrator is model-facing
-  // text — the same family as the ai-*.ts prompt builders (it must describe
-  // the word to illustrate, so it stays in the learner's source language).
-  'src/background/capture-orchestrator.ts:1142':
+/**
+ * Stable MARKERS instead of line numbers: a source line carrying the marker
+ * is exempt regardless of how many lines are inserted above it. Keeps this
+ * allowlist from rotting every time the orchestrator moves a comment.
+ */
+const ALLOWED_MARKERS: Record<string, string> = {
+  'kvl-i18n-exempt-dalle-prompt':
     'DALL-E prompt text — model-facing, same family as ai-*.ts',
 };
-
 /**
  * Whole files/families the raw-literal scan skips, each with the reason it
  * cannot be routed through the dictionaries. Prefix-matched against the
@@ -272,7 +273,7 @@ export function scanSource(file: string, src: string): string[] {
   const lines = src.split('\n');
   const push = (lineNo: number, shape: string, value: string) => {
     const id = `${file}:${lineNo}`;
-    if (ALLOWED[id]) return;
+    if (Object.keys(ALLOWED_MARKERS).some((m) => lines.slice(Math.max(0, lineNo - 3), lineNo + 1).some((l) => l.includes(m)))) return;
     // One report per line per VALUE, whatever shape caught it first; shapes
     // that quote the same text differently (a template vs its static text)
     // still collapse to one report.
@@ -407,7 +408,7 @@ export function scanSource(file: string, src: string): string[] {
     const joined = parts.join(' ');
     if (!spanishCandidate(joined)) continue;
     const id = `${file}:${i + 2}`;
-    if (ALLOWED[id]) continue;
+    if (Object.keys(ALLOWED_MARKERS).some((m) => lines.slice(Math.max(0, i - 1), i + 2).some((l) => l.includes(m)))) continue;
     offenders.push(`${id}  >(multi-line) ${joined.slice(0, 80)}`);
   }
 

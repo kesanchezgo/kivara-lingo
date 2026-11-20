@@ -82,6 +82,8 @@ export interface E2EBoxes {
   card: E2EBox | null;
   /** The word card's full text — lets specs wait for the gloss to resolve. */
   cardText?: string;
+  /** The native-language caption plate (the second cue line). */
+  dual?: string;
 }
 
 /** Raw hit as the publisher writes it (`x`/`y` are already the centre). */

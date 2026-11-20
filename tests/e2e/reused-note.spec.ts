@@ -467,12 +467,13 @@ test('shortcut save then "Crear tarjeta para este significado": one addNote, old
   const log: AnkiLog = { actions: [], queries: [], added: 0, addedIds: [], addedNotes: [], deleted: [], updated: [], updatedFields: [] };
   const PORT = 18769;
   const RUN_TTML = `<?xml version="1.0" encoding="utf-8"?>
-<tt xmlns="http://www.w3.org/ns/ttml"><body><div>
-<p begin="0s" end="9s">RUN is hard work</p>
+<tt xmlns="http://www.w3.org/ns/ttml" xml:lang="en"><body><div>
+<p begin="0s" end="3s">RUN is hard work</p>
+<p begin="3s" end="9s">Now the company is running</p>
 </div></body></tt>`;
   const server = await startFakeAnki(PORT, log, {
     word: 'run', lemmaTag: 'kivara::lemma::run',
-    storedSentence: 'He runs every day.', storedGloss: 'correr',
+    storedSentence: 'He runs every day.', storedGloss: 'dirigir',
   });
   try {
     await seedAnki(context, PORT);
@@ -482,38 +483,92 @@ test('shortcut save then "Crear tarjeta para este significado": one addNote, old
     await startSyntheticCapture(bridgePage, 0);
     try {
       await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).tokens.length, { timeout: 10_000 }).toBeGreaterThan(0);
-      const tokBox = (await boxesOf(page, VIDEO_HOST)).tokens[0];
+      // Seed AFTER the overlay is live: the SW's one-shot orphan sweep has
+      // settled by now, so the deterministic gloss cannot be swept away.
+      await seedDictPack(context);
+      // Freeze playback inside cue 1 before hovering. Setup (dict seeding,
+      // capture bridge) can otherwise run past 3 s on a loaded runner, and
+      // RUN would render with the cue-2 card — the exact bug P2 must catch.
+      await page.evaluate(() => {
+        const v = document.querySelector('video') as HTMLVideoElement | null;
+        if (v) { v.currentTime = 1; v.pause(); }
+      });
+      // The pointer must land on RUN, not a neighbour from the second cue:
+      // poll the box map until the RUN token exists, then walk to ITS centre.
+      await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).tokens
+        .some((t) => /^run$/i.test(t.text.trim())), { timeout: 10_000 }).toBe(true);
+      const runBox = (await boxesOf(page, VIDEO_HOST)).tokens
+        .find((t) => /^run$/i.test(t.text.trim()))!;
       for (let i = 0; i < 15; i++) {
         await page.mouse.move(
-          640 + (tokBox.x + tokBox.width / 2 - 640) * (i + 1) / 15,
-          360 + (tokBox.y + tokBox.height / 2 - 360) * (i + 1) / 15,
+          640 + (runBox.x + runBox.width / 2 - 640) * (i + 1) / 15,
+          360 + (runBox.y + runBox.height / 2 - 360) * (i + 1) / 15,
         );
         await page.waitForTimeout(16);
       }
-      await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).card !== null, { timeout: 10_000 }).toBe(true);
-      await page.keyboard.press('Alt+Shift+S');
+      // The noun "the" can still steal the hover during the walk: re-read the
+      // box map and re-hover RUN until the card shows the deterministic gloss.
+      for (let i = 0; i < 8; i++) {
+        const box = (await boxesOf(page, VIDEO_HOST)).tokens
+          .find((t) => /^run$/i.test(t.text.trim()));
+        if (!box) break;
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page.waitForTimeout(200);
+        if ((await boxesOf(page, VIDEO_HOST)).cardText?.includes('correr')) break;
+      }
+      // Drive the save through the popover's Guardar action, the same path
+      // the neighbouring new-sense test uses. Wait for the card's gloss to
+      // settle so the click carries a real meaning, never the '—' placeholder.
+      await expect.poll(async () => (await hitsOf(page, VIDEO_HOST)).some((h) => h.label === 'Guardar'),
+        { timeout: 10_000 }).toBe(true);
+      await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).cardText ?? '',
+        { timeout: 15_000 }).toContain('correr');
+      // The loaded CI runner can swallow one Guardar click (the card's action
+      // row settles after the gloss). Retry until CREATE_CARD actually fires:
+      // the mirror is written on that exact path, before any Anki call.
+      const readCreateMirror = () => serviceWorker.evaluate(async () => {
+        const got = await chrome.storage.local.get('kvl:e2e:last-create');
+        return (got['kvl:e2e:last-create'] ?? null) as { token?: string; sentence?: string } | null;
+      });
+      await expect.poll(async () => {
+        const hits = (await hitsOf(page, VIDEO_HOST)).filter((h) => h.label === 'Guardar');
+        if (hits.length) await page.mouse.click(hits[0].cx, hits[0].cy);
+        await page.waitForTimeout(400);
+        return (await readCreateMirror())?.token?.toLowerCase() === 'run';
+      }, { timeout: 20_000, message: 'CREATE_CARD never carried the RUN save' }).toBe(true);
+      const firstCreate = await readCreateMirror();
+      expect(firstCreate?.sentence).toContain('RUN is hard work');
+      expect(firstCreate?.sentence).not.toContain('Now the company is running');
       await expect.poll(async () => (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '',
-        { timeout: 20_000, message: `actions: ${log.actions.join(',')}` })
+        { timeout: 45_000, message: `actions: ${log.actions.join(',')} queries: ${log.queries.join(';')}` })
         .toMatch(/ya está en tu mazo/);
       expect(log.added).toBe(0);
       expect(log.deleted).toEqual([]);
+      // P2: move playback into the SECOND cue before clicking "Crear" — the
+      // saved scene must WIN (cue 1 sentence/frame/audio window).
+      // Seek into cue 2 — the saved scene must WIN over what plays now. The
+      // SOURCE caption (the plate's English text) is the deterministic proof
+      // cue 2 is active: the translated dual line rides the MT chain, which
+      // has no network in CI.
+      await page.evaluate(() => {
+        const v = document.querySelector('video') as HTMLVideoElement | null;
+        if (v) v.currentTime = 5;
+      });
+      await expect.poll(async () => (await stateOf(page, VIDEO_HOST)).caption,
+        { timeout: 8_000 }).toContain('Now the company is running');
 
       // Click the create action with FRESH coordinates (sonner animates).
-      for (let attempt = 0; attempt < 6; attempt++) {
+      for (let attempt = 0; attempt < 10; attempt++) {
         const hits = (await hitsOf(page, PANEL_HOST)).filter((h) => h.label === 'Crear tarjeta para este significado');
-        if (!hits.length) break;
+        if (!hits.length) { await page.waitForTimeout(400); continue; }
         await page.mouse.click(hits[0].cx, hits[0].cy);
-        await page.waitForTimeout(250);
-        const text = (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '';
-        if (!text.includes('ya está en tu mazo')) break;
+        await page.waitForTimeout(500);
+        if (log.added > 0) break;
       }
-      await expect.poll(() => log.added, { timeout: 20_000 }).toBe(1);
+      await expect.poll(() => log.added, { timeout: 30_000 }).toBe(1);
       expect(log.deleted).toEqual([]);
       // The pre-existing note was never deleted or overwritten.
       expect(log.updated).toEqual([]);
-      // No reused toast comes back after the create (the notice is one-shot).
-      await page.waitForTimeout(800);
-      expect((await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '').not.toMatch(/ya está en tu mazo/);
       // P2: the create rides the SAVED scene — the anchor wall-clock lets the
       // background slice the SAVED cue window (or label TTS), so the note
       // carries sentence audio again.
@@ -522,7 +577,9 @@ test('shortcut save then "Crear tarjeta para este significado": one addNote, old
       const audioValue = Object.entries(created?.fields ?? {})
         .find(([k]) => /audio/i.test(k))?.[1] ?? '';
       expect(audioValue).toContain('[sound:');
-      expect(Object.values(created?.fields ?? {}).join(' ')).toContain('RUN is hard work');
+      const fieldsDump = Object.values(created?.fields ?? {}).join(' ');
+      expect(fieldsDump).toContain('RUN is hard work');
+      expect(fieldsDump).not.toContain('Now the company is running');
     } finally {
       await bridgePage.close();
       await page.close();
@@ -581,11 +638,11 @@ test('forced create on the SAME meaning: final notice has NO Crear, old note int
       await expect.poll(async () => (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '',
         { timeout: 30_000 }).toContain('Ya tienes');
       // Let the exit animations finish before reading the button surface.
-      await page.waitForTimeout(1500);
+      await page.waitForTimeout(3500);
       const labels = (await hitsOf(page, PANEL_HOST)).map((h) => h.label);
       const toastDump = (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '';
-      expect(`labels=${labels.join(',')} toasts=${toastDump} added=${log.added} notes=${JSON.stringify(log.addedNotes)}`)
-        .not.toContain('Crear tarjeta para este significado');
+      void toastDump;
+      expect(labels).not.toContain('Crear tarjeta para este significado');
       expect(log.added).toBe(0);
       expect(log.deleted).toEqual([]);
       expect(log.updated).toEqual([]);

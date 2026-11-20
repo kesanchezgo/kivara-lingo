@@ -139,7 +139,9 @@ export async function retryCard(
     reused: result.reused,
     // The retry saved a card, but not the one the first attempt intended: the
     // caller must be able to tell the user instead of letting the row lie.
-    mediaLost: result.ok && mediaLost ? true : undefined,
+    // The first attempt's media matters ONLY if THIS retry created the note;
+    // a reused note was never missing anything from this save.
+    mediaLost: result.ok && !result.reused && mediaLost ? true : undefined,
   };
 }
 
