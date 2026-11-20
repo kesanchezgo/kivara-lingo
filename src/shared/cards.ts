@@ -184,6 +184,46 @@ export function registryRowFromRequest(request: {
   };
 }
 
+export interface CreateCardRowCtx {
+  cardId: string;
+  deck: string;
+  lang: string;
+  kind: RecentCard['kind'];
+  tags: string[];
+  source?: RecentCard['source'];
+  media?: RecentCard['media'];
+}
+
+/**
+ * The registry row the SW CREATE_CARD handler writes, built ONCE here (pure):
+ * the SW and the tests share the same construction, identity slice included.
+ */
+export function buildCreateCardRow(
+  request: {
+    token?: string;
+    sentence?: string;
+    identityKey?: string;
+    surface?: string;
+    contextGloss?: string;
+    phraseLevel?: boolean;
+    forceNewSense?: boolean;
+  },
+  ctx: CreateCardRowCtx,
+): RecentCard {
+  return newRecentCard({
+    id: ctx.cardId,
+    word: request.token ?? '',
+    sentence: request.sentence ?? '',
+    kind: ctx.kind,
+    deck: ctx.deck,
+    lang: ctx.lang,
+    tags: ctx.tags,
+    source: ctx.source,
+    media: ctx.media,
+    ...registryRowFromRequest(request),
+  });
+}
+
 /** `sending` again before an attempt (manual retry / engine drain). */
 export function beginRetry(card: RecentCard): RecentCard {
   return { ...card, status: 'sending', nextRetryAt: undefined, error: undefined };

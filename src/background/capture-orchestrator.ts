@@ -387,7 +387,10 @@ async function resolveAudio(
   // currentTime captured at the moment the user hit save. The relationship is:
   //   wallClock(videoTime) = Date.now() - (videoTimeAtSave - videoTime) * 1
   // because video plays at 1× real-time (assuming no seek between cue and save).
-  const requestedAt = Date.now();
+  // An explicit create riding a SAVED scene pins requestedAt to the save
+  // instant — the buffer is sliced at the SAVED cue window. The offscreen
+  // rejects windows outside the buffer, degrading to TTS.
+  const requestedAt = request.anchorWallClock ?? Date.now();
   const videoNowAtRequest = request.videoTimeAtSave ?? request.cueEnd;
   const preRoll = Math.max(0, capture.preRoll ?? DEFAULT_CAPTURE.preRoll);
   const postRoll = Math.max(0, capture.postRoll ?? DEFAULT_CAPTURE.postRoll);
@@ -479,14 +482,23 @@ async function findExistingByWord(
     const wordField = Object.entries(mapping.fieldSources ?? {}).find(
       ([, s]) => s === 'selection',
     )?.[0] ?? 'Front';
-    const key = (request.identityKey ?? '').trim().toLowerCase()
-      || request.token.trim().toLowerCase();
+    // PHRASE-LEVEL saves own their note: the identity key (a WORD lemma) is
+    // ignored even when a legacy caller still sends it — dedup falls to the
+    // exact selection-field clause below.
+    const key = request.phraseLevel === true
+      ? request.token.trim().toLowerCase()
+      : (request.identityKey ?? '').trim().toLowerCase()
+        || request.token.trim().toLowerCase();
     const query = buildIdentityNoteQuery({
       deckName: deck,
       modelName: mapping.modelName,
       fieldName: wordField,
       identityKey: key,
-      surface: (request.surface ?? request.token).trim().toLowerCase(),
+      // A phrase-level save ignores a legacy surface too: the phrase note is
+      // found by its EXACT selection text, never by a word lemma.
+      surface: request.phraseLevel === true
+        ? request.token.trim().toLowerCase()
+        : (request.surface ?? request.token).trim().toLowerCase(),
     });
     if (!query) return null;
     const found = await ankiConnect.findNotes(query, mapping.ankiUrl, mapping.apiKey);
@@ -832,19 +844,6 @@ export async function createCardFromRequest(
 
   const warnings: string[] = [];
 
-  // FIRST-SAVE DEDUP — a word already in this deck (case-insensitive) reuses
-  // that note, even across browser sessions where the local ledger is empty.
-  // The note was NOT created by this request, so:
-  //   • it is classified as same-context / other-context for the UI (no Undo),
-  //   • NO capture-registry row is written (no new Recent entry to undo).
-  // Retries keep their stricter sentence-verified path below. Non-blocking:
-  // an Anki failure here returns null and we add as before.
-  // RETRY IDEMPOTENCY — first thing, before ANY work: no provider call,
-  // no storeMediaFile, no frame download. A retry whose card already
-  // exists (timeout-after-create) returns here, so it can't leave orphaned
-  // media in Anki. First attempts skip this: the ledger can't contain the
-  // card yet, and a stale row must never veto a fresh add after the user
-  // deleted the note in Anki.
   // RETRY: the exact/ledger check answers "was the note created by THIS
   // cardId?". Owned → mark saved (timeout-after-create). Anything else —
   // including a match the ledger cannot attribute — is a REUSED note: the
