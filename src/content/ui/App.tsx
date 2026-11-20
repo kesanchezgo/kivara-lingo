@@ -32,6 +32,7 @@ import { buildCardTags, cardSourceFromMedia, newCardId } from '../../shared/card
 import { buildIdentityNoteQuery } from '../../shared/anki-search';
 import { wordIdentity, isPhraseLevelSave, normalizeContextGloss } from '../../shared/word-identity';
 import { createSaveGate } from './save-gate';
+import { applySavedScene, captureAnchor, sceneIdentity, type SubtitleAudioAnchor } from './save-scene';
 import { lemmaCandidates } from '../nlp/lemma';
 import { mweLemmaCandidates } from '../nlp/mwe-lemma';
 import { lookupDictionary } from '../nlp/dictionary';
@@ -90,11 +91,6 @@ interface AppProps {
    * container.
    */
   videoPortalContainer?: HTMLElement | null;
-}
-
-interface SubtitleAudioAnchor {
-  videoTimeAtSave?: number;
-  videoPausedAtSave?: boolean;
 }
 
 async function waitForVideoTime(
@@ -1363,19 +1359,17 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
 
   const ensureSubtitleAudioReady = useCallback(async (): Promise<SubtitleAudioAnchor> => {
     if (!videoElement || !activeCue?.end) {
-      return {
-        videoTimeAtSave: videoElement ? videoElement.currentTime * 1000 : adapter?.getCurrentTime?.(),
-        videoPausedAtSave: videoElement?.paused,
-      };
+      return captureAnchor(
+        videoElement ? videoElement.currentTime * 1000 : adapter?.getCurrentTime?.(),
+        videoElement?.paused,
+        Date.now(),
+      );
     }
 
     const currentMs = videoElement.currentTime * 1000;
     const remainingMs = activeCue.end - currentMs;
     if (!videoElement.paused || remainingMs <= 120) {
-      return {
-        videoTimeAtSave: currentMs,
-        videoPausedAtSave: videoElement.paused,
-      };
+      return captureAnchor(currentMs, videoElement.paused, Date.now());
     }
 
     const originalMs = videoElement.currentTime * 1000;
@@ -1563,11 +1557,19 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       });
 
       try {
-        let frameDataUrl: string | null = null;
-        if (videoElement) {
+        // P2/P6: ONE decision for the saved scene — its frame wins (no
+        // shutter at all), its sentence and cue window win over the live cue.
+        const liveCueFields = buildCueRequestFields(activeCue, episode.cues, { lineIndex: cueLine });
+        const scene = applySavedScene(pre, {
+          sentence: liveCueFields.sentence ?? sentence,
+          cueStart: liveCueFields.cueStart,
+          cueEnd: liveCueFields.cueEnd,
+        });
+        let frameDataUrl: string | null = scene.frame ?? null;
+        if (scene.captureFrame && videoElement) {
           // Best-frame capture: samples the cue window on a paused video to
-          // dodge fades / transitions / spinners. Null when every candidate is
-          // a dud, letting the orchestrator fall back to a web image.
+          // dodge fades / transitions / spinners. Null when every candidate
+          // is a dud, letting the orchestrator fall back to a web image.
           frameDataUrl = await captureBestFrame(
             videoElement,
             { start: activeCue?.start, end: activeCue?.end },
@@ -1580,12 +1582,12 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             },
           );
         }
-        setCaptureView((v) => (v ? { ...v, flash: true, frame: frameDataUrl ? 'ok' : 'failed' } : v));
-        if (studyNow.sounds) playSound('shutter');
-        await new Promise<void>((resolve) => {
-          window.setTimeout(resolve, 260);
-        });
-        setCaptureView((v) => (v ? { ...v, flash: false } : v));
+        if (scene.captureFrame) {
+          setCaptureView((v) => (v ? { ...v, flash: true, frame: frameDataUrl ? 'ok' : 'failed' } : v));
+          if (studyNow.sounds) playSound('shutter');
+          await new Promise<void>((resolve) => { window.setTimeout(resolve, 260); });
+          setCaptureView((v) => (v ? { ...v, flash: false } : v));
+        }
 
         // Which audio the save will use, computed from the same condition
         // `ensureSubtitleAudioReady` uses: a paused video short of the cue end
@@ -1596,11 +1598,15 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         // A saved scene rides along on the explicit-create re-entry: the
         // frame is the SAVED one and the cue window is the SAVED one — the
         // background slices the ring buffer at the saved anchor.
-        const audio: CaptureAudio = !videoElement
+        // A saved scene owns its audio window — never offer a replay of
+        // whatever happens to play at click time.
+        const audio: CaptureAudio = pre
           ? 'off'
-          : videoElement.paused
-            ? (remainingMs > 120 ? 'replay' : 'off')
-            : 'live';
+          : !videoElement
+            ? 'off'
+            : videoElement.paused
+              ? (remainingMs > 120 ? 'replay' : 'off')
+              : 'live';
         setCaptureView((v) => (v ? { ...v, audio } : v));
 
         const audioAnchor = pre
@@ -1621,7 +1627,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         // Identity is computed HERE, in the content script: it owns the
         // dictionary, lemmatizer and MWE data. The background only consumes
         // identityKey/surface — one key per lemma across every layer.
-        const identitySentence = pre?.sentence ?? cueFields.sentence ?? sentence;
+        const identitySentence = scene.sentence ?? cueFields.sentence ?? sentence;
         const identity = identityFor(tokenValue, lang, kind);
         const request: CreateCardRequest = {
           token: tokenValue,
@@ -1640,13 +1646,13 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           contextLines: pre?.contextLines ?? cueFields.contextLines,
           frame: frameDataUrl ?? undefined,
           // The SAVED scene's cue window rides the explicit create.
-          cueStart: pre?.cueStart ?? cueFields.cueStart,
-          cueEnd: pre?.cueEnd ?? cueFields.cueEnd,
+          cueStart: scene.cueStart,
+          cueEnd: scene.cueEnd,
           videoTimeAtSave: pre?.videoTimeAtSave ?? audioAnchor.videoTimeAtSave,
           // The anchor path slices the PAST — the video must not be treated
           // as paused-with-missing-tail (that would fall back to TTS).
           videoPausedAtSave: pre != null ? false : audioAnchor.videoPausedAtSave,
-          anchorWallClock: pre?.savedAtWallClock,
+          anchorWallClock: pre?.savedAtWallClock ?? audioAnchor.wallClockAtSave,
           language: lang,
           platform: adapter?.platform,
         };
@@ -1669,7 +1675,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                 contextLines: cueFields.contextLines,
                 videoTimeAtSave: audioAnchor.videoTimeAtSave,
                 videoPausedAtSave: audioAnchor.videoPausedAtSave,
-                savedAtWallClock: Date.now(),
+                savedAtWallClock: audioAnchor.wallClockAtSave,
                 identityKey: request.identityKey,
                 surface: request.surface,
               };
@@ -1862,7 +1868,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           token,
           // The identity the SAVE sent travels verbatim — a phrase-level save
           // sent none, so the scene lookup falls to the exact selection field.
-          identityKey: pre?.identityKey ?? identity.key,
+          identityKey: sceneIdentity(pre, identity),
           surface: pre?.surface ?? identity.surface,
           // The save already captured THIS scene: its cue fields travel
           // verbatim, so the notice's action never re-derives the line.

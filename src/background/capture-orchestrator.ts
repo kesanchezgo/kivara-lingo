@@ -1138,7 +1138,7 @@ export async function createCardFromRequest(
         aiSettings.enableDalleFallback === true
       ) {
         const { generateAiImage } = await import('./ai-providers');
-        const prompt =
+        const prompt = // kvl-i18n-exempt-dalle-prompt — model-facing, never UI copy.
           `Vocabulary mnemonic illustration for the English word "${request.token}". ` +
           `Context: ${request.sentence}. ` +
           `Style: clean, vivid, memorable, single subject, no text, no logos.`;

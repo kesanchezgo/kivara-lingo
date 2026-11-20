@@ -21,7 +21,6 @@ import type {
   CardRetryRequest,
   CardRetryResponse,
   CreateCardRequest,
-  CreateCardResponse,
   UpdateNoteFrameRequest,
   UpdateNoteFrameResponse,
   AnkiPingResponse,
@@ -42,16 +41,10 @@ import type {
 import { explainSentence } from './ai-explain';
 import { ankiConnect } from './anki-connect';
 import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator';
+import { handleCreateCard } from './create-card-handler';
 import { addContextToNote, browseNote, wordIntervals } from './card-actions';
 import { dismissCard, retryAllCards, retryCard, undoDeleteNote } from './card-lifecycle';
 import { cardRegistry } from './card-registry';
-import {
-  buildCardTags,
-  cardSourceFromMedia,
-  newCardId,
-  newRecentCard,
-  type RecentCard,
-} from '../shared/cards';
 import { DEFAULT_ANKI_MAPPING, DEFAULT_CAPTURE, PERSIST_STORE_KEY as STORE_KEY } from '../shared/store';
 import { resolveSecret } from '../shared/secret-store';
 import { escapeAnkiSearchTerm } from '../shared/anki-search';
@@ -369,64 +362,25 @@ function asJson<T>(value: T): T {
 
 onMessage('CREATE_CARD', async ({ data }) => {
   const raw = data as unknown as CreateCardRequest;
-  // E2E-ONLY mirror of the request the content script actually sent. The card
-  // registry keeps the sentence but not the cue fields, and the overlap case
-  // asserts the phrase/cueStart/cueEnd/contextLines of the real message.
-  // Production compiles this branch out (and dist-artifacts forbids the key).
-  if (__E2E__) {
-    try {
-      await chrome.storage.local.set({ 'kvl:e2e:last-create': raw });
-    } catch {
-      /* the mirror must never break a save */
-    }
-  }
-  const [mapping, capture] = await Promise.all([loadMapping(), loadCaptureSettings()]);
-
-  // Per-language deck (H9): the request may name one, otherwise the language's
-  // mapped deck decides, and only then the legacy single `deckName`.
-  const lang = (raw.lang ?? raw.language ?? 'en').trim() || 'en';
-  const deck = (raw.deck ?? '').trim() || mapping.decks?.[lang] || mapping.deckName;
-  const kind = raw.kind ?? (/\s/.test(raw.token.trim()) ? 'expression' : 'word');
-  const request: CreateCardRequest = {
-    ...raw,
-    cardId: raw.cardId ?? newCardId(),
-    lang,
-    language: lang,
-    kind,
-    deck,
-  };
-  const effectiveMapping: AnkiMapping = { ...mapping, deckName: deck };
-
-  // Register the card BEFORE sending: the UI paints `sending` immediately and
-  // every terminal state is a patch on this record.
-  const card: RecentCard = newRecentCard({
-    id: request.cardId!,
-    word: request.token,
-    sentence: request.sentence,
-    kind,
-    deck,
-    lang,
-    tags: buildCardTags(kind, request.media, lang),
-    source: cardSourceFromMedia(request.media),
-    media: {
-      frame: !!request.frame,
-      audio: !!(request.audio || (request.cueStart != null && request.cueEnd != null)),
-      word: true,
-    },
+  const response = await handleCreateCard(raw, {
+    loadMapping,
+    loadCaptureSettings,
+    refreshAnkiOriginRules,
+    invalidateSavedWordsCache,
+    createCardFromRequest,
+    mirrorRequest: __E2E__
+      ? async (request: CreateCardRequest) => {
+          // E2E-ONLY mirror of the real message (the registry keeps the
+          // sentence but not the cue fields). Compiled out in production.
+          try {
+            await chrome.storage.local.set({ 'kvl:e2e:last-create': request });
+          } catch {
+            /* the mirror must never break a save */
+          }
+        }
+      : undefined,
   });
-  await cardRegistry.put(card);
-
-  // Keep the Origin-rewrite rules in sync with the user's actual Anki URL
-  // (custom port / remote host) so a non-default setup isn't rejected by
-  // AnkiConnect's webCorsOriginList. AWAITED: the first save after the SW
-  // wakes must not race the rule install — a void'd refresh meant the first
-  // addNote could still hit CORS.
-  await refreshAnkiOriginRules(mapping.ankiUrl);
-  const response: CreateCardResponse = await createCardFromRequest(request, effectiveMapping, capture);
   if (response.ok) {
-    // A new word just landed — drop the saved-words cache for this deck so
-    // the green highlight picks it up without waiting for the 60 s TTL.
-    invalidateSavedWordsCache(deck);
     dbg('[Kivara Lingo] note created:', response.noteId);
   } else {
     console.warn('[Kivara Lingo] note failed:', response.error);
