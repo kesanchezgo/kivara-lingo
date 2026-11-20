@@ -546,13 +546,16 @@ test('shortcut save then "Crear tarjeta para este significado": one addNote, old
       expect(log.deleted).toEqual([]);
       // P2: move playback into the SECOND cue before clicking "Crear" — the
       // saved scene must WIN (cue 1 sentence/frame/audio window).
-      // Seek into cue 2 — the saved scene must WIN over what plays now.
+      // Seek into cue 2 — the saved scene must WIN over what plays now. The
+      // SOURCE caption (the plate's English text) is the deterministic proof
+      // cue 2 is active: the translated dual line rides the MT chain, which
+      // has no network in CI.
       await page.evaluate(() => {
         const v = document.querySelector('video') as HTMLVideoElement | null;
         if (v) v.currentTime = 5;
       });
-      await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).dual ?? '',
-        { timeout: 8_000 }).toContain('Ahora la empresa');
+      await expect.poll(async () => (await stateOf(page, VIDEO_HOST)).caption,
+        { timeout: 8_000 }).toContain('Now the company is running');
 
       // Click the create action with FRESH coordinates (sonner animates).
       for (let attempt = 0; attempt < 10; attempt++) {
