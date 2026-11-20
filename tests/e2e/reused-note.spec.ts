@@ -476,7 +476,6 @@ test('shortcut save then "Crear tarjeta para este significado": one addNote, old
     storedSentence: 'He runs every day.', storedGloss: 'dirigir',
   });
   try {
-    await seedDictPack(context);
     await seedAnki(context, PORT);
     void serviceWorker;
     const page = await openPage(context, RUN_TTML);
@@ -484,6 +483,9 @@ test('shortcut save then "Crear tarjeta para este significado": one addNote, old
     await startSyntheticCapture(bridgePage, 0);
     try {
       await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).tokens.length, { timeout: 10_000 }).toBeGreaterThan(0);
+      // Seed AFTER the overlay is live: the SW's one-shot orphan sweep has
+      // settled by now, so the deterministic gloss cannot be swept away.
+      await seedDictPack(context);
       const tokBox = (await boxesOf(page, VIDEO_HOST)).tokens[0];
       for (let i = 0; i < 15; i++) {
         await page.mouse.move(
@@ -492,12 +494,29 @@ test('shortcut save then "Crear tarjeta para este significado": one addNote, old
         );
         await page.waitForTimeout(16);
       }
-      // Wait for the card to actually OPEN before the shortcut — a mouse.move
-      // alone can land before the hover handler fires, and the shortcut would
-      // then fall through with nothing to save.
-      await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).card !== null,
+      // Drive the save through the popover's Guardar action, the same path
+      // the neighbouring new-sense test uses. Wait for the card's gloss to
+      // settle so the click carries a real meaning, never the '—' placeholder.
+      await expect.poll(async () => (await hitsOf(page, VIDEO_HOST)).some((h) => h.label === 'Guardar'),
         { timeout: 10_000 }).toBe(true);
-      await page.keyboard.press('Alt+Shift+S');
+      await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).cardText ?? '',
+        { timeout: 15_000 }).toContain('correr');
+      // The loaded CI runner can swallow one Guardar click (the card's action
+      // row settles after the gloss). Retry until CREATE_CARD actually fires:
+      // the mirror is written on that exact path, before any Anki call.
+      const readCreateMirror = () => serviceWorker.evaluate(async () => {
+        const got = await chrome.storage.local.get('kvl:e2e:last-create');
+        return (got['kvl:e2e:last-create'] ?? null) as { token?: string; sentence?: string } | null;
+      });
+      await expect.poll(async () => {
+        const hits = (await hitsOf(page, VIDEO_HOST)).filter((h) => h.label === 'Guardar');
+        if (hits.length) await page.mouse.click(hits[0].cx, hits[0].cy);
+        await page.waitForTimeout(400);
+        return (await readCreateMirror())?.token?.toLowerCase() === 'run';
+      }, { timeout: 20_000, message: 'CREATE_CARD never carried the RUN save' }).toBe(true);
+      const firstCreate = await readCreateMirror();
+      expect(firstCreate?.sentence).toContain('RUN is hard work');
+      expect(firstCreate?.sentence).not.toContain('Now the company is running');
       await expect.poll(async () => (await stateOf(page, PANEL_HOST)).toasts?.join(' | ') ?? '',
         { timeout: 45_000, message: `actions: ${log.actions.join(',')} queries: ${log.queries.join(';')}` })
         .toMatch(/ya está en tu mazo/);
