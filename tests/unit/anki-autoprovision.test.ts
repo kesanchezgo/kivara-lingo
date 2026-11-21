@@ -162,7 +162,7 @@ describe('the KivaraLingo model', () => {
     }];
     expect(model.modelName).toBe('KivaraLingo');
     expect(model.inOrderFields).toEqual(FIELDS_9);
-    expect(model.cardTemplates.map((t) => t.Name).sort()).toEqual(['Back', 'Front']);
+    expect(model.cardTemplates.map((t) => t.Name)).toEqual(['Card 1']);
   });
 
   it('is idempotent: an existing KivaraLingo costs ZERO createModel calls', async () => {

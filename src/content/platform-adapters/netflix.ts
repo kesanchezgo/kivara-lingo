@@ -187,7 +187,13 @@ function makeTrackWatcher() {
     },
     learningLang: () => (useKivaraStore.getState().translate.sourceLang || 'en').split(/[-_]/)[0].toLowerCase(),
     autoEnabled: () => useKivaraStore.getState().study.autoSubtitleTrack !== false,
-    hasTrackFor: (lang) => !!getTrackByLanguage(lang),
+    hasTrackFor: (lang) => {
+      // A background-published native track is NOT a player caption: do not
+      // treat it as "already on" or the watcher skips switching to the
+      // learning language (B1 with subtitles OFF).
+      const t = getTrackByLanguage(lang);
+      return !!t && !t.background;
+    },
     currentTrack: () => listSubtitleTracks().then((list) => list.current ?? null),
     switchTo: (lang) => switchSubtitleToLanguage(lang),
     // AUXILIARY publishes (background: true) are our own downloads — they

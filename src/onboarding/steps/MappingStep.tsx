@@ -7,6 +7,7 @@
  * check belong to the language, and changing the deck must not move them.
  * The gate in `steps.ts` reads that same per-language entry.
  */
+import { KIVARA_MODEL_NAME } from '../../shared/anki-model';
 import { t } from '../../shared/i18n';
 import { CheckCircle2, Loader2, ChevronRight, LayoutGrid, Wand2, ListChecks, ArrowLeft } from '../../ui/icons';
 import type { AnkiMapping, FieldSource } from '../../shared/types';
@@ -131,14 +132,13 @@ export function MappingStep({
               {mapping.modelName && !modelCreateMode && <CheckCircle2 size={13} className="text-emerald-500" />}
             </div>
             {modelCreateMode ? (
-              <input
-                type="text"
-                autoFocus
-                value={mapping.modelName}
-                onChange={(e) => setMapping({ ...mapping, modelName: e.target.value })}
-                placeholder={t('onb.newModelPlaceholder')}
-                className={`${inputLgCls} w-full`}
-              />
+              // The ONLY model we can install is our own: ANKI_ENSURE_MODEL
+              // creates exactly KivaraLingo. A free-text name that it ignores
+              // would leave the user with a deck pointing to no model.
+              <div className={`${inputLgCls} flex items-center justify-between gap-2`}>
+                <span className="truncate">{KIVARA_MODEL_NAME}</span>
+                <span className="shrink-0 text-[11px] text-indigo-600 dark:text-indigo-400">{t('onb.createModel')}</span>
+              </div>
             ) : (
               <Select
                 data-testid="onboarding-model-select"
@@ -167,7 +167,11 @@ export function MappingStep({
                     setModelCreateMode(false);
                     if (models && !models.includes(mapping.modelName)) setMapping({ ...mapping, modelName: '' });
                   } else {
+                    // Pin our model: the install button below creates THIS
+                    // model, and its 9 fields are automapped by onLoadFields.
                     setModelCreateMode(true);
+                    setMapping({ ...mapping, modelName: KIVARA_MODEL_NAME });
+                    onLoadFields(KIVARA_MODEL_NAME);
                   }
                 }}
                 className="text-[12px] text-indigo-600 dark:text-indigo-400 hover:underline"

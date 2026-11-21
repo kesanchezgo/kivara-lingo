@@ -12,7 +12,8 @@ import type {
 import { DEFAULT_CAPTURE } from '../shared/store';
 import { ankiConnect, dataUrlToBase64, AnkiConnectError, type AnkiNoteInfo } from './anki-connect';
 import { ensureKivaraModel } from './anki-model';
-import { KIVARA_MODEL_NAME } from '../shared/anki-model';
+import { KIVARA_MODEL_FIELDS, KIVARA_MODEL_NAME } from '../shared/anki-model';
+import { autoMapFields } from '../shared/anki-field-detect';
 import { buildExactNoteQuery, buildIdentityNoteQuery } from '../shared/anki-search';
 import { lemmaTag, senseTag, classifySense, isPhraseLevelSave, normalizeContextGloss } from '../shared/word-identity';
 import { htmlToPlain } from '../shared/anki-text';
@@ -764,6 +765,18 @@ export async function createCardFromRequest(
   // impossible. (retryRowId is accepted for forward-compat logging; the
   // row update happens in retryPendingNotes.)
   void options.retryRowId;
+  // A fresh install may have just created KivaraLingo via the wizard/save
+  // rescue with NO fieldSources in the stored mapping. Before ANY field is
+  // resolved, automap the model's 9 canonical fields — falling back to
+  // { Front, Back } would silently write to fields the model does not have.
+  const effectiveMapping: AnkiMapping = (
+    mapping.modelName === KIVARA_MODEL_NAME
+    && Object.keys(mapping.fieldSources ?? {}).length === 0
+  )
+    ? { ...mapping, fieldSources: autoMapFields([...KIVARA_MODEL_FIELDS]) }
+    : mapping;
+  // All downstream reads use the normalized mapping.
+  mapping = effectiveMapping;
   const lang = requestLang(request);
   const kind = requestKind(request);
   const source = cardSourceFromMedia(request.media);
@@ -1458,37 +1471,52 @@ export async function createCardFromRequest(
     options: { allowDuplicate: request.forceNewSense === true, duplicateScope: 'deck' as const },
   };
   try {
-    let noteId: number;
+    let noteId: number | undefined;
     try {
       noteId = await ankiConnect.addNote(notePayload, mapping.ankiUrl, mapping.apiKey);
     } catch (err) {
-      // A brand-new Anki has neither the deck nor the model the wizard let
-      // the user TYPE. Both are one-time, self-healing failures: create the
-      // missing piece and retry the SAME note ONCE. The path only runs on
-      // the failure, so an existing deck/model costs zero extra calls.
-      const message = err instanceof Error ? err.message : String(err);
-      // The ORIGINAL addNote failure is what the caller must see: if the
-      // creation attempt also fails, it propagates wrapped as the primary.
-      const retryNote = async (): Promise<number> =>
-        ankiConnect.addNote(notePayload, mapping.ankiUrl, mapping.apiKey);
-      try {
-        if (/deck .+ was not found/i.test(message)) {
-          await ankiConnect.createDeck(deck, mapping.ankiUrl, mapping.apiKey);
-          noteId = await retryNote();
-        } else if (
-          /model .+ was not found/i.test(message)
-          && (mapping.modelName ?? '') === KIVARA_MODEL_NAME
-        ) {
-          const ensured = await ensureKivaraModel(mapping.ankiUrl, mapping.apiKey);
-          if (!ensured.ok) throw err;
-          noteId = await retryNote();
-        } else {
-          throw err;
+      // A brand-new Anki may be missing BOTH the model and the deck. Each
+      // failure is one-time and self-healing: create the missing piece and
+      // retry, and if THAT attempt fails for the other piece, rescue it too
+      // (max once each) before the final retry. The path only runs on
+      // failure, so an existing deck/model costs zero extra calls.
+      let failure: unknown = err;
+      let rescuedDeck = false;
+      let rescuedModel = false;
+      // At most two rescues (deck + model) plus the final note attempt.
+      for (let round = 0; round < 3; round += 1) {
+        const message = failure instanceof Error ? failure.message : String(failure);
+        try {
+          if (/deck .+ was not found/i.test(message) && !rescuedDeck) {
+            rescuedDeck = true;
+            await ankiConnect.createDeck(deck, mapping.ankiUrl, mapping.apiKey);
+          } else if (
+            /model .+ was not found/i.test(message)
+            && (mapping.modelName ?? '') === KIVARA_MODEL_NAME
+            && !rescuedModel
+          ) {
+            rescuedModel = true;
+            const ensured = await ensureKivaraModel(mapping.ankiUrl, mapping.apiKey);
+            if (!ensured.ok) break;
+          } else {
+            break;
+          }
+        } catch {
+          // A failed creation cannot be rescued further: surface the ORIGINAL
+          // addNote error, which is what the caller needs to see.
+          break;
         }
-      } catch {
-        throw err;
+        try {
+          noteId = await ankiConnect.addNote(notePayload, mapping.ankiUrl, mapping.apiKey);
+          // Success — the note id is set; leave the outer catch.
+          break;
+        } catch (retryErr) {
+          failure = retryErr;
+        }
       }
+      if (noteId == null) throw err;
     }
+    const createdNoteId: number = noteId;
     // Record success in dedup ledger (per-deck — see pre-check above).
     try {
       await getDB().saved_notes.put({
@@ -1496,7 +1524,7 @@ export async function createCardFromRequest(
         language: lang,
         sentence: request.sentence,
         deckName: deck,
-        ankiNoteId: noteId,
+        ankiNoteId: createdNoteId,
         cardId: request.cardId,
         createdAt: Date.now(),
       });
@@ -1505,7 +1533,7 @@ export async function createCardFromRequest(
     }
     // If this success resolves a pending retry row, drop the row's stored
     // audio with it (the delete below handles the row itself).
-    const out: CreateCardResponse = { ok: true, noteId, warnings };
+    const out: CreateCardResponse = { ok: true, noteId: createdNoteId, warnings };
     await registryOutcome(out, { ...storedMedia });
     return out;
   } catch (err) {

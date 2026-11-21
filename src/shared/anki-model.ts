@@ -11,8 +11,9 @@
 export const KIVARA_MODEL_NAME = 'KivaraLingo';
 
 /** The 9 standard fields — same list as CardsTab's FALLBACK_FIELDS.
- * (Not exported: `buildKivaraModel()` is the single consumer.) */
-const KIVARA_MODEL_FIELDS = [
+ * Exported so the save path can automap an EMPTY fieldSources against the
+ * model it just installed. */
+export const KIVARA_MODEL_FIELDS = [
   'word',
   'phonetic',
   'sentence',
@@ -75,14 +76,9 @@ export function buildKivaraModel(): AnkiModelDefinition {
     inOrderFields: [...KIVARA_MODEL_FIELDS],
     cardTemplates: [
       {
-        Name: 'Front',
+        Name: 'Card 1',
         Front: '{{word}}{{#phonetic}}<br><span class="phonetic">{{phonetic}}</span>{{/phonetic}}{{#sentence audio}}{{sentence audio}}{{/sentence audio}}',
         Back: '{{FrontSide}}<hr id="answer"><span class="sentence">{{sentence}}</span><br><br>{{translation}}{{#bilingual}}<br>{{bilingual}}{{/bilingual}}{{#monolingual}}<br>{{monolingual}}{{/monolingual}}{{#picture}}<br><img class="kivara-picture" src="{{picture}}">{{/picture}}{{#word audio}}{{word audio}}{{/word audio}}',
-      },
-      {
-        Name: 'Back',
-        Front: '{{word}}{{#phonetic}}<br><span class="phonetic">{{phonetic}}</span>{{/phonetic}}{{#sentence audio}}{{sentence audio}}{{/sentence audio}}',
-        Back: '<span class="sentence">{{sentence}}</span><br><br>{{translation}}{{#bilingual}}<br>{{bilingual}}{{/bilingual}}{{#monolingual}}<br>{{monolingual}}{{/monolingual}}{{#picture}}<br><img class="kivara-picture" src="{{picture}}">{{/picture}}{{#word audio}}{{word audio}}{{/word audio}}',
       },
     ],
     css: KIVARA_MODEL_CSS,

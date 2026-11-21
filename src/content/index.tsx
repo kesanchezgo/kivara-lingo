@@ -92,7 +92,7 @@ useKivaraStore.subscribe((state, prev) => {
     // Source language changed — the previously-cached translated track
     // was relative to the old source. Drop it so the next caption load
     // re-derives the bilingual line.
-    clearBus();
+    clearBus({ keepManifests: true });
     // For DASH platforms (HBO Max, etc.) the manifest URL is stable but
     // the bus has just been emptied; replay the last manifest so the
     // newly-needed source track gets fetched without waiting for the
@@ -104,8 +104,9 @@ useKivaraStore.subscribe((state, prev) => {
   if (state.translate.targetLanguage !== prev.translate.targetLanguage) {
     syncTargetLangToDOM();
     // Target language changed — same reasoning. The user wants Portuguese
-    // now, the bus has Spanish cached; force a re-fetch.
-    clearBus();
+    // now, the bus has Spanish cached; force a re-fetch. Keep the manifests
+    // so BOTH reprocess calls can re-pick for the new language.
+    clearBus({ keepManifests: true });
     reprocessLastDashManifest();
     reprocessLastNetflixManifest();
   }
