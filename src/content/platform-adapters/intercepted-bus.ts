@@ -335,12 +335,12 @@ async function handleDashManifest(mpdUrl: string, body: string): Promise<void> {
     !tracksByLang.has(sourcePrimary)
   ) {
     const src = pickBestTrack(tracks, sourceLang);
-    if (src) void downloadAndPublishDashTrack(src, sourcePrimary);
+    if (src) void downloadAndPublishDashTrack(src, sourcePrimary, false);
   }
   // Fetch the target-language (native) track for the dual line.
   if (targetPrimary && !tracksByLang.has(targetPrimary)) {
     const tgt = pickBestTrack(tracks, targetLang);
-    if (tgt) void downloadAndPublishDashTrack(tgt, targetPrimary);
+    if (tgt) void downloadAndPublishDashTrack(tgt, targetPrimary, sourcePrimary !== targetPrimary);
   }
 
   // Audio auto-select — opt-in via `translate.autoSelectSourceAudio`.
@@ -376,6 +376,9 @@ async function handleNetflixManifest(
   nativeBody: string | null,
   nativeUrl: string | null = null,
 ): Promise<void> {
+  // Store the manifest FIRST: even a manifest for a language we do not
+  // currently target must be replayable when the user changes language.
+  lastNetflixManifest = { tracks, nativeBody, nativeUrl };
   const targetLang = (
     document.documentElement.getAttribute('data-kivara-target-lang') || 'es'
   ).toLowerCase();
@@ -389,7 +392,6 @@ async function handleNetflixManifest(
   const url = picked.ttDownloadUrl;
   if (netflixManifestsSeen.has(url)) return;
   rememberNetflixManifest(url);
-  lastNetflixManifest = { tracks, nativeBody, nativeUrl };
   // The MAIN world's download is only trusted for the URL it actually
   // fetched — a body from another track would poison the parse.
   let body: string | null = nativeUrl === url ? nativeBody : null;
@@ -540,6 +542,7 @@ function applyAudioTrackSelection(
 async function downloadAndPublishDashTrack(
   track: import('./dash-subtitle-loader').DashSubtitleTrack,
   langKey: string,
+  isBackground: boolean,
 ): Promise<void> {
   let cues: RawCue[];
   try {
@@ -555,8 +558,12 @@ async function downloadAndPublishDashTrack(
     url: trackUrl,
     cues,
     language: track.fullLanguage,
-    background: true,
+    // The SOURCE track IS the caption (adopted as lastTrack); only the
+    // target-language download is an AUXILIARY dual-caption surface.
+    // only the target carries the auxiliary flag
+    background: isBackground ? true : undefined,
   };
+  if (!isBackground) lastTrack = tTrack;
   tracksByLang.set(langKey, tTrack);
   seenUrls.add(trackUrl);
   listeners.forEach((l) => {
@@ -730,16 +737,22 @@ export function getActiveTrackCues(): RawCue[] | null {
  * now want Portuguese, and `translatedRequested` would otherwise prevent
  * the new fetch.
  */
-export function clearBus(): void {
+export function clearBus(opts: { keepManifests?: boolean } = {}): void {
   tracksByLang.clear();
   seenUrls.clear();
   translatedRequested.clear();
   dashManifestsSeen.clear();
   netflixManifestsSeen.clear();
   lastTrack = null;
+  if (opts.keepManifests) {
+    // Language change: keep the manifests so the reprocess* calls that follow
+    // can re-pick tracks for the NEW language without a player refresh.
+    return;
+  }
+  // Navigation to another video (SPA): the old title's manifests belong to
+  // the previous episode and must not be replayed on the new one.
   lastMpdBody = null;
-  // `lastNetflixManifest` survives on purpose: `reprocessLastNetflixManifest`
-  // replays it for the NEW target language right after this clear.
+  lastNetflixManifest = null;
 }
 
 /**

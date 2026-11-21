@@ -1087,7 +1087,7 @@ export function WordPopover({
               void sendMessage('OPEN_SETTINGS', { section: 'perm' }, 'background').catch(() => {});
             }}
             title={resolved.needsAccess.map((n) => n.source).join(', ')}
-            className="-mx-3.5 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-200 bg-amber-500/15 hover:bg-amber-500/20 border-t border-amber-500/25 transition-colors normal-case"
+            className="-mx-3.5 w-[calc(100%+1.75rem)] flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-200 bg-amber-500/15 hover:bg-amber-500/20 border-t border-amber-500/25 transition-colors normal-case"
           >
             <KeyRound size={10} />
             {t('popover.needsAccess')} ({resolved.needsAccess.length})
@@ -1100,7 +1100,7 @@ export function WordPopover({
             type="button"
             onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
             aria-label={isExpanded ? t('popover.joinPhrase') : t('popover.splitWords')}
-            className="-mx-3.5 w-full flex items-center justify-between gap-2 px-3 py-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-white/60 dark:bg-zinc-900/60 border-t border-zinc-900/[0.06] dark:border-white/[0.06] transition-colors"
+            className="-mx-3.5 w-[calc(100%+1.75rem)] flex items-center justify-between gap-2 px-3 py-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-white/60 dark:bg-zinc-900/60 border-t border-zinc-900/[0.06] dark:border-white/[0.06] transition-colors"
           >
             <span className="flex items-center gap-1.5">
               <ChevronsLeftRight size={10} />
@@ -1118,7 +1118,7 @@ export function WordPopover({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onRejoinParent(parentMWE); }}
-            className="-mx-3.5 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-white/60 dark:bg-zinc-900/60 border-t border-zinc-900/[0.06] dark:border-white/[0.06] transition-colors"
+            className="-mx-3.5 w-[calc(100%+1.75rem)] flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-white/60 dark:bg-zinc-900/60 border-t border-zinc-900/[0.06] dark:border-white/[0.06] transition-colors"
           >
             <Link2 size={10} />
             <span className="normal-case">{t('popover.joinWith', { phrase: parentMWE })}</span>

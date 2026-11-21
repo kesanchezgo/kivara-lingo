@@ -146,7 +146,7 @@ describe('target-language change reprocesses the last manifest', () => {
 
     // The user switches their native language to Portuguese.
     document.documentElement.setAttribute('data-kivara-target-lang', 'pt');
-    clearBus();
+    clearBus({ keepManifests: true });
     reprocessLastNetflixManifest();
     await flush();
     const pt = getTrackByLanguage('pt');
