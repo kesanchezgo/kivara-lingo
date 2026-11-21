@@ -76,6 +76,11 @@ describe('consumeOpenSettingsSection', () => {
       },
       runtime: { getURL: (p: string) => `chrome-extension://test/${p}` },
     });
+    // Simulate our own extension page: a hash on a streaming site is NOT a
+    // deep link (round-15 closeout) and must never win over the slot here.
+    Object.defineProperty(window.location, 'protocol', {
+      value: 'chrome-extension:', configurable: true,
+    });
     window.location.hash = '#ia';
     expect(await consumeOpenSettingsSection()).toBe('ia');
     expect(removed).toEqual([OPEN_SETTINGS_SECTION_KEY]);

@@ -91,7 +91,7 @@ function sanitizeTermRow(raw: unknown, packId: string): DictTermRow | null {
     packId,
     expression: expression.toLowerCase(),
     reading: text(r.reading, 400),
-    definitions: Array.isArray(r.definitions) ? r.definitions : [],
+    definitions: Array.isArray(r.definitions) ? r.definitions.slice(0, 64) : [],
     popularity,
     definitionTags: text(r.definitionTags, 200),
     termTags: text(r.termTags, 200),

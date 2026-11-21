@@ -41,6 +41,7 @@ import type {
 import { explainSentence } from './ai-explain';
 import { ankiConnect } from './anki-connect';
 import { ensureKivaraModel } from './anki-model';
+import { KIVARA_MODEL_FIELDS, normalizeAnkiMapping } from '../shared/anki-model';
 import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator';
 import { handleCreateCard } from './create-card-handler';
 import { addContextToNote, browseNote, wordIntervals } from './card-actions';
@@ -320,12 +321,12 @@ async function loadMapping(): Promise<AnkiMapping> {
       // decrypts it (with legacy blob fallback) and returns '' when
       // unreadable — never `enc:v1:` in a request to Anki.
       merged.apiKey = await resolveSecret('ankiMapping', 'apiKey', merged.apiKey);
-      return merged;
+      return normalizeAnkiMapping(merged);
     }
   } catch (err) {
     console.warn('[Kivara Lingo] could not read mapping', err);
   }
-  return DEFAULT_ANKI_MAPPING;
+  return normalizeAnkiMapping(DEFAULT_ANKI_MAPPING);
 }
 
 async function loadCaptureSettings(): Promise<CaptureSettings> {
@@ -478,7 +479,9 @@ onMessage('CARD_DISMISS', async ({ data }) => {
  */
 onMessage('UPDATE_NOTE_FRAME', async ({ data }) => {
   const request = data as unknown as UpdateNoteFrameRequest;
-  const mapping = await loadMapping();
+  // Normalize HERE as well (loadMapping already does): an empty fieldSources
+  // on a fresh KivaraLingo install must resolve to `picture`, not {Front,Back}.
+  const mapping = normalizeAnkiMapping(await loadMapping());
   let fieldName = request.fieldName ?? null;
   if (!fieldName) {
     const found = Object.entries(mapping.fieldSources ?? {}).find(
@@ -492,6 +495,13 @@ onMessage('UPDATE_NOTE_FRAME', async ({ data }) => {
       error: t('sw.noFrameField'),
     };
     return asJson(out);
+  }
+  // OWNERSHIP: a recapture may only patch a note THIS installation saved and
+  // that is still 'saved'. After Undo the registry row is gone — without this
+  // guard the hotkey could write a frame onto a deleted/foreign note.
+  const owner = await cardRegistry.findByNoteId(request.noteId);
+  if (!owner || owner.status !== 'saved') {
+    return asJson({ ok: false, error: t('cards.undoNotCreated') } satisfies UpdateNoteFrameResponse);
   }
   try {
     const base64 = request.frame.includes(',')
@@ -659,7 +669,10 @@ onMessage('ANKI_ENSURE_MODEL', async ({ data }) => {
   const auth = await resolveAnkiAuth(data);
   if (auth.error) return asJson({ ok: false, error: auth.error });
   const { url, apiKey } = auth;
-  return asJson(await ensureKivaraModel(url, apiKey));
+  const res = await ensureKivaraModel(url, apiKey);
+  // The installed model's canonical field list is the one the wizard automaps
+  // and the save paths resolve against — never a second hardcoded copy.
+  return asJson({ ...res, fields: [...KIVARA_MODEL_FIELDS] });
 });
 
 /**
@@ -1543,6 +1556,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           if (!reader) {
             // Fallback for environments without ReadableStream — single-shot.
             const buf = await res.arrayBuffer();
+            if (buf.byteLength > DICT_PACK_MAX_BYTES) {
+              reportProgress({ stage: 'error', error: t('dictpack.packTooLargeShort') });
+              sendResponse({ ok: false, error: t('dictpack.packTooLargeShort') });
+              return;
+            }
             reportProgress({ stage: 'downloading', received: buf.byteLength, total: buf.byteLength });
             const result = await importYomitanPackStreaming(
               new Uint8Array(buf),
