@@ -362,6 +362,23 @@ export const ankiConnect = {
     return invoke<number>('createDeck', { deck }, { url, apiKey, allowFallbackRetry: false });
   },
 
+  /** Install a note model (ANKI_ENSURE_MODEL). The definition shape mirrors
+   * the add-on's `createModel` action: modelName, inOrderFields,
+   * cardTemplates, css, isCloze. */
+  async createModel(
+    model: {
+      modelName: string;
+      inOrderFields: string[];
+      cardTemplates: Array<{ Name: string; Front: string; Back: string }>;
+      css?: string;
+      isCloze?: boolean;
+    },
+    url?: string,
+    apiKey?: string,
+  ): Promise<string | null> {
+    return invoke<string | null>('createModel', { ...model, isCloze: model.isCloze ?? false }, { url, apiKey, allowFallbackRetry: false });
+  },
+
   /**
    * Find note IDs matching a query. Used to check which words the user
    * already has in their deck so the overlay can mark them as "saved" from

@@ -40,6 +40,7 @@ import type {
 } from '../shared/types';
 import { explainSentence } from './ai-explain';
 import { ankiConnect } from './anki-connect';
+import { ensureKivaraModel } from './anki-model';
 import { createCardFromRequest, retryPendingNotes } from './capture-orchestrator';
 import { handleCreateCard } from './create-card-handler';
 import { addContextToNote, browseNote, wordIntervals } from './card-actions';
@@ -649,6 +650,16 @@ onMessage('ANKI_CREATE_DECK', async ({ data }) => {
     const reason = err instanceof Error ? err.message : 'failed';
     return asJson({ ok: false, error: reason });
   }
+});
+
+onMessage('ANKI_ENSURE_MODEL', async ({ data }) => {
+  // The MappingStep's "install KivaraLingo" mode and the save-path rescue
+  // both land here. Idempotent by construction (see ensureKivaraModel): an
+  // existing model costs one modelNames() read and nothing else.
+  const auth = await resolveAnkiAuth(data);
+  if (auth.error) return asJson({ ok: false, error: auth.error });
+  const { url, apiKey } = auth;
+  return asJson(await ensureKivaraModel(url, apiKey));
 });
 
 /**
