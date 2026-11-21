@@ -63,19 +63,18 @@ describe('placeStudyBar (point 5)', () => {
     expect(overlap).toBe(false);
   });
 
-  it('parks on the half opposite the caption', () => {
-    // Caption at the bottom → the bar goes top, and vice versa.
-    const captionBottom = { x: 200, y: 580, width: 400, height: 60 };
-    const topPlacement = placeStudyBar({
-      host: HOST, caption: captionBottom, bar: BAR, zone: safeZoneFor('netflix'), controls: [],
-    });
-    expect(topPlacement.side).toBe('top');
-    const captionTop = { x: 200, y: 40, width: 400, height: 60 };
-    const bottomPlacement = placeStudyBar({
-      host: HOST, caption: captionTop, bar: BAR, zone: safeZoneFor('netflix'), controls: [],
-    });
-    expect(bottomPlacement.side).toBe('bottom');
-    expect(bottomPlacement.bottom).toBeGreaterThanOrEqual(110);
+  it('stays at the bottom edge in every cue, never flipping to the top', () => {
+    for (const caption of [
+      { x: 200, y: 580, width: 400, height: 60 },
+      { x: 200, y: 40, width: 400, height: 60 },
+    ]) {
+      const placement = placeStudyBar({
+        host: HOST, caption, bar: BAR, zone: safeZoneFor('netflix'), controls: [],
+      });
+      expect(placement.side).toBe('bottom');
+      const top = placement.top ?? HOST.height - placement.bottom! - BAR.height;
+      expect(top).toBeGreaterThanOrEqual(HOST.height / 2);
+    }
   });
 
   it('prime keeps the icon-cluster margin on the right', () => {

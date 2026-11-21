@@ -37,13 +37,13 @@ export interface SafeZone {
 
 const STUDY_BAR_SAFE_ZONES: Record<Platform, SafeZone> = {
   youtube: {
-    margins: { top: 8, bottom: 64, right: 12 },
+    margins: { top: 8, bottom: 170, right: 12 },
     controls: ['.ytp-chrome-bottom', '.ytp-chrome-top', '.ytp-pause-overlay', '.ytp-gradient-bottom'],
   },
   netflix: {
     // Top bar + the bottom control row; «Saltar intro» / «Siguiente episodio»
     // float mid-frame (their selectors below, best effort per build).
-    margins: { top: 72, bottom: 110, right: 24 },
+    margins: { top: 72, bottom: 170, right: 24 },
     controls: [
       '[data-uia="player-controls"]',
       '.PlayerControlsNeo__bottom-controls',
@@ -53,11 +53,11 @@ const STUDY_BAR_SAFE_ZONES: Record<Platform, SafeZone> = {
     ],
   },
   disney: {
-    margins: { top: 8, bottom: 72, right: 12 },
+    margins: { top: 8, bottom: 170, right: 12 },
     controls: ['.controls__container', '.controls__wrap', '.controls-bottom-wrap', '.controls-top-wrap'],
   },
   hbo: {
-    margins: { top: 8, bottom: 64, right: 12 },
+    margins: { top: 8, bottom: 170, right: 12 },
     controls: ['[class*="ControlsContainer"]', '[class*="ControlsFooter"]', '[class*="AutohiderContainer"]'],
   },
   prime: {
@@ -67,7 +67,7 @@ const STUDY_BAR_SAFE_ZONES: Record<Platform, SafeZone> = {
     controls: ['.atvwebplayersdk-overlays-container'],
   },
   generic: {
-    margins: { top: 12, bottom: 12, right: 12 },
+    margins: { top: 12, bottom: 170, right: 12 },
     controls: [],
   },
 };
@@ -78,6 +78,8 @@ export function safeZoneFor(platform: Platform | undefined): SafeZone {
 
 export interface BarPlacement {
   side: 'top' | 'bottom';
+  /** Last-resort left alignment so the top-right badges stay clear. */
+  left?: number;
   /** Offset from the host's top edge, or null when the bar parks at the bottom. */
   top: number | null;
   /** Offset from the host's bottom edge, or null when the bar parks at the top. */
@@ -112,28 +114,34 @@ export function placeStudyBar(o: {
   const { host, bar, zone, controls } = o;
   const caption = o.caption;
 
-  // Same rule as `oppositeSide`, on plain boxes.
-  let side: 'top' | 'bottom' = 'bottom';
-  if (caption) {
-    const center = caption.y + caption.height / 2 - host.y;
-    side = center > host.height / 2 ? 'top' : 'bottom';
-  }
+  // MOCK FIDELITY: the prototype pins the study bar to the BOTTOM, full width.
+  // The old rule flipped it to the top whenever the caption sat low, which is
+  // why the bar roamed around the player between cues (# owner report). The
+  // caption is still avoided within the bottom half, but the bar never leaves
+  // its edge. Native chrome is dodged by the same vertical nudge.
+  const side: 'top' | 'bottom' = 'bottom';
 
   const x = host.x + host.width - zone.margins.right - bar.width;
   const midY = host.y + host.height * HALF_LIMIT;
 
-  const trySide = (s: 'top' | 'bottom'): BarPlacement | null => {
+  const trySide = (s: 'top' | 'bottom', align: 'right' | 'left' = 'right'): BarPlacement | null => {
     const margin = s === 'top' ? zone.margins.top : zone.margins.bottom;
     const startTop = s === 'top' ? host.y + margin : host.y + host.height - margin - bar.height;
     const dir = s === 'top' ? 1 : -1;
+    const anchorX = align === 'left' ? host.x + zone.margins.right : x;
     let top = startTop;
     for (let step = 0; step < 60; step += 1) {
-      const rect = box(x, top, bar.width, bar.height);
+      const rect = box(anchorX, top, bar.width, bar.height);
       const clearControls = controls.every((c) => !overlaps(rect, c));
       const clearCaption = !caption || !overlaps(rect, caption);
       if (clearControls && clearCaption) {
         const bottom = host.y + host.height - top - bar.height;
-        return { side: s, top: Math.round(top - host.y), bottom: Math.round(bottom - host.y) };
+        return {
+          side: s,
+          top: Math.round(top - host.y),
+          bottom: Math.round(bottom - host.y),
+          ...(align === 'left' ? { left: Math.round(anchorX - host.x) } : {}),
+        };
       }
       top += dir * STEP;
       // Stay on this half: the caption lives on the other one.
@@ -145,12 +153,13 @@ export function placeStudyBar(o: {
 
   const first = trySide(side);
   if (first) return first;
-  const other: 'top' | 'bottom' = side === 'top' ? 'bottom' : 'top';
-  const alt = trySide(other);
-  if (alt) return alt;
 
-  // Crowded frame: the previous behavior (plain margins) is the last resort.
-  return side === 'top'
-    ? { side, top: zone.margins.top, bottom: null }
-    : { side, top: null, bottom: zone.margins.bottom };
+  // Only when the BOTTOM half cannot hold the bar at all (e.g. a 640×360
+  // player with a two-line caption) do we use the top — a last resort, not a
+  // per-cue flip. This keeps the mock's bottom placement on normal frames and
+  // leaves the caption readable on tiny ones.
+  // Top-LEFT: the mock's badges own the top-right corner; never sit on them.
+  const fallback = trySide('top', 'left');
+  if (fallback) return fallback;
+  return { side: 'bottom', top: null, bottom: zone.margins.bottom };
 }

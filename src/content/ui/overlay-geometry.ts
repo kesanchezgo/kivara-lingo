@@ -42,10 +42,6 @@ export function intersects(a: OverlayBox, b: OverlayBox): boolean {
     && a.y < b.y + b.height && b.y < a.y + a.height;
 }
 
-function expand(box: OverlayBox, by: number): OverlayBox {
-  return { x: box.x - by, y: box.y - by, width: box.width + by * 2, height: box.height + by * 2 };
-}
-
 const listeners = new Set<() => void>();
 
 /**
@@ -103,15 +99,6 @@ export function oppositeSide(caption: DOMRect, host: DOMRect): VerticalSide {
 
 /** Distance from the player's edge that the bar and the icons respect. */
 const MARGIN = 16;
-/** Air between the plate and the icons. */
-const GAP = 12;
-/**
- * The sentence toolbar opens 48 px above the plate (`-top-12`) and is about
- * 36 px tall, so a badge above the plate has to clear the toolbar before it
- * clears the plate itself.
- */
-const TOOLBAR_CLEARANCE = 48 + 8;
-
 export type BadgeSide = 'right' | 'left' | 'above' | 'below' | 'corner';
 
 export interface BadgePlacement {
@@ -119,10 +106,6 @@ export interface BadgePlacement {
   x: number;
   y: number;
   side: BadgeSide;
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
 }
 
 /**
@@ -138,57 +121,21 @@ function clamp(value: number, min: number, max: number): number {
  */
 export function placeBadgeGroup(
   host: OverlayBox,
-  caption: OverlayBox | null,
+  _caption: OverlayBox | null,
   group: { width: number; height: number },
-  barSide: VerticalSide,
-  bar: OverlayBox | null,
+  _barSide: VerticalSide,
+  _bar: OverlayBox | null,
 ): BadgePlacement {
+  // MOCK FIDELITY: the prototype pins «Escucha primero» + mode together at
+  // top-4 right-4. The previous candidates moved them beside/above/below the
+  // caption from cue to cue, which read as random motion on the live player.
   const frame = {
-    left: host.x + MARGIN,
-    top: host.y + MARGIN,
     right: host.x + host.width - MARGIN,
-    bottom: host.y + host.height - MARGIN,
+    top: host.y + MARGIN,
   };
-
-  const corner: BadgePlacement = {
+  return {
     x: frame.right - group.width,
-    y: barSide === 'bottom' ? frame.top : frame.bottom - group.height,
+    y: frame.top,
     side: 'corner',
   };
-
-  const accept = (candidate: BadgePlacement): boolean => {
-    if (candidate.x < frame.left || candidate.x + group.width > frame.right) return false;
-    if (candidate.y < frame.top || candidate.y + group.height > frame.bottom) return false;
-    if (bar && intersects(
-      { x: candidate.x, y: candidate.y, width: group.width, height: group.height },
-      expand(bar, 4),
-    )) return false;
-    return true;
-  };
-
-  if (caption) {
-    // Vertically centred on the plate, but never above its top edge: the
-    // sentence toolbar lives 12 px over that edge.
-    const top = clamp(
-      caption.y + (caption.height - group.height) / 2,
-      caption.y,
-      frame.bottom - group.height,
-    );
-    const inlineX = clamp(
-      caption.x + caption.width - group.width,
-      frame.left,
-      frame.right - group.width,
-    );
-    const candidates: BadgePlacement[] = [
-      { x: caption.x + caption.width + GAP, y: top, side: 'right' },
-      { x: caption.x - GAP - group.width, y: top, side: 'left' },
-      { x: inlineX, y: caption.y - TOOLBAR_CLEARANCE - group.height, side: 'above' },
-      { x: inlineX, y: caption.y + caption.height + GAP, side: 'below' },
-    ];
-    for (const candidate of candidates) {
-      if (accept(candidate)) return candidate;
-    }
-  }
-
-  return corner;
 }

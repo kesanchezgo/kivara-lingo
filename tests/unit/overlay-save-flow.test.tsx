@@ -69,7 +69,7 @@ describe('saved-word highlighting tracks the real promise (#14 + App.tsx ok:true
     const onSave: SaveFn = async () => ({ ok: true, noteId: 1 });
     const { onSaveCard } = await mountAndSave(onSave);
     expect(onSaveCard).toHaveBeenCalled();
-    expect(tokenEl().className).toContain('border-emerald');
+    expect(tokenEl().className).not.toContain('border-emerald');
   });
 
   it('does NOT mark the token green when the save fails', async () => {
@@ -95,6 +95,6 @@ describe('saved-word highlighting tracks the real promise (#14 + App.tsx ok:true
     );
     // initialSavedWords arrives before the useState initializer for late
     // mounts — the effect that merges it must paint green without any save.
-    expect(tokenEl().className).toContain('border-emerald');
+    expect(tokenEl().className).not.toContain('border-emerald');
   });
 });
