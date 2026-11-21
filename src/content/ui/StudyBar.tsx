@@ -188,10 +188,19 @@ export function StudyBar(props: StudyBarProps) {
             .filter((r) => r.width > 0 && r.height > 0)
             .map((r) => ({ x: r.x, y: r.y, width: r.width, height: r.height }))
         : [];
+      // A token can stick out a few pixels past the plate's text box (a long
+      // word beside the active one). Pad the no-go zone so the bar never sits
+      // on a word even when the plate rect itself looks clear.
+      const CLEARANCE = 16;
       setPlacement(placeStudyBar({
         host: { x: hostRect.x, y: hostRect.y, width: hostRect.width, height: hostRect.height },
         caption: plate
-          ? { x: plate.x, y: plate.y, width: plate.width, height: plate.height }
+          ? {
+              x: plate.x - CLEARANCE,
+              y: plate.y - CLEARANCE,
+              width: plate.width + CLEARANCE * 2,
+              height: plate.height + CLEARANCE * 2,
+            }
           : null,
         bar: { width: element?.getBoundingClientRect().width || 260, height: element?.getBoundingClientRect().height || 30 },
         zone,
@@ -239,7 +248,11 @@ export function StudyBar(props: StudyBarProps) {
       className={`absolute right-3 z-30 flex items-center gap-0.5 rounded-lg bg-zinc-900/80 ring-1 ring-white/[0.08] backdrop-blur-md p-0.5 text-white transition-opacity duration-200 ${
         visible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       } [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto`}
-      style={placement.top !== null ? { top: placement.top } : { bottom: placement.bottom ?? 12 }}
+      style={placement.left != null
+        ? { top: placement.top ?? 12, left: placement.left, right: 'auto' }
+        : placement.top !== null
+          ? { top: placement.top }
+          : { bottom: placement.bottom ?? 12 }}
       role="toolbar"
       aria-label={t('rail.title')}
     >

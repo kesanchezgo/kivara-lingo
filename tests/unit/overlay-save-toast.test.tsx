@@ -109,9 +109,10 @@ describe('saved toast undo', () => {
     });
   });
 
-  it('drops the overlay’s saved mark after a successful undo', async () => {
+  it('drops the overlay’s saved state after a successful undo (shown in the word card, per the mock)', async () => {
     vi.mocked(sendMessage).mockResolvedValue({ ok: true } as never);
     render(
+      <div data-popover-boundary>
       <SubtitleOverlay
         subtitleStyles={{} as never}
         cue={{ id: 'c0', text: 'hello', start: 0, end: 3000, language: 'en' }}
@@ -121,13 +122,19 @@ describe('saved toast undo', () => {
         onSaveCard={vi.fn(async () => ({ ok: true }))}
         onTokenHoverChange={() => {}}
         initialSavedWords={new Set(['hello'])}
-      />,
+      />
+      </div>,
     );
-    expect(screen.queryByText('hello')!.className).toContain('border-emerald');
+    // MOCK FIDELITY: the token has no invented green border/check; the saved
+    // state lives in the word card it opens on hover.
+    const token = screen.getByText('hello');
+    expect(token.className).not.toContain('border-emerald');
+    fireEvent.mouseEnter(token);
+    await vi.waitFor(() => expect(screen.queryByText(t('wp.inYourDeck'))).not.toBeNull());
     await act(async () => {
       await undoSavedNote(42, 'hello');
     });
-    expect(screen.queryByText('hello')!.className).not.toContain('border-emerald');
+    await vi.waitFor(() => expect(screen.queryByText(t('wp.inYourDeck'))).toBeNull());
   });
 });
 

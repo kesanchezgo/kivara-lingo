@@ -73,7 +73,8 @@ describe('a phrase-level save paints NOTHING as saved', () => {
       />,
     );
     const run = screen.getByText('RUN');
-    expect(run.className).toContain(SAVED_CLS);
+    expect(run.className).not.toContain(SAVED_CLS);
+    void SAVED_CLS;
     void rerender;
   });
 });

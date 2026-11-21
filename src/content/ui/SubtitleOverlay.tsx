@@ -1116,15 +1116,11 @@ export function SubtitleOverlay({
                   : isTokHovered
                   ? '!text-white bg-indigo-600 shadow-[0_2px_8px_rgba(99,102,241,0.45)]'
                   : 'hover:bg-white/10';
-                const savedCls = isSaved ? 'border-b-2 border-emerald-400/70' : '';
-                const knownCls = tok.kind === 'mastered'
-                  ? 'opacity-50 hover:opacity-100'
-                  // The repo keeps a known proper noun interactive with a
-                  // quieter affordance than regular vocabulary (the prototype
-                  // had no such state; the taxonomy does).
-                  : tok.kind === 'proper-noun-known'
-                    ? 'underline decoration-violet-300/40 decoration-dotted underline-offset-2'
-                    : '';
+                // MOCK FIDELITY: the prototype's token carries ONLY the
+                // status mark (CSS .kvl-tok[data-ws]) plus the hover/selection
+                // accent. A green "saved" border, a check glyph and a violet
+                // proper-noun underline were invented here and made the marks
+                // look different from the transcript's — removed.
                 const parentForSplit = tok.kind !== 'mwe' ? findParentMWE(tok.key) : null;
                 const wheelable = tok.kind === 'mwe' || !!parentForSplit;
                 const handleWheel = (e: React.WheelEvent) => {
@@ -1193,12 +1189,9 @@ export function SubtitleOverlay({
                         }
                       }}
                       title={wheelable ? t('overlay.altScrollHint') : undefined}
-                      className={`kvl-tok rounded px-0.5 transition-all duration-150 cursor-help outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80 ${stateCls} ${savedCls} ${knownCls}`}
+                      className={`kvl-tok rounded px-0.5 transition-all duration-150 cursor-help outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80 ${stateCls}`}
                     >
                       {tok.text}
-                      {isSaved && !isTokHovered && (
-                        <Check size={9} className="inline-block ml-0.5 -mt-1 text-emerald-300" strokeWidth={3} />
-                      )}
                     </span>
                     {isTokHovered && !selection && portalBoundary && createPortal(
                       <WordPopover

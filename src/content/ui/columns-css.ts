@@ -215,7 +215,7 @@ const RULES: Record<Platform, ColumnsRules> = {
     // Netflix's own control row. `width` moves the player (2246→1406), the
     // same mechanism youtube's resize rule uses.
     shrink: [],
-    resize: ['.watch-video', '.watch-video--player-view', '[data-uia="watch-video"]'],
+    resize: ['.watch-video', '[data-uia="watch-video"]'],
   },
   hbo: {
     // Never `#root` (the whole app shell). The player container comes from the

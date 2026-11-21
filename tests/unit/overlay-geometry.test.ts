@@ -43,44 +43,36 @@ function box(placement: { x: number; y: number }): OverlayBox {
 }
 
 describe('placeBadgeGroup', () => {
-  it('sits beside a short caption that leaves room on the right', () => {
+  it('never follows the caption to its side', () => {
     const caption: OverlayBox = { x: 170, y: 300, width: 300, height: 40 };
     const placement = placed(caption);
-    expect(placement.side).toBe('right');
-    expect(intersects(box(placement), caption)).toBe(false);
-    expect(placement.x).toBeGreaterThan(caption.x + caption.width);
+    expect(placement.side).toBe('corner');
+    expect(placement.y).toBeLessThanOrEqual(20);
   });
 
-  it('goes above a two-line caption that reaches the right edge', () => {
-    // The reported case: the plate is clamped to the player's padding, so
-    // there is no room on either side.
+  it('never climbs over a two-line caption either', () => {
     const caption: OverlayBox = { x: 32, y: 244, width: 576, height: 124 };
     const bar: OverlayBox = { x: 320, y: 12, width: 300, height: 30 };
     const placement = placed(caption, bar);
-    expect(placement.side).toBe('above');
+    expect(placement.side).toBe('corner');
     expect(intersects(box(placement), caption)).toBe(false);
-    expect(intersects(box(placement), bar)).toBe(false);
-    // Above the caption means above the sentence toolbar that opens 48 px over
-    // the plate's top edge (the toolbar is ~36 px tall).
-    expect(placement.y + group.height).toBeLessThanOrEqual(caption.y - 44);
   });
 
-  it('drops below when there is no room above', () => {
+  it('stays at the mock top-right corner even with a caption filling the frame', () => {
     const caption: OverlayBox = { x: 32, y: 8, width: 576, height: 60 };
     const bar: OverlayBox = { x: 320, y: 318, width: 300, height: 30 };
     const placement = placed(caption, bar);
-    expect(placement.side).toBe('below');
-    expect(intersects(box(placement), caption)).toBe(false);
-    expect(intersects(box(placement), bar)).toBe(false);
+    expect(placement.side).toBe('corner');
+    expect(placement.y).toBeLessThanOrEqual(20);
+    expect(placement.x).toBeGreaterThanOrEqual(player.width - group.width - 20);
   });
 
-  it('never lands on the bar, even when the bar is where the icons would go', () => {
+  it('does not roam to the bar or the caption side from cue to cue', () => {
     const caption: OverlayBox = { x: 32, y: 100, width: 576, height: 60 };
-    // A bar parked on the top-right corner, on top of the "above" band.
     const bar: OverlayBox = { x: 500, y: 12, width: 124, height: 120 };
     const placement = placed(caption, bar);
-    expect(intersects(box(placement), bar)).toBe(false);
-    expect(intersects(box(placement), caption)).toBe(false);
+    expect(placement.side).toBe('corner');
+    expect(placement.y).toBeLessThanOrEqual(20);
   });
 
   it('keeps the icons inside the player when nothing else fits', () => {

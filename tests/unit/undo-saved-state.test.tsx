@@ -10,6 +10,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { sendMessage } from 'webext-bridge/content-script';
 import { CARD_UNDONE_EVENT, resetAudioHintForTests, undoSavedNote } from '../../src/content/ui/save-actions';
+import { t } from '../../src/shared/i18n';
 import { SubtitleOverlay } from '../../src/content/ui/SubtitleOverlay';
 
 vi.mock('webext-bridge/content-script', () => ({
@@ -54,38 +55,37 @@ describe('undoSavedNotice event contract', () => {
   });
 });
 
-describe('SubtitleOverlay saved marks after undo', () => {
-  const SAVED_CLS = 'border-emerald-400/70';
-
-  function renderRunCue(initialSavedWords: Set<string>): HTMLElement {
+describe('SubtitleOverlay saved state after undo (mock: in the word card)', () => {
+  function renderRunCue(initialSavedWords: Set<string>): void {
     render(
-      <SubtitleOverlay
-        subtitleStyles={{} as never}
-        cue={{ id: 'c0', text: 'RUN is hard work', start: 0, end: 3000, language: 'en' }}
-        altCue={null}
-        mode="learning"
-        onSaveCard={vi.fn(async () => ({ ok: true }) as never)}
-        onTokenHoverChange={() => {}}
-        initialSavedWords={initialSavedWords}
-      />,
+      <div data-popover-boundary>
+        <SubtitleOverlay
+          subtitleStyles={{} as never}
+          cue={{ id: 'c0', text: 'RUN is hard work', start: 0, end: 3000, language: 'en' }}
+          altCue={null}
+          mode="learning"
+          onSaveCard={vi.fn(async () => ({ ok: true }) as never)}
+          onTokenHoverChange={() => {}}
+          initialSavedWords={initialSavedWords}
+        />
+      </div>,
     );
-    return screen.getByText('RUN');
+    fireEvent.mouseEnter(screen.getByText('RUN'));
   }
 
-  it('saving "running" painted the lemma run; undo by identityKey unpaints it', () => {
-    const run = renderRunCue(new Set(['run']));
-    expect(run.className).toContain(SAVED_CLS);
-    // The event a REAL undo dispatches: raw surface + the saved lemma key.
+  it('undo by identityKey drops the saved state of the lemma', async () => {
+    renderRunCue(new Set(['run']));
+    await vi.waitFor(() => expect(screen.queryByText(t('wp.inYourDeck'))).not.toBeNull());
     fireEvent(window, new CustomEvent(CARD_UNDONE_EVENT, { detail: { token: 'running', identityKey: 'run' } }));
-    expect(run.className).not.toContain(SAVED_CLS);
+    await vi.waitFor(() => expect(screen.queryByText(t('wp.inYourDeck'))).toBeNull());
   });
 
-  it('an undo whose lemma STILL has a note keeps the mark (no event sent)', () => {
-    const run = renderRunCue(new Set(['run']));
-    expect(run.className).toContain(SAVED_CLS);
-    // stillInDeck → save-actions never dispatches; a bare token event without
-    // identityKey must not touch the lemma mark either.
+  it('an undo whose lemma STILL has a note keeps the saved state', async () => {
+    renderRunCue(new Set(['run']));
+    await vi.waitFor(() => expect(screen.queryByText(t('wp.inYourDeck'))).not.toBeNull());
+    // stillInDeck → no event sent; a bare token event must not touch it either.
     fireEvent(window, new CustomEvent(CARD_UNDONE_EVENT, { detail: { token: 'running' } }));
-    expect(run.className).toContain(SAVED_CLS);
+    await new Promise((r) => setTimeout(r, 30));
+    expect(screen.queryByText(t('wp.inYourDeck'))).not.toBeNull();
   });
 });

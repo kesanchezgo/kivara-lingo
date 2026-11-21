@@ -28,9 +28,12 @@ describe('buildColumnsCss: netflix uses the width mechanism', () => {
 
   it('still targets Netflix\'s real player containers', () => {
     const css = buildColumnsCss({ platform: 'netflix', state: BOTH, viewportWidth: 2560 });
-    for (const sel of ['.watch-video', '.watch-video--player-view', '[data-uia="watch-video"]']) {
+    for (const sel of ['.watch-video', '[data-uia="watch-video"]']) {
       expect(css).toContain(sel);
     }
+    // `.watch-video--player-view` is a CHILD of `.watch-video`: shrinking both
+    // subtracted the rail width twice and left a dead band (mock fidelity).
+    expect(css).not.toContain('.watch-video--player-view');
     const both = computeColumnLayout(BOTH, 2560);
     expect(css).toContain(`width: calc(100% - ${both.reserved}px) !important;`);  });
 });
