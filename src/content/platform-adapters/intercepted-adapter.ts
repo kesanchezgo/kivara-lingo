@@ -175,6 +175,15 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
   // and are pulled via `getAltCueAt(...)` without disturbing the active
   // source caption.
   const offTrack = onTrack((next) => {
+    // AUXILIARY surfaces (Netflix manifest, DASH target, YouTube tlang) ride
+    // the bus for the dual caption; they are NEVER the player's caption.
+    // B1: not even when no source track exists yet — adopting the native
+    // text as the "source" line showed the wrong language as soon as Kivara
+    // turned on, and the auto-track watcher read it as a player change.
+    if (next.background) {
+      startPolling();
+      return;
+    }
     const nextLang = next.language?.split(/[-_]/)[0].toLowerCase() ?? null;
     if (nextLang && nextLang !== primaryLang()) {
       // A track in another language. It stays on the bus for the alt-cue

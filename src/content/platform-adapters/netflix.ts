@@ -190,7 +190,12 @@ function makeTrackWatcher() {
     hasTrackFor: (lang) => !!getTrackByLanguage(lang),
     currentTrack: () => listSubtitleTracks().then((list) => list.current ?? null),
     switchTo: (lang) => switchSubtitleToLanguage(lang),
-    onTrack: (listener) => onTrack((track) => listener((track.language ?? '').split(/[-_]/)[0].toLowerCase())),
+    // AUXILIARY publishes (background: true) are our own downloads — they
+    // are NOT a player change and must never trigger a track switch.
+    onTrack: (listener) => onTrack((track) => {
+      if (track.background) return;
+      listener((track.language ?? '').split(/[-_]/)[0].toLowerCase());
+    }),
     subscribeEnabled: (listener) => {
       const offStore = useKivaraStore.subscribe((state, prev) => {
         if (state.enabled !== prev.enabled) listener();

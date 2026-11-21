@@ -41,6 +41,10 @@ export interface InterceptedTrack {
   url: string;
   cues: RawCue[];
   language: string | null;
+  /** An AUXILIARY surface (Netflix manifest, DASH target, YouTube tlang):
+   * never the player's caption. Adapters must not adopt it as primary and
+   * the auto-track watcher must not treat it as a player change. */
+  background?: boolean;
 }
 
 type TrackListener = (track: InterceptedTrack) => void;
@@ -196,10 +200,14 @@ window.addEventListener('message', (event) => {
     typeof data === 'object' &&
     (data as { source?: unknown }).source === NETFLIX_MANIFEST_EVENT
   ) {
-    const m = data as { tracks?: unknown; nativeBody?: unknown; nonce?: unknown };
+    const m = data as { tracks?: unknown; nativeBody?: unknown; nativeUrl?: unknown; nonce?: unknown };
     if (m.nonce !== BUS_NONCE) return;
     if (Array.isArray(m.tracks)) {
-      void handleNetflixManifest(m.tracks as NetflixManifestTrack[], typeof m.nativeBody === 'string' ? m.nativeBody : null);
+      void handleNetflixManifest(
+        m.tracks as NetflixManifestTrack[],
+        typeof m.nativeBody === 'string' ? m.nativeBody : null,
+        typeof m.nativeUrl === 'string' ? m.nativeUrl : null,
+      );
     }
     return;
   }
@@ -267,7 +275,18 @@ function rememberDashManifest(mpdUrl: string): void {
  * having to wait for the player to refresh its manifest.
  */
 let lastMpdBody: { url: string; body: string } | null = null;
+const MAX_NETFLIX_MANIFESTS_SEEN = 200;
 const netflixManifestsSeen = new Set<string>();
+/**
+ * Last manifest's tracks (+ the MAIN world's download), kept so a target
+ * language change can reprocess WITHOUT waiting for the player's next
+ * JSON.parse — the DASH flow has the same replay via `lastMpdBody`.
+ */
+let lastNetflixManifest: {
+  tracks: NetflixManifestTrack[];
+  nativeBody: string | null;
+  nativeUrl: string | null;
+} | null = null;
 
 /**
  * Handle a DASH manifest: parse, identify both the source-language and
@@ -352,7 +371,11 @@ async function handleDashManifest(mpdUrl: string, body: string): Promise<void> {
  * Disney+. No track, no downloadable URL, or a failed download keeps the
  * current machine-translation fallback.
  */
-async function handleNetflixManifest(tracks: NetflixManifestTrack[], nativeBody: string | null): Promise<void> {
+async function handleNetflixManifest(
+  tracks: NetflixManifestTrack[],
+  nativeBody: string | null,
+  nativeUrl: string | null = null,
+): Promise<void> {
   const targetLang = (
     document.documentElement.getAttribute('data-kivara-target-lang') || 'es'
   ).toLowerCase();
@@ -365,8 +388,11 @@ async function handleNetflixManifest(tracks: NetflixManifestTrack[], nativeBody:
   if (!picked?.ttDownloadUrl) return;
   const url = picked.ttDownloadUrl;
   if (netflixManifestsSeen.has(url)) return;
-  netflixManifestsSeen.add(url);
-  let body: string | null = nativeBody;
+  rememberNetflixManifest(url);
+  lastNetflixManifest = { tracks, nativeBody, nativeUrl };
+  // The MAIN world's download is only trusted for the URL it actually
+  // fetched — a body from another track would poison the parse.
+  let body: string | null = nativeUrl === url ? nativeBody : null;
   try {
     if (body === null) {
       const res = await fetch(url, { credentials: 'include' });
@@ -379,8 +405,10 @@ async function handleNetflixManifest(tracks: NetflixManifestTrack[], nativeBody:
       url,
       cues,
       language: detectTrackLanguage(url, body) ?? targetLang,
+      // AUXILIARY: the player's caption choice is untouched. The adapter
+      // keeps the source track; App reads this track for the dual line.
+      background: true,
     };
-    lastTrack = tTrack;
     tracksByLang.set(targetPrimary, tTrack);
     seenUrls.add(url);
     listeners.forEach((l) => {
@@ -393,6 +421,32 @@ async function handleNetflixManifest(tracks: NetflixManifestTrack[], nativeBody:
   } catch {
     // Network failed — non-fatal, the bilingual line falls back to MT.
   }
+}
+
+/** Bounded per-tab guard for Netflix manifest URLs (same LRU rule as DASH). */
+function rememberNetflixManifest(url: string): void {
+  netflixManifestsSeen.add(url);
+  // Sets iterate in insertion order, so the first entry is the oldest.
+  while (netflixManifestsSeen.size > MAX_NETFLIX_MANIFESTS_SEEN) {
+    const oldest = netflixManifestsSeen.values().next().value;
+    if (oldest === undefined) break;
+    netflixManifestsSeen.delete(oldest);
+  }
+}
+
+/**
+ * Re-run the LAST Netflix manifest for a changed target language: the bus
+ * picks the new target's track out of the stored manifest (self-fetching its
+ * URL — the stored MAIN-world body belongs to the OLD target's pick).
+ * Returns silently when no manifest has been seen.
+ */
+export function reprocessLastNetflixManifest(): void {
+  if (!lastNetflixManifest) return;
+  void handleNetflixManifest(
+    lastNetflixManifest.tracks,
+    lastNetflixManifest.nativeBody,
+    lastNetflixManifest.nativeUrl,
+  );
 }
 
 /**
@@ -501,8 +555,8 @@ async function downloadAndPublishDashTrack(
     url: trackUrl,
     cues,
     language: track.fullLanguage,
+    background: true,
   };
-  lastTrack = tTrack;
   tracksByLang.set(langKey, tTrack);
   seenUrls.add(trackUrl);
   listeners.forEach((l) => {
@@ -580,8 +634,8 @@ async function maybeFetchTranslatedTrack(
       url: translatedUrl,
       cues: tCues,
       language: tLanguage,
+      background: true,
     };
-    lastTrack = tTrack;
     tracksByLang.set(target, tTrack);
     seenUrls.add(translatedUrl);
     listeners.forEach((l) => {
@@ -610,12 +664,18 @@ export function __seenUrlCountForTests(): number {
   return seenUrls.size;
 }
 
+export function __netflixManifestsSeenCountForTests(): number {
+  return netflixManifestsSeen.size;
+}
+
 export function __resetInterceptedBusForTests(): void {
   tracksByLang.clear();
   seenUrls.clear();
   dashManifestsSeen.clear();
+  netflixManifestsSeen.clear();
   lastTrack = null;
   lastMpdBody = null;
+  lastNetflixManifest = null;
 }
 
 export function onTrack(listener: TrackListener): () => void {
@@ -675,8 +735,11 @@ export function clearBus(): void {
   seenUrls.clear();
   translatedRequested.clear();
   dashManifestsSeen.clear();
+  netflixManifestsSeen.clear();
   lastTrack = null;
   lastMpdBody = null;
+  // `lastNetflixManifest` survives on purpose: `reprocessLastNetflixManifest`
+  // replays it for the NEW target language right after this clear.
 }
 
 /**

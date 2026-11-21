@@ -164,3 +164,63 @@ describe('installNetflixManifestHook', () => {
     expect(parsed.timedtexttracks).toHaveLength(1);
   });
 });
+
+describe('extractManifestTracks — real Cadmium shapes (round 10)', () => {
+  const MSL_MANIFEST = {
+    result: {
+      timedtexttracks: [
+        {
+          ttId: 'tt-es-imsc',
+          bcp47: 'es',
+          isNoneTrack: false,
+          isForcedNarrative: false,
+          isImageBased: false,
+          ttDownloadables: {
+            'nflx-cmisc': { isImage: true, urls: [{ url: 'https://tt/es-cmisc' }] },
+            'imsc1.1': { isImage: false, urls: [{ url: 'https://tt/es-imsc1.1' }] },
+            'webvtt-lssdh-ios8': { downloadUrls: { '1': 'https://tt/es-webvtt' } },
+          },
+        },
+      ],
+    },
+  };
+
+  it('unwraps the MSL result envelope (result.timedtexttracks)', () => {
+    const tracks = extractManifestTracks(MSL_MANIFEST);
+    expect(tracks).toHaveLength(1);
+    expect(tracks?.[0]).toMatchObject({ bcp47: 'es', ttDownloadUrl: 'https://tt/es-imsc1.1' });
+  });
+
+  it('unwraps arrays of envelopes/results down to depth 3', () => {
+    const tracks = extractManifestTracks([
+      { result: MSL_MANIFEST.result },
+      { timedtexttracks: [{ bcp47: 'en', ttDownload: [{ url: 'https://tt/en.ttml' }] }] },
+    ]);
+    expect(tracks?.map((t) => t.bcp47).sort()).toEqual(['en', 'es']);
+  });
+
+  it('does not dig past depth 3', () => {
+    const deep = { a: { b: { c: { timedtexttracks: [{ bcp47: 'es' }] } } } };
+    expect(extractManifestTracks(deep)).toBeNull();
+  });
+
+  it('ttDownloadables prefers XML/VTT profiles and skips image/cmisc profiles', () => {
+    const tracks = extractManifestTracks(MSL_MANIFEST);
+    expect(tracks?.[0]?.ttDownloadUrl).toBe('https://tt/es-imsc1.1');
+    const webvttOnly = {
+      timedtexttracks: [{
+        bcp47: 'pt',
+        ttDownloadables: {
+          'nflx-cmisc': { isImage: true, urls: [{ url: 'https://tt/pt-cmisc' }] },
+          'webvtt-lssdh-ios8': { downloadUrls: { '1': 'https://tt/pt-webvtt' } },
+        },
+      }],
+    };
+    const pt = extractManifestTracks(webvttOnly);
+    expect(pt?.[0]?.ttDownloadUrl).toBe('https://tt/pt-webvtt');
+    const imageOnly = {
+      timedtexttracks: [{ bcp47: 'pt', ttDownloadables: { 'nflx-cmisc': { isImage: true, urls: [{ url: 'https://tt/x' }] } } }],
+    };
+    expect(extractManifestTracks(imageOnly)?.[0]?.ttDownloadUrl).toBeUndefined();
+  });
+});

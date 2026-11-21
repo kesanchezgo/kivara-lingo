@@ -760,6 +760,7 @@ declare global {
   const manifestUnhook = maybeInstallNetflixManifestHook(window, (tracks) => {
     void (async () => {
       let nativeBody: string | null = null;
+      let nativeUrl: string | null = null;
       const targetLang = (document.documentElement.getAttribute('data-kivara-target-lang') || 'es')
         .toLowerCase()
         .split(/[-_]/)[0];
@@ -769,14 +770,19 @@ declare global {
           // No credentials: the CORS wildcard is refused with them, and the
           // TTML download is not cookie-gated.
           const res = await window.fetch(picked.ttDownloadUrl);
-          if (res.ok) nativeBody = await res.text();
+          if (res.ok) {
+            nativeBody = await res.text();
+            nativeUrl = picked.ttDownloadUrl;
+          }
         } catch {
           nativeBody = null; // the bus keeps its machine-translation fallback
         }
       }
+      // `nativeUrl` travels with the body: the bus only reuses the download
+      // for the URL it actually came from, and self-fetches otherwise.
       withNonce(() =>
         window.postMessage(
-          { source: NETFLIX_MANIFEST_EVENT, tracks, nativeBody, nonce: currentNonce() },
+          { source: NETFLIX_MANIFEST_EVENT, tracks, nativeBody, nativeUrl, nonce: currentNonce() },
           '*',
         ),
       );

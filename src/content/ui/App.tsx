@@ -295,7 +295,22 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // saved. The overlay drops its own mark via the same event; this only
   // invalidates the fetch cache.
   useEffect(() => {
-    const onCardUndone = () => {
+    const onCardUndone = (event: Event) => {
+      const detail = (event as CustomEvent<{ token?: string; identityKey?: string }>).detail;
+      // The deck no longer holds this word: drop it from the live set AND
+      // the per-deck cache, so the rail and the overlay agree with Anki.
+      const keys = [detail?.identityKey?.toLowerCase(), detail?.token?.toLowerCase()]
+        .filter((k): k is string => !!k);
+      if (keys.length) {
+        setInitialSavedWords((prev) => {
+          const next = new Set(prev);
+          let changed = false;
+          for (const k of keys) {
+            if (next.delete(k)) changed = true;
+          }
+          return changed ? next : prev;
+        });
+      }
       savedWordsCacheRef.current.clear();
     };
     window.addEventListener(CARD_UNDONE_EVENT, onCardUndone);
@@ -1730,7 +1745,18 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                 `kivara-reused-${request.cardId ?? ''}`,
                 response.forcedMatch,
               );
-              recordCardSaved(lang, identity.key);
+              if (!phraseLevel) {
+                // A phrase-level save is a SCENE, not vocabulary: it must not
+                // mark the lemma's study state nor paint the word saved.
+                recordCardSaved(lang, identity.key);
+                // The rail's saved filter and the overlay's pre-painted marks
+                // read this set: keep it live with the save.
+                setInitialSavedWords((prev) => {
+                  const next = new Set(prev).add(identity.key.toLowerCase());
+                  savedWordsCacheRef.current.set(activeDeck ?? '', next);
+                  return next;
+                });
+              }
               if (studyNow.sounds) playSound('saved');
               return {
                 ok: true, noteId: response.noteId, warnings: response.warnings,
@@ -1768,7 +1794,18 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             // F5: the word now has a card. A «known» hand mark gives way to
             // it (the word becomes learning), the interval is cached at 0 and
             // a background refresh reads the real one from Anki.
-            recordCardSaved(lang, identity.key);
+            if (!phraseLevel) {
+              // A phrase-level save is a SCENE, not vocabulary: it must not
+              // mark the lemma's study state nor paint the word saved.
+              recordCardSaved(lang, identity.key);
+              // The rail's saved filter and the overlay's pre-painted marks
+              // read this set: keep it live with the save.
+              setInitialSavedWords((prev) => {
+                const next = new Set(prev).add(identity.key.toLowerCase());
+                savedWordsCacheRef.current.set(activeDeck ?? '', next);
+                return next;
+              });
+            }
             // The success path must RETURN its own envelope: falling through
             // used to report every created card as a failure, so the green
             // "saved" highlight never painted.

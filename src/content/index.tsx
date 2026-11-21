@@ -6,7 +6,7 @@ import { App } from './ui/App';
 import type { SubtitleSource } from './platform-adapters/types';
 import type { Mount as OverlayMount } from './fullscreen-overlay-core';
 import { useKivaraStore } from '../shared/use-kivara-store';
-import { clearBus, reprocessLastDashManifest } from './platform-adapters/intercepted-bus';
+import { clearBus, reprocessLastDashManifest, reprocessLastNetflixManifest } from './platform-adapters/intercepted-bus';
 import { dbg, initLogFlag } from '../shared/logger';
 import { bumpMountGen, enqueueMount, readMountGen } from './mount-queue';
 import { mountDenied, navWaitMs } from './mount-gate';
@@ -107,6 +107,7 @@ useKivaraStore.subscribe((state, prev) => {
     // now, the bus has Spanish cached; force a re-fetch.
     clearBus();
     reprocessLastDashManifest();
+    reprocessLastNetflixManifest();
   }
   if (
     state.translate.autoSelectSourceAudio !== prev.translate.autoSelectSourceAudio
