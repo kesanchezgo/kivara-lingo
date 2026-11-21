@@ -21,6 +21,17 @@ type SaveFn = (token: string | undefined, sentence: string) => Promise<CreateCar
 
 const CUE = { id: 'c0', text: 'hello', start: 0, end: 3000, language: 'en' };
 
+// A study binding whose ONLY new word is 'hello': the Ctrl+Shift+S shortcut
+// then takes the WORD save path (a bare plate save on a one-token cue is
+// phrase-level since round 6, and a phrase paints nothing).
+const study = {
+  statusOf: (key: string) => (key.toLowerCase() === 'hello' ? 'new' : 'known'),
+  detailOf: () => ({ status: 'new', source: 'estimated' } as never),
+  setStatus: () => {},
+  inAnki: () => false,
+  userStatusOf: () => undefined,
+};
+
 function overlay(saveRequestKey: number, onSaveCard: SaveFn) {
   return (
     <SubtitleOverlay
@@ -32,6 +43,7 @@ function overlay(saveRequestKey: number, onSaveCard: SaveFn) {
       onSaveCard={onSaveCard}
       onTokenHoverChange={() => {}}
       initialSavedWords={new Set()}
+      study={study as never}
     />
   );
 }

@@ -490,7 +490,7 @@ function stopPronunciation(): void {
   }
 }
 
-function playPronunciation(ordered: PronunciationSource[], onExhausted: () => void): void {
+export function playPronunciation(ordered: PronunciationSource[], onExhausted: () => void): void {
   if (ordered.length === 0) {
     onExhausted();
     return;
@@ -507,15 +507,23 @@ function playPronunciation(ordered: PronunciationSource[], onExhausted: () => vo
     const audio = new Audio();
     activePronunciation = audio;
     audio.src = head.url;
-    audio.play().catch(() => {
-      if (mine !== chainToken) return;
+    // ONE advance per candidate: play()'s rejection AND the element's error
+    // event (a URL blocked by the page's CSP media-src, or a dead CDN, fails
+    // AFTER play() resolved) both move the chain on; the flag keeps the two
+    // from double-firing.
+    let advanced = false;
+    const giveUp = () => {
+      if (advanced || mine !== chainToken) return;
+      advanced = true;
       try {
         audio.pause();
       } catch {
         /* no-op */
       }
       attempt(rest);
-    });
+    };
+    audio.onerror = giveUp;
+    audio.play().catch(giveUp);
   };
   attempt(ordered);
 }
@@ -898,11 +906,6 @@ export function WordPopover({
               )}
             </div>
           {meta.phonetic && (
-            <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-300 bg-zinc-900/[0.06] dark:bg-white/[0.06] ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.08] h-5 inline-flex items-center px-1.5 rounded-md shrink-0 leading-tight normal-case">
-              {meta.phonetic}
-            </span>
-          )}
-          {meta.phonetic && (
             <span className="self-start font-mono text-[11px] text-zinc-600 dark:text-zinc-300 bg-zinc-900/[0.06] dark:bg-white/[0.06] ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.08] h-5 inline-flex items-center px-1.5 rounded-md shrink-0 leading-tight normal-case">
               {meta.phonetic}
             </span>
@@ -1028,9 +1031,11 @@ export function WordPopover({
           )}
 
 
-        {/* AI block (wave 3) */}
+        {/* AI block (wave 3). Full-bleed: the negative margin cancels the
+            body's padding so the border-t reaches the card edges while the
+            content stays aligned with the rest of the body. */}
         {!isResolving && includeAi && (resolved.aiLoading || ai || resolved.aiError) && (
-          <div className="px-3.5 pb-2.5 pt-2 border-t border-zinc-900/[0.06] dark:border-white/[0.06] space-y-1">
+          <div data-kvl-ai-block className="-mx-3.5 px-3.5 pb-2.5 pt-2 border-t border-zinc-900/[0.06] dark:border-white/[0.06] space-y-1">
             <div className="flex items-center gap-1.5 text-[12px] font-medium text-fuchsia-700 dark:text-fuchsia-300/90">
               <Sparkles size={9} /> {t('popover.ai')}
               {ai?.cached && <span className="normal-case tracking-normal font-normal text-zinc-500">{t('popover.cacheTag')}</span>}
@@ -1082,7 +1087,7 @@ export function WordPopover({
               void sendMessage('OPEN_SETTINGS', { section: 'perm' }, 'background').catch(() => {});
             }}
             title={resolved.needsAccess.map((n) => n.source).join(', ')}
-            className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-200 bg-amber-500/15 hover:bg-amber-500/20 border-t border-amber-500/25 transition-colors normal-case"
+            className="-mx-3.5 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-200 bg-amber-500/15 hover:bg-amber-500/20 border-t border-amber-500/25 transition-colors normal-case"
           >
             <KeyRound size={10} />
             {t('popover.needsAccess')} ({resolved.needsAccess.length})
@@ -1095,7 +1100,7 @@ export function WordPopover({
             type="button"
             onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
             aria-label={isExpanded ? t('popover.joinPhrase') : t('popover.splitWords')}
-            className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-white/60 dark:bg-zinc-900/60 border-t border-zinc-900/[0.06] dark:border-white/[0.06] transition-colors"
+            className="-mx-3.5 w-full flex items-center justify-between gap-2 px-3 py-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-white/60 dark:bg-zinc-900/60 border-t border-zinc-900/[0.06] dark:border-white/[0.06] transition-colors"
           >
             <span className="flex items-center gap-1.5">
               <ChevronsLeftRight size={10} />
@@ -1113,7 +1118,7 @@ export function WordPopover({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onRejoinParent(parentMWE); }}
-            className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-white/60 dark:bg-zinc-900/60 border-t border-zinc-900/[0.06] dark:border-white/[0.06] transition-colors"
+            className="-mx-3.5 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-white/60 dark:bg-zinc-900/60 border-t border-zinc-900/[0.06] dark:border-white/[0.06] transition-colors"
           >
             <Link2 size={10} />
             <span className="normal-case">{t('popover.joinWith', { phrase: parentMWE })}</span>
@@ -1255,12 +1260,27 @@ export function WordPopover({
   return portalContainer ? createPortal(card, portalContainer) : card;
 }
 
-function speakSynthesized(text: string, lang: string): void {
+export function speakSynthesized(text: string, lang: string): void {
   try {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      // An engine with ZERO voices (headless embedders, stripped Linux
+      // setups) silently plays nothing: fall straight to the background TTS
+      // instead of pretending to speak.
+      if (window.speechSynthesis.getVoices().length === 0) {
+        void sendMessage('TTS_SPEAK', { text, lang: lang || 'en' }, 'background').catch(() => {});
+        return;
+      }
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = lang || 'en-US';
       utter.rate = 0.95;
+      // An utterance that errors mid-flight (engine crash, forbidden lang)
+      // must still be heard: one fallback, guarded against double-send.
+      let fellBack = false;
+      utter.onerror = () => {
+        if (fellBack) return;
+        fellBack = true;
+        void sendMessage('TTS_SPEAK', { text, lang: lang || 'en' }, 'background').catch(() => {});
+      };
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utter);
       return;

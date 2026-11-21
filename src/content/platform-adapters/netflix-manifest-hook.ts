@@ -50,16 +50,87 @@ function extractTrackUrl(track: unknown): string | null {
       }
     }
   }
+  // Real Cadmium manifests carry `ttDownloadables`: a per-profile object
+  // whose keys are profile ids. Only text profiles are useful (XML/VTT);
+  // image profiles (`isImage` / `nflx-cmisc` per-glyph bitmaps) cannot be
+  // parsed into cues. Each profile exposes its URL either as a `urls` array
+  // or as a `downloadUrls` map.
+  const downloadables = t.ttDownloadables;
+  if (downloadables && typeof downloadables === 'object') {
+    const entries = Object.entries(downloadables as Record<string, unknown>);
+    const usable = (value: unknown): string | null => {
+      if (!value || typeof value !== 'object') return null;
+      const p = value as Record<string, unknown>;
+      if (p.isImage === true) return null;
+      const urls = p.urls;
+      if (Array.isArray(urls)) {
+        for (const u of urls) {
+          const url = (u as Record<string, unknown> | null)?.url;
+          if (typeof url === 'string' && url) return url;
+        }
+      }
+      const downloadUrls = p.downloadUrls;
+      if (downloadUrls && typeof downloadUrls === 'object') {
+        for (const v of Object.values(downloadUrls as Record<string, unknown>)) {
+          if (typeof v === 'string' && v) return v;
+          const url = (v as Record<string, unknown> | null)?.url;
+          if (typeof url === 'string' && url) return url;
+        }
+      }
+      return null;
+    };
+    // Preferred order: the standard text-subtitle profiles, best first.
+    const preferred = ['imsc1.1', 'dfxp-ls-sdh', 'simplesdh', 'webvtt-lssdh-ios8'];
+    for (const profile of preferred) {
+      if (profile in (downloadables as Record<string, unknown>)) {
+        const url = usable((downloadables as Record<string, unknown>)[profile]);
+        if (url) return url;
+      }
+    }
+    // Unlisted-but-text profile: take the first usable one (image/cmisc
+    // profiles are skipped inside `usable`).
+    for (const [id, value] of entries) {
+      if (id.includes('nflx-cmisc')) continue;
+      const url = usable(value);
+      if (url) return url;
+    }
+  }
   const direct = t.url ?? t.downloadUrl;
   return typeof direct === 'string' && direct ? direct : null;
 }
 
-/** Extract the subtitle-relevant tracks from a parsed manifest-shaped value. */
-export function extractManifestTracks(value: unknown): NetflixManifestTrack[] | null {
-  if (!value || typeof value !== 'object') return null;
+/**
+ * Find every `timedtexttracks` array inside manifest-shaped values. Netflix
+ * ships at least two envelopes: the player-local `{ timedtexttracks }` and
+ * the MSL service reply `{ result: { timedtexttracks } }` — and some paths
+ * deliver ARRAYS of either. Walk plain objects/arrays and collect EVERY
+ * array found, down to depth 2 (player-local = 0, MSL result = 1, an
+ * envelope inside an array = 2). Deeper nesting is not a manifest.
+ */
+function collectTimedTextTracks(value: unknown, depth: number, out: unknown[]): void {
+  if (depth > 2 || !value || typeof value !== 'object') return;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectTimedTextTracks(item, depth + 1, out);
+    }
+    return;
+  }
   const holder = value as Record<string, unknown>;
   const raw = holder.timedtexttracks;
-  if (!Array.isArray(raw) || raw.length === 0) return null;
+  if (Array.isArray(raw) && raw.length > 0) {
+    out.push(...raw);
+    return;
+  }
+  for (const child of Object.values(holder)) {
+    if (child && typeof child === 'object') collectTimedTextTracks(child, depth + 1, out);
+  }
+}
+
+/** Extract the subtitle-relevant tracks from a parsed manifest-shaped value. */
+export function extractManifestTracks(value: unknown): NetflixManifestTrack[] | null {
+  const raw: unknown[] = [];
+  collectTimedTextTracks(value, 0, raw);
+  if (raw.length === 0) return null;
   const tracks: NetflixManifestTrack[] = [];
   for (const track of raw) {
     if (!track || typeof track !== 'object') continue;

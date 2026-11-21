@@ -682,7 +682,9 @@ export function SubtitleOverlay({
     const gloss = contextGloss
       ?? (phrase ? undefined : (await resolveContextGloss(token, targetSentence, cueLanguage)).gloss);
     void onSaveCard(token, targetSentence, lineIndex, gloss, phrase).then((result) => {
-      if (result?.ok) {
+      // A phrase-level save is a SCENE: it owns no vocabulary, so no token
+      // gets the green saved mark from it.
+      if (result?.ok && !phrase) {
         // The saved-word cache is lemma-keyed — an inflected surface must
         // paint as saved under its dictionary form ("running" -> "run").
         const lemma = lookupDictionary(token, cueLanguage)?.lemmaOf

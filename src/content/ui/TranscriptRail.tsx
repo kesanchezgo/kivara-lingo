@@ -232,14 +232,21 @@ export function TranscriptRail(props: TranscriptRailProps) {
         tokens.some(
           (token) =>
             token.kind !== 'punct' &&
-            (savedWords.has(token.key) || savedWords.has(token.lemma ?? token.key)),
+            (savedWords.has(token.key)
+              || savedWords.has(token.lemma ?? token.key)
+              // The F5 Anki cache is the same truth the overlay paints: a
+              // lemma with a card is saved even when the one-shot fetch set
+              // predates the save or the undo.
+              // Older test stubs (and legacy callers) pass a partial
+              // binding: only consult the cache when the method exists.
+              || (typeof study.inAnki === 'function' && study.inAnki(token.lemma ?? token.key))),
         )
       ) {
         set.add(index);
       }
     });
     return set;
-  }, [lineTokens, savedWords]);
+  }, [lineTokens, savedWords, study]);
 
   /**
    * Lines with exactly ONE distinct new word (the i+1 mining criterion), plus
