@@ -10,6 +10,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import React from 'react';
+import { t } from '../../src/shared/i18n';
 import { SubtitleOverlay } from '../../src/content/ui/SubtitleOverlay';
 import { TranscriptRail, type TranscriptRailProps } from '../../src/content/ui/TranscriptRail';
 import type { StudyBinding } from '../../src/content/ui/study';
@@ -20,6 +21,7 @@ describe('a phrase-level save paints NOTHING as saved', () => {
   it('one-word line saved through the plate path: phrase=true, no painted lemma', async () => {
     const onSaveCard = vi.fn(async (_t: string | undefined, _s: string, _l?: number, _g?: string, _p?: boolean) => ({ ok: true } as never));
     render(
+      <div data-popover-boundary>
       <SubtitleOverlay
         subtitleStyles={{} as never}
         // A ONE-word cue: the shortcut without a study binding saves the whole
@@ -32,7 +34,8 @@ describe('a phrase-level save paints NOTHING as saved', () => {
         onSaveCard={onSaveCard}
         onTokenHoverChange={() => {}}
         initialSavedWords={new Set()}
-      />,
+      />
+      </div>,
     );
     await vi.waitFor(() => expect(onSaveCard).toHaveBeenCalledTimes(1));
     expect(onSaveCard.mock.calls[0]?.[4]).toBe(true);
@@ -40,6 +43,9 @@ describe('a phrase-level save paints NOTHING as saved', () => {
     const painted = Array.from(document.querySelectorAll<HTMLElement>('.kvl-tok'))
       .filter((el) => el.className.includes(SAVED_CLS));
     expect(painted).toHaveLength(0);
+    fireEvent.mouseEnter(screen.getByText('RUN'));
+    await new Promise((r) => setTimeout(r, 40));
+    expect(screen.queryByText(t('wp.inYourDeck'))).toBeNull();
   });
 
   it('App never marks the study store for a phrase save (both recordCardSaved sites)', async () => {

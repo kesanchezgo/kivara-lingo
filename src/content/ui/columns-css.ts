@@ -255,15 +255,28 @@ export function buildColumnsCss(options: ColumnsCssOptions): string {
   const width = layout.reserved;
   const blocks: string[] = [];
 
+  // ANTI-DOUBLE-SHRINK: a platform can list BOTH a player container and a
+  // CHILD of it (Disney, Prime, HBO, YouTube ads, and Netflix's
+  // `.watch-video` / `.watch-video--player-view`). Applying `right`/`width`
+  // to both subtracts the reservation twice and leaves a dead band. Every
+  // selector excludes any descendant of a selector in the same list, so only
+  // the outermost container matches.
+  const exclusive = (selectors: readonly string[]): string => {
+    const list = Array.from(new Set(selectors));
+    return list
+      .map((sel) => `${sel}:not(:is(${list.join(', ')}) ${sel})`)
+      .join(',\n');
+  };
+
   if (rules.shrink.length > 0) {
-    blocks.push(`${Array.from(new Set(rules.shrink)).join(',\n')} {
+    blocks.push(`${exclusive(rules.shrink)} {
       right: ${width}px !important;
     }`);
   }
   if (rules.resize.length > 0) {
     // `calc(100% - width)` keeps the player's own aspect handling; only the
     // right edge moves, so the native controls stay where the site drew them.
-    blocks.push(`${Array.from(new Set(rules.resize)).join(',\n')} {
+    blocks.push(`${exclusive(rules.resize)} {
       width: calc(100% - ${width}px) !important;
       max-width: calc(100vw - ${width}px) !important;
     }`);

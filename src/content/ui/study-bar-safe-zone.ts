@@ -63,7 +63,7 @@ const STUDY_BAR_SAFE_ZONES: Record<Platform, SafeZone> = {
   prime: {
     // Prime's icon cluster hangs top-RIGHT — the bar's corner is exactly
     // there, hence the wide right margin.
-    margins: { top: 8, bottom: 64, right: 140 },
+    margins: { top: 8, bottom: 170, right: 140 },
     controls: ['.atvwebplayersdk-overlays-container'],
   },
   generic: {
