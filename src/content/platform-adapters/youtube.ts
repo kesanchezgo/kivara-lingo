@@ -18,6 +18,7 @@ import {
   findCueByText,
   pickBestAltCue,
 } from './tracks';
+import { primarySubtag } from './timed-text';
 
 /**
  * YouTube adapter.
@@ -237,6 +238,7 @@ export function attachYouTube(): SubtitleSource | null {
     // OUR OWN reference keeps that from happening.
     if (activeTrack) {
       activeTrack.removeEventListener('cuechange', onCueChange);
+      activeTrack.removeEventListener('load', notifyTrackListeners);
     }
     activeTrack = track;
     track.mode = 'hidden';
@@ -258,10 +260,7 @@ export function attachYouTube(): SubtitleSource | null {
     // (the language they're learning). If found, activate it.
     const sourceLang = useKivaraStore.getState().translate.sourceLang || 'en';
     const langMatch = subtitleTracks.find(
-      (t) => t.language && (
-        t.language.startsWith(sourceLang) ||
-        t.language === sourceLang
-      ),
+      (t) => t.language && primarySubtag(t.language) === primarySubtag(sourceLang),
     );
     if (langMatch) {
       // Activate this track if it's not already showing/hidden
@@ -347,10 +346,13 @@ export function attachYouTube(): SubtitleSource | null {
    */
   function fullTrack(): SubtitleCue[] {
     const sourceLang = useKivaraStore.getState().translate.sourceLang || 'en';
-    const raw =
-      getTrackByLanguage(sourceLang)?.cues ?? getLastTrack()?.cues ?? getActiveTrackCues();
+    // Keep the PICKED track object, not just its cues: a fallback track in
+    // another language must carry its REAL language so App explains the
+    // mismatch — exactly like intercepted-adapter.ts does.
+    const picked = getTrackByLanguage(sourceLang) ?? getLastTrack();
+    const raw = picked?.cues ?? getActiveTrackCues();
     if (raw && raw.length > 0) {
-      return cuesFromRawTrack(raw, sourceLang, 'youtube');
+      return cuesFromRawTrack(raw, picked?.language || '', 'youtube');
     }
     return cuesFromTextTracks(video, sourceLang, 'youtube');
   }
@@ -425,7 +427,9 @@ export function attachYouTube(): SubtitleSource | null {
       // the translated one later still): re-emit on every bus update.
       if (!busUnsub) {
         busUnsub = onTrack((track) => {
-          if (!track.cues?.length) return;
+          // Background-published native tracks are a dual-caption surface,
+          // not a replacement for the player's source captions.
+          if (track.background === true || !track.cues?.length) return;
           notifyTrackListeners();
           // The track (or its translated sibling) may arrive mid-cue, after
           // the last poll tick — resolve the active line right away instead
@@ -508,6 +512,9 @@ export function attachYouTube(): SubtitleSource | null {
     ): SubtitleCue | null {
       const altTrack = getTrackByLanguage(lang);
       if (!altTrack) return null;
+      // Mirroring the source track back as the "translation" is worse than
+      // no dual line: it hides the real MT/native surface.
+      if (altTrack.url === sourceTrack()?.url) return null;
       const hit = pickBestAltCue(altTrack.cues, timeMs, sourceRange);
       if (!hit) return null;
       return {

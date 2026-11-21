@@ -12,8 +12,7 @@ import type {
 import { DEFAULT_CAPTURE } from '../shared/store';
 import { ankiConnect, dataUrlToBase64, AnkiConnectError, type AnkiNoteInfo } from './anki-connect';
 import { ensureKivaraModel } from './anki-model';
-import { KIVARA_MODEL_FIELDS, KIVARA_MODEL_NAME } from '../shared/anki-model';
-import { autoMapFields } from '../shared/anki-field-detect';
+import { KIVARA_MODEL_NAME, normalizeAnkiMapping } from '../shared/anki-model';
 import { buildExactNoteQuery, buildIdentityNoteQuery } from '../shared/anki-search';
 import { lemmaTag, senseTag, classifySense, isPhraseLevelSave, normalizeContextGloss } from '../shared/word-identity';
 import { htmlToPlain } from '../shared/anki-text';
@@ -769,14 +768,9 @@ export async function createCardFromRequest(
   // rescue with NO fieldSources in the stored mapping. Before ANY field is
   // resolved, automap the model's 9 canonical fields — falling back to
   // { Front, Back } would silently write to fields the model does not have.
-  const effectiveMapping: AnkiMapping = (
-    mapping.modelName === KIVARA_MODEL_NAME
-    && Object.keys(mapping.fieldSources ?? {}).length === 0
-  )
-    ? { ...mapping, fieldSources: autoMapFields([...KIVARA_MODEL_FIELDS]) }
-    : mapping;
-  // All downstream reads use the normalized mapping.
-  mapping = effectiveMapping;
+  // ONE normalizer for the SW, the orchestrator and the content script:
+  // all three resolve fields from the same 9-field KivaraLingo map.
+  mapping = normalizeAnkiMapping(mapping);
   const lang = requestLang(request);
   const kind = requestKind(request);
   const source = cardSourceFromMedia(request.media);

@@ -33,6 +33,7 @@ import { buildIdentityNoteQuery } from '../../shared/anki-search';
 import { wordIdentity, isPhraseLevelSave, normalizeContextGloss } from '../../shared/word-identity';
 import { createSaveGate } from './save-gate';
 import { applySavedScene, captureAnchor, sceneIdentity, sceneSurface, type SubtitleAudioAnchor } from './save-scene';
+import { normalizeAnkiMapping } from '../../shared/anki-model';
 import { lemmaCandidates } from '../nlp/lemma';
 import { mweLemmaCandidates } from '../nlp/mwe-lemma';
 import { lookupDictionary } from '../nlp/dictionary';
@@ -209,6 +210,8 @@ function StudyPausedPill({
 }
 
 export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContainer }: AppProps) {
+  const storeAnkiMapping = useKivaraStore((s) => s.ankiMapping);
+  const ankiMapping = normalizeAnkiMapping(storeAnkiMapping);
   const {
     enabled,
     subtitlesVisible,
@@ -217,7 +220,6 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     isDarkMode,
     mode,
     subtitleStyles,
-    ankiMapping,
     cleanup,
     study,
     ai,
@@ -312,6 +314,8 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         });
       }
       savedWordsCacheRef.current.clear();
+      // A `recapture_frame` hotkey must never patch a note we just undid.
+      lastSavedNoteRef.current = null;
     };
     window.addEventListener(CARD_UNDONE_EVENT, onCardUndone);
     return () => window.removeEventListener(CARD_UNDONE_EVENT, onCardUndone);

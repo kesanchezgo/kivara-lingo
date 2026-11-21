@@ -8,6 +8,9 @@
  * the fields CardsTab automaps and the preview reads.
  */
 
+import type { AnkiMapping } from './types';
+import { autoMapFields } from './anki-field-detect';
+
 export const KIVARA_MODEL_NAME = 'KivaraLingo';
 
 /** The 9 standard fields — same list as CardsTab's FALLBACK_FIELDS.
@@ -84,4 +87,21 @@ export function buildKivaraModel(): AnkiModelDefinition {
     css: KIVARA_MODEL_CSS,
     isCloze: false,
   };
+}
+
+/**
+ * ONE normalization for every consumer of a stored mapping: a fresh install
+ * can select KivaraLingo before it has any fieldSources (the model did not
+ * exist yet), and every path that resolves fields — CREATE_CARD, the frame
+ * update, add-context, delete and the content script — must see the SAME
+ * 9-field map instead of falling back to { Front, Back }.
+ */
+export function normalizeAnkiMapping(mapping: AnkiMapping): AnkiMapping {
+  if (
+    mapping.modelName === KIVARA_MODEL_NAME
+    && Object.keys(mapping.fieldSources ?? {}).length === 0
+  ) {
+    return { ...mapping, fieldSources: autoMapFields([...KIVARA_MODEL_FIELDS]) };
+  }
+  return mapping;
 }

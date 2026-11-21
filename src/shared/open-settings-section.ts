@@ -22,6 +22,27 @@
 export const OPEN_SETTINGS_SECTION_KEY = 'kivara:open-settings-section';
 
 /**
+ * The accordion ids SettingsTab actually renders. A URL hash on a streaming
+ * site (`#t=30s`) or any other string MUST NOT count as a deep link into
+ * Ajustes — only these sections, on an extension page, belong here.
+ */
+export const VALID_SETTINGS_SECTIONS: ReadonlySet<string> = new Set([
+  'q-reading', 'q-translation', 'q-pause', 'q-autopause', 'q-autotrack',
+  'q-listen', 'q-sounds', 'capture', 'perm', 'cleanup', 'keys',
+  'translate', 'translation', 'dict', 'tts', 'ai', 'ia', 'vip', 'about',
+]);
+
+/** The URL hash is a deep link ONLY on our own extension pages. */
+export function settingsSectionFromHash(hash: string | undefined): string | undefined {
+  if (!hash) return undefined;
+  if (typeof window === 'undefined') return undefined;
+  const protocol = window.location.protocol;
+  if (protocol !== 'chrome-extension:' && protocol !== 'moz-extension:') return undefined;
+  const section = hash.replace(/^#/, '').trim();
+  return VALID_SETTINGS_SECTIONS.has(section) ? section : undefined;
+}
+
+/**
  * Read the deep-link section AND consume the session slot in one step, whether
  * or not a hash was present. One-sided consumption is what leaked: with a hash
  * on the URL the slot was never taken, so the NEXT plain open of Options
@@ -45,10 +66,7 @@ export async function consumeOpenSettingsSection(): Promise<string | undefined> 
 let consumePromise: Promise<string | undefined> | undefined;
 
 async function readAndClearSlot(): Promise<string | undefined> {
-  const fromHash =
-    typeof window !== 'undefined' && window.location.hash
-      ? window.location.hash.replace('#', '').trim()
-      : '';
+  const fromHash = settingsSectionFromHash(window.location.hash) ?? '';
   try {
     const raw = await chrome.storage.session.get(OPEN_SETTINGS_SECTION_KEY);
     const value = raw[OPEN_SETTINGS_SECTION_KEY];

@@ -9,7 +9,7 @@ import { comboOf, withCombo } from './combo-hints';
 import type { PanelPosition } from '../../shared/store';
 import { useKivaraStore } from '../../shared/use-kivara-store';
 import type { AnkiMapping, SubtitleStyles } from '../../shared/types';
-import { consumeOpenSettingsSection } from '../../shared/open-settings-section';
+import { consumeOpenSettingsSection, settingsSectionFromHash, VALID_SETTINGS_SECTIONS } from '../../shared/open-settings-section';
 import { SubtitlesTab } from '../../app/components/tabs/SubtitlesTab';
 import { CardsTab } from '../../app/components/tabs/CardsTab';
 import { SettingsTab } from '../../app/components/tabs/SettingsTab';
@@ -82,9 +82,14 @@ function clampPosition(pos: PanelPosition): PanelPosition {
 }
 
 function readHash(): string | undefined {
-  return typeof window !== 'undefined' && window.location.hash
-    ? window.location.hash.replace('#', '').trim() || undefined
+  // A `#t=30s` on YouTube/streaming is navigation state, NOT a request to
+  // open Ajustes. Only our own extension pages may deep-link, and only with
+  // a section SettingsTab really renders.
+  const fromHash = typeof window !== 'undefined'
+    ? settingsSectionFromHash(window.location.hash)
     : undefined;
+  // Belt-and-braces: only sections SettingsTab can actually render.
+  return fromHash && VALID_SETTINGS_SECTIONS.has(fromHash) ? fromHash : undefined;
 }
 
 /**
