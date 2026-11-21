@@ -11,6 +11,8 @@ import type {
 } from '../shared/types';
 import { DEFAULT_CAPTURE } from '../shared/store';
 import { ankiConnect, dataUrlToBase64, AnkiConnectError, type AnkiNoteInfo } from './anki-connect';
+import { ensureKivaraModel } from './anki-model';
+import { KIVARA_MODEL_NAME } from '../shared/anki-model';
 import { buildExactNoteQuery, buildIdentityNoteQuery } from '../shared/anki-search';
 import { lemmaTag, senseTag, classifySense, isPhraseLevelSave, normalizeContextGloss } from '../shared/word-identity';
 import { htmlToPlain } from '../shared/anki-text';
@@ -1444,22 +1446,49 @@ export async function createCardFromRequest(
   }
 
   const retryRequest: CreateCardRequest = { ...request, lang, language: lang, kind, deck };
+  const notePayload = {
+    deckName: deck,
+    modelName: mapping.modelName,
+    fields,
+    tags,
+    // Single-upload rule: media already lives on the Anki side via
+    // storeMediaFile + [sound:]/<img> field references above. Passing
+    // picture[]/audio[] here would re-upload every blob.
+    // The background decides: an explicit create may duplicate on purpose.
+    options: { allowDuplicate: request.forceNewSense === true, duplicateScope: 'deck' as const },
+  };
   try {
-    const noteId = await ankiConnect.addNote(
-      {
-        deckName: deck,
-        modelName: mapping.modelName,
-        fields,
-        tags,
-        // Single-upload rule: media already lives on the Anki side via
-        // storeMediaFile + [sound:]/<img> field references above. Passing
-        // picture[]/audio[] here would re-upload every blob.
-        // The background decides: an explicit create may duplicate on purpose.
-        options: { allowDuplicate: request.forceNewSense === true, duplicateScope: 'deck' },
-      },
-      mapping.ankiUrl,
-      mapping.apiKey,
-    );
+    let noteId: number;
+    try {
+      noteId = await ankiConnect.addNote(notePayload, mapping.ankiUrl, mapping.apiKey);
+    } catch (err) {
+      // A brand-new Anki has neither the deck nor the model the wizard let
+      // the user TYPE. Both are one-time, self-healing failures: create the
+      // missing piece and retry the SAME note ONCE. The path only runs on
+      // the failure, so an existing deck/model costs zero extra calls.
+      const message = err instanceof Error ? err.message : String(err);
+      // The ORIGINAL addNote failure is what the caller must see: if the
+      // creation attempt also fails, it propagates wrapped as the primary.
+      const retryNote = async (): Promise<number> =>
+        ankiConnect.addNote(notePayload, mapping.ankiUrl, mapping.apiKey);
+      try {
+        if (/deck .+ was not found/i.test(message)) {
+          await ankiConnect.createDeck(deck, mapping.ankiUrl, mapping.apiKey);
+          noteId = await retryNote();
+        } else if (
+          /model .+ was not found/i.test(message)
+          && (mapping.modelName ?? '') === KIVARA_MODEL_NAME
+        ) {
+          const ensured = await ensureKivaraModel(mapping.ankiUrl, mapping.apiKey);
+          if (!ensured.ok) throw err;
+          noteId = await retryNote();
+        } else {
+          throw err;
+        }
+      } catch {
+        throw err;
+      }
+    }
     // Record success in dedup ledger (per-deck — see pre-check above).
     try {
       await getDB().saved_notes.put({

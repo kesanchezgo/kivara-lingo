@@ -193,6 +193,28 @@ export function Onboarding() {
     // `done` is terminal. Keeping this guard explicit prevents a future
     // refactor from refreshing completedAt if a terminal CTA is added.
     if (step === 'done') return;
+    // Leaving the mapping step with a TYPED (new) deck or model: ask Anki to
+    // create them NOW, so the first save does not die on "deck/model was not
+    // found". The save path also rescues both failures (round 11) — this is
+    // the eager path so the user leaves the wizard with everything in place.
+    if (step === 'mapping') {
+      void (async () => {
+        try {
+          if (deckCreateMode && deck.trim()) {
+            await sendMessage('ANKI_CREATE_DECK', { deckName: deck.trim() }, 'background');
+          }
+          if (modelCreateMode) {
+            const r = (await sendMessage('ANKI_ENSURE_MODEL', {}, 'background')) as { ok?: boolean };
+            // The installed model's 9 fields automap here: the step's field
+            // list was empty (the model did not exist to query).
+            if (r?.ok) await loadFields(ankiMapping.modelName || 'KivaraLingo');
+          }
+        } catch {
+          // A failed creation is non-fatal here: the save path rescues the
+          // same failures, and Anki errors surface on the first save.
+        }
+      })();
+    }
     // steps.ts owns the ordering; the `completed` write stays here because
     // the pure function only returns the id and this is the one side effect
     // that belongs to the root — it IS the onboarding's whole point.

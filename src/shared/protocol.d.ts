@@ -78,6 +78,7 @@ declare module 'webext-bridge' {
     ANKI_MODELS: ProtocolWithReturn<{ url?: string; apiKey?: string }, AnkiListsReply>;
     ANKI_FIELDS: ProtocolWithReturn<{ url?: string; apiKey?: string; modelName: string }, AnkiFieldsReply>;
     ANKI_CREATE_DECK: ProtocolWithReturn<{ url?: string; apiKey?: string; deckName: string }, { ok: boolean; error?: string }>;
+    ANKI_ENSURE_MODEL: ProtocolWithReturn<{ url?: string; apiKey?: string; modelName?: string }, { ok: boolean; created?: boolean; error?: string }>;
     ANKI_SAVED_WORDS: ProtocolWithReturn<{ url?: string; apiKey?: string; deckName?: string; fieldName?: string }, { words: string[] } | AnkiErrorReply>;
     ANKI_DELETE_NOTE: ProtocolWithReturn<AnkiDeleteNoteRequest, AnkiDeleteNoteResponse>;
     ANKI_ADD_CONTEXT: ProtocolWithReturn<AnkiAddContextRequest, AnkiAddContextResponse>;
