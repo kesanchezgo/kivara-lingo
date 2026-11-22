@@ -62,13 +62,15 @@ test('the study bar mounts in the native Netflix control row and survives a rest
       const r = el.getBoundingClientRect();
       return r.y + r.height / 2;
     };
-    const toolbar = (window as unknown as { __kivaraRoots?: Record<string, { root: ShadowRoot }> })
-      .__kivaraRoots?.['kivara-lingo-video-host']?.root?.querySelector('[role="toolbar"]');
-    return { delta: Math.abs(center(slot) - center(native)), barInFloatingHost: !!toolbar };
+    // The hit map is the only channel into the closed roots: a main-world
+    return { delta: Math.abs(center(slot) - center(native)) };
   });
   expect(geom.delta).toBeLessThanOrEqual(4);
-  expect(geom.barInFloatingHost).toBe(false);
   expect((await boxesOf(page)).bar).not.toBeNull();
+  const activeHits = (await hitsOf(page, 'kivara-lingo-video-host')).map((h) => h.label);
+  expect(activeHits).toContain('Bucle');
+  expect(activeHits).not.toContain('Pausar');
+  expect(activeHits).not.toContain('Reproducir');
 
   // Real mouse click on the native toolbar: the site's player must not
   // pause/fullscreen from our controls (the closed-root button's own
@@ -84,10 +86,8 @@ test('the study bar mounts in the native Netflix control row and survives a rest
   await page.waitForTimeout(400);
   expect(await page.evaluate(() => !!document.getElementById('kivara-lingo-bar-slot'))).toBe(false);
   await expect.poll(async () => (await boxesOf(page)).bar, { timeout: 5_000 }).toBeNull();
-  const floating = await page.evaluate(() =>
-    !!(window as unknown as { __kivaraRoots?: Record<string, { root: ShadowRoot }> })
-      .__kivaraRoots?.['kivara-lingo-video-host']?.root?.querySelector('[role="toolbar"]'));
-  expect(floating).toBe(false);
+  const idleHits = (await hitsOf(page, 'kivara-lingo-video-host')).map((h) => h.label);
+  for (const label of ['Bucle', 'Pausar', 'Reproducir']) expect(idleHits).not.toContain(label);
 
   // Pointer activity re-mounts the site's row → the slot re-inserts.
   await injectRow(page, true);
