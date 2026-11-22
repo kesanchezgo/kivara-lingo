@@ -120,6 +120,13 @@ const TEXT_CAP = 20_000;
  * `title` and then to the visible text, so every control the suite clicks is
  * reachable by the same name a user would read.
  */
+/** A column mid-transition has a full layout subtree inside a 0px clipped
+ * ancestor: its coordinates are not clickable, so it must not be published. */
+function isClippedByColumn(el: Element): boolean {
+  const column = el.closest('[data-kvl-slide]');
+  return !!column && column.getBoundingClientRect().width === 0;
+}
+
 function collectHits(container: ParentNode): E2EHit[] {
   const hits: E2EHit[] = [];
   const nodes = container.querySelectorAll<HTMLElement>(
@@ -127,6 +134,7 @@ function collectHits(container: ParentNode): E2EHit[] {
   );
   for (const el of nodes) {
     if (el.closest('[data-kvl-closing]')) continue;
+    if (isClippedByColumn(el)) continue;
     const rect = el.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) continue;
     const pressed = el.getAttribute('aria-pressed') ?? el.getAttribute('aria-checked');
@@ -163,6 +171,10 @@ function isFiltered(el: Element): boolean {
 function collectState(root: ParentNode): E2EState {
   const rows: E2ERow[] = [];
   for (const row of root.querySelectorAll<HTMLElement>('[data-kvl-cue]')) {
+    // A closing column is still in the DOM for the width transition, but it
+    // is no longer on screen: publishing its rows would lie to the E2E suite.
+    if (row.closest('[data-kvl-closing]')) continue;
+    if (isClippedByColumn(row)) continue;
     const raw = row.getAttribute('data-kvl-cue');
     const index = raw === null ? Number.NaN : Number.parseInt(raw, 10);
     if (!Number.isFinite(index)) continue;
@@ -207,19 +219,26 @@ function collectState(root: ParentNode): E2EState {
   // Visible tab panels only: the rail's lines body and the panel tab the user
   // is looking at. Inactive panel tabs stay mounted (`hidden`), so their copy
   // must not be mistaken for what is on screen.
-  const text = [...root.querySelectorAll<HTMLElement>('[role="tabpanel"]:not([hidden])')]
-    .map((el) => el.textContent?.trim() ?? '')
-    .filter(Boolean)
-    .join('\n')
-    .slice(0, TEXT_CAP);
+  const visibleText: string[] = [];
+  for (const el of root.querySelectorAll<HTMLElement>('[role="tabpanel"]:not([hidden])')) {
+    if (el.closest('[data-kvl-closing]')) continue;
+    if (isClippedByColumn(el)) continue;
+    const value = el.textContent?.trim() ?? '';
+    if (value) visibleText.push(value);
+  }
+  const text = visibleText.join('\n').slice(0, TEXT_CAP);
 
   const noSubsEl = root.querySelector<HTMLElement>('[data-kvl-no-subs]');
   const noSubs = noSubsEl?.textContent?.trim() ?? null;
 
   // Diagnostic: every visible tab panel with its id and a text sample —
   // tells the suite WHICH panel published the text it is reading.
-  const panels = [...root.querySelectorAll<HTMLElement>('[role="tabpanel"]:not([hidden])')]
-    .map((el) => ({ id: el.id || el.getAttribute('aria-labelledby') || '?', text: (el.textContent ?? '').slice(0, 60) }));
+  const panels: Array<{ id: string; text: string }> = [];
+  for (const el of root.querySelectorAll<HTMLElement>('[role="tabpanel"]:not([hidden])')) {
+    if (el.closest('[data-kvl-closing]')) continue;
+    if (isClippedByColumn(el)) continue;
+    panels.push({ id: el.id || el.getAttribute('aria-labelledby') || '?', text: (el.textContent ?? '').slice(0, 60) });
+  }
 
   // P3: one status radiogroup, in the pinned bar; the body is informational.
   const dialog = root.querySelector<HTMLElement>('[role="dialog"]');
@@ -408,6 +427,14 @@ function publishHost(host: HTMLElement): () => void {
     schedule();
   });
 
+  // SlideColumn animates its width: the last republished coordinates before
+  // `transitionend` are mid-flight. Republish at the end so clicks use the
+  // settled geometry.
+  const onColumnEnd = (event: Event) => {
+    if ((event as TransitionEvent).propertyName === 'width') schedule();
+  };
+  root.addEventListener('transitionend', onColumnEnd, true);
+
   const mutations = new MutationObserver(schedule);
   mutations.observe(root, {
     childList: true,
@@ -445,6 +472,7 @@ function publishHost(host: HTMLElement): () => void {
   return () => {
     window.clearInterval(slotPoll);
     offGeometry();
+    root.removeEventListener('transitionend', onColumnEnd, true);
     resize?.disconnect();
     mutations.disconnect();
     if (toastTimer !== null) window.clearInterval(toastTimer);

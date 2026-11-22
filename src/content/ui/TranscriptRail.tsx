@@ -58,6 +58,7 @@ import { LanguageMismatchNotice } from './language-mismatch';
 import { SentenceExplain } from './SentenceExplain';
 import { PLAYBACK_SPEEDS } from '../platform-adapters/playback';
 import { usePlaybackTimeMs } from './useStudyPlayback';
+import { takeSwitchFocus } from './column-switch-focus';
 import type { AiPort } from '../../ui/ports/ai';
 import type { MediaInfo, SubtitleCue } from '../platform-adapters/types';
 import type { StudyBinding } from './study';
@@ -193,6 +194,13 @@ export function TranscriptRail(props: TranscriptRailProps) {
   const hitRef = useRef(-1);
   const searchRef = useRef<HTMLInputElement>(null);
   const searchBtnRef = useRef<HTMLButtonElement>(null);
+  const toPanelRef = useRef<HTMLButtonElement>(null);
+  // Symmetry with SidePanel: the token handed over by the docked panel lands
+  // on THIS button (the BrandGlyph), not on the first control in the header.
+  useEffect(() => {
+    if (!takeSwitchFocus('rail')) return;
+    requestAnimationFrame(() => toPanelRef.current?.focus());
+  }, []);
   const foldedQuery = foldForSearch(query.trim());
   const searching = searchOpen && foldedQuery.length > 0;
 
@@ -466,6 +474,7 @@ export function TranscriptRail(props: TranscriptRailProps) {
             active={panelOpen}
             onClick={onTogglePanel}
             data-kvl-rail-to-panel=""
+            btnRef={toPanelRef}
           >
             <BrandGlyph size={16} />
           </IconButton>
@@ -1029,16 +1038,17 @@ function fmtTime(ms: number): string {
 }
 
 function IconButton({
-  children, title, onClick, active, btnRef,
+  children, title, onClick, active, btnRef, ...dataAttrs
 }: {
   children: React.ReactNode;
   title: string;
   onClick: () => void;
   active?: boolean;
   btnRef?: React.Ref<HTMLButtonElement>;
-}) {
+} & { 'data-kvl-rail-to-panel'?: string }) {
   return (
     <button
+      {...dataAttrs}
       ref={btnRef}
       type="button"
       title={title}

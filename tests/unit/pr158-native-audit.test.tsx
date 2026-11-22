@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { shouldRenderFloatingStudyBar, useNativeBarSlot } from '../../src/content/ui/native-bar-slot';
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import { ShadowHost } from '../../src/content/shadow-host';
 import {
   BAR_SLOT_ID,
@@ -26,6 +26,7 @@ const el = (tag: string, cls = '', uia = ''): HTMLElement => {
 afterEach(() => {
   document.body.innerHTML = '';
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe('1 — idempotent mount on YouTube', () => {
@@ -176,15 +177,28 @@ describe('PR159 closeout — hook, separators, idle watcher', () => {
   it('a YouTube watcher with a live slot fires onChange exactly ONCE across 5 flushes', () => {
     const player = el('div', 'html5-video-player');
     const right = el('div', 'ytp-right-controls');
-    right.append(el('button', 'ytp-button'), el('button', 'ytp-button'));
+    const first = el('button', 'ytp-button');
+    right.append(first, el('button', 'ytp-button'));
     player.append(right);
     document.body.append(player);
     const watcher = new NativeAnchorWatcher();
-    const onChange = vi.fn();
+    // Mount the REAL inline slot from the callback: a watcher that used
+    // `right.firstChild` instead of the first NON-slot child would re-anchor
+    // on the slot itself on the next flush and fire onChange again.
+    let slot: ReturnType<typeof ShadowHost.mountInlineSlot> | null = null;
+    const onChange = vi.fn(() => {
+      const anchor = watcher.currentAnchor();
+      if (anchor && !document.getElementById(BAR_SLOT_ID)) slot = ShadowHost.mountInlineSlot(anchor);
+    });
     watcher.observe(player, onChange, 'youtube');
+    expect(slot).not.toBeNull();
+    expect(slot!.hostElement.parentElement).toBe(right);
+    expect(Array.from(right.children).filter((child) => child.id !== BAR_SLOT_ID)[0]).toBe(first);
     for (let i = 0; i < 5; i++) watcher.flush();
     expect(onChange).toHaveBeenCalledTimes(1);
+    expect(document.querySelectorAll(`#${BAR_SLOT_ID}`)).toHaveLength(1);
     watcher.disconnect();
+    slot!.destroy();
   });
 
   it('[leftGroup, rightGroup] fallback inserts inside the right group for hbo/disney/prime', () => {
@@ -246,7 +260,7 @@ describe('PR159 — useNativeBarSlot / shouldRenderFloatingStudyBar', () => {
     right.append(el('button', '', 'control-next'));
     row.append(el('button', 'left'), right);
     player.append(row);
-    await vi.runAllTimersAsync();
+    await act(async () => { await vi.runAllTimersAsync(); });
     expect(probe().getAttribute('data-root')).toBe('yes');
     expect(probe().getAttribute('data-floating')).toBe('false');
     expect(probe().getAttribute('data-render')).toBe('false');
@@ -258,7 +272,7 @@ describe('PR159 — useNativeBarSlot / shouldRenderFloatingStudyBar', () => {
     const nudge = el('div');
     player.append(nudge);
     nudge.remove();
-    await vi.runAllTimersAsync();
+    await act(async () => { await vi.runAllTimersAsync(); });
     expect(probe().getAttribute('data-root')).toBe('no');
     expect(document.getElementById('kivara-lingo-bar-slot')).toBeNull();
     expect(probe().getAttribute('data-floating')).toBe('false');

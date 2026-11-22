@@ -75,7 +75,6 @@ describe('B2 — SlideColumn lifecycle', () => {
     view.rerender(<SlideColumn open widthPx={400}><div data-testid="rail-child">rail</div></SlideColumn>);
     await act(async () => { await new Promise((r) => setTimeout(r, 60)); });
     const outer = screen.getByTestId('rail-child').parentElement!.parentElement!;
-    console.log('DEBUG_SLIDE', outer.className, JSON.stringify(outer.style.width), JSON.stringify(outer.getAttribute('data-kvl-closing')));
     expect(outer.style.width === '400px' || outer.className.includes('400')).toBe(true);
     view.rerender(<SlideColumn open={false} widthPx={400}><div data-testid="rail-child">rail</div></SlideColumn>);
     expect(outer.hasAttribute('data-kvl-closing')).toBe(true);

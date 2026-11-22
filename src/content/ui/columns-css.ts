@@ -338,7 +338,7 @@ export function applyColumnsCss(options: ColumnsCssOptions): void {
       document.documentElement.appendChild(motion);
     }
     motion.textContent = `${selectors.join(', ')} {
-      transition: width 300ms cubic-bezier(.32, .72, 0, 1) !important;
+      transition: width 300ms cubic-bezier(.32, .72, 0, 1), max-width 300ms cubic-bezier(.32, .72, 0, 1), right 300ms cubic-bezier(.32, .72, 0, 1) !important;
     }
     @media (prefers-reduced-motion: reduce) {
       ${selectors.join(', ')} { transition: none !important; }

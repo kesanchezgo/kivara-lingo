@@ -403,6 +403,7 @@ export function SidePanel({
               role="tab"
               type="button"
               id={`kivara-panel-tab-${tab.id}`}
+              aria-label={tab.label}
               aria-selected={activeTab === tab.id}
               aria-controls={`kivara-panel-body-${tab.id}`}
               tabIndex={activeTab === tab.id ? 0 : -1}
