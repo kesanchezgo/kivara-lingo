@@ -15,7 +15,7 @@
 import { t, fmtNumber } from '../../shared/i18n';
 import { RotateCcw } from '../../ui/icons';
 import { SegmentedControl } from '../../ui/primitives/settings-primitives';
-import { StatusGlyph } from './wordMarks';
+import { MARK_INK, StatusGlyph } from './wordMarks';
 import type { StatusDetail, StatusReason, WordStatus } from '../../shared/study/wordStatus';
 
 /** Main reason of the estimate → phrase (the same data the model used). */
@@ -76,7 +76,7 @@ export function WordStatusSelector({ token, status, detail, isSaved, onChange, o
   const source = detail?.source;
   const statusLabel = status === 'new' ? t('ws.new') : status === 'learning' ? t('ws.learning') : t('ws.known');
   return (
-    <div className="px-3 pt-2 pb-2 border-t border-zinc-900/[0.06] dark:border-white/[0.06] space-y-1.5" title={t('ws.label')}>
+    <div className={`${MARK_INK} px-3 pt-2 pb-2 border-t border-zinc-900/[0.06] dark:border-white/[0.06] space-y-1.5`} title={t('ws.label')}>
       {readOnly ? (
         <div className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-700 dark:text-zinc-200">
           <StatusGlyph status={status} />

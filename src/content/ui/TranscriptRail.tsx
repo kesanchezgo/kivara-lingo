@@ -870,7 +870,7 @@ const CueRow = memo(function CueRow({
               active
                 ? 'text-zinc-900 dark:text-white'
                 : past
-                  ? 'text-zinc-400 dark:text-zinc-400'
+                  ? 'kvl-past text-zinc-400 dark:text-zinc-400'
                   : 'text-zinc-700 dark:text-zinc-300'
             }`}
           >
