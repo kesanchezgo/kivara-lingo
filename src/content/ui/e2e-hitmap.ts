@@ -294,8 +294,6 @@ export function publishAllRoots(): () => void {
  * Writes are coalesced into one microtask so a cue that mutates twenty token
  * nodes publishes once.
  */
-let observedSlotRoots = new WeakSet<ShadowRoot>();
-
 function publishHost(host: HTMLElement): () => void {
   const root = getShadowRoot(host);
   if (!root) return () => {};
@@ -305,7 +303,10 @@ function publishHost(host: HTMLElement): () => void {
     try {
       // Native player bar: the toolbar can live in the inline slot's closed
       // root, registered by ShadowHost when the site exposes a control row.
-      const slotHost = document.getElementById('kivara-lingo-bar-slot');
+      // Only VIDEO_HOST owns the study bar's hit surface. PANEL_HOST must
+      // never publish a native slot's buttons as its own.
+      const isVideoHost = host.id === 'kivara-lingo-video-host';
+      const slotHost = isVideoHost ? document.getElementById('kivara-lingo-bar-slot') : null;
       const slotRoot = slotHost ? getShadowRoot(slotHost) : null;
       const slotHits = slotRoot ? collectHits(slotRoot) : [];
       const bar = boxOf(root.querySelector('[role="toolbar"]'))
@@ -425,12 +426,15 @@ function publishHost(host: HTMLElement): () => void {
       'data-ws', 'data-kvl-native', 'hidden', 'style',
     ],
   });
+  let lastSlotRoot: ShadowRoot | null = null;
   const slotWatch = () => {
+    if (host.id !== 'kivara-lingo-video-host') return;
     const slot = document.getElementById('kivara-lingo-bar-slot');
     const slotRoot = slot ? getShadowRoot(slot) : null;
-    if (slotRoot && !observedSlotRoots.has(slotRoot)) {
-      observedSlotRoots.add(slotRoot);
-      mutations.observe(slotRoot, { childList: true, subtree: true, attributes: true });
+    if (slotRoot !== lastSlotRoot) {
+      lastSlotRoot = slotRoot;
+      if (slotRoot) mutations.observe(slotRoot, { childList: true, subtree: true, attributes: true });
+      schedule(); // publish mount AND teardown in the same frame
     }
   };
   slotWatch();
@@ -438,7 +442,6 @@ function publishHost(host: HTMLElement): () => void {
 
   return () => {
     window.clearInterval(slotPoll);
-    observedSlotRoots = new WeakSet<ShadowRoot>();
     offGeometry();
     resize?.disconnect();
     mutations.disconnect();

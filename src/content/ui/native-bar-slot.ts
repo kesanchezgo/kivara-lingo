@@ -12,6 +12,33 @@ import type { SubtitleSource } from '../platform-adapters/types';
 
 type Platform = SubtitleSource['platform'];
 
+/** ID shared with ShadowHost.mountInlineSlot — used everywhere we skip our own slot. */
+export const BAR_SLOT_ID = 'kivara-lingo-bar-slot';
+
+/** Containers where each platform mounts its real control row. */
+const PLAYER_ROOT_SELECTORS: Record<Platform, readonly string[]> = {
+  netflix: ['.watch-video', '.watch-video--player-view', '[data-uia="watch-video"]'],
+  youtube: ['.html5-video-player', '#movie_player'],
+  disney: ['.btm-media-player', '.btm-media-overlays'],
+  hbo: ['[data-testid="player-container"]', '[class*="Fuse-Web-Play"]', '[class*="PlayerContainer"]'],
+  prime: ['.webPlayerSDKContainer', '.atvwebplayersdk-player-container'],
+  generic: [],
+};
+
+export function resolvePlayerRoot(platform: Platform | undefined, video: HTMLVideoElement | null): HTMLElement | null {
+  const selectors = PLAYER_ROOT_SELECTORS[platform ?? 'generic'] ?? [];
+  for (const sel of selectors) {
+    const closest = video?.closest<HTMLElement>(sel);
+    if (closest) return closest;
+  }
+  for (const sel of selectors) {
+    const found = video?.ownerDocument?.querySelector<HTMLElement>(sel);
+    if (found) return found;
+  }
+  return (video?.parentElement?.parentElement as HTMLElement | null)
+    ?? (video?.parentElement as HTMLElement | null) ?? null;
+}
+
 export interface NativeAnchor {
   parent: HTMLElement;
   before: Node | null;
@@ -26,20 +53,40 @@ const NETFLIX_BUTTONS = [
 ];
 
 /** Walk up single-child wrappers to the horizontal row the site owns. */
+function nonSlotChildren(parent: HTMLElement): Element[] {
+  return Array.from(parent.children).filter((c) => c.id !== BAR_SLOT_ID);
+}
+
+function firstNonSlotChild(parent: HTMLElement): Node | null {
+  return nonSlotChildren(parent)[0] ?? null;
+}
+
 function climbToRow(node: HTMLElement, root: HTMLElement): NativeAnchor | null {
   let current = node;
-  while (current.parentElement && current.parentElement !== root.parentElement) {
+  while (current.parentElement && current !== root) {
     const parent = current.parentElement;
-    if (parent.children.length > 1) return { parent, before: current };
+    if (nonSlotChildren(parent).length > 1) return { parent, before: current };
     current = parent;
   }
-  return current.parentElement ? { parent: current.parentElement, before: current } : null;
+  // Never escape to document.body: only return an ancestor still inside root.
+  return current.parentElement && root.contains(current.parentElement)
+    ? { parent: current.parentElement, before: current }
+    : null;
 }
 
 /** The right-hand group inside a multi-child flex row. */
 function rightGroup(row: HTMLElement): NativeAnchor | null {
-  const last = row.lastElementChild;
-  if (!last) return null;
+  const real = nonSlotChildren(row);
+  if (real.length === 0) return null;
+  const last = real[real.length - 1] as HTMLElement;
+  // [leftControls, rightControls] with space-between: insert at the START of
+  // the right group, not at the row's midpoint.
+  if (
+    real.length >= 2 && last.tagName !== 'BUTTON' && last.getAttribute('role') !== 'button'
+    && nonSlotChildren(last).length > 0
+  ) {
+    return { parent: last, before: firstNonSlotChild(last) };
+  }
   return { parent: row, before: last };
 }
 
@@ -58,18 +105,30 @@ export function findNativeBarAnchor(platform: Platform | undefined, playerRoot: 
       const right = root.querySelector<HTMLElement>('.html5-video-player .ytp-right-controls')
         ?? root.querySelector<HTMLElement>('.ytp-right-controls');
       if (!right) return null;
-      return { parent: right, before: right.firstChild };
+      return { parent: right, before: firstNonSlotChild(right) };
     }
     case 'disney': {
+      for (const sel of ['button[aria-label*="subtitle" i]', 'button[data-uia*="fullscreen" i]', 'button[class*="Fullscreen"]']) {
+        const btn = root.querySelector<HTMLElement>(sel);
+        if (btn) { const a = climbToRow(btn, root); if (a) return a; }
+      }
       const row = root.querySelector<HTMLElement>('.controls-bottom-wrap')
         ?? root.querySelector<HTMLElement>('.controls__container');
       return row ? rightGroup(row) : null;
     }
     case 'hbo': {
+      for (const sel of ['button[aria-label*="subtitle" i]', 'button[class*="Fullscreen"]']) {
+        const btn = root.querySelector<HTMLElement>(sel);
+        if (btn) { const a = climbToRow(btn, root); if (a) return a; }
+      }
       const row = root.querySelector<HTMLElement>('[class*="ControlsFooterBottom"]');
       return row ? rightGroup(row) : null;
     }
     case 'prime': {
+      for (const sel of ['button[class*="fullscreen" i]', 'button[aria-label*="subtitle" i]']) {
+        const btn = root.querySelector<HTMLElement>(sel);
+        if (btn) { const a = climbToRow(btn, root); if (a) return a; }
+      }
       const row = root.querySelector<HTMLElement>('.atvwebplayersdk-bottompanel-container');
       return row ? rightGroup(row) : null;
     }
