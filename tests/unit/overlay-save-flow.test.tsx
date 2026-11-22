@@ -9,7 +9,8 @@
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import React from 'react';
-import { render, screen, cleanup, type RenderResult } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, type RenderResult } from '@testing-library/react';
+import { t } from '../../src/shared/i18n';
 import { SubtitleOverlay } from '../../src/content/ui/SubtitleOverlay';
 import type { CreateCardResponse } from '../../src/shared/types';
 
@@ -32,8 +33,9 @@ const study = {
   userStatusOf: () => undefined,
 };
 
-function overlay(saveRequestKey: number, onSaveCard: SaveFn) {
+function overlay(saveRequestKey: number, onSaveCard: SaveFn, initialSavedWords: Set<string> = new Set()) {
   return (
+    <div data-popover-boundary>
     <SubtitleOverlay
       subtitleStyles={{} as never}
       cue={CUE}
@@ -42,9 +44,10 @@ function overlay(saveRequestKey: number, onSaveCard: SaveFn) {
       saveRequestKey={saveRequestKey}
       onSaveCard={onSaveCard}
       onTokenHoverChange={() => {}}
-      initialSavedWords={new Set()}
+      initialSavedWords={initialSavedWords}
       study={study as never}
     />
+    </div>
   );
 }
 
@@ -69,32 +72,22 @@ describe('saved-word highlighting tracks the real promise (#14 + App.tsx ok:true
     const onSave: SaveFn = async () => ({ ok: true, noteId: 1 });
     const { onSaveCard } = await mountAndSave(onSave);
     expect(onSaveCard).toHaveBeenCalled();
-    expect(tokenEl().className).not.toContain('border-emerald');
+    fireEvent.mouseEnter(tokenEl());
+    await vi.waitFor(() => expect(screen.queryByText(t('wp.inYourDeck'))).not.toBeNull());
   });
 
   it('does NOT mark the token green when the save fails', async () => {
     const onSave: SaveFn = async () => ({ ok: false, error: 'Anki closed' });
     const { onSaveCard } = await mountAndSave(onSave);
     expect(onSaveCard).toHaveBeenCalled();
-    expect(tokenEl().className).not.toContain('border-emerald');
+    fireEvent.mouseEnter(tokenEl());
+    expect(screen.queryByText(t('wp.inYourDeck'))).toBeNull();
   });
 
   it('runs the merge path for words already saved before mount (#13)', async () => {
     const onSave: SaveFn = async () => ({ ok: false, error: 'nope' });
-    render(
-      <SubtitleOverlay
-        subtitleStyles={{} as never}
-        cue={CUE}
-        altCue={null}
-        mode="learning"
-        saveRequestKey={0}
-        onSaveCard={vi.fn(onSave)}
-        onTokenHoverChange={() => {}}
-        initialSavedWords={new Set(['hello'])}
-      />,
-    );
-    // initialSavedWords arrives before the useState initializer for late
-    // mounts — the effect that merges it must paint green without any save.
-    expect(tokenEl().className).not.toContain('border-emerald');
+    render(overlay(0, vi.fn(onSave), new Set(['hello'])));
+    fireEvent.mouseEnter(tokenEl());
+    await vi.waitFor(() => expect(screen.queryByText(t('wp.inYourDeck'))).not.toBeNull());
   });
 });
