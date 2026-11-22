@@ -532,7 +532,7 @@
  * Una sola curva y tres duraciones para panel, transcripción, popup y onboarding.
  *   fast 150ms (hover/press) · base 220ms (estado) · slow 320ms (entrada)
  */
-:root {
+:root, :host {
   --kvl-ease: cubic-bezier(.2, .8, .2, 1);
   --kvl-spring: cubic-bezier(.34, 1.36, .64, 1);
 }
@@ -591,7 +591,7 @@
  * El tipo es independiente: una expresión (MWE) se agrupa con un corchete
  * ⎣ ⎦ que hereda color y patrón del estado. Hover y selección: índigo.
  */
-:root {
+:root, :host {
   --kvl-ws-new: #38bdf8;
   --kvl-ws-learning: #fb923c;
   --kvl-ws-neutral: rgb(255 255 255 / 0.32);

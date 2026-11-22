@@ -4,6 +4,8 @@ import {
   AlignLeft,
 } from '../../ui/icons';
 import { BrandGlyph } from '../../ui/BrandGlyph';
+import { defaultPopupPosition as popupPosition } from './default-popup-position';
+import { takeSwitchFocus } from './column-switch-focus';
 import { t } from '../../shared/i18n';
 import { comboOf, withCombo } from './combo-hints';
 import type { PanelPosition } from '../../shared/store';
@@ -51,7 +53,11 @@ interface SidePanelProps {
   /** Open the transcript rail's Words view (only the content host can). */
   onOpenEpisodeWords?: () => void;
   /** The rail is docked beside the panel: hand focus to it. */
-  onToTranscript?: () => void;
+  onShowTranscript?: () => void;
+  /** Width reserved by an open transcript rail (floating panel positioning). */
+  reserveRight?: () => number;
+  controlledTab?: PanelTab;
+  onTabChange?: (tab: PanelTab) => void;
   /** Language of the playing subtitles; the Cards tab badges its deck row. */
   episodeLang?: string;
 }
@@ -65,11 +71,9 @@ const POPUP_PADDING = 8;
 const HEAD_BTN = 'w-7 h-7 inline-flex items-center justify-center rounded-lg text-zinc-400 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-900/[0.05] dark:hover:bg-white/[0.07] kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40';
 
 /** Default position with no stored one: top-right, inside the viewport. */
-function defaultPopupPosition(): PanelPosition {
-  if (typeof window === 'undefined') return { top: 96, left: 200 };
-  return { top: 96, left: Math.max(0, window.innerWidth - POPUP_WIDTH - 32) };
+function defaultPopupPosition(reserveRight = 0): PanelPosition {
+  return popupPosition(reserveRight);
 }
-
 /** Keep the panel inside the visible viewport with a small margin. */
 function clampPosition(pos: PanelPosition): PanelPosition {
   if (typeof window === 'undefined') return pos;
@@ -140,12 +144,22 @@ export function SidePanel({
   mockData,
   episode,
   onOpenEpisodeWords,
-  onToTranscript,
+  onShowTranscript,
+  reserveRight,
+  controlledTab,
+  onTabChange,
   episodeLang,
 }: SidePanelProps) {
   const deepLink = useDeepLinkSection();
+  const toRailRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!takeSwitchFocus('panel')) return;
+    requestAnimationFrame(() => toRailRef.current?.focus());
+  }, []);
   const shortcuts = useKivaraStore((state) => state.shortcuts);
-  const [activeTab, setActiveTab] = useState<PanelTab>('cards');
+  const [internalTab, setInternalTab] = useState<PanelTab>('cards');
+  const activeTab = controlledTab ?? internalTab;
+  const setActiveTab = useCallback((tab: PanelTab) => { setInternalTab(tab); onTabChange?.(tab); }, [onTabChange]);
 
   // A deep link must not land on Cards: that tab never mounts SettingsTab, so
   // the accordion the user was sent to expand would be unreachable. The nonce
@@ -154,7 +168,7 @@ export function SidePanel({
   useEffect(() => {
     if (deepLink.pending) return;
     if (deepLink.section) setActiveTab('settings');
-  }, [deepLink.pending, deepLink.section, deepLink.nonce]);
+  }, [deepLink.pending, deepLink.section, deepLink.nonce, setActiveTab]);
 
   // The save-error notice's "View queue" lands here (App opens the panel and
   // fires the event): Cards is the tab that owns the retry queue.
@@ -162,7 +176,7 @@ export function SidePanel({
     const onOpenCards = () => setActiveTab('cards');
     window.addEventListener(OPEN_CARDS_EVENT, onOpenCards);
     return () => window.removeEventListener(OPEN_CARDS_EVENT, onOpenCards);
-  }, []);
+  }, [setActiveTab]);
 
   const tabs: Array<{ id: PanelTab; label: string; icon: typeof Subtitles }> = [
     { id: 'subtitles', label: t('panel.tabSubtitles'), icon: Subtitles },
@@ -179,8 +193,10 @@ export function SidePanel({
   /* ── Drag + persisted position ───────────────────────────────────────── */
   const persistedPosition = useKivaraStore((s) => s.panelPosition);
   const setPersistedPosition = useKivaraStore((s) => s.setPanelPosition);
+  const reserveRightRef = useRef(reserveRight);
+  reserveRightRef.current = reserveRight;
   const [position, setPosition] = useState<PanelPosition>(() =>
-    clampPosition(persistedPosition ?? defaultPopupPosition()),
+    clampPosition(persistedPosition ?? defaultPopupPosition(reserveRightRef.current?.() ?? 0)),
   );
   const positionRef = useRef<PanelPosition>(position);
   const [isDragging, setIsDragging] = useState(false);
@@ -224,7 +240,7 @@ export function SidePanel({
   // viewport and mirrored into the ref so later writes read the right base.
   useEffect(() => {
     if (!isPopupMode) return;
-    const clamped = clampPosition(persistedPosition ?? defaultPopupPosition());
+    const clamped = clampPosition(persistedPosition ?? defaultPopupPosition(reserveRightRef.current?.() ?? 0));
     positionRef.current = clamped;
     setPosition(clamped);
   }, [isPopupMode, persistedPosition]);
@@ -303,7 +319,7 @@ export function SidePanel({
         isPopupMode
           ? 'rounded-xl fixed z-50 ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.08]'
           : 'w-full h-full rounded-none border-l border-zinc-900/[0.06] dark:border-white/[0.06]'
-      } ${isDragging ? 'select-none' : ''}`}
+      } ${isPopupMode ? 'kvl-pop-in' : ''} ${isDragging ? 'select-none' : ''}`}
       style={popupStyle}
     >
       {/* Header — drag handle in floating mode */}
@@ -329,17 +345,6 @@ export function SidePanel({
           </div>
         </div>
         <div className="flex items-center gap-0.5">
-          {onToTranscript && (
-            <button
-              type="button"
-              onClick={onToTranscript}
-              className={HEAD_BTN}
-              title={t('panel.toTranscript')}
-              aria-label={t('panel.toTranscript')}
-            >
-              <AlignLeft size={16} />
-            </button>
-          )}
           {togglePopupMode && (
             <button
               type="button"
@@ -349,6 +354,19 @@ export function SidePanel({
               aria-label={isPopupMode ? t('panel.dockToSide') : t('panel.openFloating')}
             >
               {isPopupMode ? <LayoutGrid size={16} /> : <ExternalLink size={16} />}
+            </button>
+          )}
+          {!isPopupMode && onShowTranscript && (
+            <button
+              type="button"
+              onClick={onShowTranscript}
+              className={HEAD_BTN}
+              data-kvl-panel-to-rail=""
+              ref={toRailRef}
+              title={withCombo(t('panel.toTranscript'), comboOf(shortcuts, 'rail'))}
+              aria-label={withCombo(t('panel.toTranscript'), comboOf(shortcuts, 'rail'))}
+            >
+              <AlignLeft size={16} />
             </button>
           )}
           <button

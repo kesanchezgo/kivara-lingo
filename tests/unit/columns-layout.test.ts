@@ -52,10 +52,10 @@ afterEach(() => {
 });
 
 describe('computeColumnVisibility', () => {
-  it('shows the rail AND the docked panel at the same time (#38)', () => {
+  it('one coupled column at a time: the docked panel hides the rail', () => {
     expect(
       computeColumnVisibility({ enabled: true, railOpen: true, panelOpen: true, isPopupMode: false }),
-    ).toEqual({ rail: true, panel: true });
+    ).toEqual({ rail: false, panel: true });
   });
 
   it('does not treat a floating panel as a column', () => {
@@ -64,12 +64,9 @@ describe('computeColumnVisibility', () => {
     ).toEqual({ rail: true, panel: false });
   });
 
-  it('keeps the rail visible when the panel is open in either mode', () => {
-    for (const isPopupMode of [false, true]) {
-      expect(
-        computeColumnVisibility({ enabled: true, railOpen: true, panelOpen: true, isPopupMode }).rail,
-      ).toBe(true);
-    }
+  it('coexists with a floating panel, never with a docked one', () => {
+    expect(computeColumnVisibility({ enabled: true, railOpen: true, panelOpen: true, isPopupMode: true }).rail).toBe(true);
+    expect(computeColumnVisibility({ enabled: true, railOpen: true, panelOpen: true, isPopupMode: false }).rail).toBe(false);
   });
 
   it('reserves nothing with the extension disabled', () => {

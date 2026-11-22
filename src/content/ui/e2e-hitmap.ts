@@ -126,6 +126,7 @@ function collectHits(container: ParentNode): E2EHit[] {
     '[aria-label], [role="radio"], [role="tab"], button',
   );
   for (const el of nodes) {
+    if (el.closest('[data-kvl-closing]')) continue;
     const rect = el.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) continue;
     const pressed = el.getAttribute('aria-pressed') ?? el.getAttribute('aria-checked');
@@ -414,6 +415,7 @@ function publishHost(host: HTMLElement): () => void {
     characterData: true,
     attributes: true,
     attributeFilter: [
+      'data-kvl-closing',
       // The card's pin writes inline styles (top/left/height) — the buttons
       // move with them and the hit map must follow or clicks land stale.
       'style',

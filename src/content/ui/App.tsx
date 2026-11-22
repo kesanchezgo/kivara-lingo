@@ -35,6 +35,8 @@ import { createSaveGate } from './save-gate';
 import { applySavedScene, captureAnchor, sceneIdentity, sceneSurface, type SubtitleAudioAnchor } from './save-scene';
 import { normalizeAnkiMapping } from '../../shared/anki-model';
 import { shouldRenderFloatingStudyBar, useNativeBarSlot } from './native-bar-slot';
+import { SlideColumn } from './SlideColumn';
+import { requestSwitchFocus, takeSwitchFocus } from './column-switch-focus';
 import { lemmaCandidates } from '../nlp/lemma';
 import { mweLemmaCandidates } from '../nlp/mwe-lemma';
 import { lookupDictionary } from '../nlp/dictionary';
@@ -53,7 +55,9 @@ import { SLOW_REPLAY_RATE } from '../platform-adapters/playback';
 import { TranscriptRail, type NativeLineCue } from './TranscriptRail';
 import { focusFirstIn } from './column-focus';
 import { StudyBar } from './StudyBar';
-import { applyColumnsCss, computeColumnLayout, computeColumnVisibility } from './columns-css';
+import {
+  applyColumnsCss, computeColumnLayout, computeColumnVisibility, RAIL_WIDTH_PX, PANEL_WIDTH_PX,
+} from './columns-css';
 import { railOpenStore, railViewStore } from './ui-state';
 import { useChromeLocal } from '../../ui/hooks/useChromeLocal';
 import { aiConfigured } from '../../shared/ai-configured';
@@ -472,6 +476,18 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   const focusPanel = useCallback(() => {
     requestAnimationFrame(() => focusFirstIn(panelHostRef.current));
   }, []);
+  const toggleRail = useCallback(() => {
+    if (panelOpen && !isPopupMode) {
+      setPanelOpen(false);
+      railOpenStore.set(true);
+      return;
+    }
+    railOpenStore.set(!railOpenStore.get());
+  }, [panelOpen, isPopupMode, setPanelOpen]);
+  useEffect(() => {
+    if (takeSwitchFocus('panel')) focusPanel();
+    else if (takeSwitchFocus('rail')) focusRail();
+  }, [panelDocked, railVisible, focusPanel, focusRail]);
   /**
    * Jump and play through the adapter's controller. A platform that refuses
    * the seek (Netflix without its player API yet) leaves playback running
@@ -2154,8 +2170,8 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             onToggleLoop={() => studyPlayback.setLoop(!studyPlayback.loop)}
             speed={studyPlayback.speed}
             onSpeed={studyPlayback.setSpeed}
-            railOpen={railOpen}
-            onToggleRail={() => railOpenStore.set(!railOpen)}
+            railOpen={railVisible}
+            onToggleRail={toggleRail}
             panelOpen={panelOpen}
             onTogglePanel={() => setPanelOpen(!panelOpen)}
           />,
@@ -2182,6 +2198,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             width: columnLayout.railWidth,
           }}
         >
+          <SlideColumn open={railVisible} widthPx={columnLayout.railWidth || RAIL_WIDTH_PX}>
           <TranscriptRail
             noCuesNotice={noCuesNotice}
             noticePlatform={adapter?.platform}
@@ -2229,7 +2246,6 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
               void Promise.resolve(gloss).then((g) =>
                 handleSaveCard(word, sentence, undefined, g, undefined, phrase));
             }}
-            onFocusPanel={panelDocked ? focusPanel : undefined}
             uiLang={currentLocale()}
             nativeLang={useKivaraStore.getState().translate.targetLanguage}
             panelOpen={panelOpen}
@@ -2238,6 +2254,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
             onClose={() => railOpenStore.set(false)}
           />
+          </SlideColumn>
         </div>
       )}
 
@@ -2263,11 +2280,13 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             ...(panelDocked ? { width: columnLayout.panelWidth } : null),
           }}
         >
+          <SlideColumn open={panelDocked} widthPx={columnLayout.panelWidth || PANEL_WIDTH_PX}>
           <SidePanel
             isPopupMode={isPopupMode}
             onClose={() => setPanelOpen(false)}
             togglePopupMode={() => setIsPopupMode(!isPopupMode)}
-            onToTranscript={railVisible ? focusRail : undefined}
+            reserveRight={isPopupMode && railVisible ? () => columnLayout.railWidth || RAIL_WIDTH_PX : undefined}
+            onShowTranscript={railVisible ? () => { requestSwitchFocus('rail'); setPanelOpen(false); railOpenStore.set(true); } : undefined}
             isDarkMode={isDarkMode}
             toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
             styles={subtitleStyles}
@@ -2277,6 +2296,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             episode={{ cues: episode.cues, lang: cueLanguage }}
             onOpenEpisodeWords={() => {
               railViewStore.set('words');
+              setPanelOpen(false);
               railOpenStore.set(true);
             }}
             // Until Phase 3 wires dictionary/translation lookup to the live
@@ -2287,6 +2307,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             mockData={buildPreviewData(activeCue?.text)}
             episodeLang={cueLanguage}
           />
+          </SlideColumn>
         </div>
       )}
     </div>

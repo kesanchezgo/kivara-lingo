@@ -93,7 +93,12 @@ export function computeColumnVisibility({
   isPopupMode,
 }: ColumnsUiState): ColumnVisibility {
   if (!enabled) return { rail: false, panel: false };
-  return { rail: railOpen, panel: panelOpen && !isPopupMode };
+  // Prototype contract: ONE coupled study column at a time. While the panel
+  // is docked the rail steps aside (railOpen stays in storage); detaching the
+  // panel to a floating window brings the rail back.
+  const panel = panelOpen && !isPopupMode;
+  const rail = railOpen && !panel;
+  return { rail, panel };
 }
 
 export interface ColumnLayout extends ColumnVisibility {
@@ -236,6 +241,8 @@ const RULES: Record<Platform, ColumnsRules> = {
 
 export interface ColumnsCssOptions {
   platform?: Platform;
+  /** Whether the extension is on — the motion sheet mounts only while enabled. */
+  enabled?: boolean;
   /** Which columns are open — pass `computeColumnVisibility(...)`. */
   state: ColumnVisibility;
   /** Viewport width the cap is measured against; defaults to `window.innerWidth`. */
@@ -316,6 +323,30 @@ export function applyColumnsCss(options: ColumnsCssOptions): void {
   const id = `kivara-columns-${platform}`;
   const existing = document.getElementById(id) as HTMLStyleElement | null;
   const css = buildColumnsCss(options);
+
+  // The player's own resize is animated on platforms whose width we drive.
+  // A SEPARATE stylesheet keeps #kivara-columns-${platform} untouched when
+  // reserved === 0 (the existing no-columns contract).
+  const motionId = `kivara-col-motion-${platform}`;
+  const rules = RULES[platform] ?? RULES.generic;
+  const selectors = [...rules.shrink, ...rules.resize];
+  if (options.enabled && selectors.length > 0) {
+    let motion = document.getElementById(motionId) as HTMLStyleElement | null;
+    if (!motion) {
+      motion = document.createElement('style');
+      motion.id = motionId;
+      document.documentElement.appendChild(motion);
+    }
+    motion.textContent = `${selectors.join(', ')} {
+      transition: width 300ms cubic-bezier(.32, .72, 0, 1) !important;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      ${selectors.join(', ')} { transition: none !important; }
+    }`;
+  } else {
+    document.getElementById(motionId)?.remove();
+  }
+
   if (!css) {
     const removed = existing !== null;
     existing?.remove();

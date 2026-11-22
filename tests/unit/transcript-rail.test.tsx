@@ -251,26 +251,18 @@ describe('TranscriptRail', () => {
     expect(replay.getAttribute('title')).toContain('Alt+Shift+R');
   });
 
-  it('hands focus to the panel when it is docked, and toggles it otherwise', () => {
-    const onFocusPanel = vi.fn();
+  it('always toggles the panel from the header — never steals focus', () => {
     const onTogglePanel = vi.fn();
     const { rerender } = render(
-      <TranscriptRail
-        {...props({ panelOpen: true, onFocusPanel, onTogglePanel })}
-      />,
+      <TranscriptRail {...props({ panelOpen: true, onTogglePanel })} />,
     );
     fireEvent.click(screen.getByTitle(/Cerrar panel/));
-    expect(onFocusPanel).toHaveBeenCalledTimes(1);
-    expect(onTogglePanel).not.toHaveBeenCalled();
-
-    rerender(
-      <TranscriptRail
-        {...props({ panelOpen: false, onFocusPanel, onTogglePanel })}
-      />,
-    );
-    fireEvent.click(screen.getByTitle(/Ir al panel/));
     expect(onTogglePanel).toHaveBeenCalledTimes(1);
+    rerender(<TranscriptRail {...props({ panelOpen: false, onTogglePanel })} />);
+    fireEvent.click(screen.getByTitle(/Abrir panel|Ir al panel|Panel/));
+    expect(onTogglePanel).toHaveBeenCalledTimes(2);
   });
+
 
   it('aligns native lines by maximum overlap', () => {
     expect(alignNativeLines(cues, nativeCues)).toEqual([
