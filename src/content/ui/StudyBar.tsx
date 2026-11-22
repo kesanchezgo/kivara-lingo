@@ -79,6 +79,7 @@ export function StudyBar(props: StudyBarProps) {
     autoPause, onToggleAutoPause, loop, onToggleLoop, speed, onSpeed,
     railOpen, onToggleRail, panelOpen, onTogglePanel,
   } = props;
+  const native = variant === 'native';
 
   const [visible, setVisible] = useState(false);
   const shortcuts = useKivaraStore((state) => state.shortcuts);
@@ -123,7 +124,7 @@ export function StudyBar(props: StudyBarProps) {
       document.removeEventListener('pointercancel', onLeave);
       if (hideTimer.current !== null) window.clearTimeout(hideTimer.current);
     };
-  }, [enabled]);
+  }, [enabled, native]);
 
   // Width of the PLAYER decides icon-only mode, not the bar's own width.
   //
@@ -132,6 +133,7 @@ export function StudyBar(props: StudyBarProps) {
   // even on a 1920 px player. The overlay container is the player's box, so
   // its width is what "a small player" means.
   useEffect(() => {
+    if (native) return;
     const element = barRef.current;
     if (!element) return;
     const host = hostOf(element);
@@ -148,11 +150,11 @@ export function StudyBar(props: StudyBarProps) {
     const observer = new ResizeObserver(measure);
     observer.observe(host ?? element.parentElement ?? element);
     return () => observer.disconnect();
-  }, []);
+  }, [native]);
   const compact = width < 760;
-  const native = variant === 'native';
   const [playerWidth, setPlayerWidth] = useState(0);
   useEffect(() => {
+    if (!native) return;
     const video = document.querySelector('video');
     if (!video) return;
     const measure = () => setPlayerWidth(Math.round(video.getBoundingClientRect().width));
@@ -161,7 +163,7 @@ export function StudyBar(props: StudyBarProps) {
     observer.observe(video);
     window.addEventListener('resize', measure);
     return () => { observer.disconnect(); window.removeEventListener('resize', measure); };
-  }, []);
+  }, [native]);
   // Zero width before layout (or in DOM-only tests) must NOT hide Prev/Next.
   const narrowPlayer = playerWidth > 0 && playerWidth < 680;
 
@@ -247,7 +249,7 @@ export function StudyBar(props: StudyBarProps) {
       off();
       observer?.disconnect();
     };
-  }, [enabled, platform]);
+  }, [enabled, native, platform]);
 
   // The E2E hit map for BOTH roots is mounted by App (see e2e-hitmap.ts);
   // the bar only publishes the width it measured, which is what the
@@ -323,9 +325,7 @@ export function StudyBar(props: StudyBarProps) {
         {!native && !compact && <span>{t('rail.loop')}</span>}
       </button>
 
-      {!native && (
-      <span aria-hidden="true" className="w-px h-4 bg-white/[0.1] mx-0.5" />
-      )}
+      <span aria-hidden="true" className={native ? "w-px h-5 bg-white/20 ml-1.5 mr-1" : "w-px h-4 bg-white/[0.1] mx-0.5"} />
 
       {native ? (
         speed !== 1 ? (

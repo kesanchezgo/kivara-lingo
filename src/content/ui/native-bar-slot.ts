@@ -8,7 +8,9 @@
  * teardown is NOT a reason to show the floating fallback — we wait for the
  * site to re-mount its row on pointer activity and re-insert there.
  */
+import { useEffect, useState } from 'react';
 import type { SubtitleSource } from '../platform-adapters/types';
+import { ShadowHost } from '../shadow-host';
 
 type Platform = SubtitleSource['platform'];
 
@@ -108,28 +110,31 @@ export function findNativeBarAnchor(platform: Platform | undefined, playerRoot: 
       return { parent: right, before: firstNonSlotChild(right) };
     }
     case 'disney': {
-      for (const sel of ['button[aria-label*="subtitle" i]', 'button[data-uia*="fullscreen" i]', 'button[class*="Fullscreen"]']) {
-        const btn = root.querySelector<HTMLElement>(sel);
-        if (btn) { const a = climbToRow(btn, root); if (a) return a; }
-      }
       const row = root.querySelector<HTMLElement>('.controls-bottom-wrap')
         ?? root.querySelector<HTMLElement>('.controls__container');
+      const scope = row ?? root;
+      for (const sel of ['button[aria-label*="subtitle" i]', 'button[data-uia*="fullscreen" i]', 'button[class*="Fullscreen"]']) {
+        const btn = scope.querySelector<HTMLElement>(sel);
+        if (btn) { const a = climbToRow(btn, scope); if (a) return a; }
+      }
       return row ? rightGroup(row) : null;
     }
     case 'hbo': {
-      for (const sel of ['button[aria-label*="subtitle" i]', 'button[class*="Fullscreen"]']) {
-        const btn = root.querySelector<HTMLElement>(sel);
-        if (btn) { const a = climbToRow(btn, root); if (a) return a; }
-      }
       const row = root.querySelector<HTMLElement>('[class*="ControlsFooterBottom"]');
+      const scope = row ?? root;
+      for (const sel of ['button[aria-label*="subtitle" i]', 'button[class*="Fullscreen"]']) {
+        const btn = scope.querySelector<HTMLElement>(sel);
+        if (btn) { const a = climbToRow(btn, scope); if (a) return a; }
+      }
       return row ? rightGroup(row) : null;
     }
     case 'prime': {
-      for (const sel of ['button[class*="fullscreen" i]', 'button[aria-label*="subtitle" i]']) {
-        const btn = root.querySelector<HTMLElement>(sel);
-        if (btn) { const a = climbToRow(btn, root); if (a) return a; }
-      }
       const row = root.querySelector<HTMLElement>('.atvwebplayersdk-bottompanel-container');
+      const scope = row ?? root;
+      for (const sel of ['button[class*="fullscreen" i]', 'button[aria-label*="subtitle" i]']) {
+        const btn = scope.querySelector<HTMLElement>(sel);
+        if (btn) { const a = climbToRow(btn, scope); if (a) return a; }
+      }
       return row ? rightGroup(row) : null;
     }
     default:
@@ -192,4 +197,60 @@ export class NativeAnchorWatcher {
     this.anchor = null;
     this.seen = false;
   }
+}
+
+export interface NativeBarState {
+  reactRoot: HTMLElement | null;
+  allowFloating: boolean;
+}
+
+/**
+ * Owns the native-slot lifecycle for one <video> session. Once a native
+ * anchor was seen, an idle teardown must NOT restore the floating capsule —
+ * only a new video (or disabled extension) returns to the floating fallback.
+ */
+export function useNativeBarSlot(
+  enabled: boolean,
+  platform: Platform | undefined,
+  videoElement: HTMLVideoElement | null,
+): NativeBarState {
+  const [state, setState] = useState<NativeBarState>({ reactRoot: null, allowFloating: true });
+  useEffect(() => {
+    setState({ reactRoot: null, allowFloating: true });
+    if (!enabled) return;
+    const watcher = new NativeAnchorWatcher();
+    let mounted: ReturnType<typeof ShadowHost.mountInlineSlot> | null = null;
+    const root = resolvePlayerRoot(platform, videoElement);
+    const onChange = () => {
+      const anchor = watcher.currentAnchor();
+      if (anchor) {
+        if (!mounted) mounted = ShadowHost.mountInlineSlot(anchor);
+        else if (mounted.hostElement.parentElement !== anchor.parent || mounted.hostElement.nextSibling !== anchor.before) {
+          const ref = anchor.before && anchor.before !== mounted.hostElement
+            && anchor.before.parentNode === anchor.parent ? anchor.before : null;
+          anchor.parent.insertBefore(mounted.hostElement, ref);
+        }
+        setState({ reactRoot: mounted.reactRoot, allowFloating: false });
+      } else {
+        mounted?.destroy();
+        mounted = null;
+        setState({ reactRoot: null, allowFloating: watcher.shouldUseFloating() });
+      }
+    };
+    watcher.observe(root, onChange, platform);
+    return () => {
+      watcher.disconnect();
+      mounted?.destroy();
+      setState({ reactRoot: null, allowFloating: true });
+    };
+  }, [enabled, videoElement, platform]);
+  return state;
+}
+
+export function shouldRenderFloatingStudyBar(
+  enabled: boolean,
+  videoOverlayRoot: HTMLElement | null | undefined,
+  nativeBar: NativeBarState,
+): boolean {
+  return Boolean(enabled && videoOverlayRoot && nativeBar.allowFloating && !nativeBar.reactRoot);
 }
