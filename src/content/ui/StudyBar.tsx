@@ -91,7 +91,7 @@ export function StudyBar(props: StudyBarProps) {
   // the move even when a player wrapper calls stopPropagation (HBO's does),
   // which is the same reason App's hover watchdog listens that way.
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || native) {
       setVisible(false);
       return;
     }
@@ -151,8 +151,19 @@ export function StudyBar(props: StudyBarProps) {
   }, []);
   const compact = width < 760;
   const native = variant === 'native';
-  const playerWidth = playerRect()?.width ?? width;
-  const narrowPlayer = playerWidth < 680;
+  const [playerWidth, setPlayerWidth] = useState(0);
+  useEffect(() => {
+    const video = document.querySelector('video');
+    if (!video) return;
+    const measure = () => setPlayerWidth(Math.round(video.getBoundingClientRect().width));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(video);
+    window.addEventListener('resize', measure);
+    return () => { observer.disconnect(); window.removeEventListener('resize', measure); };
+  }, []);
+  // Zero width before layout (or in DOM-only tests) must NOT hide Prev/Next.
+  const narrowPlayer = playerWidth > 0 && playerWidth < 680;
 
   /**
    * Where the bar sits: on the half of the player the caption does NOT occupy.
@@ -172,7 +183,7 @@ export function StudyBar(props: StudyBarProps) {
    */
   const [placement, setPlacement] = useState<BarPlacement>({ side: 'bottom', top: null, bottom: 12 });
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || native) return;
     const element = barRef.current;
     if (!element) return;
     const scope = scopeOf(element);
@@ -298,7 +309,7 @@ export function StudyBar(props: StudyBarProps) {
         className={native ? nativeChip(autoPause) : chip(autoPause)}
       >
         <Pause size={12} fill="currentColor" />
-        {!compact && <span>{t('rail.autoPauseShort')}</span>}
+        {!native && !compact && <span>{t('rail.autoPauseShort')}</span>}
       </button>
       <button
         type="button"
@@ -309,10 +320,12 @@ export function StudyBar(props: StudyBarProps) {
         className={native ? nativeChip(loop) : chip(loop)}
       >
         <Repeat size={12} weight="bold" />
-        {!compact && <span>{t('rail.loop')}</span>}
+        {!native && !compact && <span>{t('rail.loop')}</span>}
       </button>
 
-      <span aria-hidden="true" className={native ? "w-px h-5 bg-white/20 ml-1.5 mr-1" : "w-px h-4 bg-white/[0.1] mx-0.5"} />
+      {!native && (
+      <span aria-hidden="true" className="w-px h-4 bg-white/[0.1] mx-0.5" />
+      )}
 
       {native ? (
         speed !== 1 ? (
@@ -352,7 +365,9 @@ export function StudyBar(props: StudyBarProps) {
       </div>
       )}
 
+      {(!native || speed !== 1) && (
       <span aria-hidden="true" className={native ? "w-px h-5 bg-white/20 ml-1.5 mr-1" : "w-px h-4 bg-white/[0.1] mx-0.5"} />
+      )}
 
       <button
         type="button"
@@ -385,7 +400,9 @@ const NATIVE_NAV =
   'w-9 h-9 rounded-md flex items-center justify-center text-white/90 hover:text-white hover:scale-110 transition kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40';
 
 function nativeChip(on: boolean): string {
-  return `${NATIVE_NAV} relative ${on ? 'text-indigo-300' : ''}`;
+  return `${NATIVE_NAV} relative ${on
+    ? "text-indigo-300 after:content-[''] after:absolute after:bottom-1 after:h-1 after:w-1 after:rounded-full after:bg-indigo-400"
+    : ''}`;
 }
 
 const NAV =

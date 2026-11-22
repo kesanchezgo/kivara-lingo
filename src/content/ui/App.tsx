@@ -35,7 +35,7 @@ import { createSaveGate } from './save-gate';
 import { applySavedScene, captureAnchor, sceneIdentity, sceneSurface, type SubtitleAudioAnchor } from './save-scene';
 import { normalizeAnkiMapping } from '../../shared/anki-model';
 import { ShadowHost } from '../shadow-host';
-import { NativeAnchorWatcher } from './native-bar-slot';
+import { NativeAnchorWatcher, resolvePlayerRoot } from './native-bar-slot';
 import { lemmaCandidates } from '../nlp/lemma';
 import { mweLemmaCandidates } from '../nlp/mwe-lemma';
 import { lookupDictionary } from '../nlp/dictionary';
@@ -509,33 +509,40 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
 
   // Native bar integration: mount the study bar INSIDE the platform's own
   // control row when one exists; keep the floating bar as the fallback.
-  const [nativeSlot, setNativeSlot] = useState<{ reactRoot: HTMLElement } | null>(null);
+  const [nativeBar, setNativeBar] = useState<{ reactRoot: HTMLElement | null; allowFloating: boolean }>({
+    reactRoot: null, allowFloating: true,
+  });
   useEffect(() => {
-    if (!enabled) { setNativeSlot(null); return; }
+    setNativeBar({ reactRoot: null, allowFloating: true });
+    if (!enabled) return;
     const watcher = new NativeAnchorWatcher();
     let mounted: ReturnType<typeof ShadowHost.mountInlineSlot> | null = null;
-    // Netflix keeps its control row ABOVE the video's immediate parents,
-    // under .watch-video — observe the whole player container, not just the
-    // video's grandparent, or the native anchor is never seen.
-    const root = (videoElement?.closest<HTMLElement>('.watch-video'))
-      ?? (videoElement?.parentElement?.parentElement as HTMLElement | null)
-      ?? (videoElement?.parentElement as HTMLElement | null) ?? null;
+    const root = resolvePlayerRoot(adapter?.platform, videoElement);
     const onChange = () => {
       const anchor = watcher.currentAnchor();
-      mounted?.destroy();
-      mounted = null;
-      if (watcher.hasSeenNativeAnchor() && anchor) {
-        mounted = ShadowHost.mountInlineSlot(anchor);
-        setNativeSlot({ reactRoot: mounted.reactRoot });
+      if (anchor) {
+        if (!mounted) mounted = ShadowHost.mountInlineSlot(anchor);
+        else if (mounted.hostElement.parentElement !== anchor.parent || mounted.hostElement.nextSibling !== anchor.before) {
+          // Re-seat the LIVE slot — never destroy/recreate its closed root:
+          // React state and the bridge's root reference stay valid.
+          const ref = anchor.before && anchor.before !== mounted.hostElement
+            && anchor.before.parentNode === anchor.parent ? anchor.before : null;
+          anchor.parent.insertBefore(mounted.hostElement, ref);
+        }
+        setNativeBar({ reactRoot: mounted.reactRoot, allowFloating: false });
       } else {
-        setNativeSlot(null);
+        mounted?.destroy();
+        mounted = null;
+        // Once a native anchor was seen in this <video> session, a resting
+        // teardown must NOT bring back the floating capsule.
+        setNativeBar({ reactRoot: null, allowFloating: watcher.shouldUseFloating() });
       }
     };
     watcher.observe(root, onChange, adapter?.platform);
     return () => {
       watcher.disconnect();
       mounted?.destroy();
-      setNativeSlot(null);
+      setNativeBar({ reactRoot: null, allowFloating: true });
     };
   }, [enabled, videoElement, adapter?.platform]);
 
@@ -2124,7 +2131,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       {/* F6: the study bar lives in the player's overlay root, above the
           platform's own controls (D2). Its visibility follows pointer activity
           over the player, like the site's bar. */}
-      {enabled && videoOverlayRoot && !nativeSlot &&
+      {enabled && videoOverlayRoot && nativeBar.allowFloating && !nativeBar.reactRoot &&
         createPortal(
           // Same re-provision as the overlay portal above: portals opened from
           // the StudyBar must land in the VIDEO host's root, which stays inside
@@ -2160,7 +2167,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           videoOverlayRoot,
         )}
 
-      {enabled && nativeSlot &&
+      {enabled && nativeBar.reactRoot &&
         createPortal(
           <StudyBar
             variant="native"
@@ -2187,7 +2194,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             panelOpen={panelOpen}
             onTogglePanel={() => setPanelOpen(!panelOpen)}
           />,
-          nativeSlot.reactRoot,
+          nativeBar.reactRoot,
         )}
 
       {/* F6: the transcript column (D1). It reserves its width on the player

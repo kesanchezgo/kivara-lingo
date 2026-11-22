@@ -45,6 +45,7 @@ import globalsCss from '../styles/globals.css?inline';
 import themeCss from '../styles/theme.css?inline';
 import tailwindCss from '../styles/tailwind.css?inline';
 import { ensureKivaraInter } from '../ui/fonts';
+import { BAR_SLOT_ID } from './ui/native-bar-slot';
 // Sonner ships its layout/animation CSS as a separate file. Sonner injects
 // it into `document.head` at runtime, but our React tree lives inside the
 // Shadow DOM where that head-level rule is invisible — without this import
@@ -331,7 +332,7 @@ export class ShadowHost {
   static mountInlineSlot(anchor: { parent: HTMLElement; before: Node | null }) {
     applyPageGuards();
     const hostElement = document.createElement('div');
-    hostElement.id = 'kivara-lingo-bar-slot';
+    hostElement.id = BAR_SLOT_ID;
     hostElement.setAttribute('data-darkreader-ignore', 'true');
     hostElement.style.all = 'initial';
     hostElement.style.display = 'inline-flex';
@@ -339,7 +340,10 @@ export class ShadowHost {
     hostElement.style.height = '100%';
     hostElement.style.flexShrink = '0';
     hostElement.style.pointerEvents = 'auto';
-    anchor.parent.insertBefore(hostElement, anchor.before);
+    const ref = anchor.before && anchor.before !== hostElement && anchor.before.parentNode === anchor.parent
+      ? anchor.before
+      : null;
+    anchor.parent.insertBefore(hostElement, ref);
 
     const shadowRoot = hostElement.attachShadow({ mode: 'closed' });
     shadowRoots.set(hostElement, shadowRoot);
@@ -354,9 +358,15 @@ ${tailwindCss}`;
     reactRoot.id = 'kivara-lingo-bar-react-root';
     shadowRoot.appendChild(reactRoot);
 
-    for (const type of ['click', 'dblclick', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'keydown']) {
+    for (const type of ['click', 'dblclick', 'mousedown', 'mouseup', 'pointerdown', 'pointerup']) {
       hostElement.addEventListener(type, (event) => event.stopPropagation());
     }
+    // Only Space/Enter would otherwise activate the site's focused native
+    // control (pause/fullscreen). Player shortcuts — F, M, K, arrows, Escape —
+    // must keep bubbling to the document.
+    hostElement.addEventListener('keydown', (event) => {
+      if (event.key === ' ' || event.key === 'Enter') event.stopPropagation();
+    });
 
     if (__E2E__) {
       const registry = window as unknown as {

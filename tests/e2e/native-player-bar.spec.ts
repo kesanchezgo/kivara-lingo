@@ -3,7 +3,7 @@
  * row, disappears with it on inactivity, and re-inserts on remount — no
  * floating capsule while the site has a native row.
  */
-import { readFixture } from './helpers';
+import { boxesOf, hitsOf, readFixture } from './helpers';
 import { expect, test } from './fixtures';
 
 const TTML = `<?xml version="1.0" encoding="utf-8"?>
@@ -62,19 +62,31 @@ test('the study bar mounts in the native Netflix control row and survives a rest
       const r = el.getBoundingClientRect();
       return r.y + r.height / 2;
     };
-    const toolbar = document.getElementById('kivara-lingo-video-host')?.shadowRoot
-      ?.querySelector('[role="toolbar"]');
+    const toolbar = (window as unknown as { __kivaraRoots?: Record<string, { root: ShadowRoot }> })
+      .__kivaraRoots?.['kivara-lingo-video-host']?.root?.querySelector('[role="toolbar"]');
     return { delta: Math.abs(center(slot) - center(native)), barInFloatingHost: !!toolbar };
   });
   expect(geom.delta).toBeLessThanOrEqual(4);
+  expect(geom.barInFloatingHost).toBe(false);
+  expect((await boxesOf(page)).bar).not.toBeNull();
+
+  // Real mouse click on the native toolbar: the site's player must not
+  // pause/fullscreen from our controls (the closed-root button's own
+  // aria-pressed is covered by the jsdom variant tests).
+  const loopHit = (await hitsOf(page, 'kivara-lingo-video-host')).find((h) => h.label === 'Bucle')!;
+  await page.mouse.click(loopHit.cx, loopHit.cy);
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => document.querySelector('video')?.paused)).toBe(false);
 
   // Native teardown on inactivity: no floating fallback while the site owns
   // a native row in this session.
   await injectRow(page, false);
   await page.waitForTimeout(400);
   expect(await page.evaluate(() => !!document.getElementById('kivara-lingo-bar-slot'))).toBe(false);
+  await expect.poll(async () => (await boxesOf(page)).bar, { timeout: 5_000 }).toBeNull();
   const floating = await page.evaluate(() =>
-    !!document.getElementById('kivara-lingo-video-host')?.shadowRoot?.querySelector('[role="toolbar"]'));
+    !!(window as unknown as { __kivaraRoots?: Record<string, { root: ShadowRoot }> })
+      .__kivaraRoots?.['kivara-lingo-video-host']?.root?.querySelector('[role="toolbar"]'));
   expect(floating).toBe(false);
 
   // Pointer activity re-mounts the site's row → the slot re-inserts.
