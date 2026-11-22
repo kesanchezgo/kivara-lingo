@@ -37,7 +37,7 @@ import { NEXT_TRANSLATION, type TranslationMode } from '../../shared/study/study
 import { comboOf, withCombo } from './combo-hints';
 import { tokenizeSentence, type Token } from '../nlp/tokenize';
 import { findRanges, foldForSearch, splitByRanges, type TextRange } from '../../shared/study/textSearch';
-import { markContainerAttrs, markOf, markAttrs, MARK_INK, StatusGlyph } from './wordMarks';
+import { markContainerAttrs, markOf, markAttrs, MARK_INK, StatusGlyph, isLearnableToken } from './wordMarks';
 import {
   FilterChips,
   IconTile,
@@ -53,6 +53,7 @@ import { inputCls } from '../../ui/primitives/controls';
 import { useLongPress } from '../../ui/hooks/useLongPress';
 import { EpisodeWords, buildEpisodeVocabulary } from './EpisodeWords';
 import { NoSubtitlesNotice } from './no-cues-notice';
+import { BrandGlyph } from '../../ui/BrandGlyph';
 import { LanguageMismatchNotice } from './language-mismatch';
 import { SentenceExplain } from './SentenceExplain';
 import { PLAYBACK_SPEEDS } from '../platform-adapters/playback';
@@ -108,7 +109,6 @@ export interface TranscriptRailProps {
   /** Save the single new word of a line through the overlay's capture flow. */
   onSaveWord?(word: string, sentence: string): void;
   /** Panel is docked: move focus to its first control instead of closing it. */
-  onFocusPanel?(): void;
   media: MediaInfo | null;
   view: RailView;
   onViewChange(view: RailView): void;
@@ -149,7 +149,7 @@ export function TranscriptRail(props: TranscriptRailProps) {
     onStudyResume, ai, explainRequest = 0, uiLang, nativeLang, panelOpen, onTogglePanel,
     isDarkMode, onToggleDarkMode, onClose,
     nativeCues = null, translation, onTranslationChange, listenFirst,
-    onSaveWord, onFocusPanel,
+    onSaveWord,
   } = props;
   const shortcuts = useKivaraStore((state) => state.shortcuts);
   const combo = (id: string) => comboOf(shortcuts, id);
@@ -260,7 +260,7 @@ export function TranscriptRail(props: TranscriptRailProps) {
       const seen = new Set<string>();
       let word: string | undefined;
       for (const token of tokens) {
-        if (token.kind === 'punct' || token.kind === 'ignored' || token.kind === 'proper-noun-known') continue;
+        if (!isLearnableToken(token)) continue;
         const mark = markOf(token, study.statusOf);
         if (mark.status !== 'new') continue;
         seen.add((token.lemma ?? token.key).toLowerCase());
@@ -464,9 +464,10 @@ export function TranscriptRail(props: TranscriptRailProps) {
                 : withCombo(t('rail.toPanel'), combo('panel'))
             }
             active={panelOpen}
-            onClick={panelOpen && onFocusPanel ? onFocusPanel : onTogglePanel}
+            onClick={onTogglePanel}
+            data-kvl-rail-to-panel=""
           >
-            <Subtitles size={16} />
+            <BrandGlyph size={16} />
           </IconButton>
           <IconButton
             title={isDarkMode ? t('panel.lightMode') : t('panel.darkMode')}
@@ -877,7 +878,7 @@ const CueRow = memo(function CueRow({
               const text = hits
                 ? highlight(token.text, starts[tokenIndex], hits)
                 : token.text;
-              if (token.kind === 'punct') return <span key={tokenIndex}>{text}</span>;
+              if (!isLearnableToken(token) || token.text === '') return <span key={tokenIndex}>{text}</span>;
               const mark = markOf(token, statusOf);
               return mark.status ? (
                 <span key={tokenIndex} className="kvl-tok" {...markAttrs(mark)}>

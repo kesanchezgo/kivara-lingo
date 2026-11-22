@@ -40,7 +40,12 @@ const MARKABLE = new Set<Token['kind']>(['mwe', 'known', 'unknown', 'mastered'])
  * Mark of a tokenizer token. `statusOf` resolves the profile's status by
  * lemma; without it only the type axis is drawn (F3 behaviour).
  */
+export function isLearnableToken(tok: Token): boolean {
+  return MARKABLE.has(tok.kind) && /\p{L}/u.test(tok.text);
+}
+
 export function markOf(tok: Token, statusOf?: (tokenKey: string) => WordStatus): TokenMark {
+  if (!isLearnableToken(tok)) return { expr: false };
   const expr = tok.kind === 'mwe';
   // «mastered» is the tokenizer's explicit learned set: it IS «known», with or
   // without a profile resolver.

@@ -1,0 +1,75 @@
+/**
+ * Study column that slides in/out from the right edge of the player (ported
+ * from .mock/src/app/components/ui/SlideColumn.tsx). The inner width is
+ * FROZEN during the transition so the panel tabs never reflow, and the child
+ * stays mounted (aria-hidden + data-kvl-closing) until width's transitionend
+ * or a timeout fallback for hidden tabs / happy-dom.
+ */
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+
+export interface SlideColumnProps {
+  open: boolean;
+  widthPx: number;
+  children: React.ReactNode;
+  hostRef?: React.MutableRefObject<HTMLDivElement | null> | ((node: HTMLDivElement | null) => void);
+}
+
+export function SlideColumn({ open, widthPx, children, hostRef }: SlideColumnProps) {
+  const [mounted, setMounted] = useState(open);
+  const [shown, setShown] = useState(open);
+  const outer = useRef<HTMLDivElement | null>(null);
+  const inner = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (open) setMounted(true);
+    else if (inner.current) inner.current.style.width = `${inner.current.offsetWidth}px`;
+    if (!open) setShown(false);
+  }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open || !mounted || shown) return;
+    if (inner.current) inner.current.style.width = `${widthPx}px`;
+    let id2 = 0;
+    const id = requestAnimationFrame(() => { id2 = requestAnimationFrame(() => setShown(true)); });
+    return () => { cancelAnimationFrame(id); cancelAnimationFrame(id2); };
+  }, [open, mounted, shown, widthPx]);
+
+  // Fallback: a hidden tab never delivers transitionend; unmount anyway.
+  useEffect(() => {
+    if (open || !mounted) return;
+    const timer = setTimeout(() => setMounted(false), 340);
+    return () => clearTimeout(timer);
+  }, [open, mounted]);
+
+  const onEnd = (event: React.TransitionEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget || event.propertyName !== 'width') return;
+    if (!open) setMounted(false);
+    else if (inner.current) inner.current.style.width = '';
+  };
+
+  if (!mounted) return null;
+  return (
+    <div
+      ref={(node) => {
+        outer.current = node;
+        if (typeof hostRef === 'function') hostRef(node);
+        else if (hostRef && typeof hostRef === 'object') Object.assign(hostRef, { current: node });
+      }}
+      onTransitionEnd={onEnd}
+      data-kvl-closing={!open ? '' : undefined}
+      aria-hidden={!open || undefined}
+      className={`shrink-0 h-full flex justify-end overflow-hidden transition-[width,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] motion-reduce:transition-none ${
+        shown ? 'opacity-100' : 'w-0 opacity-0'
+      } ${!open ? 'pointer-events-none' : ''}`}
+      style={shown ? { width: `${widthPx}px` } : undefined}
+    >
+      <div
+        ref={inner}
+        className="h-full w-full shrink-0 [&>*]:!w-full [&>*]:!animate-none [&>.contents>*]:!w-full [&>.contents>*]:!animate-none"
+        style={{ width: `${widthPx}px` }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}

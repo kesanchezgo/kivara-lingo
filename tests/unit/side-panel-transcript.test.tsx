@@ -10,7 +10,7 @@ import { SidePanel } from '../../src/content/ui/SidePanel';
 import { useKivaraStore } from '../../src/shared/use-kivara-store';
 import { buildPreviewData } from '../../src/shared/preview-data';
 
-function renderPanel(onToTranscript?: () => void) {
+function renderPanel(onShowTranscript?: () => void) {
   const state = useKivaraStore.getState();
   return render(
     <SidePanel
@@ -23,21 +23,21 @@ function renderPanel(onToTranscript?: () => void) {
       mapping={state.ankiMapping}
       setMapping={vi.fn()}
       mockData={buildPreviewData('Hello there.')}
-      onToTranscript={onToTranscript}
+      onShowTranscript={onShowTranscript}
     />,
   );
 }
 
 describe('SidePanel transcript hand-off', () => {
   it('offers the transcript action and calls it', () => {
-    const onToTranscript = vi.fn();
-    renderPanel(onToTranscript);
-    fireEvent.click(screen.getByTitle('Ir a la transcripción'));
-    expect(onToTranscript).toHaveBeenCalledTimes(1);
+    const onShowTranscript = vi.fn();
+    renderPanel(onShowTranscript);
+    fireEvent.click(screen.getByTitle(/Ir a la transcripción/));
+    expect(onShowTranscript).toHaveBeenCalledTimes(1);
   });
 
   it('hides the action when there is no rail to jump to', () => {
     renderPanel(undefined);
-    expect(screen.queryByTitle('Ir a la transcripción')).toBeNull();
+    expect(screen.queryByTitle(/Ir a la transcripción/)).toBeNull();
   });
 });

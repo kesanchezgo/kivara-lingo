@@ -25,7 +25,7 @@ import { t, useLocale } from '../../shared/i18n';
 import { tokenizeSentence } from '../nlp/tokenize';
 import { lookupDictionary } from '../nlp/dictionary';
 import { normalizeStatusKey, type WordStatus } from '../../shared/study/wordStatus';
-import { StatusGlyph, MARK_INK } from './wordMarks';
+import { StatusGlyph, MARK_INK, isLearnableToken } from './wordMarks';
 import { FilterChips, FOCUS, buttonCls } from '../../ui/primitives/settings-primitives';
 import type { StudyBinding } from './study';
 
@@ -58,7 +58,7 @@ export function buildEpisodeVocabulary(cues: readonly EpisodeCue[], lang = 'en')
       const expr = tok.kind === 'mwe';
       // Same criterion as the subtitle marks: expressions and vocabulary,
       // never proper nouns or punctuation.
-      if (!expr && tok.kind !== 'known' && tok.kind !== 'unknown' && tok.kind !== 'mastered') continue;
+      if (!isLearnableToken(tok)) continue;
       const lemma = normalizeStatusKey(tok.lemma ?? tok.key);
       if (!lemma) continue;
       const seen = byLemma.get(lemma);
