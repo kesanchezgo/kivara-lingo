@@ -35,6 +35,7 @@ import { openResolveWordStream } from '../resolve-word-stream';
 import { FrequencyBadge, useWordRank } from './FrequencyBadge';
 import { LanguageMismatchNotice } from './language-mismatch';
 import { onRadioKeyDown, radioTabIndex } from '../../ui/primitives/settings-primitives';
+import { MARK_INK, StatusGlyph } from './wordMarks';
 
 const STATUS_VALUES = ['new', 'learning', 'known'] as const;
 type CompactStatus = typeof STATUS_VALUES[number];
@@ -1159,22 +1160,26 @@ export function WordPopover({
                   e, STATUS_VALUES, wordStatus ?? null,
                   (s) => onWordStatus(s),
                 )}
-                className="shrink-0 self-center flex items-center h-6 rounded-md bg-zinc-900/[0.05] dark:bg-white/[0.06] p-0.5"
+                className={`${MARK_INK} shrink-0 self-center flex items-center h-6 rounded-md bg-zinc-900/[0.05] dark:bg-white/[0.06] p-0.5`}
               >
-                {STATUS_VALUES.map((s, i) => (
-                  <button
-                    key={s}
-                    type="button"
-                    role="radio"
-                    aria-checked={wordStatus === s}
-                    tabIndex={radioTabIndex(wordStatus === s, i, wordStatus != null)}
-                    title={s === 'new' ? t('ws.new') : s === 'learning' ? t('ws.learning') : t('ws.known')}
-                    onClick={(e) => { e.stopPropagation(); onWordStatus(s); }}
-                    className={`h-5 px-1 text-[10px] rounded ${wordStatus === s ? 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-zinc-500 dark:text-zinc-400'}`}
-                  >
-                    {s === 'new' ? t('ws.new') : s === 'learning' ? t('ws.learning') : t('ws.known')}
-                  </button>
-                ))}
+                {STATUS_VALUES.map((s, i) => {
+                  const label = s === 'new' ? t('ws.new') : s === 'learning' ? t('ws.learning') : t('ws.known');
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      role="radio"
+                      aria-checked={wordStatus === s}
+                      tabIndex={radioTabIndex(wordStatus === s, i, wordStatus != null)}
+                      title={label}
+                      onClick={(e) => { e.stopPropagation(); onWordStatus(s); }}
+                      className={`inline-flex items-center gap-1 h-5 px-1 text-[10px] rounded ${wordStatus === s ? 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-zinc-500 dark:text-zinc-400'}`}
+                    >
+                      {s !== 'known' && <StatusGlyph status={s} />}
+                      <span>{label}</span>
+                    </button>
+                  );
+                })}
               </div>
               <PopoverDivider />
             </>
