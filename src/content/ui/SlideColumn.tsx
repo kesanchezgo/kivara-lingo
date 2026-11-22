@@ -12,11 +12,14 @@ export interface SlideColumnProps {
   widthPx: number;
   children: React.ReactNode;
   hostRef?: React.MutableRefObject<HTMLDivElement | null> | ((node: HTMLDivElement | null) => void);
+  className?: string;
 }
 
-export function SlideColumn({ open, widthPx, children, hostRef }: SlideColumnProps) {
+export function SlideColumn({ open, widthPx, children, hostRef, className = '' }: SlideColumnProps) {
   const [mounted, setMounted] = useState(open);
-  const [shown, setShown] = useState(open);
+  // Even an initially open column starts collapsed: the double-rAF in the
+  // layout effect animates 0px → widthPx on the FIRST open, not just later ones.
+  const [shown, setShown] = useState(false);
   const outer = useRef<HTMLDivElement | null>(null);
   const inner = useRef<HTMLDivElement | null>(null);
 
@@ -30,8 +33,20 @@ export function SlideColumn({ open, widthPx, children, hostRef }: SlideColumnPro
     if (!open || !mounted || shown) return;
     if (inner.current) inner.current.style.width = `${widthPx}px`;
     let id2 = 0;
-    const id = requestAnimationFrame(() => { id2 = requestAnimationFrame(() => setShown(true)); });
-    return () => { cancelAnimationFrame(id); cancelAnimationFrame(id2); };
+    let settled = false;
+    const reveal = () => {
+      if (settled) return;
+      settled = true;
+      setShown(true);
+    };
+    const id = requestAnimationFrame(() => { id2 = requestAnimationFrame(reveal); });
+    // An occluded tab can starve rAF; the column must still open.
+    const fallback = window.setTimeout(reveal, 80);
+    return () => {
+      cancelAnimationFrame(id);
+      cancelAnimationFrame(id2);
+      window.clearTimeout(fallback);
+    };
   }, [open, mounted, shown, widthPx]);
 
   // Fallback: a hidden tab never delivers transitionend; unmount anyway.
@@ -56,9 +71,10 @@ export function SlideColumn({ open, widthPx, children, hostRef }: SlideColumnPro
         else if (hostRef && typeof hostRef === 'object') Object.assign(hostRef, { current: node });
       }}
       onTransitionEnd={onEnd}
+      data-kvl-slide=""
       data-kvl-closing={!open ? '' : undefined}
       aria-hidden={!open || undefined}
-      className={`shrink-0 h-full flex justify-end overflow-hidden transition-[width,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] motion-reduce:transition-none ${
+      className={`${className} shrink-0 h-full flex justify-end overflow-hidden transition-[width,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] motion-reduce:transition-none ${
         shown ? 'opacity-100' : 'w-0 opacity-0'
       } ${!open ? 'pointer-events-none' : ''}`}
       style={shown ? { width: `${widthPx}px` } : undefined}

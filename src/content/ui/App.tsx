@@ -36,7 +36,7 @@ import { applySavedScene, captureAnchor, sceneIdentity, sceneSurface, type Subti
 import { normalizeAnkiMapping } from '../../shared/anki-model';
 import { shouldRenderFloatingStudyBar, useNativeBarSlot } from './native-bar-slot';
 import { SlideColumn } from './SlideColumn';
-import { requestSwitchFocus, takeSwitchFocus } from './column-switch-focus';
+import { requestSwitchFocus } from './column-switch-focus';
 import { lemmaCandidates } from '../nlp/lemma';
 import { mweLemmaCandidates } from '../nlp/mwe-lemma';
 import { lookupDictionary } from '../nlp/dictionary';
@@ -53,7 +53,6 @@ import { cueIndexAt, useStudyPlayback } from './useStudyPlayback';
 import { buildCueRequestFields } from './save-request';
 import { SLOW_REPLAY_RATE } from '../platform-adapters/playback';
 import { TranscriptRail, type NativeLineCue } from './TranscriptRail';
-import { focusFirstIn } from './column-focus';
 import { StudyBar } from './StudyBar';
 import {
   applyColumnsCss, computeColumnLayout, computeColumnVisibility, RAIL_WIDTH_PX, PANEL_WIDTH_PX,
@@ -214,6 +213,9 @@ function StudyPausedPill({
   return null;
 }
 
+/** Owned here so a docked ⇄ floating switch never resets the open tab. */
+type PanelTab = 'subtitles' | 'vocab' | 'cards' | 'settings';
+
 export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContainer }: AppProps) {
   const storeAnkiMapping = useKivaraStore((s) => s.ankiMapping);
   const ankiMapping = normalizeAnkiMapping(storeAnkiMapping);
@@ -238,6 +240,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   } = useKivaraStore();
 
   const [activeCue, setActiveCue] = useState<ActiveCue | null>(null);
+  const [panelTab, setPanelTab] = useState<PanelTab>('cards');
   // Expressions split by hand (Alt+wheel or the card) — the overlay renders
   // them, App owns the state so it survives a card unmount.
   const [expandedMWEs, setExpandedMWEs] = useState<Set<string>>(new Set());
@@ -427,8 +430,11 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   const requestExplain = useCallback(() => {
     railViewStore.set('lines');
     railOpenStore.set(true);
+    // The docked panel and the rail share the one column: yield the slot.
+    const state = useKivaraStore.getState();
+    if (state.panelOpen && !state.isPopupMode) setPanelOpen(false);
     setExplainTick((tick) => tick + 1);
-  }, []);
+  }, [setPanelOpen]);
   // Cue under the playhead, for the rail. App re-renders when the adapter
   // publishes a new cue, so this is a cheap read, not a poll.
   const activeCueIndex = cueIndexAt(
@@ -436,12 +442,10 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     adapter?.getCurrentTime?.() ?? (videoElement ? videoElement.currentTime * 1000 : 0),
   );
 
-  // ── The two columns on the right (H11/D1, #38) ──────────────────────────
-  // The transcript rail and the docked panel are NEIGHBOURS: both render at
-  // once (the panel no longer replaces the transcript) and the player gives up
-  // the room for both. `computeColumnVisibility` owns which ones count; the
-  // width math lives in columns-css.ts, the same module that injects the
-  // stylesheet, so the two can't disagree.
+  // ── The coupled study column (H11/D1, #38) ─────────────────────────────
+  // The rail and the docked panel share ONE slot: `computeColumnVisibility`
+  // keeps only one of them visible, and both SlideColumns stay mounted while
+  // the extension is enabled so width can actually animate in and out.
   const columnVisibility = useMemo(
     () => computeColumnVisibility({ enabled, railOpen, panelOpen, isPopupMode }),
     [enabled, railOpen, panelOpen, isPopupMode],
@@ -468,26 +472,33 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   );
   // The two columns are separate subtrees: a button in one hands the keyboard
   // to the other instead of leaving focus on the player.
-  const railHostRef = useRef<HTMLDivElement>(null);
-  const panelHostRef = useRef<HTMLDivElement>(null);
-  const focusRail = useCallback(() => {
-    requestAnimationFrame(() => focusFirstIn(railHostRef.current));
-  }, []);
-  const focusPanel = useCallback(() => {
-    requestAnimationFrame(() => focusFirstIn(panelHostRef.current));
-  }, []);
+  const railHostRef = useRef<HTMLDivElement | null>(null);
+  const panelHostRef = useRef<HTMLDivElement | null>(null);
   const toggleRail = useCallback(() => {
-    if (panelOpen && !isPopupMode) {
+    // Fresh state: the native bar, the floating bar and the Alt+T shortcut
+    // can all fire in the same tick after a panel switch.
+    const state = useKivaraStore.getState();
+    if (state.panelOpen && !state.isPopupMode) {
       setPanelOpen(false);
       railOpenStore.set(true);
       return;
     }
     railOpenStore.set(!railOpenStore.get());
-  }, [panelOpen, isPopupMode, setPanelOpen]);
-  useEffect(() => {
-    if (takeSwitchFocus('panel')) focusPanel();
-    else if (takeSwitchFocus('rail')) focusRail();
-  }, [panelDocked, railVisible, focusPanel, focusRail]);
+  }, [setPanelOpen]);
+  const panelToTranscript = useCallback(() => {
+    requestSwitchFocus('rail');
+    setPanelOpen(false);
+    railOpenStore.set(true);
+  }, [setPanelOpen]);
+  const railTogglePanel = useCallback(() => {
+    if (!useKivaraStore.getState().panelOpen) {
+      requestSwitchFocus('panel');
+      setIsPopupMode(false);
+      setPanelOpen(true);
+      return;
+    }
+    setPanelOpen(false);
+  }, [setPanelOpen, setIsPopupMode]);
   /**
    * Jump and play through the adapter's controller. A platform that refuses
    * the seek (Netflix without its player API yet) leaves playback running
@@ -507,20 +518,23 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   useEffect(() => {
     applyColumnsCss({
       platform: adapter?.platform,
+      enabled,
       state: columnVisibility,
       viewportWidth,
     });
     return () => {
       // Cleanup runs before every re-apply and on unmount. It closes both
       // columns, which removes the stylesheet — and on YouTube dispatches the
-      // resize the player needs to go back to its own width.
+      // resize the player needs to go back to its own width. `enabled: false`
+      // also drops the motion stylesheet while the extension is off.
       applyColumnsCss({
         platform: adapter?.platform,
+        enabled: false,
         state: { rail: false, panel: false },
         viewportWidth,
       });
     };
-  }, [columnVisibility, adapter?.platform, viewportWidth]);
+  }, [columnVisibility, adapter?.platform, enabled, viewportWidth]);
 
   // Native bar integration: the hook owns the inline slot; the floating bar
   // renders only while no native anchor has been seen in this video session.
@@ -1264,7 +1278,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       } else if (normRail && combo === normRail) {
         e.preventDefault();
         e.stopPropagation();
-        railOpenStore.set(!railOpenStore.get());
+        toggleRail();
       } else {
         // This branch is only reached when nothing matched, so it cannot
         // double-report. One ping per genuinely-unmapped keypress — the same
@@ -1277,7 +1291,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     return () => {
       window.removeEventListener('keydown', onKeyDown, true);
     };
-  }, [setPanelOpen, setSubtitlesVisible]);
+  }, [setPanelOpen, setSubtitlesVisible, toggleRail]);
 
   // Bridge runtime messages (from background) → local actions.
   // Also listens for the in-page `kivara-recapture-frame` event fired by
@@ -2084,6 +2098,27 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     studyPlayback.resume,
   ]);
 
+  // One props object for both panel surfaces. `panelTab` lives in App, so the
+  // docked → floating hand-off cannot reset the tab the user was reading.
+  const commonPanelProps = {
+    isDarkMode,
+    toggleDarkMode: () => setIsDarkMode(!isDarkMode),
+    styles: subtitleStyles,
+    setStyles: setSubtitleStyles,
+    mapping: ankiMapping,
+    setMapping: setAnkiMapping,
+    episode: { cues: episode.cues, lang: cueLanguage },
+    onOpenEpisodeWords: () => {
+      railViewStore.set('words');
+      if (!useKivaraStore.getState().isPopupMode) setPanelOpen(false);
+      railOpenStore.set(true);
+    },
+    mockData: buildPreviewData(activeCue?.text),
+    episodeLang: cueLanguage,
+    controlledTab: panelTab,
+    onTabChange: setPanelTab,
+  };
+
   return (
     <div
       className={`font-sans text-zinc-900 dark:text-zinc-100 pointer-events-none ${isDarkMode ? 'dark' : ''}`}
@@ -2138,8 +2173,8 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                 onToggleLoop={() => studyPlayback.setLoop(!studyPlayback.loop)}
                 speed={studyPlayback.speed}
                 onSpeed={studyPlayback.setSpeed}
-                railOpen={railOpen}
-                onToggleRail={() => railOpenStore.set(!railOpen)}
+                railOpen={railVisible}
+                onToggleRail={toggleRail}
                 panelOpen={panelOpen}
                 onTogglePanel={() => setPanelOpen(!panelOpen)}
               />
@@ -2178,136 +2213,116 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           nativeBar.reactRoot,
         )}
 
-      {/* F6: the transcript column (D1). It reserves its width on the player
-          root through columns-css.ts, so it never covers the picture. With the
-          panel docked it sits to the panel's LEFT, and the pair reserves both
-          widths — one computation, `columnLayout`, feeds this style and the
-          stylesheet. In overlay mode (#38, narrow viewport) nothing is
-          reserved and the columns paint over the player. */}
-      {railVisible && (
+      {/* F6: ONE right-edge flex layer while the extension is enabled. Both
+          columns stay in the JSX so SlideColumn can animate width on entry
+          and exit; the visibility rule decides which one is actually open. */}
+      {enabled && (
         <div
-          ref={railHostRef}
-          className="pointer-events-auto"
-          style={{
-            position: 'absolute',
-            top: 0,
-            // `right` moves the rail clear of the docked panel. A floating
-            // panel reserves nothing, so the rail keeps the edge.
-            right: panelDocked ? columnLayout.panelWidth + columnLayout.gap : 0,
-            bottom: 0,
-            width: columnLayout.railWidth,
-          }}
-        >
-          <SlideColumn open={railVisible} widthPx={columnLayout.railWidth || RAIL_WIDTH_PX}>
-          <TranscriptRail
-            noCuesNotice={noCuesNotice}
-            noticePlatform={adapter?.platform}
-            languageMismatch={languageMismatch}
-            cues={episode.cues}
-            activeIndex={activeCueIndex}
-            lang={cueLanguage}
-            study={studyBinding}
-            newMarks={study.newMarks}
-            savedWords={initialSavedWords}
-            media={episode.media}
-            view={railView}
-            onViewChange={(view) => railViewStore.set(view)}
-            onSeek={(index) => studyPlayback.seekCue(index)}
-            onReplay={studyPlayback.replay}
-            onReplaySlow={studyPlayback.replaySlow}
-            capturing={captureView !== null}
-            autoPause={study.autoPauseCue}
-            onToggleAutoPause={() => {
-              const next = !useKivaraStore.getState().study.autoPauseCue;
-              setStudy((prev) => ({ ...prev, autoPauseCue: next }));
-            }}
-            loop={studyPlayback.loop}
-            onToggleLoop={() => studyPlayback.setLoop(!studyPlayback.loop)}
-            speed={studyPlayback.speed}
-            onSpeed={studyPlayback.setSpeed}
-            playing={playing}
-            pauseOnExplain={study.pauseOnLookup}
-            onStudyPause={studyPlayback.pauseForStudy}
-            onStudyResume={studyPlayback.resumeIfKivaraPaused}
-            ai={aiOn ? aiPort : null}
-            explainRequest={explainTick}
-            nativeCues={nativeLines}
-            translation={study.translation}
-            onTranslationChange={(next) => setStudy((prev) => ({ ...prev, translation: next }))}
-            listenFirst={study.listenFirst}
-            onSaveWord={(word, sentence) => {
-              // Word path: phrase-level only above four words. Phrase-level
-              // saves carry no gloss — no sense identity.
-              const phrase = isPhraseLevelSave(word, sentence, 'word');
-              const gloss = phrase
-                ? undefined
-                : resolveContextGloss(word, sentence, cueLanguageRef.current)
-                  .then(({ gloss: g }) => g);
-              void Promise.resolve(gloss).then((g) =>
-                handleSaveCard(word, sentence, undefined, g, undefined, phrase));
-            }}
-            uiLang={currentLocale()}
-            nativeLang={useKivaraStore.getState().translate.targetLanguage}
-            panelOpen={panelOpen}
-            onTogglePanel={() => setPanelOpen(!panelOpen)}
-            isDarkMode={isDarkMode}
-            onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-            onClose={() => railOpenStore.set(false)}
-          />
-          </SlideColumn>
-        </div>
-      )}
-
-      {enabled && panelOpen && (
-        <div
-          ref={panelHostRef}
-          className="pointer-events-auto"
+          className="pointer-events-none"
           style={{
             position: 'absolute',
             top: 0,
             right: 0,
-            // Snap to the bottom of the viewport in dock-to-side mode so the
-            // panel docks flush with the platform's UI (no leftover gap of
-            // the platform's video peeking through).
-            // Popup mode positions itself with `top-24` so this doesn't apply.
             bottom: 0,
+            // The panel host is 0px tall: without an explicit width this flex
+            // container shrink-wraps to 0 and clips both columns.
+            left: 0,
+            width: '100%',
             display: 'flex',
-            alignItems: 'stretch',
-            // Docked: the panel is a column and owns its reserved width, so
-            // the rail can sit beside it instead of under it. Floating: the
-            // panel is `fixed` and drags itself around; the wrapper stays a
-            // zero-width anchor.
-            ...(panelDocked ? { width: columnLayout.panelWidth } : null),
+            justifyContent: 'flex-end',
           }}
         >
-          <SlideColumn open={panelDocked} widthPx={columnLayout.panelWidth || PANEL_WIDTH_PX}>
-          <SidePanel
-            isPopupMode={isPopupMode}
-            onClose={() => setPanelOpen(false)}
-            togglePopupMode={() => setIsPopupMode(!isPopupMode)}
-            reserveRight={isPopupMode && railVisible ? () => columnLayout.railWidth || RAIL_WIDTH_PX : undefined}
-            onShowTranscript={railVisible ? () => { requestSwitchFocus('rail'); setPanelOpen(false); railOpenStore.set(true); } : undefined}
-            isDarkMode={isDarkMode}
-            toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-            styles={subtitleStyles}
-            setStyles={setSubtitleStyles}
-            mapping={ankiMapping}
-            setMapping={setAnkiMapping}
-            episode={{ cues: episode.cues, lang: cueLanguage }}
-            onOpenEpisodeWords={() => {
-              railViewStore.set('words');
-              setPanelOpen(false);
-              railOpenStore.set(true);
-            }}
-            // Until Phase 3 wires dictionary/translation lookup to the live
-            // cue, the preview falls back to a deterministic sample so
-            // FRENTE / REVERSO render something. The live cue drives
-            // `targetSentence` when present (shared builder — Options.tsx
-            // uses the same source with no cue).
-            mockData={buildPreviewData(activeCue?.text)}
-            episodeLang={cueLanguage}
-          />
+          <SlideColumn
+            open={railVisible}
+            widthPx={columnLayout.railWidth || RAIL_WIDTH_PX}
+            hostRef={railHostRef}
+            className={railVisible ? 'pointer-events-auto' : 'pointer-events-none'}
+          >
+            <TranscriptRail
+              noCuesNotice={noCuesNotice}
+              noticePlatform={adapter?.platform}
+              languageMismatch={languageMismatch}
+              cues={episode.cues}
+              activeIndex={activeCueIndex}
+              lang={cueLanguage}
+              study={studyBinding}
+              newMarks={study.newMarks}
+              savedWords={initialSavedWords}
+              media={episode.media}
+              view={railView}
+              onViewChange={(view) => railViewStore.set(view)}
+              onSeek={(index) => studyPlayback.seekCue(index)}
+              onReplay={studyPlayback.replay}
+              onReplaySlow={studyPlayback.replaySlow}
+              capturing={captureView !== null}
+              autoPause={study.autoPauseCue}
+              onToggleAutoPause={() => {
+                const next = !useKivaraStore.getState().study.autoPauseCue;
+                setStudy((prev) => ({ ...prev, autoPauseCue: next }));
+              }}
+              loop={studyPlayback.loop}
+              onToggleLoop={() => studyPlayback.setLoop(!studyPlayback.loop)}
+              speed={studyPlayback.speed}
+              onSpeed={studyPlayback.setSpeed}
+              playing={playing}
+              pauseOnExplain={study.pauseOnLookup}
+              onStudyPause={studyPlayback.pauseForStudy}
+              onStudyResume={studyPlayback.resumeIfKivaraPaused}
+              ai={aiOn ? aiPort : null}
+              explainRequest={explainTick}
+              nativeCues={nativeLines}
+              translation={study.translation}
+              onTranslationChange={(next) => setStudy((prev) => ({ ...prev, translation: next }))}
+              listenFirst={study.listenFirst}
+              onSaveWord={(word, sentence) => {
+                // Word path: phrase-level only above four words. Phrase-level
+                // saves carry no gloss — no sense identity.
+                const phrase = isPhraseLevelSave(word, sentence, 'word');
+                const gloss = phrase
+                  ? undefined
+                  : resolveContextGloss(word, sentence, cueLanguageRef.current)
+                    .then(({ gloss: g }) => g);
+                void Promise.resolve(gloss).then((g) =>
+                  handleSaveCard(word, sentence, undefined, g, undefined, phrase));
+              }}
+              uiLang={currentLocale()}
+              nativeLang={useKivaraStore.getState().translate.targetLanguage}
+              panelOpen={panelOpen}
+              onTogglePanel={railTogglePanel}
+              isDarkMode={isDarkMode}
+              onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+              onClose={() => railOpenStore.set(false)}
+            />
           </SlideColumn>
+
+          <SlideColumn
+            open={panelDocked}
+            widthPx={columnLayout.panelWidth || PANEL_WIDTH_PX}
+            hostRef={panelHostRef}
+            className={panelDocked ? 'pointer-events-auto' : 'pointer-events-none'}
+          >
+            <SidePanel
+              {...commonPanelProps}
+              isPopupMode={false}
+              onClose={() => setPanelOpen(false)}
+              togglePopupMode={() => setIsPopupMode(true)}
+              onShowTranscript={panelToTranscript}
+            />
+          </SlideColumn>
+        </div>
+      )}
+
+      {enabled && panelOpen && isPopupMode && (
+        <div className="fixed inset-0 z-50 pointer-events-none">
+          <div className="pointer-events-auto">
+            <SidePanel
+              {...commonPanelProps}
+              isPopupMode
+              onClose={() => setPanelOpen(false)}
+              togglePopupMode={() => setIsPopupMode(false)}
+              reserveRight={() => (railVisible ? columnLayout.railWidth || RAIL_WIDTH_PX : 0)}
+            />
+          </div>
         </div>
       )}
     </div>
