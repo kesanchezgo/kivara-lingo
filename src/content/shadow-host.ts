@@ -319,6 +319,70 @@ export class ShadowHost {
 
     return { hostElement, shadowRoot, reactRoot, portalContainer };
   }
+
+  /**
+   * Inline slot INSIDE the platform's native control row. No fixed/absolute
+   * positioning, no capsule background: an inline-flex item of the site's
+   * bar. Only the listed events stop at the host (bubble phase, AFTER React
+   * handled them in the closed root) so a click on Bucle/Transcripción never
+   * pauses or fullscreens the player. Pointer-motion events pass through —
+   * Netflix's auto-hide timer must see activity over its bar.
+   */
+  static mountInlineSlot(anchor: { parent: HTMLElement; before: Node | null }) {
+    applyPageGuards();
+    const hostElement = document.createElement('div');
+    hostElement.id = 'kivara-lingo-bar-slot';
+    hostElement.setAttribute('data-darkreader-ignore', 'true');
+    hostElement.style.all = 'initial';
+    hostElement.style.display = 'inline-flex';
+    hostElement.style.alignItems = 'center';
+    hostElement.style.height = '100%';
+    hostElement.style.flexShrink = '0';
+    hostElement.style.pointerEvents = 'auto';
+    anchor.parent.insertBefore(hostElement, anchor.before);
+
+    const shadowRoot = hostElement.attachShadow({ mode: 'closed' });
+    shadowRoots.set(hostElement, shadowRoot);
+    const style = document.createElement('style');
+    style.setAttribute('data-kivara-lingo', 'inline-slot');
+    style.textContent = `${BASELINE_CSS}
+${globalsCss}
+${themeCss}
+${tailwindCss}`;
+    shadowRoot.appendChild(style);
+    const reactRoot = document.createElement('div');
+    reactRoot.id = 'kivara-lingo-bar-react-root';
+    shadowRoot.appendChild(reactRoot);
+
+    for (const type of ['click', 'dblclick', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'keydown']) {
+      hostElement.addEventListener(type, (event) => event.stopPropagation());
+    }
+
+    if (__E2E__) {
+      const registry = window as unknown as {
+        __kivaraRoots?: Record<string, { root: ShadowRoot; rect: () => DOMRect }>;
+      };
+      registry.__kivaraRoots = registry.__kivaraRoots ?? {};
+      registry.__kivaraRoots[hostElement.id] = {
+        root: shadowRoot,
+        rect: () => hostElement.getBoundingClientRect(),
+      };
+    }
+
+    return {
+      hostElement,
+      shadowRoot,
+      reactRoot,
+      destroy: () => {
+        hostElement.remove();
+        shadowRoots.delete(hostElement);
+        if (__E2E__) {
+          const registry = window as unknown as { __kivaraRoots?: Record<string, unknown> };
+          delete registry.__kivaraRoots?.[hostElement.id];
+        }
+      },
+    };
+  }
 }
 
 /* ─── Baseline CSS ──────────────────────────────────────────────────────────

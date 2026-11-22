@@ -34,6 +34,8 @@ import { wordIdentity, isPhraseLevelSave, normalizeContextGloss } from '../../sh
 import { createSaveGate } from './save-gate';
 import { applySavedScene, captureAnchor, sceneIdentity, sceneSurface, type SubtitleAudioAnchor } from './save-scene';
 import { normalizeAnkiMapping } from '../../shared/anki-model';
+import { ShadowHost } from '../shadow-host';
+import { NativeAnchorWatcher } from './native-bar-slot';
 import { lemmaCandidates } from '../nlp/lemma';
 import { mweLemmaCandidates } from '../nlp/mwe-lemma';
 import { lookupDictionary } from '../nlp/dictionary';
@@ -504,6 +506,38 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       });
     };
   }, [columnVisibility, adapter?.platform, viewportWidth]);
+
+  // Native bar integration: mount the study bar INSIDE the platform's own
+  // control row when one exists; keep the floating bar as the fallback.
+  const [nativeSlot, setNativeSlot] = useState<{ reactRoot: HTMLElement } | null>(null);
+  useEffect(() => {
+    if (!enabled) { setNativeSlot(null); return; }
+    const watcher = new NativeAnchorWatcher();
+    let mounted: ReturnType<typeof ShadowHost.mountInlineSlot> | null = null;
+    // Netflix keeps its control row ABOVE the video's immediate parents,
+    // under .watch-video — observe the whole player container, not just the
+    // video's grandparent, or the native anchor is never seen.
+    const root = (videoElement?.closest<HTMLElement>('.watch-video'))
+      ?? (videoElement?.parentElement?.parentElement as HTMLElement | null)
+      ?? (videoElement?.parentElement as HTMLElement | null) ?? null;
+    const onChange = () => {
+      const anchor = watcher.currentAnchor();
+      mounted?.destroy();
+      mounted = null;
+      if (watcher.hasSeenNativeAnchor() && anchor) {
+        mounted = ShadowHost.mountInlineSlot(anchor);
+        setNativeSlot({ reactRoot: mounted.reactRoot });
+      } else {
+        setNativeSlot(null);
+      }
+    };
+    watcher.observe(root, onChange, adapter?.platform);
+    return () => {
+      watcher.disconnect();
+      mounted?.destroy();
+      setNativeSlot(null);
+    };
+  }, [enabled, videoElement, adapter?.platform]);
 
   // Apply the "Limpieza visual" CSS whenever the toggles change. The CSS is
   // platform-aware (the matching selectors live in cleanup-css.ts) so the
@@ -2090,7 +2124,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       {/* F6: the study bar lives in the player's overlay root, above the
           platform's own controls (D2). Its visibility follows pointer activity
           over the player, like the site's bar. */}
-      {enabled && videoOverlayRoot &&
+      {enabled && videoOverlayRoot && !nativeSlot &&
         createPortal(
           // Same re-provision as the overlay portal above: portals opened from
           // the StudyBar must land in the VIDEO host's root, which stays inside
@@ -2098,6 +2132,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           <PortalContainerProvider container={videoPortalContainer ?? null}>
             <div className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'dark' : ''}`}>
               <StudyBar
+                variant="floating"
                 platform={adapter?.platform}
                 enabled={enabled}
                 playing={playing}
@@ -2123,6 +2158,36 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             </div>
           </PortalContainerProvider>,
           videoOverlayRoot,
+        )}
+
+      {enabled && nativeSlot &&
+        createPortal(
+          <StudyBar
+            variant="native"
+            platform={adapter?.platform}
+            enabled={enabled}
+            playing={playing}
+            onTogglePlay={studyPlayback.togglePlay}
+            onPrev={studyPlayback.prev}
+            onReplay={studyPlayback.replay}
+            onReplaySlow={studyPlayback.replaySlow}
+            onNext={studyPlayback.next}
+            autoPause={study.autoPauseCue}
+            onToggleAutoPause={() => {
+              useKivaraStore.setState((state) => ({
+                study: { ...state.study, autoPauseCue: !state.study.autoPauseCue },
+              }));
+            }}
+            loop={studyPlayback.loop}
+            onToggleLoop={() => studyPlayback.setLoop(!studyPlayback.loop)}
+            speed={studyPlayback.speed}
+            onSpeed={studyPlayback.setSpeed}
+            railOpen={railOpen}
+            onToggleRail={() => railOpenStore.set(!railOpen)}
+            panelOpen={panelOpen}
+            onTogglePanel={() => setPanelOpen(!panelOpen)}
+          />,
+          nativeSlot.reactRoot,
         )}
 
       {/* F6: the transcript column (D1). It reserves its width on the player

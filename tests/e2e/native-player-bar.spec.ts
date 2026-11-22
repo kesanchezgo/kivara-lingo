@@ -1,0 +1,87 @@
+/**
+ * Native player bar E2E: the study bar lives INSIDE the site's own control
+ * row, disappears with it on inactivity, and re-inserts on remount — no
+ * floating capsule while the site has a native row.
+ */
+import { readFixture } from './helpers';
+import { expect, test } from './fixtures';
+
+const TTML = `<?xml version="1.0" encoding="utf-8"?>
+<tt xmlns="http://www.w3.org/ns/ttml" xml:lang="en"><body><div>
+<p begin="0s" end="9s">RUN is hard work</p>
+</div></body></tt>`;
+
+async function openNetflix(context: import('@playwright/test').BrowserContext): Promise<import('@playwright/test').Page> {
+  const page = await context.newPage();
+  await page.route('*://*.nflxvideo.net/**', (route) => route.fulfill({
+    status: 200, contentType: 'application/xml',
+    headers: { 'access-control-allow-origin': '*' }, body: TTML,
+  }));
+  await page.route('*://*.netflix.com/**', (route) => route.fulfill({
+    status: 200, contentType: 'text/html', body: readFixture('player-netflix.html'),
+  }));
+  await page.goto('https://www.netflix.com/watch/80057281');
+  await page.bringToFront();
+  await page.waitForFunction(
+    () => (window as Window & { __kivaraFixtureReady?: unknown }).__kivaraFixtureReady !== undefined,
+    undefined, { timeout: 30_000 },
+  );
+  await expect.poll(
+    () => page.evaluate(() => !!document.getElementById('kivara-lingo-video-host')),
+    { timeout: 15_000 },
+  ).toBe(true);
+  return page;
+}
+
+const injectRow = (page: import('@playwright/test').Page, present: boolean) => page.evaluate((show) => {
+  const existing = document.getElementById('fake-native-row');
+  existing?.remove();
+  if (!show) return;
+  const row = document.createElement('div');
+  row.id = 'fake-native-row';
+  row.className = 'PlayerControlsNeo__bottom-controls';
+  row.style.cssText = 'position:absolute;left:0;right:0;bottom:8px;height:36px;display:flex;align-items:center;justify-content:space-between';
+  row.innerHTML = '<button data-uia="control-play" style="height:32px;width:32px"></button>'
+    + '<button data-uia="control-audio-subtitle" style="height:32px;width:32px"></button>';
+  document.querySelector('.watch-video')?.appendChild(row);
+}, present);
+
+test('the study bar mounts in the native Netflix control row and survives a resting teardown', async ({ context }) => {
+  test.setTimeout(120_000);
+  const page = await openNetflix(context);
+  await injectRow(page, true);
+  await expect.poll(
+    () => page.evaluate(() => !!document.getElementById('kivara-lingo-bar-slot')),
+    { timeout: 10_000 },
+  ).toBe(true);
+
+  const geom = await page.evaluate(() => {
+    const slot = document.getElementById('kivara-lingo-bar-slot')!;
+    const native = document.querySelector('[data-uia="control-audio-subtitle"]') as HTMLElement;
+    const center = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      return r.y + r.height / 2;
+    };
+    const toolbar = document.getElementById('kivara-lingo-video-host')?.shadowRoot
+      ?.querySelector('[role="toolbar"]');
+    return { delta: Math.abs(center(slot) - center(native)), barInFloatingHost: !!toolbar };
+  });
+  expect(geom.delta).toBeLessThanOrEqual(4);
+
+  // Native teardown on inactivity: no floating fallback while the site owns
+  // a native row in this session.
+  await injectRow(page, false);
+  await page.waitForTimeout(400);
+  expect(await page.evaluate(() => !!document.getElementById('kivara-lingo-bar-slot'))).toBe(false);
+  const floating = await page.evaluate(() =>
+    !!document.getElementById('kivara-lingo-video-host')?.shadowRoot?.querySelector('[role="toolbar"]'));
+  expect(floating).toBe(false);
+
+  // Pointer activity re-mounts the site's row → the slot re-inserts.
+  await injectRow(page, true);
+  await expect.poll(
+    () => page.evaluate(() => !!document.getElementById('kivara-lingo-bar-slot')),
+    { timeout: 10_000 },
+  ).toBe(true);
+  await page.close();
+});

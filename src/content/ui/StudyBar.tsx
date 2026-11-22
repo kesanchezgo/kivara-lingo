@@ -42,6 +42,7 @@ import {
 const HIDE_AFTER_MS = 2600;
 
 export interface StudyBarProps {
+  variant?: 'native' | 'floating';
   enabled: boolean;
   /** Point 5: the platform drives the bar's SAFE ZONE (margins + native
    * chrome to avoid). */
@@ -74,7 +75,7 @@ function playerRect(): DOMRect | null {
 
 export function StudyBar(props: StudyBarProps) {
   const {
-    platform, enabled, playing, onTogglePlay, onPrev, onReplay, onReplaySlow, onNext,
+    variant = 'floating', platform, enabled, playing, onTogglePlay, onPrev, onReplay, onReplaySlow, onNext,
     autoPause, onToggleAutoPause, loop, onToggleLoop, speed, onSpeed,
     railOpen, onToggleRail, panelOpen, onTogglePanel,
   } = props;
@@ -149,6 +150,9 @@ export function StudyBar(props: StudyBarProps) {
     return () => observer.disconnect();
   }, []);
   const compact = width < 760;
+  const native = variant === 'native';
+  const playerWidth = playerRect()?.width ?? width;
+  const narrowPlayer = playerWidth < 680;
 
   /**
    * Where the bar sits: on the half of the player the caption does NOT occupy.
@@ -245,10 +249,12 @@ export function StudyBar(props: StudyBarProps) {
   return (
     <div
       ref={barRef}
-      className={`absolute right-3 z-30 flex items-center gap-0.5 rounded-lg bg-zinc-900/80 ring-1 ring-white/[0.08] backdrop-blur-md p-0.5 text-white transition-opacity duration-200 ${
-        visible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-      } [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto`}
-      style={placement.left != null
+      className={native
+        ? 'relative z-30 flex items-center gap-0.5 h-9 text-white/90 transition-opacity duration-200 opacity-100 pointer-events-auto'
+        : `absolute right-3 z-30 flex items-center gap-0.5 rounded-lg bg-zinc-900/80 ring-1 ring-white/[0.08] backdrop-blur-md p-0.5 text-white transition-opacity duration-200 ${
+          visible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        } [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto`}
+      style={native ? undefined : placement.left != null
         ? { top: placement.top ?? 12, left: placement.left, right: 'auto' }
         : placement.top !== null
           ? { top: placement.top }
@@ -256,26 +262,32 @@ export function StudyBar(props: StudyBarProps) {
       role="toolbar"
       aria-label={t('rail.title')}
     >
-      <button type="button" onClick={onTogglePlay} title={playing ? t('player.pause') : t('player.play')} aria-label={playing ? t('player.pause') : t('player.play')} className={`${NAV} w-7`}>
-        {playing ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
-      </button>
-      <button type="button" onClick={onPrev} title={withCombo(t('shortcut.prev'), combo('prev'))} aria-label={t('shortcut.prev')} className={NAV}>
-        <ChevronLeft size={14} weight="bold" />
-      </button>
+      {!native && (
+        <button type="button" onClick={onTogglePlay} title={playing ? t('player.pause') : t('player.play')} aria-label={playing ? t('player.pause') : t('player.play')} className={`${NAV} w-7`}>
+          {playing ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+        </button>
+      )}
+      {(!native || !narrowPlayer) && (
+        <button type="button" onClick={onPrev} title={withCombo(t('shortcut.prev'), combo('prev'))} aria-label={t('shortcut.prev')} className={native ? NATIVE_NAV : NAV}>
+          <ChevronLeft size={14} weight="bold" />
+        </button>
+      )}
       <button
         type="button"
         {...replay}
         title={`${withCombo(t('shortcut.replay'), combo('replay'))}\n${withCombo(t('player.holdSlower'), combo('replaySlow'))}`}
         aria-label={t('shortcut.replay')}
-        className={NAV}
+        className={native ? NATIVE_NAV : NAV}
       >
         <RotateCcw size={13} weight="bold" />
       </button>
-      <button type="button" onClick={onNext} title={withCombo(t('shortcut.next'), combo('next'))} aria-label={t('shortcut.next')} className={NAV}>
-        <ChevronRight size={14} weight="bold" />
-      </button>
+      {(!native || !narrowPlayer) && (
+        <button type="button" onClick={onNext} title={withCombo(t('shortcut.next'), combo('next'))} aria-label={t('shortcut.next')} className={native ? NATIVE_NAV : NAV}>
+          <ChevronRight size={14} weight="bold" />
+        </button>
+      )}
 
-      <span aria-hidden="true" className="w-px h-4 bg-white/[0.1] mx-0.5" />
+      <span aria-hidden="true" className={native ? "w-px h-5 bg-white/20 ml-1.5 mr-1" : "w-px h-4 bg-white/[0.1] mx-0.5"} />
 
       <button
         type="button"
@@ -283,7 +295,7 @@ export function StudyBar(props: StudyBarProps) {
         title={withCombo(t('rail.autoPause'), combo('autoPause'))}
         aria-label={t('rail.autoPause')}
         onClick={onToggleAutoPause}
-        className={chip(autoPause)}
+        className={native ? nativeChip(autoPause) : chip(autoPause)}
       >
         <Pause size={12} fill="currentColor" />
         {!compact && <span>{t('rail.autoPauseShort')}</span>}
@@ -294,14 +306,27 @@ export function StudyBar(props: StudyBarProps) {
         title={withCombo(t('rail.loop'), combo('loop'))}
         aria-label={t('rail.loop')}
         onClick={onToggleLoop}
-        className={chip(loop)}
+        className={native ? nativeChip(loop) : chip(loop)}
       >
         <Repeat size={12} weight="bold" />
         {!compact && <span>{t('rail.loop')}</span>}
       </button>
 
-      <span aria-hidden="true" className="w-px h-4 bg-white/[0.1] mx-0.5" />
+      <span aria-hidden="true" className={native ? "w-px h-5 bg-white/20 ml-1.5 mr-1" : "w-px h-4 bg-white/[0.1] mx-0.5"} />
 
+      {native ? (
+        speed !== 1 ? (
+          <button
+            type="button"
+            title={t('rail.speed')}
+            aria-label={t('rail.speed')}
+            onClick={() => onSpeed(1)}
+            className={`${NATIVE_NAV} tabular-nums text-[12px] font-medium`}
+          >
+            {speed}×
+          </button>
+        ) : null
+      ) : (
       <div
         role="radiogroup"
         aria-label={t('rail.speed')}
@@ -325,8 +350,9 @@ export function StudyBar(props: StudyBarProps) {
           </button>
         ))}
       </div>
+      )}
 
-      <span aria-hidden="true" className="w-px h-4 bg-white/[0.1] mx-0.5" />
+      <span aria-hidden="true" className={native ? "w-px h-5 bg-white/20 ml-1.5 mr-1" : "w-px h-4 bg-white/[0.1] mx-0.5"} />
 
       <button
         type="button"
@@ -334,7 +360,7 @@ export function StudyBar(props: StudyBarProps) {
         title={withCombo(t('rail.toggle'), combo('rail'))}
         aria-label={t('rail.toggle')}
         onClick={onToggleRail}
-        className={`${NAV} ${railOpen ? 'text-indigo-400' : ''}`}
+        className={native ? nativeChip(railOpen) : `${NAV} ${railOpen ? 'text-indigo-400' : ''}`}
       >
         <AlignLeft size={16} />
       </button>
@@ -344,15 +370,22 @@ export function StudyBar(props: StudyBarProps) {
         title={withCombo(t('app.panelToggle'), combo('panel'))}
         aria-label={t('app.panelToggle')}
         onClick={onTogglePanel}
-        className={`${NAV} ${panelOpen ? 'text-indigo-400' : ''}`}
+        className={native ? nativeChip(panelOpen) : `${NAV} ${panelOpen ? 'text-indigo-400' : ''}`}
       >
         <BrandGlyph size={16} />
       </button>
-      <span aria-hidden="true" className="text-zinc-500 px-0.5">
+      {!native && <span aria-hidden="true" className="text-zinc-500 px-0.5">
         <Subtitles size={14} />
-      </span>
+      </span>}
     </div>
   );
+}
+
+const NATIVE_NAV =
+  'w-9 h-9 rounded-md flex items-center justify-center text-white/90 hover:text-white hover:scale-110 transition kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40';
+
+function nativeChip(on: boolean): string {
+  return `${NATIVE_NAV} relative ${on ? 'text-indigo-300' : ''}`;
 }
 
 const NAV =

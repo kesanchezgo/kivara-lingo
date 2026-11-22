@@ -294,6 +294,8 @@ export function publishAllRoots(): () => void {
  * Writes are coalesced into one microtask so a cue that mutates twenty token
  * nodes publishes once.
  */
+let observedSlotRoots = new WeakSet<ShadowRoot>();
+
 function publishHost(host: HTMLElement): () => void {
   const root = getShadowRoot(host);
   if (!root) return () => {};
@@ -301,8 +303,14 @@ function publishHost(host: HTMLElement): () => void {
   let queued = false;
   const write = () => {
     try {
-      host.setAttribute(E2E_HITMAP_ATTR, JSON.stringify(collectHits(root)));
-      const bar = boxOf(root.querySelector('[role="toolbar"]'));
+      // Native player bar: the toolbar can live in the inline slot's closed
+      // root, registered by ShadowHost when the site exposes a control row.
+      const slotHost = document.getElementById('kivara-lingo-bar-slot');
+      const slotRoot = slotHost ? getShadowRoot(slotHost) : null;
+      const slotHits = slotRoot ? collectHits(slotRoot) : [];
+      const bar = boxOf(root.querySelector('[role="toolbar"]'))
+        ?? (slotRoot ? boxOf(slotRoot.querySelector('[role="toolbar"]')) : null);
+      host.setAttribute(E2E_HITMAP_ATTR, JSON.stringify([...collectHits(root), ...slotHits]));
       const badges = [...root.querySelectorAll<HTMLElement>('[data-kivara-badge]')]
         .map((el) => boxOf(el))
         .filter((box): box is E2EBox => box !== null);
@@ -417,8 +425,20 @@ function publishHost(host: HTMLElement): () => void {
       'data-ws', 'data-kvl-native', 'hidden', 'style',
     ],
   });
+  const slotWatch = () => {
+    const slot = document.getElementById('kivara-lingo-bar-slot');
+    const slotRoot = slot ? getShadowRoot(slot) : null;
+    if (slotRoot && !observedSlotRoots.has(slotRoot)) {
+      observedSlotRoots.add(slotRoot);
+      mutations.observe(slotRoot, { childList: true, subtree: true, attributes: true });
+    }
+  };
+  slotWatch();
+  const slotPoll = window.setInterval(slotWatch, 500);
 
   return () => {
+    window.clearInterval(slotPoll);
+    observedSlotRoots = new WeakSet<ShadowRoot>();
     offGeometry();
     resize?.disconnect();
     mutations.disconnect();
