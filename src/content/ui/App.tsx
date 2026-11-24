@@ -23,7 +23,9 @@ import type {
   CreateCardKind,
   CreateCardRequest,
   CreateCardResponse,
+  CueAlign,
   FieldSource,
+  TranslateResponse,
 } from '../../shared/types';
 import type { SubtitleSource } from '../platform-adapters/types';
 import { getActiveTrackCues, getTrackByLanguage, onTrack } from '../platform-adapters/intercepted-bus';
@@ -61,6 +63,7 @@ import { railOpenStore, railViewStore } from './ui-state';
 import { useChromeLocal } from '../../ui/hooks/useChromeLocal';
 import { aiConfigured } from '../../shared/ai-configured';
 import { createAiPort } from './ai-port';
+import { rememberTranslation } from './translation-cache';
 
 /**
  * Find the Anki field name (key in fieldSources) currently mapped to the
@@ -81,6 +84,7 @@ interface ActiveCue {
   start?: number;
   end?: number;
   language?: string;
+  align?: CueAlign;
 }
 
 interface AppProps {
@@ -641,6 +645,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         start: first.start,
         end: first.end,
         language: first.language,
+        align: first.align,
       };
       setActiveCue(activeCueRef.current);
       // Resolve the matching native-language cue synchronously, in the
@@ -667,6 +672,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                 start: alt.start,
                 end: alt.end,
                 language: alt.language,
+                align: alt.align,
               }
             : null,
         );
@@ -682,6 +688,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         start: initialCue.start,
         end: initialCue.end,
         language: initialCue.language,
+        align: initialCue.align,
       });
       if (adapter.getAltCueAt) {
         const targetLang =
@@ -698,6 +705,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             start: alt.start,
             end: alt.end,
             language: alt.language,
+            align: alt.align,
           });
         }
       }
@@ -761,6 +769,11 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         { text, sourceLang, targetLang: nativeLang },
         'background',
       )
+        .then((response) => {
+          // Store the answer the overlay will ask for when THIS cue becomes
+          // active, instead of throwing it away and starting another round.
+          rememberTranslation(text, sourceLang, nativeLang, response as TranslateResponse | null);
+        })
         .catch(() => {
           // ignore — the next cue still fires via .finally below
         })
@@ -814,6 +827,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                 start: next.start,
                 end: next.end,
                 language: next.language,
+                align: next.align,
               }
             : null,
         );
@@ -871,6 +885,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
                 start: alt.start,
                 end: alt.end,
                 language: alt.language,
+                align: alt.align,
               }
             : null,
         );

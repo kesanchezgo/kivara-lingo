@@ -1160,7 +1160,7 @@ export function WordPopover({
                   e, STATUS_VALUES, wordStatus ?? null,
                   (s) => onWordStatus(s),
                 )}
-                className={`${MARK_INK} shrink-0 self-center flex items-center h-6 rounded-md bg-zinc-900/[0.05] dark:bg-white/[0.06] p-0.5`}
+                className={`${MARK_INK} min-w-0 flex-1 self-center flex items-center h-6 rounded-md bg-zinc-900/[0.05] dark:bg-white/[0.06] p-0.5`}
               >
                 {STATUS_VALUES.map((s, i) => {
                   const label = s === 'new' ? t('ws.new') : s === 'learning' ? t('ws.learning') : t('ws.known');
@@ -1173,10 +1173,10 @@ export function WordPopover({
                       tabIndex={radioTabIndex(wordStatus === s, i, wordStatus != null)}
                       title={label}
                       onClick={(e) => { e.stopPropagation(); onWordStatus(s); }}
-                      className={`inline-flex items-center gap-1 h-5 px-1 text-[10px] rounded ${wordStatus === s ? 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-zinc-500 dark:text-zinc-400'}`}
+                      className={`inline-flex min-w-0 flex-1 items-center justify-center gap-1 h-5 px-1 text-[10px] rounded ${wordStatus === s ? 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-zinc-500 dark:text-zinc-400'}`}
                     >
                       {s !== 'known' && <StatusGlyph status={s} />}
-                      <span>{label}</span>
+                      <span className="truncate">{label}</span>
                     </button>
                   );
                 })}
@@ -1234,7 +1234,7 @@ export function WordPopover({
               type="button"
               aria-label={t('wp.save')}
               onClick={(e) => onSave(e, canonicalToken, saveGloss(resolved.localEntry, meta.translation))}
-              className="flex-1 flex items-center justify-center gap-1.5 px-2 h-10 text-[12px] font-semibold text-white bg-indigo-500 hover:bg-indigo-400 transition-colors normal-case"
+              className="shrink-0 min-w-[84px] flex items-center justify-center gap-1.5 px-2 h-10 text-[12px] font-semibold whitespace-nowrap text-white bg-indigo-500 hover:bg-indigo-400 transition-colors normal-case"
             >
               <Plus size={12} /> {t('wp.save')}
             </button>
