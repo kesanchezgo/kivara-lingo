@@ -17,6 +17,7 @@ import { t } from '../../shared/i18n';
 import { NoSubtitlesNotice } from './no-cues-notice';
 import { LanguageMismatchNotice } from './language-mismatch';
 import { sendMessage } from 'webext-bridge/content-script';
+import { readTranslation } from './translation-cache';
 import { toast } from 'sonner';
 import {
   Volume1, Copy, Check, Quote, MousePointerClick, Link2, Ear, GraduationCap, BookOpenCheck,
@@ -54,6 +55,12 @@ import {
   scopeOf,
   toBox,
 } from './overlay-geometry';
+
+/** One text rule for BOTH caption surfaces, exactly as in the prototype. */
+function normalizeCaptionText(text: string, keepBreaks: boolean): string {
+  if (keepBreaks) return text.replace(/\r\n?/g, '\n');
+  return text.replace(/\r?\n+/g, ' ').replace(/\s{2,}/g, ' ');
+}
 
 export interface SubtitleOverlayProps {
   subtitleStyles: SubtitleStyles;
@@ -449,11 +456,10 @@ export function SubtitleOverlay({
     return next;
   }, [expandedMWEs, altExpandedKey]);
 
-  const sourceText = useMemo(() => {
-    const src = targetSentence;
-    if (subtitleStyles.keepNativeLineBreaks) return src.replace(/\r\n?/g, '\n');
-    return src.replace(/\r?\n+/g, ' ').replace(/\s{2,}/g, ' ');
-  }, [targetSentence, subtitleStyles.keepNativeLineBreaks]);
+  const sourceText = useMemo(
+    () => normalizeCaptionText(targetSentence, subtitleStyles.keepNativeLineBreaks),
+    [targetSentence, subtitleStyles.keepNativeLineBreaks],
+  );
 
   const tokens = useMemo(
     () => tokenizeSentence(sourceText, effectiveExpanded, cueLanguage),
@@ -544,13 +550,18 @@ export function SubtitleOverlay({
   };
 
   // ── Dual caption: platform alt cue first, then automatic MT (repo order).
-  const nativeAltText = altCue?.text?.trim() || null;
+  const nativeAltText = altCue
+    ? normalizeCaptionText(altCue.text.trim(), subtitleStyles.keepNativeLineBreaks)
+    : null;
   // One translation per member line, in the plate's order: translating the
   // joined text as a single blob put a two-line translation under a two-line
-  // plate with no way to tell which line was which.
+  // plate with no way to tell which line was which. The prototype keeps hard
+  // breaks on BOTH tracks when the native-format toggle is on.
   const memberLines = useMemo(
-    () => lineSpans.map((span) => span.text),
-    [lineSpans],
+    () => subtitleStyles.keepNativeLineBreaks
+      ? targetSentence.replace(/\r\n?/g, '\n').split('\n').map((line) => line.trim()).filter(Boolean)
+      : lineSpans.map((span) => span.text),
+    [lineSpans, targetSentence, subtitleStyles.keepNativeLineBreaks],
   );
   const [translatedLines, setTranslatedLines] = useState<string[] | null>(null);
   const translationVisible = translation !== 'hidden';
@@ -562,25 +573,41 @@ export function SubtitleOverlay({
       return;
     }
     const lines = memberLines.length > 0 ? memberLines : [src];
+    const sourceLang = cueLanguage || 'en';
+    const keep = subtitleStyles.keepNativeLineBreaks;
+    const cached = lines.map((line) => readTranslation(line, sourceLang, nativeLanguage));
+    const paint = (values: Array<string | null>) => {
+      const out = values.map((value) => value ? normalizeCaptionText(value, keep) : '');
+      setTranslatedLines(out.some(Boolean) ? out : null);
+    };
+    // Prefetched cues are on screen in the SAME frame as the primary line:
+    // no spinner, no blank second line, no extra TRANSLATE round trip.
+    paint(cached);
+    const missing = lines.filter((_, index) => !cached[index]);
+    if (missing.length === 0) return;
+
     let cancelled = false;
-    setTranslatedLines(null);
     Promise.all(
-      lines.map((line) =>
+      missing.map((line) =>
         sendMessage(
           'TRANSLATE',
-          { text: line, sourceLang: cueLanguage || 'en', targetLang: nativeLanguage },
+          { text: line, sourceLang, targetLang: nativeLanguage },
           'background',
         ).catch(() => null),
       ),
     )
       .then((results) => {
         if (cancelled) return;
-        const out = results.map((res, index) => {
+        // Only App's prefetch writes the cache: a response to THIS render's
+        // request belongs to this cue, not to a later replay of the same text.
+        const fresh = results.map((res, index) => {
           const r = res as TranslateResponse | null;
-          const text = r?.ok ? (r.translatedText ?? '') : '';
-          return text.trim() && text.trim() !== lines[index] ? text : '';
+          const value = r?.ok ? (r.translatedText ?? '') : '';
+          const normalized = normalizeCaptionText(value, keep);
+          return normalized.trim() && normalized.trim() !== missing[index] ? normalized : '';
         });
-        setTranslatedLines(out.some(Boolean) ? out : null);
+        paint(lines.map((line) =>
+          readTranslation(line, sourceLang, nativeLanguage) ?? fresh[missing.indexOf(line)] ?? ''));
       })
       .catch(() => {
         /* network errors are non-fatal — the second line just stays empty */
@@ -588,7 +615,7 @@ export function SubtitleOverlay({
     return () => {
       cancelled = true;
     };
-  }, [targetSentence, memberLines, cueLanguage, nativeLanguage, nativeAltText, translationVisible, cue?.id]);
+  }, [targetSentence, memberLines, cueLanguage, nativeLanguage, nativeAltText, translationVisible, cue?.id, subtitleStyles.keepNativeLineBreaks]);
 
   /** The native-language caption line(s): the platform's alt cue or the MT. */
   const dualCaptionLines = useMemo(() => {
@@ -843,13 +870,16 @@ export function SubtitleOverlay({
   const verticalPercent =
     subtitleStyles.verticalOffset ??
     (subtitleStyles.position === 'top' ? 15 : subtitleStyles.position === 'middle' ? 50 : 85);
-  const textAlign: 'left' | 'center' | 'right' = (() => {
+  const alignFor = (align?: CueAlign): 'left' | 'center' | 'right' => {
     if (!subtitleStyles.keepNativeAlignment) return 'center';
-    const a = cue.align;
-    if (a === 'start' || a === 'left') return 'left';
-    if (a === 'end' || a === 'right') return 'right';
+    if (align === 'start' || align === 'left') return 'left';
+    if (align === 'end' || align === 'right') return 'right';
     return 'center';
-  })();
+  };
+  const plateAlign = alignFor(cue?.align);
+  // The translated line belongs to the ALT track: it must use its own
+  // alignment, not inherit the primary cue's (the mock keeps both independent).
+  const dualAlign = alignFor(altCue?.align ?? cue?.align);
 
   const learning = !reading && isHovered;
   // Listen-first: while the line plays the text blurs; pausing or hovering reveals it.
@@ -1065,7 +1095,7 @@ export function SubtitleOverlay({
             color: subtitleStyles.color,
             backgroundColor: `rgba(${rgb}, ${learning ? hoverBgOpacity : bgOpacity})`,
             fontWeight: subtitleStyles.fontWeight,
-            textAlign,
+            textAlign: plateAlign,
             whiteSpace: subtitleStyles.keepNativeLineBreaks ? 'pre-line' : undefined,
             fontFamily: 'var(--kvl-font-sans)',
             textShadow,
@@ -1273,7 +1303,7 @@ export function SubtitleOverlay({
               className="mt-2 text-[0.65em] transition-all duration-300 overflow-hidden max-h-20 opacity-100"
               style={{
                 whiteSpace: subtitleStyles.keepNativeLineBreaks ? 'pre-line' : undefined,
-                textAlign,
+                textAlign: dualAlign,
                 ...blurText(listenHide || (translation === 'blur' && !isHovered)),
               }}
             >
