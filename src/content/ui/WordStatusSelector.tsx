@@ -13,7 +13,7 @@
  * card is fresher evidence than the hand mark).
  */
 import { t, fmtNumber } from '../../shared/i18n';
-import { RotateCcw } from '../../ui/icons';
+import { Plus, RotateCcw } from '../../ui/icons';
 import { SegmentedControl } from '../../ui/primitives/settings-primitives';
 import { MARK_INK, StatusGlyph } from './wordMarks';
 import type { StatusDetail, StatusReason, WordStatus } from '../../shared/study/wordStatus';
@@ -63,13 +63,15 @@ function statusCaption(d: StatusDetail, isSaved: boolean): string {
   ].filter(Boolean).join(' ');
 }
 
-export function WordStatusSelector({ token, status, detail, isSaved, onChange, onClear, readOnly = false }: {
+export function WordStatusSelector({ token, status, detail, isSaved, onChange, onClear, onAddContext, readOnly = false }: {
   token: string;
   status: WordStatus;
   detail?: StatusDetail;
   isSaved: boolean;
   onChange: (status: WordStatus) => void;
   onClear: () => void;
+  /** Prototype's second indigo link: attach this scene to the saved note. */
+  onAddContext?: () => void;
   /** The pinned bar owns status changes; here the block is informational only. */
   readOnly?: boolean;
 }) {
@@ -103,13 +105,20 @@ export function WordStatusSelector({ token, status, detail, isSaved, onChange, o
       >
         {detail ? statusCaption(detail, isSaved) : t('ws.src.default')}
       </p>
-      {!readOnly && source === 'user' && (
+      {(!readOnly && source === 'user' && onClear) || (isSaved && onAddContext) ? (
         <div className="flex flex-wrap items-center gap-x-3 -ml-1">
-          <button type="button" data-status-clear onClick={onClear} title={t('ws.src.useAutoTitle')} className={LINK}>
-            <RotateCcw size={10} /> {t('ws.src.useAuto')}
-          </button>
+          {!readOnly && source === 'user' && onClear && (
+            <button type="button" data-status-clear onClick={onClear} title={t('ws.src.useAutoTitle')} className={LINK}>
+              <RotateCcw size={10} /> {t('ws.src.useAuto')}
+            </button>
+          )}
+          {isSaved && onAddContext && (
+            <button type="button" onClick={onAddContext} title={t('popover.addSceneTitle')} className={LINK}>
+              <Plus size={10} /> {t('popover.addScene')}
+            </button>
+          )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

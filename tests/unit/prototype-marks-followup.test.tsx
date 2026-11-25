@@ -99,12 +99,13 @@ function railProps(overrides: Partial<TranscriptRailProps> = {}): TranscriptRail
 describe('prototype marks follow-up', () => {
   it('draws the prototype glyphs on panel ink inside the compact status radios', () => {
     const onWordStatus = vi.fn();
-    render(<WordPopover {...popoverProps} wordStatus="new" onWordStatus={onWordStatus} />);
+    render(<WordPopover {...popoverProps} status="new" onStatusChange={onWordStatus} />);
 
     const group = screen.getByRole('radiogroup');
     const radios = screen.getAllByRole('radio');
     expect(radios).toHaveLength(3);
-    expectPanelInk(group);
+    expectPanelInk(group.closest('[title]')!);
+    expectPanelInk(radios[0].querySelector('.kvl-glyph')!);
     expect(radios[0].querySelector('.kvl-glyph')?.getAttribute('data-ws')).toBe('new');
     expect(radios[1].querySelector('.kvl-glyph')?.getAttribute('data-ws')).toBe('learning');
     expect(radios[2].querySelector('.kvl-glyph')).toBeNull();

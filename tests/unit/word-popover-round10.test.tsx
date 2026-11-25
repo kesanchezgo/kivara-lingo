@@ -83,11 +83,12 @@ describe('the bottom strips and the AI block reach the card edges', () => {
     expect(cta.className).toContain('border-t');
   });
 
-  it('#135/#140 still hold: exactly one radiogroup, in the bar', async () => {
+  it('#135/#140 still hold: exactly one radiogroup, in the pinned footer', async () => {
     render(
       <WordPopover
         {...BASE_PROPS}
-        onWordStatus={() => {}}
+        status="new"
+        onStatusChange={() => {}}
       />,
     );
     await waitFor(() => {

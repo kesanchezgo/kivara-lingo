@@ -13,6 +13,7 @@ import { mountDenied, navWaitMs } from './mount-gate';
 import { findVideoContainerIn } from './video-container';
 import { installNavigationTriggers } from './nav-triggers';
 import { setYomitanHeadwords } from './nlp/yomitan-headwords';
+import { clearTranslationCache } from './ui/translation-cache';
 import { updateOverlayParent, type RestoreState } from './fullscreen-overlay-core';
 
 /**
@@ -93,6 +94,7 @@ useKivaraStore.subscribe((state, prev) => {
     // was relative to the old source. Drop it so the next caption load
     // re-derives the bilingual line.
     clearBus({ keepManifests: true });
+    clearTranslationCache();
     // For DASH platforms (HBO Max, etc.) the manifest URL is stable but
     // the bus has just been emptied; replay the last manifest so the
     // newly-needed source track gets fetched without waiting for the
@@ -107,6 +109,7 @@ useKivaraStore.subscribe((state, prev) => {
     // now, the bus has Spanish cached; force a re-fetch. Keep the manifests
     // so BOTH reprocess calls can re-pick for the new language.
     clearBus({ keepManifests: true });
+    clearTranslationCache();
     reprocessLastDashManifest();
     reprocessLastNetflixManifest();
   }

@@ -1,21 +1,27 @@
 /**
- * Synchronous read-through cache for the MT fallback used by the dual
- * caption. The host app prefetches the next cues while the current one plays;
- * without this cache the overlay discards those answers and starts a new
- * round trip at every cue boundary, so the translated line trails the primary
- * caption. Keys are the exact TRANSLATE request, not the cue id, so a replayed
- * or reused cue is served from the same entry.
+ * Bounded synchronous read-through cache for the MT fallback used by the dual
+ * caption. Keys are the canonical TRANSLATE request — (source language, target
+ * language, normalized source text) — so changing target language can never
+ * serve a previous language's answer, and locale tags like es-ES / en-US
+ * collapse to the same bucket as es / en. Insertion-order Map gives LRU with a
+ * fixed cap; the oldest entry is evicted on overflow.
  */
 import type { TranslateResponse } from '../../shared/types';
 
+const CAPACITY = 512;
 const cache = new Map<string, string>();
 
-function translationCacheKey(
+function language(lang: string): string {
+  return lang.split('-')[0]!.toLowerCase();
+}
+
+export function translationCacheKey(
   text: string,
   sourceLang: string,
   targetLang: string,
 ): string {
-  return `${sourceLang.toLowerCase()}\u0000${targetLang.toLowerCase()}\u0000${text.trim()}`;
+  const normalized = text.replace(/\r\n?/g, '\n').replace(/\s+/g, ' ').trim();
+  return `${language(sourceLang)}\u0000${language(targetLang)}\u0000${normalized}`;
 }
 
 export function readTranslation(
@@ -23,7 +29,13 @@ export function readTranslation(
   sourceLang: string,
   targetLang: string,
 ): string | null {
-  return cache.get(translationCacheKey(text, sourceLang, targetLang)) ?? null;
+  const key = translationCacheKey(text, sourceLang, targetLang);
+  const value = cache.get(key);
+  if (value === undefined) return null;
+  // Touch on read: Map preserves insertion order, so delete+set makes this MRU.
+  cache.delete(key);
+  cache.set(key, value);
+  return value;
 }
 
 export function rememberTranslation(
@@ -35,5 +47,15 @@ export function rememberTranslation(
   if (!response?.ok) return;
   const value = response.translatedText?.trim();
   if (!value) return;
-  cache.set(translationCacheKey(text, sourceLang, targetLang), value);
+  const key = translationCacheKey(text, sourceLang, targetLang);
+  cache.delete(key);
+  cache.set(key, value);
+  if (cache.size > CAPACITY) {
+    const oldest = cache.keys().next().value;
+    if (oldest !== undefined) cache.delete(oldest);
+  }
+}
+
+export function clearTranslationCache(): void {
+  cache.clear();
 }

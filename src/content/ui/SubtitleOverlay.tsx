@@ -40,9 +40,8 @@ import { useKivaraStore } from '../../shared/use-kivara-store';
 import { aiConfigured } from '../../shared/ai-configured';
 import { WordPopover } from './WordPopover';
 import { CARD_UNDONE_EVENT, cardKindOf } from './save-actions';
-import { cueLineSpans, lineIndexOfOffset } from './save-request';
+import { cueLineSpans, cueLineSpansExact, lineIndexOfOffset } from './save-request';
 import { markOf, markAttrs, markContainerAttrs } from './wordMarks';
-import { WordStatusSelector } from './WordStatusSelector';
 import type { StudyBinding } from './study';
 import {
   barRect,
@@ -470,7 +469,12 @@ export function SubtitleOverlay({
   // joins the lines (space, or a native break), so the line spans and the
   // token offsets are computed over the same collapsed text; the save path
   // then carries THAT line as the card's phrase instead of both.
-  const lineSpans = useMemo(() => cueLineSpans(targetSentence), [targetSentence]);
+  const lineSpans = useMemo(
+    () => subtitleStyles.keepNativeLineBreaks
+      ? cueLineSpansExact(sourceText)
+      : cueLineSpans(targetSentence),
+    [sourceText, targetSentence, subtitleStyles.keepNativeLineBreaks],
+  );
   const tokenOffsets = useMemo(() => {
     let at = 0;
     return tokens.map((tok) => {
@@ -559,9 +563,9 @@ export function SubtitleOverlay({
   // breaks on BOTH tracks when the native-format toggle is on.
   const memberLines = useMemo(
     () => subtitleStyles.keepNativeLineBreaks
-      ? targetSentence.replace(/\r\n?/g, '\n').split('\n').map((line) => line.trim()).filter(Boolean)
+      ? sourceText.split('\n').map((line) => line.trim()).filter(Boolean)
       : lineSpans.map((span) => span.text),
-    [lineSpans, targetSentence, subtitleStyles.keepNativeLineBreaks],
+    [lineSpans, sourceText, subtitleStyles.keepNativeLineBreaks],
   );
   const [translatedLines, setTranslatedLines] = useState<string[] | null>(null);
   const translationVisible = translation !== 'hidden';
@@ -1083,7 +1087,7 @@ export function SubtitleOverlay({
 
         {/* Subtitle text */}
         <div
-          className="rounded-md px-4 py-2 transition-all duration-300 cursor-pointer"
+          className="w-full rounded-md px-4 py-2 transition-all duration-300 cursor-pointer"
           // Stable hook for the shared overlay geometry (`overlay-geometry.ts`):
           // StudyBar, these corner icons and the E2E map all measure THIS box
           // (the text plate). The hover zone above also wraps the toolbars, so
@@ -1269,20 +1273,13 @@ export function SubtitleOverlay({
                             onAddContext(tok.key, targetSentence, cardKindOf(tok.text), lineForToken(i));
                           }
                           : undefined}
-                        statusSlot={study && tok.kind !== 'proper-noun-known' ? (
-                          <WordStatusSelector
-                            token={tok.text}
-                            status={mark.status ?? 'new'}
-                            detail={study.detailOf(studyKey)}
-                            isSaved={isSaved}
-                            readOnly
-                            onChange={(status) => study.setStatus(studyKey, status)}
-                            onClear={() => study.setStatus(studyKey, null)}
-                          />
-                        ) : undefined}
-                        wordStatus={study && tok.kind !== 'proper-noun-known' ? (mark.status ?? 'new') : undefined}
-                        onWordStatus={study && tok.kind !== 'proper-noun-known'
+                        status={study && tok.kind !== 'proper-noun-known' ? (mark.status ?? 'new') : undefined}
+                        statusDetail={study && tok.kind !== 'proper-noun-known' ? study.detailOf(studyKey) : undefined}
+                        onStatusChange={study && tok.kind !== 'proper-noun-known'
                           ? (status) => study.setStatus(studyKey, status)
+                          : undefined}
+                        onStatusClear={study && tok.kind !== 'proper-noun-known'
+                          ? () => study.setStatus(studyKey, null)
                           : undefined}
                       />,
                       portalBoundary,

@@ -156,6 +156,22 @@ export function cueLineSpans(text: string): CueLineSpan[] {
   return spans;
 }
 
+/**
+ * Spans indexed into the EXACT rendered string, including native breaks and
+ * repeated spaces. Used when `keepNativeLineBreaks` is on: the collapsed
+ * `cueLineSpans` would shift offsets and make a click save the wrong line.
+ */
+export function cueLineSpansExact(text: string): CueLineSpan[] {
+  const source = text.replace(/\r\n?/g, '\n');
+  const spans: CueLineSpan[] = [];
+  let cursor = 0;
+  for (const line of source.split('\n')) {
+    if (line.trim()) spans.push({ start: cursor, end: cursor + line.length, text: line });
+    cursor += line.length + 1;
+  }
+  return spans;
+}
+
 /** The span that contains `offset`, or the last one before it. */
 export function lineIndexOfOffset(spans: readonly CueLineSpan[], offset: number): number {
   if (spans.length === 0) return 0;

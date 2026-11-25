@@ -36,7 +36,7 @@ import { wordIdentity, isPhraseLevelSave, normalizeContextGloss } from '../../sh
 import { createSaveGate } from './save-gate';
 import { applySavedScene, captureAnchor, sceneIdentity, sceneSurface, type SubtitleAudioAnchor } from './save-scene';
 import { normalizeAnkiMapping } from '../../shared/anki-model';
-import { shouldRenderFloatingStudyBar, shouldUseOwnedPlayerBar, useNativeBarSlot } from './native-bar-slot';
+import { resolvePlayerRoot, shouldRenderFloatingStudyBar, shouldUseOwnedPlayerBar, useNativeBarSlot } from './native-bar-slot';
 import { PlayerBar } from './PlayerBar';
 import { SlideColumn } from './SlideColumn';
 import { requestSwitchFocus } from './column-switch-focus';
@@ -552,6 +552,21 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     return () => applyOwnedBarCss(false, adapter?.platform ?? undefined);
   }, [enabled, ownedBar, adapter?.platform]);
 
+  // Manual scrubbing goes exclusively through the adapter/MAIN-world bridge.
+  const seekOwned = useCallback((timeMs: number) => {
+    void episode.controller?.seek(Math.max(0, Math.round(timeMs))).catch(() => {});
+  }, [episode.controller]);
+
+  // Netflix detaches its native controls after ~3s. Wake the real row before
+  // forwarding CC/next/fullscreen so the native menu actually opens.
+  const wakeNativeControls = useCallback(() => {
+    const platform = adapter?.platform ?? undefined;
+    applyOwnedBarCss(false, platform);
+    const root = resolvePlayerRoot(platform ?? 'generic', videoElement);
+    root?.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientX: 320, clientY: 200 }));
+    window.setTimeout(() => applyOwnedBarCss(enabled && ownedBar, platform), 400);
+  }, [adapter?.platform, videoElement, enabled, ownedBar]);
+
   // Apply the "Limpieza visual" CSS whenever the toggles change. The CSS is
   // platform-aware (the matching selectors live in cleanup-css.ts) so the
   // same setting can hide YouTube's bottom controls *and* HBO Max's hover
@@ -731,11 +746,21 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // The prefetch is gated on `!getTrackByLanguage(targetLang)` so it
   // doesn't fire when we already have the translated track in memory.
   const showDualSubtitlePref = useKivaraStore((s) => s.study.translation !== 'hidden');
+  const prefetchTargetLang = useKivaraStore((s) => s.translate.targetLanguage);
   // Primitive cues fields, not the whole object: the effect re-fires per cue
   // exactly as before (start is the cue discriminator) without depending on
   // the object identity, which churns every frame on some adapters.
   const activeCueStart = activeCue?.start;
   const activeCueLanguage = activeCue?.language;
+  // A seek can land inside the same cue; the cue start alone misses it. Re-run
+  // the prioritised window from the destination instead of draining an old batch.
+  const [prefetchTick, setPrefetchTick] = useState(0);
+  useEffect(() => {
+    if (!videoElement) return;
+    const onSeeked = () => setPrefetchTick((tick) => tick + 1);
+    videoElement.addEventListener('seeked', onSeeked);
+    return () => videoElement.removeEventListener('seeked', onSeeked);
+  }, [videoElement]);
   useEffect(() => {
     if (!showDualSubtitlePref) return;
     if (activeCueStart == null) return;
@@ -793,7 +818,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     return () => {
       cancelled = true;
     };
-  }, [activeCueStart, activeCueLanguage, showDualSubtitlePref]);
+  }, [activeCueStart, activeCueLanguage, showDualSubtitlePref, prefetchTick, prefetchTargetLang]);
 
   // Native-language alt cue poll. Runs at 20 Hz — fast enough that the
   // dual caption snaps in within the same frame as the source for most
@@ -2175,6 +2200,9 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             <PlayerBar
               playing={playing}
               duration={videoElement?.duration && Number.isFinite(videoElement.duration) ? videoElement.duration * 1000 : 0}
+              video={videoElement}
+              onSeek={seekOwned}
+              onWakeNative={wakeNativeControls}
               autoPauseCue={study.autoPauseCue}
               loopCue={studyPlayback.loop}
               speed={studyPlayback.speed}

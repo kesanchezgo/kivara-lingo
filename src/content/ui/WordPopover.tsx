@@ -28,17 +28,15 @@ import type {
   ResolveWordResponse,
   ResolveWordStreamRequest,
 } from '../../shared/types';
+import type { StatusDetail, WordStatus } from '../../shared/study/wordStatus';
+import { WordStatusSelector } from './WordStatusSelector';
 import { pickFrequencyWinner } from '../../shared/frequency';
 import { computePopoverPlacement } from './popover-geometry';
 import { lookupDictionary } from '../nlp/dictionary';
 import { openResolveWordStream } from '../resolve-word-stream';
 import { FrequencyBadge, useWordRank } from './FrequencyBadge';
 import { LanguageMismatchNotice } from './language-mismatch';
-import { onRadioKeyDown, radioTabIndex } from '../../ui/primitives/settings-primitives';
-import { MARK_INK, StatusGlyph } from './wordMarks';
-
-const STATUS_VALUES = ['new', 'learning', 'known'] as const;
-type CompactStatus = typeof STATUS_VALUES[number];
+type CompactStatus = 'new' | 'learning' | 'known';
 
 export interface WordPopoverProps {
   cardTheme?: 'dark' | 'light' | 'auto';
@@ -78,7 +76,12 @@ export interface WordPopoverProps {
   onAddContext?: (e: React.MouseEvent) => void;
   /** F5 hook point: the status selector mounts here (full detail block). */
   statusSlot?: React.ReactNode;
-  /** Compact status state + setter for the pinned edge action bar. */
+  /** Prototype status block lives in the pinned footer, above the actions. */
+  status?: WordStatus;
+  statusDetail?: StatusDetail;
+  onStatusChange?: (status: WordStatus) => void;
+  onStatusClear?: () => void;
+  /** Compact status state + setter kept for legacy callers. */
   wordStatus?: CompactStatus;
   onWordStatus?: (status: CompactStatus) => void;
   /**
@@ -462,7 +465,7 @@ function PopoverAction({ icon, label, title, href, iconOnly }: { icon: React.Rea
       }}
       title={title}
       aria-label={label}
-      className={`${iconOnly ? 'w-8 shrink-0' : 'flex-1'} h-10 flex items-center justify-center ${iconOnly ? '' : 'gap-1.5 px-2'} text-[12px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-900/[0.04] dark:hover:bg-white/[0.04] transition-colors`}
+      className={`${iconOnly ? 'w-8 shrink-0' : 'flex-1 min-w-0'} h-10 flex items-center justify-center ${iconOnly ? '' : 'gap-1.5 px-2 whitespace-nowrap'} text-[12px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-900/[0.04] dark:hover:bg-white/[0.04] transition-colors`}
     >
       {icon}{!iconOnly && label}
     </button>
@@ -556,8 +559,10 @@ export function WordPopover({
   onSeeInAnki,
   onAddContext,
   statusSlot,
-  wordStatus,
-  onWordStatus,
+  status,
+  statusDetail,
+  onStatusChange,
+  onStatusClear,
   portalContainer = null,
   anchorIndex,
 }: WordPopoverProps) {
@@ -911,6 +916,15 @@ export function WordPopover({
               {meta.phonetic}
             </span>
           )}
+          <button
+            type="button"
+            onClick={handleSpeak}
+            title={t('popover.playPronunciation')}
+            aria-label={t('popover.playPronunciation')}
+            className="self-start shrink-0 w-6 h-6 rounded-md inline-flex items-center justify-center text-indigo-700 dark:text-indigo-300 hover:bg-indigo-400/[0.12] outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+          >
+            <Volume2 size={14} />
+          </button>
         </div>
 
         {/* Body */}
@@ -1140,105 +1154,66 @@ export function WordPopover({
             bar itself is pinned by place(); only the body grows/shrinks. */}
         <div
           data-kvl-card-actions
-          className={`flex flex-nowrap items-stretch h-10 overflow-hidden border-zinc-900/[0.06] dark:border-white/[0.06] bg-white/40 dark:bg-zinc-900/40 ${placement === 'top' ? 'border-t' : 'border-b order-first'}`}
+          className={`${placement === 'top' ? 'flex-col border-t' : 'flex-col-reverse border-b order-first'} flex overflow-hidden border-zinc-900/[0.06] dark:border-white/[0.06] bg-white/40 dark:bg-zinc-900/40`}
         >
-          <button
-            type="button"
-            onClick={handleSpeak}
-            className="w-9 h-10 shrink-0 flex items-center justify-center text-indigo-700 dark:text-indigo-300 hover:bg-indigo-400/[0.12] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
-            title={t('popover.playPronunciation')}
-            aria-label={t('popover.playPronunciation')}
-          >
-            <Volume2 size={14} />
-          </button>
-          {onWordStatus && (
-            <>
-              <div
-                role="radiogroup"
-                aria-label={t('ws.statusAria', { word: token })}
-                onKeyDown={(e) => onRadioKeyDown(
-                  e, STATUS_VALUES, wordStatus ?? null,
-                  (s) => onWordStatus(s),
-                )}
-                className={`${MARK_INK} min-w-0 flex-1 self-center flex items-center h-6 rounded-md bg-zinc-900/[0.05] dark:bg-white/[0.06] p-0.5`}
+          {status && onStatusChange && (
+            <WordStatusSelector
+              token={canonicalToken}
+              status={status}
+              detail={statusDetail}
+              isSaved={isSaved}
+              onChange={onStatusChange}
+              onClear={onStatusClear ?? (() => {})}
+              onAddContext={isSaved && onAddContext
+                ? () => onAddContext(new MouseEvent('click') as unknown as React.MouseEvent)
+                : undefined}
+            />
+          )}
+          <div className="flex items-stretch border-t border-zinc-900/[0.06] dark:border-white/[0.06]">
+            <PopoverAction
+              icon={<BookOpen size={13} />}
+              label={t('wp.define')}
+              title={t('wp.openInDictionary')}
+              href={defineUrl}
+            />
+            <PopoverDivider />
+            <PopoverAction
+              icon={<Search size={13} />}
+              label={t('wp.search')}
+              title={t('popover.searchGoogleTitle')}
+              href={searchUrl}
+            />
+            <PopoverDivider />
+            {isSaved ? (
+              <button
+                type="button"
+                onClick={onSeeInAnki ?? ((e) => e.stopPropagation())}
+                className="flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 h-10 text-[12px] font-semibold whitespace-nowrap text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/15 transition-colors normal-case"
+                title={t('popover.alreadySaved')}
               >
-                {STATUS_VALUES.map((s, i) => {
-                  const label = s === 'new' ? t('ws.new') : s === 'learning' ? t('ws.learning') : t('ws.known');
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      role="radio"
-                      aria-checked={wordStatus === s}
-                      tabIndex={radioTabIndex(wordStatus === s, i, wordStatus != null)}
-                      title={label}
-                      onClick={(e) => { e.stopPropagation(); onWordStatus(s); }}
-                      className={`inline-flex min-w-0 flex-1 items-center justify-center gap-1 h-5 px-1 text-[10px] rounded ${wordStatus === s ? 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-zinc-500 dark:text-zinc-400'}`}
-                    >
-                      {s !== 'known' && <StatusGlyph status={s} />}
-                      <span className="truncate">{label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <PopoverDivider />
-            </>
-          )}
-          <PopoverAction
-            icon={<BookOpen size={13} />}
-            label={t('wp.define')}
-            title={t('wp.openInDictionary')}
-            href={defineUrl}
-            iconOnly
-          />
-          <PopoverAction
-            icon={<Search size={13} />}
-            label={t('wp.search')}
-            title={t('popover.searchGoogleTitle')}
-            href={searchUrl}
-            iconOnly
-          />
-          <PopoverDivider />
-          {isSaved && onAddContext && (
-            <button
-              type="button"
-              onClick={onAddContext}
-              title={t('popover.addSceneTitle')}
-              aria-label={t('popover.addScene')}
-              className="w-8 h-10 shrink-0 flex items-center justify-center text-indigo-700 dark:text-indigo-300 hover:bg-indigo-400/[0.12] transition-colors"
-            >
-              <Plus size={13} />
-            </button>
-          )}
-          {isSaved ? (
-            <button
-              type="button"
-              onClick={onSeeInAnki ?? ((e) => e.stopPropagation())}
-              className="flex-1 flex items-center justify-center gap-1.5 px-2 h-10 text-[12px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/15 transition-colors normal-case"
-              title={t('popover.alreadySaved')}
-            >
-              <Eye size={12} /> {t('wp.seeInAnki')}
-            </button>
-          ) : isQueued ? (
-            <button
-              type="button"
-              aria-disabled="true"
-              onClick={(e) => e.stopPropagation()}
-              className="flex-1 flex items-center justify-center gap-1.5 px-2 h-10 text-[12px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-500/10 cursor-default normal-case"
-              title={t('queue.alreadyQueued')}
-            >
-              <Clock size={12} /> {t('queue.inQueue')}
-            </button>
-          ) : (
-            <button
-              type="button"
-              aria-label={t('wp.save')}
-              onClick={(e) => onSave(e, canonicalToken, saveGloss(resolved.localEntry, meta.translation))}
-              className="shrink-0 min-w-[84px] flex items-center justify-center gap-1.5 px-2 h-10 text-[12px] font-semibold whitespace-nowrap text-white bg-indigo-500 hover:bg-indigo-400 transition-colors normal-case"
-            >
-              <Plus size={12} /> {t('wp.save')}
-            </button>
-          )}
+                <Eye size={12} /> {t('wp.seeInAnki')}
+              </button>
+            ) : isQueued ? (
+              <button
+                type="button"
+                aria-disabled="true"
+                onClick={(e) => e.stopPropagation()}
+                className="flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 h-10 text-[12px] font-semibold whitespace-nowrap text-amber-700 dark:text-amber-300 bg-amber-500/10 cursor-default normal-case"
+                title={t('queue.alreadyQueued')}
+              >
+                <Clock size={12} /> {t('queue.inQueue')}
+              </button>
+            ) : (
+              <button
+                type="button"
+                aria-label={t('wp.save')}
+                onClick={(e) => onSave(e, canonicalToken, saveGloss(resolved.localEntry, meta.translation))}
+                className="flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 h-10 text-[12px] font-semibold whitespace-nowrap text-white bg-indigo-500 hover:bg-indigo-400 transition-colors normal-case"
+              >
+                <Plus size={12} /> {t('wp.save')}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

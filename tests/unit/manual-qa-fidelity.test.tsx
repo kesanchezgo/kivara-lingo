@@ -32,6 +32,10 @@ const cardProps: WordPopoverProps = {
   onSave: () => {},
   wordStatus: 'learning',
   onWordStatus: () => {},
+  status: 'learning',
+  statusDetail: { status: 'learning', source: 'user' },
+  onStatusChange: () => {},
+  onStatusClear: () => {},
 } as unknown as WordPopoverProps;
 
 const overlayProps = (overrides: Partial<Parameters<typeof SubtitleOverlay>[0]> = {}) => ({
@@ -61,22 +65,24 @@ const overlayProps = (overrides: Partial<Parameters<typeof SubtitleOverlay>[0]> 
   ...overrides,
 });
 
-describe('1 — word card action bar', () => {
-  it('shrinks the status group and keeps the full Guardar action', () => {
-    render(<WordPopover {...cardProps} />);
-    const group = screen.getByRole('radiogroup');
-    expect(group.className).toContain('min-w-0');
-    expect(group.className).toContain('flex-1');
-    expect(group.className).not.toContain('shrink-0');
+describe('1 — word card two-row footer', () => {
+  it('puts the full status selector above a separate 3-cell action row', () => {
+    const { container } = render(<WordPopover {...cardProps} />);
+    const actions = container.querySelector<HTMLElement>('[data-kvl-card-actions]')!;
+    const status = actions.querySelector<HTMLElement>(`[title="${t('ws.label')}"]`);
+    expect(status).not.toBeNull();
+    expect(status!.className).toContain('px-3 pt-2 pb-2');
+    expect(status!.querySelectorAll('[role="radio"]')).toHaveLength(3);
 
-    for (const radio of screen.getAllByRole('radio')) {
-      expect(radio.className, 'radio must be shrinkable').toContain('min-w-0');
-      expect(radio.querySelector('span.truncate')).not.toBeNull();
-    }
-
-    const save = screen.getByRole('button', { name: t('wp.save') });
-    expect(save.className).toContain('shrink-0');
-    expect(save.className).toContain('min-w-[84px]');
+    const footer = actions.lastElementChild as HTMLElement;
+    expect(footer.className).toContain('flex items-stretch');
+    expect(footer.textContent).toContain(t('wp.define'));
+    expect(footer.textContent).toContain(t('wp.search'));
+    expect(footer.textContent).toContain(t('wp.save'));
+    expect(footer.querySelectorAll('.w-px.my-2\\.5')).toHaveLength(2);
+    expect(footer.querySelector('[role="radio"]')).toBeNull();
+    expect(footer.innerHTML).not.toContain('min-w-[84px]');
+    expect(footer.innerHTML).not.toContain('shrink-0 min-w-');
   });
 });
 
