@@ -250,12 +250,12 @@ describe('PR159 — useNativeBarSlot / shouldRenderFloatingStudyBar', () => {
     const video = el('video') as HTMLVideoElement;
     player.append(video);
     document.body.append(player);
-    const view = render(<Probe enabled platform={'netflix' as never} video={video} />);
+    const view = render(<Probe enabled platform={'youtube' as never} video={video} />);
     const probe = () => screen.getByTestId('probe');
     expect(probe().getAttribute('data-floating')).toBe('true');
     expect(probe().getAttribute('data-render')).toBe('true');
 
-    const row = el('div', 'PlayerControlsNeo__bottom-controls');
+    const row = el('div', 'ytp-right-controls');
     const right = el('div', 'right');
     right.append(el('button', '', 'control-next'));
     row.append(el('button', 'left'), right);
@@ -281,7 +281,7 @@ describe('PR159 — useNativeBarSlot / shouldRenderFloatingStudyBar', () => {
     // SPA navigation: a NEW <video> resets the session.
     const video2 = el('video') as HTMLVideoElement;
     player.append(video2);
-    view.rerender(<Probe enabled platform={'netflix' as never} video={video2} />);
+    view.rerender(<Probe enabled platform={'youtube' as never} video={video2} />);
     expect(probe().getAttribute('data-floating')).toBe('true');
     expect(probe().getAttribute('data-render')).toBe('true');
     vi.useRealTimers();

@@ -17,6 +17,13 @@ type Platform = SubtitleSource['platform'];
 /** ID shared with ShadowHost.mountInlineSlot — used everywhere we skip our own slot. */
 export const BAR_SLOT_ID = 'kivara-lingo-bar-slot';
 
+/** Platforms where Kivara owns the whole bar instead of injecting a row. */
+const OWNED_BAR_PLATFORMS = new Set<Platform>(['netflix']);
+
+export function shouldUseOwnedPlayerBar(platform?: Platform): boolean {
+  return !!platform && OWNED_BAR_PLATFORMS.has(platform);
+}
+
 /** Containers where each platform mounts its real control row. */
 const PLAYER_ROOT_SELECTORS: Record<Platform, readonly string[]> = {
   netflix: ['.watch-video', '.watch-video--player-view', '[data-uia="watch-video"]'],
@@ -217,7 +224,7 @@ export function useNativeBarSlot(
   const [state, setState] = useState<NativeBarState>({ reactRoot: null, allowFloating: true });
   useEffect(() => {
     setState({ reactRoot: null, allowFloating: true });
-    if (!enabled) return;
+    if (!enabled || shouldUseOwnedPlayerBar(platform)) return;
     const watcher = new NativeAnchorWatcher();
     let mounted: ReturnType<typeof ShadowHost.mountInlineSlot> | null = null;
     const root = resolvePlayerRoot(platform, videoElement);
