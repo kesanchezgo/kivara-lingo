@@ -277,6 +277,9 @@ test('saving STEVE over an existing steve note: no Undo, add-scene offered, old 
       // mouse.move alone can land before the hover handler has fired, and the
       // shortcut would then fall through to "nothing to save" (empty toast).
       await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).tokens.length, { timeout: 10_000 }).toBeGreaterThan(0);
+      // Native cue alignment can re-centre the caption once it arrives; let
+      // it settle before measuring the hover target.
+      await page.waitForTimeout(400);
       const tokBox = (await boxesOf(page, VIDEO_HOST)).tokens[0];
       const tok = { x: tokBox.x + tokBox.width / 2, y: tokBox.y + tokBox.height / 2 };
       for (let i = 0; i < 15; i++) {
@@ -353,6 +356,9 @@ test('saving "running" over a pre-existing lemma "run" note reuses it and add-sc
     const page = await openPage(context, RUN_TTML);
     try {
       await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).tokens.length, { timeout: 10_000 }).toBeGreaterThan(0);
+      // Native cue alignment can re-centre the caption once it arrives; let
+      // it settle before measuring the hover target.
+      await page.waitForTimeout(400);
       const tokBox = (await boxesOf(page, VIDEO_HOST)).tokens[0];
       const tok = { x: tokBox.x + tokBox.width / 2, y: tokBox.y + tokBox.height / 2 };
       for (let i = 0; i < 15; i++) {
@@ -422,6 +428,9 @@ test('other meaning: the new-sense toast shows both actions, create-first, no Un
     const page = await openPage(context, RUN_TTML);
     try {
       await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).tokens.length, { timeout: 10_000 }).toBeGreaterThan(0);
+      // Native cue alignment can re-centre the caption once it arrives; let
+      // it settle before measuring the hover target.
+      await page.waitForTimeout(400);
       const tokBox = (await boxesOf(page, VIDEO_HOST)).tokens[0];
       for (let i = 0; i < 15; i++) {
         await page.mouse.move(
@@ -614,6 +623,9 @@ test('forced create on the SAME meaning: final notice has NO Crear, old note int
       // Seed AFTER the overlay is live: the SW's one-shot orphan sweep has
       // settled by now, so the pack term cannot be swept mid-flight.
       await seedDictPack(context);
+      // Native cue alignment can re-centre the caption once it arrives; let
+      // it settle before measuring the hover target.
+      await page.waitForTimeout(400);
       const tokBox = (await boxesOf(page, VIDEO_HOST)).tokens[0];
       for (let i = 0; i < 15; i++) {
         await page.mouse.move(
@@ -670,6 +682,9 @@ test('fresh save then Deshacer: deleteNotes [id] and the saved notice closes', a
     const page = await openPage(context, RUN_TTML);
     try {
       await expect.poll(async () => (await boxesOf(page, VIDEO_HOST)).tokens.length, { timeout: 10_000 }).toBeGreaterThan(0);
+      // Native cue alignment can re-centre the caption once it arrives; let
+      // it settle before measuring the hover target.
+      await page.waitForTimeout(400);
       const tokBox = (await boxesOf(page, VIDEO_HOST)).tokens[0];
       for (let i = 0; i < 15; i++) {
         await page.mouse.move(
