@@ -209,3 +209,32 @@ export function applyCleanupCss(opts: BuildOpts): void {
   style.textContent = css;
   if (!existing) document.documentElement.appendChild(style);
 }
+
+const OWNED_BAR_SELECTORS: Partial<Record<Platform, string[]>> = {
+  netflix: [
+    '.PlayerControlsNeo__bottom-controls',
+    '[data-uia="watch-video-bottom-controls"]',
+    '[data-uia="player-controls"]',
+  ],
+};
+
+/** Hide only the host's bottom row while the owned Kivara bar is active.
+ * Keep the DOM alive (never display:none): the site's keyboard listeners live
+ * on those nodes. The owned bar forwards the real controls it replaces. */
+export function applyOwnedBarCss(enabled: boolean, platform?: Platform): void {
+  const id = `kivara-owned-bar-${platform ?? 'generic'}`;
+  const existing = document.getElementById(id) as HTMLStyleElement | null;
+  const selectors = OWNED_BAR_SELECTORS[platform ?? 'generic'] ?? [];
+  if (!enabled || selectors.length === 0) {
+    existing?.remove();
+    return;
+  }
+  const style = existing ?? document.createElement('style');
+  style.id = id;
+  style.textContent = `${selectors.join(',\n')} {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}`;
+  if (!existing) document.documentElement.appendChild(style);
+}

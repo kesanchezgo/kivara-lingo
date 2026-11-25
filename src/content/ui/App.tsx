@@ -6,7 +6,7 @@ import { sendMessage } from 'webext-bridge/content-script';
 import { SidePanel } from './SidePanel';
 import { SubtitleOverlay } from './SubtitleOverlay';
 import { CaptureOverlay, type CaptureAudio, type CaptureView } from './CaptureOverlay';
-import { applyCleanupCss } from './cleanup-css';
+import { applyCleanupCss, applyOwnedBarCss } from './cleanup-css';
 import { usePointerIdleOverPlayer } from './pointer-idle';
 import { playSound } from '../../ui/sounds';
 import { Pause } from '../../ui/icons';
@@ -36,7 +36,8 @@ import { wordIdentity, isPhraseLevelSave, normalizeContextGloss } from '../../sh
 import { createSaveGate } from './save-gate';
 import { applySavedScene, captureAnchor, sceneIdentity, sceneSurface, type SubtitleAudioAnchor } from './save-scene';
 import { normalizeAnkiMapping } from '../../shared/anki-model';
-import { shouldRenderFloatingStudyBar, useNativeBarSlot } from './native-bar-slot';
+import { shouldRenderFloatingStudyBar, shouldUseOwnedPlayerBar, useNativeBarSlot } from './native-bar-slot';
+import { PlayerBar } from './PlayerBar';
 import { SlideColumn } from './SlideColumn';
 import { requestSwitchFocus } from './column-switch-focus';
 import { lemmaCandidates } from '../nlp/lemma';
@@ -540,10 +541,16 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     };
   }, [columnVisibility, adapter?.platform, enabled, viewportWidth]);
 
-  // Native bar integration: the hook owns the inline slot; the floating bar
-  // renders only while no native anchor has been seen in this video session.
+  // Netflix gets the Kivara-owned bar from the prototype; the inline slot and
+  // the small floating capsule stay for the other platforms.
+  const ownedBar = shouldUseOwnedPlayerBar(adapter?.platform ?? undefined);
   const nativeBar = useNativeBarSlot(enabled, adapter?.platform, videoElement);
-  const showFloatingBar = shouldRenderFloatingStudyBar(enabled, videoOverlayRoot, nativeBar);
+  const showFloatingBar = !ownedBar && shouldRenderFloatingStudyBar(enabled, videoOverlayRoot, nativeBar);
+
+  useEffect(() => {
+    applyOwnedBarCss(enabled && ownedBar, adapter?.platform ?? undefined);
+    return () => applyOwnedBarCss(false, adapter?.platform ?? undefined);
+  }, [enabled, ownedBar, adapter?.platform]);
 
   // Apply the "Limpieza visual" CSS whenever the toggles change. The CSS is
   // platform-aware (the matching selectors live in cleanup-css.ts) so the
@@ -2158,6 +2165,38 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       </div>
 
       {overlayPortal}
+
+      {/* Netflix: own the whole bottom bar so it follows the mock design.
+          Playback still delegates to the adapter/controller; the host's real
+          next / CC / fullscreen buttons are forwarded to, not imitated. */}
+      {enabled && ownedBar &&
+        createPortal(
+          <PortalContainerProvider container={videoPortalContainer ?? null}>
+            <PlayerBar
+              playing={playing}
+              duration={videoElement?.duration && Number.isFinite(videoElement.duration) ? videoElement.duration * 1000 : 0}
+              autoPauseCue={study.autoPauseCue}
+              loopCue={studyPlayback.loop}
+              speed={studyPlayback.speed}
+              railOpen={railVisible}
+              panelOpen={panelOpen}
+              onTogglePlay={studyPlayback.togglePlay}
+              onPrev={studyPlayback.prev}
+              onReplay={studyPlayback.replay}
+              onReplaySlow={studyPlayback.replaySlow}
+              onNext={studyPlayback.next}
+              onToggleAutoPause={() => {
+                const next = !useKivaraStore.getState().study.autoPauseCue;
+                setStudy((prev) => ({ ...prev, autoPauseCue: next }));
+              }}
+              onToggleLoop={() => studyPlayback.setLoop(!studyPlayback.loop)}
+              onSpeed={studyPlayback.setSpeed}
+              onToggleRail={toggleRail}
+              onTogglePanel={() => setPanelOpen(!panelOpen)}
+            />
+          </PortalContainerProvider>,
+          videoOverlayRoot!,
+        )}
 
       {/* F6: the study bar lives in the player's overlay root, above the
           platform's own controls (D2). Its visibility follows pointer activity
