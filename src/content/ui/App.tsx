@@ -38,6 +38,7 @@ import { applySavedScene, captureAnchor, sceneIdentity, sceneSurface, type Subti
 import { normalizeAnkiMapping } from '../../shared/anki-model';
 import { resolvePlayerRoot, shouldRenderFloatingStudyBar, shouldUseOwnedPlayerBar, useNativeBarSlot } from './native-bar-slot';
 import { PlayerBar } from './PlayerBar';
+import { combineControlsVisibility } from './overlay-geometry';
 import { SlideColumn } from './SlideColumn';
 import { requestSwitchFocus } from './column-switch-focus';
 import { lemmaCandidates } from '../nlp/lemma';
@@ -551,6 +552,35 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     applyOwnedBarCss(enabled && ownedBar, adapter?.platform ?? undefined);
     return () => applyOwnedBarCss(false, adapter?.platform ?? undefined);
   }, [enabled, ownedBar, adapter?.platform]);
+
+  // The owned bar reports its auto-hide state + measured height. The caption
+  // lifts clear of it so the translation line is never covered. A future
+  // adapter `onControlsVisibility` combines here (visible wins, tallest
+  // height) without touching the overlay.
+  const [ownedBarVisibility, setOwnedBarVisibility] = useState<{ visible: boolean; height: number }>({
+    visible: false,
+    height: 0,
+  });
+  const handleBarVisibility = useCallback((visible: boolean, heightPx: number) => {
+    setOwnedBarVisibility((prev) => (
+      prev.visible === visible && prev.height === heightPx ? prev : { visible, height: heightPx }
+    ));
+  }, []);
+  const controlsVisibility = combineControlsVisibility(ownedBarVisibility, null);
+  const captionBarHeight = controlsVisibility.visible ? controlsVisibility.height : 0;
+
+  // Volume/mute go through the controller: on Netflix the Cadmium session
+  // player keeps the level across episodes and audio tracks.
+  const setVolumeOwned = useCallback((volume: number) => {
+    const controller = episode.controller;
+    if (controller?.setVolume) controller.setVolume(volume);
+    else if (videoElement) videoElement.volume = volume;
+  }, [episode.controller, videoElement]);
+  const setMutedOwned = useCallback((muted: boolean) => {
+    const controller = episode.controller;
+    if (controller?.setMuted) controller.setMuted(muted);
+    else if (videoElement) videoElement.muted = muted;
+  }, [episode.controller, videoElement]);
 
   // Manual scrubbing goes exclusively through the adapter/MAIN-world bridge.
   const seekOwned = useCallback((timeMs: number) => {
@@ -2071,6 +2101,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             expandedMWEs={expandedMWEs}
             setExpandedMWEs={setExpandedMWEs}
             capturing={captureView !== null}
+            barHeightPx={captionBarHeight}
             study={studyBinding}
             // The rail is the only place an explanation renders, and it now
             // lives beside the panel instead of being replaced by it (#38) —
@@ -2136,6 +2167,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     playing,
     expandedMWEs,
     captureView,
+    captionBarHeight,
     studyBinding,
     aiOn,
     requestExplain,
@@ -2221,6 +2253,10 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
               onSpeed={studyPlayback.setSpeed}
               onToggleRail={toggleRail}
               onTogglePanel={() => setPanelOpen(!panelOpen)}
+              capturing={captureView !== null}
+              onSetVolume={setVolumeOwned}
+              onSetMuted={setMutedOwned}
+              onVisibilityChange={handleBarVisibility}
             />
           </PortalContainerProvider>,
           videoOverlayRoot!,

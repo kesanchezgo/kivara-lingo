@@ -139,3 +139,61 @@ export function placeBadgeGroup(
     side: 'corner',
   };
 }
+
+/* ── Caption lift above the owned PlayerBar ───────────────────────────────
+ *
+ * The owned bar (Netflix) is bottom-anchored chrome that the user summons by
+ * moving the pointer. A caption parked in the lower band would end up UNDER
+ * it — the translation line and its tokens unreadable exactly when the hand
+ * is on the video. The lift is a pure function so the arithmetic is testable
+ * without a layout engine; the overlay only turns the number into a transform.
+ */
+
+/** Minimum clearance between the plate's bottom edge and the bar's top edge. */
+export const CAPTION_BAR_CLEARANCE_PX = 12;
+
+export interface CaptionLiftInput {
+  /** The plate's bottom edge, measured from the host's top, px. */
+  plateBottomPx: number;
+  /** The player overlay host's height, px. */
+  hostHeight: number;
+  /** The visible bar's height, px; 0 while the bar is hidden. */
+  barHeightPx: number;
+  /** A clean capture is running: neither the bar nor the lift may dirty it. */
+  capturing: boolean;
+}
+
+/**
+ * How far UP the plate must move so its bottom edge stays at least
+ * `CAPTION_BAR_CLEARANCE_PX` above the bar. 0 when the bar is hidden, the
+ * caption is already clear, or a capture is running.
+ */
+export function captionLiftPx(input: CaptionLiftInput): number {
+  const { plateBottomPx, hostHeight, barHeightPx, capturing } = input;
+  if (capturing) return 0;
+  if (!(barHeightPx > 0) || !(hostHeight > 0)) return 0;
+  const limit = hostHeight - barHeightPx - CAPTION_BAR_CLEARANCE_PX;
+  return Math.max(0, Math.ceil(plateBottomPx - limit));
+}
+
+/** The two signals that can hide/show native player chrome. */
+export interface ControlsVisibility {
+  visible: boolean;
+  height: number;
+}
+
+/**
+ * Combine our own bar's auto-hide state with a platform adapter's future
+ * `onControlsVisibility`. Visible wins (either chrome counts), and the height
+ * is the tallest reported: lifting for the shorter one would still be covered.
+ */
+export function combineControlsVisibility(
+  owned: ControlsVisibility,
+  native: ControlsVisibility | null | undefined,
+): ControlsVisibility {
+  if (!native) return owned;
+  return {
+    visible: owned.visible || native.visible,
+    height: Math.max(owned.visible ? owned.height : 0, native.visible ? native.height : 0),
+  };
+}

@@ -123,7 +123,7 @@ export function selectSubtitleTrackThroughMainWorld(
   );
 }
 
-/** The player's subtitle track list and the current track. */
+/** The player's own subtitle track list and the current track. */
 export function listSubtitleTracks(
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<{ tracks: import('./timed-text').TimedTextTrackInfo[]; current: import('./timed-text').TimedTextTrackInfo | null }> {
@@ -131,4 +131,19 @@ export function listSubtitleTracks(
     { cmd: 'subtitles', action: 'list' },
     timeoutMs,
   ).then((data) => ({ tracks: data?.tracks ?? [], current: data?.current ?? null }));
+}
+
+/**
+ * Set the output volume through the Cadmium session player. Netflix keeps the
+ * level on the PLAYER, not on the `<video>` it replaces between episodes and
+ * audio tracks — writing the element alone loses it on the next switch. The
+ * caller falls back to the element when the MAIN world refuses.
+ */
+export function volumeThroughMainWorld(volume: number, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<void> {
+  return playbackCommand({ cmd: 'volume', volume }, timeoutMs);
+}
+
+/** Mute/unmute through the Cadmium session player (same reasoning as volume). */
+export function muteThroughMainWorld(muted: boolean, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<void> {
+  return playbackCommand({ cmd: 'mute', muted }, timeoutMs);
 }

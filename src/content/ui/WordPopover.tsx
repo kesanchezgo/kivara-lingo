@@ -866,7 +866,10 @@ export function WordPopover({
       aria-modal="false"
       aria-label={`${t('popover.dictionaryLabel')} — ${token}`}
       className={`kvl-ui ${entryAnim ? 'kvl-fade-in ' : ''}${cardTheme === 'auto' ? '' : cardTheme + ' '}pointer-events-auto absolute left-1/2 -translate-x-1/2 w-[340px] z-[40] ${
-        placement === 'top' ? 'bottom-full' : 'top-full'
+        // Only the OUTER placement mirrors. The 7px word↔card gap is pinned
+        // imperatively by place() (measured against the token, bridged), so
+        // the mock's mt-3/mb-3 margin would double it.
+        placement === 'top' ? 'bottom-full slide-in-from-bottom-1' : 'top-full slide-in-from-top-1'
       }`}
       style={{
         pointerEvents: 'auto',
@@ -1147,14 +1150,13 @@ export function WordPopover({
 
         </div>
 
-        {/* Edge action bar — the WORD-NEAR edge. Carries EVERY clickable
-            control so none drifts as the body fills. For a top-side card the
-            word is below and this is the bottom edge (the card's last child);
-            for a bottom-side card `order: -1` flips it to the top edge. The
-            bar itself is pinned by place(); only the body grows/shrinks. */}
+        {/* Edge action bar. MOCK FIDELITY: the internal order NEVER inverts —
+            Header → Body → extra blocks → Estado → Definir | Buscar | Guardar,
+            top to bottom, in BOTH placements. Only the outer positioning, the
+            arrow and the hover bridge mirror when the card opens downward. */}
         <div
           data-kvl-card-actions
-          className={`${placement === 'top' ? 'flex-col border-t' : 'flex-col-reverse border-b order-first'} flex overflow-hidden border-zinc-900/[0.06] dark:border-white/[0.06] bg-white/40 dark:bg-zinc-900/40`}
+          className="flex flex-col overflow-hidden border-t border-zinc-900/[0.06] dark:border-white/[0.06] bg-white/40 dark:bg-zinc-900/40"
         >
           {status && onStatusChange && (
             <WordStatusSelector

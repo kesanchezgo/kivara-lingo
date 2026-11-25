@@ -49,6 +49,7 @@ import {
   captionRect,
   hostOf,
   notifyCaptionGeometryChange,
+  captionLiftPx,
   oppositeSide,
   placeBadgeGroup,
   scopeOf,
@@ -128,6 +129,12 @@ export interface SubtitleOverlayProps {
    */
   onNothingToSave?: (reason: 'several' | 'none') => void;
   /**
+   * The visible owned PlayerBar's height, px (0 while it is hidden). The
+   * caption lifts clear of it so the bar never covers the translation line
+   * or its tokens while the user reads them.
+   */
+  barHeightPx?: number;
+  /**
    * Study profile of the subtitle language (F5): resolves each token's status,
    * feeds the word card's status selector and knows which words already have
    * an Anki card. Absent, the overlay draws only the expression bracket (F3).
@@ -166,6 +173,7 @@ export function SubtitleOverlay({
   onExplain,
   onNothingToSave,
   study,
+  barHeightPx = 0,
 }: SubtitleOverlayProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -406,6 +414,113 @@ export function SubtitleOverlay({
     if (plate) observer.observe(plate);
     return () => observer.disconnect();
   }, [placeBadges]);
+
+  /**
+   * LIFT ABOVE THE OWNED PLAYER BAR. The bar is bottom chrome the pointer
+   * summons; a caption parked at 85 % would end up under it, hiding the
+   * translation line exactly while the user is reading. The plate is measured
+   * (its bottom edge, from the host's top) and the layer is translated up by
+   * whatever keeps it 12 px clear. A capture is a clean frame: no bar, no
+   * lift, no transform.
+   */
+  // Where the layer parks, as a percentage of the player's height. Declared
+  // here because the lift below needs it before the render-time block.
+  const verticalPercent =
+    subtitleStyles.verticalOffset ??
+    (subtitleStyles.position === 'top' ? 15 : subtitleStyles.position === 'middle' ? 50 : 85);
+
+  const [liftPx, setLiftPx] = useState(0);
+  const measureLift = useCallback(() => {
+    if (capturing || !(barHeightPx > 0)) {
+      setLiftPx((prev) => (prev === 0 ? prev : 0));
+      return;
+    }
+    // Resolve the layer and the plate from the LIVE tree. The overlay is
+    // memoized through a portal, so a callback captured before the first cue
+    // can hold `layerRef.current === null`. The VIDEO host is the one anchor
+    // that always exists: its closed root holds the portal boundary, and the
+    // plate is looked up inside it.
+    const root: ParentNode = hostOf(layerRef.current)
+      ? scopeOf(layerRef.current!)
+      : document.getElementById('kivara-lingo-video-host')?.shadowRoot
+        ?? document;
+    const layer = layerRef.current
+      ?? root.querySelector<HTMLElement>('[data-kvl-caption-layer]');
+    const plateEl = root.querySelector<HTMLElement>(`[${CAPTION_BOX_ATTR}]`);
+    // `offsetHeight` is layout px and survives the layer's transform (the
+    // scaled plate reports a rect, not a usable size, during hover). A cue
+    // that grows (a second line, the translation) must be measured at its
+    // CURRENT size or the lift is computed against the previous cue and the
+    // plate ends up under the bar for a frame.
+    const plateHeight = plateEl?.offsetHeight ?? 0;
+    // The frame is whatever box the layer is positioned inside: its parent,
+    // else the shadow host, else the popover boundary, else the layer itself
+    // (its `inset-x-0` box spans the same width, and the height comes from
+    // the nearest ancestor that has one).
+    const frameEl = layer
+      ? layer.parentElement
+        ?? hostOf(layer)
+        ?? layer.closest<HTMLElement>('[data-popover-boundary]')
+        ?? layer
+      : null;
+    const host = frameEl?.getBoundingClientRect() ?? null;
+    if (host && host.height <= 0) {
+      // A zero-height containing block (the panel host pattern): fall back to
+      // the viewport height the overlay actually spans.
+      host.height = window.innerHeight;
+    }
+    if (!plateHeight || !host) {
+      setLiftPx((prev) => (prev === 0 ? prev : 0));
+      return;
+    }
+    // The plate's NATURAL bottom is derived from the layer's own geometry
+    // (`top: pct%` + `translateY(-50%)`), never from its measured rect: the
+    // rect already carries whatever lift is applied, so measuring it would
+    // make the next pass cancel the lift back to zero (the live oscillation
+    // this fixes). The translate does not change the plate's SIZE, so its
+    // height is a safe input.
+    const naturalBottom = (verticalPercent / 100) * host.height + plateHeight / 2;
+    const next = captionLiftPx({
+      plateBottomPx: naturalBottom,
+      hostHeight: host.height,
+      barHeightPx,
+      capturing,
+    });
+    setLiftPx((prev) => (prev === next ? prev : next));
+  }, [barHeightPx, capturing, verticalPercent]);
+
+  // Runs after every commit (the plate moves with the cue) AND on resize, so
+  // the clearance survives a cue swap, a bar resize and a caption re-wrap.
+  // The measurement is deferred one frame: the FIRST commit that brings a cue
+  // renders the layer in that same pass, and reading layout synchronously
+  // inside the effect sees the pre-layout box (offsetHeight 0 on a fresh
+  // node). A rAF reads the box the browser actually laid out.
+  useLayoutEffect(() => {
+    measureLift();
+    const raf = typeof requestAnimationFrame === 'function'
+      ? requestAnimationFrame(measureLift)
+      : null;
+    return () => { if (raf !== null) cancelAnimationFrame(raf); };
+  }, [measureLift]);
+  useEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return;
+    const layer = layerRef.current;
+    if (!layer) return;
+    const root = scopeOf(layer);
+    const observer = new ResizeObserver(measureLift);
+    observer.observe(layer);
+    const plate = root.querySelector<HTMLElement>(`[${CAPTION_BOX_ATTR}]`);
+    if (plate) observer.observe(plate);
+    // The plate re-wraps when the cue text changes WITHOUT a resize event the
+    // layer can see (the layer spans the full width either way). Watching the
+    // caption text keeps the lift in step with the line it is lifting.
+    const text = new MutationObserver(measureLift);
+    text.observe(root, { subtree: true, childList: true, characterData: true });
+    return () => {
+      observer.disconnect();
+      text.disconnect();
+    };
+  }, [measureLift]);
 
   useEffect(() => () => {
     if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
@@ -871,9 +986,6 @@ export function SubtitleOverlay({
     const blur = Math.max(2, Math.round(s / 18));
     return `2px 2px ${blur}px rgba(0,0,0,${a}), -1px -1px 0 rgba(0,0,0,${a}), 1px -1px 0 rgba(0,0,0,${a}), -1px 1px 0 rgba(0,0,0,${a}), 1px 1px 0 rgba(0,0,0,${a})`;
   })();
-  const verticalPercent =
-    subtitleStyles.verticalOffset ??
-    (subtitleStyles.position === 'top' ? 15 : subtitleStyles.position === 'middle' ? 50 : 85);
   const alignFor = (align?: CueAlign): 'left' | 'center' | 'right' => {
     if (!subtitleStyles.keepNativeAlignment) return 'center';
     if (align === 'start' || align === 'left') return 'left';
@@ -901,9 +1013,22 @@ export function SubtitleOverlay({
   return (
     <div
       ref={layerRef}
+      data-kvl-caption-layer=""
+      data-kvl-lift={liftPx}
       // With a card open the layer rises above the player controls (z-20/30).
-      className={`absolute inset-x-0 ${hoveredKey ? 'z-[35]' : 'z-10'} flex flex-col items-center px-8 transition-all duration-300`}
-      style={{ top: `${verticalPercent}%`, transform: 'translateY(-50%)' }}
+      // `transition-all` would animate the lift's transform too, and a lift
+      // recomputed while the bar is on screen never settles: the plate kept
+      // its old position because the transition restarted every commit. The
+      // lift is smooth on its own (the bar fades), so the transition stays
+      // scoped to colour/opacity.
+      className={`absolute inset-x-0 ${hoveredKey ? 'z-[35]' : 'z-10'} flex flex-col items-center px-8 transition-[opacity,color] duration-300`}
+      // The lift is a second translate: the base centring stays, the extra
+      // -Npx clears the owned bar. The transition makes it smooth as the bar
+      // fades in/out, and it is 0 during a capture.
+      style={{
+        top: `${verticalPercent}%`,
+        transform: liftPx > 0 ? `translateY(calc(-50% - ${liftPx}px))` : 'translateY(-50%)',
+      }}
     >
       {noCuesNotice && (
         <div className="absolute inset-x-0 top-[12%] flex justify-center px-10" aria-live="polite">
@@ -1085,9 +1210,15 @@ export function SubtitleOverlay({
           </span>
         </div>
 
-        {/* Subtitle text */}
+        {/* Subtitle text. MOCK FIDELITY: the plate is INTRINSIC
+            (`w-fit max-w-full`) — its width is the longer of the primary and
+            the translation line, never the player's width. A `w-full` plate
+            paints a black band across the video for a one-word cue, fires
+            hover on empty video and pins `align: left` text to the screen
+            edge. The children take 100% of THAT intrinsic width so
+            `text-align` aligns the shorter line against the longer one. */}
         <div
-          className="w-full rounded-md px-4 py-2 transition-all duration-300 cursor-pointer"
+          className="w-fit max-w-full rounded-md px-4 py-2 transition-all duration-300 cursor-pointer"
           // Stable hook for the shared overlay geometry (`overlay-geometry.ts`):
           // StudyBar, these corner icons and the E2E map all measure THIS box
           // (the text plate). The hover zone above also wraps the toolbars, so
@@ -1112,9 +1243,9 @@ export function SubtitleOverlay({
           }}
         >
           {reading ? (
-            <span style={blurText(listenHide)}>{sourceText}</span>
+            <span className="block w-full" style={blurText(listenHide)}>{sourceText}</span>
           ) : (
-            <span style={blurText(listenHide)}>
+            <span className="block w-full" style={blurText(listenHide)}>
               {tokens.map((tok, i) => {
                 // Pure punctuation: plain text, no mark, no card.
                 if (tok.kind === 'punct') return <React.Fragment key={`${tok.key}${i}`}>{tok.text}</React.Fragment>;
@@ -1297,7 +1428,7 @@ export function SubtitleOverlay({
           {translationVisible && dualCaptionLines.length > 0 && (
             <div
               data-kivara-dual=""
-              className="mt-2 text-[0.65em] transition-all duration-300 overflow-hidden max-h-20 opacity-100"
+              className="mt-2 w-full text-[0.65em] transition-all duration-300 overflow-hidden max-h-20 opacity-100"
               style={{
                 whiteSpace: subtitleStyles.keepNativeLineBreaks ? 'pre-line' : undefined,
                 textAlign: dualAlign,

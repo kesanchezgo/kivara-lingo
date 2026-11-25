@@ -218,9 +218,37 @@ const OWNED_BAR_SELECTORS: Partial<Record<Platform, string[]>> = {
   ],
 };
 
-/** Hide only the host's bottom row while the owned Kivara bar is active.
+/**
+ * Native Netflix surfaces that live INSIDE the row we hide, or in portals
+ * anchored to it. Hiding the row must not hide them: the user clicks our CC /
+ * Episodes buttons and Netflix opens these. `visibility: hidden` is
+ * inheritable, so every popup needs an explicit `visible`; `pointer-events`
+ * and `opacity` need the same treatment or the menu renders but cannot be
+ * clicked.
+ */
+const NATIVE_POPUP_EXCEPTIONS = [
+  '[data-uia="selector-audio-subtitle"]',
+  '[data-uia="selector-audio"]',
+  '[data-uia="selector-subtitle"]',
+  '[data-uia="episodes-selector"]',
+  '[data-uia="episode-selector"]',
+  '[data-uia="player-episodes"]',
+  '[data-uia="player-menu"]',
+  '[role="menu"]',
+  '[role="dialog"]',
+];
+
+/**
+ * Hide only the host's bottom row while the owned Kivara bar is active.
  * Keep the DOM alive (never display:none): the site's keyboard listeners live
- * on those nodes. The owned bar forwards the real controls it replaces. */
+ * on those nodes. The owned bar forwards the real controls it replaces.
+ *
+ * `opacity: 0` is deliberately NOT used: an ancestor at zero opacity makes
+ * every descendant invisible no matter what the descendant declares, which
+ * killed the CC and Episodes popups. `visibility: hidden` is used instead
+ * because a descendant can override it — and the popup exceptions do exactly
+ * that.
+ */
 export function applyOwnedBarCss(enabled: boolean, platform?: Platform): void {
   const id = `kivara-owned-bar-${platform ?? 'generic'}`;
   const existing = document.getElementById(id) as HTMLStyleElement | null;
@@ -233,8 +261,13 @@ export function applyOwnedBarCss(enabled: boolean, platform?: Platform): void {
   style.id = id;
   style.textContent = `${selectors.join(',\n')} {
   visibility: hidden !important;
-  opacity: 0 !important;
   pointer-events: none !important;
+}
+
+${NATIVE_POPUP_EXCEPTIONS.map((selector) => `${selector}`).join(',\n')} {
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }`;
   if (!existing) document.documentElement.appendChild(style);
 }

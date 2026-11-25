@@ -84,6 +84,8 @@ export interface E2EBoxes {
   cardText?: string;
   /** The native-language caption plate (the second cue line). */
   dual?: string;
+  /** The caption plate's box: its width is intrinsic (`w-fit`). */
+  plate?: E2EBox | null;
 }
 
 /** Raw hit as the publisher writes it (`x`/`y` are already the centre). */
