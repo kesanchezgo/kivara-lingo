@@ -42,6 +42,16 @@ export interface PlaybackController {
   setRate(rate: number): void;
   isPaused(): boolean;
   currentTimeMs(): number;
+  /**
+   * Output volume, 0..1. On Netflix this goes through the Cadmium session
+   * player so the level survives episode and audio-track switches; the
+   * element is the fallback. Read it back from the `<video>` — that is where
+   * the platform reports the applied value.
+   */
+  setVolume?(volume: number): void;
+  setMuted?(muted: boolean): void;
+  getVolume?(): number;
+  isMuted?(): boolean;
 }
 
 export interface SubtitleSource {

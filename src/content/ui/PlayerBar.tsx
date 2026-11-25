@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  AlignLeft, ChevronLeft, ChevronRight, Maximize, Pause, Play, Repeat, RotateCcw,
+  AlignLeft, ChevronLeft, ChevronRight, Layers, Maximize, Pause, Play, Repeat, RotateCcw,
   SkipForward, Subtitles, Volume1, Volume2,
 } from '../../ui/icons';
 import { BrandGlyph } from '../../ui/BrandGlyph';
@@ -27,6 +27,8 @@ interface PlayerBarProps {
   speed: number;
   railOpen: boolean;
   panelOpen: boolean;
+  /** A clean capture is running: the bar must not dirty the frame. */
+  capturing?: boolean;
   onTogglePlay: () => void;
   onPrev: () => void;
   onReplay: () => void;
@@ -41,6 +43,18 @@ interface PlayerBarProps {
   onSeek: (timeMs: number) => void;
   /** Bring Netflix's detached native row back before forwarding a native action. */
   onWakeNative: () => void;
+  /**
+   * Volume/mute go through the platform controller (MAIN-world Cadmium on
+   * Netflix) so the level survives episode and audio-track switches. Absent,
+   * the element is the fallback.
+   */
+  onSetVolume?: (volume: number) => void;
+  onSetMuted?: (muted: boolean) => void;
+  /**
+   * Auto-hide state and measured height, so the caption can lift clear of the
+   * bar. Fires on every visibility flip and every resize.
+   */
+  onVisibilityChange?: (visible: boolean, heightPx: number) => void;
 }
 
 const NAV = 'w-7 h-7 rounded-md flex items-center justify-center text-zinc-300 hover:text-white hover:bg-white/[0.08] outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40';
@@ -131,24 +145,40 @@ function TimeReadout({ duration }: { duration: number }) {
   return <span className="text-sm font-medium tabular-nums whitespace-nowrap">{fmtTime(time)} / {fmtTime(duration)}</span>;
 }
 
-function VolumeControl({ video }: { video?: HTMLVideoElement | null }) {
-  const [muted, setMuted] = useState(() => video?.muted ?? false);
-  const [volume, setVolume] = useState(() => video?.volume ?? 1);
+function VolumeControl({ video, onSetVolume, onSetMuted }: {
+  video?: HTMLVideoElement | null;
+  onSetVolume?: (volume: number) => void;
+  onSetMuted?: (muted: boolean) => void;
+}) {
+  const [muted, setMutedState] = useState(() => video?.muted ?? false);
+  const [volume, setVolumeState] = useState(() => video?.volume ?? 1);
+  // The element is the READ side even when the write goes through Cadmium:
+  // `volumechange` is what the platform emits after either path applies.
   useEffect(() => {
     if (!video) return;
-    const sync = () => { setMuted(video.muted); setVolume(video.volume); };
+    const sync = () => { setMutedState(video.muted); setVolumeState(video.volume); };
     video.addEventListener('volumechange', sync);
     sync();
     return () => video.removeEventListener('volumechange', sync);
   }, [video]);
   const toggleMute = () => {
-    if (video) video.muted = !video.muted;
-    setMuted((prev) => !prev);
+    const next = !muted;
+    // Optimistic UI: the MAIN-world round trip is async and the platform's
+    // echo may be late on an audio-track switch.
+    setMutedState(next);
+    if (onSetMuted) onSetMuted(next);
+    else if (video) video.muted = next;
   };
   const change = (value: number) => {
-    if (video) { video.volume = value; video.muted = value === 0; }
-    setVolume(value);
-    setMuted(value === 0);
+    setVolumeState(value);
+    setMutedState(value === 0);
+    if (onSetVolume) {
+      onSetVolume(value);
+      if (value === 0 && onSetMuted) onSetMuted(true);
+    } else if (video) {
+      video.volume = value;
+      video.muted = value === 0;
+    }
   };
   return (
     <div className="flex items-center gap-2 group/volume">
@@ -166,30 +196,77 @@ function VolumeControl({ video }: { video?: HTMLVideoElement | null }) {
   );
 }
 
+/**
+ * Native Netflix popups that must survive the owned bar's hiding CSS and
+ * receive clicks even while our chrome is on top. Any of them being open
+ * makes the control row yield `pointer-events` so the native menu is usable.
+ */
+const NATIVE_POPUP_SELECTORS = [
+  '[data-uia="selector-audio-subtitle"]',
+  '[data-uia="selector-audio"]',
+  '[data-uia="selector-subtitle"]',
+  '[data-uia="episodes-selector"]',
+  '[data-uia="episode-selector"]',
+  '[data-uia="player-episodes"]',
+  '[role="menu"]',
+];
+
+function nativePopupOpen(): boolean {
+  return NATIVE_POPUP_SELECTORS.some((selector) => !!document.querySelector(selector));
+}
+
+/**
+ * Whether the host currently exposes a native control. Netflix MOUNTS its
+ * buttons on activity and removes them after a few idle seconds, so a plain
+ * `document.querySelector` at render time would hide the button forever after
+ * the first idle period. The observer keeps the answer live in both directions
+ * — a dead button is never rendered on a movie, and the episodes button
+ * appears as soon as the host mounts its control.
+ */
+function useNativeControl(selector: string): boolean {
+  const [present, setPresent] = useState(() => typeof document !== 'undefined' && !!document.querySelector(selector));
+  useEffect(() => {
+    const check = () => setPresent(!!document.querySelector(selector));
+    check();
+    const observer = typeof MutationObserver === 'function' ? new MutationObserver(check) : null;
+    observer?.observe(document.documentElement, { childList: true, subtree: true });
+    return () => observer?.disconnect();
+  }, [selector]);
+  return present;
+}
+
 /** Wake Netflix's detached native row, then click the real control. */
 function nativeClick(selector: string, wake: () => void): void {
   wake();
   window.setTimeout(() => {
-    const button = document.querySelector<HTMLElement>(selector)
-      ?? document.querySelector<HTMLElement>('[data-uia="control-fullscreen"]');
-    button?.click();
+    document.querySelector<HTMLElement>(selector)?.click();
   }, 80);
 }
 
 export function PlayerBar({
   playing, duration, video, autoPauseCue, loopCue, speed, railOpen, panelOpen,
+  capturing = false,
   onTogglePlay, onPrev, onReplay, onReplaySlow, onNext,
   onToggleAutoPause, onToggleLoop, onSpeed, onToggleRail, onTogglePanel,
-  onSeek, onWakeNative,
+  onSeek, onWakeNative, onSetVolume, onSetMuted, onVisibilityChange,
 }: PlayerBarProps) {
   const barRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(Infinity);
+  const [height, setHeight] = useState(0);
   const [visible, setVisible] = useState(true);
+  const [popupOpen, setPopupOpen] = useState(false);
   const hideTimer = useRef<number | null>(null);
   useEffect(() => {
     const el = barRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(([entry]) => setWidth(Math.round(entry.contentRect.width)));
+    // BORDER box, not content box: the bar carries `p-4`, so the content box
+    // is 32 px shorter than the chrome the caption must clear. Reporting the
+    // content height lifted the plate to 20 px UNDER the bar's real top edge.
+    const observer = new ResizeObserver(([entry]) => {
+      const border = entry.borderBoxSize?.[0];
+      setWidth(Math.round(border ? border.inlineSize : entry.contentRect.width));
+      setHeight(Math.round(border ? border.blockSize : entry.contentRect.height));
+    });
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
@@ -209,10 +286,30 @@ export function PlayerBar({
       if (hideTimer.current !== null) window.clearTimeout(hideTimer.current);
     };
   }, [playing]);
+  // A native Netflix popup (CC list, episodes drawer) sits in the page, BELOW
+  // our closed root. While it is open the row must yield pointer events or the
+  // user's click lands on our transparent chrome instead of the menu.
+  useEffect(() => {
+    const check = () => setPopupOpen(nativePopupOpen());
+    check();
+    const observer = typeof MutationObserver === 'function'
+      ? new MutationObserver(check)
+      : null;
+    observer?.observe(document.body, { childList: true, subtree: true });
+    return () => observer?.disconnect();
+  }, []);
+  // A clean capture takes the frame: our chrome (and the caption's lift) must
+  // not be in it, so the bar reports itself hidden for the whole capture.
+  const reportedVisible = visible && !capturing;
+  useEffect(() => {
+    onVisibilityChange?.(reportedVisible, height);
+  }, [onVisibilityChange, reportedVisible, height]);
   const compact = width < 760;
   const tight = width < 720;
   const speedIndex = PLAYBACK_SPEEDS.indexOf(speed);
   const replay = useLongPress(onReplay, onReplaySlow);
+  const episodes = useNativeControl('[data-uia="control-episodes"]');
+  const nextEpisode = useNativeControl('[data-uia="control-next"]');
 
   return (
     <div
@@ -221,22 +318,27 @@ export function PlayerBar({
       role="toolbar"
       aria-label={t('rail.title')}
       className={`absolute bottom-0 inset-x-0 p-4 z-20 bg-gradient-to-t from-black/90 to-transparent flex flex-col gap-2 transition-opacity duration-300 pointer-events-none focus-within:opacity-100 [@media(hover:none)]:opacity-100 ${
-        visible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        reportedVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
     >
       <SeekBar duration={duration} onSeek={onSeek} />
-      <div className="flex items-center justify-between text-white pointer-events-auto">
+      <div
+        data-kvl-player-row=""
+        className={`flex items-center justify-between text-white ${popupOpen ? 'pointer-events-none' : 'pointer-events-auto'}`}
+      >
         <div className="flex items-center gap-4">
           <button type="button" onClick={onTogglePlay} title={playing ? t('player.pause') : t('player.play')}
             aria-label={playing ? t('player.pause') : t('player.play')}
             className="rounded-md hover:text-indigo-400 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60">
             {playing ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
           </button>
-          <button type="button" onClick={() => nativeClick('[data-uia="control-next"]', onWakeNative)}
-            aria-label={t('player.nextEpisode')} disabled={!document.querySelector('[data-uia="control-next"]')}
-            className="rounded-md hover:text-indigo-400 disabled:opacity-40">
-            <SkipForward size={20} fill="currentColor" />
-          </button>
+          {nextEpisode && (
+            <button type="button" onClick={() => nativeClick('[data-uia="control-next"]', onWakeNative)}
+              aria-label={t('player.nextEpisode')}
+              className="rounded-md hover:text-indigo-400">
+              <SkipForward size={20} fill="currentColor" />
+            </button>
+          )}
           <div className="flex items-center gap-0.5 rounded-lg bg-zinc-900/70 ring-1 ring-white/[0.08] backdrop-blur-md p-0.5">
             <button type="button" onClick={onPrev} title={t('shortcut.prev')} aria-label={t('shortcut.prev')} className={NAV}>
               <ChevronLeft size={14} weight="bold" />
@@ -270,7 +372,7 @@ export function PlayerBar({
               ))}
             </div>
           </div>
-          {!tight && <VolumeControl video={video} />}
+          {!tight && <VolumeControl video={video} onSetVolume={onSetVolume} onSetMuted={onSetMuted} />}
           {!tight && <TimeReadout duration={duration} />}
         </div>
         <div className="flex items-center gap-4">
@@ -278,6 +380,13 @@ export function PlayerBar({
             aria-label={t('player.netflixSubtitles')} className="rounded-md hover:text-indigo-400">
             <Subtitles size={20} />
           </button>
+          {episodes && (
+            <button type="button" onClick={() => nativeClick('[data-uia="control-episodes"]', onWakeNative)}
+              aria-label={t('player.episodes')} title={t('player.episodes')}
+              className="rounded-md hover:text-indigo-400">
+              <Layers size={20} />
+            </button>
+          )}
           <button type="button" onClick={onToggleRail} aria-pressed={railOpen} title={t('rail.toggle')}
             aria-label={t('rail.toggle')} className={`rounded-md ${railOpen ? 'text-indigo-400' : 'hover:text-indigo-400'}`}>
             <AlignLeft size={20} />

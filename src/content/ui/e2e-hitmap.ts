@@ -361,7 +361,10 @@ function publishHost(host: HTMLElement): () => void {
       const cardText = cardEl?.textContent?.trim() ?? '';
       const dual = root.querySelector<HTMLElement>('[data-kivara-dual]')
         ?.textContent?.trim() ?? '';
-      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({ bar, badges, tokens, dual, card, cardText }));
+      // The caption plate itself. Its WIDTH is the contract for the intrinsic
+      // plate (`w-fit`): a one-word cue must not paint a full-player band.
+      const plate = boxOf(root.querySelector('[data-kivara-caption-box]'));
+      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({ bar, badges, tokens, dual, card, cardText, plate }));
       host.setAttribute(E2E_STATE_ATTR, JSON.stringify(collectState(root)));
       watchToasts();
       watchDialog();

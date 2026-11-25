@@ -20,7 +20,7 @@ import type { PlaybackController, SubtitleSource } from './types';
 
 /** Platform tags the HTML5 controller understands. */
 type PlaybackPlatform = SubtitleSource['platform'];
-import { rateThroughMainWorld, seekThroughMainWorld } from './netflix-main-bridge';
+import { muteThroughMainWorld, rateThroughMainWorld, seekThroughMainWorld, volumeThroughMainWorld } from './netflix-main-bridge';
 
 /** Study speeds. The same list backs the transcript and the study bar. */
 export const PLAYBACK_SPEEDS: readonly number[] = [0.75, 1, 1.25];
@@ -188,6 +188,36 @@ export function createNetflixPlaybackController(
     },
     currentTimeMs() {
       return (getVideo()?.currentTime ?? 0) * 1000;
+    },
+    getVolume() {
+      return getVideo()?.volume ?? 1;
+    },
+    isMuted() {
+      return getVideo()?.muted ?? false;
+    },
+    setVolume(volume) {
+      const video = getVideo();
+      const next = Number.isFinite(volume) ? Math.min(1, Math.max(0, volume)) : 1;
+      // Netflix keeps the level on the Cadmium session player: the `<video>`
+      // is replaced on every episode and audio-track switch, so a write on
+      // the element alone would be lost. The element is the fallback.
+      volumeThroughMainWorld(next)
+        .then(() => {
+          if (video) video.volume = next;
+        })
+        .catch(() => {
+          if (video) video.volume = next;
+        });
+    },
+    setMuted(muted) {
+      const video = getVideo();
+      muteThroughMainWorld(muted)
+        .then(() => {
+          if (video) video.muted = muted;
+        })
+        .catch(() => {
+          if (video) video.muted = muted;
+        });
     },
   };
 }

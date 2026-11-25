@@ -449,6 +449,13 @@ declare global {
     seek?: (ms: number) => void;
     /** Point 3: present on current builds (the native speed menu uses it). */
     setPlaybackRate?: (rate: number) => void;
+    /**
+     * Output volume / mute on the PLAYER. Netflix keeps these across episode
+     * and audio-track switches, so they must be set here rather than on the
+     * `<video>` the player replaces.
+     */
+    setVolume?: (volume: number) => void;
+    setMuted?: (muted: boolean) => void;
     /** Documented on current builds; used to pick the active session. */
     isPlaying?: () => boolean;
     /** Point 5: the id of the video this session is playing. */
@@ -580,7 +587,7 @@ declare global {
   window.addEventListener('message', (event) => {
     if (event.source !== window) return;
     const data = event.data as
-      | { source?: unknown; id?: unknown; cmd?: unknown; timeMs?: unknown; rate?: unknown; action?: unknown; lang?: unknown; nonce?: unknown }
+      | { source?: unknown; id?: unknown; cmd?: unknown; timeMs?: unknown; rate?: unknown; action?: unknown; lang?: unknown; nonce?: unknown; volume?: unknown; muted?: unknown }
       | null;
     if (!data || typeof data !== 'object') return;
 
@@ -714,6 +721,48 @@ declare global {
         /* fall through to the error reply */
       }
       reply(false, 'no rate API available');
+      return;
+    }
+    // Volume / mute on the Cadmium session player. The element the adapter
+    // also writes is replaced on every episode / audio-track switch; the
+    // player keeps the level, which is why this route exists. A build without
+    // the method answers an error and the ISOLATED side writes the element.
+    if (data.cmd === 'volume') {
+      const volume = Number((data as { volume?: unknown }).volume);
+      if (!Number.isFinite(volume) || volume < 0 || volume > 1) {
+        reply(false, 'volume out of range');
+        return;
+      }
+      try {
+        const session = netflixSessionPlayer();
+        if (typeof session?.setVolume === 'function') {
+          session.setVolume(volume);
+          reply(true);
+          return;
+        }
+      } catch {
+        /* fall through to the error reply */
+      }
+      reply(false, 'no volume API available');
+      return;
+    }
+    if (data.cmd === 'mute') {
+      const muted = (data as { muted?: unknown }).muted;
+      if (typeof muted !== 'boolean') {
+        reply(false, 'muted must be a boolean');
+        return;
+      }
+      try {
+        const session = netflixSessionPlayer();
+        if (typeof session?.setMuted === 'function') {
+          session.setMuted(muted);
+          reply(true);
+          return;
+        }
+      } catch {
+        /* fall through to the error reply */
+      }
+      reply(false, 'no mute API available');
       return;
     }
     if (data.cmd !== 'seek' || typeof data.timeMs !== 'number') {
