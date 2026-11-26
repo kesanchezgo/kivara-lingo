@@ -166,6 +166,14 @@ interface BuildOpts {
 const NL = String.fromCharCode(10);
 
 /**
+ * Rule separator for a selector LIST. A CSS selector list needs a COMMA
+ * between its selectors: joined with a newline alone, `A\nB\nC { … }` is ONE
+ * descendant selector ("C inside B inside A") that matches nothing at all —
+ * the whole cleanup sheet was inert on every platform until this was fixed.
+ */
+const SEP = ',' + NL;
+
+/**
  * Native player surfaces that live INSIDE the chrome we hide, or in portals
  * anchored to it. ONE canonical list: the cleanup sheet exempts them and the
  * owned bar uses the same list to decide when to yield the pointer.
@@ -185,6 +193,26 @@ export const NATIVE_POPUP_SELECTORS: readonly string[] = [
 
 /** Generic menu/dialog containers, only meaningful INSIDE the player. */
 const SCOPED_POPUP_SELECTORS: readonly string[] = ['[role="menu"]', '[role="dialog"]'];
+
+/**
+ * The native popups BOTH Netflix sheets must keep usable — ONE list.
+ *
+ * `#kivara-owned-bar-netflix` (`App.tsx:552`) and `#kivara-cleanup-netflix`
+ * (`App.tsx:614`) target the same row, and the cleanup sheet mounts LAST, so
+ * it wins every `!important` tie. A shorter or differently scoped list there
+ * silently re-hides a popup the owned bar had just exempted.
+ *
+ * The generic role containers are SCOPED to the player subtree: a bare
+ * `[role="menu"]` would also match unrelated menus elsewhere on the page.
+ * The runtime check (`nativePopupOpen`) scopes the same two to the player root.
+ */
+export const NETFLIX_POPUP_CSS_SELECTORS: readonly string[] = [
+  ...NATIVE_POPUP_SELECTORS,
+  '.watch-video [role="menu"]',
+  '.watch-video [role="dialog"]',
+  '[data-uia="watch-video"] [role="menu"]',
+  '[data-uia="watch-video"] [role="dialog"]',
+];
 
 /**
  * Is a native popup open? The scoped selectors are matched under `scope`
@@ -221,15 +249,22 @@ export function buildCleanupCss({ hideUI, hideShadows, controlsIdle = true, plat
   if (!hideUI && !hideShadows) return '';
 
   const rules = RULES[platform ?? 'generic'] ?? RULES.generic;
-  const selectors: string[] = [];
 
-  if (hideUI && controlsIdle) {
-    selectors.push(...rules.hideUI, ...COMMON_HIDE_UI);
-  }
-  if (hideShadows) {
-    selectors.push(...rules.hideShadows, ...COMMON_HIDE_SHADOWS);
-  }
-  if (selectors.length === 0) return '';
+  // The two toggles are two RULES with different declarations, so their
+  // selector lists are built SEPARATELY, from the list each selector comes
+  // from. The previous version merged them and re-sorted the result by a guess
+  // about the selector's NAME (`/gradient/i`), which left every real shadow
+  // whose name has no "gradient" in it — `.ytp-shadow-content`,
+  // `.controls__bg-overlay`, `[class*="HoverOverlay"]` — without `opacity: 0`.
+  const uiSelectors = Array.from(new Set(
+    hideUI && controlsIdle ? [...rules.hideUI, ...COMMON_HIDE_UI] : [],
+  ));
+  // A selector the chrome rule already hides does not need a second rule: the
+  // chrome's `visibility` wins, and `opacity: 0` there would make an
+  // interactive descendant impossible to restore.
+  const shadowSelectors = Array.from(new Set(
+    hideShadows ? [...rules.hideShadows, ...COMMON_HIDE_SHADOWS] : [],
+  )).filter((selector) => !uiSelectors.includes(selector));
 
   // We use `visibility: hidden` instead of `display: none` on purpose:
   // hiding the chrome should never tear down its DOM subtree, because some
@@ -241,29 +276,25 @@ export function buildCleanupCss({ hideUI, hideShadows, controlsIdle = true, plat
   // every descendant invisible no matter what the descendant declares, so a
   // native CC / episodes menu opened while the chrome is idle disappeared.
   // `visibility` is overridable, which is what the popup exemptions do.
-  // Gradients keep their fade: they have no interactive descendants and the
+  // Shadows keep their fade: they have no interactive descendants and the
   // fade is the effect the setting exists for.
-  const unique = Array.from(new Set(selectors));
-  const isGradient = (selector: string) => /gradient/i.test(selector);
-  const chrome = unique.filter((selector) => !isGradient(selector));
-  const gradients = unique.filter(isGradient);
   const blocks: string[] = [];
-  if (chrome.length > 0) {
-    blocks.push(`${chrome.join(NL)} {
+  if (uiSelectors.length > 0) {
+    blocks.push(`${uiSelectors.join(SEP)} {
     visibility: hidden !important;
     pointer-events: none !important;
   }`);
   }
-  if (gradients.length > 0) {
-    blocks.push(`${gradients.join(NL)} {
+  if (shadowSelectors.length > 0) {
+    blocks.push(`${shadowSelectors.join(SEP)} {
     visibility: hidden !important;
     opacity: 0 !important;
     pointer-events: none !important;
   }`);
   }
-  if (platform === 'netflix' && chrome.length > 0) {
+  if (platform === 'netflix' && uiSelectors.length > 0) {
     // The chrome is hidden but its native popups must stay usable.
-    blocks.push(`${NATIVE_POPUP_SELECTORS.join(NL)} {
+    blocks.push(`${NETFLIX_POPUP_CSS_SELECTORS.join(SEP)} {
     visibility: visible !important;
     opacity: 1 !important;
     pointer-events: auto !important;
@@ -304,29 +335,10 @@ const OWNED_BAR_SELECTORS: Partial<Record<Platform, string[]>> = {
  * inheritable, so every popup needs an explicit `visible`; `pointer-events`
  * and `opacity` need the same treatment or the menu renders but cannot be
  * clicked.
- */
-const NATIVE_POPUP_EXCEPTIONS = [
-  '[data-uia="selector-audio-subtitle"]',
-  '[data-uia="selector-audio"]',
-  '[data-uia="selector-subtitle"]',
-  '[data-uia="episodes-selector"]',
-  '[data-uia="episode-selector"]',
-  '[data-uia="player-episodes"]',
-  '[data-uia="player-menu"]',
-  '[role="menu"]',
-  '[role="dialog"]',
-];
-
-/**
- * Hide only the host's bottom row while the owned Kivara bar is active.
- * Keep the DOM alive (never display:none): the site's keyboard listeners live
- * on those nodes. The owned bar forwards the real controls it replaces.
  *
- * `opacity: 0` is deliberately NOT used: an ancestor at zero opacity makes
- * every descendant invisible no matter what the descendant declares, which
- * killed the CC and Episodes popups. `visibility: hidden` is used instead
- * because a descendant can override it — and the popup exceptions do exactly
- * that.
+ * The list itself is `NETFLIX_POPUP_CSS_SELECTORS`: the cleanup sheet hides
+ * the same row and mounts AFTER this one, so both sheets must carry the exact
+ * same exemptions.
  */
 export function applyOwnedBarCss(enabled: boolean, platform?: Platform): void {
   const id = `kivara-owned-bar-${platform ?? 'generic'}`;
@@ -338,12 +350,12 @@ export function applyOwnedBarCss(enabled: boolean, platform?: Platform): void {
   }
   const style = existing ?? document.createElement('style');
   style.id = id;
-  style.textContent = `${selectors.join(',\n')} {
+  style.textContent = `${selectors.join(SEP)} {
   visibility: hidden !important;
   pointer-events: none !important;
 }
 
-${NATIVE_POPUP_EXCEPTIONS.map((selector) => `${selector}`).join(',\n')} {
+${NETFLIX_POPUP_CSS_SELECTORS.join(SEP)} {
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: auto !important;
