@@ -163,6 +163,60 @@ interface BuildOpts {
   controlsIdle?: boolean;
 }
 
+const NL = String.fromCharCode(10);
+
+/**
+ * Native player surfaces that live INSIDE the chrome we hide, or in portals
+ * anchored to it. ONE canonical list: the cleanup sheet exempts them and the
+ * owned bar uses the same list to decide when to yield the pointer.
+ *
+ * `[role="menu"]` / `[role="dialog"]` are deliberately NOT here — they match
+ * unrelated page nodes. The runtime check scopes those two to the player root.
+ */
+export const NATIVE_POPUP_SELECTORS: readonly string[] = [
+  '[data-uia="selector-audio-subtitle"]',
+  '[data-uia="selector-audio"]',
+  '[data-uia="selector-subtitle"]',
+  '[data-uia="episodes-selector"]',
+  '[data-uia="episode-selector"]',
+  '[data-uia="player-episodes"]',
+  '[data-uia="player-menu"]',
+];
+
+/** Generic menu/dialog containers, only meaningful INSIDE the player. */
+const SCOPED_POPUP_SELECTORS: readonly string[] = ['[role="menu"]', '[role="dialog"]'];
+
+/**
+ * Is a native popup open? The scoped selectors are matched under `scope`
+ * (the player root) so a page-level dialog never makes the bar yield.
+ */
+export function nativePopupOpen(scope: ParentNode | null = document): boolean {
+  const root = scope ?? document;
+  return NATIVE_POPUP_SELECTORS.some((selector) => !!document.querySelector(selector))
+    || SCOPED_POPUP_SELECTORS.some((selector) => !!root.querySelector(selector));
+}
+
+/**
+ * Wake the site's detached control row without touching our stylesheet.
+ *
+ * Netflix removes its buttons after a few idle seconds; synthetic activity
+ * makes it remount them. The previous implementation removed
+ * `#kivara-owned-bar-*` for 400 ms so the native row could be clicked — that
+ * showed BOTH bars on top of each other. Our row is `visibility: hidden`, so
+ * the native node is clickable either way.
+ */
+export function wakeNativeRow(root: HTMLElement | null, video: HTMLVideoElement | null): void {
+  const target = root ?? video;
+  if (!target) return;
+  const init: MouseEventInit = { bubbles: true, clientX: 320, clientY: 200 };
+  try {
+    target.dispatchEvent(new MouseEvent('pointermove', init));
+    target.dispatchEvent(new MouseEvent('mousemove', init));
+  } catch {
+    /* a detached node: the caller's click is still attempted */
+  }
+}
+
 export function buildCleanupCss({ hideUI, hideShadows, controlsIdle = true, platform }: BuildOpts): string {
   if (!hideUI && !hideShadows) return '';
 
@@ -177,20 +231,45 @@ export function buildCleanupCss({ hideUI, hideShadows, controlsIdle = true, plat
   }
   if (selectors.length === 0) return '';
 
-  // We use `visibility: hidden` + `opacity: 0` instead of `display: none`
-  // on purpose: hiding the chrome should never tear down its DOM subtree,
-  // because some players (notably HBO Max) attach keyboard listeners on
-  // the controls or their parents. With `display: none` the listeners
-  // never fire — Space stops pausing, F stops fullscreening, etc. With
-  // `visibility: hidden` the elements still exist, still receive events
-  // they were going to receive (we kill `pointer-events` separately so
-  // the user can't click invisible chrome by accident), but they're
-  // invisible and don't block the cursor.
-  return `${Array.from(new Set(selectors)).join(',\n')} {
+  // We use `visibility: hidden` instead of `display: none` on purpose:
+  // hiding the chrome should never tear down its DOM subtree, because some
+  // players (notably HBO Max) attach keyboard listeners on the controls or
+  // their parents. With `display: none` the listeners never fire — Space
+  // stops pausing, F stops fullscreening, etc.
+  //
+  // `opacity: 0` is NOT used on chrome: an ancestor at zero opacity makes
+  // every descendant invisible no matter what the descendant declares, so a
+  // native CC / episodes menu opened while the chrome is idle disappeared.
+  // `visibility` is overridable, which is what the popup exemptions do.
+  // Gradients keep their fade: they have no interactive descendants and the
+  // fade is the effect the setting exists for.
+  const unique = Array.from(new Set(selectors));
+  const isGradient = (selector: string) => /gradient/i.test(selector);
+  const chrome = unique.filter((selector) => !isGradient(selector));
+  const gradients = unique.filter(isGradient);
+  const blocks: string[] = [];
+  if (chrome.length > 0) {
+    blocks.push(`${chrome.join(NL)} {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }`);
+  }
+  if (gradients.length > 0) {
+    blocks.push(`${gradients.join(NL)} {
     visibility: hidden !important;
     opacity: 0 !important;
     pointer-events: none !important;
-  }`;
+  }`);
+  }
+  if (platform === 'netflix' && chrome.length > 0) {
+    // The chrome is hidden but its native popups must stay usable.
+    blocks.push(`${NATIVE_POPUP_SELECTORS.join(NL)} {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }`);
+  }
+  return blocks.join(NL + NL);
 }
 
 /**

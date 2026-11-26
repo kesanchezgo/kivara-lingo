@@ -111,7 +111,11 @@ describe('caption box, offsets and cache', () => {
     /></div>);
     const plate = document.querySelector<HTMLElement>('[data-kivara-caption-box]')!;
     const dual = plate.querySelector<HTMLElement>('[data-kivara-dual]')!;
-    expect(plate.className).toContain('w-full');
+    // PR #167 made the plate INTRINSIC. `toContain('w-full')` was a false
+    // positive: `w-fit max-w-full` contains the substring "w-full" inside
+    // "max-w-full", so the assertion passed while proving the opposite.
+    expect(plate.classList.contains('w-fit'), 'the plate hugs its text').toBe(true);
+    expect(plate.classList.contains('w-full'), 'the plate never spans the player').toBe(false);
     expect(dual.parentElement).toBe(plate);
     expect(plate.style.textAlign).toBe('right');
     expect(dual.style.textAlign).toBe('left');
