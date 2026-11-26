@@ -86,6 +86,29 @@ export interface E2EBoxes {
   dual?: string;
   /** The caption plate's box: its width is intrinsic (`w-fit`). */
   plate?: E2EBox | null;
+  /** The progress track's pointer surface (null while the bar is hidden). */
+  seek?: E2EBox | null;
+  /**
+   * What a hit test INSIDE the closed root answers at the track: `tag` is the
+   * element the pointer lands on (`VIDEO` when our chrome yields) and `own`
+   * says whether it is ours. `document.elementFromPoint` cannot tell the
+   * difference — a closed root retargets to the host.
+   */
+  seekHit?: E2EHitProbe | null;
+  /** The same hit test at the control row, for the auto-hidden bar. */
+  rowHit?: E2EHitProbe | null;
+}
+
+/** A hit test answered from inside the closed root. */
+export interface E2EHitProbe extends E2EBox {
+  /** The element the pointer lands on: ours, or the page's (`VIDEO`). */
+  tag: string | null;
+  /** The element belongs to OUR root (not the host page behind it). */
+  own: boolean;
+  /** The probe point lies on the seek surface. */
+  inSeek?: boolean;
+  /** The probe point lies inside the player bar. */
+  inBar?: boolean;
 }
 
 /** Raw hit as the publisher writes it (`x`/`y` are already the centre). */

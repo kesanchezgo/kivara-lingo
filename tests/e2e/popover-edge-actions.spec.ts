@@ -134,6 +134,12 @@ for (const side of ['top', 'bottom'] as const) {
       for (const [label, samples] of [['Save', saveSamples], ['pronunciation', pronounceSamples]] as const) {
         const dx = Math.max(...samples.map((s) => s.x)) - Math.min(...samples.map((s) => s.x));
         expect(dx, `${label} x drift`).toBeLessThanOrEqual(2);
+        // VERTICAL drift, measured against the edge each control is pinned to.
+        // `fitBodyToCap` used to re-squeeze the body on every enrichment batch,
+        // which moved these by tens of px and is why this assertion was
+        // removed. With the cap derived from the real chrome it must hold.
+        const dy = Math.max(...samples.map((s) => s.y)) - Math.min(...samples.map((s) => s.y));
+        expect(dy, `${label} y drift`).toBeLessThanOrEqual(2);
       }
       // The card's reserved height settles while enrichment arrives, so the
       // absolute y of the header/footer changes. Their side stays pinned.

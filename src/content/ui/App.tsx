@@ -6,7 +6,7 @@ import { sendMessage } from 'webext-bridge/content-script';
 import { SidePanel } from './SidePanel';
 import { SubtitleOverlay } from './SubtitleOverlay';
 import { CaptureOverlay, type CaptureAudio, type CaptureView } from './CaptureOverlay';
-import { applyCleanupCss, applyOwnedBarCss } from './cleanup-css';
+import { applyCleanupCss, applyOwnedBarCss, wakeNativeRow } from './cleanup-css';
 import { usePointerIdleOverPlayer } from './pointer-idle';
 import { playSound } from '../../ui/sounds';
 import { Pause } from '../../ui/icons';
@@ -589,13 +589,15 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
 
   // Netflix detaches its native controls after ~3s. Wake the real row before
   // forwarding CC/next/fullscreen so the native menu actually opens.
+  //
+  // The stylesheet is NEVER removed here. The old code dropped
+  // `#kivara-owned-bar-*` for 400 ms so the native node could be clicked, and
+  // that painted BOTH bars on top of each other. Our row is
+  // `visibility: hidden`, which leaves the native node clickable anyway.
   const wakeNativeControls = useCallback(() => {
     const platform = adapter?.platform ?? undefined;
-    applyOwnedBarCss(false, platform);
-    const root = resolvePlayerRoot(platform ?? 'generic', videoElement);
-    root?.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientX: 320, clientY: 200 }));
-    window.setTimeout(() => applyOwnedBarCss(enabled && ownedBar, platform), 400);
-  }, [adapter?.platform, videoElement, enabled, ownedBar]);
+    wakeNativeRow(resolvePlayerRoot(platform ?? 'generic', videoElement), videoElement);
+  }, [adapter?.platform, videoElement]);
 
   // Apply the "Limpieza visual" CSS whenever the toggles change. The CSS is
   // platform-aware (the matching selectors live in cleanup-css.ts) so the

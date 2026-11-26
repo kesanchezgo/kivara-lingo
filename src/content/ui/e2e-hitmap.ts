@@ -134,6 +134,9 @@ function collectHits(container: ParentNode): E2EHit[] {
   );
   for (const el of nodes) {
     if (el.closest('[data-kvl-closing]')) continue;
+    // A hidden owned bar keeps its DOM (the site's listeners live on it) but
+    // publishes nothing: a click there would land on invisible chrome.
+    if (el.closest('[data-kvl-bar-hidden]')) continue;
     if (isClippedByColumn(el)) continue;
     const rect = el.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) continue;
@@ -222,6 +225,9 @@ function collectState(root: ParentNode): E2EState {
   const visibleText: string[] = [];
   for (const el of root.querySelectorAll<HTMLElement>('[role="tabpanel"]:not([hidden])')) {
     if (el.closest('[data-kvl-closing]')) continue;
+    // A hidden owned bar keeps its DOM (the site's listeners live on it) but
+    // publishes nothing: a click there would land on invisible chrome.
+    if (el.closest('[data-kvl-bar-hidden]')) continue;
     if (isClippedByColumn(el)) continue;
     const value = el.textContent?.trim() ?? '';
     if (value) visibleText.push(value);
@@ -236,6 +242,9 @@ function collectState(root: ParentNode): E2EState {
   const panels: Array<{ id: string; text: string }> = [];
   for (const el of root.querySelectorAll<HTMLElement>('[role="tabpanel"]:not([hidden])')) {
     if (el.closest('[data-kvl-closing]')) continue;
+    // A hidden owned bar keeps its DOM (the site's listeners live on it) but
+    // publishes nothing: a click there would land on invisible chrome.
+    if (el.closest('[data-kvl-bar-hidden]')) continue;
     if (isClippedByColumn(el)) continue;
     panels.push({ id: el.id || el.getAttribute('aria-labelledby') || '?', text: (el.textContent ?? '').slice(0, 60) });
   }
@@ -329,8 +338,61 @@ function publishHost(host: HTMLElement): () => void {
       const slotHost = isVideoHost ? document.getElementById('kivara-lingo-bar-slot') : null;
       const slotRoot = slotHost ? getShadowRoot(slotHost) : null;
       const slotHits = slotRoot ? collectHits(slotRoot) : [];
-      const bar = boxOf(root.querySelector('[role="toolbar"]'))
-        ?? (slotRoot ? boxOf(slotRoot.querySelector('[role="toolbar"]')) : null);
+      // A bar the user cannot see or click is not published: the specs must
+      // never click coordinates that belong to an `opacity: 0` layer.
+      const visibleToolbar = (scope: ParentNode) => {
+        const el = scope.querySelector<HTMLElement>('[role="toolbar"]');
+        if (!el || el.closest('[data-kvl-bar-hidden]') || el.hasAttribute('data-kvl-bar-hidden')) return null;
+        return boxOf(el);
+      };
+      const bar = visibleToolbar(root) ?? (slotRoot ? visibleToolbar(slotRoot) : null);
+      // The seek surface, so a spec can click the track instead of guessing.
+      const seekEl = root.querySelector<HTMLElement>('[data-kvl-seek-hit]');
+      const seek = seekEl && !seekEl.closest('[data-kvl-bar-hidden]') ? boxOf(seekEl) : null;
+      // ── The hit tests the page cannot run ─────────────────────────────
+      // A CLOSED root retargets `document.elementFromPoint` to the HOST, so
+      // from outside, "our surface owns the pixel" and "an invisible row
+      // swallows it" look identical. The root answers it from the inside, and
+      // that answer is the contract the audit measured: does the pointer reach
+      // our chrome, or the page (the `<video>`) behind it?
+      //
+      // The probe point stays inside the element but OUTSIDE the caption
+      // plate, so a token never answers for the bar.
+      const plateRect = root.querySelector<HTMLElement>('[data-kivara-caption-box]')?.getBoundingClientRect() ?? null;
+      const plateCovers = (x: number, y: number) => !!plateRect
+        && x >= plateRect.left && x <= plateRect.right && y >= plateRect.top && y <= plateRect.bottom;
+      const describeHit = (
+        el: HTMLElement | null,
+        extra: (node: Element | null) => Record<string, unknown>,
+      ): (E2EBox & { tag: string | null; own: boolean } & Record<string, unknown>) | null => {
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        const y = r.top + r.height / 2;
+        // Near 80% of the width: far enough along the track that the click
+        // seeks forward by more than the spec's margin, and clear of the
+        // caption plate that sits over the middle of the player.
+        const wanted = r.left + r.width * 0.8;
+        let x = r.left + r.width / 2;
+        let bestDistance = Infinity;
+        for (let candidate = r.left + 8; candidate <= r.right - 8; candidate += 8) {
+          if (plateCovers(candidate, y)) continue;
+          const distance = Math.abs(candidate - wanted);
+          if (distance < bestDistance) { bestDistance = distance; x = candidate; }
+        }
+        const node = root.elementFromPoint(x, y);
+        return {
+          x, y, width: 0, height: 0,
+          tag: node?.tagName ?? null,
+          own: !!node && node.getRootNode() === root,
+          ...extra(node),
+        };
+      };
+      const seekHit = describeHit(seek && seekEl ? seekEl : null, (node) => ({
+        inSeek: !!node?.closest?.('[data-kvl-seek-hit]'),
+      }));
+      const rowHit = describeHit(root.querySelector<HTMLElement>('[data-kvl-player-row]'), (node) => ({
+        inBar: !!node?.closest?.('[data-kvl-player-bar]'),
+      }));
       host.setAttribute(E2E_HITMAP_ATTR, JSON.stringify([...collectHits(root), ...slotHits]));
       const badges = [...root.querySelectorAll<HTMLElement>('[data-kivara-badge]')]
         .map((el) => boxOf(el))
@@ -364,7 +426,7 @@ function publishHost(host: HTMLElement): () => void {
       // The caption plate itself. Its WIDTH is the contract for the intrinsic
       // plate (`w-fit`): a one-word cue must not paint a full-player band.
       const plate = boxOf(root.querySelector('[data-kivara-caption-box]'));
-      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({ bar, badges, tokens, dual, card, cardText, plate }));
+      host.setAttribute(E2E_BOXES_ATTR, JSON.stringify({ bar, badges, tokens, dual, card, cardText, plate, seek, seekHit, rowHit }));
       host.setAttribute(E2E_STATE_ATTR, JSON.stringify(collectState(root)));
       watchToasts();
       watchDialog();

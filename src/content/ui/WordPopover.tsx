@@ -585,13 +585,19 @@ export function WordPopover({
     if (!inner) return;
     // The card's scrollable bodyRef is only PART of the card's content: the
     // VIP/AI sections render between it and the action row, and they grow
-    // with the enrichment too. The body's box must shrink by everything the
-    // other rows occupy, measured LIVE from the layout (the actions' bottom
-    // edge minus the body's bottom edge), or the action row ends up below
-    // the card's clip and the save click lands on nothing.
+    // with the enrichment too. The cap must be reduced by the CHROME — header
+    // plus action bar — measured live, or the action row ends up below the
+    // card's clip and the save click lands on nothing.
+    //
+    // The previous formula used `body.offsetTop + body.offsetHeight`, which
+    // includes the body's own height: each enrichment batch re-squeezed the
+    // box by another body-height and the card bounced (that bounce is why the
+    // E2E `dy` assertion was deleted). The measurement below is idempotent.
+    const header = inner.firstElementChild as HTMLElement | null;
     const actions = inner.lastElementChild as HTMLElement | null;
-    void actions;
-    const wanted = Math.max(40, cap - (body.offsetTop + body.offsetHeight));
+    const actionsH = actions && actions !== body ? actions.offsetHeight : 0;
+    const chromeNow = (header && header !== body ? header.offsetHeight : 0) + actionsH;
+    const wanted = Math.max(40, cap - chromeNow);
     if (Math.abs((parseFloat(body.style.maxHeight || '0') || 0) - wanted) > 1) {
       body.style.maxHeight = `${wanted}px`;
     }
@@ -885,6 +891,16 @@ export function WordPopover({
         {/* Header — text only. Every clickable control lives in the pinned
             edge action bar below/above so nothing here drifts as content lands. */}
         <div className="flex items-start justify-between gap-3 px-3.5 pt-3 pb-2.5 border-b border-zinc-900/[0.06] dark:border-white/[0.06]">
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={handleSpeak}
+              title={t('popover.playPronunciation')}
+              aria-label={t('popover.playPronunciation')}
+              className="w-7 h-7 rounded-lg bg-indigo-400/[0.12] hover:bg-indigo-400/[0.2] text-indigo-700 dark:text-indigo-300 flex items-center justify-center shrink-0 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+            >
+              <Volume2 size={14} />
+            </button>
           <div className="flex items-baseline gap-1.5 min-w-0 flex-wrap">
               <span className="text-zinc-900 dark:text-white font-semibold text-[15px] tracking-[-0.01em] leading-tight normal-case">{headword}</span>
               {isPhrasal && <span className={META_BADGE}>{t('popover.phrasal')}</span>}
@@ -913,21 +929,13 @@ export function WordPopover({
                   <Clock size={9} weight="bold" /> {t('queue.inQueue')}
                 </span>
               )}
-            </div>
+          </div>
+          </div>
           {meta.phonetic && (
-            <span className="self-start font-mono text-[11px] text-zinc-600 dark:text-zinc-300 bg-zinc-900/[0.06] dark:bg-white/[0.06] ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.08] h-5 inline-flex items-center px-1.5 rounded-md shrink-0 leading-tight normal-case">
+            <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-300 bg-zinc-900/[0.06] dark:bg-white/[0.06] ring-1 ring-zinc-900/[0.08] dark:ring-white/[0.08] h-5 inline-flex items-center px-1.5 rounded-md shrink-0 leading-tight normal-case">
               {meta.phonetic}
             </span>
           )}
-          <button
-            type="button"
-            onClick={handleSpeak}
-            title={t('popover.playPronunciation')}
-            aria-label={t('popover.playPronunciation')}
-            className="self-start shrink-0 w-6 h-6 rounded-md inline-flex items-center justify-center text-indigo-700 dark:text-indigo-300 hover:bg-indigo-400/[0.12] outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
-          >
-            <Volume2 size={14} />
-          </button>
         </div>
 
         {/* Body */}

@@ -16,6 +16,10 @@ import { t } from '../../shared/i18n';
 import { useLongPress } from '../../ui/hooks/useLongPress';
 import { onRadioKeyDown, radioTabIndex } from '../../ui/primitives/settings-primitives';
 import { PLAYBACK_SPEEDS } from '../platform-adapters/playback';
+import { useKivaraStore } from '../../shared/use-kivara-store';
+import { nativePopupOpen } from './cleanup-css';
+import { resolvePlayerRoot } from './native-bar-slot';
+import { comboOf, withCombo } from './combo-hints';
 import { usePlaybackTimeMs } from './useStudyPlayback';
 
 interface PlayerBarProps {
@@ -57,8 +61,8 @@ interface PlayerBarProps {
   onVisibilityChange?: (visible: boolean, heightPx: number) => void;
 }
 
-const NAV = 'w-7 h-7 rounded-md flex items-center justify-center text-zinc-300 hover:text-white hover:bg-white/[0.08] outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40';
-const chip = (on: boolean) => `h-7 px-2 rounded-md flex items-center gap-1.5 text-[12px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${on ? 'bg-indigo-500 text-white' : 'text-zinc-300 hover:text-white hover:bg-white/[0.08]'}`;
+const NAV = 'w-7 h-7 rounded-md flex items-center justify-center text-zinc-300 hover:text-white hover:bg-white/[0.08] kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40';
+const chip = (on: boolean) => `h-7 px-2 rounded-md flex items-center gap-1.5 text-[12px] font-medium kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${on ? 'bg-indigo-500 text-white' : 'text-zinc-300 hover:text-white hover:bg-white/[0.08]'}`;
 const HIDE_AFTER_MS = 3000;
 
 function fmtTime(ms: number): string {
@@ -68,13 +72,21 @@ function fmtTime(ms: number): string {
   return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-function SeekBar({ duration, onSeek }: { duration: number; onSeek: (ms: number) => void }) {
+function SeekBar({ duration, onSeek, interactive }: {
+  duration: number;
+  onSeek: (ms: number) => void;
+  /** The bar is on screen and no native popup owns the pointer. */
+  interactive: boolean;
+}) {
   const time = usePlaybackTimeMs();
   const trackRef = useRef<HTMLDivElement>(null);
   const [dragMs, setDragMs] = useState<number | null>(null);
   const [hoverMs, setHoverMs] = useState<number | null>(null);
   const shown = dragMs ?? time;
   const pct = duration > 0 ? Math.min(100, Math.max(0, (shown / duration) * 100)) : 0;
+  // The global listeners of an in-flight drag, so an unmount mid-drag cannot
+  // leave them attached to `window` (they would keep seeking a dead bar).
+  const dragCleanup = useRef<(() => void) | null>(null);
 
   const fromClientX = (clientX: number): number => {
     const rect = trackRef.current?.getBoundingClientRect();
@@ -87,8 +99,36 @@ function SeekBar({ duration, onSeek }: { duration: number; onSeek: (ms: number) 
     onSeek(value);
   }, [onSeek]);
 
+  useEffect(() => () => { dragCleanup.current?.(); }, []);
+
   return (
-    <div className="relative py-2">
+    // The POINTER surface is this padded container: `py-2` gives 20 px of
+    // height over a 4 px track, so the user does not have to hit a hairline.
+    // `pointer-events` is explicit because the bar root sets `none`.
+    <div
+      data-kvl-seek-hit=""
+      className={`relative py-2 ${interactive ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'}`}
+      onMouseMove={(e) => { if (interactive) setHoverMs(fromClientX(e.clientX)); }}
+      onMouseLeave={() => setHoverMs(null)}
+      onMouseDown={(e) => {
+        if (!interactive) return;
+        const value = fromClientX(e.clientX);
+        setDragMs(value);
+        const move = (ev: MouseEvent) => setDragMs(fromClientX(ev.clientX));
+        const up = (ev: MouseEvent) => {
+          const finalValue = fromClientX(ev.clientX);
+          dragCleanup.current?.();
+          commit(finalValue);
+        };
+        dragCleanup.current = () => {
+          window.removeEventListener('mousemove', move);
+          window.removeEventListener('mouseup', up);
+          dragCleanup.current = null;
+        };
+        window.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', up);
+      }}
+    >
       <div
         ref={trackRef}
         role="slider"
@@ -97,24 +137,10 @@ function SeekBar({ duration, onSeek }: { duration: number; onSeek: (ms: number) 
         aria-valuemax={Math.round(duration)}
         aria-valuenow={Math.round(shown)}
         aria-valuetext={fmtTime(shown)}
-        tabIndex={0}
-        className="w-full h-1 bg-white/30 rounded-full relative cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
-        onMouseMove={(e) => setHoverMs(fromClientX(e.clientX))}
-        onMouseLeave={() => setHoverMs(null)}
-        onMouseDown={(e) => {
-          const value = fromClientX(e.clientX);
-          setDragMs(value);
-          const move = (ev: MouseEvent) => setDragMs(fromClientX(ev.clientX));
-          const up = (ev: MouseEvent) => {
-            const finalValue = fromClientX(ev.clientX);
-            window.removeEventListener('mousemove', move);
-            window.removeEventListener('mouseup', up);
-            commit(finalValue);
-          };
-          window.addEventListener('mousemove', move);
-          window.addEventListener('mouseup', up);
-        }}
+        tabIndex={interactive ? 0 : -1}
+        className="w-full h-1 bg-white/30 rounded-full relative outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
         onKeyDown={(e) => {
+          if (!interactive) return;
           const delta = e.key === 'ArrowRight' ? 5_000 : e.key === 'ArrowLeft' ? -5_000
             : e.key === 'PageUp' ? 10_000 : e.key === 'PageDown' ? -10_000 : 0;
           if (e.key === 'Home') { e.preventDefault(); commit(0); return; }
@@ -127,9 +153,9 @@ function SeekBar({ duration, onSeek }: { duration: number; onSeek: (ms: number) 
       >
         <div className="absolute top-0 left-0 h-full bg-indigo-500 rounded-full" style={{ width: `${pct}%` }} />
         <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 bg-white rounded-full shadow" style={{ left: `${pct}%` }} />
-        {hoverMs !== null && (
+        {hoverMs !== null && duration > 0 && (
           <span
-            className="absolute -top-8 -translate-x-1/2 rounded bg-black/80 px-1.5 py-0.5 text-[11px] tabular-nums text-white"
+            className="absolute -top-8 -translate-x-1/2 rounded bg-black/80 px-1.5 py-0.5 text-[11px] tabular-nums text-white pointer-events-none"
             style={{ left: `${Math.min(100, Math.max(0, (hoverMs / duration) * 100))}%` }}
           >
             {fmtTime(hoverMs)}
@@ -161,24 +187,48 @@ function VolumeControl({ video, onSetVolume, onSetMuted }: {
     sync();
     return () => video.removeEventListener('volumechange', sync);
   }, [video]);
+  // The level to come back to when the user unmutes at 0. Seeded from the
+  // element so a profile that starts at 40 % restores 40 %, not 100 %.
+  const lastNonZeroVolumeRef = useRef(
+    video?.volume && video.volume > 0 ? video.volume : 1,
+  );
+  const applyVolume = (value: number) => {
+    if (onSetVolume) onSetVolume(value);
+    else if (video) video.volume = value;
+  };
+  const applyMuted = (value: boolean) => {
+    if (onSetMuted) onSetMuted(value);
+    else if (video) video.muted = value;
+  };
   const toggleMute = () => {
-    const next = !muted;
+    // `volume === 0` is "effectively muted" even when the flag is false: the
+    // old code unmuted silently and left the button reading "Activar sonido".
+    const wasMuted = muted || volume === 0;
+    const nowMuted = !wasMuted;
     // Optimistic UI: the MAIN-world round trip is async and the platform's
     // echo may be late on an audio-track switch.
-    setMutedState(next);
-    if (onSetMuted) onSetMuted(next);
-    else if (video) video.muted = next;
+    setMutedState(nowMuted);
+    if (nowMuted) {
+      applyMuted(true);
+      return;
+    }
+    // Coming back from silence: restore a real level, not zero.
+    if (volume === 0) {
+      const restored = lastNonZeroVolumeRef.current || 1;
+      setVolumeState(restored);
+      applyVolume(restored);
+    }
+    applyMuted(false);
   };
   const change = (value: number) => {
+    if (value > 0) lastNonZeroVolumeRef.current = value;
     setVolumeState(value);
     setMutedState(value === 0);
-    if (onSetVolume) {
-      onSetVolume(value);
-      if (value === 0 && onSetMuted) onSetMuted(true);
-    } else if (video) {
-      video.volume = value;
-      video.muted = value === 0;
-    }
+    applyVolume(value);
+    // Raising the slider out of silence must also clear the mute flag on the
+    // platform, or Cadmium stays muted while the UI shows a level.
+    if (value > 0 && (muted || video?.muted)) applyMuted(false);
+    else if (value === 0) applyMuted(true);
   };
   return (
     <div className="flex items-center gap-2 group/volume">
@@ -201,18 +251,18 @@ function VolumeControl({ video, onSetVolume, onSetMuted }: {
  * receive clicks even while our chrome is on top. Any of them being open
  * makes the control row yield `pointer-events` so the native menu is usable.
  */
-const NATIVE_POPUP_SELECTORS = [
-  '[data-uia="selector-audio-subtitle"]',
-  '[data-uia="selector-audio"]',
-  '[data-uia="selector-subtitle"]',
-  '[data-uia="episodes-selector"]',
-  '[data-uia="episode-selector"]',
-  '[data-uia="player-episodes"]',
-  '[role="menu"]',
-];
-
-function nativePopupOpen(): boolean {
-  return NATIVE_POPUP_SELECTORS.some((selector) => !!document.querySelector(selector));
+/**
+ * Whether a native popup is open. The selector list is the ONE canonical one
+ * from `cleanup-css` (the sheet that hides the native row exempts exactly
+ * these); the generic menu/dialog selectors are scoped to the player root
+ * there, so a page-level dialog never makes the bar yield.
+ */
+function popupOpenNow(): boolean {
+  const platform = document.getElementById('kivara-owned-bar-netflix') ? 'netflix' : undefined;
+  const root = platform
+    ? resolvePlayerRoot('netflix', document.querySelector<HTMLVideoElement>('video'))
+    : null;
+  return nativePopupOpen(root ?? document.body);
 }
 
 /**
@@ -244,7 +294,7 @@ function nativeClick(selector: string, wake: () => void): void {
 }
 
 export function PlayerBar({
-  playing, duration, video, autoPauseCue, loopCue, speed, railOpen, panelOpen,
+  playing, duration: durationProp, video, autoPauseCue, loopCue, speed, railOpen, panelOpen,
   capturing = false,
   onTogglePlay, onPrev, onReplay, onReplaySlow, onNext,
   onToggleAutoPause, onToggleLoop, onSpeed, onToggleRail, onTogglePanel,
@@ -256,6 +306,26 @@ export function PlayerBar({
   const [visible, setVisible] = useState(true);
   const [popupOpen, setPopupOpen] = useState(false);
   const hideTimer = useRef<number | null>(null);
+  // The duration the element reports. A `<video>` that mounts before metadata
+  // answers `NaN`; reading it once at render left the bar at `0:00 / 0:00`
+  // for the whole episode because the element reference never changed.
+  const [liveDurationMs, setLiveDurationMs] = useState<number | null>(null);
+  useEffect(() => {
+    if (!video) return;
+    const sync = () => {
+      setLiveDurationMs(
+        Number.isFinite(video.duration) && video.duration > 0 ? video.duration * 1000 : null,
+      );
+    };
+    video.addEventListener('loadedmetadata', sync);
+    video.addEventListener('durationchange', sync);
+    sync();
+    return () => {
+      video.removeEventListener('loadedmetadata', sync);
+      video.removeEventListener('durationchange', sync);
+    };
+  }, [video]);
+  const duration = liveDurationMs ?? durationProp;
   useEffect(() => {
     const el = barRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
@@ -290,7 +360,7 @@ export function PlayerBar({
   // our closed root. While it is open the row must yield pointer events or the
   // user's click lands on our transparent chrome instead of the menu.
   useEffect(() => {
-    const check = () => setPopupOpen(nativePopupOpen());
+    const check = () => setPopupOpen(popupOpenNow());
     check();
     const observer = typeof MutationObserver === 'function'
       ? new MutationObserver(check)
@@ -301,13 +371,32 @@ export function PlayerBar({
   // A clean capture takes the frame: our chrome (and the caption's lift) must
   // not be in it, so the bar reports itself hidden for the whole capture.
   const reportedVisible = visible && !capturing;
+  // ONE flag for "the user can touch this bar": on screen AND not yielding to
+  // a native popup. Both children derive their pointer-events from it.
+  const interactive = reportedVisible && !popupOpen;
   useEffect(() => {
     onVisibilityChange?.(reportedVisible, height);
   }, [onVisibilityChange, reportedVisible, height]);
+  // Keyboard entry re-arms the auto-hide instead of leaving an inert bar: a
+  // Tab into `opacity: 0` chrome used to focus controls nobody could see.
+  const wakeOnFocus = useCallback(() => {
+    if (capturing) return;
+    setVisible(true);
+    if (hideTimer.current !== null) window.clearTimeout(hideTimer.current);
+    if (!playing) return;
+    hideTimer.current = window.setTimeout(() => setVisible(false), HIDE_AFTER_MS);
+  }, [capturing, playing]);
   const compact = width < 760;
   const tight = width < 720;
   const speedIndex = PLAYBACK_SPEEDS.indexOf(speed);
   const replay = useLongPress(onReplay, onReplaySlow);
+  // Shortcut hints, exactly like StudyBar: the user's live combo, formatted
+  // by the one helper so both bars read the same.
+  const shortcuts = useKivaraStore((state) => state.shortcuts);
+  const combo = (id: string) => comboOf(shortcuts, id);
+  const speedTitle = [t('rail.speed'), [combo('slower'), combo('faster')].filter(Boolean).join(' / ')]
+    .filter(Boolean)
+    .join(' · ');
   const episodes = useNativeControl('[data-uia="control-episodes"]');
   const nextEpisode = useNativeControl('[data-uia="control-next"]');
 
@@ -315,16 +404,20 @@ export function PlayerBar({
     <div
       ref={barRef}
       data-kvl-player-bar=""
+      // The E2E bridge and the hit map read this: a hidden bar must publish
+      // no boxes and no clickable controls.
+      data-kvl-bar-hidden={reportedVisible ? undefined : ''}
       role="toolbar"
       aria-label={t('rail.title')}
+      onFocusCapture={wakeOnFocus}
       className={`absolute bottom-0 inset-x-0 p-4 z-20 bg-gradient-to-t from-black/90 to-transparent flex flex-col gap-2 transition-opacity duration-300 pointer-events-none focus-within:opacity-100 [@media(hover:none)]:opacity-100 ${
-        reportedVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        reportedVisible ? 'opacity-100' : 'opacity-0'
       }`}
     >
-      <SeekBar duration={duration} onSeek={onSeek} />
+      <SeekBar duration={duration} onSeek={onSeek} interactive={interactive} />
       <div
         data-kvl-player-row=""
-        className={`flex items-center justify-between text-white ${popupOpen ? 'pointer-events-none' : 'pointer-events-auto'}`}
+        className={`flex items-center justify-between text-white ${interactive ? 'pointer-events-auto' : 'pointer-events-none'}`}
       >
         <div className="flex items-center gap-4">
           <button type="button" onClick={onTogglePlay} title={playing ? t('player.pause') : t('player.play')}
@@ -340,24 +433,25 @@ export function PlayerBar({
             </button>
           )}
           <div className="flex items-center gap-0.5 rounded-lg bg-zinc-900/70 ring-1 ring-white/[0.08] backdrop-blur-md p-0.5">
-            <button type="button" onClick={onPrev} title={t('shortcut.prev')} aria-label={t('shortcut.prev')} className={NAV}>
+            <button type="button" onClick={onPrev} title={withCombo(t('shortcut.prev'), combo('prev'))} aria-label={t('shortcut.prev')} className={NAV}>
               <ChevronLeft size={14} weight="bold" />
             </button>
-            <button type="button" {...replay} title={t('shortcut.replay')} aria-label={t('shortcut.replay')} className={NAV}>
+            <button type="button" {...replay} title={`${withCombo(t('shortcut.replay'), combo('replay'))}
+${withCombo(t('player.holdSlower'), combo('replaySlow'))}`} aria-label={t('shortcut.replay')} className={NAV}>
               <RotateCcw size={13} weight="bold" />
             </button>
-            <button type="button" onClick={onNext} title={t('shortcut.next')} aria-label={t('shortcut.next')} className={NAV}>
+            <button type="button" onClick={onNext} title={withCombo(t('shortcut.next'), combo('next'))} aria-label={t('shortcut.next')} className={NAV}>
               <ChevronRight size={14} weight="bold" />
             </button>
             <span className="w-px h-4 bg-white/[0.1] mx-0.5" />
-            <button type="button" onClick={onToggleAutoPause} title={t('rail.autoPause')} aria-label={t('rail.autoPause')} aria-pressed={autoPauseCue} className={chip(autoPauseCue)}>
+            <button type="button" onClick={onToggleAutoPause} title={withCombo(t('rail.autoPause'), combo('autoPause'))} aria-label={t('rail.autoPause')} aria-pressed={autoPauseCue} className={chip(autoPauseCue)}>
               <Pause size={12} fill="currentColor" />{!compact && t('rail.autoPauseShort')}
             </button>
-            <button type="button" onClick={onToggleLoop} title={t('rail.loop')} aria-label={t('rail.loop')} aria-pressed={loopCue} className={chip(loopCue)}>
+            <button type="button" onClick={onToggleLoop} title={withCombo(t('rail.loop'), combo('loop'))} aria-label={t('rail.loop')} aria-pressed={loopCue} className={chip(loopCue)}>
               <Repeat size={12} weight="bold" />{!compact && t('rail.loop')}
             </button>
             <span className="w-px h-4 bg-white/[0.1] mx-0.5" />
-            <div role="radiogroup" aria-label={t('rail.speed')} className="relative flex"
+            <div role="radiogroup" aria-label={t('rail.speed')} title={speedTitle} className="relative flex"
               onKeyDown={(event) => onRadioKeyDown(event, PLAYBACK_SPEEDS, speed, onSpeed)}>
               {speedIndex >= 0 && (
                 <span aria-hidden="true" className="kvl-seg-pill absolute inset-y-0 rounded-md bg-white/[0.14] pointer-events-none"
@@ -366,7 +460,7 @@ export function PlayerBar({
               {PLAYBACK_SPEEDS.map((value, index) => (
                 <button key={value} type="button" role="radio" aria-checked={speed === value}
                   tabIndex={radioTabIndex(speed === value, index, speedIndex >= 0)} onClick={() => onSpeed(value)}
-                  className={`relative z-10 h-7 w-11 rounded-md text-[12px] font-medium tabular-nums ${speed === value ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'}`}>
+                  className={`relative z-10 h-7 w-11 rounded-md text-[12px] font-medium tabular-nums kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${speed === value ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'}`}>
                   {value}×
                 </button>
               ))}
@@ -377,8 +471,11 @@ export function PlayerBar({
         </div>
         <div className="flex items-center gap-4">
           <button type="button" onClick={() => nativeClick('[data-uia="control-audio-subtitle"]', onWakeNative)}
-            aria-label={t('player.netflixSubtitles')} className="rounded-md hover:text-indigo-400">
+            aria-label={t('player.netflixSubtitles')} title={t('player.netflixSubtitles')}
+            className="rounded-md hover:text-indigo-400 relative">
             <Subtitles size={20} />
+            {/* The mock marks Kivara's subtitles with an indigo dot. */}
+            <span aria-hidden="true" className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full pointer-events-none" />
           </button>
           {episodes && (
             <button type="button" onClick={() => nativeClick('[data-uia="control-episodes"]', onWakeNative)}
@@ -387,11 +484,11 @@ export function PlayerBar({
               <Layers size={20} />
             </button>
           )}
-          <button type="button" onClick={onToggleRail} aria-pressed={railOpen} title={t('rail.toggle')}
+          <button type="button" onClick={onToggleRail} aria-pressed={railOpen} title={withCombo(t('rail.toggle'), combo('rail'))}
             aria-label={t('rail.toggle')} className={`rounded-md ${railOpen ? 'text-indigo-400' : 'hover:text-indigo-400'}`}>
             <AlignLeft size={20} />
           </button>
-          <button type="button" onClick={onTogglePanel} aria-pressed={panelOpen} title={t('app.panelToggle')}
+          <button type="button" onClick={onTogglePanel} aria-pressed={panelOpen} title={withCombo(t('app.panelToggle'), combo('panel'))}
             aria-label={t('app.panelToggle')} className={`rounded-md ${panelOpen ? 'text-indigo-400' : 'hover:text-indigo-400'}`}>
             <BrandGlyph size={20} />
           </button>
