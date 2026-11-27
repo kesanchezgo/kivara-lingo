@@ -49,13 +49,21 @@ import { HBO_PLAYER_CONTAINER_SELECTORS } from '../platform-adapters/hbo-max';
 
 type Platform = SubtitleSource['platform'];
 
-/** Preferred width of the transcript column. */
-export const RAIL_WIDTH_PX = 400;
+/**
+ * The ONE study-column width. The transcript rail and the docked panel are
+ * the same column in the same slot: when the user alternates them the right
+ * edge must not move and the video must not be resized, so both take this
+ * width (440 vs 400 used to jump the edge by 40 px and re-letterbox the
+ * video on every switch).
+ */
+export const STUDY_COLUMN_WIDTH_PX = 420;
+/** Preferred width of the transcript column (the study column's width). */
+export const RAIL_WIDTH_PX = 420;
 /** Below this the rail's line list is no longer readable. */
-export const RAIL_MIN_WIDTH_PX = 280;
-/** Preferred width of the docked side panel (matches its floating width). */
-export const PANEL_WIDTH_PX = 440;
-/** Below this the panel's tab bar stops fitting. */
+export const RAIL_MIN_WIDTH_PX = 360;
+/** Preferred width of the docked side panel (same slot, same width). */
+export const PANEL_WIDTH_PX = 420;
+/** Below this the panel's tab bar stops fitting (same floor as the rail). */
 export const PANEL_MIN_WIDTH_PX = 360;
 /** Separator between the two columns; they butt together, the borders split them. */
 export const COLUMN_GAP_PX = 0;

@@ -15,6 +15,7 @@ import { installNavigationTriggers } from './nav-triggers';
 import { setYomitanHeadwords } from './nlp/yomitan-headwords';
 import { clearTranslationCache } from './ui/translation-cache';
 import { updateOverlayParent, type RestoreState } from './fullscreen-overlay-core';
+import { installEnableSync } from './enable-sync';
 
 /**
  * Hydrate the in-memory headword cache used by the tokenizer so words
@@ -126,6 +127,10 @@ useKivaraStore.subscribe((state, prev) => {
 
 interface Mount {
   hostElement: HTMLElement;
+  /** PR #170: the media, so the disable path can release the platform. */
+  videoElement?: HTMLVideoElement;
+  /** PR #170: the container whose `position: relative` we forced. */
+  forcedRelative?: HTMLElement;
   reactRoot: Root;
   videoHostElement?: HTMLElement;
   videoReactRoot?: Root;
@@ -202,6 +207,15 @@ function unmount() {
   }
   mount.hostElement.remove();
   mount.videoHostElement?.remove();
+  // PR #170: disabling must give the SITE back as it was, not just take our
+  // hosts away. The injected sheets (cleanup, owned bar, columns) and the
+  // `position: relative` we forced on the player container outlive React, so
+  // a React unmount alone left the player permanently repositioned.
+  for (const style of Array.from(document.querySelectorAll('style[id^="kivara-"]'))) {
+    style.remove();
+  }
+  const forced = mount.forcedRelative;
+  if (forced) forced.style.position = '';
   mount = null;
 }
 
@@ -220,11 +234,21 @@ function unmount() {
 
 async function mountFor(video: HTMLVideoElement, container: HTMLElement, adapter: SubtitleSource | null) {
   unmount();
+  // PR #170: with the extension OFF this script must not paint anything —
+  // not even for the frame before the store finishes hydrating, because the
+  // rehydrate is what carries `enabled` across contexts.
+  if (!shouldMountNow()) {
+    dbg('[Kivara Lingo] disabled — not mounting');
+    adapter?.destroy?.();
+    return;
+  }
 
   // Ensure the container can host an absolutely-positioned overlay
   const computed = window.getComputedStyle(container);
+  let forcedRelative: HTMLElement | undefined;
   if (computed.position === 'static') {
     container.style.position = 'relative';
+    forcedRelative = container;
   }
 
   const host = ShadowHost.mount(document.body);
@@ -263,6 +287,8 @@ async function mountFor(video: HTMLVideoElement, container: HTMLElement, adapter
     reactRoot,
     videoHostElement: videoHost.hostElement,
     adapter,
+    videoElement: video,
+    forcedRelative,
   };
   lastVideoElement = video;
   lastVideoContainer = container;
@@ -370,9 +396,53 @@ function observeFullscreen(): void {
   document.addEventListener('webkitfullscreenchange', updateOverlayParentForFullscreen);
 }
 
+/**
+ * PR #170: is the user asking for Kivara right now?
+ *
+ * `enabled !== false` (not `=== true`) so callers that run before the first
+ * hydration — the store starts from its defaults — still mount.
+ */
+function shouldMountNow(): boolean {
+  const hydrate = (useKivaraStore.persist as { hasHydrated?: () => boolean } | undefined)?.hasHydrated;
+  if (typeof hydrate === 'function' && !hydrate()) return true;
+  return useKivaraStore.getState().enabled !== false;
+}
+
 async function init() {
   // Read the generation BEFORE waiting: a navigation during the wait
   // bumps it and this task must then be dropped, not mount the old video.
+  // PR #170: the popup broadcasts SET_ENABLED so a tab reacts in the same
+  // tick instead of waiting for the 250 ms-debounced storage rehydrate.
+  installEnableSync({
+    isMounted: () => mount !== null,
+    mount: () => { void handleNavigation(); },
+    unmount,
+    // Before the adapter dies: put the MEDIA back (rate 1×) while we still
+    // have the controller that can reach the platform through the bridge.
+    releasePlayback: () => {
+      const controller = mount?.adapter?.playback ?? null;
+      try {
+        controller?.setRate(1);
+      } catch (err) {
+        console.warn('[Kivara Lingo] rate restore failed', err);
+      }
+      const media = mount?.videoElement;
+      if (media && media.playbackRate !== 1) {
+        try {
+          media.playbackRate = 1;
+        } catch {
+          /* a detached element: nothing to restore */
+        }
+      }
+    },
+    restoreNativeSubtitles: () => {
+      try {
+        mount?.adapter?.showNativeSubtitles?.();
+      } catch (err) {
+        console.warn('[Kivara Lingo] subtitle restore failed', err);
+      }
+    },
+  });
   const gen = readMountGen();
   const result = await waitForVideo();
   if (!result) {
@@ -380,6 +450,10 @@ async function init() {
     return;
   }
   const { video, container } = result;
+  if (!shouldMountNow()) {
+    dbg('[Kivara Lingo] disabled — staying idle');
+    return;
+  }
   // Enqueued: a navigation that fires while we waited for the video must
   // not mount in parallel (see enqueueMount). The adapter is created
   // INSIDE the task, after the generation survived — not before.

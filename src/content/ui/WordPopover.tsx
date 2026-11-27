@@ -859,11 +859,37 @@ export function WordPopover({
   const card = (
     <div
       ref={ref}
+      // The card is a Kivara hover zone: `overKivaraZone` resolves the pointer
+      // through the root, so without this attribute a pointer resting on the
+      // card read "not over Kivara" and App's resume watchdog played the video
+      // in the middle of a lookup.
+      data-kivara-hover-zone="true"
       onMouseEnter={() => {
         pointerOverCard.current = true;
         onMouseEnter();
       }}
       onMouseLeave={() => {
+        pointerOverCard.current = false;
+        onMouseLeave();
+      }}
+      // A keyboard user reaches the card with Tab, and that arrives as FOCUS,
+      // not as a pointer: the session must start (and stay) alive exactly as it
+      // does for a hand.
+      onFocusCapture={() => {
+        pointerOverCard.current = true;
+        onMouseEnter();
+      }}
+      // ...and it only ends when focus leaves the card AND the word it belongs
+      // to: the card is portaled NEXT TO the word's wrapper, not inside it, so
+      // a single `contains` cannot answer that.
+      onBlur={(e) => {
+        const related = e.relatedTarget as Node | null;
+        if (related && e.currentTarget.contains(related)) return;
+        const root = e.currentTarget.getRootNode() as ParentNode;
+        const anchor = anchorIndex != null
+          ? root.querySelector?.(`[data-tok-idx="${anchorIndex}"]`) ?? null
+          : null;
+        if (related && anchor && (anchor === related || anchor.contains(related))) return;
         pointerOverCard.current = false;
         onMouseLeave();
       }}
@@ -1230,6 +1256,7 @@ export function WordPopover({
       {/* Arrow anchored to the token even when the card is clamped */}
       <div
         ref={arrowRef}
+        data-kivara-hover-zone="true"
         aria-hidden="true"
         className={`absolute left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 bg-white dark:bg-zinc-900 border-zinc-900/[0.08] dark:border-white/[0.08] ${
           placement === 'top' ? '-bottom-1.5 border-r border-b' : '-top-1.5 border-l border-t'
@@ -1239,9 +1266,9 @@ export function WordPopover({
           inside the card for the close timer, so a hand that leaves the word
           towards the card never lets it close. The geometry is written
           imperatively in place() (no render race with the card's shrink). */}
-      <div ref={bridgeRef} aria-hidden="true" style={{ position: 'absolute', pointerEvents: 'none' }} />
+      <div ref={bridgeRef} data-kivara-hover-zone="true" aria-hidden="true" style={{ position: 'absolute', pointerEvents: 'none' }} />
       {/* Invisible bridge over the 12px gap so crossing it never closes the card */}
-      <div className={`absolute left-0 right-0 h-3 ${placement === 'top' ? 'top-full' : 'bottom-full'}`} aria-hidden="true" />
+      <div data-kivara-hover-zone="true" className={`absolute left-0 right-0 h-3 ${placement === 'top' ? 'top-full' : 'bottom-full'}`} aria-hidden="true" />
     </div>
   );
   // Through the portal the card is a child of the popover boundary: its

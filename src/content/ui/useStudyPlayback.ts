@@ -144,6 +144,17 @@ export function useStudyPlayback({
   autoPauseRef.current = autoPause;
   const suspendedRef = useRef(suspended);
   suspendedRef.current = suspended;
+  // PR #170: suspension (a capture, or the extension switched off) has to
+  // leave the MEDIA as the platform had it. The tick below already stops
+  // crossing cue ends, but a rate we applied used to outlive us: Netflix kept
+  // playing at 0.75× after "apagar" and nothing put it back.
+  const wasSuspendedRef = useRef(suspended);
+  useEffect(() => {
+    const was = wasSuspendedRef.current;
+    wasSuspendedRef.current = suspended;
+    if (!suspended || was) return;
+    applyRateRef.current(1);
+  }, [suspended]);
   const slowOnceRef = useRef(false);
   const lastTimeRef = useRef(0);
   /** Wall clock at the previous tick. The jump guard compares the video

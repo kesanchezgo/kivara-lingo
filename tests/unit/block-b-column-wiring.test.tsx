@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/content/ui/App';
 import { SlideColumn } from '../../src/content/ui/SlideColumn';
 import { railOpenStore } from '../../src/content/ui/ui-state';
-import { RAIL_WIDTH_PX } from '../../src/content/ui/columns-css';
+import { computeColumnLayout, STUDY_COLUMN_WIDTH_PX } from '../../src/content/ui/columns-css';
 import { defaultPopupPosition } from '../../src/content/ui/default-popup-position';
 import { publishAllRoots } from '../../src/content/ui/e2e-hitmap';
 import { __registerShadowRootForTests } from '../../src/content/shadow-host';
@@ -80,14 +80,15 @@ afterEach(() => {
 describe('B1 — real SlideColumn animation and coupled container', () => {
   it('starts an initially open column at 0px and grows to the target width', async () => {
     const view = render(
-      <SlideColumn open widthPx={400}><div data-testid="lazy-rail">rail</div></SlideColumn>,
+      <SlideColumn open widthPx={STUDY_COLUMN_WIDTH_PX}><div data-testid="lazy-rail">rail</div></SlideColumn>,
     );
     const outer = screen.getByTestId('lazy-rail').parentElement!.parentElement!;
     expect(outer.className).toContain('w-0');
     expect(outer.style.width).toBe('');
 
     await settle();
-    expect(outer.style.width).toBe('400px');
+    // PR #170: ONE study-column width for both columns (420).
+    expect(outer.style.width).toBe(`${STUDY_COLUMN_WIDTH_PX}px`);
     view.unmount();
   });
 
@@ -128,7 +129,12 @@ describe('B1 — real SlideColumn animation and coupled container', () => {
     expect(dialog.closest('[data-kvl-closing]')).toBeNull();
     expect(document.querySelector('[data-kvl-rail-to-panel]')).not.toBeNull();
     expect(activeTabIn(dialog)?.textContent).toContain(t('panel.tabSettings'));
-    expect(dialog.style.left).toBe(`${defaultPopupPosition(RAIL_WIDTH_PX).left}px`);
+    // The popup sits left of the rail's REAL reserve: at a narrow viewport the
+    // 420px column is scaled down by the 40% cap, so the assertion asks the
+    // layout instead of assuming the preferred width.
+    const railReserve = computeColumnLayout({ rail: true, panel: false }, window.innerWidth).railWidth;
+    expect(railReserve).toBeGreaterThan(0);
+    expect(dialog.style.left).toBe(`${defaultPopupPosition(railReserve).left}px`);
     unmount();
   });
 

@@ -4,6 +4,7 @@ import {
   AlertTriangle, Clock, ExternalLink, Mic, MicOff, Power, RefreshCw, Settings,
 } from '../ui/icons';
 import { useKivaraStore } from '../shared/use-kivara-store';
+import { broadcastEnabled } from '../shared/enable-broadcast';
 import { t } from '../shared/i18n';
 import { BrandGlyph } from '../ui/BrandGlyph';
 import { SyncWriteErrorBanner } from '../app/components/SyncWriteErrorBanner';
@@ -153,6 +154,31 @@ export function Popup() {
     window.close();
   }
 
+  /**
+   * PR #170: turning the extension off must reach the tabs NOW.
+   *
+   * `setEnabled` only writes the store, whose cross-context path is a
+   * 250 ms-debounced `chrome.storage` rehydrate — a quarter of a second in
+   * which the video keeps looping and the hosts stay mounted. The broadcast
+   * makes the tab react in the same tick; the storage sync still runs, so a
+   * closed tab (or another browser) is covered too.
+   */
+  async function onToggleEnabled(next: boolean) {
+    setEnabled(next);
+    if (!next && audioCaptureActive) {
+      // No capture for a disabled extension: it would keep recording audio
+      // the user just switched off.
+      setCaptureError(null);
+      try {
+        const stopped = (await sendMessage('STOP_AUDIO_CAPTURE', {}, 'background')) as { ok: boolean };
+        if (stopped?.ok) setAudioCaptureActive(false);
+      } catch (err) {
+        console.warn('[Kivara Lingo] STOP_AUDIO_CAPTURE on disable failed', err);
+      }
+    }
+    void broadcastEnabled(next);
+  }
+
   async function toggleAudioCapture() {
     const next = !audioCaptureActive;
     setCaptureError(null);
@@ -241,7 +267,7 @@ export function Popup() {
               </span>
               <Toggle
                 on={enabled}
-                onChange={(v) => setEnabled(v)}
+                onChange={onToggleEnabled}
                 ariaLabel={enabled ? t('popup.enable.on') : t('popup.enable.off')}
               />
             </div>

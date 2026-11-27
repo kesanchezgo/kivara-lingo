@@ -70,13 +70,13 @@ describe('B2 — SlideColumn lifecycle', () => {
   it('opens to target width, freezes inner width and unmounts after close', async () => {
     vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => setTimeout(() => cb(0), 0) as unknown as number);
     vi.stubGlobal('cancelAnimationFrame', (id: number) => clearTimeout(id as unknown as NodeJS.Timeout));
-    const view = render(<SlideColumn open={false} widthPx={400}><div data-testid="rail-child">rail</div></SlideColumn>);
+    const view = render(<SlideColumn open={false} widthPx={420}><div data-testid="rail-child">rail</div></SlideColumn>);
     expect(screen.queryByTestId('rail-child')).toBeNull();
-    view.rerender(<SlideColumn open widthPx={400}><div data-testid="rail-child">rail</div></SlideColumn>);
+    view.rerender(<SlideColumn open widthPx={420}><div data-testid="rail-child">rail</div></SlideColumn>);
     await act(async () => { await new Promise((r) => setTimeout(r, 60)); });
     const outer = screen.getByTestId('rail-child').parentElement!.parentElement!;
-    expect(outer.style.width === '400px' || outer.className.includes('400')).toBe(true);
-    view.rerender(<SlideColumn open={false} widthPx={400}><div data-testid="rail-child">rail</div></SlideColumn>);
+    expect(outer.style.width).toBe('420px');
+    view.rerender(<SlideColumn open={false} widthPx={420}><div data-testid="rail-child">rail</div></SlideColumn>);
     expect(outer.hasAttribute('data-kvl-closing')).toBe(true);
     expect(outer.getAttribute('aria-hidden')).toBe('true');
     await act(async () => { await new Promise((r) => setTimeout(r, 400)); });
@@ -94,8 +94,8 @@ describe('B3 — switch focus protocol', () => {
 });
 
 describe('B3 — floating panel reserves the rail width', () => {
-  it('left of an open 400px rail on a 1600px viewport', () => {
-    const pos = defaultPopupPosition(400);
-    expect(pos.left + pos.width).toBeLessThanOrEqual(1600 - 400);
+  it('left of an open 420px rail on a 1600px viewport', () => {
+    const pos = defaultPopupPosition(420);
+    expect(pos.left + pos.width).toBeLessThanOrEqual(1600 - 420);
   });
 });

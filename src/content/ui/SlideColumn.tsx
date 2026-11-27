@@ -13,13 +13,24 @@ export interface SlideColumnProps {
   children: React.ReactNode;
   hostRef?: React.MutableRefObject<HTMLDivElement | null> | ((node: HTMLDivElement | null) => void);
   className?: string;
+  /**
+   * PR #170: swap WITHOUT animating the width.
+   *
+   * The rail and the docked panel share one slot and one width. Alternating
+   * them with the 300 ms width animation would, for the length of the
+   * transition, reserve neither of them (or both) and re-letterbox the video.
+   * With `instant` the column takes — or gives up — its slot in the same frame
+   * and the CONTENT carries the transition; the width animation stays for
+   * opening from closed and for closing the last column.
+   */
+  instant?: boolean;
 }
 
-export function SlideColumn({ open, widthPx, children, hostRef, className = '' }: SlideColumnProps) {
+export function SlideColumn({ open, widthPx, children, hostRef, className = '', instant = false }: SlideColumnProps) {
   const [mounted, setMounted] = useState(open);
   // Even an initially open column starts collapsed: the double-rAF in the
   // layout effect animates 0px → widthPx on the FIRST open, not just later ones.
-  const [shown, setShown] = useState(false);
+  const [shown, setShown] = useState(instant && open);
   const outer = useRef<HTMLDivElement | null>(null);
   const inner = useRef<HTMLDivElement | null>(null);
 
@@ -27,11 +38,18 @@ export function SlideColumn({ open, widthPx, children, hostRef, className = '' }
     if (open) setMounted(true);
     else if (inner.current) inner.current.style.width = `${inner.current.offsetWidth}px`;
     if (!open) setShown(false);
-  }, [open]);
+    // A swap hands the slot over in the same frame: no 0px state in between.
+    else if (instant) setShown(true);
+  }, [open, instant]);
 
   useLayoutEffect(() => {
     if (!open || !mounted || shown) return;
     if (inner.current) inner.current.style.width = `${widthPx}px`;
+    if (instant) {
+      // No animation to wait for: the column is at its width now.
+      setShown(true);
+      return;
+    }
     let id2 = 0;
     let settled = false;
     const reveal = () => {
@@ -47,7 +65,7 @@ export function SlideColumn({ open, widthPx, children, hostRef, className = '' }
       cancelAnimationFrame(id2);
       window.clearTimeout(fallback);
     };
-  }, [open, mounted, shown, widthPx]);
+  }, [open, mounted, shown, widthPx, instant]);
 
   // Fallback: a hidden tab never delivers transitionend; unmount anyway.
   useEffect(() => {
@@ -74,7 +92,7 @@ export function SlideColumn({ open, widthPx, children, hostRef, className = '' }
       data-kvl-slide=""
       data-kvl-closing={!open ? '' : undefined}
       aria-hidden={!open || undefined}
-      className={`${className} shrink-0 h-full flex justify-end overflow-hidden transition-[width,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] motion-reduce:transition-none ${
+      className={`${className} shrink-0 h-full flex justify-end overflow-hidden ${instant ? 'transition-opacity duration-150' : 'transition-[width,opacity] duration-300'} ease-[cubic-bezier(.32,.72,0,1)] motion-reduce:transition-none ${
         shown ? 'opacity-100' : 'w-0 opacity-0'
       } ${!open ? 'pointer-events-none' : ''}`}
       style={shown ? { width: `${widthPx}px` } : undefined}
