@@ -26,8 +26,8 @@ import { test, expect } from './fixtures';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PLAYER_FIXTURE = fs.readFileSync(path.join(here, 'fixtures', 'player.html'), 'utf8');
 
-/** RAIL_WIDTH_PX in src/content/ui/columns-css.ts. */
-const RAIL_WIDTH_PX = 400;
+/** RAIL_WIDTH_PX / STUDY_COLUMN_WIDTH_PX in src/content/ui/columns-css.ts (PR #170: both 420). */
+const RAIL_WIDTH_PX = 420;
 
 test('the rail reserves its column on YouTube and nudges the player both ways', async ({ context }) => {
   const page = await context.newPage();
