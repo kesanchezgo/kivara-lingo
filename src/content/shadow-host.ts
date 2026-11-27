@@ -166,6 +166,32 @@ export function __registerShadowRootForTests(host: HTMLElement, root: ShadowRoot
   shadowRoots.set(host, root);
 }
 
+/** Our two hosts, in the order they mount. */
+const OUR_HOST_IDS = [VIDEO_HOST_ID, HOST_ID] as const;
+
+/**
+ * Does a Kivara surface hold the FOCUS right now?
+ *
+ * `activeElement` is per-root inside a shadow tree, so the answer is not in
+ * `document.activeElement`: each of our roots answers for itself. Focus inside
+ * a `[data-kivara-hover-zone]` or inside a card counts — a keyboard user
+ * reading a card is as much "in a lookup" as a hand resting on the word.
+ *
+ * `active` is the seam the unit tests drive (happy-dom does not track the
+ * active element inside a shadow root); production passes nothing.
+ */
+export function focusInsideKivaraZone(active?: Element | null): boolean {
+  for (const id of OUR_HOST_IDS) {
+    const root = getShadowRoot(document.getElementById(id));
+    if (!root) continue;
+    const focused = active ?? (root.activeElement as Element | null) ?? null;
+    if (!(focused instanceof Element)) continue;
+    if (focused.closest('[data-kivara-hover-zone="true"]')) return true;
+    if (focused.closest('[role="dialog"]')) return true;
+  }
+  return false;
+}
+
 function applyPageGuards(): void {
   if (pageGuardsApplied) return;
   pageGuardsApplied = true;

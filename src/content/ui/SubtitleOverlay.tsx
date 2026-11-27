@@ -1317,7 +1317,20 @@ export function SubtitleOverlay({
                       if (e.key === 'Escape' && !(e.target as HTMLElement).hasAttribute('data-tok-idx')) focusWord(i);
                     }}
                     onBlur={(e) => {
-                      if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+                      const root = e.currentTarget.getRootNode() as ParentNode;
+                      // The new focus owner: `relatedTarget` in Chromium, the
+                      // document's activeElement when the event arrives without
+                      // one (focus went to <body>), never a guess.
+                      const related = (e.relatedTarget as Node | null)
+                        ?? (root as Document).activeElement
+                        ?? null;
+                      if (related && e.currentTarget.contains(related)) return;
+                      // The card is portaled into the boundary, OUTSIDE this
+                      // wrapper's DOM subtree, so `contains` cannot see it:
+                      // focus on "Guardar" looked like "the user left" and the
+                      // card closed (and the video resumed) under their hands.
+                      const dialog = root.querySelector?.('[role="dialog"]') ?? null;
+                      if (related && dialog && dialog.contains(related)) return;
                       if (focusOpenRef.current !== i) return;
                       focusOpenRef.current = null;
                       if (hoveredIdx === i) handleTokenLeave();

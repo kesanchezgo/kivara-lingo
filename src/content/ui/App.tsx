@@ -14,7 +14,7 @@ import { useKivaraStore } from '../../shared/use-kivara-store';
 import { captureFrame, captureBestFrame } from '../capture/frame';
 import { comboFromEvent, normalizeCombo, readManifestCombos } from '../../shared/shortcuts';
 import { dbgOnce } from '../../shared/logger';
-import { getShadowRoot, overKivaraZone } from '../shadow-host';
+import { focusInsideKivaraZone, getShadowRoot, overKivaraZone } from '../shadow-host';
 import { PortalContainerProvider } from '../../ui/portal';
 import { eventPathIsEditable } from '../utils/keyboard';
 import type {
@@ -372,6 +372,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // outside the parent's bounding box.
   const cursorOverKivaraRef = useRef(false);
 
+
   // Word status + level of the profile of the SUBTITLE language (F5): watching
 // English captions uses the English profile even while another language is
 // configured in Settings. `profileLangOf` folds `en-US` into `en`.
@@ -418,7 +419,10 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     cues: episode.cues,
     video: videoElement,
     pausedByKivara: kivaraPausedRef,
-    suspended: captureView !== null,
+    // PR #170: OFF is the strongest suspension — no loop, no auto-pause, no
+    // rate — so switching the extension off leaves the video exactly as the
+    // platform had it.
+    suspended: !enabled || captureView !== null,
   });
   const railOpen = useChromeLocal(railOpenStore);
   const railView = useChromeLocal(railViewStore);
@@ -472,6 +476,17 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       document.removeEventListener('fullscreenchange', readViewport);
     };
   }, []);
+  // The two columns share ONE slot and ONE width. When the user alternates
+  // them the slot must not animate: the 300 ms width transition would reserve
+  // neither column (or both) in between and re-letterbox the video. The swap
+  // is detected from the previous render and the content carries the fade.
+  const prevColumnsRef = useRef({ rail: false, panel: false });
+  const swappingColumn = (prevColumnsRef.current.rail !== railVisible || prevColumnsRef.current.panel !== panelDocked)
+    && (railVisible || panelDocked)
+    && (prevColumnsRef.current.rail || prevColumnsRef.current.panel);
+  useEffect(() => {
+    prevColumnsRef.current = { rail: railVisible, panel: panelDocked };
+  }, [railVisible, panelDocked]);
   const columnLayout = useMemo(
     () => computeColumnLayout(columnVisibility, viewportWidth),
     [columnVisibility, viewportWidth],
@@ -1115,12 +1130,21 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       // An auto-pause at the end of the cue is a study decision, not a stuck
       // hover: the watchdog must not undo it (F6).
       if (studyPlaybackRef.current.autoPausedRef.current) return;
+      // A live lookup owns the pause: the pointer resting on ANY Kivara
+      // surface (the word, its bridges, the card — all hover zones) or the
+      // FOCUS sitting in one of them is not "a stuck pause". The 350 ms tick
+      // used to fire mid-lookup because the card is portaled outside the
+      // token wrapper and was not a hover zone.
+      //
+      // Deliberately NOT gated on a remembered "a session is open" flag: if a
+      // `mouseleave` is ever lost, that flag would keep the watchdog dead and
+      // a real orphan pause would never be rescued. The DOM is the truth.
+      if (cursorOverKivaraRef.current || focusInsideKivaraZone()) return;
       if (!videoElement) return;
       if (!videoElement.paused) {
         kivaraPausedRef.current = false;
         return;
       }
-      if (cursorOverKivaraRef.current) return;
       // Stuck paused with no hover — resume.
       hoverRevRef.current += 1;
       const rev = hoverRevRef.current;
@@ -2354,6 +2378,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
         >
           <SlideColumn
             open={railVisible}
+            instant={swappingColumn}
             widthPx={columnLayout.railWidth || RAIL_WIDTH_PX}
             hostRef={railHostRef}
             className={railVisible ? 'pointer-events-auto' : 'pointer-events-none'}
@@ -2417,6 +2442,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
 
           <SlideColumn
             open={panelDocked}
+            instant={swappingColumn}
             widthPx={columnLayout.panelWidth || PANEL_WIDTH_PX}
             hostRef={panelHostRef}
             className={panelDocked ? 'pointer-events-auto' : 'pointer-events-none'}

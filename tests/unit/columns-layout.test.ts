@@ -162,12 +162,30 @@ describe('computeColumnLayout', () => {
   });
 
   it('keeps the documented breakpoints', () => {
-    expect(computeColumnLayout(RAIL_ONLY, 700).overlay).toBe(false);
-    expect(computeColumnLayout(RAIL_ONLY, 699).overlay).toBe(true);
+    // One 420px column with a 360px floor: full width from 1050px of viewport
+    // up, scaled between 900 and 1050, floating below 900.
+    expect(computeColumnLayout(RAIL_ONLY, 1050).reserved).toBe(RAIL_WIDTH_PX);
+    expect(computeColumnLayout(RAIL_ONLY, 900).overlay).toBe(false);
+    expect(computeColumnLayout(RAIL_ONLY, 899).overlay).toBe(true);
     expect(computeColumnLayout(PANEL_ONLY, 900).overlay).toBe(false);
     expect(computeColumnLayout(PANEL_ONLY, 899).overlay).toBe(true);
-    expect(computeColumnLayout(BOTH, 1715).overlay).toBe(false);
-    expect(computeColumnLayout(BOTH, 1714).overlay).toBe(true);
+    // Two columns: preferred from 2100px, both floors from 1800px.
+    expect(computeColumnLayout(BOTH, 2100).overlay).toBe(false);
+    expect(computeColumnLayout(BOTH, 1799).overlay).toBe(true);
+  });
+
+  it('gives the rail and the docked panel the SAME width, so alternating them never moves the edge', () => {
+    // They are the same slot: a width difference would shift the right edge and
+    // re-layout the video on every `Transcripción ⇄ Panel Kivara` switch.
+    expect(RAIL_WIDTH_PX).toBe(PANEL_WIDTH_PX);
+    expect(RAIL_MIN_WIDTH_PX).toBe(PANEL_MIN_WIDTH_PX);
+    for (const viewport of [2560, 1920, 1600, 1280, 1050, 1000, 900]) {
+      const rail = computeColumnLayout(RAIL_ONLY, viewport);
+      const panel = computeColumnLayout(PANEL_ONLY, viewport);
+      expect(rail.overlay, `viewport ${viewport}`).toBe(panel.overlay);
+      expect(rail.railWidth, `viewport ${viewport}`).toBe(panel.panelWidth);
+      expect(rail.reserved, `viewport ${viewport}: no jump when swapping columns`).toBe(panel.reserved);
+    }
   });
 });
 
@@ -250,7 +268,8 @@ describe('applyColumnsCss', () => {
 
     const style = styleFor('youtube');
     expect(style).not.toBeNull();
-    expect(style?.textContent).toContain('calc(100% - 400px)');
+    // The reserved width comes from the layout: one 420px study column.
+    expect(style?.textContent).toContain(`calc(100% - ${RAIL_WIDTH_PX}px)`);
     expect(document.documentElement.getAttribute('data-kvl-columns')).toBe('1');
     expect(resizeEvents()).toHaveLength(1);
     expect(resizeEvents()[0].type).toBe('resize');
