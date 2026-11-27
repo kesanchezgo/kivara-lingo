@@ -275,10 +275,15 @@ describe('PR #169 — both Netflix sheets exempt the SAME native popups', () => 
     return block ? [...block.selectors].sort() : [];
   }
 
-  it('the owned-bar sheet hides the native row on its own', () => {
+  it('the owned-bar sheet hides the native row on its own', async () => {
     // Alone, without the cleanup sheet: the row rule's own selector list must
-    // be a comma list, or the native row stays visible under our bar.
-    const row = ['.PlayerControlsNeo__bottom-controls', '[data-uia="watch-video-bottom-controls"]', '[data-uia="player-controls"]'];
+    // Alone, without the cleanup sheet: the row rule's own selector list must
+    // be a comma list, or the native row stays visible under our bar. PR #171
+    // grew that list to every real Netflix container, so the expectation is the
+    // EXPORTED list rather than a copy that can drift.
+    const { NETFLIX_OWNED_HIDE_SELECTORS } = await import('../../src/content/ui/cleanup-css');
+    const row = [...NETFLIX_OWNED_HIDE_SELECTORS];
+    expect(row.length, 'the whole chrome, not the three legacy selectors').toBeGreaterThan(15);
     const nodes = mountSiblings(row);
     applyOwnedBarCss(true, 'netflix');
     const block = parseBlocks(document.getElementById('kivara-owned-bar-netflix')?.textContent ?? '')

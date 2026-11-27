@@ -37,7 +37,9 @@ import { createSaveGate } from './save-gate';
 import { applySavedScene, captureAnchor, sceneIdentity, sceneSurface, type SubtitleAudioAnchor } from './save-scene';
 import { normalizeAnkiMapping } from '../../shared/anki-model';
 import { resolvePlayerRoot, shouldRenderFloatingStudyBar, shouldUseOwnedPlayerBar, useNativeBarSlot } from './native-bar-slot';
-import { PlayerBar } from './PlayerBar';
+import { OWNED_BAR_BOTTOM_OFFSET_PX, PlayerBar } from './PlayerBar';
+import { PlayerTopBar } from './PlayerTopBar';
+import { PlayerSkipPrompt } from './PlayerSkipPrompt';
 import { combineControlsVisibility } from './overlay-geometry';
 import { SlideColumn } from './SlideColumn';
 import { requestSwitchFocus } from './column-switch-focus';
@@ -582,7 +584,22 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     ));
   }, []);
   const controlsVisibility = combineControlsVisibility(ownedBarVisibility, null);
-  const captionBarHeight = controlsVisibility.visible ? controlsVisibility.height : 0;
+  // The owned tray floats `bottom-3`, so the chrome the caption has to clear
+  // is the tray PLUS that gap. The bar reports its own border box (its
+  // contract, pinned by pr167); the offset belongs to whoever knows whether
+  // the owned bar is the chrome on screen at all.
+  // `T2 E5 · Chapter Five` when the site says so; empty when it does not, and
+  // the top bar hides the separator rather than printing a stray dot.
+  const mediaSubtitle = episode.media
+    ? [
+        episode.media.season && episode.media.episode ? `T${episode.media.season} E${episode.media.episode}` : '',
+        episode.media.series && episode.media.title !== episode.media.series ? episode.media.title : '',
+      ].filter(Boolean).join(' · ') || null
+    : null;
+
+  const captionBarHeight = controlsVisibility.visible
+    ? controlsVisibility.height + (ownedBar ? OWNED_BAR_BOTTOM_OFFSET_PX : 0)
+    : 0;
 
   // Volume/mute go through the controller: on Netflix the Cadmium session
   // player keeps the level across episodes and audio tracks.
@@ -2126,6 +2143,8 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
             playing={playing}
             expandedMWEs={expandedMWEs}
             setExpandedMWEs={setExpandedMWEs}
+            // The owned bar hosts the badges on its top tray instead.
+            hideCornerBadges={ownedBar}
             capturing={captureView !== null}
             barHeightPx={captionBarHeight}
             study={studyBinding}
@@ -2149,6 +2168,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       videoOverlayRoot,
     );
   }, [
+    ownedBar,
     activeCue,
     altCue,
     // deps kept EXPLICIT and CONTIGUOUS — a fix for the audit's #10:
@@ -2287,6 +2307,27 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
           </PortalContainerProvider>,
           videoOverlayRoot!,
         )}
+
+      {/* The other half of the replacement chrome: the way back, what is
+          playing and the three study badges up top, plus Kivara's own pill
+          for the contextual buttons Netflix would have shown there. Both
+          follow the tray's visibility, so the chrome moves as one. */}
+      {enabled && ownedBar && createPortal(
+        <PortalContainerProvider container={videoPortalContainer ?? null}>
+          <>
+            <PlayerTopBar
+              visible={controlsVisibility.visible}
+              capturing={captureView !== null}
+              title={episode.media?.series || episode.media?.title || null}
+              subtitle={mediaSubtitle}
+              expandedMWEs={expandedMWEs}
+              onRejoinAll={() => setExpandedMWEs(new Set())}
+            />
+            <PlayerSkipPrompt visible={controlsVisibility.visible} capturing={captureView !== null} />
+          </>
+        </PortalContainerProvider>,
+        videoOverlayRoot!,
+      )}
 
       {/* F6: the study bar lives in the player's overlay root, above the
           platform's own controls (D2). Its visibility follows pointer activity
