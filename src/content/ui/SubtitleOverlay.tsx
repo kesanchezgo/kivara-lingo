@@ -19,6 +19,7 @@ import { LanguageMismatchNotice } from './language-mismatch';
 import { sendMessage } from 'webext-bridge/content-script';
 import { readTranslation } from './translation-cache';
 import { StudyBadges } from './StudyBadges';
+import { getShadowRoot } from '../shadow-host';
 import { toast } from 'sonner';
 import {
   Volume1, Copy, Check, Quote, MousePointerClick, BookOpenCheck, ListChecks,
@@ -437,6 +438,10 @@ export function SubtitleOverlay({
     (subtitleStyles.position === 'top' ? 15 : subtitleStyles.position === 'middle' ? 50 : 85);
 
   const [liftPx, setLiftPx] = useState(0);
+  // Is there a caption to lift at all? With `cue === null` (or an empty line)
+  // the component returns null further down, so the layer does not exist yet —
+  // and the lift has to run AGAIN the moment it does.
+  const hasLayer = Boolean(cue && cue.text.trim());
   const measureLift = useCallback(() => {
     if (capturing || !(barHeightPx > 0)) {
       setLiftPx((prev) => (prev === 0 ? prev : 0));
@@ -449,7 +454,12 @@ export function SubtitleOverlay({
     // plate is looked up inside it.
     const root: ParentNode = hostOf(layerRef.current)
       ? scopeOf(layerRef.current!)
-      : document.getElementById('kivara-lingo-video-host')?.shadowRoot
+      // `?.shadowRoot` is ALWAYS null here: both hosts attach `mode: 'closed'`,
+      // so the page-side property reads null even for us. The registry the mount
+      // path writes is the only handle — and without it the host height came
+      // back 0, so every caption box was measured against nothing and the card
+      // never published a usable box.
+      : getShadowRoot(document.getElementById('kivara-lingo-video-host'))
         ?? document;
     const layer = layerRef.current
       ?? root.querySelector<HTMLElement>('[data-kvl-caption-layer]');
@@ -508,8 +518,19 @@ export function SubtitleOverlay({
       ? requestAnimationFrame(measureLift)
       : null;
     return () => { if (raf !== null) cancelAnimationFrame(raf); };
-  }, [measureLift]);
+    // `hasLayer`, the cue identity and the style inputs are dependencies on
+    // purpose: the FIRST cue (and any cue after a silence) MOUNTS the layer
+    // while `barHeightPx` has not changed, so without them the effect never
+    // re-ran and the plate stayed at lift 0 — buried under the tray — until
+    // something else happened to re-render it.
+  }, [measureLift, hasLayer, cue?.id, cue?.text, altCue?.text, subtitleStyles.fontSize]);
   useEffect(() => {
+    // The observers connect whenever the layer goes from absent to mounted,
+    // which is exactly the `hasLayer` transition.
+    if (!hasLayer) {
+      setLiftPx((prev) => (prev === 0 ? prev : 0));
+      return;
+    }
     if (typeof ResizeObserver === 'undefined') return;
     const layer = layerRef.current;
     if (!layer) return;
@@ -527,7 +548,7 @@ export function SubtitleOverlay({
       observer.disconnect();
       text.disconnect();
     };
-  }, [measureLift]);
+  }, [measureLift, hasLayer]);
 
   useEffect(() => () => {
     if (hoverTimeout.current) clearTimeout(hoverTimeout.current);

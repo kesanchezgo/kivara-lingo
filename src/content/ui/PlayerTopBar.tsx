@@ -21,6 +21,8 @@ export interface PlayerTopBarProps {
   /** Same flag the bottom tray reports: on screen and not capturing. */
   visible: boolean;
   capturing?: boolean;
+  /** A native popup owns the pointer: our chrome steps out of its way. */
+  popupOpen?: boolean;
   /** Main title: the series on a series, the title on a film. */
   title?: string | null;
   /** The detail line: `T1 E8 · Chapter Eight`. */
@@ -38,7 +40,18 @@ const NATIVE_BACK = '[data-uia="control-nav-back"]';
 /** How long the site gets to react before we fall back to history. */
 const BACK_FALLBACK_MS = 180;
 
-export function PlayerTopBar({ visible, capturing = false, title, subtitle, expandedMWEs, onRejoinAll }: PlayerTopBarProps) {
+export function PlayerTopBar({ visible, capturing = false, popupOpen = false, title, subtitle, expandedMWEs, onRejoinAll }: PlayerTopBarProps) {
+  // One flag for "the user can touch this bar". The ROOT stays
+  // `pointer-events-none` on purpose: it spans the whole top band, and the
+  // empty middle of that band must let clicks through to the video (the
+  // native chrome it replaces was clickable there — a full-band blocker
+  // swallowed the picture).
+  const interactive = visible && !capturing && !popupOpen;
+  const capsulePointer = capturing || popupOpen
+    ? 'pointer-events-none'
+    : interactive
+      ? 'pointer-events-auto'
+      : 'pointer-events-none focus-within:pointer-events-auto';
   const listenFirst = useKivaraStore((state) => state.study.listenFirst);
   const setStudy = useKivaraStore((state) => state.setStudy);
   const mode = useKivaraStore((state) => state.mode);
@@ -74,11 +87,11 @@ export function PlayerTopBar({ visible, capturing = false, title, subtitle, expa
       data-kvl-top-hidden={shown ? undefined : ''}
       className={`absolute top-4 left-4 right-4 z-20 flex items-start justify-between gap-3 transition-opacity duration-300 pointer-events-none focus-within:opacity-100 ${
         shown ? 'opacity-100' : 'opacity-0'
-      } focus-within:pointer-events-auto`}
+      }`}
     >
       {/* ── Left: back + what is playing ───────────────────────────────── */}
       <div className="flex min-w-0 items-center gap-2">
-        <div className="h-9 pl-1.5 pr-3 flex items-center gap-2 rounded-xl bg-zinc-950/85 backdrop-blur-xl ring-1 ring-white/[0.08] shadow-[0_12px_32px_-8px_rgba(0,0,0,0.65)] pointer-events-auto">
+        <div className={`h-9 ${title ? 'pl-1.5 pr-3' : 'px-1'} flex items-center gap-2 rounded-xl bg-zinc-950/85 backdrop-blur-xl ring-1 ring-white/[0.08] shadow-[0_12px_32px_-8px_rgba(0,0,0,0.65)] ${capsulePointer}`}>
           <button
             type="button"
             onClick={goBack}
@@ -104,7 +117,7 @@ export function PlayerTopBar({ visible, capturing = false, title, subtitle, expa
       </div>
 
       {/* ── Right: the study badges, on the same top line ──────────────── */}
-      <div className="flex items-center gap-1.5 shrink-0 pointer-events-auto">
+      <div className={`flex items-center gap-1.5 shrink-0 ${capsulePointer}`}>
         <StudyBadges
           expandedMWEs={expandedMWEs}
           onRejoinAll={onRejoinAll}

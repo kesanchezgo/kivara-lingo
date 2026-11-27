@@ -578,6 +578,11 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
     visible: false,
     height: 0,
   });
+  // While a native popup (CC list, episodes drawer) is open the tray yields the
+  // pointer, and the rest of our chrome stands down with it: the top bar must
+  // not cover the menu and the skip pill has no business over a native list.
+  const [nativePopupOpen, setNativePopupOpen] = useState(false);
+  const handleBarPopup = useCallback((open: boolean) => setNativePopupOpen(open), []);
   const handleBarVisibility = useCallback((visible: boolean, heightPx: number) => {
     setOwnedBarVisibility((prev) => (
       prev.visible === visible && prev.height === heightPx ? prev : { visible, height: heightPx }
@@ -592,7 +597,12 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // the top bar hides the separator rather than printing a stray dot.
   const mediaSubtitle = episode.media
     ? [
-        episode.media.season && episode.media.episode ? `T${episode.media.season} E${episode.media.episode}` : '',
+        // Localised on purpose: the Spanish build reads "T1 E8", the English one
+        // "S1 E8" — a hard-coded T in an English UI is the kind of thing the
+        // i18n gate exists to catch.
+        episode.media.season && episode.media.episode
+          ? t('player.seasonEpisode', { s: episode.media.season, e: episode.media.episode })
+          : '',
         episode.media.series && episode.media.title !== episode.media.series ? episode.media.title : '',
       ].filter(Boolean).join(' · ') || null
     : null;
@@ -2303,6 +2313,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
               onSetVolume={setVolumeOwned}
               onSetMuted={setMutedOwned}
               onVisibilityChange={handleBarVisibility}
+              onPopupChange={handleBarPopup}
             />
           </PortalContainerProvider>,
           videoOverlayRoot!,
@@ -2322,8 +2333,14 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
               subtitle={mediaSubtitle}
               expandedMWEs={expandedMWEs}
               onRejoinAll={() => setExpandedMWEs(new Set())}
+              popupOpen={nativePopupOpen}
             />
-            <PlayerSkipPrompt visible={controlsVisibility.visible} capturing={captureView !== null} />
+            <PlayerSkipPrompt
+              visible={controlsVisibility.visible}
+              capturing={captureView !== null}
+              popupOpen={nativePopupOpen}
+              barHeightPx={captionBarHeight}
+            />
           </>
         </PortalContainerProvider>,
         videoOverlayRoot!,

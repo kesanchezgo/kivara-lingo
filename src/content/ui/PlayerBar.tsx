@@ -66,6 +66,13 @@ interface PlayerBarProps {
    * by `App`, which knows whether it is the owned bar that is on screen.
    */
   onVisibilityChange?: (visible: boolean, heightPx: number) => void;
+  /**
+   * A native popup (the CC list, the episodes drawer) is open, so the tray
+   * has yielded the pointer. The other pieces of our chrome need it too:
+   * the top bar must not cover the menu and the skip pill has no business
+   * offering a button while a native list owns the screen.
+   */
+  onPopupChange?: (open: boolean) => void;
 }
 
 /**
@@ -401,7 +408,7 @@ export function PlayerBar({
   capturing = false,
   onTogglePlay, onPrev, onReplay, onReplaySlow, onNext,
   onToggleAutoPause, onToggleLoop, onSpeed, onToggleRail, onTogglePanel,
-  onSeek, onWakeNative, onSetVolume, onSetMuted, onVisibilityChange,
+  onSeek, onWakeNative, onSetVolume, onSetMuted, onVisibilityChange, onPopupChange,
 }: PlayerBarProps) {
   const barRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(Infinity);
@@ -488,6 +495,9 @@ export function PlayerBar({
   useEffect(() => {
     onVisibilityChange?.(reportedVisible, height);
   }, [onVisibilityChange, reportedVisible, height]);
+  useEffect(() => {
+    onPopupChange?.(popupOpen);
+  }, [onPopupChange, popupOpen]);
   // Keyboard entry re-arms the auto-hide instead of leaving an inert bar: a
   // Tab into `opacity: 0` chrome used to focus controls nobody could see.
   const wakeOnFocus = useCallback(() => {

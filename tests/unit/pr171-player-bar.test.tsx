@@ -119,6 +119,27 @@ describe('PR #171 · the Kivara volume control', () => {
   });
 });
 
+describe('PR #171 · the tray publishes the native-popup state', () => {
+  it('reports an open native popup, and clears it when it closes', async () => {
+    const onPopupChange = vi.fn();
+    render(<PlayerBar {...barProps()} onPopupChange={onPopupChange} />);
+    expect(onPopupChange, 'nothing open yet').toHaveBeenLastCalledWith(false);
+
+    // A native CC menu appears in the page: the tray yields, and the rest of
+    // our chrome has to know (the top bar must not cover it, the skip pill has
+    // no business over it).
+    const cc = document.createElement('div');
+    cc.setAttribute('data-uia', 'selector-audio-subtitle');
+    document.body.appendChild(cc);
+    await act(async () => { await Promise.resolve(); });
+    await expect.poll(() => onPopupChange.mock.calls.at(-1)?.[0], { timeout: 3_000 }).toBe(true);
+
+    cc.remove();
+    await act(async () => { await Promise.resolve(); });
+    await expect.poll(() => onPopupChange.mock.calls.at(-1)?.[0], { timeout: 3_000 }).toBe(false);
+  });
+});
+
 describe('PR #171 · fullscreen happens in the gesture', () => {
   it('calls requestFullscreen synchronously and exits when already in fullscreen', () => {
     // The element the code will pick: `resolvePlayerRoot('netflix', video)`

@@ -84,7 +84,65 @@ describe('PR #171 · the top bar', () => {
   });
 });
 
+describe('PR #171 · the top bar never blocks the picture', () => {
+  const autoTakers = (bar: HTMLElement) => bar.querySelectorAll('.pointer-events-auto').length;
+
+  it('keeps the empty middle band click-through when the bar is hidden', () => {
+    const { container } = render(<PlayerTopBar visible={false} title="X" {...badgesProps()} />);
+    const bar = container.querySelector<HTMLElement>('[data-kvl-player-top]')!;
+    // The root spans the whole top band: it must never take the pointer, or a
+    // click on the picture up there lands on our invisible chrome.
+    expect(bar.className).toContain('pointer-events-none');
+    expect(bar.className, 'no focus loophole that re-enables the whole band').not.toContain('focus-within:pointer-events-auto');
+    expect(autoTakers(bar), 'and no capsule takes clicks either').toBe(0);
+  });
+
+  it('goes strictly pointer-events-none while a native popup is open', () => {
+    const { container } = render(<PlayerTopBar visible popupOpen title="X" {...badgesProps()} />);
+    const bar = container.querySelector<HTMLElement>('[data-kvl-player-top]')!;
+    expect(bar.className).toContain('pointer-events-none');
+    expect(autoTakers(bar), 'the native menu keeps the pointer').toBe(0);
+    expect(bar.innerHTML, 'not even a focus loophole').not.toContain('focus-within:pointer-events-auto');
+  });
+
+  it('gives the pointer back when it is on screen and nothing else owns it', () => {
+    const { container } = render(<PlayerTopBar visible title="X" {...badgesProps()} />);
+    const bar = container.querySelector<HTMLElement>('[data-kvl-player-top]')!;
+    expect(autoTakers(bar), 'the capsules are clickable again').toBeGreaterThan(0);
+  });
+
+  it('hides the separator when there is no detail line, and keeps the capsule tight', () => {
+    const { container } = render(<PlayerTopBar visible title="Only a title" {...badgesProps()} />);
+    const bar = container.querySelector<HTMLElement>('[data-kvl-player-top]')!;
+    expect(bar.textContent).not.toContain('·');
+    expect(bar.querySelector('[class*="pl-1.5 pr-3"]'), 'the capsule keeps its padding with a title').not.toBeNull();
+    const bare = render(<PlayerTopBar visible title={null} {...badgesProps()} />);
+    expect(bare.container.querySelector('[class*="px-1"]'), 'and tightens without one').not.toBeNull();
+  });
+});
+
 describe('PR #171 · the skip prompt', () => {
+  it('wakes the native row before clicking it, the way the tray does', () => {
+    // The button lives in the chrome our sheet hides and Netflix DETACHES after
+    // a few idle seconds: clicking a detached node does nothing.
+    const player = document.createElement('div');
+    player.className = 'watch-video';
+    const video = document.createElement('video');
+    player.appendChild(video);
+    document.body.appendChild(player);
+    const woke = vi.fn();
+    player.addEventListener('mousemove', woke);
+    player.addEventListener('pointermove', woke);
+    const native = document.createElement('button');
+    native.setAttribute('data-uia', 'player-skip-intro');
+    native.textContent = 'Saltar intro';
+    document.body.appendChild(native);
+
+    const { container } = render(<PlayerSkipPrompt visible />);
+    fireEvent.click(container.querySelector<HTMLElement>('[data-kvl-skip-prompt]')!);
+    expect(woke, 'the native row is woken first').toHaveBeenCalled();
+  });
+
   it('appears for a native contextual button and forwards the click to it', () => {
     const native = document.createElement('button');
     native.setAttribute('data-uia', 'player-skip-intro');
@@ -101,7 +159,30 @@ describe('PR #171 · the skip prompt', () => {
     expect(nativeClicked).toHaveBeenCalledTimes(1);
   });
 
-  it('disappears with the native button, while capturing, and with the tray', async () => {
+  it('stays on screen with the tray at rest, low, and steps aside for a capture or a popup', async () => {
+    const native = document.createElement('button');
+    native.setAttribute('data-uia', 'player-skip-intro');
+    native.textContent = 'Saltar intro';
+    document.body.appendChild(native);
+    const { container, rerender } = render(<PlayerSkipPrompt visible={false} />);
+    const pill = () => container.querySelector<HTMLElement>('[data-kvl-skip-prompt]');
+    const holder = () => container.querySelector<HTMLElement>('[data-kvl-skip-prompt]')?.parentElement ?? null;
+    // The intro plays with the pointer RESTING: the tray is hidden and the pill
+    // must still be there, sitting low.
+    expect(pill(), 'visible with the tray at rest').not.toBeNull();
+    expect(holder()!.style.bottom, 'low, right above the bottom edge').toBe('24px');
+    expect(holder()!.className).toContain('transition-[bottom]');
+
+    rerender(<PlayerSkipPrompt visible barHeightPx={98} />);
+    expect(holder()!.style.bottom, 'and it rides above the tray').toBe('110px');
+
+    rerender(<PlayerSkipPrompt visible barHeightPx={98} capturing />);
+    expect(pill(), 'a capture takes a clean frame').toBeNull();
+    rerender(<PlayerSkipPrompt visible barHeightPx={98} popupOpen />);
+    expect(pill(), 'and a native popup owns the pointer').toBeNull();
+  });
+
+  it('disappears with the native button and while capturing', async () => {
     const native = document.createElement('button');
     native.setAttribute('data-uia', 'player-skip-recap');
     native.textContent = 'Saltar resumen';
@@ -111,9 +192,6 @@ describe('PR #171 · the skip prompt', () => {
 
     rerender(<PlayerSkipPrompt visible capturing />);
     expect(container.querySelector('[data-kvl-skip-prompt]'), 'a capture takes a clean frame').toBeNull();
-
-    rerender(<PlayerSkipPrompt visible={false} />);
-    expect(container.querySelector('[data-kvl-skip-prompt]')).toBeNull();
 
     rerender(<PlayerSkipPrompt visible />);
     native.remove();

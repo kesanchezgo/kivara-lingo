@@ -136,7 +136,9 @@ function collectHits(container: ParentNode): E2EHit[] {
     if (el.closest('[data-kvl-closing]')) continue;
     // A hidden owned bar keeps its DOM (the site's listeners live on it) but
     // publishes nothing: a click there would land on invisible chrome.
-    if (el.closest('[data-kvl-bar-hidden]')) continue;
+    // Either chrome bar can be faded out (the top one follows the tray): a
+    // click at those coordinates would land on invisible controls.
+    if (el.closest('[data-kvl-bar-hidden], [data-kvl-top-hidden]')) continue;
     if (isClippedByColumn(el)) continue;
     const rect = el.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) continue;
@@ -227,7 +229,9 @@ function collectState(root: ParentNode): E2EState {
     if (el.closest('[data-kvl-closing]')) continue;
     // A hidden owned bar keeps its DOM (the site's listeners live on it) but
     // publishes nothing: a click there would land on invisible chrome.
-    if (el.closest('[data-kvl-bar-hidden]')) continue;
+    // Either chrome bar can be faded out (the top one follows the tray): a
+    // click at those coordinates would land on invisible controls.
+    if (el.closest('[data-kvl-bar-hidden], [data-kvl-top-hidden]')) continue;
     if (isClippedByColumn(el)) continue;
     const value = el.textContent?.trim() ?? '';
     if (value) visibleText.push(value);
@@ -244,7 +248,9 @@ function collectState(root: ParentNode): E2EState {
     if (el.closest('[data-kvl-closing]')) continue;
     // A hidden owned bar keeps its DOM (the site's listeners live on it) but
     // publishes nothing: a click there would land on invisible chrome.
-    if (el.closest('[data-kvl-bar-hidden]')) continue;
+    // Either chrome bar can be faded out (the top one follows the tray): a
+    // click at those coordinates would land on invisible controls.
+    if (el.closest('[data-kvl-bar-hidden], [data-kvl-top-hidden]')) continue;
     if (isClippedByColumn(el)) continue;
     panels.push({ id: el.id || el.getAttribute('aria-labelledby') || '?', text: (el.textContent ?? '').slice(0, 60) });
   }
@@ -395,6 +401,8 @@ function publishHost(host: HTMLElement): () => void {
       }));
       host.setAttribute(E2E_HITMAP_ATTR, JSON.stringify([...collectHits(root), ...slotHits]));
       const badges = [...root.querySelectorAll<HTMLElement>('[data-kivara-badge]')]
+        // A badge inside a faded-out bar is not on screen.
+        .filter((el) => !el.closest('[data-kvl-top-hidden], [data-kvl-bar-hidden]'))
         .map((el) => boxOf(el))
         .filter((box): box is E2EBox => box !== null);
       const tokens = [...root.querySelectorAll<HTMLElement>('[data-tok-idx]')].map((el) => {
