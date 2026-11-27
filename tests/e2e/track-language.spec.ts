@@ -53,10 +53,18 @@ function ttml(lines: string[], lang: string | null): string {
 </tt>`;
 }
 
-/** Open the Netflix fixture with `ttmlBody` served for the nflxvideo request. */
+/**
+ * Open the Netflix fixture with `ttmlBody` served for the nflxvideo request.
+ *
+ * `expectHosts: false` is the "extension switched OFF" case: since PR #170 the
+ * content script does not mount AT ALL while disabled, so waiting for the hosts
+ * would be waiting for the bug to come back. What the case must prove is the
+ * opposite — no host, no panel, and not a single subtitle-switch call.
+ */
 async function openNetflix(
   context: import('@playwright/test').BrowserContext,
   ttmlBody: string,
+  opts: { expectHosts?: boolean } = {},
 ): Promise<import('@playwright/test').Page> {
   const page = await context.newPage();
   await page.route('*://*.nflxvideo.net/**', async (route) => {
@@ -82,6 +90,19 @@ async function openNetflix(
     undefined,
     { timeout: 30_000 },
   );
+  if (opts.expectHosts === false) {
+    // The store hydrates from the seeded storage: give it its window, then
+    // assert the player carries nothing of ours.
+    await page.waitForTimeout(1_500);
+    expect(
+      await page.evaluate(
+        (ids) => ids.map((id) => document.getElementById(id) === null),
+        [PANEL_HOST, VIDEO_HOST],
+      ),
+      'no Kivara host is mounted while the extension is OFF',
+    ).toEqual([true, true]);
+    return page;
+  }
   await expect
     .poll(
       () => page.evaluate(
@@ -177,10 +198,17 @@ const switchCalls = (page: import('@playwright/test').Page) =>
 
 test('with Kivara OFF the player is never touched', async ({ context, serviceWorker }) => {
   await seedEnabled(serviceWorker, false);
-  const page = await openNetflix(context, ttml(SPANISH, 'es'));
+  const page = await openNetflix(context, ttml(SPANISH, 'es'), { expectHosts: false });
   try {
     await page.waitForTimeout(9_000);
     expect(await switchCalls(page)).toEqual([]);
+    // And it stays that way: nothing mounts later either.
+    expect(
+      await page.evaluate(
+        (ids) => ids.map((id) => document.getElementById(id) === null),
+        [PANEL_HOST, VIDEO_HOST],
+      ),
+    ).toEqual([true, true]);
   } finally {
     await page.close();
   }

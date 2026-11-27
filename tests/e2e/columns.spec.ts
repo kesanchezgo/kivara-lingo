@@ -68,12 +68,18 @@ test('the rail reserves its column on YouTube and nudges the player both ways', 
     await page.goto('https://www.youtube.com/watch?v=kivara-columns');
     await page.bringToFront();
 
-    // Mount proof: the video host exists only after App mounted.
+    // Mount proof: the video host exists only after App mounted. And the host
+    // is inserted by ShadowHost BEFORE App's effects run, so waiting for the
+    // host alone let Alt+T race the keydown listener: the stylesheet App
+    // injects on mount is the marker that the effects are in.
     await expect
       .poll(() => page.evaluate(() => document.querySelectorAll('#kivara-lingo-video-host').length), {
         timeout: 20_000,
       })
       .toBeGreaterThan(0);
+    await expect
+      .poll(() => page.evaluate(() => !!document.getElementById('kivara-col-motion-youtube')), { timeout: 20_000 })
+      .toBe(true);
 
     const columnsStyle = page.locator('#kivara-columns-youtube');
     await expect(columnsStyle).toHaveCount(0);
@@ -146,6 +152,11 @@ test('alternating the rail and the docked panel moves the edge by 0 px', async (
     await page.bringToFront();
     await expect
       .poll(() => page.evaluate(() => !!document.getElementById('kivara-lingo-video-host')), { timeout: 20_000 })
+      .toBe(true);
+    // App's own effects (the keydown listener included) are in before the
+    // shortcut goes out; the columns motion sheet is written by applyColumnsCss.
+    await expect
+      .poll(() => page.evaluate(() => !!document.getElementById('kivara-col-motion-youtube')), { timeout: 20_000 })
       .toBe(true);
 
     const geometry = () => page.evaluate(() => {

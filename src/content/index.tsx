@@ -16,6 +16,7 @@ import { setYomitanHeadwords } from './nlp/yomitan-headwords';
 import { clearTranslationCache } from './ui/translation-cache';
 import { updateOverlayParent, type RestoreState } from './fullscreen-overlay-core';
 import { installEnableSync } from './enable-sync';
+import { teardownMount } from './mount-teardown';
 
 /**
  * Hydrate the in-memory headword cache used by the tokenizer so words
@@ -187,35 +188,10 @@ async function waitForVideo(timeoutMs = 15000): Promise<{ video: HTMLVideoElemen
 
 function unmount() {
   if (!mount) return;
-  try {
-    mount.reactRoot.unmount();
-  } catch {
-    // ignore
-  }
-  try {
-    mount.videoReactRoot?.unmount();
-  } catch {
-    // ignore
-  }
-  // The adapter owns timers, bus subscriptions and injected styles that a
-  // React unmount does NOT touch. Without this, every SPA navigation left the
-  // previous adapter polling and answering with the previous video's cues.
-  try {
-    mount.adapter?.destroy?.();
-  } catch (err) {
-    console.warn('[Kivara Lingo] adapter destroy failed', err);
-  }
-  mount.hostElement.remove();
-  mount.videoHostElement?.remove();
-  // PR #170: disabling must give the SITE back as it was, not just take our
-  // hosts away. The injected sheets (cleanup, owned bar, columns) and the
-  // `position: relative` we forced on the player container outlive React, so
-  // a React unmount alone left the player permanently repositioned.
-  for (const style of Array.from(document.querySelectorAll('style[id^="kivara-"]'))) {
-    style.remove();
-  }
-  const forced = mount.forcedRelative;
-  if (forced) forced.style.position = '';
+  // The ORDER lives in `mount-teardown.ts` (and is unit-tested there): the
+  // site's subtitles come back BEFORE the adapter is destroyed, which is what
+  // the disable path needs and what a plain React unmount never did.
+  teardownMount(mount);
   mount = null;
 }
 
