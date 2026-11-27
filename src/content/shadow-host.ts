@@ -170,22 +170,6 @@ export function __registerShadowRootForTests(host: HTMLElement, root: ShadowRoot
 const OUR_HOST_IDS = [VIDEO_HOST_ID, HOST_ID] as const;
 
 /**
- * Is a Kivara card open in one of our roots?
- *
- * The resume watchdog reads this before playing the video: a card the user is
- * reading keeps the pause. The card lives in a CLOSED root, so
- * `document.querySelector('[role="dialog"]')` cannot see it — this asks the
- * registry instead.
- */
-export function kivaraCardOpen(): boolean {
-  for (const id of OUR_HOST_IDS) {
-    const root = getShadowRoot(document.getElementById(id));
-    if (root?.querySelector('[role="dialog"]')) return true;
-  }
-  return false;
-}
-
-/**
  * Does a Kivara surface hold the FOCUS right now?
  *
  * `activeElement` is per-root inside a shadow tree, so the answer is not in

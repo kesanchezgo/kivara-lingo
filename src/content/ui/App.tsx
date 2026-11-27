@@ -14,7 +14,7 @@ import { useKivaraStore } from '../../shared/use-kivara-store';
 import { captureFrame, captureBestFrame } from '../capture/frame';
 import { comboFromEvent, normalizeCombo, readManifestCombos } from '../../shared/shortcuts';
 import { dbgOnce } from '../../shared/logger';
-import { focusInsideKivaraZone, getShadowRoot, kivaraCardOpen, overKivaraZone } from '../shadow-host';
+import { focusInsideKivaraZone, getShadowRoot, overKivaraZone } from '../shadow-host';
 import { PortalContainerProvider } from '../../ui/portal';
 import { eventPathIsEditable } from '../utils/keyboard';
 import type {
@@ -371,11 +371,7 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // which on platforms like HBO Max can lose track when the popover paints
   // outside the parent's bounding box.
   const cursorOverKivaraRef = useRef(false);
-  // True while a lookup session is OPEN (a card on screen), however it was
-  // opened: pointer or keyboard. The watchdog reads it together with the DOM
-  // (a card in one of our roots, or focus inside one of our zones) so a
-  // keyboard user reading a card is never played over.
-  const lookupActiveRef = useRef(false);
+
 
   // Word status + level of the profile of the SUBTITLE language (F5): watching
 // English captions uses the English profile even while another language is
@@ -1002,9 +998,6 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   const handleTokenHoverChange = useCallback(
     (hovered: boolean) => {
       if (!videoElement) return;
-      // BEFORE the early returns below: the session state is a fact about the
-      // user, not about whether we are the ones pausing.
-      lookupActiveRef.current = hovered;
       hoverRevRef.current += 1;
       const rev = hoverRevRef.current;
       if (hovered) {
@@ -1137,17 +1130,21 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
       // An auto-pause at the end of the cue is a study decision, not a stuck
       // hover: the watchdog must not undo it (F6).
       if (studyPlaybackRef.current.autoPausedRef.current) return;
-      // A live lookup session owns the pause: while its card is open, or our
-      // own chrome holds the focus, the video must NOT start playing again.
-      // The 350 ms tick used to fire mid-lookup because the card is portaled
-      // outside the token wrapper and was not a hover zone.
-      if (lookupActiveRef.current && (kivaraCardOpen() || focusInsideKivaraZone())) return;
+      // A live lookup owns the pause: the pointer resting on ANY Kivara
+      // surface (the word, its bridges, the card — all hover zones) or the
+      // FOCUS sitting in one of them is not "a stuck pause". The 350 ms tick
+      // used to fire mid-lookup because the card is portaled outside the
+      // token wrapper and was not a hover zone.
+      //
+      // Deliberately NOT gated on a remembered "a session is open" flag: if a
+      // `mouseleave` is ever lost, that flag would keep the watchdog dead and
+      // a real orphan pause would never be rescued. The DOM is the truth.
+      if (cursorOverKivaraRef.current || focusInsideKivaraZone()) return;
       if (!videoElement) return;
       if (!videoElement.paused) {
         kivaraPausedRef.current = false;
         return;
       }
-      if (cursorOverKivaraRef.current) return;
       // Stuck paused with no hover — resume.
       hoverRevRef.current += 1;
       const rev = hoverRevRef.current;

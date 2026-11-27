@@ -102,6 +102,19 @@ export interface StudyPlayback {
   autoPausedRef: MutableRefObject<boolean>;
 }
 
+/**
+ * PR #170: the rate the MEDIA must be at after a suspension change.
+ *
+ * Suspension (a card capture, or the extension switched off) pins 1× so the
+ * platform is left as it was; when it lifts with the extension still on, the
+ * user's own study speed comes back — otherwise the next cue plays at 1× and
+ * the speed control looks broken. Pure, so the 1.25× case is pinned by a test
+ * instead of by a chrome.storage round trip.
+ */
+export function rateOnSuspensionChange(suspended: boolean, userSpeed: number): number {
+  return suspended ? 1 : userSpeed;
+}
+
 export function useStudyPlayback({
   controller,
   cues,
@@ -145,15 +158,17 @@ export function useStudyPlayback({
   const suspendedRef = useRef(suspended);
   suspendedRef.current = suspended;
   // PR #170: suspension (a capture, or the extension switched off) has to
-  // leave the MEDIA as the platform had it. The tick below already stops
+  // leave the MEDIA as the platform had it — the tick below already stops
   // crossing cue ends, but a rate we applied used to outlive us: Netflix kept
-  // playing at 0.75× after "apagar" and nothing put it back.
+  // playing at 0.75× after "apagar" and nothing put it back. And when the
+  // suspension ENDS with the extension still on (a card capture finished) the
+  // user's own study speed must come back, or the next cue plays at 1×.
   const wasSuspendedRef = useRef(suspended);
   useEffect(() => {
     const was = wasSuspendedRef.current;
     wasSuspendedRef.current = suspended;
-    if (!suspended || was) return;
-    applyRateRef.current(1);
+    if (was === suspended) return;
+    applyRateRef.current(rateOnSuspensionChange(suspended, speedRef.current));
   }, [suspended]);
   const slowOnceRef = useRef(false);
   const lastTimeRef = useRef(0);

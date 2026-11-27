@@ -110,3 +110,74 @@ test('the rail reserves its column on YouTube and nudges the player both ways', 
     await page.close();
   }
 });
+
+/**
+ * PR #170: the rail and the docked panel are ONE slot of ONE width, so
+ * alternating them must not move the edge nor resize the player.
+ *
+ * The two used to be 400 px and 440 px, and both animated their width, so a
+ * `Transcripción ⇄ Panel Kivara` switch moved the edge by 40 px and could even
+ * reserve nothing in between.
+ */
+test('alternating the rail and the docked panel moves the edge by 0 px', async ({ context }) => {
+  const page = await context.newPage();
+  try {
+    await page.route('*://*.youtube.com/**', async (route) => {
+      const url = route.request().url();
+      if (url.endsWith('cues.vtt')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'text/vtt',
+          body: 'WEBVTT\n\n00:00:00.000 --> 00:00:09.000\nHello, this is a test cue with several words.\n',
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: PLAYER_FIXTURE.replace(
+          '<div id="stage">',
+          '<div class="html5-video-player" id="movie_player"><div id="stage">',
+        ).replace('</body>', '</div>\n</body>'),
+      });
+    });
+
+    await page.goto('https://www.youtube.com/watch?v=kivara-columns-swap');
+    await page.bringToFront();
+    await expect
+      .poll(() => page.evaluate(() => !!document.getElementById('kivara-lingo-video-host')), { timeout: 20_000 })
+      .toBe(true);
+
+    const geometry = () => page.evaluate(() => {
+      const player = document.querySelector<HTMLElement>('.html5-video-player');
+      const video = document.querySelector('video');
+      return {
+        playerWidth: player ? Math.round(player.getBoundingClientRect().width) : null,
+        videoWidth: video ? Math.round(video.getBoundingClientRect().width) : null,
+        css: document.getElementById('kivara-columns-youtube')?.textContent ?? '',
+      };
+    });
+
+    // Rail open.
+    await page.keyboard.press('Alt+T');
+    await expect(page.locator('#kivara-columns-youtube')).toHaveCount(1);
+    await page.waitForTimeout(400);
+    const rail = await geometry();
+    expect(rail.css).toContain(`calc(100% - ${RAIL_WIDTH_PX}px)`);
+
+    // Hand the slot to the docked panel (Alt+K), with no reload and no close.
+    await page.keyboard.press('Alt+K');
+    await expect
+      .poll(async () => (await geometry()).playerWidth, { timeout: 5_000 })
+      .toBe(rail.playerWidth);
+    await page.waitForTimeout(400);
+    const panel = await geometry();
+
+    expect(panel.css, 'the reserve is the same rule').toContain(`calc(100% - ${RAIL_WIDTH_PX}px)`);
+    expect(panel.playerWidth, 'the player keeps its width').toBe(rail.playerWidth);
+    expect(panel.videoWidth, 'and so does the video').toBe(rail.videoWidth);
+    expect(rail.playerWidth, 'and the reserve really is 420 px').toBeGreaterThan(0);
+  } finally {
+    await page.close();
+  }
+});

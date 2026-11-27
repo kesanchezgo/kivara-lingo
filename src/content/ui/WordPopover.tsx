@@ -453,7 +453,9 @@ function PopoverAction({ icon, label, title, href, iconOnly }: { icon: React.Rea
       type="button"
       onClick={(e) => {
         e.stopPropagation();
-        try { e.currentTarget.blur(); } catch { /* element may be gone */ }
+        // PR #170: never blur. For a keyboard user that moved the focus to
+        // <body>, which closed the card and resumed the video under the
+        // press of Enter; the card owns its focus lifecycle instead.
         if (!href) return;
         // The site's page can intercept window.open; the SW has chrome.tabs.
         // sendMessage rejects asynchronously (SW asleep, no receiver yet) — a
@@ -843,7 +845,9 @@ export function WordPopover({
 
   const handleSpeak = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
-    try { e.currentTarget.blur(); } catch { /* element may be gone */ }
+    // PR #170: no blur here either — with the pointer parked away from the
+    // word, Enter on this button used to send the focus to <body>, and the
+    // card closed (resuming the video) mid-listen.
     const audioSources = meta.audio ?? [];
     if (audioSources.length > 0) {
       const ordered = [
@@ -883,9 +887,14 @@ export function WordPopover({
       // to: the card is portaled NEXT TO the word's wrapper, not inside it, so
       // a single `contains` cannot answer that.
       onBlur={(e) => {
-        const related = e.relatedTarget as Node | null;
-        if (related && e.currentTarget.contains(related)) return;
         const root = e.currentTarget.getRootNode() as ParentNode;
+        // Who holds the focus NOW: `relatedTarget` is the answer in Chromium,
+        // but a focusout can arrive without it (focus sent to <body>), so ask
+        // the document as well instead of guessing that the user left.
+        const related = (e.relatedTarget as Node | null)
+          ?? (root as Document).activeElement
+          ?? null;
+        if (related && e.currentTarget.contains(related)) return;
         const anchor = anchorIndex != null
           ? root.querySelector?.(`[data-tok-idx="${anchorIndex}"]`) ?? null
           : null;
@@ -1135,7 +1144,7 @@ export function WordPopover({
             data-testid="kivara-needs-access"
             onClick={(e) => {
               e.stopPropagation();
-              try { e.currentTarget.blur(); } catch { /* element may be gone */ }
+              // PR #170: the focus stays in the card (see PopoverAction).
               void sendMessage('OPEN_SETTINGS', { section: 'perm' }, 'background').catch(() => {});
             }}
             title={resolved.needsAccess.map((n) => n.source).join(', ')}

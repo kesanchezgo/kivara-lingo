@@ -38,9 +38,7 @@ export function SlideColumn({ open, widthPx, children, hostRef, className = '', 
     if (open) setMounted(true);
     else if (inner.current) inner.current.style.width = `${inner.current.offsetWidth}px`;
     if (!open) setShown(false);
-    // A swap hands the slot over in the same frame: no 0px state in between.
-    else if (instant) setShown(true);
-  }, [open, instant]);
+  }, [open]);
 
   useLayoutEffect(() => {
     if (!open || !mounted || shown) return;
