@@ -320,12 +320,58 @@ export function applyCleanupCss(opts: BuildOpts): void {
   if (!existing) document.documentElement.appendChild(style);
 }
 
+/**
+ * EVERY bit of Netflix's own player chrome the owned bar replaces.
+ *
+ * The owner's live test still saw the ← back arrow, the ⚑ flag, the red
+ * timeline, the pause screen and the contextual skip buttons: three legacy
+ * selectors could not cover a player that ships several generations of
+ * class names at once. Exported so the unit suite can prove, selector by
+ * selector, that CSS actually applies (see pr171-owned-chrome).
+ *
+ * Hidden with `visibility: hidden` + `pointer-events: none` and NEVER
+ * `opacity: 0`: these nodes have interactive descendants (the native CC and
+ * episodes menus), and an ancestor at zero opacity cannot be undone — the
+ * popup exemption list depends on being overridable. The gradients are in
+ * THIS list for the same reason: `visibility` already makes them invisible.
+ */
+export const NETFLIX_OWNED_HIDE_SELECTORS: readonly string[] = [
+  // Bottom chrome and the red timeline.
+  '.watch-video--bottom-controls-container',
+  '[data-uia="controls-standard"]',
+  '[data-uia="watch-video-bottom-controls"]',
+  '[data-uia="player-controls"]',
+  '.PlayerControlsNeo__bottom-controls',
+  '[data-uia="timeline-bar"]',
+  '[data-uia="timeline"]',
+  // Top chrome: the back arrow and the flag.
+  '.watch-video--back-container',
+  '.watch-video--flag-container',
+  '.PlayerControlsNeo__top-controls',
+  '[data-uia="control-nav-back"]',
+  '[data-uia="control-flag-button"]',
+  // The pause screen and the contextual buttons we re-render ourselves.
+  '.watch-video--evidence-overlay-container',
+  '[data-uia="evidence-overlay"]',
+  '[data-uia="pause-overlay"]',
+  '[data-uia="player-skip-intro"]',
+  '[data-uia="player-skip-recap"]',
+  '[data-uia="player-skip-preplay"]',
+  '[data-uia="next-episode-seamless-button"]',
+  '[data-uia="next-episode-seamless-button-draining"]',
+  // Native gradients.
+  '.watch-video--bottom-gradient',
+  '.watch-video--top-gradient',
+  '[class*="watch-video--"][class*="gradient" i]',
+];
+
+/**
+ * Which native containers the owned bar hides, per platform. Always-on: our
+ * bar replaces this chrome for the whole session, so it does not wait for
+ * the pointer to go idle the way the cleanup sheet does.
+ */
 const OWNED_BAR_SELECTORS: Partial<Record<Platform, string[]>> = {
-  netflix: [
-    '.PlayerControlsNeo__bottom-controls',
-    '[data-uia="watch-video-bottom-controls"]',
-    '[data-uia="player-controls"]',
-  ],
+  netflix: [...NETFLIX_OWNED_HIDE_SELECTORS],
 };
 
 /**

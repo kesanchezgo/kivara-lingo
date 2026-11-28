@@ -18,10 +18,11 @@ import { NoSubtitlesNotice } from './no-cues-notice';
 import { LanguageMismatchNotice } from './language-mismatch';
 import { sendMessage } from 'webext-bridge/content-script';
 import { readTranslation } from './translation-cache';
+import { StudyBadges } from './StudyBadges';
+import { getShadowRoot } from '../shadow-host';
 import { toast } from 'sonner';
 import {
-  Volume1, Copy, Check, Quote, MousePointerClick, Link2, Ear, GraduationCap, BookOpenCheck,
-  ListChecks,
+  Volume1, Copy, Check, Quote, MousePointerClick, BookOpenCheck, ListChecks,
 } from '../../ui/icons';
 import type {
   SubtitleStyles,
@@ -116,6 +117,12 @@ export interface SubtitleOverlayProps {
   languageMismatch?: { track: string; learning: string } | null;
   /** Expressions split by hand (Alt+wheel or the card). Owned by App. */
   expandedMWEs?: Set<string>;
+  /**
+   * PR #171: with the owned Netflix bar on screen the three study badges live
+   * on ITS top tray (same component, one implementation). Rendering them here
+   * as well would show them twice.
+   */
+  hideCornerBadges?: boolean;
   setExpandedMWEs?: React.Dispatch<React.SetStateAction<Set<string>>>;
   /** A capture is running: the overlay takes no clicks. */
   capturing?: boolean;
@@ -168,6 +175,7 @@ export function SubtitleOverlay({
   noticePlatform,
   languageMismatch = null,
   expandedMWEs: controlledExpanded,
+  hideCornerBadges = false,
   setExpandedMWEs: controlledSetExpanded,
   capturing = false,
   onExplain,
@@ -430,6 +438,10 @@ export function SubtitleOverlay({
     (subtitleStyles.position === 'top' ? 15 : subtitleStyles.position === 'middle' ? 50 : 85);
 
   const [liftPx, setLiftPx] = useState(0);
+  // Is there a caption to lift at all? With `cue === null` (or an empty line)
+  // the component returns null further down, so the layer does not exist yet —
+  // and the lift has to run AGAIN the moment it does.
+  const hasLayer = Boolean(cue && cue.text.trim());
   const measureLift = useCallback(() => {
     if (capturing || !(barHeightPx > 0)) {
       setLiftPx((prev) => (prev === 0 ? prev : 0));
@@ -442,7 +454,12 @@ export function SubtitleOverlay({
     // plate is looked up inside it.
     const root: ParentNode = hostOf(layerRef.current)
       ? scopeOf(layerRef.current!)
-      : document.getElementById('kivara-lingo-video-host')?.shadowRoot
+      // `?.shadowRoot` is ALWAYS null here: both hosts attach `mode: 'closed'`,
+      // so the page-side property reads null even for us. The registry the mount
+      // path writes is the only handle — and without it the host height came
+      // back 0, so every caption box was measured against nothing and the card
+      // never published a usable box.
+      : getShadowRoot(document.getElementById('kivara-lingo-video-host'))
         ?? document;
     const layer = layerRef.current
       ?? root.querySelector<HTMLElement>('[data-kvl-caption-layer]');
@@ -501,8 +518,19 @@ export function SubtitleOverlay({
       ? requestAnimationFrame(measureLift)
       : null;
     return () => { if (raf !== null) cancelAnimationFrame(raf); };
-  }, [measureLift]);
+    // `hasLayer`, the cue identity and the style inputs are dependencies on
+    // purpose: the FIRST cue (and any cue after a silence) MOUNTS the layer
+    // while `barHeightPx` has not changed, so without them the effect never
+    // re-ran and the plate stayed at lift 0 — buried under the tray — until
+    // something else happened to re-render it.
+  }, [measureLift, hasLayer, cue?.id, cue?.text, altCue?.text, subtitleStyles.fontSize]);
   useEffect(() => {
+    // The observers connect whenever the layer goes from absent to mounted,
+    // which is exactly the `hasLayer` transition.
+    if (!hasLayer) {
+      setLiftPx((prev) => (prev === 0 ? prev : 0));
+      return;
+    }
     if (typeof ResizeObserver === 'undefined') return;
     const layer = layerRef.current;
     if (!layer) return;
@@ -520,7 +548,7 @@ export function SubtitleOverlay({
       observer.disconnect();
       text.disconnect();
     };
-  }, [measureLift]);
+  }, [measureLift, hasLayer]);
 
   useEffect(() => () => {
     if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
@@ -1052,49 +1080,18 @@ export function SubtitleOverlay({
         className={`absolute z-30 flex items-center gap-1.5 pointer-events-auto ${badgePlacement ? '' : 'top-4 right-4'}`}
         style={badgePlacement ?? undefined}
       >
-        {expandedMWEs.size > 0 && !reading && (
-          <button
-            type="button"
-            onClick={rejoinAllMWEs}
-            className="h-8 bg-zinc-900/80 backdrop-blur-md text-zinc-200 hover:text-white text-[12px] font-medium px-2.5 rounded-lg ring-1 ring-white/[0.08] shadow-lg flex items-center gap-1.5 hover:bg-zinc-800/90 kvl-press"
-            title={t('overlay.rejoinAllTitle')}
-            {...(__E2E__ ? { 'data-kivara-badge': 'rejoin' } : {})}
-          >
-            <Link2 size={14} /> {t('ovl.joinMwe')}
-          </button>
+        {/* PR #171: one badge implementation, shared with the owned bar's top
+            tray — on Netflix the top bar hosts them and this group stays out. */}
+        {!hideCornerBadges && (
+          <StudyBadges
+            expandedMWEs={expandedMWEs}
+            onRejoinAll={rejoinAllMWEs}
+            listenFirst={listenFirst}
+            onToggleListenFirst={() => setStudy((s) => ({ ...s, listenFirst: !s.listenFirst }))}
+            reading={reading}
+            onToggleMode={() => setMode(reading ? 'learning' : 'reading')}
+          />
         )}
-        <button
-          type="button"
-          onClick={() => setStudy((s) => ({ ...s, listenFirst: !s.listenFirst }))}
-          aria-pressed={listenFirst}
-          className={`w-8 h-8 rounded-lg backdrop-blur-md ring-1 flex items-center justify-center kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60 ${
-            listenFirst
-              ? 'bg-indigo-500 ring-indigo-300/30 text-white shadow-[0_4px_14px_-4px_rgba(99,102,241,.6)]'
-              : 'bg-zinc-900/80 hover:bg-zinc-800/90 ring-white/[0.08] text-zinc-400 hover:text-zinc-200'
-          }`}
-          title={t('listen.title')}
-          aria-label={t('listen.title')}
-          {...(__E2E__ ? { 'data-kivara-badge': 'listen-first' } : {})}
-        >
-          <Ear size={16} />
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode(reading ? 'learning' : 'reading')}
-          className="group/badge w-8 h-8 rounded-lg bg-zinc-900/80 hover:bg-zinc-800/90 backdrop-blur-md ring-1 ring-white/[0.08] flex items-center justify-center kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60"
-          title={!reading ? t('subs.modeLearning') : t('subs.modeReading')}
-          aria-label={!reading ? t('subs.modeLearning') : t('subs.modeReading')}
-          {...(__E2E__ ? { 'data-kivara-badge': 'mode' } : {})}
-        >
-          {!reading ? (
-            <span className="relative flex items-center justify-center">
-              <span className="absolute w-1.5 h-1.5 rounded-full bg-emerald-400/40 animate-ping [animation-duration:2.4s]" />
-              <GraduationCap size={16} className="text-indigo-300/90 group-hover/badge:text-indigo-200" strokeWidth={2} />
-            </span>
-          ) : (
-            <BookOpenCheck size={16} className="text-zinc-400 group-hover/badge:text-zinc-200" strokeWidth={2} />
-          )}
-        </button>
       </div>
 
       <div

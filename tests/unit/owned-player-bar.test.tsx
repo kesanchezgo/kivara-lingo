@@ -49,8 +49,11 @@ describe('owned Netflix player bar', () => {
 
     const bar = document.querySelector<HTMLElement>('[data-kvl-player-bar]');
     expect(bar).not.toBeNull();
-    expect(bar!.className).toContain('bg-gradient-to-t');
-    expect(bar!.querySelector('.bg-zinc-900\\/70')).not.toBeNull();
+    // PR #171: the chrome is the floating tray, and the study controls live in
+    // their own capsule inside it.
+    expect(bar!.className).toContain('rounded-2xl');
+    expect(bar!.className).toContain('backdrop-blur-xl');
+    expect(bar!.querySelector('[data-kvl-study-capsule]')).not.toBeNull();
     expect(bar!.querySelectorAll('[role="radio"]')).toHaveLength(3);
     expect(document.getElementById('kivara-lingo-bar-slot')).toBeNull();
 
