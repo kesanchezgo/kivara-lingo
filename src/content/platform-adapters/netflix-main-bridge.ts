@@ -133,6 +133,67 @@ export function listSubtitleTracks(
   ).then((data) => ({ tracks: data?.tracks ?? [], current: data?.current ?? null }));
 }
 
+/** One audio track, as the player reports it. */
+export interface NetflixAudioTrackInfo {
+  trackId: string;
+  bcp47?: string;
+  displayName?: string;
+  trackType?: string;
+  rawTrackType?: string;
+  isNative?: boolean;
+  channels?: string;
+}
+
+/** The player's audio track list and the active one. */
+export function listAudioTracks(
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<{ tracks: NetflixAudioTrackInfo[]; current: NetflixAudioTrackInfo | null }> {
+  return playbackCommand<{ tracks?: NetflixAudioTrackInfo[]; current?: NetflixAudioTrackInfo }>(
+    { cmd: 'audio', action: 'list' },
+    timeoutMs,
+  ).then((data) => ({ tracks: data?.tracks ?? [], current: data?.current ?? null }));
+}
+
+/**
+ * Switch the audio track by id. Cadmium builds differ on the argument: modern
+ * ones take the TRACK OBJECT, older ones its id — the MAIN world tries the
+ * object first and falls back, and reports what really applied.
+ */
+export function selectAudioTrackThroughMainWorld(
+  trackId: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<{ trackId?: string; bcp47?: string; applied?: boolean }> {
+  return playbackCommand<{ trackId?: string; bcp47?: string; applied?: boolean }>(
+    { cmd: 'audio', action: 'select', trackId },
+    timeoutMs,
+  );
+}
+
+/**
+ * Switch the subtitle track by id, or turn subtitles off with `null`.
+ * The language-based path (`selectSubtitleTrackThroughMainWorld`) is a
+ * different command on purpose: this one is the user choosing by hand.
+ */
+export function selectSubtitleTrackByIdThroughMainWorld(
+  trackId: string | null,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<{ trackId?: string | null; bcp47?: string; applied?: boolean; off?: boolean } | undefined> {
+  return playbackCommand<{ trackId?: string | null; bcp47?: string; applied?: boolean; off?: boolean }>(
+    { cmd: 'subtitles', action: 'selectTrack', trackId },
+    timeoutMs,
+  );
+}
+
+/** The episode catalog of the current video, straight from the page's graph. */
+export function listEpisodesThroughMainWorld(
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<import('./netflix-episodes').NetflixEpisodesCatalog | null> {
+  return playbackCommand<{ catalog?: import('./netflix-episodes').NetflixEpisodesCatalog | null }>(
+    { cmd: 'episodes' },
+    timeoutMs,
+  ).then((data) => data?.catalog ?? null);
+}
+
 /**
  * Set the output volume through the Cadmium session player. Netflix keeps the
  * level on the PLAYER, not on the `<video>` it replaces between episodes and

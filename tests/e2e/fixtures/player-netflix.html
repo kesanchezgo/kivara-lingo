@@ -41,14 +41,45 @@
       window.__kivaraSubtitleTracks = [
         { trackId: 'T:es', bcp47: 'es', displayName: 'Español', trackType: 'PRIMARY', rawTrackType: 'SUBTITLES', isNoneTrack: false, isForcedNarrative: false },
         { trackId: 'T:en', bcp47: 'en', displayName: 'Inglés', trackType: 'ASSISTIVE', rawTrackType: 'CLOSEDCAPTIONS', isNoneTrack: false, isForcedNarrative: false },
+        // Netflix always ships an "off" pseudo-track: our Off row is a name
+        // for it, and turning the subtitles off means selecting it.
+        { trackId: 'T:none', bcp47: '', displayName: 'Off', trackType: '', rawTrackType: 'NONE', isNoneTrack: true, isForcedNarrative: false },
       ];
+      // Audio stubs (PR #172): the tray's own menu lists and switches these.
+      // `__kivaraAudioSwitch` records HOW the switch arrived — a track OBJECT
+      // (modern Cadmium) or its id — because both must work.
+      window.__kivaraAudioSwitch = [];
+      window.__kivaraAudioTracks = [
+        { trackId: 'A:es', bcp47: 'es', displayName: 'Español', trackType: 'DUB', isNative: true, channels: '2.0' },
+        { trackId: 'A:en', bcp47: 'en', displayName: 'English', trackType: 'DUB', isNative: false },
+      ];
+      let currentAudio = window.__kivaraAudioTracks[0];
+      let currentSubtitle = window.__kivaraSubtitleTracks[0];
+      const applyTrack = (arg, list, setter) => {
+        const id = typeof arg === 'string' ? arg : arg && arg.trackId;
+        const found = list.find((track) => track.trackId === id);
+        // A string id is what the language path sends, an object the menu path:
+        // both are honoured, exactly like a real build.
+        if (found) setter(found);
+        return id;
+      };
       const session = {
         seek: () => {},
         setPlaybackRate: () => {},
         isPlaying: () => true,
+        getCurrentVideoId: () => '80000002',
+        getAudioTrackList: () => window.__kivaraAudioTracks,
+        getAudioTrack: () => currentAudio,
+        setAudioTrack: (arg) => {
+          window.__kivaraAudioSwitch.push(typeof arg === 'string' ? arg : `object:${arg && arg.trackId}`);
+          applyTrack(arg, window.__kivaraAudioTracks, (track) => { currentAudio = track; });
+        },
         getTimedTextTrackList: () => window.__kivaraSubtitleTracks,
-        getTimedTextTrack: () => ({ trackId: 'T:es', bcp47: 'es' }),
-        setTimedTextTrack: (id) => { window.__kivaraSubtitleSwitch.push(id); },
+        getTimedTextTrack: () => currentSubtitle,
+        setTimedTextTrack: (arg) => {
+          window.__kivaraSubtitleSwitch.push(typeof arg === 'string' ? arg : arg && arg.trackId);
+          applyTrack(arg, window.__kivaraSubtitleTracks, (track) => { currentSubtitle = track; });
+        },
         getTimedTextVisibility: () => true,
         setTimedTextVisible: () => {},
       };
@@ -68,7 +99,29 @@
             },
           },
         },
+        falcorCache: window.netflix_falcor,
       };
+
+      // A realistic slice of the Falcor cache (PR #172): two seasons of one
+      // series plus a stranger's episode, so the extractor has to pick the
+      // series of the video being played.
+      const atom = (value) => ({ $type: 'atom', value });
+      window.netflix_falcor = {
+        videos: {
+          '80000001': { summary: atom({ id: 80000001, type: 'episode', title: 'Chapter One', seasonId: 9001, seriesId: 7000, episodeNumber: 1, runtime: 2820 }) },
+          '80000002': { summary: atom({ id: 80000002, type: 'episode', title: 'Chapter Two', seasonId: 9001, seriesId: 7000, episodeNumber: 2, runtime: 2940, synopsis: 'Una sinopsis para la segunda.' }) },
+          '80000003': { summary: atom({ id: 80000003, type: 'episode', title: 'Chapter Three', seasonId: 9002, seriesId: 7000, episodeNumber: 1, runtime: 3300 }) },
+          '99999999': { summary: atom({ id: 99999999, type: 'episode', title: 'Otra serie', seasonId: 8001, seriesId: 1234, episodeNumber: 1 }) },
+        },
+        seasons: {
+          '9001': { summary: atom({ id: 9001, title: 'Temporada 1', seq: 1 }) },
+          '9002': { summary: atom({ id: 9002, title: 'Temporada 2', seq: 2 }) },
+        },
+      };
+
+      // `window.netflix` is assigned before this block, so the cache is attached
+      // now that the graph exists (the interceptor reads it live).
+      window.netflix.falcorCache = window.netflix_falcor;
 
       const canvas = document.createElement('canvas');
       canvas.width = 640;

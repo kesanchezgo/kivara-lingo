@@ -248,6 +248,8 @@ export function createNetflixAdapter(): SubtitleSource {
   });
   return {
     ...adapter,
+    // PR #172: a track chosen in OUR menu must survive the automatic switch.
+    markManualSubtitleChoice: () => trackWatcher.markManualChoice(),
     destroy() {
       trackWatcher.stop();
       adapter.destroy?.();

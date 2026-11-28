@@ -43,6 +43,13 @@ export interface SubtitleTrackWatcherDeps {
 export interface SubtitleTrackWatcher {
   start(): void;
   stop(): void;
+  /**
+   * PR #172: the user picked a track (or "off") BY HAND in Kivara's own menu.
+   * The automatic switch stands down for this episode — correcting a human
+   * choice is the one thing this loop must never do. A new episode (or `start`)
+   * clears it.
+   */
+  markManualChoice(): void;
 }
 
 const DEFAULT_ATTEMPTS = 12;
@@ -142,6 +149,13 @@ export function createSubtitleTrackWatcher(deps: SubtitleTrackWatcherDeps): Subt
   };
 
   return {
+    markManualChoice() {
+      settled = true;
+      // Stop the tick as well: `settled` only gates the switch attempt, and the
+      // loop would keep asking the player every 2.5 s.
+      clearLoop();
+      deps.log('[Kivara Lingo] subtitle track chosen by hand; the automatic switch stands down', {});
+    },
     start() {
       stopped = false;
       unsubscribeEnabled = deps.subscribeEnabled(sync);

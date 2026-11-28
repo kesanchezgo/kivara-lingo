@@ -26,6 +26,10 @@ import { nativePopupOpen } from './cleanup-css';
 import { resolvePlayerRoot } from './native-bar-slot';
 import { comboOf, withCombo } from './combo-hints';
 import { usePlaybackTimeMs } from './useStudyPlayback';
+import { PlayerTrackPopover } from './PlayerTrackPopover';
+import { PlayerEpisodesPopover } from './PlayerEpisodesPopover';
+import { listEpisodesThroughMainWorld } from '../platform-adapters/netflix-main-bridge';
+import type { NetflixEpisodesCatalog } from '../platform-adapters/netflix-episodes';
 
 interface PlayerBarProps {
   playing: boolean;
@@ -73,6 +77,10 @@ interface PlayerBarProps {
    * offering a button while a native list owns the screen.
    */
   onPopupChange?: (open: boolean) => void;
+  /** The subtitle watcher must not undo a choice made in OUR menu. */
+  onManualSubtitleChoice?: () => void;
+  /** Kivara's subtitles are on: the tray's CC dot mirrors the store. */
+  subtitlesVisible?: boolean;
 }
 
 /**
@@ -409,6 +417,7 @@ export function PlayerBar({
   onTogglePlay, onPrev, onReplay, onReplaySlow, onNext,
   onToggleAutoPause, onToggleLoop, onSpeed, onToggleRail, onTogglePanel,
   onSeek, onWakeNative, onSetVolume, onSetMuted, onVisibilityChange, onPopupChange,
+  onManualSubtitleChoice, subtitlesVisible = true,
 }: PlayerBarProps) {
   const barRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(Infinity);
@@ -455,7 +464,7 @@ export function PlayerBar({
     const wake = () => {
       setVisible(true);
       if (hideTimer.current !== null) window.clearTimeout(hideTimer.current);
-      if (!playing) return;
+      if (!playing || openPopoverRef.current !== null) return;
       hideTimer.current = window.setTimeout(() => setVisible(false), HIDE_AFTER_MS);
     };
     wake();
@@ -518,7 +527,72 @@ export function PlayerBar({
   const speedTitle = [t('rail.speed'), [combo('slower'), combo('faster')].filter(Boolean).join(' / ')]
     .filter(Boolean)
     .join(' · ');
+  // PR #172: OUR menus. One at a time, and the tray stays on screen while one
+  // is open — a menu that fades out with its own sheet is unusable.
+  const [openPopover, setOpenPopover] = useState<'tracks' | 'episodes' | null>(null);
+  const [catalog, setCatalog] = useState<NetflixEpisodesCatalog | null>(null);
+  const menuAnchorRef = useRef<HTMLDivElement>(null);
+  // The auto-hide listener lives in an effect that must not re-subscribe on
+  // every menu toggle, so it reads the menu state through a ref.
+  const openPopoverRef = useRef<'tracks' | 'episodes' | null>(null);
+  openPopoverRef.current = openPopover;
   const episodes = useNativeControl('[data-uia="control-episodes"]');
+  useEffect(() => {
+    let cancelled = false;
+    void listEpisodesThroughMainWorld()
+      .then((next) => { if (!cancelled) setCatalog(next); })
+      .catch(() => { if (!cancelled) setCatalog(null); });
+    return () => { cancelled = true; };
+  }, []);
+  // The tray holds still while a menu is open, and any interruption (a capture,
+  // a native popup) closes it: its anchors move under those conditions.
+  useEffect(() => {
+    if (openPopover !== null && (capturing || popupOpen)) setOpenPopover(null);
+  }, [openPopover, capturing, popupOpen]);
+  // Opening a menu cancels a hide timer that was ALREADY armed (the pointer
+  // armed one up to 3s before the click): otherwise the tray — and the menu it
+  // anchors — fade out while the user is reading it.
+  useEffect(() => {
+    if (openPopover === null || hideTimer.current === null) return;
+    window.clearTimeout(hideTimer.current);
+    hideTimer.current = null;
+  }, [openPopover]);
+  useEffect(() => {
+    if (openPopover === null) return;
+    const close = () => setOpenPopover(null);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      // Escape closes the MENU, not fullscreen: consume it before the player.
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+      menuAnchorRef.current?.querySelector<HTMLElement>('button')?.focus();
+    };
+    // Two listeners, because a CLOSED root hides its inner nodes from a
+    // page-side event: `composedPath` stops at the host, so a page-level check
+    // would read a click on our own menu row as a click outside it — and close
+    // the menu before the click landed (the bug this pair exists for).
+    const root = barRef.current?.getRootNode() as (ParentNode & EventTarget) | null;
+    const onInside = (event: Event) => {
+      const target = event.target as Node | null;
+      if (menuAnchorRef.current && target && menuAnchorRef.current.contains(target)) return;
+      close();
+    };
+    const onPage = (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      // Retargeted to our host means the click was inside our chrome.
+      if (target?.id?.startsWith('kivara-lingo')) return;
+      close();
+    };
+    window.addEventListener('keydown', onKey, true);
+    root?.addEventListener('pointerdown', onInside, true);
+    window.addEventListener('pointerdown', onPage, true);
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+      root?.removeEventListener('pointerdown', onInside, true);
+      window.removeEventListener('pointerdown', onPage, true);
+    };
+  }, [openPopover]);
   const nextEpisode = useNativeControl('[data-uia="control-next"]');
   const time = usePlaybackTimeMs();
 
@@ -638,19 +712,48 @@ ${withCombo(t('player.holdSlower'), combo('replaySlow'))}`} aria-label={t('short
 
         {/* ── Right: tracks, columns, fullscreen ─────────────────────────── */}
         <div className="justify-self-end flex items-center gap-1.5">
-          <button type="button" onClick={() => nativeClick('[data-uia="control-audio-subtitle"]', onWakeNative)}
-            aria-label={t('player.netflixSubtitles')} title={t('player.netflixSubtitles')}
-            className={`${SMALL} relative`}>
-            <Subtitles size={18} />
-            {/* The mock marks Kivara's subtitles with an indigo dot. */}
-            <span aria-hidden="true" className="absolute top-0.5 right-0.5 w-2 h-2 bg-indigo-500 rounded-full pointer-events-none" />
-          </button>
-          {episodes && (
-            <button type="button" onClick={() => nativeClick('[data-uia="control-episodes"]', onWakeNative)}
-              aria-label={t('player.episodes')} title={t('player.episodes')} className={SMALL}>
-              <Layers size={18} />
+          <div ref={menuAnchorRef} className="relative flex items-center gap-1.5">
+            <button type="button"
+              onClick={() => setOpenPopover((open) => (open === 'tracks' ? null : 'tracks'))}
+              aria-label={t('player.netflixSubtitles')} title={t('player.netflixSubtitles')}
+              aria-haspopup="dialog" aria-expanded={openPopover === 'tracks'}
+              className={`${SMALL} relative`}>
+              <Subtitles size={18} />
+              {/* The dot means Kivara's subtitles are ON (the store's flag). */}
+              {subtitlesVisible && (
+                <span aria-hidden="true" className="absolute top-0.5 right-0.5 w-2 h-2 bg-indigo-500 rounded-full pointer-events-none" />
+              )}
             </button>
-          )}
+            {(episodes || (catalog?.seasons.length ?? 0) > 0) && (
+              <button type="button"
+                onClick={() => {
+                  if ((catalog?.seasons.length ?? 0) > 0) {
+                    setOpenPopover((open) => (open === 'episodes' ? null : 'episodes'));
+                    return;
+                  }
+                  nativeClick('[data-uia="control-episodes"]', onWakeNative);
+                }}
+                aria-label={t('player.episodes')} title={t('player.episodes')}
+                aria-haspopup="dialog" aria-expanded={openPopover === 'episodes'} className={SMALL}>
+                <Layers size={18} />
+              </button>
+            )}
+            {openPopover === 'tracks' && (
+              <PlayerTrackPopover
+                onClose={() => setOpenPopover(null)}
+                onManualChoice={onManualSubtitleChoice}
+                onFallbackNative={() => nativeClick('[data-uia="control-audio-subtitle"]', onWakeNative)}
+                availableAbovePx={Math.max(180, height + 12)}
+              />
+            )}
+            {openPopover === 'episodes' && catalog && catalog.seasons.length > 0 && (
+              <PlayerEpisodesPopover
+                catalog={catalog}
+                onClose={() => setOpenPopover(null)}
+                availableAbovePx={Math.max(180, height + 12)}
+              />
+            )}
+          </div>
           <span className="w-px h-4 bg-white/[0.1] mx-0.5" />
           <button type="button" onClick={onToggleRail} aria-pressed={railOpen} title={withCombo(t('rail.toggle'), combo('rail'))}
             aria-label={t('rail.toggle')}
