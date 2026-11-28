@@ -218,10 +218,23 @@ export const NETFLIX_POPUP_CSS_SELECTORS: readonly string[] = [
  * Is a native popup open? The scoped selectors are matched under `scope`
  * (the player root) so a page-level dialog never makes the bar yield.
  */
+/** Our own hosts: a dialog of OURS is not a native popup. */
+const OUR_HOST_SELECTOR = '#kivara-lingo-host, #kivara-lingo-video-host, #kivara-lingo-bar-slot';
+/**
+ * Our own chrome markers. A host selector alone is not enough: in the unit
+ * suites the overlay renders without its host, and our menus must never count as
+ * a native popup wherever they are mounted.
+ */
+const OUR_OWN_CHROME_SELECTOR = '[data-kvl-player-bar], [data-kvl-player-top], [data-kvl-track-popover], [data-kvl-episodes-popover]';
+
 export function nativePopupOpen(scope: ParentNode | null = document): boolean {
   const root = scope ?? document;
   return NATIVE_POPUP_SELECTORS.some((selector) => !!document.querySelector(selector))
-    || SCOPED_POPUP_SELECTORS.some((selector) => !!root.querySelector(selector));
+    || SCOPED_POPUP_SELECTORS.some((selector) => Array.from(root.querySelectorAll(selector))
+      // PR #172: our own menus are `role="dialog"` too. Counting them made the
+      // tray yield — and the open menu close itself — the instant it opened.
+      // A real popup belongs to the PAGE, never to our hosts.
+      .some((el) => !el.closest(OUR_HOST_SELECTOR) && !el.closest(OUR_OWN_CHROME_SELECTOR)));
 }
 
 /**

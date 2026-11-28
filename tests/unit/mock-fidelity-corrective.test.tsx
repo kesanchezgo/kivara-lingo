@@ -62,13 +62,20 @@ describe('PlayerBar real controls', () => {
     expect(video.volume).toBeCloseTo(0.4);
   });
 
-  it('wakes native Netflix controls before forwarding CC', async () => {
+  it('opens Kivara own menu instead of the site drawer', async () => {
+    // PR #172: the CC button is OURS now — the native row is only woken from the
+    // fallback button inside the menu (when the player exposes no track lists),
+    // which `pr172-netflix-popovers-ui` covers. The label stays the same, so the
+    // button is the one every older spec looks for.
     const props = barProps();
     render(<PlayerBar {...props} />);
+    const trigger = screen.getByRole('button', { name: t('player.netflixSubtitles') });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: t('player.netflixSubtitles') }));
+      fireEvent.click(trigger);
+      await Promise.resolve();
     });
-    expect(props.onWakeNative).toHaveBeenCalled();
+    expect(document.querySelector('[data-kvl-track-popover]'), 'Kivara own menu is what opens').not.toBeNull();
+    expect(props.onWakeNative, 'nothing forwarded to the site on this path').not.toHaveBeenCalled();
   });
 
   it('hides after inactivity and wakes on pointer movement', async () => {

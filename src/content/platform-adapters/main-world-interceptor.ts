@@ -28,6 +28,7 @@ import {
 } from './netflix-manifest-hook';
 import { parseAny, detectSubtitleKind, detectTrackLanguage } from './parsers';
 import { pickTimedTextTrack } from './timed-text';
+import { extractNetflixEpisodesCatalog } from './netflix-episodes';
 
 const TAG = '[Kivara Lingo / MAIN]';
 const EVENT = 'kivara-lingo:subtitle-track';
@@ -475,6 +476,10 @@ declare global {
     setTimedTextTrack?: (trackId: string) => void;
     setTimedTextVisible?: (visible: boolean) => void;
     getTimedTextVisibility?: () => boolean;
+    /** Audio track control (PR #172): list, read and switch. */
+    getAudioTrackList?: () => Array<Record<string, unknown>>;
+    getAudioTrack?: () => Record<string, unknown> | undefined;
+    setAudioTrack?: (track: unknown) => void;
   }
   interface NetflixVideoPlayerApi {
     getPlayerByIndex?: (index: number) => NetflixVideoPlayer | undefined;
@@ -587,7 +592,7 @@ declare global {
   window.addEventListener('message', (event) => {
     if (event.source !== window) return;
     const data = event.data as
-      | { source?: unknown; id?: unknown; cmd?: unknown; timeMs?: unknown; rate?: unknown; action?: unknown; lang?: unknown; nonce?: unknown; volume?: unknown; muted?: unknown }
+      | { source?: unknown; id?: unknown; cmd?: unknown; timeMs?: unknown; rate?: unknown; action?: unknown; lang?: unknown; trackId?: unknown; nonce?: unknown; volume?: unknown; muted?: unknown }
       | null;
     if (!data || typeof data !== 'object') return;
 
@@ -644,6 +649,48 @@ declare global {
         reply(true, undefined, { tracks, current });
         return;
       }
+      // PR #172: the user picked a track BY HAND in our own menu — the id they
+      // chose, or `null` for "Desactivados". This is NOT the language path
+      // below: that one is the app choosing for the user, and it keeps handing
+      // `setTimedTextTrack` the id STRING.
+      if (data.action === 'selectTrack') {
+        type TrackLike = { trackId?: string; bcp47?: string; isNoneTrack?: boolean };
+        const list = tracks as unknown as TrackLike[];
+        if (data.trackId === null) {
+          const noneTrack = list.find((track) => track.isNoneTrack);
+          if (noneTrack) {
+            // Object first, id second, exactly like a real selection: builds
+            // differ on which one they accept.
+            try { session.setTimedTextTrack?.(noneTrack as unknown as string); } catch { /* try the id */ }
+            try {
+              if (session.getTimedTextTrack?.()?.trackId !== noneTrack.trackId) session.setTimedTextTrack?.(noneTrack.trackId as string);
+            } catch { /* both refused: visibility below is the honest answer */ }
+          }
+          try { session.setTimedTextVisible?.(false); } catch { /* best effort */ }
+          reply(true, undefined, { trackId: noneTrack?.trackId ?? null, off: true, applied: true });
+          return;
+        }
+        if (typeof data.trackId === 'string') {
+          const target = list.find((track) => track.trackId === data.trackId);
+          if (!target) {
+            reply(false, 'track not found');
+            return;
+          }
+          try { session.setTimedTextTrack?.(target as unknown as string); } catch { /* try the id */ }
+          let afterObject = false;
+          try { afterObject = session.getTimedTextTrack?.()?.trackId === target.trackId; } catch { /* unreadable */ }
+          if (!afterObject) {
+            try { session.setTimedTextTrack?.(target.trackId as string); } catch { /* give up, report below */ }
+          }
+          try { session.setTimedTextVisible?.(true); } catch { /* best effort */ }
+          let applied = false;
+          try { applied = session.getTimedTextTrack?.()?.trackId === target.trackId; } catch { /* unreadable */ }
+          reply(true, undefined, { trackId: target.trackId, bcp47: target.bcp47, applied });
+          return;
+        }
+        reply(false, 'no track id');
+        return;
+      }
       const picked = pickTimedTextTrack(tracks, String(data.lang ?? ''));
       if (!picked?.trackId) {
         reply(false, 'no track for that language');
@@ -659,6 +706,72 @@ declare global {
         if (session.getTimedTextVisibility?.() === false) session.setTimedTextVisible?.(true);
       } catch { /* visibility is best effort */ }
       reply(true, undefined, { trackId: picked.trackId, bcp47: picked.bcp47 });
+      return;
+    }
+
+    // PR #172: audio tracks. Same reasoning as subtitles: the session player
+    // knows them, the <video> element does not.
+    if (data.cmd === 'audio') {
+      const session = netflixSessionPlayer();
+      if (!session || typeof session.getAudioTrackList !== 'function') {
+        reply(false, 'no audio API');
+        return;
+      }
+      let tracks: Array<Record<string, unknown>> = [];
+      try {
+        tracks = session.getAudioTrackList() ?? [];
+      } catch {
+        reply(false, 'audio API threw');
+        return;
+      }
+      const normalize = (track: Record<string, unknown> | undefined) => (track ? {
+        trackId: typeof track.trackId === 'string' ? track.trackId : String(track.trackId ?? ''),
+        bcp47: typeof track.bcp47 === 'string' ? track.bcp47 : undefined,
+        displayName: typeof track.displayName === 'string' ? track.displayName : undefined,
+        trackType: typeof track.trackType === 'string' ? track.trackType : undefined,
+        rawTrackType: typeof track.rawTrackType === 'string' ? track.rawTrackType : undefined,
+        isNative: track.isNative === true,
+        channels: typeof track.channels === 'string' ? track.channels : undefined,
+      } : null);
+      if (data.action === 'list') {
+        let current: Record<string, unknown> | undefined;
+        try { current = session.getAudioTrack?.(); } catch { /* none */ }
+        reply(true, undefined, {
+          tracks: tracks.map((track) => normalize(track)).filter(Boolean),
+          current: normalize(current),
+        });
+        return;
+      }
+      // `select`: the object first (modern Cadmium), the id second.
+      const target = tracks.find((track) => track.trackId === data.trackId);
+      if (!target) {
+        reply(false, 'track not found');
+        return;
+      }
+      try { session.setAudioTrack?.(target); } catch { /* try the id */ }
+      let applied = false;
+      try { applied = session.getAudioTrack?.()?.trackId === target.trackId; } catch { /* unreadable */ }
+      if (!applied) {
+        try { session.setAudioTrack?.(target.trackId); } catch { /* give up, report below */ }
+        try { applied = session.getAudioTrack?.()?.trackId === target.trackId; } catch { /* unreadable */ }
+      }
+      reply(true, undefined, { trackId: target.trackId, bcp47: target.bcp47 ?? target.language, applied });
+      return;
+    }
+
+    // PR #172: the season/episode catalog of the current video, read from the
+    // page's Falcor graph. The extractor is pure and bounded: it answers `null`
+    // for a film or an unknown shape, and the menu falls back to Netflix's own.
+    if (data.cmd === 'episodes') {
+      let currentVideoId: string | undefined;
+      try {
+        const session = netflixSessionPlayer();
+        if (typeof session?.getCurrentVideoId === 'function') currentVideoId = session.getCurrentVideoId();
+      } catch { /* no player API on this page */ }
+      if (!currentVideoId && typeof window !== 'undefined') {
+        currentVideoId = /\/watch\/(\d+)/.exec(window.location.pathname)?.[1];
+      }
+      reply(true, undefined, { catalog: extractNetflixEpisodesCatalog(window, currentVideoId) });
       return;
     }
 

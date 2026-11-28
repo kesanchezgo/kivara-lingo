@@ -139,4 +139,18 @@ export interface SubtitleSource {
    * the type only so an adapter written before F6 keeps compiling.
    */
   playback?: PlaybackController;
+
+  /**
+   * PR #172: the user picked a track BY HAND in Kivara's own menu. The
+   * adapter's subtitle watcher marks the current episode as decided so its
+   * automatic language switch stops touching the track here — a choice the user
+   * made is not a state the app may correct.
+   */
+  markManualSubtitleChoice?(): void;
+
+  /**
+   * PR #172: the track the user picked by hand is the one arriving next, so it
+   * is adopted even when it is not in the learning language.
+   */
+  markManualTrack?(): void;
 }

@@ -103,8 +103,12 @@ describe('PR #171 · the seek bar', () => {
     render(<PlayerBar {...barProps()} />);
     const readout = screen.getByRole('button', { name: /0:00/ });
     expect(readout.textContent, 'hours fold, minutes do not').toContain('1:02:05');
+    // WCAG 2.5.3: the accessible name CONTAINS the visible text, so dictation
+    // and voice control can name the control the user is reading.
+    expect(readout.getAttribute('aria-label')).toContain(readout.textContent!);
     fireEvent.click(readout);
     expect(readout.textContent, 'the second click shows the time left').toMatch(/-\d/);
+    expect(readout.getAttribute('aria-label'), 'and the name follows the visible text').toContain(readout.textContent!);
   });
 });
 

@@ -16,12 +16,15 @@
  * gesture the user makes.
  */
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { BrowserContext, Page } from '@playwright/test';
 import { expect } from './fixtures';
 
 export const VIDEO_HOST = 'kivara-lingo-video-host';
+/** The id of the React root INSIDE the closed video shadow root. */
+export const VIDEO_REACT_ROOT_ID = 'kivara-lingo-video-react-root';
 export const PANEL_HOST = 'kivara-lingo-host';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -535,4 +538,195 @@ export async function armBar(page: Page): Promise<void> {
 /** Click a speed radio by its visible text ("1.25×"), via the hit map. */
 export async function clickSpeed(page: Page, value: string): Promise<void> {
   await clickInRoot(page, VIDEO_HOST, value);
+}
+
+/**
+ * The closed-root axe runner (PR #172 moved it here from a11y.spec.ts).
+ *
+ * Both a11y.spec.ts and netflix-popovers.spec.ts audit chrome that lives inside
+ * a `mode: 'closed'` root, which axe cannot walk from the page: it resolves the
+ * root through CDP, clones it into a temporary OPEN root (attributes, styles and
+ * subtree) and runs axe there, removing the clone afterwards. ONE implementation
+ * so the two audits cannot drift apart.
+ */
+const requireHere = createRequire(import.meta.url);
+const requireFromAxe = createRequire(requireHere.resolve('@axe-core/playwright'));
+export const AXE_SOURCE = fs.readFileSync(requireFromAxe.resolve('axe-core/axe.min.js'), 'utf8');
+
+export const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+
+export type AxeViolation = {
+  id: string;
+  impact: string | null;
+  help: string;
+  nodes: { target: (string | number)[]; summary: string | null }[];
+};
+
+/** Human-readable failure text: rule, node, and axe's own summary. */
+export function describeViolations(violations: AxeViolation[]): string {
+  return violations
+    .map(
+      (v) =>
+        `${v.id} (${v.impact ?? 'n/a'}): ${v.help}\n` +
+        v.nodes.map((n) => `  - ${n.target.join(' ')}: ${n.summary?.replace(/\s+/g, ' ')}`).join('\n'),
+    )
+    .join('\n\n');
+}
+
+export type CdpNode = {
+  nodeId: number;
+  backendNodeId: number;
+  nodeName: string;
+  shadowRootType?: string;
+  attributes?: string[];
+  children?: CdpNode[];
+  shadowRoots?: CdpNode[];
+};
+
+function attr(node: CdpNode, name: string): string | null {
+  const attrs = node.attributes ?? [];
+  for (let i = 0; i < attrs.length; i += 2) {
+    if (attrs[i] === name) return attrs[i + 1];
+  }
+  return null;
+}
+
+export function findById(node: CdpNode, id: string): CdpNode | null {
+  if (attr(node, 'id') === id) return node;
+  for (const child of [...(node.children ?? []), ...(node.shadowRoots ?? [])]) {
+    const hit = findById(child, id);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+/**
+ * Runs `fn` INSIDE the closed root that holds `rootId` and returns its value.
+ *
+ * `this` inside the function is the root element, so it can query, measure and
+ * scroll its own subtree — the only way a test can read our chrome, because
+ * page JS cannot reach a `mode: 'closed'` root and `elementFromPoint` retargets
+ * to the host. CDP pierces it; the page itself is never modified.
+ */
+export async function inClosedRoot<T>(page: Page, rootId: string, fn: (this: ParentNode) => T): Promise<T> {
+  const client = await page.context().newCDPSession(page);
+  try {
+    const { root } = (await client.send('DOM.getDocument', { depth: -1, pierce: true })) as { root: CdpNode };
+    const target = findById(root, rootId);
+    if (!target) throw new Error(`#${rootId} not found, even with shadow piercing`);
+
+    const { object } = (await client.send('DOM.resolveNode', { backendNodeId: target.backendNodeId })) as {
+      object: { objectId?: string };
+    };
+    if (!object.objectId) throw new Error(`could not resolve #${rootId} to a JS object`);
+
+    const response = (await client.send('Runtime.callFunctionOn', {
+      objectId: object.objectId,
+      // `fn` is serialised, so it must not close over anything from the test.
+      functionDeclaration: `function () { var fn = (${fn.toString()}); return fn.call(this); }`,
+      awaitPromise: true,
+      returnByValue: true,
+    })) as {
+      result: { value?: T };
+      exceptionDetails?: { text?: string; exception?: { description?: string } };
+    };
+    if (response.exceptionDetails) {
+      throw new Error(
+        `the closed root threw: ${response.exceptionDetails.exception?.description ?? response.exceptionDetails.text}`,
+      );
+    }
+    return response.result.value as T;
+  } finally {
+    await client.detach().catch(() => {});
+  }
+}
+
+/**
+ * Runs axe inside the CLOSED shadow root that holds `rootId`, returning its
+ * violations plus how many elements the context actually contained (so an
+ * empty audit cannot pass as green).
+ */
+export async function auditClosedRoot(
+  page: Page,
+  rootId: string,
+): Promise<{ violations: AxeViolation[]; elements: number; words: number }> {
+  await page.addScriptTag({ content: AXE_SOURCE });
+  const client = await page.context().newCDPSession(page);
+  try {
+    const { root } = (await client.send('DOM.getDocument', { depth: -1, pierce: true })) as { root: CdpNode };
+    const target = findById(root, rootId);
+    if (!target) throw new Error(`#${rootId} not found, even with shadow piercing`);
+
+    const { object } = (await client.send('DOM.resolveNode', { backendNodeId: target.backendNodeId })) as {
+      object: { objectId?: string };
+    };
+    if (!object.objectId) throw new Error(`could not resolve #${rootId} to a JS object`);
+
+    const response = (await client.send('Runtime.callFunctionOn', {
+      objectId: object.objectId,
+      functionDeclaration: `function () {
+        if (typeof axe === 'undefined') return { elements: -1, violations: [], note: 'axe missing' };
+        // axe resolves a context node against the flattened tree built from
+        // document (see Context/parseSelectorArray in axe-core): nodes behind a
+        // CLOSED root are not in it, so axe.run(closedChild) reports "no
+        // elements found". The fix is a faithful OPEN clone: same hosts
+        // attributes/classes, same style elements, same React subtree. The
+        // live tree is never modified beyond adding the hidden clone, which is
+        // removed in the finally.
+        var sourceRoot = this.getRootNode();
+        var sourceHost = sourceRoot.host;
+        var cloneHost = document.createElement('div');
+        for (var i = 0; i < sourceHost.attributes.length; i++) {
+          var a = sourceHost.attributes[i];
+          cloneHost.setAttribute(a.name, a.value);
+        }
+        cloneHost.style.cssText = sourceHost.style.cssText;
+        cloneHost.style.position = 'fixed';
+        cloneHost.style.inset = '0';
+        var openRoot = cloneHost.attachShadow({ mode: 'open' });
+        for (var j = 0; j < sourceRoot.childNodes.length; j++) {
+          openRoot.appendChild(sourceRoot.childNodes[j].cloneNode(true));
+        }
+        document.body.appendChild(cloneHost);
+        return axe.run(openRoot, {
+          resultTypes: ['violations'],
+          runOnly: { type: 'tag', values: ${JSON.stringify(WCAG_TAGS)} },
+        }).then(function (report) {
+          return {
+            elements: openRoot.querySelectorAll('*').length,
+            words: openRoot.querySelectorAll('[data-tok-idx]').length,
+            violations: report.violations.map(function (v) {
+              return {
+                id: v.id,
+                impact: v.impact,
+                help: v.help,
+                nodes: v.nodes.map(function (n) {
+                  return { target: n.target, summary: n.failureSummary };
+                }),
+              };
+            }),
+          };
+        }).finally(function () {
+          cloneHost.remove();
+        });
+      }`,
+      awaitPromise: true,
+      returnByValue: true,
+    })) as {
+      result: { value?: { violations: AxeViolation[]; elements: number; words?: number; note?: string } };
+      exceptionDetails?: { text?: string; exception?: { description?: string } };
+    };
+
+    if (response.exceptionDetails) {
+      throw new Error(
+        `axe failed inside the closed root: ${response.exceptionDetails.exception?.description ?? response.exceptionDetails.text}`,
+      );
+    }
+    const value = response.result.value;
+    if (!value) throw new Error('axe.run returned no value');
+    if (value.elements < 0) throw new Error(`axe missing in the page context: ${value.note}`);
+    return { violations: value.violations, elements: value.elements, words: value.words ?? 0 };
+  } finally {
+    await client.detach().catch(() => {});
+  }
 }

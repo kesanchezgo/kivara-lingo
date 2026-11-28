@@ -583,6 +583,11 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
   // not cover the menu and the skip pill has no business over a native list.
   const [nativePopupOpen, setNativePopupOpen] = useState(false);
   const handleBarPopup = useCallback((open: boolean) => setNativePopupOpen(open), []);
+  // A choice made by hand in OUR menu must survive the automatic language
+  // switch: the adapter's watcher marks the episode as decided.
+  const markManualSubtitleChoice = useCallback(() => {
+    adapter?.markManualSubtitleChoice?.();
+  }, [adapter]);
   const handleBarVisibility = useCallback((visible: boolean, heightPx: number) => {
     setOwnedBarVisibility((prev) => (
       prev.visible === visible && prev.height === heightPx ? prev : { visible, height: heightPx }
@@ -2314,6 +2319,8 @@ export function App({ adapter, videoElement, videoOverlayRoot, videoPortalContai
               onSetMuted={setMutedOwned}
               onVisibilityChange={handleBarVisibility}
               onPopupChange={handleBarPopup}
+              onManualSubtitleChoice={markManualSubtitleChoice}
+              subtitlesVisible={subtitlesVisible}
             />
           </PortalContainerProvider>,
           videoOverlayRoot!,

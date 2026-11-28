@@ -526,6 +526,10 @@ function publishHost(host: HTMLElement): () => void {
       // card clamping itself: both MOVE without resizing, and a click must
       // never use the coordinates from before that move.
       'data-ws', 'data-kvl-native', 'hidden', 'style',
+      // The two chrome bars publish whether they are on screen, and the tray's
+      // menu buttons publish whether their panel is open (PR #172): all three
+      // are attribute writes that change what a click would hit.
+      'data-kvl-bar-hidden', 'data-kvl-top-hidden', 'aria-expanded',
     ],
   });
   let lastSlotRoot: ShadowRoot | null = null;

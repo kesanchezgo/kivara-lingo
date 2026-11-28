@@ -26,6 +26,10 @@ import { nativePopupOpen } from './cleanup-css';
 import { resolvePlayerRoot } from './native-bar-slot';
 import { comboOf, withCombo } from './combo-hints';
 import { usePlaybackTimeMs } from './useStudyPlayback';
+import { PlayerTrackPopover } from './PlayerTrackPopover';
+import { PlayerEpisodesPopover } from './PlayerEpisodesPopover';
+import { listEpisodesThroughMainWorld } from '../platform-adapters/netflix-main-bridge';
+import type { NetflixEpisodesCatalog } from '../platform-adapters/netflix-episodes';
 
 interface PlayerBarProps {
   playing: boolean;
@@ -73,6 +77,10 @@ interface PlayerBarProps {
    * offering a button while a native list owns the screen.
    */
   onPopupChange?: (open: boolean) => void;
+  /** The subtitle watcher must not undo a choice made in OUR menu. */
+  onManualSubtitleChoice?: () => void;
+  /** Kivara's subtitles are on: the tray's CC dot mirrors the store. */
+  subtitlesVisible?: boolean;
 }
 
 /**
@@ -255,16 +263,22 @@ function TimeReadout({ duration, compact = false }: { duration: number; compact?
   const time = usePlaybackTimeMs();
   const [remaining, setRemaining] = useState(false);
   const left = Math.max(0, duration - time);
+  // WCAG 2.5.3: the accessible name CONTAINS the visible text, so dictation and
+  // voice control can name the control the user reads. The clock also keeps its
+  // "0:00 / 1:02:05" shape for the older specs.
+  const text = remaining
+    ? `${fmtTime(time)} · -${fmtTime(left)}`
+    : `${fmtTime(time)} / ${fmtTime(duration)}`;
   return (
     <button
       type="button"
       data-kvl-time-readout=""
       onClick={() => setRemaining((value) => !value)}
       title={remaining ? t('player.timeTotal') : t('player.timeLeft')}
-      aria-label={`${remaining ? t('player.timeTotal') : t('player.timeLeft')} ${fmtTime(time)}`}
+      aria-label={`${text} · ${remaining ? t('player.timeTotal') : t('player.timeLeft')}`}
       className={`${compact ? '' : 'px-1'} text-[13px] font-medium tabular-nums whitespace-nowrap text-zinc-200 hover:text-white kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 rounded-md`}
     >
-      {remaining ? `${fmtTime(time)} · -${fmtTime(left)}` : `${fmtTime(time)} / ${fmtTime(duration)}`}
+      {text}
     </button>
   );
 }
@@ -409,6 +423,7 @@ export function PlayerBar({
   onTogglePlay, onPrev, onReplay, onReplaySlow, onNext,
   onToggleAutoPause, onToggleLoop, onSpeed, onToggleRail, onTogglePanel,
   onSeek, onWakeNative, onSetVolume, onSetMuted, onVisibilityChange, onPopupChange,
+  onManualSubtitleChoice, subtitlesVisible = true,
 }: PlayerBarProps) {
   const barRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(Infinity);
@@ -455,7 +470,7 @@ export function PlayerBar({
     const wake = () => {
       setVisible(true);
       if (hideTimer.current !== null) window.clearTimeout(hideTimer.current);
-      if (!playing) return;
+      if (!playing || openPopoverRef.current !== null) return;
       hideTimer.current = window.setTimeout(() => setVisible(false), HIDE_AFTER_MS);
     };
     wake();
@@ -518,7 +533,111 @@ export function PlayerBar({
   const speedTitle = [t('rail.speed'), [combo('slower'), combo('faster')].filter(Boolean).join(' / ')]
     .filter(Boolean)
     .join(' · ');
+  // PR #172: OUR menus. One at a time, and the tray stays on screen while one
+  // is open — a menu that fades out with its own sheet is unusable.
+  const [openPopover, setOpenPopover] = useState<'tracks' | 'episodes' | null>(null);
+  const [catalog, setCatalog] = useState<NetflixEpisodesCatalog | null>(null);
+  const menuAnchorRef = useRef<HTMLDivElement>(null);
+  // The auto-hide listener lives in an effect that must not re-subscribe on
+  // every menu toggle, so it reads the menu state through a ref.
+  const openPopoverRef = useRef<'tracks' | 'episodes' | null>(null);
+  openPopoverRef.current = openPopover;
   const episodes = useNativeControl('[data-uia="control-episodes"]');
+  // How much room is there REALLY above the tray? The tray's own height (~86px)
+  // said nothing about the player: every menu was clamped to its 180px floor on
+  // any screen. Measured from the tray's top edge up to the box it is positioned
+  // in, and re-measured on resize.
+  const [availableAbovePx, setAvailableAbovePx] = useState(360);
+  const measureAvailableAbove = useCallback(() => {
+    const barRect = barRef.current?.getBoundingClientRect();
+    const rootRect = (barRef.current?.offsetParent as HTMLElement | null)?.getBoundingClientRect();
+    setAvailableAbovePx(
+      barRect && rootRect && barRect.top > rootRect.top
+        ? Math.round(barRect.top - rootRect.top - 24)
+        : 360,
+    );
+  }, []);
+  useEffect(() => {
+    if (openPopover === null) return;
+    measureAvailableAbove();
+    window.addEventListener('resize', measureAvailableAbove);
+    return () => window.removeEventListener('resize', measureAvailableAbove);
+  }, [openPopover, measureAvailableAbove]);
+  // The catalog belongs to the VIDEO, and the graph may hydrate late: it is
+  // re-read on every video change and once more when the user reaches for the
+  // menu with nothing cached.
+  const refreshCatalog = useCallback(async (): Promise<NetflixEpisodesCatalog | null> => {
+    try {
+      const next = await listEpisodesThroughMainWorld();
+      setCatalog(next);
+      return next;
+    } catch {
+      setCatalog(null);
+      return null;
+    }
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    void refreshCatalog().then((next) => {
+      if (cancelled) return;
+      setCatalog(next);
+    });
+    return () => { cancelled = true; };
+  }, [refreshCatalog, video]);
+  // The tray holds still while a menu is open, and any interruption (a capture,
+  // a native popup) closes it: its anchors move under those conditions.
+  useEffect(() => {
+    if (openPopover !== null && (capturing || popupOpen)) setOpenPopover(null);
+  }, [openPopover, capturing, popupOpen]);
+  // Opening a menu cancels a hide timer that was ALREADY armed (the pointer
+  // armed one up to 3s before the click): otherwise the tray — and the menu it
+  // anchors — fade out while the user is reading it.
+  useEffect(() => {
+    if (openPopover === null || hideTimer.current === null) return;
+    window.clearTimeout(hideTimer.current);
+    hideTimer.current = null;
+  }, [openPopover]);
+  useEffect(() => {
+    if (openPopover === null) return;
+    const close = () => setOpenPopover(null);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      // Escape closes the MENU, not fullscreen: consume it before the player.
+      event.preventDefault();
+      event.stopPropagation();
+      const closing = openPopover;
+      close();
+      // Focus goes back to the button that OPENED the menu, not to whichever
+      // button happens to be first in the strip.
+      menuAnchorRef.current
+        ?.querySelector<HTMLElement>(`[data-kvl-trigger="${closing}"]`)
+        ?.focus();
+    };
+    // Two listeners, because a CLOSED root hides its inner nodes from a
+    // page-side event: `composedPath` stops at the host, so a page-level check
+    // would read a click on our own menu row as a click outside it — and close
+    // the menu before the click landed (the bug this pair exists for).
+    const root = barRef.current?.getRootNode() as (ParentNode & EventTarget) | null;
+    const onInside = (event: Event) => {
+      const target = event.target as Node | null;
+      if (menuAnchorRef.current && target && menuAnchorRef.current.contains(target)) return;
+      close();
+    };
+    const onPage = (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      // Retargeted to our host means the click was inside our chrome.
+      if (target?.id?.startsWith('kivara-lingo')) return;
+      close();
+    };
+    window.addEventListener('keydown', onKey, true);
+    root?.addEventListener('pointerdown', onInside, true);
+    window.addEventListener('pointerdown', onPage, true);
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+      root?.removeEventListener('pointerdown', onInside, true);
+      window.removeEventListener('pointerdown', onPage, true);
+    };
+  }, [openPopover]);
   const nextEpisode = useNativeControl('[data-uia="control-next"]');
   const time = usePlaybackTimeMs();
 
@@ -638,19 +757,55 @@ ${withCombo(t('player.holdSlower'), combo('replaySlow'))}`} aria-label={t('short
 
         {/* ── Right: tracks, columns, fullscreen ─────────────────────────── */}
         <div className="justify-self-end flex items-center gap-1.5">
-          <button type="button" onClick={() => nativeClick('[data-uia="control-audio-subtitle"]', onWakeNative)}
-            aria-label={t('player.netflixSubtitles')} title={t('player.netflixSubtitles')}
-            className={`${SMALL} relative`}>
-            <Subtitles size={18} />
-            {/* The mock marks Kivara's subtitles with an indigo dot. */}
-            <span aria-hidden="true" className="absolute top-0.5 right-0.5 w-2 h-2 bg-indigo-500 rounded-full pointer-events-none" />
-          </button>
-          {episodes && (
-            <button type="button" onClick={() => nativeClick('[data-uia="control-episodes"]', onWakeNative)}
-              aria-label={t('player.episodes')} title={t('player.episodes')} className={SMALL}>
-              <Layers size={18} />
+          <div ref={menuAnchorRef} className="relative flex items-center gap-1.5">
+            <button type="button"
+              data-kvl-trigger="tracks"
+              onClick={() => setOpenPopover((open) => (open === 'tracks' ? null : 'tracks'))}
+              aria-label={t('player.netflixSubtitles')} title={t('player.netflixSubtitles')}
+              aria-haspopup="dialog" aria-expanded={openPopover === 'tracks'}
+              className={`${SMALL} relative`}>
+              <Subtitles size={18} />
+              {/* The dot means Kivara's subtitles are ON (the store's flag). */}
+              {subtitlesVisible && (
+                <span aria-hidden="true" className="absolute top-0.5 right-0.5 w-2 h-2 bg-indigo-500 rounded-full pointer-events-none" />
+              )}
             </button>
-          )}
+            {(episodes || (catalog?.seasons.length ?? 0) > 0) && (
+              <button type="button"
+                data-kvl-trigger="episodes"
+                onClick={() => {
+                  if ((catalog?.seasons.length ?? 0) > 0) {
+                    setOpenPopover((open) => (open === 'episodes' ? null : 'episodes'));
+                    return;
+                  }
+                  // The graph can hydrate after the mount: one more look before
+                  // handing the user to the site's own menu.
+                  void refreshCatalog().then((next) => {
+                    if ((next?.seasons.length ?? 0) > 0) setOpenPopover('episodes');
+                    else nativeClick('[data-uia="control-episodes"]', onWakeNative);
+                  });
+                }}
+                aria-label={t('player.episodes')} title={t('player.episodes')}
+                aria-haspopup="dialog" aria-expanded={openPopover === 'episodes'} className={SMALL}>
+                <Layers size={18} />
+              </button>
+            )}
+            {openPopover === 'tracks' && (
+              <PlayerTrackPopover
+                onClose={() => setOpenPopover(null)}
+                onManualChoice={onManualSubtitleChoice}
+                onFallbackNative={() => nativeClick('[data-uia="control-audio-subtitle"]', onWakeNative)}
+                availableAbovePx={availableAbovePx}
+              />
+            )}
+            {openPopover === 'episodes' && catalog && catalog.seasons.length > 0 && (
+              <PlayerEpisodesPopover
+                catalog={catalog}
+                onClose={() => setOpenPopover(null)}
+                availableAbovePx={availableAbovePx}
+              />
+            )}
+          </div>
           <span className="w-px h-4 bg-white/[0.1] mx-0.5" />
           <button type="button" onClick={onToggleRail} aria-pressed={railOpen} title={withCombo(t('rail.toggle'), combo('rail'))}
             aria-label={t('rail.toggle')}
