@@ -155,6 +155,14 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
     return cuesFromRawTrack(source.cues, source.language ?? '', opts.platform);
   }
 
+  /**
+   * PR #172: the user picked a track BY HAND in Kivara's own menu. The next
+   * incoming track is then adopted even when it is not in the learning
+   * language — correcting a human choice is the one thing this path must never
+   * do — and the flag clears itself once the choice has been honoured.
+   */
+  let manualTrackSelected = false;
+
   function notifyTrackListeners() {
     const cues = fullTrack();
     if (cues.length === 0) return;
@@ -192,7 +200,10 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
       // (QA: a Spanish TTML with xml:lang="es" and a learner on English showed
       // nothing at all). App reads the cue's language and explains the
       // mismatch.
-      if (!track) {
+      if (!track || manualTrackSelected) {
+        // A hand-picked track is adopted whatever its language: the user asked
+        // for it, and the alternative was a menu that changed nothing.
+        manualTrackSelected = false;
         track = next;
         // Two tracks can share cue timings (same subtitle, different
         // language). The cue id is built from start/end, so without this a
@@ -297,6 +308,10 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
         if (index !== -1) trackCueListeners.splice(index, 1);
       };
     },
+    /** PR #172: the next track is a hand-picked one (see the flag above). */
+    markManualTrack() {
+      manualTrackSelected = true;
+    },
     playback: opts.playback === 'netflix'
       ? createNetflixPlaybackController(() => getVideo() ?? lastVideo)
       : createMediaPlaybackController(() => getVideo() ?? lastVideo, { platform: opts.platform }),
@@ -304,6 +319,7 @@ export function createInterceptedAdapter(opts: InterceptedAdapterOptions): Subti
     destroy() {
       // Everything this context started, undone. Anything left running would
       // survive a SPA navigation — see SubtitleSource.destroy.
+      manualTrackSelected = false;
       stopPolling();
       offTrack();
       listeners.length = 0;

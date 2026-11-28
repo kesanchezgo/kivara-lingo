@@ -9,7 +9,15 @@
  */
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from './fixtures';
-import { hitsOf, readFixture, VIDEO_HOST } from './helpers';
+import {
+  auditClosedRoot,
+  describeViolations,
+  hitsOf,
+  inClosedRoot,
+  readFixture,
+  VIDEO_HOST,
+  VIDEO_REACT_ROOT_ID,
+} from './helpers';
 
 const TTML = `<?xml version="1.0" encoding="utf-8"?>
 <tt xmlns="http://www.w3.org/ns/ttml" xml:lang="en"><body><div>
@@ -18,6 +26,8 @@ const TTML = `<?xml version="1.0" encoding="utf-8"?>
 
 async function openNetflix(context: import('@playwright/test').BrowserContext): Promise<import('@playwright/test').Page> {
   const page = await context.newPage();
+  // The menus are measured: one fixed, comparable viewport for every case.
+  await page.setViewportSize({ width: 1280, height: 720 });
   await page.route('*://*.nflxvideo.net/**', (route) => route.fulfill({
     status: 200, contentType: 'application/xml',
     headers: { 'access-control-allow-origin': '*' }, body: TTML,
@@ -124,7 +134,7 @@ test('our own episodes menu lists the seasons of the graph', async ({ context })
     await page.mouse.click(seasonTwo!.cx, seasonTwo!.cy);
     await page.waitForTimeout(300);
     const second = await labels(page);
-    expect(second.some((label) => label.includes('Chapter Three')), 'the other season episode').toBe(true);
+    expect(second.some((label) => label.includes('Chapter Nine')), 'the other season episode').toBe(true);
     expect(second.some((label) => label.includes('Chapter One')), 'and the first season is gone').toBe(false);
   } finally {
     await page.close();
@@ -136,10 +146,11 @@ test('the overlay with our menu open has no WCAG A/AA violations', async ({ cont
   const page = await openNetflix(context);
   try {
     await clickHit(page, 'Subtítulos de Netflix');
-    // Our menu lives in a CLOSED root, which axe cannot walk from the page: the
-    // audit covers the page itself, and the menu's own semantics are asserted
-    // through the published hit map (every control named, `aria-checked`
-    // published) plus the unit suite.
+    // Two audits, because our menu lives in a CLOSED root that axe cannot walk
+    // from the page: the page itself, and the OPEN menu inside the root. The
+    // runner clones the root into a temporary open shadow root over CDP, so the
+    // real radios, their radiogroup parents and the Traduccion group are judged
+    // instead of a reconstruction of them.
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa'])
       .analyze();
@@ -148,10 +159,87 @@ test('the overlay with our menu open has no WCAG A/AA violations', async ({ cont
       'no WCAG A/AA violations with the menu open',
     ).toEqual([]);
 
-    const menuLabels = (await hitsOf(page, VIDEO_HOST))
-      .filter((hit) => ['Desactivados', 'English'].includes(hit.label));
-    expect(menuLabels.length, 'every menu control carries a name').toBeGreaterThan(1);
-    for (const hit of menuLabels) expect(hit.label.trim()).not.toBe('');
+    const { violations, elements } = await auditClosedRoot(page, VIDEO_REACT_ROOT_ID);
+    expect(elements, 'the audit really saw our open chrome').toBeGreaterThan(20);
+    expect(describeViolations(violations), 'no WCAG A/AA violations inside the closed root').toBe('');
+  } finally {
+    await page.close();
+  }
+});
+
+test('the menus use the real height above the tray, scroll and return the focus', async ({ context }) => {
+  test.setTimeout(150_000);
+  const page = await openNetflix(context);
+  try {
+    // ── The tracks menu: seven dubs do not fit in a 180px box ──────────────
+    await clickHit(page, 'Subtítulos de Netflix');
+    const tracks = await inClosedRoot(page, VIDEO_REACT_ROOT_ID, function (this: ParentNode) {
+      const pop = this.querySelector('[data-kvl-track-popover]') as HTMLElement | null;
+      const scroll = pop?.querySelector('.kvl-popover-scroll') as HTMLElement | null;
+      const footer = pop?.lastElementChild as HTMLElement | null;
+      const popRect = pop?.getBoundingClientRect();
+      const footerRect = footer?.getBoundingClientRect();
+      return {
+        height: Math.round(popRect?.height ?? 0),
+        footerInside:
+          !!popRect && !!footerRect && footerRect.bottom <= popRect.bottom + 1 && footerRect.top >= popRect.top - 1,
+        radios: pop?.querySelectorAll('[role="radio"]').length ?? 0,
+        groups: pop?.querySelectorAll('[role="radiogroup"]').length ?? 0,
+        columnsScroll: !!scroll && scroll.scrollHeight > scroll.clientHeight,
+      };
+    });
+    expect(tracks.height, 'the menu is not pinned to the 180px floor').toBeGreaterThan(220);
+    expect(tracks.radios, 'seven dubs plus the subtitle and Traduccion rows').toBeGreaterThanOrEqual(10);
+    expect(tracks.groups, 'audio, subtitles and Traduccion are radio groups').toBe(3);
+    expect(tracks.footerInside, 'the Traduccion footer stays inside the menu').toBe(true);
+    expect(tracks.columnsScroll, 'the track columns really scroll').toBe(true);
+
+    // ── The episodes menu: the eighth episode is reachable ────────────────
+    await page.keyboard.press('Escape');
+    await clickHit(page, 'Episodios');
+    const episodes = await inClosedRoot(page, VIDEO_REACT_ROOT_ID, function (this: ParentNode) {
+      const pop = this.querySelector('[data-kvl-episodes-popover]') as HTMLElement | null;
+      const list = pop?.querySelector('ul.kvl-popover-scroll') as HTMLElement | null;
+      return {
+        height: Math.round(pop?.getBoundingClientRect().height ?? 0),
+        rows: list?.querySelectorAll('li').length ?? 0,
+        canScroll: !!list && list.scrollHeight > list.clientHeight + 1,
+      };
+    });
+    expect(episodes.rows, 'the season of the video lists eight episodes').toBe(8);
+    expect(episodes.height, 'the menu is taller than the old floor').toBeGreaterThan(220);
+    expect(episodes.canScroll, 'eight episodes do not fit without scrolling').toBe(true);
+
+    const scrolled = await inClosedRoot(page, VIDEO_REACT_ROOT_ID, function (this: ParentNode) {
+      const list = this.querySelector('ul.kvl-popover-scroll') as HTMLElement | null;
+      if (!list) return null;
+      list.scrollTop = list.scrollHeight;
+      const last = list.lastElementChild as HTMLElement | null;
+      const listRect = list.getBoundingClientRect();
+      const lastRect = last?.getBoundingClientRect();
+      return {
+        moved: list.scrollTop > 0,
+        lastText: last?.textContent ?? '',
+        lastVisible:
+          !!lastRect && !!listRect && lastRect.top >= listRect.top - 2 && lastRect.bottom <= listRect.bottom + 2,
+      };
+    });
+    expect(scrolled?.moved, 'the list scrolled').toBe(true);
+    expect(scrolled?.lastText, 'the eighth episode is the last row').toContain('Chapter Eight');
+    expect(scrolled?.lastVisible, 'and it is visible once scrolled').toBe(true);
+
+    // ── Escape gives the focus back to the button that opened it ─────────
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    const after = await inClosedRoot(page, VIDEO_REACT_ROOT_ID, function (this: ParentNode) {
+      const active = (this.getRootNode() as ShadowRoot).activeElement as HTMLElement | null;
+      return {
+        open: !!this.querySelector('[data-kvl-episodes-popover]'),
+        trigger: active?.getAttribute('data-kvl-trigger') ?? null,
+      };
+    });
+    expect(after.open, 'Escape closed the menu').toBe(false);
+    expect(after.trigger, 'focus went to the Episodios button, not to the first button').toBe('episodes');
   } finally {
     await page.close();
   }

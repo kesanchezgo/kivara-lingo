@@ -71,30 +71,30 @@ const renderTracks = async (props: Partial<Parameters<typeof PlayerTrackPopover>
 describe('PR #172 · the audio and subtitles menu', () => {
   it('lists both track sets, badges the original audio and marks the active ones', async () => {
     await renderTracks();
-    const audio = screen.getByRole('region', { name: t('player.audio') });
-    expect(within(audio).getByRole('menuitemradio', { name: /Español/ })).toBeTruthy();
+    const audio = screen.getByRole('radiogroup', { name: t('player.audio') });
+    expect(within(audio).getByRole('radio', { name: /Español/ })).toBeTruthy();
     expect(within(audio).getByText(t('player.originalAudio'))).toBeTruthy();
-    const subs = screen.getByRole('region', { name: t('player.subtitles') });
-    expect(within(subs).getByRole('menuitemradio', { name: t('player.subtitlesOff') })).toBeTruthy();
+    const subs = screen.getByRole('radiogroup', { name: t('player.subtitles') });
+    expect(within(subs).getByRole('radio', { name: t('player.subtitlesOff') })).toBeTruthy();
     // The "off" pseudo-track is not a list entry, and image tracks cannot be read.
-    expect(within(subs).queryByRole('menuitemradio', { name: /Imagen/ })).toBeNull();
+    expect(within(subs).queryByRole('radio', { name: /Imagen/ })).toBeNull();
     // Both columns have an "English": the active one is the AUDIO row.
-    expect(within(audio).getByRole('menuitemradio', { name: /English/ }).getAttribute('aria-checked')).toBe('true');
+    expect(within(audio).getByRole('radio', { name: /English/ }).getAttribute('aria-checked')).toBe('true');
   });
 
   it('switches the audio through the bridge', async () => {
     await renderTracks();
-    const audio = screen.getByRole('region', { name: t('player.audio') });
-    fireEvent.click(within(audio).getByRole('menuitemradio', { name: /Español/ }));
+    const audio = screen.getByRole('radiogroup', { name: t('player.audio') });
+    fireEvent.click(within(audio).getByRole('radio', { name: /Español/ }));
     await act(async () => { await Promise.resolve(); });
     expect(selectAudioTrackThroughMainWorld).toHaveBeenCalledWith('A:1');
-    expect(within(audio).getByRole('menuitemradio', { name: /Español/ }).getAttribute('aria-checked')).toBe('true');
+    expect(within(audio).getByRole('radio', { name: /Español/ }).getAttribute('aria-checked')).toBe('true');
   });
 
   it('switches the subtitle by id and tells the watcher the user decided', async () => {
     const { onManualChoice } = await renderTracks();
-    const subs = screen.getByRole('region', { name: t('player.subtitles') });
-    fireEvent.click(within(subs).getByRole('menuitemradio', { name: /Español/ }));
+    const subs = screen.getByRole('radiogroup', { name: t('player.subtitles') });
+    fireEvent.click(within(subs).getByRole('radio', { name: /Español/ }));
     await act(async () => { await Promise.resolve(); });
     expect(onManualChoice, 'the automatic switch stands down').toHaveBeenCalled();
     expect(selectSubtitleTrackByIdThroughMainWorld).toHaveBeenCalledWith('T:es');
@@ -103,7 +103,7 @@ describe('PR #172 · the audio and subtitles menu', () => {
 
   it('turns the subtitles off through the Off row', async () => {
     const { onManualChoice } = await renderTracks();
-    fireEvent.click(screen.getByRole('menuitemradio', { name: t('player.subtitlesOff') }));
+    fireEvent.click(screen.getByRole('radio', { name: t('player.subtitlesOff') }));
     await act(async () => { await Promise.resolve(); });
     expect(selectSubtitleTrackByIdThroughMainWorld).toHaveBeenCalledWith(null);
     expect(onManualChoice).toHaveBeenCalled();
@@ -205,6 +205,22 @@ describe('PR #172 · the episodes menu', () => {
     fireEvent.click(screen.getByText('Uno'));
     expect(assign, 'a real episode id goes to /watch').toHaveBeenCalledWith('https://www.netflix.com/watch/1');
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('localises a season the graph did not label', () => {
+    // The extractor leaves the title empty when Falcor carries no label: the
+    // fallback is Kivara's, so it reads "Temporada 2" in Spanish and
+    // "Season 2" in English instead of a hardcoded Spanish string.
+    render(
+      <PlayerEpisodesPopover
+        catalog={{
+          currentVideoId: '80000002',
+          seasons: [{ id: '9002', number: 2, title: '', episodes: [{ id: '80000002', number: 1, title: 'Uno', current: true }] }],
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByText(t('player.seasonN', { n: 2 }))).toBeTruthy();
   });
 
   it('closes with Escape without letting the key reach the player', () => {

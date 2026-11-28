@@ -242,7 +242,8 @@ export function extractNetflixEpisodesCatalog(
       seasons.push({
         id: seasonKey,
         number: Number.isFinite(number) ? number : seasons.length + 1,
-        title: label.title ?? `Temporada ${seasons.length + 1}`,
+        // No label in the graph: the UI localises "Temporada {n}" itself.
+        title: label.title ?? '',
         episodes: episodes.sort((a, b) => a.number - b.number),
       });
     }

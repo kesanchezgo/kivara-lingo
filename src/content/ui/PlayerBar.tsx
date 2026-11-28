@@ -263,16 +263,22 @@ function TimeReadout({ duration, compact = false }: { duration: number; compact?
   const time = usePlaybackTimeMs();
   const [remaining, setRemaining] = useState(false);
   const left = Math.max(0, duration - time);
+  // WCAG 2.5.3: the accessible name CONTAINS the visible text, so dictation and
+  // voice control can name the control the user reads. The clock also keeps its
+  // "0:00 / 1:02:05" shape for the older specs.
+  const text = remaining
+    ? `${fmtTime(time)} · -${fmtTime(left)}`
+    : `${fmtTime(time)} / ${fmtTime(duration)}`;
   return (
     <button
       type="button"
       data-kvl-time-readout=""
       onClick={() => setRemaining((value) => !value)}
       title={remaining ? t('player.timeTotal') : t('player.timeLeft')}
-      aria-label={`${remaining ? t('player.timeTotal') : t('player.timeLeft')} ${fmtTime(time)}`}
+      aria-label={`${text} · ${remaining ? t('player.timeTotal') : t('player.timeLeft')}`}
       className={`${compact ? '' : 'px-1'} text-[13px] font-medium tabular-nums whitespace-nowrap text-zinc-200 hover:text-white kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 rounded-md`}
     >
-      {remaining ? `${fmtTime(time)} · -${fmtTime(left)}` : `${fmtTime(time)} / ${fmtTime(duration)}`}
+      {text}
     </button>
   );
 }
@@ -537,13 +543,47 @@ export function PlayerBar({
   const openPopoverRef = useRef<'tracks' | 'episodes' | null>(null);
   openPopoverRef.current = openPopover;
   const episodes = useNativeControl('[data-uia="control-episodes"]');
+  // How much room is there REALLY above the tray? The tray's own height (~86px)
+  // said nothing about the player: every menu was clamped to its 180px floor on
+  // any screen. Measured from the tray's top edge up to the box it is positioned
+  // in, and re-measured on resize.
+  const [availableAbovePx, setAvailableAbovePx] = useState(360);
+  const measureAvailableAbove = useCallback(() => {
+    const barRect = barRef.current?.getBoundingClientRect();
+    const rootRect = (barRef.current?.offsetParent as HTMLElement | null)?.getBoundingClientRect();
+    setAvailableAbovePx(
+      barRect && rootRect && barRect.top > rootRect.top
+        ? Math.round(barRect.top - rootRect.top - 24)
+        : 360,
+    );
+  }, []);
+  useEffect(() => {
+    if (openPopover === null) return;
+    measureAvailableAbove();
+    window.addEventListener('resize', measureAvailableAbove);
+    return () => window.removeEventListener('resize', measureAvailableAbove);
+  }, [openPopover, measureAvailableAbove]);
+  // The catalog belongs to the VIDEO, and the graph may hydrate late: it is
+  // re-read on every video change and once more when the user reaches for the
+  // menu with nothing cached.
+  const refreshCatalog = useCallback(async (): Promise<NetflixEpisodesCatalog | null> => {
+    try {
+      const next = await listEpisodesThroughMainWorld();
+      setCatalog(next);
+      return next;
+    } catch {
+      setCatalog(null);
+      return null;
+    }
+  }, []);
   useEffect(() => {
     let cancelled = false;
-    void listEpisodesThroughMainWorld()
-      .then((next) => { if (!cancelled) setCatalog(next); })
-      .catch(() => { if (!cancelled) setCatalog(null); });
+    void refreshCatalog().then((next) => {
+      if (cancelled) return;
+      setCatalog(next);
+    });
     return () => { cancelled = true; };
-  }, []);
+  }, [refreshCatalog, video]);
   // The tray holds still while a menu is open, and any interruption (a capture,
   // a native popup) closes it: its anchors move under those conditions.
   useEffect(() => {
@@ -565,8 +605,13 @@ export function PlayerBar({
       // Escape closes the MENU, not fullscreen: consume it before the player.
       event.preventDefault();
       event.stopPropagation();
+      const closing = openPopover;
       close();
-      menuAnchorRef.current?.querySelector<HTMLElement>('button')?.focus();
+      // Focus goes back to the button that OPENED the menu, not to whichever
+      // button happens to be first in the strip.
+      menuAnchorRef.current
+        ?.querySelector<HTMLElement>(`[data-kvl-trigger="${closing}"]`)
+        ?.focus();
     };
     // Two listeners, because a CLOSED root hides its inner nodes from a
     // page-side event: `composedPath` stops at the host, so a page-level check
@@ -714,6 +759,7 @@ ${withCombo(t('player.holdSlower'), combo('replaySlow'))}`} aria-label={t('short
         <div className="justify-self-end flex items-center gap-1.5">
           <div ref={menuAnchorRef} className="relative flex items-center gap-1.5">
             <button type="button"
+              data-kvl-trigger="tracks"
               onClick={() => setOpenPopover((open) => (open === 'tracks' ? null : 'tracks'))}
               aria-label={t('player.netflixSubtitles')} title={t('player.netflixSubtitles')}
               aria-haspopup="dialog" aria-expanded={openPopover === 'tracks'}
@@ -726,12 +772,18 @@ ${withCombo(t('player.holdSlower'), combo('replaySlow'))}`} aria-label={t('short
             </button>
             {(episodes || (catalog?.seasons.length ?? 0) > 0) && (
               <button type="button"
+                data-kvl-trigger="episodes"
                 onClick={() => {
                   if ((catalog?.seasons.length ?? 0) > 0) {
                     setOpenPopover((open) => (open === 'episodes' ? null : 'episodes'));
                     return;
                   }
-                  nativeClick('[data-uia="control-episodes"]', onWakeNative);
+                  // The graph can hydrate after the mount: one more look before
+                  // handing the user to the site's own menu.
+                  void refreshCatalog().then((next) => {
+                    if ((next?.seasons.length ?? 0) > 0) setOpenPopover('episodes');
+                    else nativeClick('[data-uia="control-episodes"]', onWakeNative);
+                  });
                 }}
                 aria-label={t('player.episodes')} title={t('player.episodes')}
                 aria-haspopup="dialog" aria-expanded={openPopover === 'episodes'} className={SMALL}>
@@ -743,14 +795,14 @@ ${withCombo(t('player.holdSlower'), combo('replaySlow'))}`} aria-label={t('short
                 onClose={() => setOpenPopover(null)}
                 onManualChoice={onManualSubtitleChoice}
                 onFallbackNative={() => nativeClick('[data-uia="control-audio-subtitle"]', onWakeNative)}
-                availableAbovePx={Math.max(180, height + 12)}
+                availableAbovePx={availableAbovePx}
               />
             )}
             {openPopover === 'episodes' && catalog && catalog.seasons.length > 0 && (
               <PlayerEpisodesPopover
                 catalog={catalog}
                 onClose={() => setOpenPopover(null)}
-                availableAbovePx={Math.max(180, height + 12)}
+                availableAbovePx={availableAbovePx}
               />
             )}
           </div>

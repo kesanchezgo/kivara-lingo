@@ -249,7 +249,13 @@ export function createNetflixAdapter(): SubtitleSource {
   return {
     ...adapter,
     // PR #172: a track chosen in OUR menu must survive the automatic switch.
-    markManualSubtitleChoice: () => trackWatcher.markManualChoice(),
+    markManualSubtitleChoice: () => {
+      // Two sides of the same decision: the watcher stops switching for this
+      // episode, and the adapter adopts the track that arrives next even if it
+      // is not in the learning language.
+      adapter.markManualTrack?.();
+      trackWatcher.markManualChoice();
+    },
     destroy() {
       trackWatcher.stop();
       adapter.destroy?.();

@@ -59,10 +59,10 @@ export function PlayerEpisodesPopover({ catalog, onClose, availableAbovePx }: Pl
       aria-modal="false"
       aria-label={t('player.episodes')}
       onKeyDownCapture={onKeyDown}
-      className="absolute bottom-full right-0 mb-3 w-[min(392px,calc(100vw-32px))] rounded-2xl bg-zinc-950/95 backdrop-blur-xl ring-1 ring-white/[0.1] shadow-[0_20px_48px_-12px_rgba(0,0,0,0.85)] text-zinc-100 overflow-hidden pointer-events-auto"
-      style={{ maxHeight: `min(340px, max(180px, ${availableAbovePx ?? 340}px))` }}
+      className="absolute bottom-full right-0 mb-3 w-[min(392px,calc(100vw-32px))] flex flex-col rounded-2xl bg-zinc-950/95 backdrop-blur-xl ring-1 ring-white/[0.1] shadow-[0_20px_48px_-12px_rgba(0,0,0,0.85)] text-zinc-100 overflow-hidden pointer-events-auto"
+      style={{ maxHeight: `min(380px, max(180px, ${availableAbovePx ?? 380}px))` }}
     >
-      <header className="flex items-center justify-between gap-2 border-b border-white/[0.06] px-3 py-2">
+      <header className="shrink-0 flex items-center justify-between gap-2 border-b border-white/[0.06] px-3 py-2">
         {catalog.seasons.length > 1 ? (
           <div
             role="radiogroup"
@@ -101,7 +101,7 @@ export function PlayerEpisodesPopover({ catalog, onClose, availableAbovePx }: Pl
         </button>
       </header>
 
-      <ul className="kvl-popover-scroll overflow-y-auto py-1">
+      <ul className="kvl-popover-scroll min-h-0 flex-1 overflow-y-auto py-1">
         {(season?.episodes ?? []).map((episode) => (
           <li key={episode.id}>
             <button

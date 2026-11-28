@@ -106,8 +106,8 @@ export function PlayerTrackPopover({
       aria-modal="false"
       aria-label={t('player.audioAndSubtitles')}
       onKeyDownCapture={onKeyDown}
-      className="absolute bottom-full right-0 mb-3 w-[min(392px,calc(100vw-32px))] rounded-2xl bg-zinc-950/95 backdrop-blur-xl ring-1 ring-white/[0.1] shadow-[0_20px_48px_-12px_rgba(0,0,0,0.85)] text-zinc-100 overflow-hidden pointer-events-auto"
-      style={{ maxHeight: `min(340px, max(180px, ${availableAbovePx ?? 340}px))` }}
+      className="absolute bottom-full right-0 mb-3 w-[min(392px,calc(100vw-32px))] flex flex-col rounded-2xl bg-zinc-950/95 backdrop-blur-xl ring-1 ring-white/[0.1] shadow-[0_20px_48px_-12px_rgba(0,0,0,0.85)] text-zinc-100 overflow-hidden pointer-events-auto"
+      style={{ maxHeight: `min(380px, max(180px, ${availableAbovePx ?? 380}px))` }}
     >
       {empty ? (
         <div className="px-3.5 py-4 flex flex-col gap-3">
@@ -123,9 +123,11 @@ export function PlayerTrackPopover({
           )}
         </div>
       ) : (
-        <div className="kvl-popover-scroll grid grid-cols-2 divide-x divide-white/[0.06] overflow-y-auto">
+        <div className="kvl-popover-scroll min-h-0 flex-1 grid grid-cols-2 divide-x divide-white/[0.06] overflow-y-auto">
           {/* ── Audio ─────────────────────────────────────────────────── */}
-          <section className="px-2 py-2" aria-label={t('player.audio')}>
+          {/* Radio rows need a radiogroup PARENT: inside a plain section
+              axe reports aria-required-parent on every row. */}
+          <div role="radiogroup" className="px-2 py-2" aria-label={t('player.audio')}>
             <p className="px-1.5 pb-1 flex items-center gap-1.5 text-[11px] font-medium text-zinc-400">
               <Volume2 size={12} /> {t('player.audio')}
             </p>
@@ -135,7 +137,7 @@ export function PlayerTrackPopover({
                 <button
                   key={track.trackId}
                   type="button"
-                  role="menuitemradio"
+                  role="radio"
                   aria-checked={active}
                   onClick={() => chooseAudio(track)}
                   className={`w-full h-8 px-1.5 rounded-lg flex items-center gap-1.5 text-left text-[13px] kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${
@@ -149,16 +151,16 @@ export function PlayerTrackPopover({
                 </button>
               );
             })}
-          </section>
+          </div>
 
           {/* ── Subtitles ─────────────────────────────────────────────── */}
-          <section className="px-2 py-2" aria-label={t('player.subtitles')}>
+          <div role="radiogroup" className="px-2 py-2" aria-label={t('player.subtitles')}>
             <p className="px-1.5 pb-1 flex items-center gap-1.5 text-[11px] font-medium text-zinc-400">
               <Languages size={12} /> {t('player.subtitles')}
             </p>
             <button
               type="button"
-              role="menuitemradio"
+              role="radio"
               aria-checked={subtitleCurrent === null}
               onClick={() => chooseSubtitle(null)}
               className={`w-full h-8 px-1.5 rounded-lg flex items-center gap-1.5 text-left text-[13px] kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${
@@ -175,7 +177,7 @@ export function PlayerTrackPopover({
                 <button
                   key={track.trackId}
                   type="button"
-                  role="menuitemradio"
+                  role="radio"
                   aria-checked={active}
                   onClick={() => chooseSubtitle(track.trackId ?? null)}
                   className={`w-full h-8 px-1.5 rounded-lg flex items-center gap-1.5 text-left text-[13px] kvl-press outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${
@@ -188,12 +190,12 @@ export function PlayerTrackPopover({
                 </button>
               );
             })}
-          </section>
+          </div>
         </div>
       )}
 
       {/* ── Fixed footer: what Kivara does with the subtitles it reads ──── */}
-      <div className="border-t border-white/[0.06] px-3.5 py-2.5 flex items-center justify-between gap-3">
+      <div className="shrink-0 border-t border-white/[0.06] px-3.5 py-2.5 flex items-center justify-between gap-3">
         <span className="text-[11px] font-medium text-zinc-400">{t('tr.title')}</span>
         <div
           role="radiogroup"

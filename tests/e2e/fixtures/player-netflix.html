@@ -49,9 +49,16 @@
       // `__kivaraAudioSwitch` records HOW the switch arrived — a track OBJECT
       // (modern Cadmium) or its id — because both must work.
       window.__kivaraAudioSwitch = [];
+      // Seven dubs: the tray's audio column then needs REAL scrolling, which is
+      // what the geometry case measures at 1280x720.
       window.__kivaraAudioTracks = [
         { trackId: 'A:es', bcp47: 'es', displayName: 'Español', trackType: 'DUB', isNative: true, channels: '2.0' },
         { trackId: 'A:en', bcp47: 'en', displayName: 'English', trackType: 'DUB', isNative: false },
+        { trackId: 'A:pt', bcp47: 'pt', displayName: 'Português', trackType: 'DUB', isNative: false },
+        { trackId: 'A:fr', bcp47: 'fr', displayName: 'Français', trackType: 'DUB', isNative: false },
+        { trackId: 'A:de', bcp47: 'de', displayName: 'Deutsch', trackType: 'DUB', isNative: false },
+        { trackId: 'A:it', bcp47: 'it', displayName: 'Italiano', trackType: 'DUB', isNative: false },
+        { trackId: 'A:ja', bcp47: 'ja', displayName: '日本語', trackType: 'DUB', isNative: false },
       ];
       let currentAudio = window.__kivaraAudioTracks[0];
       let currentSubtitle = window.__kivaraSubtitleTracks[0];
@@ -106,21 +113,38 @@
       // series plus a stranger's episode, so the extractor has to pick the
       // series of the video being played.
       const atom = (value) => ({ $type: 'atom', value });
+      const episode = (id, title, seasonId, number, runtime, synopsis) => ({
+        summary: atom({
+          id: Number(id), type: 'episode', title: title, seasonId: seasonId,
+          seriesId: 7000, episodeNumber: number, runtime: runtime,
+          ...(synopsis ? { synopsis: synopsis } : {}),
+        }),
+      });
       window.netflix_falcor = {
         videos: {
-          '80000001': { summary: atom({ id: 80000001, type: 'episode', title: 'Chapter One', seasonId: 9001, seriesId: 7000, episodeNumber: 1, runtime: 2820 }) },
-          '80000002': { summary: atom({ id: 80000002, type: 'episode', title: 'Chapter Two', seasonId: 9001, seriesId: 7000, episodeNumber: 2, runtime: 2940, synopsis: 'Una sinopsis para la segunda.' }) },
-          '80000003': { summary: atom({ id: 80000003, type: 'episode', title: 'Chapter Three', seasonId: 9002, seriesId: 7000, episodeNumber: 1, runtime: 3300 }) },
-          '99999999': { summary: atom({ id: 99999999, type: 'episode', title: 'Otra serie', seasonId: 8001, seriesId: 1234, episodeNumber: 1 }) },
+          // EIGHT episodes in the season of the video being played: the list has
+          // to scroll, and the last one has to be reachable.
+          '80000001': episode('80000001', 'Chapter One', 9001, 1, 2820),
+          '80000002': episode('80000002', 'Chapter Two', 9001, 2, 2940, 'Una sinopsis para la segunda.'),
+          '80000003': episode('80000003', 'Chapter Three', 9001, 3, 3300),
+          '80000004': episode('80000004', 'Chapter Four', 9001, 4, 2760),
+          '80000005': episode('80000005', 'Chapter Five', 9001, 5, 3010),
+          '80000006': episode('80000006', 'Chapter Six', 9001, 6, 2880),
+          '80000007': episode('80000007', 'Chapter Seven', 9001, 7, 3120),
+          '80000008': episode('80000008', 'Chapter Eight', 9001, 8, 2950),
+          // A second season, and a stranger's episode the extractor must ignore.
+          '80000011': episode('80000011', 'Chapter Nine', 9002, 1, 3300),
+          '80000012': episode('80000012', 'Chapter Ten', 9002, 2, 3180),
+          '99999999': episode('99999999', 'Otra serie', 8001, 1, 1800),
         },
+        // No titles in the graph on purpose: the picker localises
+        // "Temporada {n}" itself, in Spanish and in English.
         seasons: {
-          '9001': { summary: atom({ id: 9001, title: 'Temporada 1', seq: 1 }) },
-          '9002': { summary: atom({ id: 9002, title: 'Temporada 2', seq: 2 }) },
+          '9001': { summary: atom({ id: 9001, seq: 1 }) },
+          '9002': { summary: atom({ id: 9002, seq: 2 }) },
         },
       };
 
-      // `window.netflix` is assigned before this block, so the cache is attached
-      // now that the graph exists (the interceptor reads it live).
       window.netflix.falcorCache = window.netflix_falcor;
 
       const canvas = document.createElement('canvas');

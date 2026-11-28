@@ -147,4 +147,10 @@ export interface SubtitleSource {
    * made is not a state the app may correct.
    */
   markManualSubtitleChoice?(): void;
+
+  /**
+   * PR #172: the track the user picked by hand is the one arriving next, so it
+   * is adopted even when it is not in the learning language.
+   */
+  markManualTrack?(): void;
 }
